@@ -2,6 +2,10 @@
 
 > **"From Engineering Skeleton to Evolutionary Intelligence."**
 
+---
+📑 **[PFIOS Master Manual & Specification](./docs/PFIOS_MASTER_MANUAL.md)** (系统总说明书 / 当前状态 / 演化路线图)
+---
+
 PFIOS (Personal Financial Intelligence Operating System) 是一个围绕个人金融判断、风险控制、建议跟踪、复盘沉淀、知识积累而构建的智能操作系统。
 
 ## 1. 系统核心定位
