@@ -1,0 +1,36 @@
+{
+  "run_id": "2026-04-17_run_011944",
+  "timestamp": "2026-04-17T01:19:44.808720",
+  "provider": "mock",
+  "dataset": "core",
+  "cases": [
+    {
+      "case_id": "btc_mixed_signals_01",
+      "status": "failed",
+      "error": "'RiskEngine' object has no attribute 'evaluate'"
+    },
+    {
+      "case_id": "btc_trend_breakout_01",
+      "status": "failed",
+      "error": "'RiskEngine' object has no attribute 'evaluate'"
+    },
+    {
+      "case_id": "high_exposure_risk_01",
+      "status": "failed",
+      "error": "'RiskEngine' object has no attribute 'evaluate'"
+    },
+    {
+      "case_id": "insufficient_data_01",
+      "status": "failed",
+      "error": "'RiskEngine' object has no attribute 'evaluate'"
+    }
+  ],
+  "summary": {
+    "total_cases": 4,
+    "passed_cases": 0,
+    "failed_cases": 4,
+    "avg_total_score": 0,
+    "parse_failure_rate": 1.0,
+    "aggressive_action_rate": 0
+  }
+}

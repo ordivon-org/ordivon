@@ -1,0 +1,21 @@
+{
+  "example_description": "高风险规避案例：标的存在潜在监管风险或技术崩溃风险。",
+  "thesis": {
+    "summary": "项目方近期深陷负面传闻，技术图表跌破长期趋势线且无放量护盘现象，风险极高。",
+    "key_findings": ["破位下跌", "基本面严重恶化", "流动性枯竭"],
+    "evidence_for": [],
+    "evidence_against": ["跌破 200 日均线", "SEC 潜在调查传闻", "开发者资金库异动"],
+    "confidence": 0.95,
+    "timeframe": "imminent",
+    "sentiment_score": 1.0
+  },
+  "action_plan": {
+    "action": "avoid",
+    "position_size_pct": 0.0,
+    "stop_loss": null,
+    "take_profit": null,
+    "invalidation_condition": "彻底出清负面消息且价格收回趋势线上方"
+  },
+  "risk_flags": ["REGULATORY_RISK", "TREND_BREAKDOWN", "PROJECT_FAILURE"],
+  "next_steps": ["绝不入场", "若有持仓应立即清空"]
+}

@@ -1,0 +1,21 @@
+{
+  "example_description": "正常成功分析：多头趋势确认，证据充分且平衡。",
+  "thesis": {
+    "summary": "BTC 呈现强劲的多头突破态势，成交量配合良好，短期支撑位有效。",
+    "key_findings": ["1小时线突破阻力位", "买盘资金显著流入"],
+    "evidence_for": ["均线呈多头排列", "RSI 仍处于强势区且未见顶背离"],
+    "evidence_against": ["宏观面美联储会议在即，可能带来短期波动"],
+    "confidence": 0.85,
+    "timeframe": "24h",
+    "sentiment_score": 8.0
+  },
+  "action_plan": {
+    "action": "accumulate",
+    "position_size_pct": 10.0,
+    "stop_loss": 62500.0,
+    "take_profit": 68000.0,
+    "invalidation_condition": "收盘价跌破 62000 关键支撑"
+  },
+  "risk_flags": ["MACRO_EVENT_RISK"],
+  "next_steps": ["分批入场", "关注 68000 压力位表现"]
+}

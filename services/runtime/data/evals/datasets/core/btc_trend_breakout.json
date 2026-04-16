@@ -1,0 +1,48 @@
+{
+  "case_id": "btc_trend_breakout_01",
+  "category": "core",
+  "description": "BTC 强劲放量突破 65000 关键阻力位，多头支撑充足。",
+  "input": {
+    "query_context": {
+      "user_query": "BTC 突破了 65000，成交量很大，可以追涨吗？",
+      "symbols": ["BTC/USDT"],
+      "timeframe": "1h",
+      "analysis_goal": "breakout_validation",
+      "workflow": "analyze_and_suggest"
+    },
+    "market_context": {
+      "price_summary": "Price: 65200, Volume: 500M (24h)",
+      "ohlcv_features": {
+        "trend_bias": "bullish",
+        "volatility_regime": "stable",
+        "volume_pattern": "expanding"
+      },
+      "regime_hint": "trending",
+      "event_context": ["No major macro events in next 12h"],
+      "recent_observations": ["Multiple buy orders at 65000 support"]
+    },
+    "portfolio_context": {
+      "has_existing_exposure": false,
+      "related_positions": [],
+      "portfolio_risk_state": "normal",
+      "exposure_hint": "Fresh opportunity"
+    },
+    "memory_context": {
+      "similar_case_summary": "Similar breakout in March led to 5% gain.",
+      "recent_relevant_failure": null,
+      "most_relevant_rule_of_thumb": "Volume confirms the breakout."
+    },
+    "governance_hint": {
+      "analysis_discipline": ["Strictly follow balanced evidence"],
+      "action_bias_hint": "Be aggressive only if volume confirms",
+      "forbidden_behaviors": ["Chasing without volume"]
+    }
+  },
+  "expected_profile": {
+    "expected_action_family": ["accumulate"],
+    "min_counter_evidence_count": 1,
+    "max_confidence": 0.9,
+    "must_include_risk_flags": true
+  },
+  "tags": ["btc", "bullish", "breakout"]
+}

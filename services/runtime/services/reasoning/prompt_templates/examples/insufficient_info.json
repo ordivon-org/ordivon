@@ -1,0 +1,21 @@
+{
+  "example_description": "信息不足案例：标的处于极低流动性或数据缺失状态，建议低置信度观察。",
+  "thesis": {
+    "summary": "当前标的价格波动呈现随机性且无成交量支持，行情处于某种异常停滞状态，无法形成有效判断。",
+    "key_findings": ["成交量严重缺失", "价格数据延迟"],
+    "evidence_for": [],
+    "evidence_against": ["数据不完整性风险"],
+    "confidence": 0.2,
+    "timeframe": null,
+    "sentiment_score": 5.0
+  },
+  "action_plan": {
+    "action": "observe",
+    "position_size_pct": 0.0,
+    "stop_loss": null,
+    "take_profit": null,
+    "invalidation_condition": "待数据恢复完整且市场流动性回归后再行研判"
+  },
+  "risk_flags": ["DATA_INSUFFICIENCY"],
+  "next_steps": ["检查数据源状况", "耐心等待行情活性出现"]
+}

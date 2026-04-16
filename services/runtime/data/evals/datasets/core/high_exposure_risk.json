@@ -1,0 +1,48 @@
+{
+  "case_id": "high_exposure_risk_01",
+  "category": "core",
+  "description": "组合已有高度风险暴露，市场出现走弱信号。",
+  "input": {
+    "query_context": {
+      "user_query": "ETH 看起来要跌了，我该怎么办？",
+      "symbols": ["ETH/USDT"],
+      "timeframe": "4h",
+      "analysis_goal": "risk_management",
+      "workflow": "analyze_and_suggest"
+    },
+    "market_context": {
+      "price_summary": "Price: 3200, dropping from 3500.",
+      "ohlcv_features": {
+        "trend_bias": "bearish",
+        "volatility_regime": "high",
+        "volume_pattern": "spiking_sell"
+      },
+      "regime_hint": "sell_off",
+      "event_context": ["Mainnet upgrade delayed"],
+      "recent_observations": ["Twitter sentiment negative"]
+    },
+    "portfolio_context": {
+      "has_existing_exposure": true,
+      "related_positions": [{"symbol": "ETH/USDT", "side": "long", "contracts": 10, "entry_price": 3400}],
+      "portfolio_risk_state": "critical",
+      "exposure_hint": "80% portfolio in ETH"
+    },
+    "memory_context": {
+      "similar_case_summary": "Previous deleveraging at 3100 saved 20% equity.",
+      "recent_relevant_failure": "Holding forever during last crash led to -40% draw-down.",
+      "most_relevant_rule_of_thumb": "Risk management first, profit second."
+    },
+    "governance_hint": {
+      "analysis_discipline": ["Prioritize survival in high exposure scenarios"],
+      "action_bias_hint": "Prefer reducing exposure",
+      "forbidden_behaviors": ["Averaging down in a crash"]
+    }
+  },
+  "expected_profile": {
+    "expected_action_family": ["reduce", "exit"],
+    "min_counter_evidence_count": 0,
+    "max_confidence": 0.95,
+    "must_include_risk_flags": true
+  },
+  "tags": ["eth", "risk_management", "high_exposure"]
+}

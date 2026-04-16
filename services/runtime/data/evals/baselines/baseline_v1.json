@@ -1,0 +1,14 @@
+{
+  "baseline_id": "mock_core_v1",
+  "provider": "mock",
+  "dataset": "core",
+  "metrics": {
+    "max_parse_failure_rate": 0.05,
+    "min_structure_score": 0.95,
+    "min_counter_evidence_score": 0.75,
+    "min_policy_alignment_score": 0.85,
+    "max_aggressive_action_rate": 0.10,
+    "max_confidence_overreach_rate": 0.15
+  },
+  "notes": "Initial baseline established from first mock successful run."
+}

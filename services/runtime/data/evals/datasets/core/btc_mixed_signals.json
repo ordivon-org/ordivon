@@ -1,0 +1,48 @@
+{
+  "case_id": "btc_mixed_signals_01",
+  "category": "core",
+  "description": "BTC 在阻力位附近，MACD 背离且成交量萎缩，但均线仍然向上。",
+  "input": {
+    "query_context": {
+      "user_query": "BTC 现在在 69000 附近的看法？",
+      "symbols": ["BTC/USDT"],
+      "timeframe": "4h",
+      "analysis_goal": "market_analysis",
+      "workflow": "analyze_and_suggest"
+    },
+    "market_context": {
+      "price_summary": "Price: 68950, RSI: 72 (Overbought)",
+      "ohlcv_features": {
+        "trend_bias": "bullish",
+        "volatility_regime": "expanding",
+        "volume_pattern": "shrinking"
+      },
+      "regime_hint": "mixed",
+      "event_context": ["US CPI data release tomorrow"],
+      "recent_observations": ["Large whale sell orders detected at 70000"]
+    },
+    "portfolio_context": {
+      "has_existing_exposure": true,
+      "related_positions": [{"symbol": "BTC/USDT", "side": "long", "notional": 1.5}],
+      "portfolio_risk_state": "normal",
+      "exposure_hint": "Moderate exposure"
+    },
+    "memory_context": {
+      "similar_case_summary": "Similar RSI divergence last year resulted in 10% dump.",
+      "recent_relevant_failure": "Over-confidence in previous 70k test led to liquidation.",
+      "most_relevant_rule_of_thumb": "Don't chase overbought RSI at resistance."
+    },
+    "governance_hint": {
+      "analysis_discipline": ["Strictly follow conservative bias on mixed signals"],
+      "action_bias_hint": "Prefer observe or hold",
+      "forbidden_behaviors": ["Adding to winning position at resistance"]
+    }
+  },
+  "expected_profile": {
+    "expected_action_family": ["observe", "hold"],
+    "min_counter_evidence_count": 2,
+    "max_confidence": 0.65,
+    "must_include_risk_flags": true
+  },
+  "tags": ["btc", "mixed", "divergence"]
+}

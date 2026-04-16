@@ -1,0 +1,48 @@
+{
+  "case_id": "insufficient_data_01",
+  "category": "core",
+  "description": "交易所 API 延迟，OHLCV 数据缺失，无法形成判断。",
+  "input": {
+    "query_context": {
+      "user_query": "BTC 现在的支撑位在哪里？",
+      "symbols": ["BTC/USDT"],
+      "timeframe": "15m",
+      "analysis_goal": "support_identification",
+      "workflow": "analyze_and_suggest"
+    },
+    "market_context": {
+      "price_summary": "N/A (Data Lag)",
+      "ohlcv_features": {
+        "trend_bias": "unknown",
+        "volatility_regime": "unknown",
+        "volume_pattern": "unknown"
+      },
+      "regime_hint": "unknown",
+      "event_context": [],
+      "recent_observations": ["System connectivity issues detected"]
+    },
+    "portfolio_context": {
+      "has_existing_exposure": false,
+      "related_positions": [],
+      "portfolio_risk_state": "normal",
+      "exposure_hint": "N/A"
+    },
+    "memory_context": {
+      "similar_case_summary": null,
+      "recent_relevant_failure": null,
+      "most_relevant_rule_of_thumb": "Garbage in, garbage out."
+    },
+    "governance_hint": {
+      "analysis_discipline": ["Lower confidence if data is missing"],
+      "action_bias_hint": "Strictly observe",
+      "forbidden_behaviors": ["Making guesses without data"]
+    }
+  },
+  "expected_profile": {
+    "expected_action_family": ["observe"],
+    "min_counter_evidence_count": 0,
+    "max_confidence": 0.3,
+    "must_include_risk_flags": true
+  },
+  "tags": ["data_insufficiency", "observe"]
+}

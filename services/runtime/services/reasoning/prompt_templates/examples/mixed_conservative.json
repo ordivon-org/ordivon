@@ -1,0 +1,21 @@
+{
+  "example_description": "证据冲突案例：上涨动能减弱且面临重大抛压，建议保守观察。",
+  "thesis": {
+    "summary": "价格虽创小新高，但成交量严重背离，且正处于长期交易密集区阻力位置。",
+    "key_findings": ["量价背离显著", "RSI 处于超买区并开始掉头"],
+    "evidence_for": ["当前价格仍处于上升通道内"],
+    "evidence_against": ["15分钟级别出现多头衰竭信号", "上方 70000 美元存在巨额挂单抛压"],
+    "confidence": 0.55,
+    "timeframe": "4h",
+    "sentiment_score": 5.0
+  },
+  "action_plan": {
+    "action": "hold",
+    "position_size_pct": 0.0,
+    "stop_loss": 65000.0,
+    "take_profit": null,
+    "invalidation_condition": "若放量突破 71000 则逻辑失效"
+  },
+  "risk_flags": ["BEARISH_DIVERGENCE", "RESISTANCE_REJECTION"],
+  "next_steps": ["暂不加仓", "等待放量回调后的支撑验证"]
+}

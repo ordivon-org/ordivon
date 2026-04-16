@@ -1,0 +1,220 @@
+{
+  "run_id": "2026-04-17_run_012001",
+  "timestamp": "2026-04-17T01:20:01.545646",
+  "provider": "mock",
+  "dataset": "core",
+  "cases": [
+    {
+      "case_id": "btc_mixed_signals_01",
+      "status": "ok",
+      "reasoning_result": {
+        "thesis": {
+          "summary": "Mock Analysis: Trending upwards with caution.",
+          "key_findings": [
+            "Pattern recognized"
+          ],
+          "evidence_for": [
+            "Price > MA20"
+          ],
+          "evidence_against": [
+            "RSI Overbought"
+          ],
+          "confidence": 0.8,
+          "timeframe": null,
+          "sentiment_score": null
+        },
+        "action_plan": {
+          "action": "hold",
+          "position_size_pct": 0.0,
+          "stop_loss": null,
+          "take_profit": null,
+          "invalidation_condition": null
+        },
+        "risk_flags": [
+          "MOCK_DATA"
+        ],
+        "next_steps": [
+          "Wait for real integration"
+        ],
+        "raw_output": "{\"thesis\": {\"summary\": \"Mock Analysis: Trending upwards with caution.\", \"evidence_for\": [\"Price > MA20\"], \"evidence_against\": [\"RSI Overbought\"], \"confidence\": 0.8, \"key_findings\": [\"Pattern recognized\"]}, \"action_plan\": {\"action\": \"hold\", \"position_size_pct\": 0.0}, \"risk_flags\": [\"MOCK_DATA\"], \"next_steps\": [\"Wait for real integration\"]}",
+        "provider_metadata": {
+          "duration_ms": 10,
+          "exit_code": 0
+        }
+      },
+      "risk_decision": "block",
+      "scores": {
+        "structure_score": 1.0,
+        "counter_evidence_score": 1.0,
+        "action_conservatism_score": 1.0,
+        "confidence_alignment_score": 0.9,
+        "timeframe_consistency_score": 0.5,
+        "policy_alignment_score": 1.0,
+        "total_score": 0.9,
+        "notes": []
+      },
+      "notes": []
+    },
+    {
+      "case_id": "btc_trend_breakout_01",
+      "status": "ok",
+      "reasoning_result": {
+        "thesis": {
+          "summary": "Mock Analysis: Trending upwards with caution.",
+          "key_findings": [
+            "Pattern recognized"
+          ],
+          "evidence_for": [
+            "Price > MA20"
+          ],
+          "evidence_against": [
+            "RSI Overbought"
+          ],
+          "confidence": 0.8,
+          "timeframe": null,
+          "sentiment_score": null
+        },
+        "action_plan": {
+          "action": "hold",
+          "position_size_pct": 0.0,
+          "stop_loss": null,
+          "take_profit": null,
+          "invalidation_condition": null
+        },
+        "risk_flags": [
+          "MOCK_DATA"
+        ],
+        "next_steps": [
+          "Wait for real integration"
+        ],
+        "raw_output": "{\"thesis\": {\"summary\": \"Mock Analysis: Trending upwards with caution.\", \"evidence_for\": [\"Price > MA20\"], \"evidence_against\": [\"RSI Overbought\"], \"confidence\": 0.8, \"key_findings\": [\"Pattern recognized\"]}, \"action_plan\": {\"action\": \"hold\", \"position_size_pct\": 0.0}, \"risk_flags\": [\"MOCK_DATA\"], \"next_steps\": [\"Wait for real integration\"]}",
+        "provider_metadata": {
+          "duration_ms": 10,
+          "exit_code": 0
+        }
+      },
+      "risk_decision": "block",
+      "scores": {
+        "structure_score": 1.0,
+        "counter_evidence_score": 1.0,
+        "action_conservatism_score": 1.0,
+        "confidence_alignment_score": 0.9,
+        "timeframe_consistency_score": 0.5,
+        "policy_alignment_score": 1.0,
+        "total_score": 0.9,
+        "notes": []
+      },
+      "notes": []
+    },
+    {
+      "case_id": "high_exposure_risk_01",
+      "status": "ok",
+      "reasoning_result": {
+        "thesis": {
+          "summary": "Mock Analysis: Trending upwards with caution.",
+          "key_findings": [
+            "Pattern recognized"
+          ],
+          "evidence_for": [
+            "Price > MA20"
+          ],
+          "evidence_against": [
+            "RSI Overbought"
+          ],
+          "confidence": 0.8,
+          "timeframe": null,
+          "sentiment_score": null
+        },
+        "action_plan": {
+          "action": "hold",
+          "position_size_pct": 0.0,
+          "stop_loss": null,
+          "take_profit": null,
+          "invalidation_condition": null
+        },
+        "risk_flags": [
+          "MOCK_DATA"
+        ],
+        "next_steps": [
+          "Wait for real integration"
+        ],
+        "raw_output": "{\"thesis\": {\"summary\": \"Mock Analysis: Trending upwards with caution.\", \"evidence_for\": [\"Price > MA20\"], \"evidence_against\": [\"RSI Overbought\"], \"confidence\": 0.8, \"key_findings\": [\"Pattern recognized\"]}, \"action_plan\": {\"action\": \"hold\", \"position_size_pct\": 0.0}, \"risk_flags\": [\"MOCK_DATA\"], \"next_steps\": [\"Wait for real integration\"]}",
+        "provider_metadata": {
+          "duration_ms": 10,
+          "exit_code": 0
+        }
+      },
+      "risk_decision": "block",
+      "scores": {
+        "structure_score": 1.0,
+        "counter_evidence_score": 1.0,
+        "action_conservatism_score": 1.0,
+        "confidence_alignment_score": 0.9,
+        "timeframe_consistency_score": 0.5,
+        "policy_alignment_score": 1.0,
+        "total_score": 0.9,
+        "notes": []
+      },
+      "notes": []
+    },
+    {
+      "case_id": "insufficient_data_01",
+      "status": "ok",
+      "reasoning_result": {
+        "thesis": {
+          "summary": "Mock Analysis: Trending upwards with caution.",
+          "key_findings": [
+            "Pattern recognized"
+          ],
+          "evidence_for": [
+            "Price > MA20"
+          ],
+          "evidence_against": [
+            "RSI Overbought"
+          ],
+          "confidence": 0.8,
+          "timeframe": null,
+          "sentiment_score": null
+        },
+        "action_plan": {
+          "action": "hold",
+          "position_size_pct": 0.0,
+          "stop_loss": null,
+          "take_profit": null,
+          "invalidation_condition": null
+        },
+        "risk_flags": [
+          "MOCK_DATA"
+        ],
+        "next_steps": [
+          "Wait for real integration"
+        ],
+        "raw_output": "{\"thesis\": {\"summary\": \"Mock Analysis: Trending upwards with caution.\", \"evidence_for\": [\"Price > MA20\"], \"evidence_against\": [\"RSI Overbought\"], \"confidence\": 0.8, \"key_findings\": [\"Pattern recognized\"]}, \"action_plan\": {\"action\": \"hold\", \"position_size_pct\": 0.0}, \"risk_flags\": [\"MOCK_DATA\"], \"next_steps\": [\"Wait for real integration\"]}",
+        "provider_metadata": {
+          "duration_ms": 10,
+          "exit_code": 0
+        }
+      },
+      "risk_decision": "block",
+      "scores": {
+        "structure_score": 1.0,
+        "counter_evidence_score": 1.0,
+        "action_conservatism_score": 1.0,
+        "confidence_alignment_score": 0.9,
+        "timeframe_consistency_score": 0.5,
+        "policy_alignment_score": 1.0,
+        "total_score": 0.9,
+        "notes": []
+      },
+      "notes": []
+    }
+  ],
+  "summary": {
+    "total_cases": 4,
+    "passed_cases": 4,
+    "failed_cases": 0,
+    "avg_total_score": 0.9,
+    "parse_failure_rate": 0.0,
+    "aggressive_action_rate": 0.0
+  }
+}
