@@ -6,17 +6,22 @@ export default function ValidationHub() {
   const [summary, setSummary] = useState<any>(null);
 
   useEffect(() => {
-    // 模拟数据回显 (待对接真实统计)
-    setSummary({
-      days_used: 5,
-      analysis_count: 12,
-      recommendations_count: 6,
-      reviews_count: 2,
-      open_p0_count: 0,
-      open_p1_count: 1,
-      go_no_go: 'continue'
-    });
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/validation/summary');
+        if (res.ok) {
+          const data = await res.json();
+          setSummary(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch validation summary:', e);
+      }
+    };
+    
+    fetchSummary();
   }, []);
+
+  if (!summary) return null;
 
   return (
     <div className="validation-hub" style={{ 
@@ -66,10 +71,12 @@ export default function ValidationHub() {
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
         <h3 style={{ fontSize: '0.85rem', marginBottom: '1rem', opacity: 0.8 }}>Active Stabilization Focus (P0/P1)</h3>
         <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {summary?.open_p1_count > 0 ? (
-            <li style={{ color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>•</span> [P1] [Reasoning] Evidence duplication in some edge cases.
-            </li>
+          {summary?.key_lessons && summary.key_lessons.length > 0 ? (
+            summary.key_lessons.map((lesson: string, i: number) => (
+              <li key={i} style={{ color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.2rem' }}>•</span> {lesson}
+              </li>
+            ))
           ) : (
             <li style={{ color: 'var(--text-muted)' }}>No critical defects pending. System health nominal.</li>
           )}

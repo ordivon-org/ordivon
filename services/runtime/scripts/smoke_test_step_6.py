@@ -8,8 +8,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_DIR))
 sys.path.append(str(ROOT_DIR / "apps" / "api"))
 
-from services.orchestrator.engine import PFIOSOrchestrator
-from services.risk_engine.audit import RiskAuditor
+from pfios.orchestrator.engine import PFIOSOrchestrator
+from pfios.audit.auditor import RiskAuditor
 
 async def smoke_test_risk_engine():
     print("Starting Step 6 Smoke Test: Risk Engine & Audit\n")

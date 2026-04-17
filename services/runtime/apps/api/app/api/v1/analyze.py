@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.requests import AnalyzeRequest
 from app.schemas.responses import AnalyzeResponse
-from services.orchestrator.engine import PFIOSOrchestrator
-from services.risk_engine.models import RiskDecision
+from pfios.orchestrator.engine import PFIOSOrchestrator
+from pfios.governance.models import RiskDecision
 
 router = APIRouter()
 orchestrator = PFIOSOrchestrator()

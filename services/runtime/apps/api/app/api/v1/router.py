@@ -1,5 +1,4 @@
-from fastapi import APIRouter
-from . import health, audits, reports, analyze, evals, recommendations, reviews, validation
+from . import health, audits, reports, analyze, evals, recommendations, reviews, validation, dashboard
 
 router = APIRouter()
 
@@ -11,3 +10,4 @@ router.include_router(analyze.router, tags=["Analyze"])
 router.include_router(recommendations.router, prefix="/recommendations", tags=["Recommendations"])
 router.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 router.include_router(validation.router, prefix="/validation", tags=["Validation"])
+router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])

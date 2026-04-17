@@ -13,5 +13,5 @@ compliance:
 
 operational:
   require_human_confirmation: true
-  min_confidence_score: 5.0
+  min_confidence_score: 0.5
   mandatory_cooling_period_hours: 4
