@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+from apps.api.app.schemas.common import ActionContextInput
+
 class RecommendationCreate(BaseModel):
     source_report_id: str
     source_audit_id: Optional[str] = None
@@ -16,22 +18,22 @@ class RecommendationUpdate(BaseModel):
     adopted: Optional[bool] = None
     outcome_status: Optional[str] = None # pending|tracking|closed
     user_note: Optional[str] = None
+    action_context: Optional[ActionContextInput] = None
 
 class RecommendationResponse(BaseModel):
-    recommendation_id: str
-    source_report_id: str
-    source_audit_id: Optional[str]
-    symbol: str
-    action: str
-    confidence: float
-    decision: str
-    lifecycle_status: str
-    review_status: str  # pending|reviewed
-    adopted: Optional[bool]
-    adopted_at: Optional[datetime]
-    outcome_status: str
-    user_note: Optional[str]
-    created_at: datetime
+    id: str
+    status: str
+    created_at: str
+    analysis_id: Optional[str] = None
+    symbol: Optional[str] = None
+    action_summary: Optional[str] = None
+    confidence: Optional[float] = None
+    decision: Optional[str] = None
+    decision_reason: Optional[str] = None
+    adopted: bool
+    review_status: Optional[str] = None
+    outcome_status: Optional[str] = None
+    metadata: Dict[str, Any]
 
 class RecommendationListResponse(BaseModel):
     recommendations: List[RecommendationResponse]

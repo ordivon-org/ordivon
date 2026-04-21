@@ -1,14 +1,22 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from apps.api.app.routers.health import router as health_router
-from apps.api.app.routers.recommendations import router as recommendations_router
-from apps.api.app.routers.reviews import router as reviews_router
+from apps.api.app.api.v1.router import router as api_v1_router
+from state.db.bootstrap import init_db
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="PFIOS API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
-app.include_router(health_router)
-app.include_router(recommendations_router)
-app.include_router(reviews_router)
+
+app.include_router(api_v1_router, prefix="/api/v1")

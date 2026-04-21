@@ -1,7 +1,7 @@
-from pfios.core.db.bootstrap import init_db
-from pfios.core.db.session import SessionLocal
-from pfios.domain.issue.models import Issue
-from pfios.domain.issue.repository import IssueRepository
+from state.db.bootstrap import init_db
+from state.db.session import SessionLocal
+from domains.journal.issue_models import Issue
+from domains.journal.issue_repository import IssueRepository
 
 
 def test_issue_repository_create():

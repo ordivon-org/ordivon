@@ -1,37 +1,90 @@
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict
-from app.schemas.validation import UsageLog, IssueCreate, IssueResponse, WeeklyValidationSummary
-from pfios.observability.usage_tracker import UsageTracker
+from dataclasses import asdict
+
+from apps.api.app.schemas.validation import IssueCreate, WeeklyValidationSummary
+from capabilities.validation import ValidationCapability
 
 router = APIRouter()
+validation_capability = ValidationCapability()
 
-@router.get("/summary")
-async def get_validation_summary():
-    """获取当前验证周期汇总 (Step 11)"""
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from apps.api.app.deps import get_db
+from domains.journal.issue_repository import IssueRepository
+from domains.journal.issue_service import IssueService
+from state.usage.repository import UsageSnapshotRepository
+from state.usage.service import UsageService
+from governance.audit.auditor import RiskAuditor
+from capabilities.boundary import ActionContext
+from execution.adapters import ValidationExecutionFailure
+
+
+def build_issue_action_context(raw_action_context, severity: str, area: str) -> ActionContext:
+    if raw_action_context is not None:
+        return ActionContext(**raw_action_context.model_dump())
+
+    return ActionContext(
+        actor="api.v1.validation",
+        context="validation_issue_route",
+        reason=f"report validation issue {severity}:{area}",
+        idempotency_key=f"{severity}:{area}",
+    )
+
+@router.get("/summary", response_model=WeeklyValidationSummary)
+async def get_validation_summary(db: Session = Depends(get_db)):
     try:
-        summary = UsageTracker.weekly_validation_summary()
-        return summary
+        usage_service = UsageService(UsageSnapshotRepository(db))
+        issue_repo = IssueRepository(db)
+        return WeeklyValidationSummary(**asdict(validation_capability.get_summary(usage_service, issue_repo)))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/usage/sync")
-async def sync_usage():
-    """手动触发当日指标同步"""
+async def sync_usage(db: Session = Depends(get_db)):
     try:
-        stats = UsageTracker.sync_daily_usage()
-        return {"status": "success", "stats": stats}
+        usage_service = UsageService(UsageSnapshotRepository(db))
+        stats = validation_capability.sync_usage(
+            usage_service,
+            ActionContext(
+                actor="api.validation.sync",
+                context="manual_sync_endpoint",
+                reason="manual validation usage sync",
+                idempotency_key="api.validation.sync",
+            ),
+        )
+        db.commit()
+        return {"status": "success", "stats": asdict(stats)}
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/issue", response_model=dict)
-async def report_validation_issue(issue: IssueCreate):
-    """上报验证过程中发现的缺陷 (P0/P1/P2)"""
+async def report_validation_issue(issue: IssueCreate, db: Session = Depends(get_db)):
     try:
-        issue_id = UsageTracker.report_issue(
+        issue_service = IssueService(IssueRepository(db), RiskAuditor())
+        result = validation_capability.report_issue(
+            issue_service=issue_service,
             severity=issue.severity,
             area=issue.area,
-            description=issue.description
+            description=issue.description,
+            action_context=build_issue_action_context(issue.action_context, issue.severity, issue.area),
         )
-        return {"status": "success", "issue_id": issue_id}
+        db.commit()
+        return {"status": "success", **result}
+    except ValidationExecutionFailure as e:
+        db.commit()
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "status": "error",
+                "message": e.message,
+                "execution_request_id": e.execution_request_id,
+                "execution_receipt_id": e.execution_receipt_id,
+            },
+        )
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

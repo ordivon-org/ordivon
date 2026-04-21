@@ -1,7 +1,7 @@
 from sqlalchemy import inspect
 
-from pfios.core.db.bootstrap import init_db
-from pfios.core.db.session import engine
+from state.db.bootstrap import init_db
+from state.db.session import engine
 
 
 def test_db_bootstrap_creates_core_tables():
@@ -10,6 +10,8 @@ def test_db_bootstrap_creates_core_tables():
     tables = set(inspector.get_table_names())
 
     expected = {
+        "agent_actions",
+        "intelligence_runs",
         "analyses",
         "recommendations",
         "outcome_snapshots",

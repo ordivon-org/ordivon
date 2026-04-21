@@ -1,5 +1,5 @@
 from sqlalchemy import inspect
-from pfios.core.db.session import engine
+from state.db.session import engine
 
 
 def main():

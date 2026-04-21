@@ -1,0 +1,30 @@
+{
+  "output": {
+    "filePath": "./repomix-lite.txt"
+  },
+  "ignore": {
+    "useGitignore": true,
+    "customPatterns": [
+      "node_modules/**",
+      ".git/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      "__pycache__/**",
+      ".venv/**",
+      "venv/**",
+      "data/**",
+      "coverage/**",
+      ".pytest_cache/**",
+      "wiki/**",
+      "knowledge/wiki/**",
+      "knowledge/memory/**",
+      "knowledge/indexes/**",
+      "experiments/**",
+      "apps/web/.next/**",
+      "apps/web/node_modules/**",
+      "*.log",
+      "*.lock"
+    ]
+  }
+}

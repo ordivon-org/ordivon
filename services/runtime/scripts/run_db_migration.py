@@ -6,10 +6,10 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
-from pfios.core.db.session import get_db_connection
+from state.db.session import get_db_connection
 
 def run_migration():
-    from pfios.core.config.settings import settings
+    from shared.config.settings import settings
     print(f"DEBUG: Using database at {settings.db_abs_path}")
     sql_path = project_root / "scripts" / "migrations" / "20240417_core_completion.sql"
     if not sql_path.exists():

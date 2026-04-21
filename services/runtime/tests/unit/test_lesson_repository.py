@@ -1,7 +1,7 @@
-from pfios.core.db.bootstrap import init_db
-from pfios.core.db.session import SessionLocal
-from pfios.domain.lessons.models import Lesson
-from pfios.domain.lessons.repository import LessonRepository
+from state.db.bootstrap import init_db
+from state.db.session import SessionLocal
+from domains.journal.lesson_models import Lesson
+from domains.journal.lesson_repository import LessonRepository
 
 
 def test_lesson_repository_create():

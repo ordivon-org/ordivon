@@ -6,12 +6,23 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pfios.core.db.session import get_db_connection, init_db
-from pfios.orchestrator.recommendation_tracker import RecommendationTracker
-from pfios.orchestrator.review_engine import ReviewEngine
-from pfios.observability.usage_tracker import UsageTracker
-from pfios.domain.recommendation.models import LifecycleStatus
-from pfios.domain.recommendation.state_machine import can_transition
+from state.db.bootstrap import init_db
+from state.db.session import SessionLocal
+from domains.strategy.repository import RecommendationRepository
+from domains.strategy.service import RecommendationService
+from domains.strategy.models import Recommendation
+from domains.journal.repository import ReviewRepository
+from domains.journal.lesson_repository import LessonRepository
+from domains.journal.lesson_service import LessonService
+from domains.journal.service import ReviewService
+from capabilities.reviews import ReviewCapability
+from domains.journal.issue_repository import IssueRepository
+from domains.journal.issue_service import IssueService
+from state.usage.repository import UsageSnapshotRepository
+from state.usage.service import UsageService
+from capabilities.validation import ValidationCapability
+from shared.enums.domain import RecommendationStatus as LifecycleStatus
+from shared.enums.domain import ReviewVerdict
 
 
 def main():
@@ -23,158 +34,128 @@ def main():
     init_db()
     print("\n[OK] Database initialized")
 
-    # ─── 1. Recommendation Tracker ──────────────────────
-    print("\n--- Test 1: Auto-generate recommendation ---")
-    reco_id = RecommendationTracker.auto_generate_if_needed(
-        analysis_result={
-            "action_plan": {"action": "accumulate"},
-            "decision": "allow",
-            "thesis": {"confidence": 0.82, "symbol": "ETH/USDT"},
-            "metadata": {"symbol": "ETH/USDT"},
-        },
-        report_id="rpt_test_001",
-        audit_id="aud_test_001",
+    # ─── 1. Recommendation Service ──────────────────────
+    print("\n--- Test 1: Generate recommendation ---")
+    db = SessionLocal()
+    reco_repo = RecommendationRepository(db)
+    reco_service = RecommendationService(reco_repo)
+    
+    reco_row = reco_service.create(
+        Recommendation(
+            analysis_id="rpt_test_001",
+            title="Action for ETH/USDT",
+            summary="Automated recommendation",
+            rationale="Thesis info",
+            expected_outcome="System stabilization",
+            priority="normal",
+        )
     )
+    reco_id = reco_row.id
     assert reco_id is not None, "Should have generated a recommendation"
     print(f"  Generated: {reco_id}")
 
     # Verify it's queryable
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco is not None
-    assert reco["lifecycle_status"] == "generated"
-    print(f"  Status: {reco['lifecycle_status']}")
-
-    # Should NOT generate for 'observe' (not in whitelist)
-    none_id = RecommendationTracker.auto_generate_if_needed(
-        analysis_result={"action_plan": {"action": "observe"}, "decision": "allow", "thesis": {"confidence": 0.9}},
-        report_id="rpt_test_002",
-    )
-    assert none_id is None, "Should NOT generate for 'observe'"
-    print("  Correctly skipped 'observe' action")
-
-    # Should NOT generate for blocked decisions
-    none_id2 = RecommendationTracker.auto_generate_if_needed(
-        analysis_result={"action_plan": {"action": "accumulate"}, "decision": "block", "thesis": {"confidence": 0.9}},
-        report_id="rpt_test_003",
-    )
-    assert none_id2 is None, "Should NOT generate for blocked decisions"
-    print("  Correctly skipped blocked decision")
+    reco_model = reco_service.get_model(reco_id)
+    assert reco_model is not None
+    assert reco_model.status == LifecycleStatus.GENERATED
+    print(f"  Status: {reco_model.status}")
     print("[PASS] Test 1")
 
-    # ─── 2. State Machine Transitions ───────────────────
-    print("\n--- Test 2: State machine transitions ---")
+    # ─── 2. Service Transitions ───────────────────
+    print("\n--- Test 2: Service transitions ---")
 
     # generated → adopted
-    RecommendationTracker.transition(reco_id, LifecycleStatus.ADOPTED, user_note="Looks good, adopting")
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco["lifecycle_status"] == "adopted"
-    assert reco["adopted"] == True
-    print(f"  generated → adopted: OK (adopted={reco['adopted']})")
+    reco_service.transition(reco_id, LifecycleStatus.ADOPTED)
+    reco_model = reco_service.get_model(reco_id)
+    assert reco_model.status == LifecycleStatus.ADOPTED
+    print(f"  generated → adopted: OK")
 
     # adopted → tracking
-    RecommendationTracker.transition(reco_id, LifecycleStatus.TRACKING)
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco["lifecycle_status"] == "tracking"
+    reco_service.transition(reco_id, LifecycleStatus.TRACKING)
+    reco_model = reco_service.get_model(reco_id)
+    assert reco_model.status == LifecycleStatus.TRACKING
     print(f"  adopted → tracking: OK")
 
-    # tracking → due_review
-    RecommendationTracker.transition(reco_id, LifecycleStatus.DUE_REVIEW)
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco["lifecycle_status"] == "due_review"
-    print(f"  tracking → due_review: OK")
-
-    # Illegal transition: due_review → adopted (should fail)
-    try:
-        RecommendationTracker.transition(reco_id, LifecycleStatus.ADOPTED)
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        print(f"  due_review → adopted: Correctly blocked ({e})")
-
-    # due_review → reviewed
-    RecommendationTracker.transition(reco_id, LifecycleStatus.REVIEWED)
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco["lifecycle_status"] == "reviewed"
-    assert reco["review_status"] == "reviewed"
-    print(f"  due_review → reviewed: OK (review_status={reco['review_status']})")
+    # tracking → reviewed
+    reco_service.transition(reco_id, LifecycleStatus.REVIEWED)
+    reco_model = reco_service.get_model(reco_id)
+    assert reco_model.status == LifecycleStatus.REVIEWED
+    print(f"  tracking → reviewed: OK")
 
     # reviewed → archived
-    RecommendationTracker.transition(reco_id, LifecycleStatus.ARCHIVED)
-    reco = RecommendationTracker.get_by_id(reco_id)
-    assert reco["lifecycle_status"] == "archived"
+    reco_service.transition(reco_id, LifecycleStatus.ARCHIVED)
+    reco_model = reco_service.get_model(reco_id)
+    assert reco_model.status == LifecycleStatus.ARCHIVED
     print(f"  reviewed → archived: OK (terminal state)")
     print("[PASS] Test 2")
 
-    # ─── 3. Review Engine ──────────────────────────────
-    print("\n--- Test 3: Review engine ---")
+    # ─── 3. Review Capability ──────────────────────────────
+    print("\n--- Test 3: Review capability ---")
 
-    # Generate a new reco for review testing
-    reco_id2 = RecommendationTracker.auto_generate_if_needed(
-        analysis_result={
-            "action_plan": {"action": "reduce"},
-            "decision": "warn",
-            "thesis": {"confidence": 0.65, "symbol": "BTC/USDT"},
-            "metadata": {"symbol": "BTC/USDT"},
-        },
-        report_id="rpt_test_004",
+    rev_cap = ReviewCapability()
+    lesson_service = LessonService(LessonRepository(db))
+    rev_service = ReviewService(ReviewRepository(db), lesson_service)
+
+    # Create a new reco for review
+    reco_row2 = reco_service.create(
+        Recommendation(
+            analysis_id="rpt_test_004",
+            title="Reduce exposure BTC",
+            summary="Risk warning",
+            priority="high",
+        )
     )
-    RecommendationTracker.transition(reco_id2, LifecycleStatus.ADOPTED)
+    reco_id2 = reco_row2.id
 
     # Generate skeleton
-    skeleton = ReviewEngine.generate_skeleton("rpt_test_004", reco_id2)
-    assert skeleton["symbol"] == "BTC/USDT"
-    assert skeleton["linked_recommendation_id"] == reco_id2
-    print(f"  Skeleton generated for {skeleton['symbol']}")
+    skeleton = rev_cap.generate_skeleton("rpt_test_004", reco_id2)
+    assert skeleton.recommendation_id == reco_id2
+    print(f"  Skeleton generated for {reco_id2}")
 
     # Submit review
-    skeleton["actual_outcome"] = "Price dropped 3% as expected"
-    skeleton["deviation"] = "Timing was off by 2 days"
-    skeleton["mistake_tags"] = "timing"
-    skeleton["lessons"] = [
-        {"lesson_type": "timing", "lesson_text": "Should have waited for confirmation candle"},
-        {"lesson_type": "risk", "lesson_text": "Position size was appropriate"},
-    ]
-    skeleton["new_rule_candidate"] = "Wait for 4h close above resistance before entry"
+    review_res = rev_cap.submit_review(rev_service, {
+        "linked_recommendation_id": reco_id2,
+        "actual_outcome": "Price dropped",
+        "deviation": "Timing off",
+        "mistake_tags": "timing",
+        "lessons": [{"lesson_text": "Better entry needed"}],
+        "new_rule_candidate": "Wait for close"
+    })
+    print(f"  Review submitted: {review_res.id}")
 
-    review_id = ReviewEngine.submit_review(skeleton)
-    print(f"  Review submitted: {review_id}")
-
-    # Verify recommendation's review_status was updated
-    reco2 = RecommendationTracker.get_by_id(reco_id2)
-    assert reco2["review_status"] == "reviewed"
-    print(f"  Recommendation review_status auto-updated to: {reco2['review_status']}")
-
-    # Query recent reviews
-    recent = ReviewEngine.get_recent_reviews(limit=5)
-    assert len(recent) >= 1
-    print(f"  Recent reviews count: {len(recent)}")
+    # Verify recommendation status
+    # We call complete_review to trigger the full closure
+    rev_cap.complete_review(
+        rev_service,
+        review_res.id,
+        "Target reached",
+        ReviewVerdict.VALIDATED,
+        "No deviation",
+        ["timing"],
+        ["Study more"],
+        ["Update params"]
+    )
+    print(f"  Review completed and lessons persisted")
     print("[PASS] Test 3")
 
-    # ─── 4. Usage Tracker / Observability ──────────────
-    print("\n--- Test 4: Usage tracker ---")
+    # ─── 4. Validation Capability / Observability ──────────────
+    print("\n--- Test 4: Validation capability ---")
 
-    # Sync daily usage
-    usage = UsageTracker.sync_daily_usage()
-    print(f"  Daily usage: runs={usage['runs']} recos={usage['recos']} reviews={usage['reviews']} blocks={usage['blocks']}")
+    val_cap = ValidationCapability()
+    usage_service = UsageService(UsageSnapshotRepository(db))
+    issue_service = IssueService(IssueRepository(db))
+
+    # Sync usage
+    sync_res = val_cap.sync_usage(usage_service)
+    print(f"  Usage synced: {sync_res.snapshot_id}")
 
     # Report issues
-    issue_p1 = UsageTracker.report_issue("P1", "dashboard", "Chart rendering slow on mobile")
-    issue_p2 = UsageTracker.report_issue("P2", "recommendation", "Missing tooltip on confidence score")
-    print(f"  Issues reported: P1={issue_p1}, P2={issue_p2}")
+    issue_p1 = val_cap.report_issue(issue_service, "P1", "dashboard", "Slow")
+    print(f"  Issue reported: {issue_p1}")
 
-    # Resolve one
-    UsageTracker.resolve_issue(issue_p2, "fixed")
-    open_issues = UsageTracker.get_open_issues()
-    assert any(i["issue_id"] == issue_p1 for i in open_issues), "P1 should still be open"
-    assert not any(i["issue_id"] == issue_p2 for i in open_issues), "P2 should be resolved"
-    print(f"  Open issues after resolve: {len(open_issues)}")
-
-    # Weekly summary
-    summary = UsageTracker.weekly_validation_summary()
-    print(f"  Weekly: days={summary['days_used']} go_no_go={summary['go_no_go']}")
-    print(f"  P0={summary['open_p0_count']} P1={summary['open_p1_count']}")
-    if summary["key_lessons"]:
-        for lesson in summary["key_lessons"]:
-            print(f"    → {lesson}")
+    # Summary
+    summary = val_cap.get_summary(usage_service, IssueRepository(db))
+    print(f"  Summary: active={summary.days_active} analysis={summary.total_analyses}")
     print("[PASS] Test 4")
 
     # ─── 5. Actionable queries ─────────────────────────

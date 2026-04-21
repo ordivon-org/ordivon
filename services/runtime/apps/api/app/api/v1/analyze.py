@@ -1,46 +1,30 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.requests import AnalyzeRequest
-from app.schemas.responses import AnalyzeResponse
-from pfios.orchestrator.engine import PFIOSOrchestrator
-from pfios.governance.models import RiskDecision
+
+from apps.api.app.schemas.requests import AnalyzeRequest
+from apps.api.app.schemas.responses import AnalyzeResponse
+from capabilities.analyze import AnalyzeCapability, AnalyzeCapabilityInput
+from intelligence.runtime.hermes_client import HermesRuntimeError
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from apps.api.app.deps import get_db
+from capabilities.analyze import AnalyzeCapability, AnalyzeCapabilityInput
 
 router = APIRouter()
-orchestrator = PFIOSOrchestrator()
+analyze_capability = AnalyzeCapability()
+
 
 @router.post("/analyze-and-suggest", response_model=AnalyzeResponse)
-async def analyze_and_suggest(payload: AnalyzeRequest):
-    """
-    执行核心‘分析与建议’工作流 (Intelligence -> Governance -> Audit -> Persistence)
-    """
+async def analyze_and_suggest(payload: AnalyzeRequest, db: Session = Depends(get_db)):
     try:
-        # 1. 执行编排引擎 (内置风控校验与审计)
-        # 注意：此处 symbols 为列表，当前引擎仅支持单 symbol，取第一个或遍历
-        symbol = payload.symbols[0] if payload.symbols else "BTC/USDT"
-        
-        result = await orchestrator.execute_analyze_and_suggest(
-            symbol=symbol,
-            user_query=payload.query
+        result = await analyze_capability.analyze_and_suggest(
+            AnalyzeCapabilityInput(
+                query=payload.query,
+                symbols=payload.symbols,
+            ),
+            db=db
         )
-        
-        # 2. 映射 18 级字段响应体
-        # 哪怕是 BLOCK，我们也返回 200 并带上解析结果
-        thesis = result.get("thesis", {})
-        risk_report = result.get("risk_report", {})
-        
-        return AnalyzeResponse(
-            status=result["status"],
-            decision=result["decision"],
-            summary=thesis.get("summary", "No summary available"),
-            risk_flags=[r["name"] for r in risk_report.get("triggered_rules", []) if r["decision"] != "allow"],
-            recommendations=[thesis.get("recommendations", "Wait and see")],
-            report_path=result.get("report_path"),
-            audit_event_id=result.get("event_id"),
-            workflow=result["workflow"],
-            metadata={
-                "confidence": thesis.get("confidence"),
-                "symbol": symbol
-            }
-        )
+        return AnalyzeResponse(**result)
+    except HermesRuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        # 系统级异常才抛出 500
         raise HTTPException(status_code=500, detail=str(e))

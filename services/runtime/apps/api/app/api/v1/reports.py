@@ -1,25 +1,27 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
-from app.schemas.responses import ReportSummaryResponse, ReportListResponse
-from app.services.object_service import ObjectService
+
+from apps.api.app.schemas.responses import ReportListResponse, ReportSummaryResponse
+from capabilities.reports import ReportCapability
 
 router = APIRouter()
+report_capability = ReportCapability()
+
+
+from dataclasses import asdict
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from apps.api.app.deps import get_db
+from domains.research.service import AnalysisService
+from domains.research.repository import AnalysisRepository
 
 @router.get("/latest", response_model=ReportListResponse)
-async def get_latest_reports(limit: int = 10):
-    """获取最近生成的投研报告列表"""
+async def get_latest_reports(limit: int = 10, db: Session = Depends(get_db)):
     try:
-        records = ObjectService.get_recent_reports(limit=limit)
+        service = AnalysisService(AnalysisRepository(db))
+        records = report_capability.list_latest(service, limit=limit)
         reports = [
-            ReportSummaryResponse(
-                report_id=r["report_id"],
-                symbol=r["symbol"],
-                title=r["title"],
-                status=r["status"],
-                report_path=r["report_path"],
-                created_at=str(r["created_at"])
-            )
-            for r in records
+            ReportSummaryResponse(**asdict(record))
+            for record in records
         ]
         return ReportListResponse(reports=reports)
     except Exception as e:

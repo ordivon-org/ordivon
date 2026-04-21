@@ -1,5 +1,5 @@
-from pfios.orchestrator.engine import PFIOSOrchestrator
-from pfios.domain.analysis.models import AnalysisRequest
+from orchestrator.runtime.engine import PFIOSOrchestrator
+from domains.research.models import AnalysisRequest
 
 
 def main():

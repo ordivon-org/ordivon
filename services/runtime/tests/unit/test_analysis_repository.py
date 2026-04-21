@@ -1,7 +1,7 @@
-from pfios.core.db.bootstrap import init_db
-from pfios.core.db.session import SessionLocal
-from pfios.domain.analysis.models import AnalysisResult
-from pfios.domain.analysis.repository import AnalysisRepository
+from state.db.bootstrap import init_db
+from state.db.session import SessionLocal
+from domains.research.models import AnalysisResult
+from domains.research.repository import AnalysisRepository
 
 
 def test_analysis_repository_create_and_get():

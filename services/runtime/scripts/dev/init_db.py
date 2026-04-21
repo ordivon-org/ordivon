@@ -1,4 +1,4 @@
-from pfios.core.db.bootstrap import init_db
+from state.db.bootstrap import init_db
 
 
 def main():

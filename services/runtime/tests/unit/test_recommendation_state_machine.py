@@ -1,6 +1,6 @@
-from pfios.domain.recommendation.state_machine import RecommendationStateMachine
-from pfios.domain.common.enums import RecommendationStatus
-from pfios.domain.common.errors import InvalidStateTransition
+from domains.strategy.state_machine import RecommendationStateMachine
+from shared.enums.domain import RecommendationStatus
+from shared.errors.domain import InvalidStateTransition
 
 
 def test_recommendation_valid_transition():

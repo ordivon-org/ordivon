@@ -1,54 +1,49 @@
+from dataclasses import asdict
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from pfios.core.db.session import SessionLocal
-from pfios.domain.review.repository import ReviewRepository
-from pfios.domain.review.service import ReviewService
-from pfios.domain.review.models import Review as ReviewModel
-from pfios.domain.lessons.repository import LessonRepository
-from pfios.domain.lessons.service import LessonService
-from pfios.audit.auditor import RiskAuditor
-from apps.api.app.schemas.reviews import ReviewCreateRequest, ReviewCompleteRequest
+from apps.api.app.deps import get_db
+from apps.api.app.schemas.reviews import ReviewCompleteRequest, ReviewCreateRequest
+from capabilities.boundary import ActionContext
+from capabilities.reviews import ReviewCapability
+from domains.journal.lesson_repository import LessonRepository
+from domains.journal.lesson_service import LessonService
+from domains.journal.repository import ReviewRepository
+from domains.journal.service import ReviewService
+from governance.audit.auditor import RiskAuditor
 
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+review_capability = ReviewCapability()
 
 
 @router.post("/")
 def create_review(req: ReviewCreateRequest, db: Session = Depends(get_db)):
-    auditor = RiskAuditor()
-    lesson_service = LessonService(LessonRepository(db))
-    service = ReviewService(ReviewRepository(db), lesson_service, auditor)
-
-    review = ReviewModel(
-        recommendation_id=req.recommendation_id,
-        review_type=req.review_type,
-        expected_outcome=req.expected_outcome,
-    )
-    row = service.create(review)
-    return {"id": row.id, "status": row.status}
+    try:
+        lesson_service = LessonService(LessonRepository(db))
+        review_service = ReviewService(ReviewRepository(db), lesson_service, RiskAuditor())
+        result = review_capability.create_review(
+            service=review_service,
+            recommendation_id=req.recommendation_id,
+            action_context=ActionContext(**req.action_context.model_dump()),
+            review_type=req.review_type,
+            expected_outcome=req.expected_outcome,
+        )
+        db.commit()
+        return asdict(result)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{review_id}/complete")
-def complete_review(
-    review_id: str,
-    req: ReviewCompleteRequest,
-    db: Session = Depends(get_db)
-):
-    auditor = RiskAuditor()
-    lesson_service = LessonService(LessonRepository(db))
-    service = ReviewService(ReviewRepository(db), lesson_service, auditor)
-
+def complete_review(review_id: str, req: ReviewCompleteRequest, db: Session = Depends(get_db)):
     try:
-        review_row, lesson_rows = service.complete_review(
+        lesson_service = LessonService(LessonRepository(db))
+        review_service = ReviewService(ReviewRepository(db), lesson_service, RiskAuditor())
+        result = review_capability.complete_review(
+            service=review_service,
             review_id=review_id,
             observed_outcome=req.observed_outcome,
             verdict=req.verdict,
@@ -56,11 +51,10 @@ def complete_review(
             cause_tags=req.cause_tags,
             lessons=req.lessons,
             followup_actions=req.followup_actions,
+            action_context=ActionContext(**req.action_context.model_dump()),
         )
-        return {
-            "id": review_row.id,
-            "status": review_row.status,
-            "lessons_created": len(lesson_rows)
-        }
+        db.commit()
+        return asdict(result)
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=404, detail=str(e))

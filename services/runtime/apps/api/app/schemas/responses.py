@@ -14,11 +14,12 @@ class AnalyzeResponse(BaseResponse):
 
 class ReportSummaryResponse(BaseModel):
     report_id: str
-    symbol: str
+    symbol: str | None = None
     title: str
     status: str
-    report_path: str
+    report_path: str | None = None
     created_at: str
+    metadata: dict[str, Any] = {}
 
 class ReportListResponse(BaseModel):
     reports: List[ReportSummaryResponse]

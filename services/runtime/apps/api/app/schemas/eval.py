@@ -13,7 +13,7 @@ class EvalCaseResult(BaseModel):
     case_id: str
     status: str
     risk_decision: str
-    scores: Dict[str, float]
+    scores: Dict[str, Any]
     notes: List[str]
 
 class EvalRunResponse(BaseModel):

@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
+from apps.api.app.schemas.common import ActionContextInput
+
 class UsageLog(BaseModel):
     date: str  # YYYY-MM-DD
     analysis_runs: int
@@ -16,7 +18,7 @@ class IssueBase(BaseModel):
     description: str
 
 class IssueCreate(IssueBase):
-    pass
+    action_context: Optional[ActionContextInput] = None
 
 class IssueResponse(IssueBase):
     issue_id: str
@@ -24,12 +26,11 @@ class IssueResponse(IssueBase):
     created_at: datetime
 
 class WeeklyValidationSummary(BaseModel):
-    week_id: str
-    days_used: int
-    analysis_count: int
-    recommendations_count: int
-    reviews_count: int
-    open_p0_count: int
-    open_p1_count: int
-    key_lessons: List[str]
-    go_no_go: str  # continue|stabilize_more
+    period_id: Optional[str] = None
+    days_active: int
+    total_analyses: int
+    total_recommendations: int
+    open_critical_issues: int
+    system_go_no_go: str
+    metrics: Optional[dict] = None
+    metadata: dict

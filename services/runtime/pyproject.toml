@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pfios*", "apps*"]
+include = ["pfios*", "apps*", "capabilities*", "domains*", "governance*", "intelligence*", "orchestrator*", "shared*", "state*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
