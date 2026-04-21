@@ -1,0 +1,50 @@
+# Experience | Trace Detail Surface
+
+- Module: Experience | Trace Detail Surface
+- Layer: Experience
+- Role: 在现有 recommendation / review surface 上增加最小 textual trace detail，让用户能看到主链对象关系的更细节信息，而不是只看到若干 id refs。
+- Current Value:
+  - 现有 surface 已经能显示最小 refs：
+    - `workflow_run_id`
+    - `intelligence_run_id`
+    - receipt ids
+    - outcome signal
+    - knowledge hint count
+  - 后端已有：
+    - `/api/v1/traces/workflow-runs/{id}`
+    - `/api/v1/traces/recommendations/{id}`
+    - `/api/v1/traces/reviews/{id}`
+- Remaining Gap:
+  - 前端还看不到 trace bundle detail
+  - 无法直接在现有卡片中查看 relation status / source
+- Immediate Action:
+  - 本轮不新建页面，只在现有 dashboard cards 中增加按需 textual trace detail
+  - 优先 recommendation / pending review surface
+  - 只显示真实 trace bundle 中的：
+    - root type/id
+    - relation status
+    - relation source
+    - key downstream refs
+- Required Test Pack:
+  - `pnpm --dir apps/web exec tsc --noEmit`
+  - 如改 API schema 再跑 `python -m compileall ...`
+  - unit:
+    - trace detail formatting helper
+    - conditional render
+  - integration:
+    - trace data fetch / display path
+  - failure-path:
+    - trace API unavailable / missing -> honest copy
+  - invariants:
+    - detail 不补全缺失关系
+    - 只读真实 trace bundle
+- Done Criteria:
+  - 至少一个现有 surface 能查看 textual trace detail
+  - missing/unavailable 诚实
+  - 不做图形化 graph
+- Next Unlock:
+  - 更完整 trace detail page
+- Not Doing:
+  - 不新建整页
+  - 不做图形化 lineage
+  - 不拼 narrative

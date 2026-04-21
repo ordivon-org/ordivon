@@ -1,0 +1,87 @@
+# Experience | Review / Outcome / Feedback Surface Extension
+
+- Module: Experience | Review / Outcome / Feedback Surface Extension
+- Layer: Experience
+- Role: 把 review 相关产品表面补到能看到真实的 trace / outcome / feedback signals；目标不是新做一套 reviews 产品，而是在现有 surface 上把 review 关联对象和诚实缺失状态表达出来。
+- Current Value:
+  - 前端当前已有 review 相关 surface 只有：
+    - `apps/web/src/components/features/dashboard/PendingReviews.tsx`
+  - 该卡片当前只显示：
+    - review type
+    - recommendation id
+    - expected outcome
+    - created time
+  - 后端现在已经真实存在：
+    - recommendation read surface 中的 trace refs
+    - recommendation outcome signal
+    - recommendation-level knowledge hint count / summaries
+    - review complete response metadata 中的 knowledge feedback
+  - 但这些 review 相关对象信号还没有进入 `PendingReviews` 这样的 review-facing surface。
+- Remaining Gap:
+  - 用户在 review 相关表面上还看不到：
+    - linked recommendation 的 trace refs
+    - latest outcome signal
+    - knowledge hint preparedness
+  - 当前没有独立 reviews 页面，本轮如果发散去做整页，会超出模块边界。
+  - 缺 relation 时也还没有统一 review-facing honest copy。
+- Immediate Action:
+  - 本轮采用最小策略：
+    1. 扩展 `/api/v1/reviews/pending` 的 response
+       - 只追加 linked recommendation 的真实只读 signals：
+         - `workflow_run_id`
+         - `intelligence_run_id`
+         - `recommendation_generate_receipt_id`
+         - `latest_outcome_status`
+         - `latest_outcome_reason`
+         - `knowledge_hint_count`
+       - 若缺 linked recommendation 或 relation 缺失，返回 `None` / `0`
+    2. 扩展 `PendingReviews.tsx`
+       - 在现有卡片中新增最小 section：
+         - `Trace references`
+         - `Outcome signal`
+         - `Knowledge hints prepared`
+       - 文案只使用：
+         - `not linked yet`
+         - `unavailable`
+         - `not prepared yet`
+       - 明确写出：
+         - feedback/hints are derived signals, not state truth
+         - outcome is latest recorded signal, not a closed loop
+  - 本轮不做：
+    - 不新建 reviews 大页面
+    - 不做图形化 trace
+    - 不做 dashboard 信息架构重排
+    - 不发明 review-level completion semantics
+- Required Test Pack:
+  - `pnpm --dir apps/web exec tsc --noEmit`
+  - `python -m compileall ...`（若改 API/schema/capability）
+  - unit:
+    - pending review surface conditional render
+    - missing/unavailable copy assertions
+  - integration:
+    - `/api/v1/reviews/pending` 返回新增 signals
+    - review-facing surface smoke 证明 trace/outcome/feedback signals 已被表达
+  - failure-path:
+    - no linked recommendation -> honest missing
+    - no outcome -> `unavailable`
+    - no feedback -> `not prepared yet`
+  - invariants:
+    - UI 不把 outcome 写成闭环完成
+    - UI 不把 knowledge hint 写成 system learned / truth
+    - 展示字段必须来自真实 API/state object
+  - state/data:
+    - pending review surface 中的 refs / outcome / hint count 均能追溯到真实 recommendation/analysis/knowledge outputs
+- Done Criteria:
+  - 至少一个 review-related surface 能看到 trace / outcome / feedback 的真实对象信号
+  - 缺 relation 时诚实显示 `not linked yet` / `unavailable` / `not prepared yet`
+  - UI 不把 hint / outcome / artifact 误表达成闭环完成或真相
+  - 至少一组前端/集成测试证明 review-facing surface 已成立
+- Next Unlock:
+  - `State | Trace Graph 深化`
+  - `Experience | Trace Detail Surface`
+  - 后续更完整的 review detail surface
+- Not Doing:
+  - 不新建完整 reviews 产品页
+  - 不做 graph / timeline visualization
+  - 不改写后端 truth semantics
+  - 不把 review completion response 做成长期前端 store

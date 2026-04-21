@@ -1,0 +1,78 @@
+# Execution | Validation Family Execution
+
+- Module: Execution | Validation Family Execution
+- Layer: Execution
+- Role: 把 `validation_issue_report` 从当前的 capability/service 直接写 issue row + audit，推进成真实的 execution family，具备 request / receipt / failure model，并让 validation API response / audit / issue row 共享同一组 execution refs。
+- Current Value:
+  - `ValidationCapability.report_issue(...)` 当前会构造 `Issue`，然后直接调用 `IssueService.create(...)`。
+  - `IssueService.create(...)` 当前直接：
+    - 写 issue row
+    - 写 `validation_issue_reported` audit
+  - API `POST /api/v1/validation/issue` 当前只返回：
+    - `status`
+    - `issue_id`
+  - `execution/catalog.py` 已把 `validation_issue_report` 标成 primary receipt candidate，但还没有真实 request / receipt。
+- Remaining Gap:
+  - validation family 当前没有：
+    - execution request
+    - execution receipt
+    - failure receipt
+    - response refs
+  - success / failure / audit / issue row 之间没有 execution-level consistency。
+  - 如果不 family 化，validation 仍是“有真实动作，但 execution 层没接住”的残留区域。
+- Immediate Action:
+  - 本轮只做 `validation_issue_report`，不碰 `validation_usage_sync`。
+  - 具体实现：
+    1. 新增 `execution/adapters/validation.py`
+       - 作为 validation family execution facade
+       - 负责 request / receipt lifecycle
+       - 负责 family-level execution semantics
+       - 负责 audit refs attachment
+       - 不重写 issue domain create semantics
+    2. `validation_issue_report` success path:
+       - validate action context / boundary
+       - create execution request
+       - perform domain create
+       - create success receipt only after issue row create succeeds
+       - attach request/receipt refs to `validation_issue_reported` audit payload
+       - return response with refs
+    3. `validation_issue_report` failure path:
+       - validate action context / boundary
+       - create execution request
+       - create fails
+       - create failed receipt
+       - write failure audit with refs
+       - do not create fake issue row
+    4. 更新 execution catalog owner path
+       - `validation_issue_report` -> `execution.adapters.validation.ValidationExecutionAdapter.report_issue`
+- Required Test Pack:
+  - `python -m compileall ...`
+  - unit:
+    - validation adapter success request/receipt
+    - validation adapter failure receipt
+  - integration:
+    - `/api/v1/validation/issue` -> request / receipt / audit / issue row 一致
+  - failure-path:
+    - issue create 失败 -> failed request / failed receipt
+    - 无 success receipt 不得留下 issue success row
+  - invariants:
+    - issue row existence must match success receipt result
+    - success receipt 只对应成功 issue create
+    - failed receipt 不得伴随 persisted success issue row
+  - state/data:
+    - API response / audit payload / execution_request / execution_receipt / issue row refs 一致
+- Done Criteria:
+  - `validation_issue_report` 成为真实 request/receipt family
+  - response / audit / state 三者都能看到 refs
+  - 同一次 validation issue report 的 refs 一致、语义一致
+  - validation family 不再只是 catalog 中有名字
+- Next Unlock:
+  - `Knowledge | Feedback Consumption into Intelligence`
+  - `Governance | Policy Source of Truth`
+  - 后续 validation family success audit ownership 收口
+- Not Doing:
+  - 不做 `validation_usage_sync` execution 化
+  - 不改 issue domain create semantics
+  - 不做全 execution adapter registry/platform
+  - 不做 validation summary / metrics 重构
+  - 不扩展到更多 validation action

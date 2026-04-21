@@ -1,0 +1,81 @@
+# Module Design Card
+
+- Module: Infrastructure | Health / Monitoring
+- Layer: Infrastructure
+- Role: 把当前只有 API/Hermes 可达性的 `/api/v1/health`，推进成最小 monitoring snapshot，让系统能诚实暴露 runtime health、workflow failure、execution failure、recent activity signal，而不是只给出一个泛化的 `ok/degraded`。
+- Current Value:
+  - 现有 [apps/api/app/api/v1/health.py](/c:/Users/16663/Desktop/dev/projects/financial-ai-os/apps/api/app/api/v1/health.py) 已能返回：
+    - `status`
+    - `reasoning_provider`
+    - `hermes_status`
+    - `runtime_provider`
+    - `runtime_model`
+  - 前端 [SystemStatusBar.tsx](/c:/Users/16663/Desktop/dev/projects/financial-ai-os/apps/web/src/components/status/SystemStatusBar.tsx) 已消费 `/api/v1/health`。
+  - 当前仓库已存在可复用真实数据源：
+    - `workflow_runs`
+    - `execution_requests`
+    - `execution_receipts`
+    - `audit_events`
+  - 但 health 现在还没有暴露任何：
+    - workflow failure count
+    - execution failure count
+    - recent audit activity
+    - honest component detail beyond Hermes
+- Remaining Gap:
+  - `/api/v1/health` 仍更像 reachability probe，不是 monitoring snapshot。
+  - 用户无法从 health surface 看到系统最近是否连续失败。
+  - 当前 `SystemStatusBar` 只能拼 health/evals/reports/audits 的弱组合，缺少统一 monitoring payload。
+- Immediate Action:
+  - 本轮只做最小 monitoring snapshot，不做 metrics backend，不做 tracing system。
+  - 具体实现：
+    1. 新增基础 monitoring service
+       - 读取最近窗口内：
+         - failed workflow count
+         - failed execution receipt count
+         - recent audit timestamp
+         - recent workflow timestamp
+    2. 扩展 `/api/v1/health` response
+       - 增加：
+         - `recent_failed_workflow_count`
+         - `recent_failed_execution_count`
+         - `last_workflow_at`
+         - `last_audit_at`
+         - `monitoring_status`
+    3. `SystemStatusBar` 优先使用 health payload 中的 monitoring signals
+       - 但不夸大为 full observability
+    4. 缺数据时诚实返回：
+       - `0`
+       - `None`
+       - `unavailable`
+- Required Test Pack:
+  - `python -m compileall ...`
+  - `pnpm --dir apps/web exec tsc --noEmit`
+  - Unit tests:
+    - monitoring snapshot counters
+    - empty DB returns honest zero/none
+    - health status degrades honestly when Hermes unavailable
+  - Integration tests:
+    - `/api/v1/health` returns monitoring fields from real persisted objects
+  - Failure-path tests:
+    - missing workflow/execution rows returns zero/none
+    - monitoring reader failure does not fake healthy rich snapshot
+  - Invariant checks:
+    - health surface must not overstate system health beyond live reachable evidence
+    - monitoring snapshot is operational signal, not business truth
+  - State/Data Verification:
+    - monitoring fields must come from real `workflow_runs / execution_receipts / audit_events`
+- Done Criteria:
+  - `/api/v1/health` returns real monitoring snapshot fields
+  - `SystemStatusBar` reflects those fields without overstating certainty
+  - empty/missing cases remain honest
+  - at least one unit + one integration test prove monitoring snapshot is real
+- Next Unlock:
+  - runbook / ops
+  - broader infra discipline
+  - future monitoring history or telemetry
+- Not Doing:
+  - 不做 Prometheus/Grafana
+  - 不做日志系统改造
+  - 不做 distributed tracing
+  - 不做 metrics persistence 新表
+  - 不做 full ops control plane

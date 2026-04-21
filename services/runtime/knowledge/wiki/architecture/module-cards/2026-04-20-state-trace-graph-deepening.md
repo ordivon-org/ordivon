@@ -1,0 +1,99 @@
+# State | Trace Graph Deepening
+
+- Module: State | Trace Graph Deepening
+- Layer: State
+- Role: 在现有 `TraceService` 基础上，把当前已经真实存在但还没有进入统一 trace query path 的后半链对象收进 trace bundle，让 `recommendation / workflow_run / review` 至少能追到 review、review execution refs、outcome、knowledge feedback signal，而不是继续散落在 API metadata 和 audit payload 里。
+- Current Value:
+  - 当前 trace 已有两个真实入口：
+    - `trace_workflow_run(workflow_run_id)`
+    - `trace_recommendation(recommendation_id)`
+  - 当前 trace bundle 已能返回：
+    - `analysis`
+    - `recommendation`
+    - `workflow_run`
+    - `intelligence_run`
+    - `agent_action`
+    - `execution_request`
+    - `execution_receipt`
+    - `latest_audit_events`
+    - `report_artifact`
+    - `outcome`
+  - 当前 trace 的 relation 解析规则已经成立：
+    - direct field 优先
+    - metadata 次之
+    - 缺关系时用 `unlinked / missing`
+  - 但 review 后半链仍未进入 trace：
+    - `Review`
+    - `review_complete` execution request / receipt
+    - `knowledge_feedback_prepared` signal
+- Remaining Gap:
+  - 现在 trace 还主要是 analyze 主链前半段，不足以表达 review/outcome/feedback 这一段真实对象链。
+  - 还没有 `trace_review(review_id)` 入口。
+  - recommendation trace 里虽然已有 outcome，但没有 latest review，也没有 review execution refs。
+  - knowledge feedback 目前只能从 audit 或 review complete response metadata 看到，trace 里没有最小 signal。
+  - 部分关系仍靠 metadata/audit 间接体现，没有统一 query path。
+- Immediate Action:
+  - 本轮只做 trace bundle 深化，不做 graph engine。
+  - 具体实现：
+    1. 扩展 `TraceBundle`
+       - 新增：
+         - `review`
+         - `review_execution_request`
+         - `review_execution_receipt`
+         - `knowledge_feedback`
+    2. 新增 `TraceService.trace_review(review_id)`
+       - 以 review 为 root，返回：
+         - review
+         - recommendation
+         - analysis
+         - workflow_run
+         - intelligence_run
+         - review execution refs
+         - outcome
+         - knowledge feedback signal
+    3. 深化 `trace_recommendation(...)`
+       - 补 latest review ref
+       - 补 review execution refs
+       - 补 knowledge feedback signal
+    4. 如有必要，新增 `/api/v1/traces/reviews/{review_id}`
+       - 只暴露真实 bundle，不发明新语义
+  - relation 解析优先级继续保持：
+    - direct state relation 优先
+    - persisted object 优先
+    - metadata / audit 只能作为补充，不得单独冒充 truth relation
+- Required Test Pack:
+  - `python -m compileall ...`
+  - unit:
+    - trace relation builder for review path
+    - direct relation preferred over metadata/audit fallback
+    - knowledge feedback signal resolution
+  - integration:
+    - review complete 后：
+      - `trace_review(review_id)` 可返回 review / outcome / review receipt / knowledge feedback signal
+      - `trace_recommendation(recommendation_id)` 可看到 latest review and downstream refs
+  - failure-path:
+    - no review execution receipt -> honest `unlinked / missing`
+    - no knowledge feedback -> honest `unlinked`
+    - metadata-only orphan relation -> `missing`, 不伪造 present
+  - invariants:
+    - trace 不能只靠 narrative metadata 创造 review/feedback 关系
+    - trace 指向对象必须是可查询 state object，或显式标记 `missing/unlinked`
+    - knowledge feedback 在 trace 中只能是 signal，不是 truth object 替代
+  - state/data:
+    - review / recommendation / outcome / execution receipt / audit refs 可被一致串联
+- Done Criteria:
+  - 至少支持 `trace_review(review_id)` 或等价 review query path
+  - recommendation/workflow trace 能看到 review 后半链的关键对象信号
+  - trace 不再只覆盖 analyze 前半链
+  - 缺 relation 时诚实返回 `missing / unlinked`
+  - 至少一组集成测试证明 `review -> outcome -> feedback signal` 已进入 trace query path
+- Next Unlock:
+  - `Execution | Review Submit Execution`
+  - `Knowledge | Feedback Consumption into Intelligence`
+  - `Experience | Trace Detail Surface`
+- Not Doing:
+  - 不做通用 graph engine
+  - 不做图形化 lineage graph
+  - 不做 report first-class object redesign
+  - 不做 knowledge feedback persistence object
+  - 不改写 review / recommendation / outcome 的 truth semantics

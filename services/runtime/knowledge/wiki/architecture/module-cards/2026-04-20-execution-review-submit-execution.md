@@ -1,0 +1,81 @@
+# Execution | Review Submit Execution
+
+- Module: Execution | Review Submit Execution
+- Layer: Execution
+- Role: 把 `review_submit` 从当前的 domain/service 直接写 row + audit，推进成真实的 execution family，具备 request / receipt / failure model，并与 `review_complete` 保持同一 family execution discipline。
+- Current Value:
+  - `ReviewService.create(...)` 当前直接：
+    - 写 review row
+    - 写 `review_submitted` audit
+  - API `POST /api/v1/reviews/submit` 当前通过 `ReviewCapability.submit_review(...)` 调用 service，返回 review id 和基础 metadata。
+  - `execution/catalog.py` 已经把 `review_submit` 标成 primary receipt candidate，但 owner 仍是 `domains.journal.service.ReviewService.create`，说明 family execution 还没真正接住这条动作。
+  - `review_complete` 已经有：
+    - `ReviewExecutionAdapter.complete(...)`
+    - request / receipt
+    - success / failure audit refs
+    - response refs
+- Remaining Gap:
+  - `review_submit` 现在没有：
+    - execution request
+    - execution receipt
+    - failure receipt
+    - response refs
+  - 同一个 review family 里，`submit` 和 `complete` 使用两套 execution discipline，不一致。
+  - 如果 review family 不把 submit 也收进 execution，后面 review trace / audit / family adapter 会继续分叉。
+- Immediate Action:
+  - 本轮只做 `review_submit`，不重构 `review_complete`。
+  - 具体实现：
+    1. 扩展 `execution/adapters/reviews.py`
+       - 新增 `submit(...)`
+       - 继续作为 review family execution facade
+       - 负责 request / receipt lifecycle
+       - 负责 family-level execution semantics
+       - 负责 audit refs attachment
+       - 不重写 review domain create semantics
+    2. `review_submit` success path:
+       - validate action context / boundary
+       - create execution request
+       - perform domain create
+       - create success receipt only after create succeeds
+       - attach request/receipt refs to `review_submitted` audit payload
+       - return response with refs
+    3. `review_submit` failure path:
+       - validate action context / boundary
+       - create execution request
+       - create fails
+       - create failed receipt
+       - write failure audit with refs
+       - do not create fake review row
+    4. 更新 execution catalog owner path
+       - `review_submit` -> `execution.adapters.reviews.ReviewExecutionAdapter.submit`
+- Required Test Pack:
+  - `python -m compileall ...`
+  - unit:
+    - review submit adapter success request/receipt
+    - review submit adapter failure receipt
+  - integration:
+    - `/api/v1/reviews/submit` -> request / receipt / audit / review row 一致
+  - failure-path:
+    - invalid create / downstream error -> failed request / failed receipt
+    - 无 success receipt 不得留下 review success side-effect
+  - invariants:
+    - review row existence must match success receipt result
+    - success receipt 只对应成功 create
+    - failed receipt 不得伴随 persisted review success row
+  - state/data:
+    - API response / audit payload / execution_request / execution_receipt / review row refs 一致
+- Done Criteria:
+  - `review_submit` 成为真实 request/receipt family
+  - response / audit / state 三者都能看到 refs
+  - 同一次 submit 动作的 refs 一致、语义一致
+  - review family 内 `submit / complete` 都通过统一 adapter discipline 执行
+- Next Unlock:
+  - `Execution | Validation Family Execution`
+  - `Knowledge | Feedback Consumption into Intelligence`
+  - 后续 review family success audit ownership 进一步收口
+- Not Doing:
+  - 不改 review domain create semantics
+  - 不改 review state machine 语义
+  - 不做 validation family execution 化
+  - 不做 execution adapter registry/platform
+  - 不重构 review_complete 之外的 review 下游逻辑

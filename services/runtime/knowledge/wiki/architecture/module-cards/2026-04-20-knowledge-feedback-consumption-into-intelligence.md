@@ -1,0 +1,81 @@
+# Knowledge | Feedback Consumption into Intelligence
+
+- Module: Knowledge | Feedback Consumption into Intelligence
+- Layer: Knowledge / Intelligence
+- Role: 把当前 review 完成后已经会生成的 `KnowledgeFeedbackPacket.intelligence_hints`，推进到至少一条真实 intelligence read path 中被消费；目标不是做长期 memory 系统，而是让后续 analyze task 能读到 evidence-backed derived guidance。
+- Current Value:
+  - `KnowledgeFeedbackService` 当前已经会生成：
+    - `governance_hints`
+    - `intelligence_hints`
+  - governance 已经有消费路径：
+    - `GovernanceFeedbackReader.list_hints_for_symbol(...)`
+    - analyze 的 `GovernanceGateStep` 已能读取 advisory hints
+  - intelligence task contract 其实已经预留了：
+    - `AnalysisTaskInput.memory_lessons`
+    - `AnalysisTaskInput.related_reviews`
+  - `build_analysis_task(ctx)` 会把：
+    - `ctx.memory.lessons`
+    - `ctx.memory.related_reviews`
+    直接送进 Hermes task payload
+  - 但当前 `ContextBuilder` / analyze workflow 还没有把 feedback-derived intelligence hints 放进 `ctx.memory`
+- Remaining Gap:
+  - intelligence 现在还完全不消费 prepared intelligence hints。
+  - `memory_lessons` 目前始终是空列表，task contract 的 memory 位形同虚设。
+  - 如果不接这条 consumption，feedback 会长期停在治理侧和 metadata/audit，无法进入单 agent 的后续 reasoning context。
+- Immediate Action:
+  - 本轮只做最小 hint injection，不做长期 memory。
+  - 具体实现：
+    1. 新增 intelligence-side feedback reader / mapper
+       - 输入：当前 analyze request 的 symbol
+       - 输出：
+         - `memory_lessons`
+         - `related_reviews`
+       - 数据来源仅限真实对象：
+         - `Analysis.symbol`
+         - `Recommendation.analysis_id`
+         - `LessonExtractionService`
+         - `KnowledgeFeedbackService`
+    2. 在 analyze workflow 的 context build 阶段接入这组 intelligence hints
+       - 写入 `ctx.memory.lessons`
+       - 写入 `ctx.memory.related_reviews`
+       - 并在 analysis metadata / response metadata 中标记：
+         - hint count
+         - availability status
+    3. 不修改 Hermes task schema
+       - 直接复用现有 `memory_lessons` / `related_reviews`
+    4. 如果无相关 hints：
+       - 诚实返回空
+       - 不得伪造“系统已学习”
+- Required Test Pack:
+  - `python -m compileall ...`
+  - unit:
+    - symbol -> intelligence hint query/mapping
+    - feedback reader no-hint path returns empty
+    - context injection writes only derived guidance fields
+  - integration:
+    - prior review/lesson/outcome -> subsequent analyze request payload contains memory lessons / related reviews
+  - failure-path:
+    - no related recommendation / no lesson / no outcome 时不伪造 intelligence hint
+    - intelligence feedback reader 出错时 analyze 仍 honest fallback 到 existing reasoning path
+  - invariants:
+    - intelligence hint 不覆盖 state truth
+    - intelligence hint 只是 derived guidance，不是 final fact
+    - 不引入长期 memory persistence
+  - state/data:
+    - analyze response / metadata 中显示的 intelligence hint signal 必须来自真实 lesson/outcome-derived knowledge entries
+- Done Criteria:
+  - 至少一条 intelligence path 能消费 feedback hint
+  - hints 来自真实 state-backed lesson/outcome 派生对象
+  - hints 作为 derived guidance 输入存在，不直接改写 truth 或 policy
+  - analyze task payload / metadata 能看到 consumed intelligence hint signal
+  - 至少一组集成测试证明 `review -> feedback -> subsequent analyze reasoning context` 真实成立
+- Next Unlock:
+  - `Governance | Policy Source of Truth`
+  - `Experience | Trace Detail Surface`
+  - `Experience | Trust-tier / Semantic Discipline`
+- Not Doing:
+  - 不做长期 memory / shared memory
+  - 不做多 agent memory
+  - 不改 Hermes task schema
+  - 不做 UI surface 扩展
+  - 不让 intelligence hint 直接改写 state truth

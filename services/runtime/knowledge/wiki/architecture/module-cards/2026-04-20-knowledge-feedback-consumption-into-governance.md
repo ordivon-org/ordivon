@@ -1,0 +1,70 @@
+# Knowledge | Feedback Consumption into Governance
+
+- Module: Knowledge | Feedback Consumption into Governance
+- Layer: Knowledge / Governance
+- Role: 把当前已经会在 review 完成后生成的 `KnowledgeFeedbackPacket`，推进到至少一条真实 governance read path 中被消费；目标不是改 policy source，也不是让 knowledge 直接改写治理规则，而是让 governance 能读取 evidence-backed hints 作为附加输入。
+- Current Value:
+  - `ReviewService.complete_review(...)` 已经会基于 persisted `Lesson` 和 `OutcomeSnapshot` 生成 `KnowledgeFeedbackPacket`。
+  - `KnowledgeFeedbackPacket` 当前包含：
+    - `knowledge_entry_ids`
+    - `governance_hints`
+    - `intelligence_hints`
+  - `knowledge_feedback_prepared` 已会写入 audit，但 governance 现在还完全不消费这些 hints。
+  - `RiskEngine.validate_analysis(...)` 当前只基于 policy 违规和 suggested actions 做 `execute / escalate / reject` 判断。
+  - `Analysis.symbol` 是真实落库字段，recommendation 与 analysis 也有真实关系，因此可以通过 `symbol -> related recommendations -> extracted knowledge entries/hints` 走真实 query path。
+- Remaining Gap:
+  - feedback packet 目前只是“准备好了”，还没有进入任何治理判断链。
+  - governance 还无法表达“存在经验性 caution hints，但这不是 policy reject”的附加语义。
+  - 如果现在不接 consumption，feedback 会长期停留在 metadata / audit 层，无法形成真正的单 agent 飞轮输入。
+- Immediate Action:
+  - 本轮只做最小 hint consumption，不做 policy rewrite。
+  - 具体实现：
+    1. 新增 governance-side feedback reader / mapper
+       - 输入：当前 analyze request 的 symbol
+       - 输出：与该 symbol 相关的 recent governance hints
+       - 数据来源仅限真实对象：
+         - `Analysis.symbol`
+         - `Recommendation.analysis_id`
+         - `LessonExtractionService`
+    2. 在 analyze 的 `GovernanceGateStep` / `RiskEngine.validate_analysis(...)` 中接入这组 hints
+       - hints 只作为 advisory input
+       - 不直接覆盖现有 policy decision
+    3. 让 `GovernanceDecision` 至少新增最小 hint exposure
+       - 如 `advisory_hints` / `knowledge_feedback`
+       - 进入 analyze response metadata 和 audit payload
+    4. 如果没有相关 hints：
+       - 诚实返回空
+       - 不得伪造“系统已学习”
+- Required Test Pack:
+  - `python -m compileall ...`
+  - unit:
+    - symbol -> governance hint query/mapping
+    - governance decision with advisory hints
+    - no hint path returns empty
+  - integration:
+    - review complete -> feedback prepared -> subsequent analyze consumes governance hint
+  - failure-path:
+    - no related recommendation / no lesson / no outcome 时不伪造 governance hint
+    - hint read path 出错时 analyze governance 仍能 honest fallback 到 existing decision path
+  - invariants:
+    - feedback hint 不得直接改写 policy source
+    - feedback hint 不得覆盖 state truth
+    - governance hint 是 advisory，不是自动 reject / execute 的唯一依据
+  - state/data:
+    - analyze response / audit 中显示的 governance hints 必须来自真实 lesson/outcome-derived knowledge entries
+- Done Criteria:
+  - 至少一条 governance path 能消费 feedback hint
+  - hints 来自真实 state-backed lesson/outcome 派生对象
+  - hints 作为 advisory 输入存在，不直接改 policy source
+  - analyze response 或 audit 中能看到 consumed governance hint signal
+  - 至少一组集成测试证明 `review -> feedback -> subsequent governance read` 真实成立
+- Next Unlock:
+  - `Experience | Review / Outcome / Feedback Surface 扩展`
+  - `Knowledge | Feedback Consumption into Intelligence`
+  - 后续 `Policy Source of Truth`
+- Not Doing:
+  - 不做 policy source of truth
+  - 不让 feedback 直接改写 governance rules
+  - 不做多 agent memory / shared memory
+  - 不做 intelligence consumption
+  - 不做 UI surface 扩展
