@@ -7,8 +7,12 @@ dist/
 build/
 .env
 data/*.duckdb
+data/*.db
 data/logs/
 pfios.egg-info/
 *.egg-info/
 .pytest_cache/
 .ipynb_checkpoints/
+.clinerules
+scratch/
+wiki/reports/
