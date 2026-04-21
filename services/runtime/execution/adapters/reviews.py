@@ -74,11 +74,10 @@ class ReviewExecutionAdapter:
             },
         )
         try:
-            with self.db.begin_nested():
-                review_row = service.create_with_options(
-                    review,
-                    emit_review_submitted_audit=False,
-                )
+            review_row = service.create_with_options(
+                review,
+                emit_review_submitted_audit=False,
+            )
         except Exception as exc:
             receipt_row = self.execution_service.record_failure(
                 request_row.id,
@@ -188,17 +187,16 @@ class ReviewExecutionAdapter:
             },
         )
         try:
-            with self.db.begin_nested():
-                review_row, lesson_rows, knowledge_feedback = service.complete_review(
-                    review_id=review_id,
-                    observed_outcome=observed_outcome,
-                    verdict=verdict,
-                    variance_summary=variance_summary,
-                    cause_tags=cause_tags,
-                    lessons=lessons,
-                    followup_actions=followup_actions,
-                    emit_review_completed_audit=False,
-                )
+            review_row, lesson_rows, knowledge_feedback = service.complete_review(
+                review_id=review_id,
+                observed_outcome=observed_outcome,
+                verdict=verdict,
+                variance_summary=variance_summary,
+                cause_tags=cause_tags,
+                lessons=lessons,
+                followup_actions=followup_actions,
+                emit_review_completed_audit=False,
+            )
         except Exception as exc:
             receipt_row = self.execution_service.record_failure(
                 request_row.id,

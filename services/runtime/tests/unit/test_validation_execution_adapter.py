@@ -112,3 +112,41 @@ def test_validation_adapter_writes_failed_receipt_without_success_issue_row():
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+
+
+def test_validation_adapter_avoids_begin_nested_for_duckdb_compatibility(monkeypatch):
+    engine, testing_session_local = _make_db()
+    db = testing_session_local()
+    try:
+        service = IssueService(IssueRepository(db))
+        adapter = ValidationExecutionAdapter(db)
+
+        def _no_nested_transactions():
+            raise AssertionError("begin_nested should not be called in validation adapter")
+
+        monkeypatch.setattr(db, "begin_nested", _no_nested_transactions)
+
+        result = adapter.report_issue(
+            service=service,
+            issue=Issue(
+                id="issue_no_nested",
+                title="P1 review",
+                summary="Validation drift detected",
+                severity="p1",
+                category="review",
+            ),
+            action_context=ActionContext(
+                actor="test-suite",
+                context="validation_issue_test",
+                reason="assert duckdb compatibility without savepoints",
+                idempotency_key="issue_no_nested:report",
+            ),
+        )
+
+        persisted_issue = db.get(IssueORM, "issue_no_nested")
+        assert result.execution_request_id
+        assert result.execution_receipt_id
+        assert persisted_issue is not None
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)

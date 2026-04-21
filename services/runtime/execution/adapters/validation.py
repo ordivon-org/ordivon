@@ -61,11 +61,10 @@ class ValidationExecutionAdapter:
             },
         )
         try:
-            with self.db.begin_nested():
-                issue_row = service.create_with_options(
-                    issue,
-                    emit_validation_issue_audit=False,
-                )
+            issue_row = service.create_with_options(
+                issue,
+                emit_validation_issue_audit=False,
+            )
         except Exception as exc:
             receipt_row = self.execution_service.record_failure(
                 request_row.id,

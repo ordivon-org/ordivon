@@ -259,3 +259,104 @@ def test_review_complete_adapter_writes_failed_receipt_without_success_transitio
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+
+
+def test_review_submit_adapter_avoids_begin_nested_for_duckdb_compatibility(monkeypatch):
+    engine, TestingSessionLocal = _make_db()
+    db = TestingSessionLocal()
+    try:
+        review_service = ReviewService(
+            ReviewRepository(db),
+            LessonService(LessonRepository(db)),
+        )
+        adapter = ReviewExecutionAdapter(db)
+
+        def _no_nested_transactions():
+            raise AssertionError("begin_nested should not be called in review submit adapter")
+
+        monkeypatch.setattr(db, "begin_nested", _no_nested_transactions)
+
+        result = adapter.submit(
+            service=review_service,
+            review=Review(
+                id="review_submit_no_nested",
+                recommendation_id="reco_submit_no_nested",
+                status=ReviewStatus.PENDING,
+                expected_outcome="Trend holds",
+            ),
+            action_context=ActionContext(
+                actor="test-suite",
+                context="review_submit_test",
+                reason="assert duckdb compatibility without savepoints",
+                idempotency_key="review_submit_no_nested:submit",
+            ),
+        )
+
+        persisted_review = ReviewRepository(db).get("review_submit_no_nested")
+        assert result.execution_request_id
+        assert result.execution_receipt_id
+        assert persisted_review is not None
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+def test_review_complete_adapter_avoids_begin_nested_for_duckdb_compatibility(monkeypatch):
+    engine, TestingSessionLocal = _make_db()
+    db = TestingSessionLocal()
+    try:
+        recommendation_repo = RecommendationRepository(db)
+        recommendation_repo.create(
+            Recommendation(
+                id="reco_complete_no_nested",
+                analysis_id="analysis_no_nested",
+                title="Trend setup",
+                summary="summary",
+            )
+        )
+        review_service = ReviewService(
+            ReviewRepository(db),
+            LessonService(LessonRepository(db)),
+            outcome_service=OutcomeService(OutcomeRepository(db)),
+            recommendation_service=RecommendationService(recommendation_repo),
+        )
+        review_service.create(
+            Review(
+                id="review_complete_no_nested",
+                recommendation_id="reco_complete_no_nested",
+                status=ReviewStatus.PENDING,
+                expected_outcome="Trend holds",
+            )
+        )
+        adapter = ReviewExecutionAdapter(db)
+
+        def _no_nested_transactions():
+            raise AssertionError("begin_nested should not be called in review complete adapter")
+
+        monkeypatch.setattr(db, "begin_nested", _no_nested_transactions)
+
+        result = adapter.complete(
+            service=review_service,
+            review_id="review_complete_no_nested",
+            observed_outcome="Loss contained",
+            verdict=ReviewVerdict.INVALIDATED,
+            variance_summary="Setup failed quickly",
+            cause_tags=["timing"],
+            lessons=["Use confirmation candle"],
+            followup_actions=["Update checklist"],
+            action_context=ActionContext(
+                actor="test-suite",
+                context="review_complete_test",
+                reason="assert duckdb compatibility without savepoints",
+                idempotency_key="review_complete_no_nested:complete",
+            ),
+        )
+
+        persisted_review = ReviewRepository(db).get("review_complete_no_nested")
+        assert result.execution_request_id
+        assert result.execution_receipt_id
+        assert persisted_review is not None
+        assert persisted_review.complete_execution_request_id == result.execution_request_id
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
