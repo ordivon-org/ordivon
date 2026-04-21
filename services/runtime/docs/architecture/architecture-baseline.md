@@ -128,6 +128,22 @@ At least one reusable asset should remain:
 - metrics
 - policy hook
 
+### Principle 8: generalize only stable system laws
+
+Do not generalize everything.
+
+Only generalize the patterns that are stable across domains.
+
+That means:
+
+- stable operating-system primitives belong in `core`
+- domain semantics belong in `packs`
+- replaceable external integrations belong in `adapters`
+
+See:
+
+- [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
+
 ## Canonical Layer Model
 
 PFIOS now formally uses **nine responsibility surfaces** for design and task planning, even though some migration-era docs still describe an eight-layer repo skeleton.
@@ -149,6 +165,18 @@ The nine responsibility surfaces are:
 7. State
 8. Knowledge
 9. Infrastructure
+
+These nine surfaces still answer the main ownership question:
+
+**which responsibility layer owns which kind of work?**
+
+The platformization question is separate:
+
+**which parts of the system are stable `core`, which are domain `packs`, and which are replaceable `adapters`?**
+
+That second classification is now governed by:
+
+- [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
 
 ## 1. Experience
 

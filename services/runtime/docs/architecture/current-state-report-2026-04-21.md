@@ -278,6 +278,24 @@ The next useful direction is now:
 2. `Experience | Global Trust-tier Rollout`
 3. `Intelligence | Task Taxonomy Expansion`
 
+At the architecture level, the next framing move is also clear:
+
+- keep the current nine-surface responsibility model
+- begin classifying the repo into:
+  - stable `core` primitives
+  - `finance pack` domain implementations
+  - replaceable `adapters`
+
+That does **not** mean the repository should be rewritten into new top-level folders immediately.
+
+It means the next platformization work should first freeze primitives and classify current code before attempting large directory moves.
+
+See:
+
+- [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
+- [Current Code Classification Map v1](./current-code-classification-map-v1.md)
+- [Finance Pack v1 Definition](./finance-pack-v1-definition.md)
+
 ## Final Judgment
 
 PFIOS is now a single-agent baseline system with real:

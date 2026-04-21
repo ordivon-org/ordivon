@@ -3,6 +3,9 @@
 This document remains as a compatibility entrypoint for older references. The active architecture description now lives in:
 
 - [architecture-baseline](./architecture-baseline.md)
+- [core-pack-adapter-baseline](./core-pack-adapter-baseline.md)
+- [current-code-classification-map-v1](./current-code-classification-map-v1.md)
+- [finance-pack-v1-definition](./finance-pack-v1-definition.md)
 - [system-overview](./system-overview.md)
 - [architecture-diagram](./architecture-diagram.md)
 - [layer-definition](./layer-definition.md)
@@ -33,3 +36,9 @@ The repository is moving from a package-centric prototype layout toward a bounda
 - `infra/` for the Infrastructure Layer
 
 Existing code under `pfios/` remains valid during migration, but new work should follow the target root structure unless there is a clear compatibility reason not to.
+
+The next platformization step is defined in [core-pack-adapter-baseline](./core-pack-adapter-baseline.md), which distinguishes stable operating-system primitives from domain packs and replaceable adapters.
+
+The first repo-level classification pass now lives in [current-code-classification-map-v1](./current-code-classification-map-v1.md).
+
+The current domain-pack identity is now frozen in [finance-pack-v1-definition](./finance-pack-v1-definition.md).
