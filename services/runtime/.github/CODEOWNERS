@@ -1,0 +1,28 @@
+# Default owner for the repository.
+* @zycxfyh
+
+# CI and repository policy.
+.github/ @zycxfyh
+
+# Product surfaces.
+apps/ @zycxfyh
+apps/api/ @zycxfyh
+apps/web/ @zycxfyh
+
+# Core runtime and orchestration layers.
+adapters/ @zycxfyh
+capabilities/ @zycxfyh
+domains/ @zycxfyh
+execution/ @zycxfyh
+governance/ @zycxfyh
+infra/ @zycxfyh
+intelligence/ @zycxfyh
+orchestrator/ @zycxfyh
+packs/ @zycxfyh
+state/ @zycxfyh
+tools/ @zycxfyh
+
+# Tests and docs.
+tests/ @zycxfyh
+docs/ @zycxfyh
+knowledge/ @zycxfyh
