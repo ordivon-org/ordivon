@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from domains.execution_records.orm import ExecutionRequestORM
 from domains.execution_records.orm import ExecutionReceiptORM
 from domains.workflow_runs.orm import WorkflowRunORM
-from infra.monitoring.models import MonitoringHistorySummary
+from infra.monitoring.models import BlockedRunSummary, MonitoringHistorySummary, SchedulerTriggerHealthSummary
+from infra.scheduler.repository import SchedulerRepository
 from shared.time.clock import utc_now
 from shared.utils.serialization import from_json_text
 
@@ -21,28 +22,48 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
     stale_or_blocked_run_count = 0
     approval_blocked_count = 0
     blocked_run_ids: list[str] = []
+    blocked_runs: list[BlockedRunSummary] = []
+    approval_blocked_run_ids: list[str] = []
+    recent_workflow_failures: list[dict[str, str]] = []
     for row in workflow_rows:
         if row.status == "failed":
             key = row.failed_step or "workflow_failed"
             workflow_failures_by_type[key] = workflow_failures_by_type.get(key, 0) + 1
+            recent_workflow_failures.append(
+                {
+                    "run_id": row.id,
+                    "workflow_name": row.workflow_name,
+                    "failure_type": key,
+                }
+            )
         lineage = from_json_text(row.lineage_refs_json, {})
         blocked_reason = lineage.get("blocked_reason")
         if blocked_reason:
             stale_or_blocked_run_count += 1
             blocked_run_ids.append(row.id)
+            blocked_runs.append(BlockedRunSummary(run_id=row.id, blocked_reason=str(blocked_reason)))
             if "approval" in str(blocked_reason):
                 approval_blocked_count += 1
+                approval_blocked_run_ids.append(row.id)
 
     execution_failures_by_family: dict[str, int] = {}
     request_family_by_id = {
         row.id: row.family
         for row in db.query(ExecutionRequestORM).all()
     }
+    recent_execution_failures: list[dict[str, str]] = []
     for row in execution_rows:
         if row.status != "failed":
             continue
         family = request_family_by_id.get(row.request_id) or "unknown"
         execution_failures_by_family[family] = execution_failures_by_family.get(family, 0) + 1
+        recent_execution_failures.append(
+            {
+                "receipt_id": row.id,
+                "request_id": row.request_id,
+                "family": family,
+            }
+        )
 
     top_workflow_failure_type = None
     if workflow_failures_by_type:
@@ -52,6 +73,14 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
     if execution_failures_by_family:
         top_execution_failure_family = max(execution_failures_by_family.items(), key=lambda item: item[1])[0]
 
+    scheduler_rows = SchedulerRepository(db).list_all()
+    scheduler_summary = SchedulerTriggerHealthSummary(
+        total_trigger_count=len(scheduler_rows),
+        enabled_trigger_count=sum(1 for row in scheduler_rows if row.is_enabled),
+        disabled_trigger_count=sum(1 for row in scheduler_rows if not row.is_enabled),
+        dispatched_trigger_count=sum(1 for row in scheduler_rows if row.dispatch_count > 0),
+    )
+
     return MonitoringHistorySummary(
         workflow_failures_by_type=workflow_failures_by_type,
         execution_failures_by_family=execution_failures_by_family,
@@ -60,4 +89,9 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
         top_workflow_failure_type=top_workflow_failure_type,
         top_execution_failure_family=top_execution_failure_family,
         blocked_run_ids=tuple(blocked_run_ids[:10]),
+        recent_workflow_failures=tuple(recent_workflow_failures[:10]),
+        recent_execution_failures=tuple(recent_execution_failures[:10]),
+        blocked_runs=tuple(blocked_runs[:10]),
+        approval_blocked_run_ids=tuple(approval_blocked_run_ids[:10]),
+        scheduler=scheduler_summary,
     )

@@ -376,6 +376,50 @@ def test_recommendation_surface_returns_honest_missing_fields_when_not_linked():
     assert recommendation["metadata"]["governance"] is None
 
 
+def test_recommendation_detail_surface_returns_real_object_by_id():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    db = TestingSessionLocal()
+    try:
+        RecommendationRepository(db).create(
+            Recommendation(
+                id="reco_surface_detail",
+                analysis_id=None,
+                title="Track SOL breakout",
+                summary="Track SOL breakout setup",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    local_client = TestClient(app)
+    response = local_client.get("/api/v1/recommendations/reco_surface_detail")
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == "reco_surface_detail"
+    assert payload["status"] == "generated"
+    assert payload["metadata"]["knowledge_hint_status"] == "not_linked_yet"
+
+
 def test_recommendation_surface_reuses_governance_decision_shape():
     engine = create_engine(
         "sqlite://",

@@ -1,14 +1,12 @@
 # Finance-pack candidate: this module currently carries finance-shaped context defaults and should not become a core primitive owner.
 from dataclasses import dataclass
 
+from domains.research.models import AnalysisRequest
 from governance.policy_source import GovernancePolicySource
 from orchestrator.context.governance_context import GovernanceContext
-from orchestrator.context.market_context import MarketContext
 from orchestrator.context.memory_context import MemoryContext
-from orchestrator.context.portfolio_context import PortfolioContext
 from orchestrator.context.query_context import QueryContext
-from packs.finance.context import build_finance_analysis_context_defaults
-from domains.research.models import AnalysisRequest
+from packs.finance.context import MarketContext, PortfolioContext, build_finance_analysis_context_defaults
 
 
 @dataclass

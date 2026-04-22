@@ -20,6 +20,7 @@ async def analyze_and_suggest(payload: AnalyzeRequest, db: Session = Depends(get
             AnalyzeCapabilityInput(
                 query=payload.query,
                 symbols=payload.symbols,
+                timeframe=payload.timeframe,
             ),
             db=db
         )

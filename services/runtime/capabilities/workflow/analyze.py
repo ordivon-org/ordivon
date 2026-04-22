@@ -7,7 +7,7 @@ from capabilities.contracts import AnalyzeResult
 from domains.research.models import AnalysisRequest
 from governance.decision import build_governance_decision
 from orchestrator.runtime.engine import PFIOSOrchestrator
-from packs.finance.analyze_defaults import build_finance_analyze_defaults
+from packs.finance.analyze_profile import build_finance_analyze_profile
 from sqlalchemy.orm import Session
 
 
@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 class AnalyzeCapabilityInput:
     query: str
     symbols: list[str]
+    timeframe: str | None = None
 
 
 class AnalyzeCapability:
@@ -26,13 +27,16 @@ class AnalyzeCapability:
         self.orchestrator = orchestrator or PFIOSOrchestrator()
 
     async def analyze_and_suggest(self, request: AnalyzeCapabilityInput, db: Session | None = None) -> dict[str, Any]:
-        defaults = build_finance_analyze_defaults(symbol=request.symbols[0] if request.symbols else None)
-        symbol = defaults.symbol
+        profile = build_finance_analyze_profile(
+            symbol=request.symbols[0] if request.symbols else None,
+            timeframe=request.timeframe,
+        )
+        symbol = profile.symbol
         report = self.orchestrator.execute_analyze(
             AnalysisRequest(
                 query=request.query,
                 symbol=symbol,
-                timeframe=defaults.timeframe,
+                timeframe=profile.timeframe,
             ),
             db=db,
         )
@@ -59,6 +63,7 @@ class AnalyzeCapability:
             recommendation_id=report.get("recommendation_id"),
             metadata={
                 "symbol": symbol,
+                "timeframe": profile.timeframe,
                 "contract_type": "workflow",
                 "governance_decision": governance.decision,
                 "governance_source": governance.source,

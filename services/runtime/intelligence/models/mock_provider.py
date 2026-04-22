@@ -14,6 +14,13 @@ class MockReasoningProvider(AgentRuntime):
             adapter_name="intelligence.models.mock_provider.MockReasoningProvider",
         )
 
+    def health(self) -> dict[str, object]:
+        return {
+            "status": "ok",
+            "provider": self.descriptor.provider_name,
+            "model": self.descriptor.model_name,
+        }
+
     def analyze(self, ctx: AnalysisContext, request: IntelligenceTaskRequest | None = None) -> AnalysisResult:
         symbol = ctx.market.symbol or "UNKNOWN"
         return AnalysisResult(

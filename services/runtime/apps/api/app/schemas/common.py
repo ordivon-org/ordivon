@@ -38,6 +38,33 @@ class StatusResponse(BaseModel):
     blocked_run_ids: list[str] | None = None
 
 
+class BlockedRunResponse(BaseModel):
+    run_id: str
+    blocked_reason: str
+
+
+class SchedulerTriggerHealthResponse(BaseModel):
+    total_trigger_count: int
+    enabled_trigger_count: int
+    disabled_trigger_count: int
+    dispatched_trigger_count: int
+
+
+class HealthHistoryResponse(BaseModel):
+    workflow_failures_by_type: dict[str, int]
+    execution_failures_by_family: dict[str, int]
+    stale_or_blocked_run_count: int
+    approval_blocked_count: int
+    top_workflow_failure_type: str | None = None
+    top_execution_failure_family: str | None = None
+    blocked_run_ids: list[str]
+    recent_workflow_failures: list[dict[str, str]]
+    recent_execution_failures: list[dict[str, str]]
+    blocked_runs: list[BlockedRunResponse]
+    approval_blocked_run_ids: list[str]
+    scheduler: SchedulerTriggerHealthResponse | None = None
+
+
 class AgentActionSummaryResponse(BaseModel):
     id: str
     task_type: str

@@ -15,7 +15,7 @@ export function useWorkspaceTabs(initialTabs: WorkspaceTab[] = []) {
 
   function openTab(tab: WorkspaceTab) {
     setTabs((existing) => (existing.some((item) => item.id === tab.id) ? existing : [...existing, tab]));
-    setActiveTabId(tab.id);
+    setActiveTabId((current) => (current === tab.id ? current : tab.id));
   }
 
   function replaceTabs(nextTabs: WorkspaceTab[]) {

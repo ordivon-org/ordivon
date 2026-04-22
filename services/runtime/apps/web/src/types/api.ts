@@ -18,6 +18,26 @@ export interface RecommendationListResponse {
   recommendations: RecommendationItem[];
 }
 
+export interface HealthHistoryResponse {
+  workflow_failures_by_type: Record<string, number>;
+  execution_failures_by_family: Record<string, number>;
+  stale_or_blocked_run_count: number;
+  approval_blocked_count: number;
+  top_workflow_failure_type?: string | null;
+  top_execution_failure_family?: string | null;
+  blocked_run_ids: string[];
+  recent_workflow_failures: Array<Record<string, string>>;
+  recent_execution_failures: Array<Record<string, string>>;
+  blocked_runs: Array<{ run_id: string; blocked_reason: string }>;
+  approval_blocked_run_ids: string[];
+  scheduler?: {
+    total_trigger_count: number;
+    enabled_trigger_count: number;
+    disabled_trigger_count: number;
+    dispatched_trigger_count: number;
+  } | null;
+}
+
 export interface ValidationMetrics {
   days_used: number;
   analysis_count: number;

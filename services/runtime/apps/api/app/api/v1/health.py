@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from apps.api.app.schemas.common import StatusResponse
+from apps.api.app.schemas.common import BlockedRunResponse, HealthHistoryResponse, SchedulerTriggerHealthResponse, StatusResponse
 from apps.api.app.deps import get_db
-from intelligence.runtime.hermes_client import HermesClient, HermesUnavailableError
+from adapters.runtimes.factory import resolve_runtime
 from infra.monitoring import MonitoringService
 from shared.config.settings import settings
 
@@ -32,13 +32,10 @@ async def health_check(db: Session = Depends(get_db)):
 
     if settings.reasoning_provider == "hermes":
         try:
-            health = HermesClient().health_check()
+            health = resolve_runtime().health()
             hermes_status = health.get("status", "ok")
             runtime_provider = health.get("provider")
             runtime_model = health.get("model")
-        except HermesUnavailableError as exc:
-            hermes_status = "unavailable"
-            hermes_detail = str(exc)
         except Exception:
             hermes_status = "unavailable"
             hermes_detail = "Hermes health check failed unexpectedly."
@@ -90,6 +87,55 @@ async def health_check(db: Session = Depends(get_db)):
         top_workflow_failure_type=top_workflow_failure_type,
         top_execution_failure_family=top_execution_failure_family,
         blocked_run_ids=blocked_run_ids,
+    )
+
+
+@router.get("/health/history", response_model=HealthHistoryResponse)
+async def health_history(db: Session = Depends(get_db)):
+    summary = MonitoringService(db).get_snapshot().history
+    if summary is None:
+        return HealthHistoryResponse(
+            workflow_failures_by_type={},
+            execution_failures_by_family={},
+            stale_or_blocked_run_count=0,
+            approval_blocked_count=0,
+            blocked_run_ids=[],
+            recent_workflow_failures=[],
+            recent_execution_failures=[],
+            blocked_runs=[],
+            approval_blocked_run_ids=[],
+            scheduler=SchedulerTriggerHealthResponse(
+                total_trigger_count=0,
+                enabled_trigger_count=0,
+                disabled_trigger_count=0,
+                dispatched_trigger_count=0,
+            ),
+        )
+    return HealthHistoryResponse(
+        workflow_failures_by_type=summary.workflow_failures_by_type,
+        execution_failures_by_family=summary.execution_failures_by_family,
+        stale_or_blocked_run_count=summary.stale_or_blocked_run_count,
+        approval_blocked_count=summary.approval_blocked_count,
+        top_workflow_failure_type=summary.top_workflow_failure_type,
+        top_execution_failure_family=summary.top_execution_failure_family,
+        blocked_run_ids=list(summary.blocked_run_ids),
+        recent_workflow_failures=list(summary.recent_workflow_failures),
+        recent_execution_failures=list(summary.recent_execution_failures),
+        blocked_runs=[
+            BlockedRunResponse(run_id=item.run_id, blocked_reason=item.blocked_reason)
+            for item in summary.blocked_runs
+        ],
+        approval_blocked_run_ids=list(summary.approval_blocked_run_ids),
+        scheduler=(
+            SchedulerTriggerHealthResponse(
+                total_trigger_count=summary.scheduler.total_trigger_count,
+                enabled_trigger_count=summary.scheduler.enabled_trigger_count,
+                disabled_trigger_count=summary.scheduler.disabled_trigger_count,
+                dispatched_trigger_count=summary.scheduler.dispatched_trigger_count,
+            )
+            if summary.scheduler is not None
+            else None
+        ),
     )
 
 @router.get("/version", response_model=StatusResponse)

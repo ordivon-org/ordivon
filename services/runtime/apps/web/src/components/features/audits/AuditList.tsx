@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { apiGet } from '@/lib/api';
+import { useWorkspaceContext } from '@/components/workspace/WorkspaceProvider';
 import type { AuditEvent, AuditListResponse } from '@/types/api';
 
 function formatTimestamp(value: string): string {
@@ -36,6 +37,50 @@ export default function AuditList() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [audits, setAudits] = useState<AuditEvent[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'unavailable'>('loading');
+  const workspace = useWorkspaceContext();
+
+  function openAuditTabs(audit: AuditEvent) {
+    const recommendationId =
+      typeof audit.details.recommendation_id === 'string'
+        ? audit.details.recommendation_id
+        : audit.stage === 'recommendation'
+          ? audit.subject_id
+          : null;
+    const reviewId =
+      typeof audit.details.review_id === 'string'
+        ? audit.details.review_id
+        : audit.stage === 'review'
+          ? audit.subject_id
+          : null;
+    const traceRef = reviewId ?? recommendationId ?? audit.subject_id;
+
+    if (reviewId) {
+      workspace.openTab({
+        id: `review:${reviewId}`,
+        type: 'review_detail',
+        title: `Review ${reviewId}`,
+        refId: reviewId,
+      });
+    }
+
+    if (recommendationId) {
+      workspace.openTab({
+        id: `recommendation:${recommendationId}`,
+        type: 'recommendation_detail',
+        title: `Recommendation ${recommendationId}`,
+        refId: recommendationId,
+      });
+    }
+
+    if (traceRef) {
+      workspace.openTab({
+        id: `trace:${traceRef}`,
+        type: 'trace_detail',
+        title: `Trace ${traceRef}`,
+        refId: traceRef,
+      });
+    }
+  }
 
   const loadAudits = async () => {
     try {
@@ -159,6 +204,23 @@ export default function AuditList() {
                       <strong>Details:</strong> {detailsSummary}
                     </p>
                   )}
+
+                  <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => openAuditTabs(audit)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        background: 'rgba(255,255,255,0.04)',
+                        color: 'var(--foreground)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Open Related Tabs
+                    </button>
+                  </div>
 
                   {audit.report_path && (
                     <p style={{ fontSize: '0.85rem', lineHeight: '1.5', color: 'var(--foreground)' }}>

@@ -1,4 +1,5 @@
 from adapters.runtimes.hermes.runtime import HermesRuntime
+from intelligence.providers.hermes_agent_provider import HermesAgentProvider
 from intelligence.runtime.hermes_client import HermesClient
 from orchestrator.context.context_builder import AnalysisContext
 from orchestrator.context.governance_context import GovernanceContext
@@ -69,3 +70,7 @@ def test_hermes_runtime_analyze_returns_analysis_result():
     assert analysis.summary == "Adapter summary"
     assert analysis.thesis == "Adapter thesis"
     assert analysis.metadata["runtime_adapter"] == "adapters.runtimes.hermes.runtime.HermesRuntime"
+
+
+def test_legacy_hermes_provider_path_is_a_runtime_alias():
+    assert HermesAgentProvider is HermesRuntime

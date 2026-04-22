@@ -23,6 +23,10 @@ class AgentRuntime(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def health(self) -> dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
     def analyze(
         self,
         ctx: AnalysisContext,

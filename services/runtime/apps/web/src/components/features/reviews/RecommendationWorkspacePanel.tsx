@@ -7,7 +7,7 @@ import { TraceDetailPanel } from '@/components/state/TraceDetailPanel';
 import { LoadingState, UnavailableState } from '@/components/state/SurfaceStates';
 import { honestMissingCopy, semanticNote, trustTierForSignal } from '@/lib/semanticSignals';
 import { TrustTierBadge } from '@/components/state/ProductSignals';
-import type { RecommendationItem, RecommendationListResponse } from '@/types/api';
+import type { RecommendationItem } from '@/types/api';
 
 export function RecommendationWorkspacePanel({ recommendationId }: { recommendationId: string }) {
   const [recommendation, setRecommendation] = useState<RecommendationItem | null>(null);
@@ -17,13 +17,12 @@ export function RecommendationWorkspacePanel({ recommendationId }: { recommendat
     let cancelled = false;
     async function load() {
       try {
-        const response = await apiGet<RecommendationListResponse>('/api/v1/recommendations/recent?limit=50');
+        const response = await apiGet<RecommendationItem>(`/api/v1/recommendations/${recommendationId}`);
         if (cancelled) {
           return;
         }
-        const match = response.recommendations.find((item) => item.id === recommendationId) ?? null;
-        setRecommendation(match);
-        setStatus(match ? 'ready' : 'unavailable');
+        setRecommendation(response);
+        setStatus('ready');
       } catch {
         if (!cancelled) {
           setStatus('unavailable');

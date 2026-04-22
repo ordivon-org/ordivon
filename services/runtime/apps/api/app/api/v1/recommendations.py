@@ -45,6 +45,18 @@ async def get_recent_recommendations(limit: int = 10, db: Session = Depends(get_
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{reco_id}", response_model=RecommendationResponse)
+async def get_recommendation_detail(reco_id: str, db: Session = Depends(get_db)):
+    try:
+        service = RecommendationService(RecommendationRepository(db), None)
+        reco = recommendation_capability.get_by_id(service, reco_id)
+        return RecommendationResponse(**asdict(reco))
+    except Exception as e:
+        if "Recommendation not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.patch("/{reco_id}/status", response_model=dict)
 async def update_recommendation_status(reco_id: str, update: RecommendationUpdate, db: Session = Depends(get_db)):
     try:

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
+from packs.finance.policy import get_finance_policy_overlays
+from packs.finance.tool_refs import get_finance_tool_refs
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,3 +39,14 @@ class GovernancePolicySource:
 
     def get_active_policy_ids(self) -> tuple[str, ...]:
         return self.get_active_snapshot().active_policy_ids
+
+    def get_finance_policy_overlay_refs(self) -> tuple[str, ...]:
+        return tuple(str(ref.path) for ref in get_finance_policy_overlays())
+
+    def get_finance_tool_namespace_refs(self) -> dict[str, tuple[str, ...]]:
+        refs = get_finance_tool_refs()
+        return {
+            "market_data": refs.market_data,
+            "news_data": refs.news_data,
+            "broker": refs.broker,
+        }

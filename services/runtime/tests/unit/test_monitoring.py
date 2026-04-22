@@ -6,6 +6,7 @@ from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
+from infra.scheduler import ScheduledTrigger, SchedulerService
 from governance.audit.models import AuditEvent
 from governance.audit.repository import AuditEventRepository
 from infra.monitoring import MonitoringService
@@ -67,6 +68,17 @@ def test_monitoring_snapshot_counts_recent_failures_and_activity():
                 payload={"detail": "failed"},
             )
         )
+        scheduler = SchedulerService()
+        scheduler.register_target("dashboard_summary_refresh", lambda payload: {"refreshed": payload.get("scope")})
+        scheduler.register_trigger(
+            ScheduledTrigger(
+                id="sched_monitor_1",
+                target_capability="dashboard_summary_refresh",
+                payload={"scope": "dashboard"},
+            )
+        )
+        scheduler.dispatch("sched_monitor_1")
+        scheduler.save_to_repository(db)
         db.commit()
 
         snapshot = MonitoringService(db).get_snapshot()
@@ -82,6 +94,9 @@ def test_monitoring_snapshot_counts_recent_failures_and_activity():
         assert snapshot.history.execution_failures_by_family["review"] == 1
         assert snapshot.history.top_workflow_failure_type == "workflow_failed"
         assert snapshot.history.top_execution_failure_family == "review"
+        assert snapshot.history.scheduler is not None
+        assert snapshot.history.scheduler.total_trigger_count == 1
+        assert snapshot.history.scheduler.dispatched_trigger_count == 1
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

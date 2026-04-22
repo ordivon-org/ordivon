@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from infra.scheduler.models import ScheduledTrigger
+from infra.scheduler.repository import SchedulerRepository
 from shared.time.clock import utc_now
 from shared.utils.serialization import from_json_text, to_json_text
 
@@ -118,6 +119,21 @@ class SchedulerService:
                 last_dispatched_at=raw.get("last_dispatched_at"),
                 dispatch_count=int(raw.get("dispatch_count", 0) or 0),
             )
+            self._triggers[trigger.id] = trigger
+            loaded.append(trigger)
+        return tuple(loaded)
+
+    def save_to_repository(self, db) -> tuple[ScheduledTrigger, ...]:
+        repository = SchedulerRepository(db)
+        for trigger in self._triggers.values():
+            repository.upsert(trigger)
+        return self.list_triggers()
+
+    def load_from_repository(self, db) -> tuple[ScheduledTrigger, ...]:
+        repository = SchedulerRepository(db)
+        loaded: list[ScheduledTrigger] = []
+        for row in repository.list_all():
+            trigger = repository.to_model(row)
             self._triggers[trigger.id] = trigger
             loaded.append(trigger)
         return tuple(loaded)

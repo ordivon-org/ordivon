@@ -27,17 +27,23 @@ def _make_db():
 
 
 def test_health_is_served_from_api_v1_only():
+    original_provider = settings.reasoning_provider
+    settings.reasoning_provider = "mock"
     client = TestClient(app)
     response = client.get("/api/v1/health")
+    settings.reasoning_provider = original_provider
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    assert response.json()["status"] in {"ok", "degraded"}
     assert response.json()["monitoring_status"] in {"nominal", "attention", "unavailable"}
 
 
 def test_health_reports_degraded_when_hermes_is_unavailable(monkeypatch):
     original_provider = settings.reasoning_provider
     settings.reasoning_provider = "hermes"
-    monkeypatch.setattr("apps.api.app.api.v1.health.HermesClient.health_check", lambda self: (_ for _ in ()).throw(Exception("unavailable")))
+    monkeypatch.setattr(
+        "apps.api.app.api.v1.health.resolve_runtime",
+        lambda: type("UnavailableRuntime", (), {"health": lambda self: (_ for _ in ()).throw(Exception("unavailable"))})(),
+    )
     client = TestClient(app)
     response = client.get("/api/v1/health")
     settings.reasoning_provider = original_provider

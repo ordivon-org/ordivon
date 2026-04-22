@@ -20,6 +20,7 @@ from domains.strategy.orm import RecommendationORM  # noqa: F401
 from domains.strategy.outcome_orm import OutcomeSnapshotORM  # noqa: F401
 from governance.approval_orm import ApprovalRecordORM  # noqa: F401
 from governance.audit.orm import AuditEventORM  # noqa: F401
+from infra.scheduler.orm import ScheduledTriggerORM  # noqa: F401
 from state.usage.orm import UsageSnapshotORM  # noqa: F401
 
 
