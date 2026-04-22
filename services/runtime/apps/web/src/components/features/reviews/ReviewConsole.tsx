@@ -7,14 +7,14 @@ import { apiGet } from '@/lib/api';
 import { ReviewQueue } from '@/components/features/reviews/ReviewQueue';
 import { LoadingState, UnavailableState } from '@/components/state/SurfaceStates';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceProvider';
-import type { PendingReviewItem, PendingReviewListResponse, ReviewDetailResponse } from '@/types/api';
+import type { PendingReviewItem, PendingReviewListResponse } from '@/types/api';
 
 export function ReviewConsole() {
   const searchParams = useSearchParams();
   const [reviews, setReviews] = useState<PendingReviewItem[]>([]);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-  const workspace = useWorkspaceContext();
+  const { activeTab, openTab, replaceTabs } = useWorkspaceContext();
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +47,7 @@ export function ReviewConsole() {
               refId: first,
             },
           ];
-          workspace.replaceTabs(initialTabs);
+          replaceTabs(initialTabs);
         }
         setStatus('ready');
       } catch {
@@ -60,7 +60,7 @@ export function ReviewConsole() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [replaceTabs, searchParams]);
 
   if (status === 'loading') {
     return <LoadingState message="Loading review console..." />;
@@ -89,13 +89,13 @@ export function ReviewConsole() {
           selectedReviewId={selectedReviewId}
           onSelect={(reviewId) => {
             setSelectedReviewId(reviewId);
-            workspace.openTab({
+            openTab({
               id: `review:${reviewId}`,
               type: 'review_detail',
               title: `Review ${reviewId}`,
               refId: reviewId,
             });
-            workspace.openTab({
+            openTab({
               id: `trace:${reviewId}`,
               type: 'trace_detail',
               title: `Trace ${reviewId}`,
@@ -103,7 +103,7 @@ export function ReviewConsole() {
             });
             const selected = reviews.find((item) => item.id === reviewId);
             if (selected?.recommendation_id) {
-              workspace.openTab({
+              openTab({
                 id: `recommendation:${selected.recommendation_id}`,
                 type: 'recommendation_detail',
                 title: `Recommendation ${selected.recommendation_id}`,
@@ -113,7 +113,7 @@ export function ReviewConsole() {
           }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {!workspace.activeTab ? (
+          {!activeTab ? (
             <UnavailableState
               message="No review detail is selected."
               detail="Choose a review from the queue to inspect outcome, knowledge feedback, and trace refs."

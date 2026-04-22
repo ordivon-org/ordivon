@@ -14,21 +14,18 @@ import type { ReviewDetailResponse } from '@/types/api';
 export function ConsoleWorkspacePanel() {
   const workspace = useWorkspaceContext();
   const [reviewDetail, setReviewDetail] = useState<ReviewDetailResponse | null>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'unavailable'>('idle');
+  const [status, setStatus] = useState<'idle' | 'ready' | 'unavailable'>('idle');
+  const activeReviewId = workspace.activeTab?.type === 'review_detail' ? workspace.activeTab.refId : null;
+  const activeReviewDetail = activeReviewId && reviewDetail?.id === activeReviewId ? reviewDetail : null;
 
   useEffect(() => {
-    const activeTab = workspace.activeTab;
-    if (!activeTab || activeTab.type !== 'review_detail') {
-      setReviewDetail(null);
-      setStatus('idle');
+    if (!activeReviewId) {
       return;
     }
     let cancelled = false;
-    const reviewId = activeTab.refId;
     async function loadReviewDetail() {
-      setStatus('loading');
       try {
-        const response = await apiGet<ReviewDetailResponse>(`/api/v1/reviews/${reviewId}`);
+        const response = await apiGet<ReviewDetailResponse>(`/api/v1/reviews/${activeReviewId}`);
         if (!cancelled) {
           setReviewDetail(response);
           setStatus('ready');
@@ -44,7 +41,7 @@ export function ConsoleWorkspacePanel() {
     return () => {
       cancelled = true;
     };
-  }, [workspace.activeTab]);
+  }, [activeReviewId]);
 
   if (!workspace.activeTab) {
     return null;
@@ -52,7 +49,7 @@ export function ConsoleWorkspacePanel() {
 
   return (
     <div className="glass" style={{ padding: '1rem', borderRadius: '14px', marginBottom: '1rem' }}>
-      {workspace.activeTab.type === 'review_detail' && status === 'loading' ? (
+      {workspace.activeTab.type === 'review_detail' && !activeReviewDetail && status !== 'unavailable' ? (
         <LoadingState message="Loading review workspace detail..." />
       ) : null}
       {workspace.activeTab.type === 'review_detail' && status === 'unavailable' ? (
@@ -61,10 +58,10 @@ export function ConsoleWorkspacePanel() {
           detail="The current review detail API could not confirm the selected review."
         />
       ) : null}
-      {workspace.activeTab.type === 'review_detail' && reviewDetail ? (
+      {workspace.activeTab.type === 'review_detail' && activeReviewDetail ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-          <ReviewOutcomePanel detail={reviewDetail} />
-          <ReviewKnowledgePanel detail={reviewDetail} />
+          <ReviewOutcomePanel detail={activeReviewDetail} />
+          <ReviewKnowledgePanel detail={activeReviewDetail} />
         </div>
       ) : null}
       {workspace.activeTab.type === 'trace_detail' ? (

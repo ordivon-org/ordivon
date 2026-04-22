@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 import Sidebar from '@/components/layout/Sidebar';
 import { ConsoleWorkspaceSeed } from '@/components/workspace/ConsoleWorkspaceSeed';
@@ -15,7 +15,9 @@ export function ConsolePageFrame({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
       <main style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <ConsoleWorkspaceSeed />
+        <Suspense fallback={null}>
+          <ConsoleWorkspaceSeed />
+        </Suspense>
         {workspace.tabs.length > 0 ? (
           <WorkspaceTabs
             tabs={workspace.tabs}
