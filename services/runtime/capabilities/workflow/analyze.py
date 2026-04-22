@@ -7,6 +7,7 @@ from capabilities.contracts import AnalyzeResult
 from domains.research.models import AnalysisRequest
 from governance.decision import build_governance_decision
 from orchestrator.runtime.engine import PFIOSOrchestrator
+from packs.finance.analyze_defaults import build_finance_analyze_defaults
 from sqlalchemy.orm import Session
 
 
@@ -25,12 +26,13 @@ class AnalyzeCapability:
         self.orchestrator = orchestrator or PFIOSOrchestrator()
 
     async def analyze_and_suggest(self, request: AnalyzeCapabilityInput, db: Session | None = None) -> dict[str, Any]:
-        symbol = request.symbols[0] if request.symbols else "BTC/USDT"
+        defaults = build_finance_analyze_defaults(symbol=request.symbols[0] if request.symbols else None)
+        symbol = defaults.symbol
         report = self.orchestrator.execute_analyze(
             AnalysisRequest(
                 query=request.query,
                 symbol=symbol,
-                timeframe="1h",
+                timeframe=defaults.timeframe,
             ),
             db=db,
         )

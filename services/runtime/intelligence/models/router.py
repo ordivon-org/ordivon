@@ -1,12 +1,11 @@
-from intelligence.providers.hermes_agent_provider import HermesAgentProvider
+from adapters.runtimes.factory import resolve_runtime
 from intelligence.models.mock_provider import MockReasoningProvider
-from shared.config.settings import settings
+from intelligence.runtime.base import AgentRuntime
 
 
 class ReasoningProviderRouter:
-    def get_provider(self):
-        if settings.reasoning_provider == "mock":
-            return MockReasoningProvider()
-        if settings.reasoning_provider == "hermes":
-            return HermesAgentProvider()
-        return MockReasoningProvider()
+    def get_provider(self) -> AgentRuntime:
+        provider = resolve_runtime()
+        if isinstance(provider, MockReasoningProvider):
+            return provider
+        return provider

@@ -4,8 +4,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
-from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
+from domains.execution_records.models import ExecutionProgressRecord, ExecutionReceipt, ExecutionRequest
+from domains.execution_records.orm import ExecutionProgressRecordORM, ExecutionReceiptORM, ExecutionRequestORM
 from shared.utils.serialization import from_json_text, to_json_text
 
 
@@ -135,6 +135,35 @@ class ExecutionRecordRepository:
             .first()
         )
 
+    def create_progress(self, progress: ExecutionProgressRecord) -> ExecutionProgressRecordORM:
+        row = ExecutionProgressRecordORM(
+            id=progress.id,
+            request_id=progress.request_id,
+            progress_state=progress.progress_state,
+            progress_message=progress.progress_message,
+            heartbeat_at=_parse_dt(progress.heartbeat_at),
+            created_at=_parse_dt(progress.created_at),
+        )
+        self.db.add(row)
+        self.db.flush()
+        return row
+
+    def latest_progress_for_request(self, request_id: str) -> ExecutionProgressRecordORM | None:
+        return (
+            self.db.query(ExecutionProgressRecordORM)
+            .filter(ExecutionProgressRecordORM.request_id == request_id)
+            .order_by(ExecutionProgressRecordORM.created_at.desc())
+            .first()
+        )
+
+    def list_progress_for_request(self, request_id: str) -> list[ExecutionProgressRecordORM]:
+        return (
+            self.db.query(ExecutionProgressRecordORM)
+            .filter(ExecutionProgressRecordORM.request_id == request_id)
+            .order_by(ExecutionProgressRecordORM.created_at.asc())
+            .all()
+        )
+
     def to_request_model(self, row: ExecutionRequestORM) -> ExecutionRequest:
         return ExecutionRequest(
             id=row.id,
@@ -164,5 +193,15 @@ class ExecutionRecordRepository:
             external_reference=row.external_reference,
             detail=from_json_text(row.detail_json, {}),
             error=row.error,
+            created_at=row.created_at.isoformat(),
+        )
+
+    def to_progress_model(self, row: ExecutionProgressRecordORM) -> ExecutionProgressRecord:
+        return ExecutionProgressRecord(
+            id=row.id,
+            request_id=row.request_id,
+            progress_state=row.progress_state,
+            progress_message=row.progress_message,
+            heartbeat_at=row.heartbeat_at.isoformat(),
             created_at=row.created_at.isoformat(),
         )

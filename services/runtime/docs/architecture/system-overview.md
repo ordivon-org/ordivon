@@ -4,6 +4,22 @@
 
 Financial AI OS is a private finance and trading AI system built to keep user experience, product capability, runtime control, governance, intelligence, execution, knowledge, state, and infrastructure from collapsing into one another.
 
+## Working Identity
+
+The repository and historical implementation lineage still use `PFIOS`.
+
+The current working naming is now:
+
+- external platform name: `AegisOS`
+- internal system name: `CAIOS`
+- expanded internal name: `Controlled AI Operating System`
+
+See:
+
+- [AegisOS Working Identity](./aegisos-working-identity.md)
+- [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
+- [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
+
 ## Canonical Baseline
 
 The current canonical structure and layer semantics are defined in [architecture-baseline](./architecture-baseline.md).

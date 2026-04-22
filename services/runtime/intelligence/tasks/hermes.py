@@ -18,6 +18,9 @@ def build_analysis_task(ctx: AnalysisContext) -> IntelligenceTaskRequest:
     trace_id = new_id("trace")
     task_id = new_id("task")
     symbol = ctx.market.symbol or "UNKNOWN"
+    memory_policy = ctx.memory.policy
+    memory_lessons = ctx.memory.lessons if memory_policy.allow_channel("feedback_hints") else []
+    related_reviews = ctx.memory.related_reviews if memory_policy.allow_channel("feedback_hints") else []
     return IntelligenceTaskRequest(
         task_id=task_id,
         idempotency_key=task_id,
@@ -27,8 +30,8 @@ def build_analysis_task(ctx: AnalysisContext) -> IntelligenceTaskRequest:
             symbol=symbol,
             timeframe=ctx.market.timeframe,
             market_signals=ctx.market.signals,
-            memory_lessons=ctx.memory.lessons,
-            related_reviews=ctx.memory.related_reviews,
+            memory_lessons=memory_lessons,
+            related_reviews=related_reviews,
             active_policies=ctx.governance.active_policies,
             risk_mode=ctx.governance.risk_mode,
             portfolio_cash_balance=ctx.portfolio.cash_balance,

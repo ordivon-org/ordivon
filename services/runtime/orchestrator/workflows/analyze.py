@@ -22,6 +22,7 @@ from domains.ai_actions.service import AgentActionService
 from domains.intelligence_runs.models import IntelligenceRun
 from domains.intelligence_runs.repository import IntelligenceRunRepository
 from domains.intelligence_runs.service import IntelligenceRunService
+from domains.research.models import AnalysisResult
 from domains.research.repository import AnalysisRepository
 from domains.research.service import AnalysisService
 from domains.strategy.models import Recommendation
@@ -31,17 +32,19 @@ from governance.audit.auditor import RiskAuditor
 from governance.feedback import GovernanceFeedbackReader
 from governance.risk_engine.engine import RiskEngine
 from execution.catalog import get_execution_action
-from execution.adapters import RecommendationExecutionAdapter, RecommendationExecutionFailure
+from execution.adapters import RecommendationExecutionFailure, build_default_execution_adapter_registry
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
+from intelligence.context_builder import HintAwareContextBuilder
 from intelligence.engine import ReasoningEngine
-from intelligence.feedback import IntelligenceFeedbackReader
 from intelligence.runtime.hermes_client import HermesRuntimeError
 from intelligence.tasks import build_analysis_task
 from intelligence.tasks.contracts import IntelligenceAgentActionPayload
 from orchestrator.context.context_builder import ContextBuilder
 from orchestrator.contracts.workflow import WorkflowContext, WorkflowStep
-from orchestrator.runtime.recovery import RecoveryPolicy, record_recovery_detail
+from orchestrator.runtime.handoff import attach_handoff_artifact, build_handoff_artifact
+from orchestrator.runtime.recovery import FallbackDecision, FallbackResult, RecoveryPolicy, record_recovery_detail
+from orchestrator.runtime.wake_resume import ResumeReason, WakeReason
 from state.usage.models import UsageSnapshot
 from state.usage.repository import UsageSnapshotRepository
 from state.usage.service import UsageService
@@ -63,23 +66,12 @@ class BuildContextStep:
 
     def execute(self, ctx: WorkflowContext) -> WorkflowContext:
         analysis_ctx = self.context_builder.build(ctx.request)
-        if ctx.db:
-            try:
-                intelligence_feedback = IntelligenceFeedbackReader(ctx.db).read_for_symbol(ctx.request.symbol)
-                analysis_ctx.memory.lessons = list(intelligence_feedback.memory_lessons)
-                analysis_ctx.memory.related_reviews = list(intelligence_feedback.related_reviews)
-                ctx.metadata["intelligence_feedback_hint_status"] = "available"
-                ctx.metadata["intelligence_memory_lesson_count"] = len(intelligence_feedback.memory_lessons)
-                ctx.metadata["intelligence_related_review_count"] = len(intelligence_feedback.related_reviews)
-            except Exception as exc:
-                ctx.metadata["intelligence_feedback_hint_status"] = "unavailable"
-                ctx.metadata["intelligence_feedback_hint_error"] = str(exc)
-                ctx.metadata["intelligence_memory_lesson_count"] = 0
-                ctx.metadata["intelligence_related_review_count"] = 0
-        else:
-            ctx.metadata["intelligence_feedback_hint_status"] = "not_linked_yet"
-            ctx.metadata["intelligence_memory_lesson_count"] = 0
-            ctx.metadata["intelligence_related_review_count"] = 0
+        hint_result = HintAwareContextBuilder(ctx.db).enrich(analysis_ctx, symbol=ctx.request.symbol)
+        ctx.metadata["intelligence_feedback_hint_status"] = hint_result.hint_status
+        ctx.metadata["intelligence_memory_lesson_count"] = hint_result.memory_lesson_count
+        ctx.metadata["intelligence_related_review_count"] = hint_result.related_review_count
+        if hint_result.hint_error:
+            ctx.metadata["intelligence_feedback_hint_error"] = hint_result.hint_error
         ctx.metadata["analysis_context"] = analysis_ctx
         symbol = ctx.request.symbol or "UNKNOWN"
         ctx.metadata["side_effect_contexts"] = {
@@ -151,6 +143,7 @@ class ReasonStep:
         self.recovery_policy = RecoveryPolicy(
             max_retries=1,
             retryable_error=lambda exc: isinstance(exc, HermesRuntimeError) and bool(exc.retryable),
+            terminal_action="none",
         )
 
     def should_retry(self, exc: Exception) -> bool:
@@ -260,6 +253,45 @@ class ReasonStep:
         ctx.analysis = analysis
         return ctx
 
+    def fallback(self, ctx: WorkflowContext, exc: Exception) -> WorkflowContext:
+        decision = FallbackDecision(
+            action="degraded_analysis",
+            reason=str(exc),
+            detail={
+                "fallback_type": "degraded_analysis",
+                "provider": settings.reasoning_provider,
+            },
+        )
+        record_recovery_detail(
+            ctx,
+            action="fallback",
+            detail=decision.detail | {"reason": decision.reason},
+        )
+        ctx.metadata["wake_reason"] = WakeReason("runtime_recovered_later").reason
+        ctx.metadata["resume_reason"] = ResumeReason("fallback_path_completed").reason
+        ctx.metadata["resume_count"] = int(ctx.metadata.get("resume_count", 0) or 0) + 1
+
+        fallback_result = FallbackResult(
+            status="degraded",
+            detail={
+                "reason": decision.reason,
+                "fallback_type": decision.detail["fallback_type"],
+            },
+        )
+        analysis = ctx.analysis or AnalysisResult()
+        analysis.query = ctx.request.query
+        analysis.symbol = ctx.request.symbol
+        analysis.timeframe = ctx.request.timeframe
+        analysis.summary = "Degraded analysis: runtime failed after retries."
+        analysis.thesis = "No trusted model output was produced; human review is required."
+        analysis.risks = list(analysis.risks) + [str(exc)]
+        analysis.suggested_actions = []
+        analysis.metadata["runtime_fallback"] = fallback_result.detail
+        analysis.metadata["intelligence_run_id"] = ctx.intelligence_run_id
+        analysis.metadata["workflow_run_id"] = ctx.workflow_run_id
+        ctx.analysis = analysis
+        return ctx
+
 
 class PersistAnalysisStep:
     """Step 3: Persist the AnalysisResult to the database."""
@@ -308,6 +340,29 @@ class GovernanceGateStep:
         ctx.analysis.metadata["governance_advisory_hints"] = [
             hint.to_payload() for hint in ctx.governance.advisory_hints
         ]
+        if not ctx.governance.allows_execution() and ctx.workflow_run_id:
+            artifact = build_handoff_artifact(
+                task_run_id=ctx.workflow_run_id,
+                root_object_ref={
+                    "object_type": "analysis",
+                    "object_id": ctx.analysis_id,
+                },
+                blocked_reason=f"governance_{ctx.governance.decision}",
+                next_action="human_review",
+                partial_results={
+                    "decision": ctx.governance.decision,
+                    "reasons": list(ctx.governance.reasons),
+                },
+                evidence_refs=tuple(
+                    {
+                        "object_type": evidence.object_type,
+                        "object_id": evidence.object_id,
+                    }
+                    for evidence in ctx.governance.evidence
+                ),
+            )
+            attach_handoff_artifact(ctx, artifact)
+            ctx.metadata["resume_marker"] = f"handoff:{artifact.id}"
         return ctx
 
 
@@ -321,8 +376,9 @@ class GenerateRecommendationStep:
             raise ValueError("Database session is required in WorkflowContext.")
         action_context = _get_side_effect_context(ctx, "generate_recommendation", "recommendation generation")
         service = RecommendationService(RecommendationRepository(ctx.db))
+        adapter = build_default_execution_adapter_registry().resolve("recommendation", ctx.db)
         try:
-            result = RecommendationExecutionAdapter(ctx.db).generate(
+            result = adapter.generate(
                 service=service,
                 action_context=action_context,
                 recommendation=Recommendation(

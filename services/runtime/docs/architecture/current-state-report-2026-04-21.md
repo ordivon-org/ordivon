@@ -1,5 +1,11 @@
 # Current State Report 2026-04-21
 
+Historical snapshot only.
+
+For the latest status after the Phase 0 primitive-freeze batch, see:
+
+- [current-state-report-2026-04-22](./current-state-report-2026-04-22.md)
+
 ## Purpose
 
 This report captures the repository's actual current state after the latest single-agent baseline strengthening cycle.
@@ -295,6 +301,8 @@ See:
 - [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
 - [Current Code Classification Map v1](./current-code-classification-map-v1.md)
 - [Finance Pack v1 Definition](./finance-pack-v1-definition.md)
+- [Core Primitives Spec v1](./core-primitives-spec-v1.md)
+- [Adapter Boundary Spec v1](./adapter-boundary-spec-v1.md)
 
 ## Final Judgment
 

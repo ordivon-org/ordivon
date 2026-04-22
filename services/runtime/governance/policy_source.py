@@ -34,3 +34,6 @@ class GovernancePolicySource:
 
     def get_active_policies(self) -> list[object]:
         return [ForbiddenSymbolsPolicy()]
+
+    def get_active_policy_ids(self) -> tuple[str, ...]:
+        return self.get_active_snapshot().active_policy_ids

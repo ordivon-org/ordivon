@@ -6,6 +6,8 @@ from capabilities.boundary import ActionContext
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
 from domains.journal.service import ReviewService
+from governance.approval import ApprovalRequiredError, HumanApprovalGate
+from governance.approval_repository import ApprovalRepository
 from governance.audit.auditor import RiskAuditor
 from shared.errors.domain import DomainNotFound, InvalidStateTransition
 
@@ -48,10 +50,13 @@ class ReviewExecutionAdapter:
     - review state-machine semantics
     """
 
+    family_name = "review"
+
     def __init__(self, db, auditor: RiskAuditor | None = None) -> None:
         self.db = db
         self.execution_service = ExecutionRecordService(ExecutionRecordRepository(db))
         self.auditor = auditor or RiskAuditor()
+        self.approval_gate = HumanApprovalGate(ApprovalRepository(db))
 
     def submit(
         self,
@@ -73,6 +78,11 @@ class ReviewExecutionAdapter:
                 "action_context": ExecutionRecordService.action_context_payload(action_context),
             },
         )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="started",
+            progress_message="review submission started",
+        )
         try:
             review_row = service.create_with_options(
                 review,
@@ -87,6 +97,11 @@ class ReviewExecutionAdapter:
                     "recommendation_id": review.recommendation_id,
                     "action_context": ExecutionRecordService.action_context_payload(action_context),
                 },
+            )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="failed",
+                progress_message=str(exc),
             )
             self.auditor.record_event(
                 "review_submitted_failed",
@@ -149,6 +164,11 @@ class ReviewExecutionAdapter:
             recommendation_id=review_row.recommendation_id,
             db=self.db,
         )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="completed",
+            progress_message="review submission completed",
+        )
         return ReviewExecutionResult(
             review_row=review_row,
             lesson_rows=[],
@@ -169,7 +189,16 @@ class ReviewExecutionAdapter:
         lessons: list[str],
         followup_actions: list[str],
         action_context: ActionContext,
+        approval_id: str | None = None,
+        require_approval: bool = False,
     ) -> ReviewExecutionResult:
+        self.approval_gate.ensure_approved(
+            action_key="review.complete",
+            entity_type="review",
+            entity_id=review_id,
+            approval_id=approval_id,
+            require_approval=require_approval,
+        )
         request_row = self.execution_service.start_request(
             action_id="review_complete",
             action_context=action_context,
@@ -183,8 +212,15 @@ class ReviewExecutionAdapter:
                 "cause_tags": list(cause_tags),
                 "lessons": list(lessons),
                 "followup_actions": list(followup_actions),
+                "approval_id": approval_id,
+                "require_approval": require_approval,
                 "action_context": ExecutionRecordService.action_context_payload(action_context),
             },
+        )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="started",
+            progress_message="review completion started",
         )
         try:
             review_row, lesson_rows, knowledge_feedback = service.complete_review(
@@ -197,6 +233,8 @@ class ReviewExecutionAdapter:
                 followup_actions=followup_actions,
                 emit_review_completed_audit=False,
             )
+        except ApprovalRequiredError:
+            raise
         except Exception as exc:
             receipt_row = self.execution_service.record_failure(
                 request_row.id,
@@ -206,6 +244,11 @@ class ReviewExecutionAdapter:
                     "verdict": verdict.value if hasattr(verdict, "value") else str(verdict),
                     "action_context": ExecutionRecordService.action_context_payload(action_context),
                 },
+            )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="failed",
+                progress_message=str(exc),
             )
             self.auditor.record_event(
                 "review_completed_failed",
@@ -272,6 +315,11 @@ class ReviewExecutionAdapter:
             review_id=review_row.id,
             recommendation_id=review_row.recommendation_id,
             db=self.db,
+        )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="completed",
+            progress_message="review completion completed",
         )
         return ReviewExecutionResult(
             review_row=review_row,

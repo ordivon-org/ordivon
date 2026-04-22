@@ -48,6 +48,8 @@ class RecommendationExecutionAdapter:
     - recommendation state-machine semantics
     """
 
+    family_name = "recommendation"
+
     def __init__(self, db, auditor: RiskAuditor | None = None) -> None:
         self.db = db
         self.execution_service = ExecutionRecordService(ExecutionRecordRepository(db))
@@ -77,6 +79,11 @@ class RecommendationExecutionAdapter:
                 "governance_source": governance_source,
             },
         )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="started",
+            progress_message="recommendation generation started",
+        )
         try:
             row = service.create(recommendation)
             self.execution_service.attach_request_targets(
@@ -97,6 +104,11 @@ class RecommendationExecutionAdapter:
                     "action_context": ExecutionRecordService.action_context_payload(action_context),
                 },
             )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="completed",
+                progress_message="recommendation generation completed",
+            )
             return RecommendationExecutionResult(
                 recommendation=service.repository.to_model(row),
                 execution_request_id=request_row.id,
@@ -112,6 +124,11 @@ class RecommendationExecutionAdapter:
                     "governance_source": governance_source,
                     "action_context": ExecutionRecordService.action_context_payload(action_context),
                 },
+            )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="failed",
+                progress_message=str(exc),
             )
             raise RecommendationExecutionFailure(
                 message=str(exc),
@@ -139,6 +156,11 @@ class RecommendationExecutionAdapter:
                 "target_status": target_status.value,
                 "action_context": ExecutionRecordService.action_context_payload(action_context),
             },
+        )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="started",
+            progress_message="recommendation status update started",
         )
         try:
             recommendation = service.transition(
@@ -168,6 +190,11 @@ class RecommendationExecutionAdapter:
                 recommendation_id=recommendation_id,
                 db=self.db,
             )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="completed",
+                progress_message="recommendation status update completed",
+            )
             return RecommendationExecutionResult(
                 recommendation=recommendation,
                 execution_request_id=request_row.id,
@@ -196,6 +223,11 @@ class RecommendationExecutionAdapter:
                 entity_id=recommendation_id,
                 recommendation_id=recommendation_id,
                 db=self.db,
+            )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="failed",
+                progress_message=str(exc),
             )
             status_code = 500
             if isinstance(exc, InvalidStateTransition):

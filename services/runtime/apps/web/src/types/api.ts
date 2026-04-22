@@ -146,6 +146,10 @@ export interface HealthResponse {
   recent_failed_execution_count?: number | null;
   last_workflow_at?: string | null;
   last_audit_at?: string | null;
+  workflow_failures_by_type?: Record<string, number> | null;
+  execution_failures_by_family?: Record<string, number> | null;
+  stale_or_blocked_run_count?: number | null;
+  approval_blocked_count?: number | null;
 }
 
 export interface PendingReviewItem {

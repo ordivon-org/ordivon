@@ -1,30 +1,29 @@
 from __future__ import annotations
 
+from adapters.runtimes.hermes import HermesRuntime
 from domains.research.models import AnalysisResult
-from intelligence.runtime.hermes_client import HermesClient, HermesRuntimeError
-from intelligence.tasks import build_analysis_task, normalize_analysis_output
+from intelligence.runtime.base import AgentRuntime, RuntimeDescriptor
 from intelligence.tasks.contracts import IntelligenceTaskRequest
 from orchestrator.context.context_builder import AnalysisContext
 
 
-class HermesAgentProvider:
-    def __init__(self, client: HermesClient | None = None) -> None:
-        self.client = client or HermesClient()
+class HermesAgentProvider(AgentRuntime):
+    """Legacy compatibility shim over the adapter-owned Hermes runtime."""
+
+    def __init__(self, runtime: HermesRuntime | None = None) -> None:
+        self.runtime = runtime or HermesRuntime()
+
+    @property
+    def descriptor(self) -> RuntimeDescriptor:
+        base = self.runtime.descriptor
+        return RuntimeDescriptor(
+            runtime_name=base.runtime_name,
+            provider_name=base.provider_name,
+            model_name=base.model_name,
+            adapter_name="intelligence.providers.hermes_agent_provider.HermesAgentProvider",
+        )
 
     def analyze(self, ctx: AnalysisContext, request: IntelligenceTaskRequest | None = None) -> AnalysisResult:
-        request = request or build_analysis_task(ctx)
-        try:
-            response = self.client.run_task("analysis.generate", request.to_payload())
-        except HermesRuntimeError as exc:
-            exc.task_id = request.task_id
-            exc.trace_id = request.trace_id
-            exc.request_payload = request.to_payload()
-            raise
-        normalized = normalize_analysis_output(request, response)
-        return AnalysisResult(
-            summary=normalized.summary,
-            thesis=normalized.thesis,
-            risks=normalized.risks,
-            suggested_actions=normalized.suggested_actions,
-            metadata=normalized.metadata.__dict__ | {"agent_action": normalized.agent_action.__dict__},
-        )
+        analysis = self.runtime.analyze(ctx, request=request)
+        analysis.metadata["runtime_provider_shim"] = self.descriptor.adapter_name
+        return analysis

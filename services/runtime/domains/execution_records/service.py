@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from capabilities.boundary import ActionContext
-from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
+from domains.execution_records.models import ExecutionProgressRecord, ExecutionReceipt, ExecutionRequest
 from domains.execution_records.repository import ExecutionRecordRepository
 from execution.catalog import get_execution_action
 
@@ -125,6 +125,36 @@ class ExecutionRecordService:
         if row is None:
             raise ValueError(f"Unknown execution request: {request_id}")
         return row
+
+    def record_progress(
+        self,
+        request_id: str,
+        *,
+        progress_state: str,
+        progress_message: str = "",
+    ):
+        request = self.repository.get_request(request_id)
+        if request is None:
+            raise ValueError(f"Unknown execution request: {request_id}")
+        return self.repository.create_progress(
+            ExecutionProgressRecord(
+                request_id=request_id,
+                progress_state=progress_state,
+                progress_message=progress_message,
+            )
+        )
+
+    def record_heartbeat(
+        self,
+        request_id: str,
+        *,
+        progress_message: str = "",
+    ):
+        return self.record_progress(
+            request_id,
+            progress_state="heartbeat",
+            progress_message=progress_message,
+        )
 
     @staticmethod
     def action_context_payload(action_context: ActionContext) -> dict[str, Any]:

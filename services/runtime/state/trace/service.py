@@ -11,6 +11,7 @@ from domains.knowledge_feedback.orm import KnowledgeFeedbackPacketORM
 from domains.journal.orm import ReviewORM
 from domains.research.orm import AnalysisORM
 from domains.strategy.orm import RecommendationORM
+from domains.strategy.outcome_graph import OutcomeGraph
 from domains.strategy.outcome_orm import OutcomeSnapshotORM
 from domains.workflow_runs.orm import WorkflowRunORM
 from governance.audit.orm import AuditEventORM
@@ -18,9 +19,10 @@ from shared.utils.serialization import from_json_text
 from state.trace.models import TraceBundle, TraceReference
 
 
-class TraceService:
+class TraceGraph:
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.outcome_graph = OutcomeGraph(db)
 
     def trace_workflow_run(self, workflow_run_id: str) -> TraceBundle | None:
         run = self.db.get(WorkflowRunORM, workflow_run_id)
@@ -372,7 +374,7 @@ class TraceService:
         )
 
     def _outcome_ref(self, recommendation: RecommendationORM | None) -> TraceReference:
-        if recommendation is None or not recommendation.latest_outcome_snapshot_id:
+        if recommendation is None:
             return TraceReference(
                 object_type="outcome_snapshot",
                 object_id=None,
@@ -380,10 +382,19 @@ class TraceService:
                 relation_source="none",
                 detail={},
             )
-        outcome = self.db.get(OutcomeSnapshotORM, recommendation.latest_outcome_snapshot_id)
+        graph_node = self.outcome_graph.for_recommendation(recommendation)
+        if not graph_node.latest_outcome_snapshot_id:
+            return TraceReference(
+                object_type="outcome_snapshot",
+                object_id=None,
+                status="unlinked",
+                relation_source="none",
+                detail={"latest_review_id": graph_node.latest_review_id},
+            )
+        outcome = self.outcome_graph.latest_outcome_for_recommendation(recommendation)
         return self._trace_reference_for_row(
             "outcome_snapshot",
-            recommendation.latest_outcome_snapshot_id,
+            graph_node.latest_outcome_snapshot_id,
             outcome,
             "recommendation.latest_outcome_snapshot_id",
         )
@@ -697,3 +708,7 @@ class TraceService:
         if packet_id is None:
             return None
         return self.db.get(KnowledgeFeedbackPacketORM, packet_id)
+
+
+class TraceService(TraceGraph):
+    pass

@@ -35,6 +35,8 @@ class ValidationExecutionFailure(Exception):
 class ValidationExecutionAdapter:
     """Family execution facade for validation actions."""
 
+    family_name = "validation"
+
     def __init__(self, db, auditor: RiskAuditor | None = None) -> None:
         self.db = db
         self.execution_service = ExecutionRecordService(ExecutionRecordRepository(db))
@@ -60,6 +62,11 @@ class ValidationExecutionAdapter:
                 "action_context": ExecutionRecordService.action_context_payload(action_context),
             },
         )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="started",
+            progress_message="validation issue report started",
+        )
         try:
             issue_row = service.create_with_options(
                 issue,
@@ -75,6 +82,11 @@ class ValidationExecutionAdapter:
                     "category": issue.category,
                     "action_context": ExecutionRecordService.action_context_payload(action_context),
                 },
+            )
+            self.execution_service.record_progress(
+                request_row.id,
+                progress_state="failed",
+                progress_message=str(exc),
             )
             self.auditor.record_event(
                 "validation_issue_report_failed",
@@ -123,6 +135,11 @@ class ValidationExecutionAdapter:
             entity_type="issue",
             entity_id=issue_row.id,
             db=self.db,
+        )
+        self.execution_service.record_progress(
+            request_row.id,
+            progress_state="completed",
+            progress_message="validation issue report completed",
         )
         return ValidationExecutionResult(
             issue_row=issue_row,

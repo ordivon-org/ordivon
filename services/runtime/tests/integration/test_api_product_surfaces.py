@@ -156,6 +156,8 @@ def test_health_surface_exposes_monitoring_snapshot_fields():
     assert payload["last_workflow_at"] is not None
     assert payload["last_audit_at"] is not None
     assert payload["monitoring_window_hours"] == 24
+    assert payload["workflow_failures_by_type"] is not None
+    assert payload["execution_failures_by_family"] is not None
 
 
 def test_analyze_and_suggest_api_success_contract_is_real():
@@ -433,4 +435,12 @@ def test_recommendation_surface_reuses_governance_decision_shape():
         "policy_set_id": "governance.default.v1",
         "active_policy_ids": ["forbidden_symbols_policy"],
         "default_decision_rule_ids": ["default_no_actions_escalate", "default_pass_execute"],
+        "evidence": [],
+        "actor": {
+            "actor_type": "system",
+            "actor_id": "risk_engine.default_validation",
+        },
+        "scope": {
+            "scope_type": "entity",
+        },
     }

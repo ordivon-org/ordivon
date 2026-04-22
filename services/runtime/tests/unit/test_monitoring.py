@@ -77,6 +77,11 @@ def test_monitoring_snapshot_counts_recent_failures_and_activity():
         assert snapshot.last_workflow_at is not None
         assert snapshot.last_audit_at is not None
         assert snapshot.monitoring_window_hours == 24
+        assert snapshot.history is not None
+        assert snapshot.history.workflow_failures_by_type["workflow_failed"] == 1
+        assert snapshot.history.execution_failures_by_family["review"] == 1
+        assert snapshot.history.top_workflow_failure_type == "workflow_failed"
+        assert snapshot.history.top_execution_failure_family == "review"
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
@@ -92,6 +97,8 @@ def test_monitoring_snapshot_returns_honest_zeroes_for_empty_db():
         assert snapshot.recent_failed_execution_count == 0
         assert snapshot.last_workflow_at is None
         assert snapshot.last_audit_at is None
+        assert snapshot.history is not None
+        assert snapshot.history.approval_blocked_count == 0
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

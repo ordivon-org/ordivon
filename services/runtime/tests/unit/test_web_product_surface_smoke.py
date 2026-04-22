@@ -76,6 +76,9 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     decisions = read("apps/web/src/components/features/dashboard/LatestDecisionList.tsx")
     trace_panel = read("apps/web/src/components/state/TraceDetailPanel.tsx")
     semantic = read("apps/web/src/lib/semanticSignals.ts")
+    reviews_page = read("apps/web/src/app/reviews/page.tsx")
+    workspace_shell = read("apps/web/src/components/workspace/WorkspaceShell.tsx")
+    recommendation_workspace = read("apps/web/src/components/features/reviews/RecommendationWorkspacePanel.tsx")
 
     assert "/api/v1/reports/latest?limit=5" in reports_card
     assert "/api/v1/reports/latest?limit=20" in reports_page
@@ -127,6 +130,8 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "Not prepared yet" in semantic
     assert "This is the latest recorded outcome signal, not a fully closed loop." in semantic
     assert "These are derived signals, not state truth, policy updates, or system learning." in semantic
+    assert "outcome_signal" in semantic
+    assert "hint" in semantic
     assert "/api/v1/health" in system_status
     assert "health.monitoring_status" in system_status
     assert "health.recent_failed_workflow_count" in system_status
@@ -136,3 +141,6 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "Monitoring:" in system_status
     assert "/api/v1/audits/recent?limit=1" in system_status
     assert "/api/v1/audits/recent?limit=5" in decisions
+    assert "ReviewConsole" in reviews_page
+    assert "WorkspaceShell" in workspace_shell
+    assert "Recommendation detail" in recommendation_workspace

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { TrustTier } from '@/types/experience';
 
 export function ObjectTypeBadge({ label }: { label: string }) {
   return (
@@ -22,20 +23,21 @@ export function ObjectTypeBadge({ label }: { label: string }) {
   );
 }
 
-const TIER_STYLES: Record<string, { border: string; color: string; label: string }> = {
+const TIER_STYLES: Record<TrustTier | 'inference' | 'diagnostic', { border: string; color: string; label: string }> = {
   fact: { border: '#3fb950', color: '#3fb950', label: 'Fact Record' },
   artifact: { border: '#58a6ff', color: '#58a6ff', label: 'System Artifact' },
   inference: { border: '#d29922', color: '#d29922', label: 'Inference' },
   diagnostic: { border: '#a371f7', color: '#a371f7', label: 'Diagnostic' },
-  signal: { border: '#e3b341', color: '#e3b341', label: 'Signal' },
-  derived: { border: '#ff7b72', color: '#ff7b72', label: 'Derived Hint' },
-  relation: { border: '#8b949e', color: '#8b949e', label: 'Relation Detail' },
+  outcome_signal: { border: '#e3b341', color: '#e3b341', label: 'Outcome Signal' },
+  hint: { border: '#ff7b72', color: '#ff7b72', label: 'Derived Hint' },
+  missing: { border: '#8b949e', color: '#8b949e', label: 'Missing' },
+  unavailable: { border: '#6e7681', color: '#6e7681', label: 'Unavailable' },
 };
 
 export function TrustTierBadge({
   tier,
 }: {
-  tier: 'fact' | 'artifact' | 'inference' | 'diagnostic' | 'signal' | 'derived' | 'relation';
+  tier: TrustTier | 'inference' | 'diagnostic';
 }) {
   const style = TIER_STYLES[tier];
   return (

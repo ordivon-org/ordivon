@@ -1,4 +1,5 @@
-# PFIOS Trading Limits (机器可执行规则)
+# Finance-pack candidate: this policy is finance-specific and should not become a core primitive owner.
+# PFIOS Trading Limits
 # version: 1.0
 
 risk_limits:

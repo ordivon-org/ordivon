@@ -119,6 +119,9 @@ class TestCapabilityContracts:
     def test_review_capability_submit_returns_contract(self):
         service = MagicMock()
         service.review_repository.db = MagicMock()
+        adapter = MagicMock()
+        registry = MagicMock()
+        registry.resolve.return_value = adapter
         adapter_result = MagicMock()
         adapter_result.review_row = MagicMock()
         adapter_result.review_row.id = "rev_123"
@@ -128,8 +131,8 @@ class TestCapabilityContracts:
         adapter_result.execution_receipt_id = "exrcpt_123"
         
         cap = ReviewCapability()
-        with patch("capabilities.workflow.reviews.ReviewExecutionAdapter") as adapter_cls:
-            adapter_cls.return_value.submit.return_value = adapter_result
+        with patch("capabilities.workflow.reviews.build_default_execution_adapter_registry", return_value=registry):
+            adapter.submit.return_value = adapter_result
             res = cap.submit_review(
                 service,
                 {

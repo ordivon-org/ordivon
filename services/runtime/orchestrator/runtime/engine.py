@@ -83,6 +83,32 @@ class PFIOSOrchestrator:
                             )
                             continue
 
+                        should_fallback = recovery_policy.failure_action(recovery_detail) == "fallback"
+                        if (
+                            not should_fallback
+                            and hasattr(step, "fallback")
+                            and recovery_policy.retryable_error is not None
+                            and recovery_policy.max_retries > 0
+                            and bool(recovery_policy.retryable_error(exc))
+                        ):
+                            should_fallback = True
+
+                        if should_fallback and hasattr(step, "fallback"):
+                            fallback_ctx = step.fallback(ctx, exc)
+                            ctx = fallback_ctx if fallback_ctx is not None else ctx
+                            ctx.workflow_step_statuses.append(
+                                {
+                                    "step": step_name,
+                                    "status": "completed",
+                                    "started_at": started_at,
+                                    "completed_at": completed_at,
+                                    "attempt": attempt,
+                                    "recovery_action": "fallback",
+                                    "recovery_detail": recovery_policy.failure_detail(recovery_detail),
+                                }
+                            )
+                            break
+
                         ctx.workflow_step_statuses.append(
                             {
                                 "step": step_name,
@@ -136,6 +162,13 @@ class PFIOSOrchestrator:
                 "query": ctx.request.query,
                 "symbol": ctx.request.symbol,
                 "timeframe": ctx.request.timeframe,
+                "blocked_reason": ctx.metadata.get("blocked_reason"),
+                "wake_reason": ctx.metadata.get("wake_reason"),
+                "resume_marker": ctx.metadata.get("resume_marker"),
+                "handoff_artifact_ref": ctx.metadata.get("handoff_artifact_ref"),
+                "resume_from_ref": ctx.metadata.get("resume_from_ref"),
+                "resume_reason": ctx.metadata.get("resume_reason"),
+                "resume_count": ctx.metadata.get("resume_count", 0),
             },
             started_at=ctx.workflow_started_at,
         )
@@ -151,6 +184,16 @@ class PFIOSOrchestrator:
         workflow_run.execution_request_id = ctx.execution_request_id
         workflow_run.execution_receipt_id = ctx.execution_receipt_id
         workflow_run.step_statuses = list(ctx.workflow_step_statuses)
+        workflow_run.lineage_refs = {
+            **workflow_run.lineage_refs,
+            "blocked_reason": ctx.metadata.get("blocked_reason"),
+            "wake_reason": ctx.metadata.get("wake_reason"),
+            "resume_marker": ctx.metadata.get("resume_marker"),
+            "handoff_artifact_ref": ctx.metadata.get("handoff_artifact_ref"),
+            "resume_from_ref": ctx.metadata.get("resume_from_ref"),
+            "resume_reason": ctx.metadata.get("resume_reason"),
+            "resume_count": ctx.metadata.get("resume_count", 0),
+        }
         workflow_run.completed_at = utc_now().isoformat()
         WorkflowRunService(WorkflowRunRepository(ctx.db)).save(workflow_run)
 
@@ -175,6 +218,16 @@ class PFIOSOrchestrator:
         workflow_run.failed_step = failed_step
         workflow_run.failure_reason = failure_reason
         workflow_run.step_statuses = list(ctx.workflow_step_statuses)
+        workflow_run.lineage_refs = {
+            **workflow_run.lineage_refs,
+            "blocked_reason": ctx.metadata.get("blocked_reason"),
+            "wake_reason": ctx.metadata.get("wake_reason"),
+            "resume_marker": ctx.metadata.get("resume_marker"),
+            "handoff_artifact_ref": ctx.metadata.get("handoff_artifact_ref"),
+            "resume_from_ref": ctx.metadata.get("resume_from_ref"),
+            "resume_reason": ctx.metadata.get("resume_reason"),
+            "resume_count": ctx.metadata.get("resume_count", 0),
+        }
         workflow_run.completed_at = utc_now().isoformat()
         WorkflowRunService(WorkflowRunRepository(ctx.db)).save(workflow_run)
         ctx.db.commit()

@@ -8,6 +8,8 @@ from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from domains.knowledge_feedback.orm import KnowledgeFeedbackPacketORM
+from governance.approval import HumanApprovalGate
+from governance.approval_repository import ApprovalRepository
 from domains.strategy.models import Recommendation
 from domains.research.models import AnalysisResult
 from domains.research.repository import AnalysisRepository
@@ -311,6 +313,113 @@ def test_api_v1_review_complete_returns_success_and_writes_audits(client: TestCl
     assert recommendation.latest_outcome_snapshot_id is not None
     assert len(outcomes) == 1
     assert outcomes[0].id == recommendation.latest_outcome_snapshot_id
+
+
+def test_api_v1_review_complete_requires_approval_when_requested(client: TestClient, db: Session):
+    RecommendationRepository(db).create(
+        Recommendation(
+            id="reco_approval_required",
+            analysis_id="analysis_approval_required",
+            title="Trend setup",
+            summary="Trend setup summary",
+        )
+    )
+    db.commit()
+
+    submit_response = client.post(
+        "/api/v1/reviews/submit",
+        json={
+            "linked_recommendation_id": "reco_approval_required",
+            "expected_outcome": "Trend holds",
+            "actual_outcome": "Trend reversed",
+            "deviation": "Entry was late",
+            "mistake_tags": "timing",
+            "lessons": [{"lesson_text": "Cut earlier"}],
+            "new_rule_candidate": "Tighter invalidation",
+        },
+    )
+    review_id = submit_response.json()["id"]
+
+    complete_response = client.post(
+        f"/api/v1/reviews/{review_id}/complete",
+        json={
+            "observed_outcome": "Loss contained",
+            "verdict": "invalidated",
+            "variance_summary": "Setup failed quickly",
+            "cause_tags": ["timing"],
+            "lessons": ["Use confirmation candle"],
+            "followup_actions": ["Update checklist"],
+            "require_approval": True,
+        },
+    )
+
+    assert complete_response.status_code == 409
+    detail = complete_response.json()["detail"]
+    assert detail["status"] == "approval_required"
+    assert detail["approval_id"] is None
+    assert db.query(ExecutionRequestORM).filter(ExecutionRequestORM.action_id == "review_complete").count() == 0
+    assert db.query(ExecutionReceiptORM).filter(ExecutionReceiptORM.action_id == "review_complete").count() == 0
+
+
+def test_api_v1_review_complete_succeeds_with_approved_record_when_required(client: TestClient, db: Session):
+    RecommendationRepository(db).create(
+        Recommendation(
+            id="reco_approval_ok",
+            analysis_id="analysis_approval_ok",
+            title="Trend setup",
+            summary="Trend setup summary",
+        )
+    )
+    db.commit()
+
+    submit_response = client.post(
+        "/api/v1/reviews/submit",
+        json={
+            "linked_recommendation_id": "reco_approval_ok",
+            "expected_outcome": "Trend holds",
+            "actual_outcome": "Trend reversed",
+            "deviation": "Entry was late",
+            "mistake_tags": "timing",
+            "lessons": [{"lesson_text": "Cut earlier"}],
+            "new_rule_candidate": "Tighter invalidation",
+        },
+    )
+    review_id = submit_response.json()["id"]
+
+    gate = HumanApprovalGate(ApprovalRepository(db))
+    pending = gate.request_approval(
+        action_key="review.complete",
+        entity_type="review",
+        entity_id=review_id,
+        requested_by="supervisor.queue",
+        reason="High consequence review completion",
+    )
+    approved = gate.approve(pending.id, actor="supervisor.user")
+    db.commit()
+
+    complete_response = client.post(
+        f"/api/v1/reviews/{review_id}/complete",
+        json={
+            "observed_outcome": "Loss contained",
+            "verdict": "invalidated",
+            "variance_summary": "Setup failed quickly",
+            "cause_tags": ["timing"],
+            "lessons": ["Use confirmation candle"],
+            "followup_actions": ["Update checklist"],
+            "approval_id": approved.id,
+            "require_approval": True,
+        },
+    )
+
+    assert complete_response.status_code == 200
+    body = complete_response.json()
+    assert body["status"] == "completed"
+    request_row = db.get(ExecutionRequestORM, body["metadata"]["execution_request_id"])
+    receipt_row = db.get(ExecutionReceiptORM, body["metadata"]["execution_receipt_id"])
+    assert request_row is not None
+    assert request_row.action_id == "review_complete"
+    assert receipt_row is not None
+    assert receipt_row.status == "succeeded"
 
 
 def test_api_v1_review_detail_returns_real_review_execution_outcome_and_packet_signals(client: TestClient, db: Session):

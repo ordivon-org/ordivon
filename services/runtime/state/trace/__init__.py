@@ -1,4 +1,4 @@
 from state.trace.models import TraceBundle, TraceReference
-from state.trace.service import TraceService
+from state.trace.service import TraceGraph, TraceService
 
-__all__ = ["TraceBundle", "TraceReference", "TraceService"]
+__all__ = ["TraceBundle", "TraceReference", "TraceGraph", "TraceService"]

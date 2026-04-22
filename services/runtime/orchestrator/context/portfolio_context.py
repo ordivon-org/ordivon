@@ -1,7 +1,4 @@
-from dataclasses import dataclass, field
+# Finance-pack candidate shim: ownership now lives in packs.finance.context.
+from packs.finance.context import PortfolioContext
 
-
-@dataclass
-class PortfolioContext:
-    positions: list[dict] = field(default_factory=list)
-    cash_balance: float = 0.0
+__all__ = ["PortfolioContext"]

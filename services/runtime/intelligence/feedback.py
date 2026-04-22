@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
+from domains.knowledge_feedback.feedback_record_repository import FeedbackRecordRepository
+from domains.knowledge_feedback.feedback_record_service import FeedbackRecordService
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.research.orm import AnalysisORM
 from domains.strategy.orm import RecommendationORM
@@ -22,6 +24,7 @@ class IntelligenceFeedbackReader:
 
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.feedback_record_service = FeedbackRecordService(FeedbackRecordRepository(db))
 
     def read_for_symbol(self, symbol: str | None, limit: int = 3) -> IntelligenceFeedbackContext:
         if not symbol:
@@ -54,6 +57,13 @@ class IntelligenceFeedbackReader:
             packet_row = packet_repository.latest_for_recommendation(recommendation_id)
             if packet_row is not None:
                 packet = packet_repository.to_model(packet_row)
+                if packet.intelligence_hints:
+                    self.feedback_record_service.record_consumption(
+                        packet,
+                        consumer_type="intelligence",
+                        subject_key=symbol,
+                        consumed_hint_count=len(packet.intelligence_hints),
+                    )
             else:
                 entries = extraction_service.extract_for_recommendation(recommendation_id)
                 if not entries:

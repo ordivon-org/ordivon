@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from domains.execution_records.orm import ExecutionReceiptORM
 from domains.workflow_runs.orm import WorkflowRunORM
 from governance.audit.orm import AuditEventORM
+from infra.monitoring.history import build_monitoring_history_summary
+from infra.monitoring.models import MonitoringHistorySummary
 from shared.time.clock import utc_now
 
 
@@ -20,6 +22,7 @@ class MonitoringSnapshot:
     last_audit_at: str | None
     monitoring_status: str
     monitoring_window_hours: int
+    history: MonitoringHistorySummary | None = None
 
 
 class MonitoringService:
@@ -60,4 +63,8 @@ class MonitoringService:
             last_audit_at=last_audit_at.isoformat() if last_audit_at else None,
             monitoring_status=monitoring_status,
             monitoring_window_hours=self.window_hours,
+            history=build_monitoring_history_summary(self.db, window_hours=self.window_hours),
         )
+
+
+__all__ = ["MonitoringService", "MonitoringSnapshot", "MonitoringHistorySummary"]

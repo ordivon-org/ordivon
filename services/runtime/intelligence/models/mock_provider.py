@@ -1,9 +1,19 @@
 from intelligence.tasks.contracts import IntelligenceTaskRequest
+from intelligence.runtime.base import AgentRuntime, RuntimeDescriptor
 from orchestrator.context.context_builder import AnalysisContext
 from domains.research.models import AnalysisResult
 
 
-class MockReasoningProvider:
+class MockReasoningProvider(AgentRuntime):
+    @property
+    def descriptor(self) -> RuntimeDescriptor:
+        return RuntimeDescriptor(
+            runtime_name="mock",
+            provider_name="mock",
+            model_name="mock-analysis",
+            adapter_name="intelligence.models.mock_provider.MockReasoningProvider",
+        )
+
     def analyze(self, ctx: AnalysisContext, request: IntelligenceTaskRequest | None = None) -> AnalysisResult:
         symbol = ctx.market.symbol or "UNKNOWN"
         return AnalysisResult(
@@ -18,7 +28,9 @@ class MockReasoningProvider:
                 "Avoid oversizing in uncertain conditions.",
             ],
             metadata={
-                "provider": "mock",
+                "provider": self.descriptor.provider_name,
+                "runtime_name": self.descriptor.runtime_name,
+                "runtime_adapter": self.descriptor.adapter_name,
                 "query": ctx.query.query,
             },
         )

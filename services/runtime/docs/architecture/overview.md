@@ -6,6 +6,12 @@ This document remains as a compatibility entrypoint for older references. The ac
 - [core-pack-adapter-baseline](./core-pack-adapter-baseline.md)
 - [current-code-classification-map-v1](./current-code-classification-map-v1.md)
 - [finance-pack-v1-definition](./finance-pack-v1-definition.md)
+- [core-primitives-spec-v1](./core-primitives-spec-v1.md)
+- [adapter-boundary-spec-v1](./adapter-boundary-spec-v1.md)
+- [aegisos-working-identity](./aegisos-working-identity.md)
+- [aegisos-phase-0-core-primitives-batch](./aegisos-phase-0-core-primitives-batch.md)
+- [aegisos-phase-1-core-load-bearing-batch](./aegisos-phase-1-core-load-bearing-batch.md)
+- [aegisos-next-round-execution-plan](./aegisos-next-round-execution-plan.md)
 - [system-overview](./system-overview.md)
 - [architecture-diagram](./architecture-diagram.md)
 - [layer-definition](./layer-definition.md)
@@ -42,3 +48,15 @@ The next platformization step is defined in [core-pack-adapter-baseline](./core-
 The first repo-level classification pass now lives in [current-code-classification-map-v1](./current-code-classification-map-v1.md).
 
 The current domain-pack identity is now frozen in [finance-pack-v1-definition](./finance-pack-v1-definition.md).
+
+The first primitive freeze and adapter-boundary rules now live in:
+
+- [core-primitives-spec-v1](./core-primitives-spec-v1.md)
+- [adapter-boundary-spec-v1](./adapter-boundary-spec-v1.md)
+
+The current working naming and corrected next-round plan now live in:
+
+- [aegisos-working-identity](./aegisos-working-identity.md)
+- [aegisos-phase-0-core-primitives-batch](./aegisos-phase-0-core-primitives-batch.md)
+- [aegisos-phase-1-core-load-bearing-batch](./aegisos-phase-1-core-load-bearing-batch.md)
+- [aegisos-next-round-execution-plan](./aegisos-next-round-execution-plan.md)

@@ -13,6 +13,19 @@ class RecoveryDetail:
 
 
 @dataclass(slots=True)
+class FallbackDecision:
+    action: str
+    reason: str
+    detail: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class FallbackResult:
+    status: str
+    detail: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class RecoveryPolicy:
     max_retries: int = 0
     retryable_error: Callable[[Exception], bool] | None = None

@@ -37,3 +37,14 @@ class ExecutionReceiptORM(Base):
     detail_json: Mapped[str] = mapped_column(Text, default="{}")
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ExecutionProgressRecordORM(Base):
+    __tablename__ = "execution_progress_records"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    request_id: Mapped[str] = mapped_column(String(64), index=True)
+    progress_state: Mapped[str] = mapped_column(String(32), default="started", index=True)
+    progress_message: Mapped[str] = mapped_column(Text, default="")
+    heartbeat_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utc_now)

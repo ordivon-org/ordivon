@@ -29,6 +29,8 @@ class ReviewCompleteRequest(BaseModel):
     cause_tags: List[str] = []
     lessons: List[str] = []
     followup_actions: List[str] = []
+    approval_id: Optional[str] = None
+    require_approval: bool = False
     action_context: Optional[ActionContextInput] = None
 
 

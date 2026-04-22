@@ -16,7 +16,7 @@ from domains.research.repository import AnalysisRepository
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.strategy.outcome_repository import OutcomeRepository
 from governance.audit.repository import AuditEventRepository
-from execution.adapters import ReviewExecutionAdapter
+from execution.adapters import build_default_execution_adapter_registry
 from knowledge.extraction import LessonExtractionService
 from shared.time.clock import utc_now
 
@@ -137,7 +137,7 @@ class ReviewCapability:
             lessons=[lesson["lesson_text"] for lesson in payload.get("lessons", [])],
             followup_actions=[payload["new_rule_candidate"]] if payload.get("new_rule_candidate") else [],
         )
-        adapter = ReviewExecutionAdapter(service.review_repository.db)
+        adapter = build_default_execution_adapter_registry().resolve("review", service.review_repository.db)
         result = adapter.submit(
             service=service,
             review=review,
@@ -193,9 +193,11 @@ class ReviewCapability:
         lessons: list[str],
         followup_actions: list[str],
         action_context: ActionContext | None,
+        approval_id: str | None = None,
+        require_approval: bool = False,
     ) -> ReviewResult:
         context = require_action_context("review completion", action_context)
-        adapter = ReviewExecutionAdapter(service.review_repository.db)
+        adapter = build_default_execution_adapter_registry().resolve("review", service.review_repository.db)
         result = adapter.complete(
             service=service,
             review_id=review_id,
@@ -206,6 +208,8 @@ class ReviewCapability:
             lessons=lessons,
             followup_actions=followup_actions,
             action_context=context,
+            approval_id=approval_id,
+            require_approval=require_approval,
         )
         review_row = result.review_row
         lesson_rows = result.lesson_rows

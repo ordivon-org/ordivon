@@ -7,7 +7,6 @@ from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPo
 class RiskEngine:
     def __init__(self):
         self.policy_source = GovernancePolicySource()
-        self.policies = self.policy_source.get_active_policies()
 
     def validate_analysis(
         self,
@@ -17,7 +16,7 @@ class RiskEngine:
         reasons = []
         hints = tuple(advisory_hints or ())
         snapshot = self.policy_source.get_active_snapshot()
-        for policy in self.policies:
+        for policy in self.policy_source.get_active_policies():
             violations = policy.check(analysis)
             reasons.extend(violations)
             

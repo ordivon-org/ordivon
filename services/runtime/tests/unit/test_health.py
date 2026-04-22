@@ -121,6 +121,9 @@ def test_health_returns_monitoring_snapshot_from_real_rows():
     assert payload["last_workflow_at"] is not None
     assert payload["last_audit_at"] is not None
     assert payload["monitoring_window_hours"] == 24
+    assert payload["workflow_failures_by_type"].get("reason", 0) + payload["workflow_failures_by_type"].get("workflow_failed", 0) == 1
+    assert payload["execution_failures_by_family"]["review"] == 1
+    assert payload["top_execution_failure_family"] == "review"
 
 
 def test_health_reports_monitoring_unavailable_when_snapshot_fails(monkeypatch):

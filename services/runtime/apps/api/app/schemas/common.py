@@ -29,6 +29,13 @@ class StatusResponse(BaseModel):
     recent_failed_execution_count: int | None = None
     last_workflow_at: str | None = None
     last_audit_at: str | None = None
+    workflow_failures_by_type: dict[str, int] | None = None
+    execution_failures_by_family: dict[str, int] | None = None
+    stale_or_blocked_run_count: int | None = None
+    approval_blocked_count: int | None = None
+    top_workflow_failure_type: str | None = None
+    top_execution_failure_family: str | None = None
+    blocked_run_ids: list[str] | None = None
 
 
 class AgentActionSummaryResponse(BaseModel):

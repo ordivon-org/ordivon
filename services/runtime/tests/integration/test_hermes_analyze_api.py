@@ -7,6 +7,8 @@ from shared.utils.serialization import from_json_text
 from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from domains.ai_actions.orm import AgentActionORM
+from domains.execution_records.orm import ExecutionProgressRecordORM
+from domains.knowledge_feedback.feedback_record_orm import FeedbackRecordORM
 from domains.journal.lesson_repository import LessonRepository
 from domains.journal.lesson_service import LessonService
 from domains.journal.models import Review
@@ -120,6 +122,13 @@ def test_analyze_api_persists_agent_action_with_hermes(monkeypatch):
         recommendation_event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_generated").one()
         recommendation_payload = from_json_text(recommendation_event.payload_json, {})
         assert recommendation_payload["decision"] == "execute"
+        progress_rows = (
+            db.query(ExecutionProgressRecordORM)
+            .filter(ExecutionProgressRecordORM.request_id == analysis_meta["recommendation_generate_request_id"])
+            .order_by(ExecutionProgressRecordORM.created_at.asc())
+            .all()
+        )
+        assert [row.progress_state for row in progress_rows] == ["started", "completed"]
         report_event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "analysis_report_written").one()
         report_payload = from_json_text(report_event.payload_json, {})
         assert report_payload["write_action_context"]["actor"] == "workflow.analyze"
@@ -469,6 +478,16 @@ def test_analyze_api_consumes_governance_feedback_hints_from_prior_review(monkey
         event_payload = from_json_text(event.payload_json, {})
         assert len(event_payload["governance_advisory_hints"]) == 1
         assert event_payload["governance_advisory_hints"][0]["summary"] == "Wait for confirmation before entry"
+        feedback_rows = (
+            db.query(FeedbackRecordORM)
+            .filter(
+                FeedbackRecordORM.recommendation_id == "reco_prior_hint",
+                FeedbackRecordORM.consumer_type == "governance",
+            )
+            .all()
+        )
+        assert len(feedback_rows) == 1
+        assert feedback_rows[0].subject_key == "BTC-USDT"
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
@@ -602,6 +621,16 @@ def test_analyze_api_consumes_intelligence_feedback_hints_into_task_payload(monk
         assert analysis_meta["intelligence_feedback_hint_status"] == "available"
         assert analysis_meta["intelligence_memory_lesson_count"] == 1
         assert analysis_meta["intelligence_related_review_count"] == 1
+        feedback_rows = (
+            db.query(FeedbackRecordORM)
+            .filter(
+                FeedbackRecordORM.recommendation_id == "reco_prior_intel_hint",
+                FeedbackRecordORM.consumer_type == "intelligence",
+            )
+            .all()
+        )
+        assert len(feedback_rows) == 1
+        assert feedback_rows[0].subject_key == "BTC-USDT"
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

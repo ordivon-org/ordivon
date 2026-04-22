@@ -228,6 +228,54 @@ def test_analyze_api_retries_reason_step_once_before_success(monkeypatch):
         Base.metadata.drop_all(bind=engine)
 
 
+def test_analyze_api_uses_degraded_fallback_after_retry_exhaustion(monkeypatch):
+    engine, TestingSessionLocal = _make_client_db()
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    original_provider = settings.reasoning_provider
+    settings.reasoning_provider = "hermes"
+
+    def always_retryable(self, task_type, payload):
+        raise HermesUnavailableError("Hermes runtime is unavailable.", retryable=True)
+
+    monkeypatch.setattr(
+        "intelligence.runtime.hermes_client.HermesClient.run_task",
+        always_retryable,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/analyze-and-suggest",
+        json={"query": "Analyze BTC", "symbols": ["BTC/USDT"]},
+    )
+
+    settings.reasoning_provider = original_provider
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["summary"] == "Degraded analysis: runtime failed after retries."
+
+    db = TestingSessionLocal()
+    try:
+        run = db.query(WorkflowRunORM).one()
+        steps = from_json_text(run.step_statuses_json, [])
+        reason_steps = [step for step in steps if step["step"] == "ReasonStep"]
+        assert reason_steps[0]["status"] == "retrying"
+        assert reason_steps[1]["status"] == "completed"
+        assert reason_steps[1]["recovery_action"] == "fallback"
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
 def test_failed_workflow_run_keeps_compensation_detail(monkeypatch):
     engine, TestingSessionLocal = _make_client_db()
 
@@ -273,6 +321,44 @@ def test_failed_workflow_run_keeps_compensation_detail(monkeypatch):
         assert failed_step["recovery_action"] == "compensation"
         assert failed_step["recovery_detail"]["compensation_applied"] is False
         assert failed_step["recovery_detail"]["document_path"] == "wiki/reports/test.md"
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+def test_governance_block_persists_handoff_and_resume_refs():
+    engine, TestingSessionLocal = _make_client_db()
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    original_provider = settings.reasoning_provider
+    settings.reasoning_provider = "mock"
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/analyze-and-suggest",
+        json={"query": "Analyze BTC", "symbols": ["BTC/USDT"]},
+    )
+
+    settings.reasoning_provider = original_provider
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+
+    db = TestingSessionLocal()
+    try:
+        run = db.query(WorkflowRunORM).one()
+        lineage = from_json_text(run.lineage_refs_json, {})
+        assert lineage.get("handoff_artifact_ref") is None or isinstance(lineage.get("handoff_artifact_ref"), str)
+        if lineage.get("handoff_artifact_ref") is not None:
+            assert lineage.get("blocked_reason", "").startswith("governance_")
+            assert str(lineage.get("resume_marker", "")).startswith("handoff:")
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

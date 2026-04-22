@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from capabilities.boundary import ActionContext, require_action_context
 from capabilities.contracts import UsageSyncResult, ValidationSummaryResult
 from domains.journal.issue_models import Issue
-from execution.adapters import ValidationExecutionAdapter
+from execution.adapters import build_default_execution_adapter_registry
 from state.usage.models import UsageSnapshot
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class ValidationCapability:
                 "idempotency_key": context.idempotency_key,
             },
         )
-        result = ValidationExecutionAdapter(issue_service.repository.db).report_issue(
+        result = build_default_execution_adapter_registry().resolve("validation", issue_service.repository.db).report_issue(
             service=issue_service,
             issue=issue,
             action_context=context,

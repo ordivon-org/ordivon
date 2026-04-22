@@ -40,3 +40,17 @@ def test_recovery_policy_uses_terminal_action_without_detail():
 
     assert policy.failure_action(None) == "none"
     assert policy.failure_detail(None) == {}
+
+
+def test_reason_step_fallback_creates_degraded_analysis():
+    step = ReasonStep()
+    ctx = WorkflowContext(request=AnalysisRequest(query="test", symbol="BTC"))
+    ctx.workflow_run_id = "wfrun_test"
+    ctx.metadata["analysis_context"] = object()
+
+    result = step.fallback(ctx, HermesRuntimeError("runtime down", retryable=True))
+
+    assert result.analysis is not None
+    assert result.analysis.summary == "Degraded analysis: runtime failed after retries."
+    assert result.analysis.metadata["runtime_fallback"]["fallback_type"] == "degraded_analysis"
+    assert result.metadata["resume_reason"] == "fallback_path_completed"

@@ -53,12 +53,30 @@ These task cards should follow:
 27. State Trace Relation Hardening
 28. Knowledge Retrieval / Recurring Issue Aggregation
 29. Infrastructure Health / Monitoring
+30. Phase 0 Core Primitive Freeze
+31. Phase 1 Core Load-Bearing Batch
+32. Finance Pack Extraction Planning
+33. Hermes Runtime Adapter Extraction
+34. Orchestration HandoffArtifact
+35. Orchestration WakeResume / Fallback
+36. Infrastructure Scheduler
+37. Infrastructure Monitoring History / Runbook Discipline
+38. Experience Global Trust-tier Rollout
+39. Experience ReviewConsole + Tabbed Workspace
+40. Finance Pack Staged Extraction
+41. Hermes Runtime Provider Cleanup
+42. Scheduler Persistence / Trigger Orchestration
+43. Monitoring History Depth / Ops Refinement
+44. Workspace Refinement Beyond Review Console
+45. Finance Pack Capability Defaults Extraction
 
 ## Current Priority Batch
 
-1. Execution Adapter Registry / Platform
-2. Experience Global Trust-tier Rollout
-3. Intelligence Task Taxonomy Expansion
+1. Additional finance-pack staged extraction beyond analyze default ownership
+2. Hermes runtime/provider simplification beyond compatibility shim
+3. Scheduler backend refinement beyond file persistence
+4. Broader workspace behavior beyond review-console-local tabs
+5. Monitoring/ops refinement beyond compact health summaries
 
 ## Execution Discipline
 
@@ -84,6 +102,21 @@ Required docs:
 See:
 
 - [Status Sync Workflow](../workflows/status-sync-workflow.md)
+
+## Phase Batch Note
+
+The repository has now completed:
+
+- `Phase 0 | Freeze Core Primitives`
+- `Phase 1 | Core Load-Bearing Batch`
+
+See:
+
+- [AegisOS Phase 0 Core Primitive Freeze](../architecture/aegisos-phase-0-core-primitives-batch.md)
+- [AegisOS Phase 1 Core Load-Bearing Batch](../architecture/aegisos-phase-1-core-load-bearing-batch.md)
+- [AegisOS Next Batch Serial Modules 2026-04-22](../architecture/aegisos-next-batch-serial-modules-2026-04-22.md)
+
+The next implementation wave should now be tracked as post-serial-batch extraction/refinement rather than reopening Phase 0, Phase 1, or this completed 8-module wave.
 
 ## Daily Planning
 

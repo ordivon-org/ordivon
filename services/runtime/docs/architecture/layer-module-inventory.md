@@ -71,13 +71,46 @@ It answers:
 - `Knowledge | Retrieval / Recurring Issue Aggregation`
 - `Infrastructure | Health / Monitoring`
 
+### Completed on 2026-04-22
+
+- `Cross-layer | Phase 0 Core Primitive Freeze`
+  - `DecisionLanguage`
+  - `ActionRequest / ActionReceipt`
+  - `Outcome`
+  - `FeedbackPacket`
+  - `TraceLink`
+  - `Task / Run`
+  - `AgentRuntime`
+  - `MemoryPolicy`
+- `Cross-layer | Phase 1 Core Load-Bearing Batch`
+  - `GovernancePolicySource` deepening
+  - `FeedbackHintConsumer`
+  - `HumanApprovalGate`
+  - `HintAwareContextBuilder`
+  - `ExecutionAdapterRegistry`
+  - `Progress / Heartbeat`
+  - `TraceGraph`
+  - `OutcomeGraph`
+  - `CheckpointState`
+  - `FeedbackRecord`
+  - `RecurringIssueAggregator` formalization
+  - `CandidateRule`
+- `Cross-layer | Post-Phase-1 Serial Modules`
+  - `Finance Pack Extraction Planning`
+  - `Hermes Runtime Adapter Extraction`
+  - `Orchestration HandoffArtifact`
+  - `Orchestration WakeResume / Fallback`
+  - `Infrastructure Scheduler`
+  - `Infrastructure Monitoring History / Runbook Discipline`
+  - `Experience Global Trust-tier Rollout`
+  - `Experience ReviewConsole + Tabbed Workspace`
+
 ## Current Active Modules
 
-### P2
+### P0
 
-- `Execution | Adapter Registry / Platform`
-- `Experience | Global Trust-tier Rollout`
-- `Intelligence | Task Taxonomy Expansion`
+- `No active P0 modules in this batch`
+- `Next batch should be selected after this serial module wave`
 
 ## Layer View
 
@@ -90,7 +123,9 @@ It answers:
 | Experience | Trace Detail Surface | Done | P1 | Expose textual trace detail without graphing | `TraceDetailPanel` now exists on active dashboard surfaces | No dedicated detail page or drill-down workflow | Trace detail panel | At least one active surface can fetch and render real trace detail | Review Detail Surface |
 | Experience | Trust-tier / Semantic Discipline | Done | P1 | Distinguish relation/signal/derived/artifact semantics | Shared semantic helper and trust-tier badges now constrain active dashboard copy | Not rolled out across all pages | Semantic discipline | Active surfaces stop mixing truth, hint, and artifact semantics | Global Trust-tier Rollout |
 | Experience | Review Detail Surface | Done | P1 | Give review chain a richer truthful surface | Pending reviews now expose an expandable review detail panel with review fact, execution refs, outcome, and feedback packet signal | Still no standalone review detail page | Review detail surface | Review detail shows review, outcome, feedback, and execution refs truthfully | Global Trust-tier Rollout |
-| Experience | Global Trust-tier Rollout | Planned | P2 | Extend truthful semantics beyond current dashboard surfaces | Local discipline exists | Not global yet | Full-surface semantic discipline | All key pages use shared trust-tier and honest missing semantics | Product-wide consistency |
+| Experience | Global Trust-tier Rollout | Done | P0 | Extend truthful semantics beyond current dashboard surfaces | Shared `TrustTier` typing and rendering now back dashboard and review surfaces | Product-wide rollout beyond current surfaces still remains | Full-surface semantic discipline | Key pages use shared trust-tier and honest missing semantics | ReviewConsole / Tabbed Workspace |
+| Experience | ReviewConsole / Tabbed Workspace | Done | P0 | Add a dedicated review workspace and minimal object-tab shell | `/reviews` route, `ReviewConsole`, and minimal workspace tabs now exist | Full-app workspace and richer navigation remain future work | Supervisor workspace | Review supervision is no longer dashboard-only and object tabs can hold review/trace views | Workspace refinement |
+| Experience | Workspace Refinement Beyond Review Console | Done | P1 | Deepen the review workspace so active tabs render richer linked object content | Review console now renders recommendation tabs and can seed initial review state from route input | Workspace remains console-local and not full-app | Linked object workspace | Review, trace, and recommendation tabs all render meaningful content | Broader workspace behavior |
 
 ### Capability
 
@@ -107,6 +142,8 @@ It answers:
 | Orchestration | Analyze Workflow | In Progress | P0 | Organize the main single-agent chain | Analyze workflow, runs, retries, compensation, and recovery policy are real | Still narrow and partly bespoke | Workflow backbone | Main chain stays controlled and traceable | Review Detail Surface |
 | Orchestration | Retry / Fallback / Compensation | Done | P1 | Make failure handling explicit | Retry and compensation now exist on analyze path | Fallback and policy formalization remain weak | Recovery discipline | Main-chain failure no longer depends on hidden behavior | Recovery Policy Object |
 | Orchestration | Recovery Policy Object | Done | P1 | Centralize retry/fallback/compensation semantics | Analyze recovery now runs through a formal policy object and shared recovery detail helpers | Fallback and cross-workflow policy still remain weak | Recovery policy | Steps stop relying only on ad hoc retry conventions and persisted step statuses keep honest recovery detail | Cross-workflow coordination |
+| Orchestration | HandoffArtifact | Done | P0 | Persist blocked workflow handoff as a formal orchestration object/ref | Analyze governance block can now attach a handoff artifact ref and blocked reason | Broader long-running adoption remains future work | Handoff contract | Blocked workflows produce formal handoff refs rather than UI-only story blobs | Wake / Resume / broader orchestration |
+| Orchestration | WakeResume / Fallback | Done | P0 | Add minimal wake/resume semantics and degraded fallback behavior | Analyze now records wake/resume metadata and can degrade after retry exhaustion instead of silently succeeding | General resume execution remains future work | Runtime recovery semantics | Retry exhaustion can produce honest degraded fallback and task run semantics keep wake/resume refs | Long-running orchestration |
 
 ### Governance
 
@@ -168,19 +205,39 @@ It answers:
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Infrastructure | Wiring / Startup | In Progress | P1 | Keep local runtime bootable and understandable | Current runtime is bootable | Responsibility is still scattered | Startup spec | Runtime startup no longer depends on hidden knowledge | Health / Monitoring |
 | Infrastructure | Health / Monitoring | Done | P1 | Surface runtime and failure health honestly | `/api/v1/health` now exposes monitoring snapshot fields backed by workflow, execution, and audit data, and the system status bar reflects them honestly | Monitoring history and ops discipline are still minimal | Health signals | Key runtime components and recent failure counts are visible without overstating certainty | Runbook / Ops |
-| Infrastructure | Runbook / Ops | Planned | P2 | Turn recovery knowledge into durable operations docs | Some runbooks exist | System ops discipline is still weak | Ops runbook | Common failure and recovery steps are documented | Recovery maturity |
+| Infrastructure | Scheduler | Done | P1 | Introduce infrastructure-owned low-risk trigger dispatch | `infra/scheduler/` now owns scheduled trigger registration/dispatch for capability-facing paths | No persistent scheduler backend or UI exists yet | Trigger infrastructure | Low-risk periodic work can be registered without leaking business semantics into infra | Monitoring history / deeper ops |
+| Infrastructure | Runbook / Ops | Done | P1 | Turn recovery knowledge into durable operations docs and extend monitoring history | Health now exposes minimal history summary and runbooks cover blocked review/runtime/trace cases | Ops UI and richer history remain future work | Ops discipline | Common failure and recovery steps are documented and health has minimal history context | Recovery maturity |
+| Infrastructure | Scheduler Persistence / Trigger Orchestration | Done | P1 | Persist low-risk triggers and support richer dispatch without changing ownership boundaries | Scheduler can now save/load triggers and dispatch all enabled entries while staying capability-facing | No database-backed scheduler or cron UI exists yet | Persistent trigger infrastructure | Trigger state survives process boundaries and batch dispatch remains infra-owned | Scheduler backend refinement |
+| Infrastructure | Monitoring History Depth / Ops Refinement | Done | P1 | Deepen history summary with top failures and blocked-run refs | Health now exposes top workflow/execution failure summaries and blocked run ids | Still not a full observability product | Deeper ops summary | Operational history is richer without becoming business truth | Observability refinement |
+
+### Pack Layer
+
+| Layer | Module | Status | Priority | Role | Current Value | Remaining Gap | Asset | Done Criteria | Next Unlock |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Pack Layer | Finance Pack Extraction Planning | Done | P0 | Freeze finance-specific candidates without migrating them | `packs/finance/` planning docs and inventory now exist and candidate files are marked | No physical finance-pack migration happened yet | Finance pack plan | Finance-specific files are explicitly inventoried without re-injecting finance into core | Future staged extraction |
+| Pack Layer | Finance Pack Staged Extraction | Done | P1 | Move the first finance-shaped owner into `packs/finance` while preserving compatibility shims | Finance analysis context defaults now live in `packs/finance/context.py` and orchestration modules delegate to them | Only the context owner moved; broader finance extraction remains future work | First pack-backed shim | Finance ownership starts moving out of orchestration without broad import churn | Further staged extraction |
+| Pack Layer | Finance Pack Capability Defaults Extraction | Done | P1 | Move finance-specific analyze defaults out of capability ownership and into the finance pack | `AnalyzeCapability` now reads default symbol/timeframe values from `packs/finance/analyze_defaults.py` instead of hard-coding them | Broader finance-specific capability wording and policy ownership still remain | Pack-owned analyze defaults | Capability no longer owns finance defaults directly and public contract remains unchanged | Further staged extraction |
+
+### Adapter Layer
+
+| Layer | Module | Status | Priority | Role | Current Value | Remaining Gap | Asset | Done Criteria | Next Unlock |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Adapter Layer | Hermes Runtime Adapter Extraction | Done | P0 | Introduce `adapters/runtimes/hermes` and demote the old provider path into a shim | Hermes runtime is now adapter-backed and the legacy provider path wraps it | Physical runtime/provider cleanup remains future work | Runtime adapter skeleton | Hermes runtime ownership no longer lives only inside `intelligence/providers/` | Broader adapter extraction |
+| Adapter Layer | Hermes Runtime Provider Cleanup | Done | P1 | Point runtime resolution directly at the adapter and keep the old provider path as compatibility-only shim | `ReasoningProviderRouter` now resolves Hermes through `adapters.runtimes.factory.resolve_runtime()` | The legacy shim still exists for compatibility and broader provider cleanup remains future work | Adapter-owned runtime resolution | Router/runtime ownership is adapter-first rather than provider-first | Broader runtime/provider simplification |
 
 ## Current Execution Rule
 
 Every module advancement must leave:
 
-- a module card in `knowledge/wiki/architecture/module-cards/`
 - tests
 - a status sync in:
   - `docs/architecture/layer-module-inventory.md`
   - the latest `current-state-report-YYYY-MM-DD.md`
   - `docs/tasks/README.md`
+  - relevant `docs/architecture/*` batch docs
 
 See:
 
 - [Status Sync Workflow](../workflows/status-sync-workflow.md)
+- [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
+- [AegisOS Next Batch Serial Modules 2026-04-22](./aegisos-next-batch-serial-modules-2026-04-22.md)

@@ -26,6 +26,7 @@ from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
 from execution.adapters import ReviewExecutionFailure
+from governance.approval import ApprovalRequiredError
 from governance.audit.auditor import RiskAuditor
 from capabilities.boundary import ActionContext
 
@@ -144,9 +145,21 @@ async def complete_performance_review(
             lessons=payload["lessons"],
             followup_actions=payload["followup_actions"],
             action_context=action_context,
+            approval_id=payload["approval_id"],
+            require_approval=payload["require_approval"],
         )
         db.commit()
         return asdict(res)
+    except ApprovalRequiredError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={
+                "status": "approval_required",
+                "message": e.message,
+                "approval_id": e.approval_id,
+            },
+        )
     except ReviewExecutionFailure as e:
         db.commit()
         raise HTTPException(

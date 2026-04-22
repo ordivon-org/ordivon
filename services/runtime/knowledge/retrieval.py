@@ -39,12 +39,63 @@ class RecurringIssueSummary:
     knowledge_entry_ids: tuple[str, ...] = field(default_factory=tuple)
 
 
+class RecurringIssueAggregator:
+    def aggregate(self, entries: tuple[KnowledgeEntry, ...]) -> tuple[RecurringIssueSummary, ...]:
+        grouped: dict[str, dict[str, object]] = {}
+        for entry in entries:
+            key = self.normalize_issue_key(entry.narrative)
+            if not key:
+                continue
+            bucket = grouped.setdefault(
+                key,
+                {
+                    "narratives": [],
+                    "recommendation_ids": set(),
+                    "review_ids": set(),
+                    "knowledge_entry_ids": set(),
+                },
+            )
+            narratives = bucket["narratives"]
+            if isinstance(narratives, list) and entry.narrative not in narratives:
+                narratives.append(entry.narrative)
+            recommendation_ids = bucket["recommendation_ids"]
+            review_ids = bucket["review_ids"]
+            knowledge_entry_ids = bucket["knowledge_entry_ids"]
+            if isinstance(knowledge_entry_ids, set):
+                knowledge_entry_ids.add(entry.id)
+            for ref in entry.evidence_refs:
+                if ref.object_type == "recommendation" and isinstance(recommendation_ids, set):
+                    recommendation_ids.add(ref.object_id)
+                if ref.object_type == "review" and isinstance(review_ids, set):
+                    review_ids.add(ref.object_id)
+
+        summaries = [
+            RecurringIssueSummary(
+                issue_key=issue_key,
+                occurrence_count=len(data["knowledge_entry_ids"]),
+                sample_narratives=tuple(data["narratives"][:3]),
+                recommendation_ids=tuple(sorted(data["recommendation_ids"])),
+                review_ids=tuple(sorted(data["review_ids"])),
+                knowledge_entry_ids=tuple(sorted(data["knowledge_entry_ids"])),
+            )
+            for issue_key, data in grouped.items()
+        ]
+        return tuple(sorted(summaries, key=lambda item: (-item.occurrence_count, item.issue_key)))
+
+    @staticmethod
+    def normalize_issue_key(text: str) -> str:
+        normalized = re.sub(r"[^a-z0-9\s]+", " ", text.lower())
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
+
 class KnowledgeRetrievalService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.extraction_service = LessonExtractionService(db)
         self.review_repository = ReviewRepository(db)
         self.packet_repository = KnowledgeFeedbackPacketRepository(db)
+        self.recurring_issue_aggregator = RecurringIssueAggregator()
 
     def retrieve_for_recommendation(self, recommendation_id: str) -> KnowledgeRetrievalResult:
         entries = tuple(self.extraction_service.extract_for_recommendation(recommendation_id))
@@ -113,46 +164,7 @@ class KnowledgeRetrievalService:
         self,
         entries: tuple[KnowledgeEntry, ...],
     ) -> tuple[RecurringIssueSummary, ...]:
-        grouped: dict[str, dict[str, object]] = {}
-        for entry in entries:
-            key = self._normalize_issue_key(entry.narrative)
-            if not key:
-                continue
-            bucket = grouped.setdefault(
-                key,
-                {
-                    "narratives": [],
-                    "recommendation_ids": set(),
-                    "review_ids": set(),
-                    "knowledge_entry_ids": set(),
-                },
-            )
-            narratives = bucket["narratives"]
-            if isinstance(narratives, list) and entry.narrative not in narratives:
-                narratives.append(entry.narrative)
-            recommendation_ids = bucket["recommendation_ids"]
-            review_ids = bucket["review_ids"]
-            knowledge_entry_ids = bucket["knowledge_entry_ids"]
-            if isinstance(knowledge_entry_ids, set):
-                knowledge_entry_ids.add(entry.id)
-            for ref in entry.evidence_refs:
-                if ref.object_type == "recommendation" and isinstance(recommendation_ids, set):
-                    recommendation_ids.add(ref.object_id)
-                if ref.object_type == "review" and isinstance(review_ids, set):
-                    review_ids.add(ref.object_id)
-
-        summaries = [
-            RecurringIssueSummary(
-                issue_key=issue_key,
-                occurrence_count=len(data["knowledge_entry_ids"]),
-                sample_narratives=tuple(data["narratives"][:3]),
-                recommendation_ids=tuple(sorted(data["recommendation_ids"])),
-                review_ids=tuple(sorted(data["review_ids"])),
-                knowledge_entry_ids=tuple(sorted(data["knowledge_entry_ids"])),
-            )
-            for issue_key, data in grouped.items()
-        ]
-        return tuple(sorted(summaries, key=lambda item: (-item.occurrence_count, item.issue_key)))
+        return self.recurring_issue_aggregator.aggregate(entries)
 
     def _packet_summary(self, row) -> KnowledgePacketSummary:
         packet = self.packet_repository.to_model(row)
@@ -165,8 +177,3 @@ class KnowledgeRetrievalService:
             intelligence_hint_count=len(packet.intelligence_hints),
         )
 
-    @staticmethod
-    def _normalize_issue_key(text: str) -> str:
-        normalized = re.sub(r"[^a-z0-9\s]+", " ", text.lower())
-        normalized = re.sub(r"\s+", " ", normalized).strip()
-        return normalized

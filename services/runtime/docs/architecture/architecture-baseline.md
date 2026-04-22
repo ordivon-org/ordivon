@@ -2,7 +2,7 @@
 
 ## Status
 
-This document is the canonical architecture baseline for the repository as of `2026-04-21`.
+This document is the canonical architecture baseline for the repository as of `2026-04-22`.
 
 Older migration notes, closure reports, and step reports remain historical references only. They do not override this baseline.
 
@@ -143,6 +143,24 @@ That means:
 See:
 
 - [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
+- [Core Primitives Spec v1](./core-primitives-spec-v1.md)
+- [Adapter Boundary Spec v1](./adapter-boundary-spec-v1.md)
+- [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
+- [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
+- [AegisOS Next Batch Serial Modules 2026-04-22](./aegisos-next-batch-serial-modules-2026-04-22.md)
+
+## Post-Phase-1 Serial Batch
+
+Canonical truth now additionally includes:
+
+- `packs/` in planning form, with `packs/finance/` as the first staged pack inventory
+- `adapters/runtimes/hermes/` as the first explicit runtime adapter home
+- orchestration-owned handoff, wake/resume, and degraded fallback semantics on analyze
+- infrastructure-owned scheduler primitives and monitoring-history summary
+- shared front-end `TrustTier` semantics and a dedicated `/reviews` supervision route
+
+These changes do not yet represent full physical pack extraction or full adapter migration.
+They are the minimum real batch that makes those boundaries visible in the repository.
 
 ## Canonical Layer Model
 
@@ -293,7 +311,7 @@ The unified constraint and audit layer that answers: **what is allowed, under wh
 
 ### Current state
 
-Directionally correct, with centralized decision language, minimal policy source, and advisory knowledge-hint consumption, but still not a full control plane.
+Stronger than before: centralized decision language, central policy-read entry, explicit advisory hint consumer contract, and a new approval primitive now exist, but governance is still not a full control plane.
 
 ### Concrete home
 
@@ -323,7 +341,7 @@ The AI runtime layer that answers: **how does AI think, route, and return bounde
 
 ### Current state
 
-This remains a key rising layer. Hermes is real, and feedback-derived guidance now enters later analyze context.
+This remains a key rising layer. Hermes is real, runtime callers now target `AgentRuntime`, and feedback-derived guidance now enters analyze through an explicit hint-aware context builder under `MemoryPolicy`.
 
 ### Concrete home
 
@@ -354,7 +372,7 @@ The real action layer that answers: **how do actions actually happen?**
 
 ### Current state
 
-Now materially stronger: recommendation, review, and validation action families have real request/receipt paths, but the layer still lacks platform-level consolidation.
+Now materially stronger: recommendation, review, and validation action families have real request/receipt paths, a registry-based adapter contract now exists, and execution can record progress/heartbeat, but the layer still lacks fuller platform consolidation.
 
 ### Concrete home
 
@@ -387,7 +405,7 @@ The fact layer that answers: **what has actually happened in the system?**
 
 ### Current state
 
-One of the strongest and clearest layers in the system, with trace now reaching the review/outcome/feedback side of the chain and the review-side path using harder persisted refs.
+One of the strongest and clearest layers in the system, with trace now explicitly formalized as a graph/query contract, outcome traversal clarified through `OutcomeGraph`, and checkpoint semantics stabilized on `WorkflowRun.lineage_refs`.
 
 ### Concrete home
 
@@ -422,7 +440,7 @@ The experience layer that answers: **what did the system learn from fact?**
 
 ### Current state
 
-No longer placeholder-level: extraction, feedback consumption, persisted feedback packets, retrieval, and recurring issue aggregation are all real, but knowledge is still weak in product surfacing, retrieval APIs, and rule-candidate promotion.
+No longer placeholder-level: extraction, feedback consumption, persisted feedback packets, retrieval, recurring issue aggregation, feedback-consumption records, and pre-policy candidate rules are all real, but knowledge is still weak in product surfacing, retrieval APIs, and rule promotion workflows.
 
 ### Concrete home
 
@@ -690,75 +708,60 @@ The system should not be advanced by evenly spreading effort. Priority should fo
 
 ### Current tier: immediate priorities
 
-#### 1. Experience Truthful Surface Expansion
+#### 1. Experience Supervisor Workspace Expansion
 
 Focus:
 
-- broader trust-tier rollout
-- richer trace detail
-- broader detail surfaces where main-chain objects are already real
+- review console
+- richer object workspaces
+- broader trust-tier rollout beyond the current dashboard panels
 
 Why now:
 
-Because system truth is now ahead of product surface truthfulness.
+Because truth-bearing objects and contracts are now ahead of the supervisor-facing workspace.
 
-#### 2. State Trace Hardening
+#### 2. Orchestration Wake / Resume / Handoff Strengthening
 
 Focus:
 
-- harder trace relations
-- reduced dependence on audit-derived links beyond the review path
+- handoff artifacts
+- wake/resume policy
+- broader fallback semantics
 
 Why now:
 
-Because the trace path is useful but some main-chain relations are still softer than they should be.
+Because Phase 1 stabilized run/checkpoint semantics, and the next gap is behavior-level recovery over time.
 
-#### 3. Knowledge Rule Candidate And Retrieval Maturity
-
-Focus:
-
-- query APIs over persisted knowledge assets
-- recurring issue promotion discipline
-- candidate rule extraction without truth rewrite
-
-Why now:
-
-Because knowledge is now retrievable and aggregatable, but still not surfaced broadly or promoted into higher-order reusable assets.
-
-#### 4. Infrastructure Runbook And Monitoring History
+#### 3. Infrastructure Scheduler / Monitoring History / Ops Discipline
 
 Focus:
 
+- scheduled work trigger
 - monitoring history
 - runbook discipline
-- recovery and operations honesty beyond the current snapshot
 
 Why now:
 
-Because the first honest monitoring snapshot now exists, and the next gap is turning signals into durable operational practice.
+Because the first honest monitoring snapshot now exists, and the next gap is durable operations behavior.
 
-### Next tier: structural hardening
-
-#### 5. Execution
+#### 4. Finance Pack Extraction Planning
 
 Focus:
 
-- adapter registry / platform
-- remaining family/platform cleanup
+- explicit finance-pack boundary
+- import/classification hardening
+- preventing finance nouns from drifting back into core
 
-#### 6. Governance
+Why now:
 
-Focus:
+Because core contracts are stronger now, so pack extraction can happen against more stable semantics.
 
-- deeper policy-source maturity
-- broader path centralization
-
-#### 7. Orchestration
+#### 5. Hermes Runtime Adapter Extraction
 
 Focus:
 
-- explicit fallback semantics
-- broader recovery policy beyond analyze
+- physical adapter extraction
+- preserving `AgentRuntime` contract conformance
 
 ## Execution Plan
 

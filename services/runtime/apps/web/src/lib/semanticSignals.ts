@@ -1,14 +1,16 @@
+import type { TrustTier } from '@/types/experience';
+
 export type SemanticSignalKind = 'trace_detail' | 'outcome_signal' | 'knowledge_hint' | 'report_artifact';
 
-export function trustTierForSignal(kind: SemanticSignalKind): 'relation' | 'signal' | 'derived' | 'artifact' {
+export function trustTierForSignal(kind: SemanticSignalKind): TrustTier {
   if (kind === 'trace_detail') {
-    return 'relation';
+    return 'fact';
   }
   if (kind === 'outcome_signal') {
-    return 'signal';
+    return 'outcome_signal';
   }
   if (kind === 'knowledge_hint') {
-    return 'derived';
+    return 'hint';
   }
   return 'artifact';
 }
@@ -37,4 +39,23 @@ export function honestMissingCopy(kind: SemanticSignalKind): string {
     return 'Not prepared yet';
   }
   return 'unavailable';
+}
+
+export function tierLabel(tier: TrustTier): string {
+  if (tier === 'fact') {
+    return 'Fact Record';
+  }
+  if (tier === 'artifact') {
+    return 'System Artifact';
+  }
+  if (tier === 'outcome_signal') {
+    return 'Outcome Signal';
+  }
+  if (tier === 'hint') {
+    return 'Derived Hint';
+  }
+  if (tier === 'missing') {
+    return 'Missing';
+  }
+  return 'Unavailable';
 }

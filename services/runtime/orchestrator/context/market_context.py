@@ -1,8 +1,4 @@
-from dataclasses import dataclass, field
+# Finance-pack candidate shim: ownership now lives in packs.finance.context.
+from packs.finance.context import MarketContext
 
-
-@dataclass
-class MarketContext:
-    symbol: str | None = None
-    timeframe: str | None = None
-    signals: dict = field(default_factory=dict)
+__all__ = ["MarketContext"]
