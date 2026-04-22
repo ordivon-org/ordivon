@@ -4,6 +4,8 @@
 
 This document defines the default task template system for PFIOS.
 
+For module-shaped work, use [Module Definition Template v2](./module-definition-template-v2.md) first.
+
 The goal is not prettier planning. The goal is to force every task to answer:
 
 - what layer it belongs to
@@ -12,6 +14,13 @@ The goal is not prettier planning. The goal is to force every task to answer:
 - why it should be done now
 
 Use this document before implementation, refactor, integration, closure, or flywheel work.
+
+Use the module-definition template when the work needs to answer:
+
+- which doctrine it carries
+- whether it is `Core`, `Pack`, or `Adapter`
+- who owns its meaning
+- what architectural misplacement it must avoid
 
 ## How To Use This
 
@@ -26,6 +35,10 @@ Use the **Standard Template**.
 ### Architecture, integration, and loop work
 
 Use the **Complex Template**.
+
+### Module-shaped work
+
+Use **Module Definition Template v2** before using the task templates.
 
 ### Daily focus
 
@@ -728,3 +741,10 @@ Its purpose is to force four questions before implementation:
 - why is this worth doing now?
 
 Once those four answers become habitual, task drift drops sharply.
+
+For module-shaped work, add four more:
+
+- which doctrine does this module carry?
+- is it `Core`, `Pack`, or `Adapter`?
+- who owns its meaning?
+- what invariant must remain true?

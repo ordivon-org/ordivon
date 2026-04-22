@@ -9,6 +9,7 @@ This document remains as a compatibility entrypoint for older references. The ac
 - [core-primitives-spec-v1](./core-primitives-spec-v1.md)
 - [adapter-boundary-spec-v1](./adapter-boundary-spec-v1.md)
 - [aegisos-working-identity](./aegisos-working-identity.md)
+- [aegisos-design-doctrine](./aegisos-design-doctrine.md)
 - [aegisos-phase-0-core-primitives-batch](./aegisos-phase-0-core-primitives-batch.md)
 - [aegisos-phase-1-core-load-bearing-batch](./aegisos-phase-1-core-load-bearing-batch.md)
 - [aegisos-next-round-execution-plan](./aegisos-next-round-execution-plan.md)
@@ -57,6 +58,7 @@ The first primitive freeze and adapter-boundary rules now live in:
 The current working naming and corrected next-round plan now live in:
 
 - [aegisos-working-identity](./aegisos-working-identity.md)
+- [aegisos-design-doctrine](./aegisos-design-doctrine.md)
 - [aegisos-phase-0-core-primitives-batch](./aegisos-phase-0-core-primitives-batch.md)
 - [aegisos-phase-1-core-load-bearing-batch](./aegisos-phase-1-core-load-bearing-batch.md)
 - [aegisos-next-round-execution-plan](./aegisos-next-round-execution-plan.md)

@@ -17,12 +17,15 @@ The current working naming is now:
 See:
 
 - [AegisOS Working Identity](./aegisos-working-identity.md)
+- [AegisOS Design Doctrine](./aegisos-design-doctrine.md)
 - [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
 - [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
 
 ## Canonical Baseline
 
 The current canonical structure and layer semantics are defined in [architecture-baseline](./architecture-baseline.md).
+
+The philosophy-to-module mapping that governs future module design now lives in [aegisos-design-doctrine](./aegisos-design-doctrine.md).
 
 ## Canonical Reference
 

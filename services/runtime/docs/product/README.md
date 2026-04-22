@@ -2,6 +2,7 @@
 
 - [Experience State Spec](./experience-state-spec.md)
 - [Task Template System](./task-template-system.md)
+- [Module Definition Template v2](./module-definition-template-v2.md)
 - [AI Financial Assistant Roadmap](./ai-financial-assistant-roadmap.md)
 - Layer execution map: [docs/architecture/layer-module-inventory.md](../architecture/layer-module-inventory.md)
 - Active task cards: [docs/tasks/README.md](../tasks/README.md)
