@@ -7,14 +7,16 @@ import EvalStatus from '@/components/features/dashboard/EvalStatus';
 import RecentRecommendations from '@/components/features/dashboard/RecentRecommendations';
 import PendingReviews from '@/components/features/dashboard/PendingReviews';
 import ValidationHub from '@/components/features/validation/ValidationHub';
+import { ConsolePageFrame } from '@/components/workspace/ConsolePageFrame';
 
 export default function Dashboard() {
   return (
+    <ConsolePageFrame>
     <div className="dashboard-page">
       <header style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Dashboard</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Live product surface for recommendations, reviews, audit records, reports, diagnostics, and validation state.
+          Live command center for current system status, recommendation flow, review queue previews, and product-level diagnostics.
         </p>
       </header>
 
@@ -83,5 +85,6 @@ export default function Dashboard() {
 
       <ValidationHub />
     </div>
+    </ConsolePageFrame>
   );
 }

@@ -21,6 +21,9 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@packs/*": [
+        "../../packs/*"
       ]
     },
     "plugins": [
@@ -32,7 +35,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "../../packs/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { apiGet } from '@/lib/api';
-import { ReviewDetailPanel } from '@/components/features/dashboard/ReviewDetailPanel';
-import { TraceDetailPanel } from '@/components/state/TraceDetailPanel';
 import { honestMissingCopy, semanticNote, trustTierForSignal } from '@/lib/semanticSignals';
 import { EmptyState, LoadingState, UnavailableState } from '@/components/state/SurfaceStates';
 import { ObjectTypeBadge, TimeSemantic, TrustTierBadge } from '@/components/state/ProductSignals';
@@ -136,8 +135,16 @@ export default function PendingReviews() {
                 <div>{review.knowledge_hint_count > 0 ? 'Derived hints are linked for this review path.' : honestMissingCopy('knowledge_hint')}</div>
                 <div>{semanticNote('knowledge_hint')}</div>
               </div>
-              <TraceDetailPanel path={`/api/v1/traces/reviews/${review.id}`} />
-              <ReviewDetailPanel reviewId={review.id} />
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <Link href={`/reviews?review_id=${review.id}&trace_ref=${review.id}`} style={{ color: 'var(--primary-hover)' }}>
+                  Continue in review workbench
+                </Link>
+                {review.recommendation_id ? (
+                  <Link href={`/reviews?review_id=${review.id}&recommendation_id=${review.recommendation_id}`} style={{ color: 'var(--primary-hover)' }}>
+                    Open linked recommendation in reviews
+                  </Link>
+                ) : null}
+              </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 <TimeSemantic label="Created" timestamp={review.created_at} staleAfterMinutes={240} />
               </div>
@@ -147,7 +154,7 @@ export default function PendingReviews() {
       )}
 
       <div style={{ marginTop: '1.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-        This card reflects the live pending review queue and only shows linked trace, outcome, and hint signals that are currently exposed by the API.
+        This card is a command-center preview. Actual review supervision happens in the dedicated review workbench.
       </div>
     </div>
   );

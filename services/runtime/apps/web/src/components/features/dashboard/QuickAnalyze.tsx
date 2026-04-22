@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { ObjectTypeBadge, TrustTierBadge } from '@/components/state/ProductSignals';
+import { getFinanceAnalyzeSurfaceOptions } from '@packs/finance/analyze_surface';
 
 export default function QuickAnalyze() {
   const router = useRouter();
+  const financeAnalyze = getFinanceAnalyzeSurfaceOptions();
   const [query, setQuery] = useState('');
-  const [symbol, setSymbol] = useState('BTC/USDT');
+  const [symbol, setSymbol] = useState(financeAnalyze.defaultSymbol);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -19,6 +21,7 @@ export default function QuickAnalyze() {
     const params = new URLSearchParams({
       query,
       symbol,
+      timeframe: financeAnalyze.defaultTimeframe,
       autoRun: 'true',
     });
 
@@ -44,12 +47,15 @@ export default function QuickAnalyze() {
         </div>
       </div>
       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.5' }}>
-        This action opens the reasoning workspace and submits an analysis request. It does not place or execute an external order.
+        This is the command-center entry into the workflow execution workspace. It seeds the analyze route and does not place or execute an external order.
+      </div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.5' }}>
+        {financeAnalyze.copy.dashboardHint} Default timeframe: <span style={{ color: 'var(--foreground)' }}>{financeAnalyze.defaultTimeframe}</span>.
       </div>
 
       <form onSubmit={handleAnalyze} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Query / Intent</label>
+          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.query}</label>
           <input
             type="text"
             placeholder="e.g. BTC breakout validation, current sentiment..."
@@ -68,7 +74,7 @@ export default function QuickAnalyze() {
         </div>
 
         <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Symbol</label>
+          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.symbol}</label>
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
@@ -81,9 +87,11 @@ export default function QuickAnalyze() {
               color: 'var(--foreground)',
             }}
           >
-            <option value="BTC/USDT">BTC/USDT</option>
-            <option value="ETH/USDT">ETH/USDT</option>
-            <option value="SOL/USDT">SOL/USDT</option>
+            {financeAnalyze.supportedSymbols.map((supportedSymbol) => (
+              <option key={supportedSymbol} value={supportedSymbol}>
+                {supportedSymbol}
+              </option>
+            ))}
           </select>
         </div>
 

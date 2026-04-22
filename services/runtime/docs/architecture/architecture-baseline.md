@@ -145,6 +145,7 @@ See:
 - [Core / Pack / Adapter Baseline](./core-pack-adapter-baseline.md)
 - [Core Primitives Spec v1](./core-primitives-spec-v1.md)
 - [Adapter Boundary Spec v1](./adapter-boundary-spec-v1.md)
+- [AegisOS Design Doctrine](./aegisos-design-doctrine.md)
 - [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
 - [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
 - [AegisOS Next Batch Serial Modules 2026-04-22](./aegisos-next-batch-serial-modules-2026-04-22.md)
@@ -158,6 +159,16 @@ Canonical truth now additionally includes:
 - orchestration-owned handoff, wake/resume, and degraded fallback semantics on analyze
 - infrastructure-owned scheduler primitives and monitoring-history summary
 - shared front-end `TrustTier` semantics and a dedicated `/reviews` supervision route
+- pack-owned finance policy/tool reference facades for trading limits and finance tool namespaces
+- pack-owned finance analyze profile defaults and supported-option semantics
+- runtime-owned health through the `AgentRuntime` contract and adapter factory
+- a legacy Hermes provider path reduced to compatibility alias status
+- DB-backed scheduler persistence alongside file fallback
+- a dedicated `/api/v1/health/history` operational history endpoint
+- console-shared workspace state across dashboard and reviews without a full-site tab shell
+- broader console workspace visibility across audits, reports, and history with query-param seeding
+- pack-owned finance analyze surface options now drive homepage and analyze workspace input defaults
+- homepage now acts as the live command center, `/analyze` as the execution workspace, and `/reviews` as the primary review workbench
 
 These changes do not yet represent full physical pack extraction or full adapter migration.
 They are the minimum real batch that makes those boundaries visible in the repository.

@@ -5,7 +5,9 @@ Use this directory for active execution-ready task cards.
 These task cards should follow:
 
 - [Task Template System](../product/task-template-system.md)
+- [Module Definition Template v2](../product/module-definition-template-v2.md)
 - [Architecture Baseline](../architecture/architecture-baseline.md)
+- [AegisOS Design Doctrine](../architecture/aegisos-design-doctrine.md)
 - [Layer Module Inventory](../architecture/layer-module-inventory.md)
 - [Status Sync Workflow](../workflows/status-sync-workflow.md)
 - [AI Financial Assistant Roadmap](../product/ai-financial-assistant-roadmap.md)
@@ -69,26 +71,45 @@ These task cards should follow:
 43. Monitoring History Depth / Ops Refinement
 44. Workspace Refinement Beyond Review Console
 45. Finance Pack Capability Defaults Extraction
+46. Finance Pack Policy / Tool Ownership
+47. Hermes Runtime Shim Reduction
+48. Scheduler Backend Refinement
+49. Monitoring Ops History Endpoint
+50. Console Workspace Shared Tabs
+51. Finance Pack Analyze Profile Ownership
+52. Hermes Provider Alias Cleanup
+53. Broader Console Workspace Behavior
+54. Finance Pack Frontend Analyze Surface Extraction
+55. MVP Gold Path / Homepage-Analyze-Reviews Role Split
 
 ## Current Priority Batch
 
-1. Additional finance-pack staged extraction beyond analyze default ownership
-2. Hermes runtime/provider simplification beyond compatibility shim
-3. Scheduler backend refinement beyond file persistence
-4. Broader workspace behavior beyond review-console-local tabs
-5. Monitoring/ops refinement beyond compact health summaries
+1. Additional finance-pack extraction beyond frontend analyze surface ownership
+2. Hermes legacy cleanup beyond compatibility alias
+3. Scheduler orchestration maturity beyond DB-backed persistence
+4. Monitoring/ops refinement beyond history endpoint summaries
+5. Richer console navigation beyond current seeded object tabs
+
+## Selected Next Module
+
+- `To be selected after the MVP gold-path batch completion`
+
+Latest completed module card:
+
+- [2026-04-22-finance-pack-frontend-analyze-surface-extraction](../../knowledge/wiki/architecture/module-cards/2026-04-22-finance-pack-frontend-analyze-surface-extraction.md)
 
 ## Execution Discipline
 
 Every new module should follow this order:
 
-1. design card first
-2. write the design card into wiki
-3. implement the smallest real version
-4. add tests
-5. run checks
-6. write module completion report
-7. sync status docs
+1. choose the doctrine and layer first
+2. classify the module as `Core / Pack / Adapter`
+3. write the design card into wiki using `Module Definition Template v2`
+4. implement the smallest real version
+5. add tests
+6. run checks
+7. write module completion report
+8. sync status docs
 
 Status sync is mandatory after each completed module.
 

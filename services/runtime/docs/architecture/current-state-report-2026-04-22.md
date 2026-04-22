@@ -154,6 +154,17 @@ That next batch has now been completed as a serial 8-module wave.
 - monitoring history now exposes top failure summaries and blocked run ids through health.
 - review workspace tabs now render linked recommendation content and can seed initial review state from route input.
 - finance analyze default ownership has moved one step further into `packs/finance/analyze_defaults.py`, so capability no longer hard-codes finance defaults directly.
+- finance trading-limits overlay refs and finance tool namespace refs now live behind `packs/finance` facades.
+- runtime health is now owned by `AgentRuntime` implementations and API health resolves runtime through the adapter factory.
+- scheduler now supports DB-backed persistence in addition to file persistence.
+- `/api/v1/health/history` now exposes blocked-run, approval-blocked, recent failure, and scheduler summaries.
+- dashboard and reviews now share workspace tabs through a provider-backed console frame, and recommendation detail reads no longer scan the recent list.
+- finance analyze request/profile defaults and supported options now live behind `packs/finance/analyze_profile.py`.
+- finance front-end analyze defaults and supported options now live behind a pack-owned surface helper consumed by homepage and analyze workspace UI.
+- the legacy Hermes provider path is now only a compatibility alias to the adapter-owned runtime.
+- audits, reports, and history now participate in the console-scoped workspace frame, and query params can seed review/recommendation/trace tabs there.
+- the repository now has an explicit design-doctrine document plus a module-definition template for doctrine-first module work.
+- homepage now acts as the live command center, `/analyze` acts as the workflow execution workspace, and `/reviews` acts as the primary review workbench.
 
 The correct reading is:
 
@@ -161,12 +172,17 @@ The correct reading is:
 - Phase 1 strengthened behavior
 - the post-Phase-1 serial batch strengthened supervision, long-running control, and explicit pack/adapter separation
 - the next phase should deepen extraction, scheduler persistence, and broader workspace behavior
+- the next phase should now move beyond ownership facades into deeper finance extraction, scheduler/orchestration maturity, and richer console navigation while keeping workspace scope bounded
+- the current P0 MVP path is now more explicit: command center -> analyze workspace -> review workbench
 
 ## References
 
 - [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
 - [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
 - [AegisOS Next Batch Serial Modules 2026-04-22](./aegisos-next-batch-serial-modules-2026-04-22.md)
+- [AegisOS Post-Serial-Batch Refinement 2026-04-22](./aegisos-post-serial-batch-refinement-2026-04-22.md)
+- [AegisOS Extraction / Workspace Refinement 2026-04-22](./aegisos-extraction-workspace-refinement-2026-04-22.md)
+- [AegisOS Design Doctrine](./aegisos-design-doctrine.md)
 - [AegisOS Next-Round Execution Plan](./aegisos-next-round-execution-plan.md)
 - [Core Primitives Spec v1](./core-primitives-spec-v1.md)
 - [Adapter Boundary Spec v1](./adapter-boundary-spec-v1.md)

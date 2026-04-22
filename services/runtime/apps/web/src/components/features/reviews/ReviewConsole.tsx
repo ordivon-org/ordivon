@@ -5,23 +5,16 @@ import { useSearchParams } from 'next/navigation';
 
 import { apiGet } from '@/lib/api';
 import { ReviewQueue } from '@/components/features/reviews/ReviewQueue';
-import { ReviewOutcomePanel } from '@/components/features/reviews/ReviewOutcomePanel';
-import { ReviewKnowledgePanel } from '@/components/features/reviews/ReviewKnowledgePanel';
-import { RecommendationWorkspacePanel } from '@/components/features/reviews/RecommendationWorkspacePanel';
-import { TraceDetailPanel } from '@/components/state/TraceDetailPanel';
 import { LoadingState, UnavailableState } from '@/components/state/SurfaceStates';
-import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
-import { WorkspaceTabs } from '@/components/workspace/WorkspaceTabs';
-import { useWorkspaceTabs } from '@/components/workspace/useWorkspaceTabs';
+import { useWorkspaceContext } from '@/components/workspace/WorkspaceProvider';
 import type { PendingReviewItem, PendingReviewListResponse, ReviewDetailResponse } from '@/types/api';
 
 export function ReviewConsole() {
   const searchParams = useSearchParams();
   const [reviews, setReviews] = useState<PendingReviewItem[]>([]);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<ReviewDetailResponse | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-  const workspace = useWorkspaceTabs();
+  const workspace = useWorkspaceContext();
 
   useEffect(() => {
     let cancelled = false;
@@ -33,11 +26,13 @@ export function ReviewConsole() {
         }
         setReviews(response.reviews ?? []);
         const requestedReviewId = searchParams.get('review_id');
+        const requestedRecommendationId = searchParams.get('recommendation_id');
+        const requestedTraceRef = searchParams.get('trace_ref');
         const first = requestedReviewId && response.reviews?.some((item) => item.id === requestedReviewId)
           ? requestedReviewId
           : response.reviews?.[0]?.id ?? null;
         setSelectedReviewId(first);
-        if (first) {
+        if (first && !requestedRecommendationId && !requestedTraceRef) {
           const initialTabs = [
             {
               id: `review:${first}`,
@@ -67,30 +62,6 @@ export function ReviewConsole() {
     };
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!selectedReviewId) {
-      setDetail(null);
-      return;
-    }
-    let cancelled = false;
-    async function loadDetail() {
-      try {
-        const response = await apiGet<ReviewDetailResponse>(`/api/v1/reviews/${selectedReviewId}`);
-        if (!cancelled) {
-          setDetail(response);
-        }
-      } catch {
-        if (!cancelled) {
-          setDetail(null);
-        }
-      }
-    }
-    void loadDetail();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedReviewId]);
-
   if (status === 'loading') {
     return <LoadingState message="Loading review console..." />;
   }
@@ -105,17 +76,13 @@ export function ReviewConsole() {
   }
 
   return (
-    <WorkspaceShell
-      title="Review Console"
-      tabs={
-        <WorkspaceTabs
-          tabs={workspace.tabs}
-          activeTabId={workspace.activeTabId}
-          onSelect={workspace.setActiveTabId}
-          onClose={workspace.closeTab}
-        />
-      }
-    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <header>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>Review Workbench</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Primary supervision workspace for pending reviews, linked recommendation follow-through, and trace or outcome inspection.
+          </p>
+        </header>
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1rem' }}>
         <ReviewQueue
           reviews={reviews}
@@ -146,19 +113,7 @@ export function ReviewConsole() {
           }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {workspace.activeTab?.type === 'review_detail' && detail ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-              <ReviewOutcomePanel detail={detail} />
-              <ReviewKnowledgePanel detail={detail} />
-            </div>
-          ) : null}
-          {workspace.activeTab?.type === 'trace_detail' && detail ? (
-            <TraceDetailPanel path={`/api/v1/traces/reviews/${detail.id}`} buttonLabel="Show review trace" />
-          ) : null}
-          {workspace.activeTab?.type === 'recommendation_detail' ? (
-            <RecommendationWorkspacePanel recommendationId={workspace.activeTab.refId} />
-          ) : null}
-          {!workspace.activeTab && !detail ? (
+          {!workspace.activeTab ? (
             <UnavailableState
               message="No review detail is selected."
               detail="Choose a review from the queue to inspect outcome, knowledge feedback, and trace refs."
@@ -166,6 +121,6 @@ export function ReviewConsole() {
           ) : null}
         </div>
       </div>
-    </WorkspaceShell>
+      </div>
   );
 }

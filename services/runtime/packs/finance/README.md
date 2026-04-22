@@ -7,6 +7,9 @@ Current status:
 - planning plus first staged extraction
 - finance analysis context defaults now live here
 - finance analyze capability defaults now live here
+- finance analyze request profile now lives here
+- finance front-end analyze option ownership now lives here
+- finance trading-limits policy and finance tool namespace refs now live here
 - no broad directory migration yet
 
 See:

@@ -104,6 +104,13 @@ It answers:
   - `Infrastructure Monitoring History / Runbook Discipline`
   - `Experience Global Trust-tier Rollout`
   - `Experience ReviewConsole + Tabbed Workspace`
+- `Cross-layer | Extraction / Workspace Refinement`
+  - `Finance Pack Analyze Profile Ownership`
+  - `Hermes Provider Alias Cleanup`
+  - `Broader Console Workspace Behavior`
+- `Cross-layer | MVP Gold Path / Finance Frontend Analyze Surface`
+  - `Finance Pack Frontend Analyze Surface Extraction`
+  - `Homepage / Analyze / Reviews Role Split`
 
 ## Current Active Modules
 
@@ -126,6 +133,8 @@ It answers:
 | Experience | Global Trust-tier Rollout | Done | P0 | Extend truthful semantics beyond current dashboard surfaces | Shared `TrustTier` typing and rendering now back dashboard and review surfaces | Product-wide rollout beyond current surfaces still remains | Full-surface semantic discipline | Key pages use shared trust-tier and honest missing semantics | ReviewConsole / Tabbed Workspace |
 | Experience | ReviewConsole / Tabbed Workspace | Done | P0 | Add a dedicated review workspace and minimal object-tab shell | `/reviews` route, `ReviewConsole`, and minimal workspace tabs now exist | Full-app workspace and richer navigation remain future work | Supervisor workspace | Review supervision is no longer dashboard-only and object tabs can hold review/trace views | Workspace refinement |
 | Experience | Workspace Refinement Beyond Review Console | Done | P1 | Deepen the review workspace so active tabs render richer linked object content | Review console now renders recommendation tabs and can seed initial review state from route input | Workspace remains console-local and not full-app | Linked object workspace | Review, trace, and recommendation tabs all render meaningful content | Broader workspace behavior |
+| Experience | Broader Console Workspace Behavior | Done | P1 | Extend shared object-tab behavior to more console routes without becoming a full-site shell | Audits, reports, and history now sit inside the console frame, query params can seed workspace tabs, and audit surfaces can open related object tabs | Workspace still remains scoped to console pages and three object-tab types | Broader console workspace | Console workspace survives and opens object tabs across more than dashboard/reviews without adding a global shell | Richer console navigation |
+| Experience | MVP Gold Path / Page Role Split | Done | P0 | Make homepage the command center, `/analyze` the execution workspace, and `/reviews` the primary supervision workbench | Product copy and route handoff now bias users through one clearer command-center -> analyze -> reviews path | Broader product-path simplification still remains | MVP role split | Homepage, analyze, and reviews stop competing for deep-work ownership | Further product-path refinement |
 
 ### Capability
 
@@ -209,6 +218,7 @@ It answers:
 | Infrastructure | Runbook / Ops | Done | P1 | Turn recovery knowledge into durable operations docs and extend monitoring history | Health now exposes minimal history summary and runbooks cover blocked review/runtime/trace cases | Ops UI and richer history remain future work | Ops discipline | Common failure and recovery steps are documented and health has minimal history context | Recovery maturity |
 | Infrastructure | Scheduler Persistence / Trigger Orchestration | Done | P1 | Persist low-risk triggers and support richer dispatch without changing ownership boundaries | Scheduler can now save/load triggers and dispatch all enabled entries while staying capability-facing | No database-backed scheduler or cron UI exists yet | Persistent trigger infrastructure | Trigger state survives process boundaries and batch dispatch remains infra-owned | Scheduler backend refinement |
 | Infrastructure | Monitoring History Depth / Ops Refinement | Done | P1 | Deepen history summary with top failures and blocked-run refs | Health now exposes top workflow/execution failure summaries and blocked run ids | Still not a full observability product | Deeper ops summary | Operational history is richer without becoming business truth | Observability refinement |
+| Infrastructure | Monitoring Ops History Endpoint | Done | P1 | Add a dedicated operational history endpoint and align runbooks to richer history state | `/api/v1/health/history` now exposes blocked runs, approval-blocked refs, recent failure rows, and scheduler trigger summary | Still not a full ops console | Operational history endpoint | Operators can inspect richer history without stretching compact health into an all-purpose surface | Further ops refinement |
 
 ### Pack Layer
 
@@ -217,6 +227,9 @@ It answers:
 | Pack Layer | Finance Pack Extraction Planning | Done | P0 | Freeze finance-specific candidates without migrating them | `packs/finance/` planning docs and inventory now exist and candidate files are marked | No physical finance-pack migration happened yet | Finance pack plan | Finance-specific files are explicitly inventoried without re-injecting finance into core | Future staged extraction |
 | Pack Layer | Finance Pack Staged Extraction | Done | P1 | Move the first finance-shaped owner into `packs/finance` while preserving compatibility shims | Finance analysis context defaults now live in `packs/finance/context.py` and orchestration modules delegate to them | Only the context owner moved; broader finance extraction remains future work | First pack-backed shim | Finance ownership starts moving out of orchestration without broad import churn | Further staged extraction |
 | Pack Layer | Finance Pack Capability Defaults Extraction | Done | P1 | Move finance-specific analyze defaults out of capability ownership and into the finance pack | `AnalyzeCapability` now reads default symbol/timeframe values from `packs/finance/analyze_defaults.py` instead of hard-coding them | Broader finance-specific capability wording and policy ownership still remain | Pack-owned analyze defaults | Capability no longer owns finance defaults directly and public contract remains unchanged | Further staged extraction |
+| Pack Layer | Finance Pack Policy / Tool Ownership | Done | P1 | Move finance policy/tool namespace ownership behind pack-owned facades | `packs/finance/policy.py` and `packs/finance/tool_refs.py` now own trading-limits overlay refs and finance tool namespace refs | Physical tool/domain extraction still remains future work | Pack-owned finance refs | Finance policy/tool ownership no longer needs to sit in core-facing entrypoints | Further staged extraction |
+| Pack Layer | Finance Pack Analyze Profile Ownership | Done | P1 | Move finance analyze request/profile defaults and supported options behind pack-owned semantics | `packs/finance/analyze_profile.py` now owns default symbol/timeframe and supported finance options used by API/workflow entrypoints | Front-end finance-specific analyze widgets still remain separate | Pack-owned analyze profile | Finance analyze request shape no longer needs to be owned by API/workflow defaults | Deeper finance extraction |
+| Pack Layer | Finance Pack Frontend Analyze Surface Extraction | Done | P0 | Move finance-shaped analyze option ownership for command-center and analyze workspace UI behind a pack-owned surface helper | `QuickAnalyze` and `AnalyzeInput` now consume pack-owned defaults/options rather than hard-coded finance strings | Broader finance-specific product wording still remains | Pack-owned frontend analyze options | Generic UI components stop owning finance analyze defaults and supported options | Deeper finance extraction |
 
 ### Adapter Layer
 
@@ -224,6 +237,8 @@ It answers:
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Adapter Layer | Hermes Runtime Adapter Extraction | Done | P0 | Introduce `adapters/runtimes/hermes` and demote the old provider path into a shim | Hermes runtime is now adapter-backed and the legacy provider path wraps it | Physical runtime/provider cleanup remains future work | Runtime adapter skeleton | Hermes runtime ownership no longer lives only inside `intelligence/providers/` | Broader adapter extraction |
 | Adapter Layer | Hermes Runtime Provider Cleanup | Done | P1 | Point runtime resolution directly at the adapter and keep the old provider path as compatibility-only shim | `ReasoningProviderRouter` now resolves Hermes through `adapters.runtimes.factory.resolve_runtime()` | The legacy shim still exists for compatibility and broader provider cleanup remains future work | Adapter-owned runtime resolution | Router/runtime ownership is adapter-first rather than provider-first | Broader runtime/provider simplification |
+| Adapter Layer | Hermes Runtime Shim Reduction | Done | P1 | Make runtime-owned health and descriptor behavior adapter-first and reduce shim behavior further | API health now resolves runtime through the adapter factory and `AgentRuntime.health()` is part of the runtime contract | Legacy provider shim still exists for compatibility | Runtime-owned health contract | Hermes health/descriptor behavior is owned by runtime implementations rather than the provider shim | Further runtime/provider simplification |
+| Adapter Layer | Hermes Provider Alias Cleanup | Done | P1 | Reduce the legacy provider path to a compatibility alias over the adapter-owned runtime | `intelligence/providers/hermes_agent_provider.py` now aliases `HermesRuntime` directly | Older docs/import expectations may still describe provider-owned Hermes behavior | Compatibility alias | Legacy Hermes provider path no longer carries behavior-level ownership | Deeper legacy cleanup |
 
 ## Current Execution Rule
 

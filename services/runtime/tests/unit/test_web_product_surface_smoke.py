@@ -19,6 +19,7 @@ def test_dashboard_page_composes_real_v1_widgets():
     assert "RecentRecommendations" in source
     assert "PendingReviews" in source
     assert "ValidationHub" in source
+    assert "Live command center" in source
 
 
 def test_analyze_page_uses_real_api_and_honest_failure_state():
@@ -26,6 +27,9 @@ def test_analyze_page_uses_real_api_and_honest_failure_state():
 
     assert "/api/v1/analyze-and-suggest" in source
     assert "Analyze API is currently unavailable. No analysis result was generated." in source
+    assert "Workflow Execution Workspace" in source
+    assert "Continue in review workbench" in source
+    assert "Return to command center" in source
     assert "evt_offline" not in source
     assert "action_plan" not in source
     assert "thesis" not in source
@@ -56,8 +60,11 @@ def test_audits_page_and_components_use_real_audit_api_without_sample_rows():
     listing = read("apps/web/src/components/features/audits/AuditList.tsx")
 
     assert "/api/v1/audits/recent" in page
+    assert "ConsolePageFrame" in page
     assert "/api/v1/audits/recent?limit=20" in summary
     assert "/api/v1/audits/recent?limit=20" in listing
+    assert "Open Related Tabs" in listing
+    assert "useWorkspaceContext" in listing
     assert "156" not in summary
     assert "passRate" not in summary
     assert "evt_1" not in listing
@@ -66,7 +73,7 @@ def test_audits_page_and_components_use_real_audit_api_without_sample_rows():
 
 def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     reports_card = read("apps/web/src/components/features/dashboard/LatestReportsList.tsx")
-    reports_page = read("apps/web/src/components/features/reports/LatestReportsList.tsx")
+    reports_list_page = read("apps/web/src/components/features/reports/LatestReportsList.tsx")
     validation = read("apps/web/src/components/features/validation/ValidationHub.tsx")
     evals = read("apps/web/src/components/features/dashboard/EvalStatus.tsx")
     recos = read("apps/web/src/components/features/dashboard/RecentRecommendations.tsx")
@@ -79,15 +86,21 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     reviews_page = read("apps/web/src/app/reviews/page.tsx")
     workspace_shell = read("apps/web/src/components/workspace/WorkspaceShell.tsx")
     recommendation_workspace = read("apps/web/src/components/features/reviews/RecommendationWorkspacePanel.tsx")
+    dashboard_page = read("apps/web/src/app/page.tsx")
+    console_frame = read("apps/web/src/components/workspace/ConsolePageFrame.tsx")
+    reports_route = read("apps/web/src/app/reports/page.tsx")
+    history_page = read("apps/web/src/app/history/page.tsx")
 
     assert "/api/v1/reports/latest?limit=5" in reports_card
-    assert "/api/v1/reports/latest?limit=20" in reports_page
-    assert "Report document not generated yet." in reports_page
+    assert "/api/v1/reports/latest?limit=20" in reports_list_page
+    assert "Report document not generated yet." in reports_list_page
     assert "/api/v1/validation/summary" in validation
     assert "summary.system_go_no_go" in validation
     assert "summary.metadata?.key_lessons" in validation
     assert "/api/v1/evals/latest" in evals
     assert "/api/v1/recommendations/recent" in recos
+    assert "Command-center preview of recommendation objects." in recos
+    assert "Continue in review workbench" in recos
     assert "Trace references" in recos
     assert "Outcome signal" in recos
     assert "Knowledge hints prepared" in recos
@@ -100,6 +113,8 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "recommendation.recommendation_id" not in recos
     assert "recommendation.lifecycle_status" not in recos
     assert "/api/v1/reviews/pending?limit=5" in pending_reviews
+    assert "Continue in review workbench" in pending_reviews
+    assert "command-center preview" in pending_reviews
     assert "Trace references" in pending_reviews
     assert "Outcome signal" in pending_reviews
     assert "Knowledge hints prepared" in pending_reviews
@@ -108,7 +123,7 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "honestMissingCopy('knowledge_hint')" in pending_reviews
     assert "semanticNote('outcome_signal')" in pending_reviews
     assert "semanticNote('knowledge_hint')" in pending_reviews
-    assert "ReviewDetailPanel" in pending_reviews
+    assert "ReviewDetailPanel" not in pending_reviews
     assert "Completed learning" not in pending_reviews
     assert "Final truth" not in pending_reviews
     assert "/api/v1/reviews/${reviewId}" in review_detail
@@ -142,5 +157,12 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "/api/v1/audits/recent?limit=1" in system_status
     assert "/api/v1/audits/recent?limit=5" in decisions
     assert "ReviewConsole" in reviews_page
+    assert "ConsolePageFrame" in reviews_page
+    assert "Live command center" in dashboard_page
+    assert "ConsolePageFrame" in dashboard_page
+    assert "ConsolePageFrame" in reports_route
+    assert "ConsolePageFrame" in history_page
     assert "WorkspaceShell" in workspace_shell
     assert "Recommendation detail" in recommendation_workspace
+    assert "/api/v1/recommendations/${recommendationId}" in recommendation_workspace
+    assert "Sidebar" in console_frame

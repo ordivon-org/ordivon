@@ -1,0 +1,15 @@
+{
+  "defaultSymbol": "BTC/USDT",
+  "defaultTimeframe": "1h",
+  "supportedSymbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
+  "supportedTimeframes": ["15m", "1h", "4h", "1d"],
+  "labels": {
+    "query": "Query / Intent",
+    "symbol": "Symbol / Contract",
+    "timeframe": "Timeframe"
+  },
+  "copy": {
+    "dashboardHint": "Finance-pack defaults are applied here before the workflow executes in the analyze workspace.",
+    "analyzeHint": "This workflow request uses finance-pack defaults for symbol and timeframe. It does not place or execute an external order."
+  }
+}
