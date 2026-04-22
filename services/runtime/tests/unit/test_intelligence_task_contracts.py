@@ -1,5 +1,6 @@
 import pytest
 
+from intelligence.runtime.policy import MemoryPolicy
 from intelligence.runtime.hermes_client import HermesTaskError
 from intelligence.tasks.hermes import build_analysis_task, normalize_analysis_output
 from orchestrator.context.context_builder import AnalysisContext
@@ -21,6 +22,7 @@ def _analysis_context() -> AnalysisContext:
             "MemoryCtx",
             (),
             {
+                "policy": MemoryPolicy(),
                 "lessons": [{"id": "lesson_1"}],
                 "related_reviews": [{"id": "review_1"}],
             },

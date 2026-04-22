@@ -7,6 +7,8 @@ from capabilities.workflow.reviews import ReviewCapability
 def test_review_capability_list_pending_maps_rows_to_contract():
     capability = ReviewCapability()
     service = SimpleNamespace(
+        review_repository=SimpleNamespace(db=None),
+        recommendation_service=None,
         list_pending=lambda limit=10: [
             SimpleNamespace(
                 id="review_1",

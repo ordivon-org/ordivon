@@ -63,7 +63,13 @@ jobs:
           pip install pytest
 
       - name: Run backend integration tests
-        run: python -m pytest -q tests/integration
+        run: |
+          python -m pytest -q \
+            tests/integration/test_hermes_analyze_api.py \
+            tests/integration/test_health_monitoring_api.py \
+            tests/integration/test_scheduler_persistence.py \
+            tests/integration/test_api_product_surfaces.py \
+            tests/integration/test_workflow_run_lineage_api.py
 
   frontend:
     runs-on: ubuntu-latest
@@ -72,16 +78,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: pnpm
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile

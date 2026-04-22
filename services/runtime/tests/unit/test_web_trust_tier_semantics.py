@@ -17,4 +17,4 @@ def test_trust_tier_is_centralized_and_review_surface_reuses_it():
     assert "outcome_signal" in semantic
     assert "hint" in semantic
     assert "missing" in product_signals
-    assert "Review Console" in review_console
+    assert "Review Workbench" in review_console
