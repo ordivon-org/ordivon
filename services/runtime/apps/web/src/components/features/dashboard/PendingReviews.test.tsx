@@ -47,7 +47,7 @@ describe('PendingReviews', () => {
     await waitFor(() => {
       expect(screen.getByText(/Command-center preview of supervision-needed review objects\./i)).toBeVisible();
     });
-    expect(screen.getByRole('link', { name: 'Continue in review workbench' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Continue in review workbench' })).toHaveAttribute(
       'href',
       '/reviews?review_id=review_1&trace_ref=review_1',
     );

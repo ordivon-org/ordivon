@@ -4,8 +4,11 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('.next',{ recursive: true, force: true })\"",
     "dev": "next dev",
+    "dev:quality": "pnpm clean && next dev",
     "build": "next build",
+    "build:quality": "pnpm clean && next build",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

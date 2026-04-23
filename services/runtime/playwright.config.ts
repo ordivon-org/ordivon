@@ -25,13 +25,13 @@ export default defineConfig({
     {
       command: `python -m uvicorn apps.api.app.main:app --host 127.0.0.1 --port ${apiPort}`,
       url: `${apiBaseURL}/api/v1/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
     {
-      command: `pnpm --dir apps/web exec next dev --hostname 127.0.0.1 --port ${webPort}`,
+      command: `pnpm --dir apps/web clean && pnpm --dir apps/web exec next dev --hostname 127.0.0.1 --port ${webPort}`,
       url: baseURL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],
