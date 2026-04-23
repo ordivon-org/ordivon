@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from apps.api.app.schemas.requests import AnalyzeRequest
 from apps.api.app.schemas.responses import AnalyzeResponse
 from capabilities.analyze import AnalyzeCapability, AnalyzeCapabilityInput
-from intelligence.runtime.hermes_client import HermesRuntimeError
+from intelligence.runtime.errors import RuntimeExecutionError
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from apps.api.app.deps import get_db
@@ -24,7 +24,7 @@ async def analyze_and_suggest(payload: AnalyzeRequest, db: Session = Depends(get
             db=db
         )
         return AnalyzeResponse(**result)
-    except HermesRuntimeError as e:
+    except RuntimeExecutionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

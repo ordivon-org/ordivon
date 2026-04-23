@@ -15,6 +15,7 @@ class SchedulerTriggerHealthSummary:
     enabled_trigger_count: int
     disabled_trigger_count: int
     dispatched_trigger_count: int
+    trigger_type_counts: dict[str, int]
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +24,8 @@ class MonitoringHistorySummary:
     execution_failures_by_family: dict[str, int]
     stale_or_blocked_run_count: int
     approval_blocked_count: int
+    degraded_run_count: int
+    resumed_run_count: int
     blocked_reason_counts: dict[str, int]
     recovery_action_counts: dict[str, int]
     top_workflow_failure_type: str | None = None

@@ -60,6 +60,14 @@ export function MonitoringHistoryPanel() {
           <div className="console-card__copy">{history.approval_blocked_count}</div>
         </div>
         <div>
+          <div className="console-card__title">Degraded Runs</div>
+          <div className="console-card__copy">{history.degraded_run_count}</div>
+        </div>
+        <div>
+          <div className="console-card__title">Resumed Runs</div>
+          <div className="console-card__copy">{history.resumed_run_count}</div>
+        </div>
+        <div>
           <div className="console-card__title">Top Workflow Failure</div>
           <div className="console-card__copy">{history.top_workflow_failure_type ?? 'unavailable'}</div>
         </div>
@@ -100,6 +108,15 @@ export function MonitoringHistoryPanel() {
         <div className="console-card__copy">
           Total: {history.scheduler?.total_trigger_count ?? 0} | Enabled: {history.scheduler?.enabled_trigger_count ?? 0} | Dispatched: {history.scheduler?.dispatched_trigger_count ?? 0}
         </div>
+        {history.scheduler?.trigger_type_counts && Object.keys(history.scheduler.trigger_type_counts).length > 0 ? (
+          <div style={{ display: 'grid', gap: '0.35rem' }}>
+            {Object.entries(history.scheduler.trigger_type_counts).map(([triggerType, count]) => (
+              <div key={triggerType} className="console-card__copy">
+                {triggerType}: {count}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );

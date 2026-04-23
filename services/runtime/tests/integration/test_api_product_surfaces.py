@@ -629,6 +629,10 @@ def test_knowledge_surface_exposes_advisory_entries_recurring_issues_and_candida
     assert len(payload["entries"]) == 1
     assert len(payload["recurring_issues"]) == 1
     assert len(payload["candidate_rules"]) == 1
+    assert isinstance(payload["feedback_records"], list)
+    if payload["feedback_records"]:
+        assert payload["feedback_records"][0]["consumer_type"] in {"governance", "intelligence"}
+        assert payload["feedback_records"][0]["consumed_hint_count"] >= 1
     assert payload["entries"][0]["knowledge_type"] == "lesson"
     assert payload["entries"][0]["derived_from"]["relation"] == "derived_from"
     assert payload["candidate_rules"][0]["status"] == "draft"

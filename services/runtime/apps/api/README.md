@@ -1,6 +1,6 @@
 # API App
 
-`apps/api/` is the FastAPI entrypoint for the PFIOS experience surface.
+`apps/api/` is the FastAPI entrypoint for the AegisOS experience surface.
 
 ## Owns
 

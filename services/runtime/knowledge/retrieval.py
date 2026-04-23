@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
+from domains.knowledge_feedback.feedback_record_models import FeedbackRecord
+from domains.knowledge_feedback.feedback_record_repository import FeedbackRecordRepository
 from domains.journal.repository import ReviewRepository
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.research.orm import AnalysisORM
@@ -27,6 +29,7 @@ class KnowledgePacketSummary:
 class KnowledgeRetrievalResult:
     entries: tuple[KnowledgeEntry, ...] = field(default_factory=tuple)
     packets: tuple[KnowledgePacketSummary, ...] = field(default_factory=tuple)
+    feedback_records: tuple[FeedbackRecord, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,13 +98,18 @@ class KnowledgeRetrievalService:
         self.extraction_service = LessonExtractionService(db)
         self.review_repository = ReviewRepository(db)
         self.packet_repository = KnowledgeFeedbackPacketRepository(db)
+        self.feedback_record_repository = FeedbackRecordRepository(db)
         self.recurring_issue_aggregator = RecurringIssueAggregator()
 
     def retrieve_for_recommendation(self, recommendation_id: str) -> KnowledgeRetrievalResult:
         entries = tuple(self.extraction_service.extract_for_recommendation(recommendation_id))
         packet_rows = self.packet_repository.list_for_recommendations([recommendation_id], limit=10)
         packets = tuple(self._packet_summary(row) for row in packet_rows)
-        return KnowledgeRetrievalResult(entries=entries, packets=packets)
+        feedback_records = tuple(
+            self.feedback_record_repository.to_model(row)
+            for row in self.feedback_record_repository.list_for_recommendation(recommendation_id)
+        )
+        return KnowledgeRetrievalResult(entries=entries, packets=packets, feedback_records=feedback_records)
 
     def retrieve_for_review(self, review_id: str) -> KnowledgeRetrievalResult:
         review = self.review_repository.get(review_id)
@@ -109,7 +117,10 @@ class KnowledgeRetrievalService:
             return KnowledgeRetrievalResult()
         result = self.retrieve_for_recommendation(review.recommendation_id)
         packets = tuple(packet for packet in result.packets if packet.review_id == review_id)
-        return KnowledgeRetrievalResult(entries=result.entries, packets=packets)
+        feedback_records = tuple(
+            record for record in result.feedback_records if getattr(record, "review_id", None) == review_id
+        )
+        return KnowledgeRetrievalResult(entries=result.entries, packets=packets, feedback_records=feedback_records)
 
     def retrieve_for_symbol(self, symbol: str) -> KnowledgeRetrievalResult:
         recommendation_ids = tuple(

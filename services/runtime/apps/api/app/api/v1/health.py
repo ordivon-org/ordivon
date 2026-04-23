@@ -50,7 +50,7 @@ async def health_check(db: Session = Depends(get_db)):
             runtime_detail = f"{settings.reasoning_provider} runtime health check failed unexpectedly."
             if settings.reasoning_provider == "hermes":
                 hermes_status = "unavailable"
-                hermes_detail = "Hermes health check failed unexpectedly."
+                hermes_detail = runtime_detail
 
         try:
             snapshot = MonitoringService(db).get_snapshot()
@@ -115,6 +115,8 @@ async def health_history(db: Session = Depends(get_db)):
                 execution_failures_by_family={},
                 stale_or_blocked_run_count=0,
                 approval_blocked_count=0,
+                degraded_run_count=0,
+                resumed_run_count=0,
                 blocked_reason_counts={},
                 recovery_action_counts={},
                 blocked_run_ids=[],
@@ -127,6 +129,7 @@ async def health_history(db: Session = Depends(get_db)):
                     enabled_trigger_count=0,
                     disabled_trigger_count=0,
                     dispatched_trigger_count=0,
+                    trigger_type_counts={},
                 ),
             )
         return HealthHistoryResponse(
@@ -134,6 +137,8 @@ async def health_history(db: Session = Depends(get_db)):
             execution_failures_by_family=summary.execution_failures_by_family,
             stale_or_blocked_run_count=summary.stale_or_blocked_run_count,
             approval_blocked_count=summary.approval_blocked_count,
+            degraded_run_count=summary.degraded_run_count,
+            resumed_run_count=summary.resumed_run_count,
             blocked_reason_counts=summary.blocked_reason_counts,
             recovery_action_counts=summary.recovery_action_counts,
             top_workflow_failure_type=summary.top_workflow_failure_type,
@@ -152,6 +157,7 @@ async def health_history(db: Session = Depends(get_db)):
                     enabled_trigger_count=summary.scheduler.enabled_trigger_count,
                     disabled_trigger_count=summary.scheduler.disabled_trigger_count,
                     dispatched_trigger_count=summary.scheduler.dispatched_trigger_count,
+                    trigger_type_counts=summary.scheduler.trigger_type_counts,
                 )
                 if summary.scheduler is not None
                 else None

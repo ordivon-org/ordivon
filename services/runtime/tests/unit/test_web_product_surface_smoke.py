@@ -59,6 +59,7 @@ def test_gold_path_handoff_copy_and_route_intent_are_explicit():
 def test_analyze_panels_only_render_real_contract_fields():
     reasoning = read("apps/web/src/components/features/analyze/ReasoningPanel.tsx")
     governance = read("apps/web/src/components/features/analyze/GovernancePanel.tsx")
+    governance_detail = read("apps/web/src/components/features/analyze/GovernanceDetailInspector.tsx")
 
     assert "data.summary" in reasoning
     assert "data.recommendations" in reasoning
@@ -72,6 +73,9 @@ def test_analyze_panels_only_render_real_contract_fields():
     assert "data.audit_event_id" in governance
     assert "data.report_path" in governance
     assert "data.metadata?.governance_source" in governance
+    assert "Governance detail inspector" in governance_detail
+    assert "governance_active_policy_ids" in governance_detail
+    assert "governance_default_decision_rule_ids" in governance_detail
 
 
 def test_audits_page_and_components_use_real_audit_api_without_sample_rows():
@@ -106,6 +110,7 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     reviews_page = read("apps/web/src/app/reviews/page.tsx")
     workspace_shell = read("apps/web/src/components/workspace/WorkspaceShell.tsx")
     recommendation_workspace = read("apps/web/src/components/features/reviews/RecommendationWorkspacePanel.tsx")
+    recommendation_knowledge = read("apps/web/src/components/features/reviews/RecommendationKnowledgePanel.tsx")
     review_knowledge = read("apps/web/src/components/features/reviews/ReviewKnowledgePanel.tsx")
     dashboard_page = read("apps/web/src/app/page.tsx")
     console_frame = read("apps/web/src/components/workspace/ConsolePageFrame.tsx")
@@ -202,7 +207,14 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "/api/v1/health/history" in history_panel
     assert "Blocked Reason Summary" in history_panel
     assert "Recovery Actions" in history_panel
+    assert "Degraded Runs" in history_panel
+    assert "Resumed Runs" in history_panel
+    assert "trigger_type_counts" in history_panel
     assert "WorkspaceShell" in workspace_shell
     assert "Recommendation detail" in recommendation_workspace
     assert "/api/v1/recommendations/${recommendationId}" in recommendation_workspace
+    assert "RecommendationKnowledgePanel" in recommendation_workspace
+    assert "Governance detail" in recommendation_workspace
+    assert "/api/v1/knowledge/recommendations/${recommendationId}" in recommendation_knowledge
+    assert "Advisory-only surface." in recommendation_knowledge
     assert "AppShell" in console_frame

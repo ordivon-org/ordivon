@@ -7,6 +7,7 @@ import { TraceDetailPanel } from '@/components/state/TraceDetailPanel';
 import { LoadingState, UnavailableState } from '@/components/state/SurfaceStates';
 import { honestMissingCopy, semanticNote, trustTierForSignal } from '@/lib/semanticSignals';
 import { TrustTierBadge } from '@/components/state/ProductSignals';
+import { RecommendationKnowledgePanel } from '@/components/features/reviews/RecommendationKnowledgePanel';
 import type { RecommendationItem } from '@/types/api';
 
 export function RecommendationWorkspacePanel({ recommendationId }: { recommendationId: string }) {
@@ -63,6 +64,16 @@ export function RecommendationWorkspacePanel({ recommendationId }: { recommendat
       <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
         <TrustTierBadge tier={trustTierForSignal('outcome_signal')} />
         <span>{semanticNote('outcome_signal')}</span>
+      </div>
+      <div className="glass console-card console-card--soft" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+        <div className="console-card__title">Governance detail</div>
+        <div>Decision: {recommendation.decision ?? honestMissingCopy('trace_detail')}</div>
+        <div>Decision reason: {recommendation.decision_reason ?? honestMissingCopy('trace_detail')}</div>
+        <div>Policy set: {typeof recommendation.metadata?.governance_policy_set_id === 'string' ? recommendation.metadata.governance_policy_set_id : honestMissingCopy('trace_detail')}</div>
+        <div>Advisory hint status: {typeof recommendation.metadata?.governance_advisory_hint_status === 'string' ? recommendation.metadata.governance_advisory_hint_status : honestMissingCopy('knowledge_hint')}</div>
+      </div>
+      <div className="glass console-card console-card--soft">
+        <RecommendationKnowledgePanel recommendationId={recommendation.id} />
       </div>
       <TraceDetailPanel path={`/api/v1/traces/recommendations/${recommendation.id}`} buttonLabel="Show recommendation trace" />
     </div>

@@ -51,7 +51,7 @@ def test_health_reports_degraded_when_hermes_is_unavailable(monkeypatch):
     assert response.status_code == 200
     assert response.json()["status"] == "degraded"
     assert response.json()["runtime_status"] == "unavailable"
-    assert response.json()["hermes_detail"] == "Hermes health check failed unexpectedly."
+    assert response.json()["hermes_detail"] == "hermes runtime health check failed unexpectedly."
 
 
 def test_health_returns_monitoring_snapshot_from_real_rows():

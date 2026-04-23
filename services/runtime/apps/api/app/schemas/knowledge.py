@@ -49,11 +49,24 @@ class CandidateRuleResponse(BaseModel):
     created_at: str
 
 
+class FeedbackRecordResponse(BaseModel):
+    id: str
+    packet_id: str
+    recommendation_id: str
+    review_id: str | None = None
+    consumer_type: str
+    subject_key: str
+    knowledge_entry_ids: list[str]
+    consumed_hint_count: int
+    created_at: str
+
+
 class KnowledgeRetrieveResponse(BaseModel):
     root_type: str
     root_id: str
     advisory_only: bool = True
     entries: list[KnowledgeEntryResponse]
     packets: list[KnowledgePacketSummaryResponse]
+    feedback_records: list[FeedbackRecordResponse] = []
     recurring_issues: list[RecurringIssueResponse]
     candidate_rules: list[CandidateRuleResponse]

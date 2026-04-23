@@ -1,7 +1,7 @@
 export default function DashboardPage() {
   return (
     <main style={{ padding: 24 }}>
-      <h1 style={{ marginBottom: 16 }}>PFIOS Dashboard</h1>
+      <h1 style={{ marginBottom: 16 }}>AegisOS Dashboard</h1>
 
       <section style={{ display: "grid", gap: 16 }}>
         <div style={{ padding: 16, border: "1px solid #2d3748", borderRadius: 12 }}>

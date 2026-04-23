@@ -23,6 +23,8 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
     recovery_action_counts: dict[str, int] = {}
     stale_or_blocked_run_count = 0
     approval_blocked_count = 0
+    degraded_run_count = 0
+    resumed_run_count = 0
     blocked_run_ids: list[str] = []
     blocked_runs: list[BlockedRunSummary] = []
     approval_blocked_run_ids: list[str] = []
@@ -40,6 +42,8 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
             )
         lineage = from_json_text(row.lineage_refs_json, {})
         blocked_reason = lineage.get("blocked_reason")
+        if lineage.get("resume_reason") or (lineage.get("resume_count") or 0):
+            resumed_run_count += 1
         if blocked_reason:
             stale_or_blocked_run_count += 1
             reason_key = str(blocked_reason)
@@ -55,6 +59,9 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
             action = step.get("recovery_action")
             if isinstance(action, str) and action:
                 recovery_action_counts[action] = recovery_action_counts.get(action, 0) + 1
+                if action == "fallback":
+                    degraded_run_count += 1
+                    break
 
     execution_failures_by_family: dict[str, int] = {}
     request_family_by_id = {
@@ -84,11 +91,15 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
         top_execution_failure_family = max(execution_failures_by_family.items(), key=lambda item: item[1])[0]
 
     scheduler_rows = SchedulerRepository(db).list_all()
+    trigger_type_counts: dict[str, int] = {}
+    for row in scheduler_rows:
+        trigger_type_counts[row.trigger_type] = trigger_type_counts.get(row.trigger_type, 0) + 1
     scheduler_summary = SchedulerTriggerHealthSummary(
         total_trigger_count=len(scheduler_rows),
         enabled_trigger_count=sum(1 for row in scheduler_rows if row.is_enabled),
         disabled_trigger_count=sum(1 for row in scheduler_rows if not row.is_enabled),
         dispatched_trigger_count=sum(1 for row in scheduler_rows if row.dispatch_count > 0),
+        trigger_type_counts=trigger_type_counts,
     )
 
     return MonitoringHistorySummary(
@@ -96,6 +107,8 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
         execution_failures_by_family=execution_failures_by_family,
         stale_or_blocked_run_count=stale_or_blocked_run_count,
         approval_blocked_count=approval_blocked_count,
+        degraded_run_count=degraded_run_count,
+        resumed_run_count=resumed_run_count,
         blocked_reason_counts=blocked_reason_counts,
         recovery_action_counts=recovery_action_counts,
         top_workflow_failure_type=top_workflow_failure_type,

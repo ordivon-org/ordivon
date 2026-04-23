@@ -18,7 +18,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar glass">
       <div className="sidebar__logo">
-        PFIOS<sup>v0.1</sup>
+        AegisOS<sup>v0.1</sup>
       </div>
 
       <nav className="sidebar__nav">

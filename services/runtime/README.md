@@ -22,6 +22,7 @@ The highest-level AegisOS positioning and execution map now live in:
 - [AegisOS Layer Roadmap](./docs/architecture/aegisos-layer-roadmap.md)
 - [AegisOS MVP Brief](./docs/product/aegisos-mvp-brief.md)
 - [AegisOS MVP Execution Checklist](./docs/product/aegisos-mvp-execution-checklist.md)
+- [AegisOS Post-MVP Refinement Execution Plan](./docs/architecture/aegisos-post-mvp-refinement-execution-plan.md)
 
 ## Current MVP
 

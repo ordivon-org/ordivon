@@ -1,4 +1,4 @@
-from intelligence.runtime.hermes_client import HermesRuntimeError
+from intelligence.runtime.errors import RuntimeExecutionError
 from orchestrator.contracts.workflow import WorkflowContext
 from orchestrator.runtime.recovery import RecoveryDetail, RecoveryPolicy, consume_recovery_detail, record_recovery_detail
 from orchestrator.workflows.analyze import ReasonStep
@@ -8,8 +8,8 @@ from domains.research.models import AnalysisRequest
 def test_reason_step_uses_recovery_policy_for_retryable_hermes_errors():
     step = ReasonStep()
 
-    retryable_error = HermesRuntimeError("temporary", retryable=True)
-    permanent_error = HermesRuntimeError("permanent", retryable=False)
+    retryable_error = RuntimeExecutionError("temporary", retryable=True)
+    permanent_error = RuntimeExecutionError("permanent", retryable=False)
 
     assert step.recovery_policy.should_retry(retryable_error, attempt=1) is True
     assert step.recovery_policy.should_retry(permanent_error, attempt=1) is False
@@ -48,7 +48,7 @@ def test_reason_step_fallback_creates_degraded_analysis():
     ctx.workflow_run_id = "wfrun_test"
     ctx.metadata["analysis_context"] = object()
 
-    result = step.fallback(ctx, HermesRuntimeError("runtime down", retryable=True))
+    result = step.fallback(ctx, RuntimeExecutionError("runtime down", retryable=True))
 
     assert result.analysis is not None
     assert result.analysis.summary == "Degraded analysis: runtime failed after retries."

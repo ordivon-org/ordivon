@@ -23,6 +23,8 @@ export interface HealthHistoryResponse {
   execution_failures_by_family: Record<string, number>;
   stale_or_blocked_run_count: number;
   approval_blocked_count: number;
+  degraded_run_count: number;
+  resumed_run_count: number;
   blocked_reason_counts?: Record<string, number> | null;
   recovery_action_counts?: Record<string, number> | null;
   top_workflow_failure_type?: string | null;
@@ -37,6 +39,7 @@ export interface HealthHistoryResponse {
     enabled_trigger_count: number;
     disabled_trigger_count: number;
     dispatched_trigger_count: number;
+    trigger_type_counts?: Record<string, number> | null;
   } | null;
 }
 
@@ -298,12 +301,25 @@ export interface CandidateRuleResponse {
   created_at: string;
 }
 
+export interface FeedbackRecordResponse {
+  id: string;
+  packet_id: string;
+  recommendation_id: string;
+  review_id?: string | null;
+  consumer_type: string;
+  subject_key: string;
+  knowledge_entry_ids: string[];
+  consumed_hint_count: number;
+  created_at: string;
+}
+
 export interface KnowledgeRetrieveResponse {
   root_type: string;
   root_id: string;
   advisory_only: boolean;
   entries: KnowledgeEntryResponse[];
   packets: KnowledgePacketSummaryResponse[];
+  feedback_records: FeedbackRecordResponse[];
   recurring_issues: RecurringIssueResponse[];
   candidate_rules: CandidateRuleResponse[];
 }

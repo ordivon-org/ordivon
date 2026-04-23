@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import json
-from contextlib import contextmanager
+import os
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+
+os.environ.setdefault("PFIOS_ENV", "test")
+os.environ.setdefault("PFIOS_DEBUG", "false")
+os.environ.setdefault("PFIOS_REASONING_PROVIDER", "mock")
+os.environ.setdefault("PFIOS_DB_URL", "duckdb:///:memory:")
 
 from apps.api.app.main import app
 
@@ -13,7 +19,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 OPENAPI_SNAPSHOT_PATH = ROOT_DIR / "tests" / "contracts" / "openapi.snapshot.json"
 
 
-@contextmanager
+@pytest.fixture(scope="module")
 def app_client():
     with TestClient(app) as client:
         yield client
@@ -25,9 +31,8 @@ def test_openapi_snapshot_matches_committed_contract() -> None:
     assert actual == expected
 
 
-def test_health_contract_surface_is_stable() -> None:
-    with app_client() as client:
-        response = client.get("/api/v1/health")
+def test_health_contract_surface_is_stable(app_client: TestClient) -> None:
+    response = app_client.get("/api/v1/health")
 
     assert response.status_code == 200
     payload = response.json()
@@ -36,9 +41,8 @@ def test_health_contract_surface_is_stable() -> None:
     assert "monitoring_status" in payload
 
 
-def test_history_contract_surface_is_stable() -> None:
-    with app_client() as client:
-        response = client.get("/api/v1/health/history")
+def test_history_contract_surface_is_stable(app_client: TestClient) -> None:
+    response = app_client.get("/api/v1/health/history")
 
     assert response.status_code == 200
     payload = response.json()
@@ -51,12 +55,11 @@ def test_history_contract_surface_is_stable() -> None:
     }
 
 
-def test_analyze_response_contract_includes_object_continuation_fields() -> None:
-    with app_client() as client:
-        response = client.post(
-            "/api/v1/analyze-and-suggest",
-            json={"query": "Analyze BTC momentum", "symbols": ["BTC/USDT"]},
-        )
+def test_analyze_response_contract_includes_object_continuation_fields(app_client: TestClient) -> None:
+    response = app_client.post(
+        "/api/v1/analyze-and-suggest",
+        json={"query": "Analyze BTC momentum", "symbols": ["BTC/USDT"]},
+    )
 
     assert response.status_code == 200
     payload = response.json()

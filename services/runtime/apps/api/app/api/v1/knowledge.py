@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from apps.api.app.deps import get_db
 from apps.api.app.schemas.knowledge import (
     CandidateRuleResponse,
+    FeedbackRecordResponse,
     KnowledgeEntryResponse,
     KnowledgePacketSummaryResponse,
     KnowledgeRefResponse,
@@ -81,6 +82,20 @@ def _response_for(root_type: str, root_id: str, retrieval, recurring_issues, can
                 intelligence_hint_count=packet.intelligence_hint_count,
             )
             for packet in retrieval.packets
+        ],
+        feedback_records=[
+            FeedbackRecordResponse(
+                id=record.id,
+                packet_id=record.packet_id,
+                recommendation_id=record.recommendation_id,
+                review_id=record.review_id,
+                consumer_type=record.consumer_type,
+                subject_key=record.subject_key,
+                knowledge_entry_ids=list(record.knowledge_entry_ids),
+                consumed_hint_count=record.consumed_hint_count,
+                created_at=record.created_at,
+            )
+            for record in retrieval.feedback_records
         ],
         recurring_issues=[RecurringIssueResponse(**asdict(issue)) for issue in recurring_issues],
         candidate_rules=candidate_rules,

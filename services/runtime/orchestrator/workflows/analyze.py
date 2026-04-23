@@ -37,7 +37,7 @@ from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
 from intelligence.context_builder import HintAwareContextBuilder
 from intelligence.engine import ReasoningEngine
-from intelligence.runtime.hermes_client import HermesRuntimeError
+from intelligence.runtime.errors import RuntimeExecutionError
 from intelligence.tasks import build_analysis_task
 from intelligence.tasks.contracts import IntelligenceAgentActionPayload
 from orchestrator.context.context_builder import ContextBuilder
@@ -144,7 +144,7 @@ class ReasonStep:
         self.reasoning_engine = ReasoningEngine()
         self.recovery_policy = RecoveryPolicy(
             max_retries=1,
-            retryable_error=lambda exc: isinstance(exc, HermesRuntimeError) and bool(exc.retryable),
+            retryable_error=lambda exc: isinstance(exc, RuntimeExecutionError) and bool(exc.retryable),
             terminal_action="none",
         )
 
@@ -189,7 +189,7 @@ class ReasonStep:
 
         try:
             analysis = self.reasoning_engine.analyze(analysis_ctx, request=intelligence_request)
-        except HermesRuntimeError as exc:
+        except RuntimeExecutionError as exc:
             if run_service and intelligence_request and ctx.db:
                 run_service.mark_failed(
                     intelligence_request.task_id,

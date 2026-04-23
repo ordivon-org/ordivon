@@ -14,7 +14,7 @@ class ActionContextInput(BaseModel):
 
 class StatusResponse(BaseModel):
     status: str
-    system: str = "PFIOS"
+    system: str = "AegisOS"
     version: str = "0.1.0"
     reasoning_provider: str | None = None
     runtime_status: str | None = None
@@ -51,6 +51,7 @@ class SchedulerTriggerHealthResponse(BaseModel):
     enabled_trigger_count: int
     disabled_trigger_count: int
     dispatched_trigger_count: int
+    trigger_type_counts: dict[str, int] | None = None
 
 
 class HealthHistoryResponse(BaseModel):
@@ -58,6 +59,8 @@ class HealthHistoryResponse(BaseModel):
     execution_failures_by_family: dict[str, int]
     stale_or_blocked_run_count: int
     approval_blocked_count: int
+    degraded_run_count: int = 0
+    resumed_run_count: int = 0
     blocked_reason_counts: dict[str, int] | None = None
     recovery_action_counts: dict[str, int] | None = None
     top_workflow_failure_type: str | None = None

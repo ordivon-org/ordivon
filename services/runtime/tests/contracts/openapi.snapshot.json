@@ -630,6 +630,68 @@
         "title": "EvalSummary",
         "type": "object"
       },
+      "FeedbackRecordResponse": {
+        "properties": {
+          "consumed_hint_count": {
+            "title": "Consumed Hint Count",
+            "type": "integer"
+          },
+          "consumer_type": {
+            "title": "Consumer Type",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "knowledge_entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Knowledge Entry Ids",
+            "type": "array"
+          },
+          "packet_id": {
+            "title": "Packet Id",
+            "type": "string"
+          },
+          "recommendation_id": {
+            "title": "Recommendation Id",
+            "type": "string"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          },
+          "subject_key": {
+            "title": "Subject Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "packet_id",
+          "recommendation_id",
+          "consumer_type",
+          "subject_key",
+          "knowledge_entry_ids",
+          "consumed_hint_count",
+          "created_at"
+        ],
+        "title": "FeedbackRecordResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -684,6 +746,11 @@
             "title": "Blocked Runs",
             "type": "array"
           },
+          "degraded_run_count": {
+            "default": 0,
+            "title": "Degraded Run Count",
+            "type": "integer"
+          },
           "execution_failures_by_family": {
             "additionalProperties": {
               "type": "integer"
@@ -724,6 +791,11 @@
               }
             ],
             "title": "Recovery Action Counts"
+          },
+          "resumed_run_count": {
+            "default": 0,
+            "title": "Resumed Run Count",
+            "type": "integer"
           },
           "scheduler": {
             "anyOf": [
@@ -974,6 +1046,14 @@
               "$ref": "#/components/schemas/KnowledgeEntryResponse"
             },
             "title": "Entries",
+            "type": "array"
+          },
+          "feedback_records": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FeedbackRecordResponse"
+            },
+            "title": "Feedback Records",
             "type": "array"
           },
           "packets": {
@@ -1902,6 +1982,20 @@
           "total_trigger_count": {
             "title": "Total Trigger Count",
             "type": "integer"
+          },
+          "trigger_type_counts": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Type Counts"
           }
         },
         "required": [
@@ -2146,7 +2240,7 @@
             "type": "string"
           },
           "system": {
-            "default": "PFIOS",
+            "default": "AegisOS",
             "title": "System",
             "type": "string"
           },
@@ -2474,7 +2568,7 @@
     }
   },
   "info": {
-    "title": "PFIOS API",
+    "title": "AegisOS API",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",

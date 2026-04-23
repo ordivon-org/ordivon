@@ -1,6 +1,6 @@
 # API v1
 
-`apps/api/app/api/v1/` is the active public HTTP surface for the current single-agent PFIOS baseline.
+`apps/api/app/api/v1/` is the active public HTTP surface for the current single-agent AegisOS baseline.
 
 ## What Lives Here
 

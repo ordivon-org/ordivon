@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.app.api.v1.router import router as api_v1_router
 from state.db.bootstrap import init_db
+from state.db.session import engine
 from shared.observability import increment_counter, init_observability, span
 
 
@@ -12,11 +13,14 @@ from shared.observability import increment_counter, init_observability, span
 async def lifespan(_: FastAPI):
     init_observability()
     init_db()
-    yield
+    try:
+        yield
+    finally:
+        engine.dispose()
 
 
 app = FastAPI(
-    title="PFIOS API",
+    title="AegisOS API",
     version="0.1.0",
     lifespan=lifespan,
 )

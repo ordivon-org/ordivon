@@ -5,35 +5,19 @@ from typing import Any
 
 import httpx
 
+from intelligence.runtime.errors import RuntimeExecutionError, RuntimeTaskError, RuntimeUnavailableError
 from shared.config.settings import settings
 
 
-class HermesRuntimeError(RuntimeError):
-    def __init__(
-        self,
-        message: str,
-        *,
-        task_type: str | None = None,
-        retryable: bool = False,
-        status_code: int | None = None,
-        task_id: str | None = None,
-        trace_id: str | None = None,
-        request_payload: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(message)
-        self.task_type = task_type
-        self.retryable = retryable
-        self.status_code = status_code
-        self.task_id = task_id
-        self.trace_id = trace_id
-        self.request_payload = request_payload
-
-
-class HermesUnavailableError(HermesRuntimeError):
+class HermesRuntimeError(RuntimeExecutionError):
     pass
 
 
-class HermesTaskError(HermesRuntimeError):
+class HermesUnavailableError(RuntimeUnavailableError, HermesRuntimeError):
+    pass
+
+
+class HermesTaskError(RuntimeTaskError, HermesRuntimeError):
     pass
 
 
@@ -102,7 +86,7 @@ class HermesClient:
             "task_type": task_type,
             **payload,
         }
-        last_error: HermesRuntimeError | None = None
+        last_error: RuntimeExecutionError | None = None
 
         for attempt in range(self.max_retries + 1):
             try:

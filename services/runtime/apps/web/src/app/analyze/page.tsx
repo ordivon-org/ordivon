@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import AnalyzeInput from '@/components/features/analyze/AnalyzeInput';
+import { GovernanceDetailInspector } from '@/components/features/analyze/GovernanceDetailInspector';
 import GovernancePanel from '@/components/features/analyze/GovernancePanel';
 import ReasoningPanel from '@/components/features/analyze/ReasoningPanel';
 import { ConsoleSection } from '@/components/layout/ConsoleSection';
@@ -161,6 +162,7 @@ function AnalyzePageInner() {
               </Link>
             )}
           </div>
+          <GovernanceDetailInspector data={result} />
           </div>
         </ConsoleSection>
       ) : null}
