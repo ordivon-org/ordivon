@@ -45,12 +45,17 @@ export default function AnalyzeInput({
         height: '100%',
       }}
     >
-      <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '600' }}>Workflow Execution Request</h3>
+      <h2 id="analyze-request-panel" style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '600' }}>
+        Workflow Execution Request
+      </h2>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.symbol}</label>
+          <label htmlFor="analyze-input-symbol" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {financeAnalyze.labels.symbol}
+          </label>
           <select
+            id="analyze-input-symbol"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             style={{
@@ -70,8 +75,11 @@ export default function AnalyzeInput({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.query}</label>
+          <label htmlFor="analyze-input-query" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {financeAnalyze.labels.query}
+          </label>
           <textarea
+            id="analyze-input-query"
             rows={6}
             placeholder="Describe your intent or market scenario..."
             value={query}
@@ -88,13 +96,26 @@ export default function AnalyzeInput({
           />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.timeframe}</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <fieldset
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          <legend style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {financeAnalyze.labels.timeframe}
+          </legend>
+          <div style={{ display: 'flex', gap: '0.5rem' }} role="group" aria-label={financeAnalyze.labels.timeframe}>
             {financeAnalyze.supportedTimeframes.map((supportedTimeframe) => (
               <button
                 key={supportedTimeframe}
                 type="button"
+                aria-label={supportedTimeframe}
+                aria-pressed={supportedTimeframe === timeframe}
                 onClick={() => setTimeframe(supportedTimeframe)}
                 style={{
                   flex: 1,
@@ -111,7 +132,7 @@ export default function AnalyzeInput({
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         <button
           type="submit"

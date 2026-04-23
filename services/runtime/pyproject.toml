@@ -17,13 +17,54 @@ dependencies = [
   "duckdb>=1.0.0",
   "duckdb-engine>=0.13.0",
   "httpx>=0.27.0",
+  "opentelemetry-api>=1.38.0",
+  "opentelemetry-exporter-otlp>=1.38.0",
+  "opentelemetry-sdk>=1.38.0",
   "python-dotenv>=1.0.1",
+  "sentry-sdk[fastapi]>=2.30.0",
   "pytz"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "bandit>=1.8.6",
+  "pip-audit>=2.9.0",
+  "pytest>=9.0.0",
+  "pytest-asyncio>=1.2.0",
+  "ruff>=0.12.12",
+]
+
 [tool.setuptools.packages.find]
-include = ["pfios*", "apps*", "capabilities*", "domains*", "governance*", "intelligence*", "orchestrator*", "shared*", "state*"]
+include = [
+  "pfios*",
+  "apps*",
+  "capabilities*",
+  "domains*",
+  "execution*",
+  "governance*",
+  "infra*",
+  "intelligence*",
+  "orchestrator*",
+  "packs*",
+  "shared*",
+  "state*",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [
+  "node_modules",
+  ".next",
+  "delivery-bundle",
+]
+
+[tool.ruff.lint]
+select = [
+  "E9",
+  "F",
+]

@@ -67,44 +67,41 @@ export function ReviewConsole() {
     };
   }, [replaceTabs, searchParams]);
 
-  if (status === 'loading') {
-    return <LoadingState message="Loading review console..." />;
-  }
-
-  if (status === 'unavailable') {
-    return (
-      <UnavailableState
-        message="Review console is unavailable."
-        detail="The review and trace APIs could not be confirmed."
-      />
-    );
-  }
-
   return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <header>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>Review Workbench</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Primary supervision workspace for pending reviews, linked recommendation follow-through, and trace or outcome inspection.
-          </p>
-        </header>
-        <div
-          className="glass"
-          style={{
-            padding: '0.85rem 1rem',
-            borderRadius: '10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.35rem',
-            color: 'var(--text-muted)',
-            fontSize: '0.8rem',
-          }}
-        >
-          <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>Queue-first supervision</div>
-          <div>
-            Use the review queue as the primary entrypoint here. Recommendation and trace tabs are supporting views for supervision work, not separate ownership surfaces.
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <header>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>Review Workbench</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          Primary supervision workspace for pending reviews, linked recommendation follow-through, and trace or outcome inspection.
+        </p>
+      </header>
+      <div
+        className="glass"
+        style={{
+          padding: '0.85rem 1rem',
+          borderRadius: '10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem',
+          color: 'var(--text-muted)',
+          fontSize: '0.8rem',
+        }}
+      >
+        <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>Queue-first supervision</div>
+        <div>
+          Use the review queue as the primary entrypoint here. Recommendation and trace tabs are supporting views for supervision work, not separate ownership surfaces.
         </div>
+      </div>
+      {status === 'loading' ? (
+        <LoadingState message="Loading review console..." />
+      ) : null}
+      {status === 'unavailable' ? (
+        <UnavailableState
+          message="Review console is unavailable."
+          detail="The review and trace APIs could not be confirmed."
+        />
+      ) : null}
+      {status === 'ready' ? (
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -151,6 +148,7 @@ export function ReviewConsole() {
           ) : null}
         </div>
       </div>
-      </div>
+      ) : null}
+    </div>
   );
 }

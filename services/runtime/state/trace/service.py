@@ -12,7 +12,6 @@ from domains.journal.orm import ReviewORM
 from domains.research.orm import AnalysisORM
 from domains.strategy.orm import RecommendationORM
 from domains.strategy.outcome_graph import OutcomeGraph
-from domains.strategy.outcome_orm import OutcomeSnapshotORM
 from domains.workflow_runs.orm import WorkflowRunORM
 from governance.audit.orm import AuditEventORM
 from shared.utils.serialization import from_json_text

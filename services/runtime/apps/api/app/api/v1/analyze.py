@@ -7,7 +7,6 @@ from intelligence.runtime.hermes_client import HermesRuntimeError
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from apps.api.app.deps import get_db
-from capabilities.analyze import AnalyzeCapability, AnalyzeCapabilityInput
 
 router = APIRouter()
 analyze_capability = AnalyzeCapability()

@@ -37,6 +37,7 @@ export function WorkspaceTabs({
           </button>
           <button
             type="button"
+            aria-label={`Close ${tab.title} tab`}
             onClick={() => onClose(tab.id)}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
           >

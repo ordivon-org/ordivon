@@ -8,6 +8,8 @@ import AnalyzeInput from '@/components/features/analyze/AnalyzeInput';
 import GovernancePanel from '@/components/features/analyze/GovernancePanel';
 import ReasoningPanel from '@/components/features/analyze/ReasoningPanel';
 import { TrustTierBadge } from '@/components/state/ProductSignals';
+import { ConsolePageFrame } from '@/components/workspace/ConsolePageFrame';
+import { getApiBaseUrl } from '@/lib/api';
 import type { AnalyzeWorkspaceResult } from '@/components/features/analyze/types';
 
 function AnalyzePageInner() {
@@ -16,23 +18,13 @@ function AnalyzePageInner() {
   const [result, setResult] = useState<AnalyzeWorkspaceResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const query = searchParams.get('query');
-    const symbol = searchParams.get('symbol');
-    const timeframe = searchParams.get('timeframe');
-    const autoRun = searchParams.get('autoRun');
-    if (autoRun === 'true' && query && symbol) {
-      void handleRunAnalysis(query, symbol, timeframe ?? undefined);
-    }
-  }, [searchParams]);
-
   const handleRunAnalysis = async (query: string, symbol: string, timeframe?: string) => {
     setIsLoading(true);
     setResult(null);
     setErrorMessage(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/analyze-and-suggest', {
+      const response = await fetch(`${getApiBaseUrl()}/api/v1/analyze-and-suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, symbols: [symbol], timeframe }),
@@ -53,6 +45,16 @@ function AnalyzePageInner() {
     }
   };
 
+  useEffect(() => {
+    const query = searchParams.get('query');
+    const symbol = searchParams.get('symbol');
+    const timeframe = searchParams.get('timeframe');
+    const autoRun = searchParams.get('autoRun');
+    if (autoRun === 'true' && query && symbol) {
+      void handleRunAnalysis(query, symbol, timeframe ?? undefined);
+    }
+  }, [searchParams]);
+
   const recommendationId =
     typeof result?.metadata?.recommendation_id === 'string'
       ? result.metadata.recommendation_id
@@ -64,7 +66,7 @@ function AnalyzePageInner() {
   const reviewHref = recommendationId ? `/reviews?recommendation_id=${recommendationId}` : '/reviews';
 
   return (
-    <div className="analyze-page" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="analyze-page" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <header style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Workflow Execution Workspace</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -93,23 +95,29 @@ function AnalyzePageInner() {
         </div>
       )}
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '300px 1fr 300px',
-            gap: '1.5rem',
-            height: 'calc(100% - 4rem)',
-          }}
-        >
-        <AnalyzeInput
-          onRun={handleRunAnalysis}
-          isLoading={isLoading}
-          initialQuery={searchParams.get('query') ?? ''}
-          initialSymbol={searchParams.get('symbol') ?? undefined}
-          initialTimeframe={searchParams.get('timeframe') ?? undefined}
-        />
-        <ReasoningPanel data={result} isLoading={isLoading} />
-        <GovernancePanel data={result} isLoading={isLoading} />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '300px 1fr 300px',
+          gap: '1.5rem',
+          alignItems: 'stretch',
+        }}
+      >
+        <section aria-labelledby="analyze-request-panel">
+          <AnalyzeInput
+            onRun={handleRunAnalysis}
+            isLoading={isLoading}
+            initialQuery={searchParams.get('query') ?? ''}
+            initialSymbol={searchParams.get('symbol') ?? undefined}
+            initialTimeframe={searchParams.get('timeframe') ?? undefined}
+          />
+        </section>
+        <section aria-labelledby="analyze-result-panel">
+          <ReasoningPanel data={result} isLoading={isLoading} />
+        </section>
+        <section aria-labelledby="analyze-governance-panel">
+          <GovernancePanel data={result} isLoading={isLoading} />
+        </section>
       </div>
       {result ? (
         <section
@@ -193,8 +201,10 @@ function AnalyzePageInner() {
 
 export default function AnalyzePage() {
   return (
-    <Suspense fallback={<div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading workspace...</div>}>
-      <AnalyzePageInner />
-    </Suspense>
+    <ConsolePageFrame>
+      <Suspense fallback={<div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading workspace...</div>}>
+        <AnalyzePageInner />
+      </Suspense>
+    </ConsolePageFrame>
   );
 }

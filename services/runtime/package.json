@@ -5,10 +5,42 @@
   "scripts": {
     "dev:web": "pnpm --dir apps/web dev",
     "build:web": "pnpm --dir apps/web build",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "lint:py": "python -m ruff check apps/api/app capabilities domains execution governance infra intelligence orchestrator packs shared state",
+    "lint:web": "pnpm --dir apps/web exec eslint .",
+    "typecheck:web": "pnpm --dir apps/web exec tsc --noEmit",
+    "test:unit": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-unit.duckdb python -m pytest -q tests/unit",
+    "test:integration:core": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-integration.duckdb python -m pytest -q tests/integration/test_hermes_analyze_api.py tests/integration/test_health_monitoring_api.py tests/integration/test_scheduler_persistence.py tests/integration/test_api_product_surfaces.py tests/integration/test_api_semantic_outputs.py tests/integration/test_workflow_run_lineage_api.py",
+    "test:contract": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-contract.duckdb python -m pytest -q tests/contracts",
+    "seed:e2e": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-e2e.duckdb python scripts/seed_mvp_e2e.py",
+    "seed:a11y": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-a11y.duckdb python scripts/seed_mvp_e2e.py",
+    "seed:visual": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-visual.duckdb python scripts/seed_mvp_e2e.py",
+    "seed:perf:web": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-web-perf.duckdb python scripts/seed_mvp_e2e.py",
+    "seed:release": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-release.duckdb python scripts/seed_mvp_e2e.py",
+    "playwright:e2e": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-e2e.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8000 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 PFIOS_E2E_BASE_URL=http://127.0.0.1:3000 playwright test",
+    "playwright:e2e:headed": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-e2e.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8000 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 PFIOS_E2E_BASE_URL=http://127.0.0.1:3000 playwright test --headed",
+    "playwright:e2e:mvp": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-e2e.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8000 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 PFIOS_E2E_BASE_URL=http://127.0.0.1:3000 playwright test tests/e2e/mvp-gold-path.spec.ts",
+    "playwright:e2e:a11y": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-a11y.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8004 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8004 PFIOS_E2E_BASE_URL=http://127.0.0.1:3004 playwright test tests/e2e/accessibility-smoke.spec.ts",
+    "playwright:e2e:visual": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-visual.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8001 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001 PFIOS_E2E_BASE_URL=http://127.0.0.1:3001 playwright test tests/e2e/visual-regression.spec.ts",
+    "playwright:e2e:release": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-release.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8003 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8003 PFIOS_E2E_BASE_URL=http://127.0.0.1:3003 playwright test --config=playwright.release.config.ts tests/e2e/release-smoke.spec.ts",
+    "playwright:e2e:perf": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-web-perf.duckdb PFIOS_API_BASE_URL=http://127.0.0.1:8002 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8002 PFIOS_E2E_BASE_URL=http://127.0.0.1:3002 playwright test tests/e2e/performance-baselines.spec.ts",
+    "test:e2e": "pnpm seed:e2e && pnpm playwright:e2e",
+    "test:e2e:headed": "pnpm seed:e2e && pnpm playwright:e2e:headed",
+    "test:e2e:mvp": "pnpm seed:e2e && pnpm playwright:e2e:mvp",
+    "test:e2e:a11y": "pnpm seed:a11y && pnpm playwright:e2e:a11y",
+    "test:e2e:visual": "pnpm seed:visual && pnpm playwright:e2e:visual",
+    "test:e2e:release": "pnpm build:web && pnpm seed:release && pnpm playwright:e2e:release",
+    "test:perf:web": "pnpm seed:perf:web && pnpm playwright:e2e:perf",
+    "test:perf:api": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-perf.duckdb python -m pytest -q tests/integration/test_performance_baselines.py",
+    "generate:openapi": "python scripts/export_openapi.py",
+    "audit:py": "python -m pip_audit",
+    "audit:web": "pnpm audit --prod --audit-level=high",
+    "scan:security": "cross-env PYTHONUTF8=1 python -X utf8 -m bandit -q -r apps/api/app capabilities domains execution governance infra intelligence orchestrator packs shared state -x tests,scripts",
+    "lighthouse": "lhci autorun"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@axe-core/playwright": "^4.11.0",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.59.1",
+    "cross-env": "^10.1.0"
   }
 }

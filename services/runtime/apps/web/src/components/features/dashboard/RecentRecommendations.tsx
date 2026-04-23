@@ -3,15 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { apiGet } from '@/lib/api';
+import { apiGet, getApiBaseUrl } from '@/lib/api';
 import { EmptyState, ErrorState, LoadingState } from '@/components/state/SurfaceStates';
 import { ObjectTypeBadge, TimeSemantic, TrustTierBadge } from '@/components/state/ProductSignals';
 import { honestMissingCopy, semanticNote, trustTierForSignal } from '@/lib/semanticSignals';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceProvider';
 import type { RecommendationItem, RecommendationListResponse } from '@/types/api';
 import type { ExperienceState } from '@/types/experience';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export default function RecentRecommendations() {
   const workspace = useWorkspaceContext();
@@ -66,7 +64,7 @@ export default function RecentRecommendations() {
   const handleUpdate = async (id: string, newStatus: string) => {
     try {
       const idempotencyKey = `recommendation:${id}:${newStatus}`;
-      const res = await fetch(`${API_BASE_URL}/api/v1/recommendations/${id}/status`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/v1/recommendations/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

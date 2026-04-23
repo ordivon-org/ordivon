@@ -51,6 +51,7 @@ from state.usage.service import UsageService
 from tools.reports.renderer import ReportRenderer
 from knowledge.wiki.service import MarkdownWikiService
 from shared.config.settings import settings
+from shared.observability import increment_counter, span
 
 
 def _get_side_effect_context(ctx: WorkflowContext, key: str, action: str) -> ActionContext:
@@ -65,8 +66,9 @@ class BuildContextStep:
         self.context_builder = ContextBuilder()
 
     def execute(self, ctx: WorkflowContext) -> WorkflowContext:
-        analysis_ctx = self.context_builder.build(ctx.request)
-        hint_result = HintAwareContextBuilder(ctx.db).enrich(analysis_ctx, symbol=ctx.request.symbol)
+        with span("workflow.build_context", attributes={"workflow.symbol": ctx.request.symbol or "UNKNOWN"}):
+            analysis_ctx = self.context_builder.build(ctx.request)
+            hint_result = HintAwareContextBuilder(ctx.db).enrich(analysis_ctx, symbol=ctx.request.symbol)
         ctx.metadata["intelligence_feedback_hint_status"] = hint_result.hint_status
         ctx.metadata["intelligence_memory_lesson_count"] = hint_result.memory_lesson_count
         ctx.metadata["intelligence_related_review_count"] = hint_result.related_review_count
@@ -150,6 +152,10 @@ class ReasonStep:
         return self.recovery_policy.should_retry(exc, attempt=1)
 
     def execute(self, ctx: WorkflowContext) -> WorkflowContext:
+        with span("workflow.reason", attributes={"workflow.symbol": ctx.request.symbol or "UNKNOWN"}):
+            return self._execute_reason(ctx)
+
+    def _execute_reason(self, ctx: WorkflowContext) -> WorkflowContext:
         analysis_ctx = ctx.metadata["analysis_context"]
         intelligence_request = None
         run_service = None
@@ -319,6 +325,10 @@ class GovernanceGateStep:
         self.risk_engine = RiskEngine()
 
     def execute(self, ctx: WorkflowContext) -> WorkflowContext:
+        with span("workflow.governance_gate", attributes={"workflow.symbol": ctx.request.symbol or "UNKNOWN"}):
+            return self._execute_gate(ctx)
+
+    def _execute_gate(self, ctx: WorkflowContext) -> WorkflowContext:
         advisory_hints = []
         if ctx.db:
             try:
@@ -341,6 +351,10 @@ class GovernanceGateStep:
             hint.to_payload() for hint in ctx.governance.advisory_hints
         ]
         if not ctx.governance.allows_execution() and ctx.workflow_run_id:
+            increment_counter(
+                "workflow_blocked_total",
+                attributes={"blocked_reason": f"governance_{ctx.governance.decision}"},
+            )
             artifact = build_handoff_artifact(
                 task_run_id=ctx.workflow_run_id,
                 root_object_ref={
@@ -370,6 +384,10 @@ class GenerateRecommendationStep:
     """Step 5: If governance allows, create and persist a recommendation."""
 
     def execute(self, ctx: WorkflowContext) -> WorkflowContext:
+        with span("workflow.generate_recommendation", attributes={"workflow.symbol": ctx.request.symbol or "UNKNOWN"}):
+            return self._execute_generate(ctx)
+
+    def _execute_generate(self, ctx: WorkflowContext) -> WorkflowContext:
         if not ctx.governance or not ctx.governance.allows_execution():
             return ctx
         if not ctx.db:

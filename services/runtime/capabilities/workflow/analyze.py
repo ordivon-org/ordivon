@@ -8,6 +8,7 @@ from domains.research.models import AnalysisRequest
 from governance.decision import build_governance_decision
 from orchestrator.runtime.engine import PFIOSOrchestrator
 from packs.finance.analyze_profile import build_finance_analyze_profile
+from shared.observability import increment_counter, span
 from sqlalchemy.orm import Session
 
 
@@ -32,14 +33,21 @@ class AnalyzeCapability:
             timeframe=request.timeframe,
         )
         symbol = profile.symbol
-        report = self.orchestrator.execute_analyze(
-            AnalysisRequest(
-                query=request.query,
-                symbol=symbol,
-                timeframe=profile.timeframe,
-            ),
-            db=db,
-        )
+        with span(
+            "workflow.analyze_and_suggest",
+            attributes={
+                "workflow.symbol": symbol,
+                "workflow.timeframe": profile.timeframe,
+            },
+        ):
+            report = self.orchestrator.execute_analyze(
+                AnalysisRequest(
+                    query=request.query,
+                    symbol=symbol,
+                    timeframe=profile.timeframe,
+                ),
+                db=db,
+            )
 
         governance = build_governance_decision(
             decision=report.get("governance", {}).get("decision", "reject"),
@@ -84,6 +92,14 @@ class AnalyzeCapability:
                 "execution_receipt_id": report.get("execution_receipt_id"),
                 "recommendation_generate_request_id": report.get("recommendation_generate_request_id"),
                 "recommendation_generate_receipt_id": report.get("recommendation_generate_receipt_id"),
+            },
+        )
+
+        increment_counter(
+            "analyze_workflow_runs_total",
+            attributes={
+                "decision": governance.decision,
+                "symbol": symbol,
             },
         )
 

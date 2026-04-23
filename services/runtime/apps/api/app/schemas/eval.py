@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 class EvalSummary(BaseModel):
     total_cases: int

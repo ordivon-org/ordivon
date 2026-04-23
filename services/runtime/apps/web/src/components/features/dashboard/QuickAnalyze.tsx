@@ -55,8 +55,11 @@ export default function QuickAnalyze() {
 
       <form onSubmit={handleAnalyze} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.query}</label>
+          <label htmlFor="quick-analyze-query" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {financeAnalyze.labels.query}
+          </label>
           <input
+            id="quick-analyze-query"
             type="text"
             placeholder="e.g. BTC breakout validation, current sentiment..."
             value={query}
@@ -74,8 +77,11 @@ export default function QuickAnalyze() {
         </div>
 
         <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{financeAnalyze.labels.symbol}</label>
+          <label htmlFor="quick-analyze-symbol" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {financeAnalyze.labels.symbol}
+          </label>
           <select
+            id="quick-analyze-symbol"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             style={{

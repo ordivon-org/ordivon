@@ -105,7 +105,7 @@ class ReviewService:
                 db=self.review_repository.db,
             )
 
-        outcome_row = self._backfill_outcome_snapshot(
+        self._backfill_outcome_snapshot(
             recommendation_id=row.recommendation_id,
             review_id=row.id,
             observed_outcome=observed_outcome,
@@ -162,7 +162,6 @@ class ReviewService:
         ):
             return None
 
-        recommendation = self.recommendation_service.get_model(recommendation_id)
         snapshot = OutcomeSnapshot(
             recommendation_id=recommendation_id,
             outcome_state=self._map_verdict_to_outcome_state(verdict),

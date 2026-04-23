@@ -74,7 +74,9 @@ export default function ReasoningPanel({ data, isLoading }: ReasoningPanelProps)
       }}
     >
       <header style={{ marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Analysis Result</h2>
+        <h2 id="analyze-result-panel" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+          Analysis Result
+        </h2>
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           Symbol:{' '}
           <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>

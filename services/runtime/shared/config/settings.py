@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     hermes_enable_memory: bool = True
     hermes_enable_moa: bool = False
     timezone: str = "Asia/Shanghai"
+    sentry_dsn: str = ""
+    otel_service_name: str = "aegisos-api"
+    otel_exporter_otlp_endpoint: str = ""
 
     model_config = SettingsConfigDict(
         env_prefix="PFIOS_",

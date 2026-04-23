@@ -1,7 +1,6 @@
 from domains.research.models import AnalysisResult
 from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
-from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
 
 
 class RiskEngine:

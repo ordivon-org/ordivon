@@ -45,12 +45,21 @@ See [AegisOS MVP Brief](./docs/product/aegisos-mvp-brief.md) for the current del
 
 The current repository delivery gate is:
 
+- `backend-static`
 - `backend-unit`
 - `backend-integration`
-- `frontend`
+- `frontend-static`
+- `frontend-build`
+- `frontend-components`
+- `api-contract`
+- `a11y-smoke`
 - `mvp-e2e`
 
-The repository also carries a `Delivery` workflow that assembles the current MVP delivery bundle after successful CI on `main` or via manual dispatch.
+The repository also carries:
+
+- a `Security` workflow for dependency and static security scanning
+- a `Nightly Regression` workflow for broader integration, visual, accessibility, and performance checks
+- a `Delivery` workflow that validates the built release and assembles the current MVP delivery bundle after successful CI on `main` or via manual dispatch
 
 ## Package Manager
 

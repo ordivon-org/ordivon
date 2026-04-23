@@ -11,7 +11,9 @@ export default function GovernancePanel({ data, isLoading }: GovernancePanelProp
   if (isLoading) {
     return (
       <div className="governance-panel glass" style={{ padding: '1.5rem', height: '100%', opacity: 0.5 }}>
-        <h3 style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Gating Status</h3>
+        <h2 id="analyze-governance-panel" style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Gating Status
+        </h2>
         <div style={{ padding: '1rem', border: '1px dashed var(--border-color)', borderRadius: '8px', textAlign: 'center' }}>
           Validating policy...
         </div>
@@ -22,7 +24,9 @@ export default function GovernancePanel({ data, isLoading }: GovernancePanelProp
   if (!data) {
     return (
       <div className="governance-panel glass" style={{ padding: '1.5rem', height: '100%', border: '1px dashed var(--border-color)', borderRadius: '12px' }}>
-        <h3 style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Gating Status</h3>
+        <h2 id="analyze-governance-panel" style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Gating Status
+        </h2>
         <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No governance result available.</div>
       </div>
     );
@@ -48,7 +52,9 @@ export default function GovernancePanel({ data, isLoading }: GovernancePanelProp
         backgroundColor: decision === 'reject' ? 'rgba(248, 81, 73, 0.03)' : 'transparent',
       }}
     >
-      <h3 style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Gating Result</h3>
+      <h2 id="analyze-governance-panel" style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+        Gating Result
+      </h2>
 
       <div
         style={{

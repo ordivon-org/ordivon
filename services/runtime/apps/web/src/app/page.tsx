@@ -23,18 +23,18 @@ export default function Dashboard() {
       {/* 1. System Status Bar (Status & Verification) */}
       <SystemStatusBar />
 
-      <section style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
+      <section aria-labelledby="dashboard-action-entry" style={{ marginBottom: '1rem' }}>
+        <h2 id="dashboard-action-entry" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
           Action Entry
-        </div>
+        </h2>
       </section>
 
       <QuickAnalyze />
 
-      <section style={{ marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
+      <section aria-labelledby="dashboard-audit-report" style={{ marginBottom: '0.75rem' }}>
+        <h2 id="dashboard-audit-report" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
           Audit / Decision / Report
-        </div>
+        </h2>
       </section>
 
       <div style={{ 
@@ -47,10 +47,10 @@ export default function Dashboard() {
         <RiskSnapshot />
       </div>
 
-      <section style={{ marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
+      <section aria-labelledby="dashboard-reports-diagnostics" style={{ marginBottom: '0.75rem' }}>
+        <h2 id="dashboard-reports-diagnostics" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
           Reports / Diagnostics
-        </div>
+        </h2>
       </section>
 
       <div style={{ 
@@ -62,10 +62,10 @@ export default function Dashboard() {
         <EvalStatus />
       </div>
 
-      <section style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
+      <section aria-labelledby="dashboard-recommendation-review" style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
+        <h2 id="dashboard-recommendation-review" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
           Recommendation / Review
-        </div>
+        </h2>
       </section>
 
       <div style={{ 
@@ -77,10 +77,10 @@ export default function Dashboard() {
         <PendingReviews />
       </div>
 
-      <section style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
+      <section aria-labelledby="dashboard-validation-stability" style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
+        <h2 id="dashboard-validation-stability" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
           Validation / Stability
-        </div>
+        </h2>
       </section>
 
       <ValidationHub />

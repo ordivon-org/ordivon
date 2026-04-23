@@ -4,6 +4,7 @@
 - [Task Template System](./task-template-system.md)
 - [Module Definition Template v2](./module-definition-template-v2.md)
 - [AI Financial Assistant Roadmap](./ai-financial-assistant-roadmap.md)
+- [AegisOS Quality Matrix](./aegisos-quality-matrix.md)
 - Layer execution map: [docs/architecture/layer-module-inventory.md](../architecture/layer-module-inventory.md)
 - Active task cards: [docs/tasks/README.md](../tasks/README.md)
 - [Product Closure Master TODO](./product-closure-todo.md)

@@ -7,6 +7,7 @@ from typing import Any
 
 from infra.scheduler.models import ScheduledTrigger
 from infra.scheduler.repository import SchedulerRepository
+from shared.observability import increment_counter, span
 from shared.time.clock import utc_now
 from shared.utils.serialization import from_json_text, to_json_text
 
@@ -42,40 +43,51 @@ class SchedulerService:
 
     def dispatch(self, trigger_id: str) -> SchedulerDispatchResult:
         trigger = self._triggers[trigger_id]
-        if not trigger.is_enabled:
+        with span(
+            "scheduler.dispatch",
+            attributes={
+                "scheduler.trigger_id": trigger.id,
+                "scheduler.target_capability": trigger.target_capability,
+            },
+        ):
+            if not trigger.is_enabled:
+                increment_counter("scheduler_dispatch_total", attributes={"status": "disabled"})
+                return SchedulerDispatchResult(
+                    trigger_id=trigger.id,
+                    target_capability=trigger.target_capability,
+                    status="disabled",
+                    detail={"reason": "trigger_disabled"},
+                )
+
+            handler = self._targets.get(trigger.target_capability)
+            if handler is None:
+                increment_counter("scheduler_dispatch_total", attributes={"status": "unavailable"})
+                increment_counter("scheduler_dispatch_failures_total", attributes={"reason": "target_not_registered"})
+                return SchedulerDispatchResult(
+                    trigger_id=trigger.id,
+                    target_capability=trigger.target_capability,
+                    status="unavailable",
+                    detail={"reason": "target_not_registered"},
+                )
+
+            detail = handler(dict(trigger.payload)) or {}
+            self._triggers[trigger.id] = ScheduledTrigger(
+                id=trigger.id,
+                trigger_type=trigger.trigger_type,
+                cron_or_interval=trigger.cron_or_interval,
+                target_capability=trigger.target_capability,
+                payload=dict(trigger.payload),
+                is_enabled=trigger.is_enabled,
+                last_dispatched_at=utc_now().isoformat(),
+                dispatch_count=trigger.dispatch_count + 1,
+            )
+            increment_counter("scheduler_dispatch_total", attributes={"status": "dispatched"})
             return SchedulerDispatchResult(
                 trigger_id=trigger.id,
                 target_capability=trigger.target_capability,
-                status="disabled",
-                detail={"reason": "trigger_disabled"},
+                status="dispatched",
+                detail=detail,
             )
-
-        handler = self._targets.get(trigger.target_capability)
-        if handler is None:
-            return SchedulerDispatchResult(
-                trigger_id=trigger.id,
-                target_capability=trigger.target_capability,
-                status="unavailable",
-                detail={"reason": "target_not_registered"},
-            )
-
-        detail = handler(dict(trigger.payload)) or {}
-        self._triggers[trigger.id] = ScheduledTrigger(
-            id=trigger.id,
-            trigger_type=trigger.trigger_type,
-            cron_or_interval=trigger.cron_or_interval,
-            target_capability=trigger.target_capability,
-            payload=dict(trigger.payload),
-            is_enabled=trigger.is_enabled,
-            last_dispatched_at=utc_now().isoformat(),
-            dispatch_count=trigger.dispatch_count + 1,
-        )
-        return SchedulerDispatchResult(
-            trigger_id=trigger.id,
-            target_capability=trigger.target_capability,
-            status="dispatched",
-            detail=detail,
-        )
 
     def dispatch_enabled(self) -> tuple[SchedulerDispatchResult, ...]:
         results: list[SchedulerDispatchResult] = []

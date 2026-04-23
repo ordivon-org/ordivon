@@ -15,7 +15,6 @@ from domains.journal.models import Review
 from domains.research.repository import AnalysisRepository
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.strategy.outcome_repository import OutcomeRepository
-from governance.audit.repository import AuditEventRepository
 from execution.adapters import build_default_execution_adapter_registry
 from knowledge.extraction import LessonExtractionService
 from shared.time.clock import utc_now
@@ -79,7 +78,6 @@ class ReviewCapability:
 
     def get_detail(self, service: "ReviewService", review_id: str) -> ReviewDetailResult:
         review = service.get_model(review_id)
-        audit_repository = AuditEventRepository(service.review_repository.db)
         outcome_repository = OutcomeRepository(service.review_repository.db)
         packet_repository = KnowledgeFeedbackPacketRepository(service.review_repository.db)
         latest_outcome_status = self._latest_outcome_status(outcome_repository, review.recommendation_id)
