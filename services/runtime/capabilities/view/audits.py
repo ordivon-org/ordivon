@@ -25,15 +25,37 @@ class AuditCapability:
         if not isinstance(model_payload, dict):
             model_payload = {"value": model_payload}
 
+        workflow_name = self._as_string(getattr(row, "event_type", None), default="unknown")
+        stage = self._as_string(getattr(row, "entity_type", None), default="unknown")
+        decision = self._as_string(model_payload.get("decision"), default="logged")
+        context_summary = self._as_string(model_payload.get("summary"), default=workflow_name)
+        report_path = model_payload.get("report_path")
+        if report_path is not None and not isinstance(report_path, str):
+            report_path = str(report_path)
+
         return AuditEventResult(
-            event_id=row.id,
-            workflow_name=row.event_type,
-            stage=row.entity_type or "unknown",
-            decision=model_payload.get("decision", "logged"),
-            subject_id=row.entity_id,
+            event_id=self._as_string(getattr(row, "id", None), default="unknown"),
+            workflow_name=workflow_name,
+            stage=stage,
+            decision=decision,
+            subject_id=self._optional_string(getattr(row, "entity_id", None)),
             status="persisted",
-            context_summary=model_payload.get("summary", row.event_type),
+            context_summary=context_summary,
             details=model_payload,
-            report_path=model_payload.get("report_path"),
+            report_path=report_path,
             created_at=str(row.created_at),
         )
+
+    def _as_string(self, value: Any, default: str) -> str:
+        if isinstance(value, str):
+            return value
+        if value is None:
+            return default
+        return str(value)
+
+    def _optional_string(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        return str(value)
