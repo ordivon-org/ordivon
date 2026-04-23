@@ -1,13 +1,18 @@
+from contextlib import contextmanager
+
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
 
-
-client = TestClient(app)
+@contextmanager
+def _app_client():
+    with TestClient(app) as client:
+        yield client
 
 
 def test_recommendations_recent_uses_honest_semantic_fields():
-    response = client.get("/api/v1/recommendations/recent")
+    with _app_client() as client:
+        response = client.get("/api/v1/recommendations/recent")
     assert response.status_code == 200
 
     payload = response.json()
@@ -30,7 +35,8 @@ def test_recommendations_recent_uses_honest_semantic_fields():
 
 
 def test_validation_summary_period_id_is_real_or_none():
-    response = client.get("/api/v1/validation/summary")
+    with _app_client() as client:
+        response = client.get("/api/v1/validation/summary")
     assert response.status_code == 200
 
     payload = response.json()
@@ -38,7 +44,8 @@ def test_validation_summary_period_id_is_real_or_none():
 
 
 def test_evals_latest_filters_dirty_notes():
-    response = client.get("/api/v1/evals/latest")
+    with _app_client() as client:
+        response = client.get("/api/v1/evals/latest")
     assert response.status_code == 200
 
     payload = response.json()
@@ -47,7 +54,8 @@ def test_evals_latest_filters_dirty_notes():
 
 
 def test_reports_latest_uses_consistent_status_and_report_path():
-    response = client.get("/api/v1/reports/latest?limit=10")
+    with _app_client() as client:
+        response = client.get("/api/v1/reports/latest?limit=10")
     assert response.status_code == 200
 
     payload = response.json()
@@ -59,7 +67,8 @@ def test_reports_latest_uses_consistent_status_and_report_path():
 
 
 def test_review_generate_skeleton_has_single_sections_source():
-    response = client.post("/api/v1/reviews/generate-skeleton?report_id=rep_semantic&reco_id=reco_semantic")
+    with _app_client() as client:
+        response = client.post("/api/v1/reviews/generate-skeleton?report_id=rep_semantic&reco_id=reco_semantic")
     assert response.status_code == 200
 
     payload = response.json()

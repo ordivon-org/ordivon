@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,8 +28,10 @@ from governance.audit.repository import AuditEventRepository
 from shared.enums.domain import ReviewStatus, ReviewVerdict
 from state.db.base import Base
 
-
-client = TestClient(app)
+@contextmanager
+def _app_client():
+    with TestClient(app) as client:
+        yield client
 
 
 def test_dashboard_summary_surface_exposes_real_sparse_fields():
@@ -207,7 +211,8 @@ def test_analyze_and_suggest_api_success_contract_is_real():
 
 
 def test_audits_recent_surface_contains_real_event_fields():
-    response = client.get("/api/v1/audits/recent?limit=5")
+    with _app_client() as client:
+        response = client.get("/api/v1/audits/recent?limit=5")
     assert response.status_code == 200
 
     payload = response.json()
