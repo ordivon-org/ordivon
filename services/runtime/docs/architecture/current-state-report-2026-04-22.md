@@ -165,6 +165,7 @@ That next batch has now been completed as a serial 8-module wave.
 - audits, reports, and history now participate in the console-scoped workspace frame, and query params can seed review/recommendation/trace tabs there.
 - the repository now has an explicit design-doctrine document plus a module-definition template for doctrine-first module work.
 - homepage now acts as the live command center, `/analyze` acts as the workflow execution workspace, and `/reviews` acts as the primary review workbench.
+- audit writes now normalize into a structured envelope, and legacy audit rows are surfaced honestly as `legacy_unstructured` instead of being guessed into modern semantics at read time.
 
 The correct reading is:
 

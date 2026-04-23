@@ -139,6 +139,10 @@ See:
 
 The next implementation wave should now be tracked as post-serial-batch extraction/refinement rather than reopening Phase 0, Phase 1, or this completed 8-module wave.
 
+Current refinement note:
+
+- `Audit Event Strictification` has started landing as a core governance/state hardening step. New audit writes now normalize into a structured envelope, while legacy rows are marked honestly instead of being inferred back into modern semantics.
+
 ## Daily Planning
 
 - [Today Board Template](./today-board-template.md)

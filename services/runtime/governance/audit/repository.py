@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from governance.audit.builders import normalize_audit_event, structured_payload_or_legacy
 from governance.audit.models import AuditEvent
 from governance.audit.orm import AuditEventORM
 from shared.utils.serialization import from_json_text, to_json_text
@@ -10,6 +11,7 @@ class AuditEventRepository:
         self.db = db
 
     def create(self, event: AuditEvent) -> AuditEventORM:
+        event = normalize_audit_event(event)
         row = AuditEventORM(
             id=event.id,
             event_type=event.event_type,
@@ -42,6 +44,14 @@ class AuditEventRepository:
         )
 
     def to_model(self, row: AuditEventORM) -> AuditEvent:
+        parsed_payload = from_json_text(row.payload_json, {})
+        structured = structured_payload_or_legacy(
+            event_type=row.event_type,
+            entity_type=row.entity_type,
+            entity_id=row.entity_id,
+            payload_json=row.payload_json,
+            parsed_payload=parsed_payload,
+        )
         return AuditEvent(
             id=row.id,
             event_type=row.event_type,
@@ -51,6 +61,6 @@ class AuditEventRepository:
             recommendation_id=row.recommendation_id,
             outcome_snapshot_id=row.outcome_snapshot_id,
             review_id=row.review_id,
-            payload=from_json_text(row.payload_json, {}),
+            payload=structured.to_payload(),
             created_at=row.created_at.isoformat(),
         )
