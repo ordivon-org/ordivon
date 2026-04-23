@@ -18,6 +18,10 @@ async def get_recent_audits(limit: int = 10, db: Session = Depends(get_db)):
     try:
         service = AuditService(AuditEventRepository(db))
         records = audit_capability.list_recent(service, limit=limit)
-        return AuditListResponse(audits=[AuditEventResponse(**record) for record in records])
+        return AuditListResponse(
+            status="success",
+            message=None,
+            audits=[AuditEventResponse(**record) for record in records],
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

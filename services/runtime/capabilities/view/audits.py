@@ -22,6 +22,8 @@ class AuditCapability:
             from shared.utils.serialization import from_json_text
 
             model_payload = from_json_text(row.payload_json, {})
+        if not isinstance(model_payload, dict):
+            model_payload = {"value": model_payload}
 
         return AuditEventResult(
             event_id=row.id,
