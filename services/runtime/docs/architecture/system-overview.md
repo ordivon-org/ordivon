@@ -18,6 +18,8 @@ See:
 
 - [AegisOS Working Identity](./aegisos-working-identity.md)
 - [AegisOS Design Doctrine](./aegisos-design-doctrine.md)
+- [AegisOS Overview](./aegisos-overview.md)
+- [AegisOS Layer Roadmap](./aegisos-layer-roadmap.md)
 - [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
 - [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
 
@@ -26,6 +28,19 @@ See:
 The current canonical structure and layer semantics are defined in [architecture-baseline](./architecture-baseline.md).
 
 The philosophy-to-module mapping that governs future module design now lives in [aegisos-design-doctrine](./aegisos-design-doctrine.md).
+
+The high-level system positioning and layer-by-layer next-step map now live in:
+
+- [aegisos-overview](./aegisos-overview.md)
+- [aegisos-layer-roadmap](./aegisos-layer-roadmap.md)
+
+The current MVP brief now lives in:
+
+- [../product/aegisos-mvp-brief.md](../product/aegisos-mvp-brief.md)
+
+The current MVP-closing execution plan now lives in:
+
+- [../product/aegisos-mvp-execution-checklist.md](../product/aegisos-mvp-execution-checklist.md)
 
 ## Canonical Reference
 

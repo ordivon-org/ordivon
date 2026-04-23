@@ -29,6 +29,15 @@ It is now also:
 - graph/query-strengthened on trace/outcome/checkpoint semantics
 - auditable on downstream feedback consumption
 
+The current product-reading should now be:
+
+- the system is already beyond prototype architecture work
+- the MVP is now centered on a single visible gold path
+- homepage now acts as command center
+- `/analyze` now acts as execution workspace
+- `/reviews` now acts as supervision workbench
+- the remaining MVP gap is product closure and delivery clarity, not missing core primitives
+
 ## What Became Newly Real In Phase 1
 
 ### Governance
@@ -175,9 +184,14 @@ The correct reading is:
 - the next phase should deepen extraction, scheduler persistence, and broader workspace behavior
 - the next phase should now move beyond ownership facades into deeper finance extraction, scheduler/orchestration maturity, and richer console navigation while keeping workspace scope bounded
 - the current P0 MVP path is now more explicit: command center -> analyze workspace -> review workbench
+- Batch 2 and Batch 3 of MVP closure have now tightened page role ownership and recommendation-aware handoff into the review workbench
+- Batch 4 has added user-view route handoff validation for that chain
+- Batch 5 has now landed an MVP brief, E2E smoke path, and delivery workflow so the current product story is enforced in both docs and GitHub automation
 
 ## References
 
+- [AegisOS MVP Brief](../product/aegisos-mvp-brief.md)
+- [AegisOS MVP Execution Checklist](../product/aegisos-mvp-execution-checklist.md)
 - [AegisOS Phase 0 Core Primitive Freeze](./aegisos-phase-0-core-primitives-batch.md)
 - [AegisOS Phase 1 Core Load-Bearing Batch](./aegisos-phase-1-core-load-bearing-batch.md)
 - [AegisOS Next Batch Serial Modules 2026-04-22](./aegisos-next-batch-serial-modules-2026-04-22.md)

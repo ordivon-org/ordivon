@@ -7,6 +7,8 @@ class AnalyzeResponse(BaseResponse):
     summary: str
     risk_flags: List[str] = []
     recommendations: List[str] = []
+    analysis_id: str | None = None
+    recommendation_id: str | None = None
     report_path: str | None = None
     audit_event_id: str | None = None
     workflow: str = "analyze_and_suggest"

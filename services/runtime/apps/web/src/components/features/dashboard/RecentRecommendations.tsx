@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { EmptyState, ErrorState, LoadingState } from '@/components/state/SurfaceStates';
 import { ObjectTypeBadge, TimeSemantic, TrustTierBadge } from '@/components/state/ProductSignals';
-import { TraceDetailPanel } from '@/components/state/TraceDetailPanel';
 import { honestMissingCopy, semanticNote, trustTierForSignal } from '@/lib/semanticSignals';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceProvider';
 import type { RecommendationItem, RecommendationListResponse } from '@/types/api';
@@ -99,7 +98,7 @@ export default function RecentRecommendations() {
         </div>
       </div>
       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-        Command-center preview of recommendation objects. Updating status does not submit or execute an external trade.
+        Command-center preview of recommendation objects. Updating status stays lightweight here; deep supervision and trace follow-through move into the review workbench.
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {state === 'loading' && <LoadingState message="Loading live recommendation objects..." />}
@@ -175,7 +174,6 @@ export default function RecentRecommendations() {
                 )}
                 <div style={{ color: 'var(--text-muted)' }}>{semanticNote('knowledge_hint')}</div>
               </div>
-              <TraceDetailPanel path={`/api/v1/traces/recommendations/${recommendation.id}`} />
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
@@ -189,21 +187,7 @@ export default function RecentRecommendations() {
                   }}
                   style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--foreground)', cursor: 'pointer' }}
                 >
-                  Open recommendation tab
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    workspace.openTab({
-                      id: `trace:${recommendation.id}`,
-                      type: 'trace_detail',
-                      title: `Trace ${recommendation.id}`,
-                      refId: recommendation.id,
-                    });
-                  }}
-                  style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--foreground)', cursor: 'pointer' }}
-                >
-                  Open trace tab
+                  Open supporting recommendation tab
                 </button>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -211,13 +195,15 @@ export default function RecentRecommendations() {
                   <Link href={`/reviews?recommendation_id=${recommendation.id}`} style={{ color: 'var(--primary-hover)' }}>
                     Continue in review workbench
                   </Link>
-                ) : null}
-                <Link href={`/audits?recommendation_id=${recommendation.id}`} style={{ color: 'var(--primary-hover)' }}>
-                  Trace in audits
-                </Link>
-                <Link href={`/reports?analysis_id=${recommendation.analysis_id ?? ''}`} style={{ color: 'var(--primary-hover)' }}>
-                  Trace to reports
-                </Link>
+                ) : recommendation.status === 'review_pending' ? (
+                  <Link href={`/reviews?recommendation_id=${recommendation.id}`} style={{ color: 'var(--primary-hover)' }}>
+                    Start supervision in review workbench
+                  </Link>
+                ) : (
+                  <Link href={`/reviews?recommendation_id=${recommendation.id}`} style={{ color: 'var(--primary-hover)' }}>
+                    Open recommendation in review workbench
+                  </Link>
+                )}
               </div>
             </div>
 

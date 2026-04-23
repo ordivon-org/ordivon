@@ -79,6 +79,7 @@ class AnalyzeCapability:
                 "agent_action_id": report.get("agent_action_id"),
                 "intelligence_run_id": report.get("intelligence_run_id"),
                 "workflow_run_id": report.get("workflow_run_id"),
+                "recommendation_id": report.get("recommendation_id"),
                 "execution_request_id": report.get("execution_request_id"),
                 "execution_receipt_id": report.get("execution_receipt_id"),
                 "recommendation_generate_request_id": report.get("recommendation_generate_request_id"),

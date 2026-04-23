@@ -1,6 +1,6 @@
 # Financial AI OS
 
-Financial AI OS is a personal finance and trading AI operating system organized around a controlled multi-layer architecture.
+Financial AI OS, now tracked under the working identity **AegisOS / CAIOS**, is a governance-first AI workflow operating system baseline for constrained real-world work.
 
 The current canonical design baseline uses **nine responsibility surfaces**:
 
@@ -16,6 +16,42 @@ The current canonical design baseline uses **nine responsibility surfaces**:
 
 The canonical current architecture baseline is [docs/architecture/architecture-baseline.md](./docs/architecture/architecture-baseline.md).
 
+The highest-level AegisOS positioning and execution map now live in:
+
+- [AegisOS Overview](./docs/architecture/aegisos-overview.md)
+- [AegisOS Layer Roadmap](./docs/architecture/aegisos-layer-roadmap.md)
+- [AegisOS MVP Brief](./docs/product/aegisos-mvp-brief.md)
+- [AegisOS MVP Execution Checklist](./docs/product/aegisos-mvp-execution-checklist.md)
+
+## Current MVP
+
+The current MVP is:
+
+> a single-agent, single-mainline, finance-seed, governance-aware workflow where a user can clearly complete the analyze -> recommendation -> review chain through the product surfaces.
+
+The MVP gold path is:
+
+`homepage -> quick analyze -> /analyze -> result / recommendation -> /reviews`
+
+The three core page roles are:
+
+- `/` = command center
+- `/analyze` = execution workspace
+- `/reviews` = supervision workbench
+
+See [AegisOS MVP Brief](./docs/product/aegisos-mvp-brief.md) for the current delivery boundary.
+
+## Delivery Gate
+
+The current repository delivery gate is:
+
+- `backend-unit`
+- `backend-integration`
+- `frontend`
+- `mvp-e2e`
+
+The repository also carries a `Delivery` workflow that assembles the current MVP delivery bundle after successful CI on `main` or via manual dispatch.
+
 ## Package Manager
 
 This repository uses `pnpm` as the only supported JavaScript package manager.
@@ -26,11 +62,12 @@ This repository uses `pnpm` as the only supported JavaScript package manager.
 
 ## Current Status
 
-The repository is in an active migration phase:
+The repository is past the idea stage and into a load-bearing systems phase:
 
-1. legacy implementation still exists in parts of `pfios/`
-2. the root-layer structure is now the architectural baseline for new work
-3. historical migration notes remain useful, but they do not override the baseline
+1. Phase 0 core primitives are frozen
+2. Phase 1 load-bearing behavior is in place
+3. the MVP gold path is now being closed at the product surface level
+4. legacy implementation still exists in parts of `pfios/`, but does not define the current target
 
 ## Responsibility Surfaces
 
@@ -83,4 +120,4 @@ financial-ai-os/
 - `policies/` will migrate toward `governance/policies/`.
 - `scripts/` is reserved for operational tasks only; business scripts should move into formal layers.
 
-See [architecture-baseline](./docs/architecture/architecture-baseline.md), [layer-module-inventory](./docs/architecture/layer-module-inventory.md), [ai-financial-assistant-roadmap](./docs/product/ai-financial-assistant-roadmap.md), [task-template-system](./docs/product/task-template-system.md), [task-cards](./docs/tasks/README.md), [architecture-diagram](./docs/architecture/architecture-diagram.md), [system-overview](./docs/architecture/system-overview.md), [layer-definition](./docs/architecture/layer-definition.md), and [ADR-001](./docs/decisions/ADR-001-repo-structure.md).
+See [AegisOS Overview](./docs/architecture/aegisos-overview.md), [AegisOS Layer Roadmap](./docs/architecture/aegisos-layer-roadmap.md), [AegisOS MVP Brief](./docs/product/aegisos-mvp-brief.md), [AegisOS MVP Execution Checklist](./docs/product/aegisos-mvp-execution-checklist.md), [architecture-baseline](./docs/architecture/architecture-baseline.md), [layer-module-inventory](./docs/architecture/layer-module-inventory.md), [ai-financial-assistant-roadmap](./docs/product/ai-financial-assistant-roadmap.md), [task-template-system](./docs/product/task-template-system.md), [task-cards](./docs/tasks/README.md), [architecture-diagram](./docs/architecture/architecture-diagram.md), [system-overview](./docs/architecture/system-overview.md), [layer-definition](./docs/architecture/layer-definition.md), and [ADR-001](./docs/decisions/ADR-001-repo-structure.md).

@@ -53,12 +53,22 @@ function AnalyzePageInner() {
     }
   };
 
+  const recommendationId =
+    typeof result?.metadata?.recommendation_id === 'string'
+      ? result.metadata.recommendation_id
+      : typeof result?.recommendation_id === 'string'
+        ? result.recommendation_id
+        : null;
+  const decision = result?.decision ?? null;
+  const needsReviewHandoff = Boolean(recommendationId && decision === 'execute');
+  const reviewHref = recommendationId ? `/reviews?recommendation_id=${recommendationId}` : '/reviews';
+
   return (
     <div className="analyze-page" style={{ height: 'calc(100vh - 4rem)' }}>
       <header style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Workflow Execution Workspace</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          Execute a new analysis workflow here, inspect the resulting inference and governance artifacts, then continue follow-through in the command center or review workbench.
+          Execute a new analysis workflow here, inspect the resulting inference and governance artifacts, then hand off broader monitoring to the command center or supervision-heavy follow-through to the review workbench.
         </p>
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
           <TrustTierBadge tier="inference" />
@@ -117,15 +127,57 @@ function AnalyzePageInner() {
             Next Actions
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            This workspace owns execution and immediate inspection. Use the command center to watch the broader system, and move into the review workbench when the recommendation needs supervision.
+            This workspace owns execution and immediate inspection only. Use the command center to watch the broader system, and continue in the review workbench when the recommendation needs supervision.
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '0.75rem',
+            }}
+          >
+            <div
+              style={{
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '0.9rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem',
+              }}
+            >
+              <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>1. Confirm the result</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                Review the reasoning summary and governance result here before continuing.
+              </div>
+            </div>
+            <div
+              style={{
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '0.9rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem',
+              }}
+            >
+              <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+                {needsReviewHandoff ? '2. Hand off to supervision' : '2. Choose the next surface'}
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                {needsReviewHandoff
+                  ? 'This result produced a recommendation. Continue in the review workbench for recommendation, trace, and outcome follow-through.'
+                  : 'If no supervision path is active yet, use the command center for broad monitoring and the review workbench for queue-driven supervision.'}
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <Link href="/" style={{ color: 'var(--primary-hover)' }}>
               Return to command center
             </Link>
-            {typeof result.metadata?.recommendation_id === 'string' ? (
-              <Link href={`/reviews?recommendation_id=${result.metadata.recommendation_id}`} style={{ color: 'var(--primary-hover)' }}>
-                Continue in review workbench
+            {recommendationId ? (
+              <Link href={reviewHref} style={{ color: 'var(--primary-hover)' }}>
+                Hand off recommendation to review workbench
               </Link>
             ) : (
               <Link href="/reviews" style={{ color: 'var(--primary-hover)' }}>

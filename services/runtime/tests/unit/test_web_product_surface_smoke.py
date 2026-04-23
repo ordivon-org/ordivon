@@ -19,6 +19,7 @@ def test_dashboard_page_composes_real_v1_widgets():
     assert "RecentRecommendations" in source
     assert "PendingReviews" in source
     assert "ValidationHub" in source
+    assert "Command Center" in source
     assert "Live command center" in source
 
 
@@ -28,12 +29,31 @@ def test_analyze_page_uses_real_api_and_honest_failure_state():
     assert "/api/v1/analyze-and-suggest" in source
     assert "Analyze API is currently unavailable. No analysis result was generated." in source
     assert "Workflow Execution Workspace" in source
-    assert "Continue in review workbench" in source
+    assert "Hand off recommendation to review workbench" in source
     assert "Return to command center" in source
+    assert "1. Confirm the result" in source
+    assert "2. Hand off to supervision" in source
     assert "evt_offline" not in source
     assert "action_plan" not in source
     assert "thesis" not in source
     assert "decision: 'allow'" not in source
+
+
+def test_gold_path_handoff_copy_and_route_intent_are_explicit():
+    quick_analyze = read("apps/web/src/components/features/dashboard/QuickAnalyze.tsx")
+    analyze_page = read("apps/web/src/app/analyze/page.tsx")
+    recos = read("apps/web/src/components/features/dashboard/RecentRecommendations.tsx")
+    pending_reviews = read("apps/web/src/components/features/dashboard/PendingReviews.tsx")
+
+    assert "router.push(`/analyze?${params.toString()}`)" in quick_analyze
+    assert "autoRun: 'true'" in quick_analyze
+    assert "Hand off recommendation to review workbench" in analyze_page
+    assert "Continue in review workbench" in recos
+    assert "Start supervision in review workbench" in recos
+    assert "Open recommendation in review workbench" in recos
+    assert 'href={`/reviews?recommendation_id=${recommendation.id}`}' in recos
+    assert 'href={`/reviews?review_id=${review.id}&trace_ref=${review.id}`}' in pending_reviews
+    assert 'href={`/reviews?review_id=${review.id}&recommendation_id=${review.recommendation_id}`}' in pending_reviews
 
 
 def test_analyze_panels_only_render_real_contract_fields():
@@ -100,7 +120,10 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "/api/v1/evals/latest" in evals
     assert "/api/v1/recommendations/recent" in recos
     assert "Command-center preview of recommendation objects." in recos
+    assert "deep supervision and trace follow-through move into the review workbench" in recos
     assert "Continue in review workbench" in recos
+    assert "Start supervision in review workbench" in recos
+    assert "Open recommendation in review workbench" in recos
     assert "Trace references" in recos
     assert "Outcome signal" in recos
     assert "Knowledge hints prepared" in recos
@@ -112,7 +135,14 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "Final truth" not in recos
     assert "recommendation.recommendation_id" not in recos
     assert "recommendation.lifecycle_status" not in recos
+    assert "TraceDetailPanel" not in recos
+    assert "Open trace tab" not in recos
+    assert "Trace in audits" not in recos
+    assert "Trace to reports" not in recos
+    assert "Open supporting recommendation tab" in recos
+    assert 'href={`/reviews?recommendation_id=${recommendation.id}`}' in recos
     assert "/api/v1/reviews/pending?limit=5" in pending_reviews
+    assert "Command-center preview of supervision-needed review objects." in pending_reviews
     assert "Continue in review workbench" in pending_reviews
     assert "command-center preview" in pending_reviews
     assert "Trace references" in pending_reviews
@@ -158,6 +188,7 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "/api/v1/audits/recent?limit=5" in decisions
     assert "ReviewConsole" in reviews_page
     assert "ConsolePageFrame" in reviews_page
+    assert "Command Center" in dashboard_page
     assert "Live command center" in dashboard_page
     assert "ConsolePageFrame" in dashboard_page
     assert "ConsolePageFrame" in reports_route

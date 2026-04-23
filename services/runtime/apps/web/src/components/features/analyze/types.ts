@@ -6,6 +6,7 @@ export interface AnalyzeWorkspaceResult {
   summary?: string;
   risk_flags?: string[];
   recommendations?: string[];
+  recommendation_id?: string | null;
   report_path?: string | null;
   audit_event_id?: string | null;
   workflow?: string;

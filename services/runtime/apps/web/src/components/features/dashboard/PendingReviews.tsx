@@ -64,6 +64,9 @@ export default function PendingReviews() {
           <TrustTierBadge tier="fact" />
         </div>
       </div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        Command-center preview of supervision-needed review objects. Deep review work stays in the review workbench.
+      </div>
 
       {state.status === 'loading' && (
         <LoadingState message="Loading pending review records..." />

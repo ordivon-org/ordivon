@@ -14,9 +14,9 @@ export default function Dashboard() {
     <ConsolePageFrame>
     <div className="dashboard-page">
       <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Dashboard</h1>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Command Center</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Live command center for current system status, recommendation flow, review queue previews, and product-level diagnostics.
+          Live command center for current system status, recommendation previews, review queue previews, and product-level diagnostics.
         </p>
       </header>
 

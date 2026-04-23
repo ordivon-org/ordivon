@@ -1,0 +1,81 @@
+name: Delivery
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delivery-bundle:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    env:
+      PFIOS_ENV: test
+      PFIOS_DEBUG: "false"
+      PFIOS_DB_URL: duckdb:///./data/github-delivery.duckdb
+      PFIOS_AUDIT_LOG_DIR: ./data/logs/audit
+      PFIOS_REASONING_PROVIDER: mock
+      PFIOS_TIMEZONE: Asia/Shanghai
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify delivery build
+        run: |
+          python -m compileall apps/api/app domains orchestrator governance execution state infra intelligence capabilities packs scripts shared
+          pnpm --dir apps/web exec tsc --noEmit
+          pnpm build:web
+
+      - name: Assemble delivery bundle
+        run: |
+          mkdir -p delivery-bundle/docs/product delivery-bundle/docs/architecture delivery-bundle/config
+          cp README.md delivery-bundle/
+          cp docker-compose.yml delivery-bundle/config/
+          cp .github/workflows/ci.yml delivery-bundle/config/
+          cp .github/workflows/delivery.yml delivery-bundle/config/
+          cp docs/product/aegisos-mvp-brief.md delivery-bundle/docs/product/
+          cp docs/product/aegisos-mvp-execution-checklist.md delivery-bundle/docs/product/
+          cp docs/architecture/aegisos-overview.md delivery-bundle/docs/architecture/
+          cp docs/architecture/aegisos-layer-roadmap.md delivery-bundle/docs/architecture/
+          printf "sha=%s\nbuilt_at=%s\n" "${GITHUB_SHA}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > delivery-bundle/metadata.txt
+
+      - name: Upload delivery bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegisos-delivery-bundle
+          path: delivery-bundle

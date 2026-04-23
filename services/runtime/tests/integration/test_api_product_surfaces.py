@@ -25,7 +25,7 @@ from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
 from governance.audit.models import AuditEvent
 from governance.audit.repository import AuditEventRepository
-from shared.enums.domain import ReviewStatus, ReviewVerdict
+from shared.enums.domain import RecommendationStatus, ReviewStatus, ReviewVerdict
 from state.db.base import Base
 
 @contextmanager
@@ -204,6 +204,8 @@ def test_analyze_and_suggest_api_success_contract_is_real():
     assert "governance_active_policy_ids" in payload["metadata"]
     assert "agent_action_id" in payload["metadata"]
     assert payload["metadata"].get("symbol") == "BTC-USDT"
+    assert isinstance(payload["recommendation_id"], str)
+    assert payload["metadata"]["recommendation_id"] == payload["recommendation_id"]
     assert "thesis" not in payload
     assert "action_plan" not in payload
     assert payload["audit_event_id"] is None or isinstance(payload["audit_event_id"], str)
@@ -493,3 +495,57 @@ def test_recommendation_surface_reuses_governance_decision_shape():
             "scope_type": "entity",
         },
     }
+
+
+def test_pending_review_surface_can_continue_from_recommendation_identity():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    db = TestingSessionLocal()
+    try:
+        recommendation_id = "reco_handoff_surface"
+        RecommendationRepository(db).create(
+            Recommendation(
+                id=recommendation_id,
+                analysis_id=None,
+                title="Track BTC trend continuation",
+                summary="Track BTC continuation setup",
+                status=RecommendationStatus.REVIEW_PENDING,
+            )
+        )
+        ReviewRepository(db).create(
+            Review(
+                id="review_handoff_surface",
+                recommendation_id=recommendation_id,
+                review_type="recommendation_postmortem",
+                status=ReviewStatus.PENDING,
+                expected_outcome="Trend continuation confirms",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    local_client = TestClient(app)
+    response = local_client.get("/api/v1/reviews/pending?limit=20")
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+    assert response.status_code == 200
+    payload = response.json()
+    review = next(item for item in payload["reviews"] if item["id"] == "review_handoff_surface")
+    assert review["recommendation_id"] == "reco_handoff_surface"

@@ -81,6 +81,9 @@ These task cards should follow:
 53. Broader Console Workspace Behavior
 54. Finance Pack Frontend Analyze Surface Extraction
 55. MVP Gold Path / Homepage-Analyze-Reviews Role Split
+56. MVP Gold Path Handoff Closure
+57. MVP Route Handoff Validation
+58. MVP Presentation and Delivery Closure
 
 ## Current Priority Batch
 
@@ -89,10 +92,11 @@ These task cards should follow:
 3. Scheduler orchestration maturity beyond DB-backed persistence
 4. Monitoring/ops refinement beyond history endpoint summaries
 5. Richer console navigation beyond current seeded object tabs
+6. Trust-tier and product-semantic final polish across broader surfaces
 
 ## Selected Next Module
 
-- `To be selected after the MVP gold-path batch completion`
+- `Additional finance-pack extraction beyond frontend analyze surface ownership`
 
 Latest completed module card:
 
@@ -142,6 +146,13 @@ The next implementation wave should now be tracked as post-serial-batch extracti
 Current refinement note:
 
 - `Audit Event Strictification` has started landing as a core governance/state hardening step. New audit writes now normalize into a structured envelope, while legacy rows are marked honestly instead of being inferred back into modern semantics.
+- Current MVP-closing work is now focused on:
+  - page role split finalization
+  - gold-path handoff closure
+  - user-view route validation
+  - MVP presentation and delivery closure
+- Current MVP delivery note:
+  - CI now includes an `mvp-e2e` browser smoke path and a `Delivery` workflow bundles the current MVP docs/config surface after validated main-branch CI.
 
 ## Daily Planning
 
