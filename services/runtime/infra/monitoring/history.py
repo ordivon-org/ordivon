@@ -19,6 +19,8 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
     execution_rows = db.query(ExecutionReceiptORM).filter(ExecutionReceiptORM.created_at >= cutoff).all()
 
     workflow_failures_by_type: dict[str, int] = {}
+    blocked_reason_counts: dict[str, int] = {}
+    recovery_action_counts: dict[str, int] = {}
     stale_or_blocked_run_count = 0
     approval_blocked_count = 0
     blocked_run_ids: list[str] = []
@@ -40,11 +42,19 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
         blocked_reason = lineage.get("blocked_reason")
         if blocked_reason:
             stale_or_blocked_run_count += 1
+            reason_key = str(blocked_reason)
+            blocked_reason_counts[reason_key] = blocked_reason_counts.get(reason_key, 0) + 1
             blocked_run_ids.append(row.id)
-            blocked_runs.append(BlockedRunSummary(run_id=row.id, blocked_reason=str(blocked_reason)))
-            if "approval" in str(blocked_reason):
+            blocked_runs.append(BlockedRunSummary(run_id=row.id, blocked_reason=reason_key))
+            if "approval" in reason_key:
                 approval_blocked_count += 1
                 approval_blocked_run_ids.append(row.id)
+        for step in from_json_text(row.step_statuses_json, []):
+            if not isinstance(step, dict):
+                continue
+            action = step.get("recovery_action")
+            if isinstance(action, str) and action:
+                recovery_action_counts[action] = recovery_action_counts.get(action, 0) + 1
 
     execution_failures_by_family: dict[str, int] = {}
     request_family_by_id = {
@@ -86,6 +96,8 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
         execution_failures_by_family=execution_failures_by_family,
         stale_or_blocked_run_count=stale_or_blocked_run_count,
         approval_blocked_count=approval_blocked_count,
+        blocked_reason_counts=blocked_reason_counts,
+        recovery_action_counts=recovery_action_counts,
         top_workflow_failure_type=top_workflow_failure_type,
         top_execution_failure_family=top_execution_failure_family,
         blocked_run_ids=tuple(blocked_run_ids[:10]),

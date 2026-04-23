@@ -17,6 +17,9 @@ class StatusResponse(BaseModel):
     system: str = "PFIOS"
     version: str = "0.1.0"
     reasoning_provider: str | None = None
+    runtime_status: str | None = None
+    runtime_detail: str | None = None
+    runtime_base_url: str | None = None
     hermes_status: str | None = None
     hermes_detail: str | None = None
     hermes_base_url: str | None = None
@@ -55,6 +58,8 @@ class HealthHistoryResponse(BaseModel):
     execution_failures_by_family: dict[str, int]
     stale_or_blocked_run_count: int
     approval_blocked_count: int
+    blocked_reason_counts: dict[str, int] | None = None
+    recovery_action_counts: dict[str, int] | None = None
     top_workflow_failure_type: str | None = None
     top_execution_failure_family: str | None = None
     blocked_run_ids: list[str]

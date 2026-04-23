@@ -67,7 +67,7 @@ export default function SystemStatusBar() {
         summary:
           health.status === 'ok'
             ? `Live services reachable. Monitoring is ${health.monitoring_status || 'unavailable'} across the last ${health.monitoring_window_hours ?? 0}h window; treat downstream cards according to their own object and state labels.`
-            : `API responded with a non-ready status${health.hermes_status ? ` and Hermes is ${health.hermes_status}` : ''}${health.monitoring_status === 'unavailable' ? ' and monitoring could not be confirmed' : ''}. Downstream cards may be partially unavailable.`,
+            : `API responded with a non-ready status${health.runtime_status ? ` and the active runtime is ${health.runtime_status}` : health.hermes_status ? ` and Hermes is ${health.hermes_status}` : ''}${health.monitoring_status === 'unavailable' ? ' and monitoring could not be confirmed' : ''}. Downstream cards may be partially unavailable.`,
       });
     } catch (error) {
       console.error('Failed to load system status:', error);

@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev:web": "pnpm --dir apps/web dev",
-    "build:web": "pnpm --dir apps/web build",
+    "build:web": "pnpm --dir apps/web build:quality",
     "lint:py": "python -m ruff check apps/api/app capabilities domains execution governance infra intelligence orchestrator packs shared state",
     "lint:web": "pnpm --dir apps/web exec eslint .",
     "typecheck:web": "pnpm --dir apps/web exec tsc --noEmit",

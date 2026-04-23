@@ -13,6 +13,9 @@ router = APIRouter()
 @router.get("/health", response_model=StatusResponse)
 async def health_check(db: Session = Depends(get_db)):
     with span("api.health"):
+        runtime_status = None
+        runtime_detail = None
+        runtime_base_url = None
         hermes_status = None
         hermes_detail = None
         runtime_provider = None
@@ -32,13 +35,20 @@ async def health_check(db: Session = Depends(get_db)):
         top_execution_failure_family = None
         blocked_run_ids = None
 
-        if settings.reasoning_provider == "hermes":
-            try:
-                health = resolve_runtime().health()
-                hermes_status = health.get("status", "ok")
-                runtime_provider = health.get("provider")
-                runtime_model = health.get("model")
-            except Exception:
+        try:
+            health = resolve_runtime().health()
+            runtime_status = health.get("status", "ok")
+            runtime_detail = health.get("detail")
+            runtime_base_url = health.get("base_url")
+            runtime_provider = health.get("provider")
+            runtime_model = health.get("model")
+            if settings.reasoning_provider == "hermes":
+                hermes_status = runtime_status
+                hermes_detail = runtime_detail
+        except Exception:
+            runtime_status = "unavailable"
+            runtime_detail = f"{settings.reasoning_provider} runtime health check failed unexpectedly."
+            if settings.reasoning_provider == "hermes":
                 hermes_status = "unavailable"
                 hermes_detail = "Hermes health check failed unexpectedly."
 
@@ -65,11 +75,14 @@ async def health_check(db: Session = Depends(get_db)):
         return StatusResponse(
             status=(
                 "degraded"
-                if (settings.reasoning_provider == "hermes" and hermes_status != "ok")
+                if runtime_status == "unavailable"
                 or monitoring_status == "unavailable"
                 else "ok"
             ),
             reasoning_provider=settings.reasoning_provider,
+            runtime_status=runtime_status,
+            runtime_detail=runtime_detail,
+            runtime_base_url=runtime_base_url or (settings.hermes_base_url if settings.reasoning_provider == "hermes" else None),
             hermes_status=hermes_status,
             hermes_detail=hermes_detail,
             hermes_base_url=settings.hermes_base_url if settings.reasoning_provider == "hermes" else None,
@@ -102,6 +115,8 @@ async def health_history(db: Session = Depends(get_db)):
                 execution_failures_by_family={},
                 stale_or_blocked_run_count=0,
                 approval_blocked_count=0,
+                blocked_reason_counts={},
+                recovery_action_counts={},
                 blocked_run_ids=[],
                 recent_workflow_failures=[],
                 recent_execution_failures=[],
@@ -119,6 +134,8 @@ async def health_history(db: Session = Depends(get_db)):
             execution_failures_by_family=summary.execution_failures_by_family,
             stale_or_blocked_run_count=summary.stale_or_blocked_run_count,
             approval_blocked_count=summary.approval_blocked_count,
+            blocked_reason_counts=summary.blocked_reason_counts,
+            recovery_action_counts=summary.recovery_action_counts,
             top_workflow_failure_type=summary.top_workflow_failure_type,
             top_execution_failure_family=summary.top_execution_failure_family,
             blocked_run_ids=list(summary.blocked_run_ids),

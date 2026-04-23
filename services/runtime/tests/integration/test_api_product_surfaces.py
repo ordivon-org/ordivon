@@ -16,6 +16,8 @@ from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.research.models import AnalysisResult
 from domains.research.repository import AnalysisRepository
+from domains.candidate_rules.repository import CandidateRuleRepository
+from domains.candidate_rules.service import CandidateRuleService
 from domains.strategy.models import Recommendation
 from domains.strategy.outcome_repository import OutcomeRepository
 from domains.strategy.outcome_service import OutcomeService
@@ -25,6 +27,7 @@ from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
 from governance.audit.models import AuditEvent
 from governance.audit.repository import AuditEventRepository
+from knowledge.retrieval import KnowledgeRetrievalService
 from shared.enums.domain import RecommendationStatus, ReviewStatus, ReviewVerdict
 from state.db.base import Base
 
@@ -65,6 +68,7 @@ def test_dashboard_summary_surface_exposes_real_sparse_fields():
         "pending_review_count",
         "system_health",
         "reasoning_provider",
+        "runtime_status",
         "hermes_status",
         "last_agent_action",
         "total_balance_estimate",
@@ -74,6 +78,7 @@ def test_dashboard_summary_surface_exposes_real_sparse_fields():
     assert isinstance(payload["pending_review_count"], int)
     assert payload["system_health"] is None or isinstance(payload["system_health"], str)
     assert payload["reasoning_provider"] is None or isinstance(payload["reasoning_provider"], str)
+    assert payload["runtime_status"] is None or isinstance(payload["runtime_status"], str)
     assert payload["hermes_status"] is None or isinstance(payload["hermes_status"], str)
     assert payload["last_agent_action"] is None or isinstance(payload["last_agent_action"], dict)
     assert payload["total_balance_estimate"] is None or isinstance(payload["total_balance_estimate"], (int, float))
@@ -162,6 +167,7 @@ def test_health_surface_exposes_monitoring_snapshot_fields():
     assert payload["monitoring_window_hours"] == 24
     assert payload["workflow_failures_by_type"] is not None
     assert payload["execution_failures_by_family"] is not None
+    assert payload["runtime_status"] is None or isinstance(payload["runtime_status"], str)
 
 
 def test_analyze_and_suggest_api_success_contract_is_real():
@@ -549,3 +555,80 @@ def test_pending_review_surface_can_continue_from_recommendation_identity():
     payload = response.json()
     review = next(item for item in payload["reviews"] if item["id"] == "review_handoff_surface")
     assert review["recommendation_id"] == "reco_handoff_surface"
+
+
+def test_knowledge_surface_exposes_advisory_entries_recurring_issues_and_candidate_rules():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    db = TestingSessionLocal()
+    try:
+        recommendation_repo = RecommendationRepository(db)
+        recommendation_repo.create(
+            Recommendation(
+                id="reco_knowledge_surface",
+                analysis_id="analysis_knowledge_surface",
+                title="Track breakout",
+                summary="Track breakout setup",
+            )
+        )
+        review_service = ReviewService(
+            ReviewRepository(db),
+            LessonService(LessonRepository(db)),
+            outcome_service=OutcomeService(OutcomeRepository(db)),
+            recommendation_service=RecommendationService(recommendation_repo),
+        )
+        review_row = review_service.create(
+            Review(
+                id="review_knowledge_surface",
+                recommendation_id="reco_knowledge_surface",
+                review_type="recommendation_postmortem",
+                status=ReviewStatus.PENDING,
+                expected_outcome="Breakout continues",
+            )
+        )
+        review_service.complete_review(
+            review_id=review_row.id,
+            observed_outcome="Breakout failed",
+            verdict=ReviewVerdict.INVALIDATED,
+            variance_summary="Breakout lost momentum",
+            cause_tags=["momentum"],
+            lessons=["Wait for confirmation candle before entry"],
+            followup_actions=["Tighten invalidation"],
+        )
+        recurring_issues = KnowledgeRetrievalService(db).aggregate_recurring_issues_for_recommendation("reco_knowledge_surface")
+        CandidateRuleService(CandidateRuleRepository(db)).create_from_recurring_issue(recurring_issues[0])
+        db.commit()
+    finally:
+        db.close()
+
+    local_client = TestClient(app)
+    response = local_client.get("/api/v1/knowledge/reviews/review_knowledge_surface")
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["root_type"] == "review"
+    assert payload["root_id"] == "review_knowledge_surface"
+    assert payload["advisory_only"] is True
+    assert len(payload["entries"]) == 1
+    assert len(payload["recurring_issues"]) == 1
+    assert len(payload["candidate_rules"]) == 1
+    assert payload["entries"][0]["knowledge_type"] == "lesson"
+    assert payload["entries"][0]["derived_from"]["relation"] == "derived_from"
+    assert payload["candidate_rules"][0]["status"] == "draft"

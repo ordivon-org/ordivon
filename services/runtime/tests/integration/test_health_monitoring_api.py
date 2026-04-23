@@ -116,5 +116,7 @@ def test_health_history_api_exposes_blocked_runs_and_scheduler_summary():
     payload = response.json()
     assert payload["approval_blocked_run_ids"] == ["wfrun_monitor_history_2"]
     assert payload["blocked_runs"][0]["blocked_reason"] == "approval_required"
+    assert payload["blocked_reason_counts"]["approval_required"] == 1
+    assert payload["recovery_action_counts"] == {}
     assert payload["scheduler"]["total_trigger_count"] == 1
     assert payload["scheduler"]["dispatched_trigger_count"] == 1

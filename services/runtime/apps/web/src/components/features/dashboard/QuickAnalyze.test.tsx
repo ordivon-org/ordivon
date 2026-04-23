@@ -22,7 +22,7 @@ describe('QuickAnalyze', () => {
   test('routes into the analyze workspace with pack-owned defaults', () => {
     render(<QuickAnalyze />);
 
-    fireEvent.change(screen.getByPlaceholderText(/btc breakout validation/i), {
+    fireEvent.change(screen.getByPlaceholderText(/validate breakout strength/i), {
       target: { value: 'Check BTC breakout continuation' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Analyze' }));

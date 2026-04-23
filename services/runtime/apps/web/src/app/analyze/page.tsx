@@ -7,6 +7,9 @@ import { useSearchParams } from 'next/navigation';
 import AnalyzeInput from '@/components/features/analyze/AnalyzeInput';
 import GovernancePanel from '@/components/features/analyze/GovernancePanel';
 import ReasoningPanel from '@/components/features/analyze/ReasoningPanel';
+import { ConsoleSection } from '@/components/layout/ConsoleSection';
+import { MainContentGrid, RightDetailPanel } from '@/components/layout/MainContentGrid';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { TrustTierBadge } from '@/components/state/ProductSignals';
 import { ConsolePageFrame } from '@/components/workspace/ConsolePageFrame';
 import { getApiBaseUrl } from '@/lib/api';
@@ -66,28 +69,26 @@ function AnalyzePageInner() {
   const reviewHref = recommendationId ? `/reviews?recommendation_id=${recommendationId}` : '/reviews';
 
   return (
-    <div className="analyze-page" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Workflow Execution Workspace</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          Execute a new analysis workflow here, inspect the resulting inference and governance artifacts, then hand off broader monitoring to the command center or supervision-heavy follow-through to the review workbench.
-        </p>
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+    <div className="console-page analyze-page">
+      <PageHeader
+        eyebrow="Experience / Execution Workspace"
+        title="Workflow Execution Workspace"
+        description="Execute a new analysis workflow here, inspect the resulting inference and governance artifacts, then hand off broader monitoring to the command center or supervision-heavy follow-through to the review workbench."
+        badges={
+          <>
           <TrustTierBadge tier="inference" />
           <TrustTierBadge tier="artifact" />
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {errorMessage && (
         <div
-          className="glass"
+          className="glass console-card"
           style={{
-            marginBottom: '1rem',
-            padding: '0.9rem 1rem',
-            borderRadius: '10px',
             border: '1px solid rgba(248, 81, 73, 0.35)',
             background: 'rgba(248, 81, 73, 0.08)',
-            color: 'var(--foreground)',
+            color: 'var(--text-primary)',
             fontSize: '0.85rem',
           }}
         >
@@ -95,105 +96,73 @@ function AnalyzePageInner() {
         </div>
       )}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '300px 1fr 300px',
-          gap: '1.5rem',
-          alignItems: 'stretch',
-        }}
+      <ConsoleSection
+        title="Execution Surface"
+        description="This workspace owns request entry, reasoning inspection, and governance review for the current run."
       >
-        <section aria-labelledby="analyze-request-panel">
-          <AnalyzeInput
-            onRun={handleRunAnalysis}
-            isLoading={isLoading}
-            initialQuery={searchParams.get('query') ?? ''}
-            initialSymbol={searchParams.get('symbol') ?? undefined}
-            initialTimeframe={searchParams.get('timeframe') ?? undefined}
-          />
-        </section>
-        <section aria-labelledby="analyze-result-panel">
-          <ReasoningPanel data={result} isLoading={isLoading} />
-        </section>
-        <section aria-labelledby="analyze-governance-panel">
-          <GovernancePanel data={result} isLoading={isLoading} />
-        </section>
-      </div>
+        <MainContentGrid columns="three-up">
+          <section aria-labelledby="analyze-request-panel">
+            <AnalyzeInput
+              onRun={handleRunAnalysis}
+              isLoading={isLoading}
+              initialQuery={searchParams.get('query') ?? ''}
+              initialSymbol={searchParams.get('symbol') ?? undefined}
+              initialTimeframe={searchParams.get('timeframe') ?? undefined}
+            />
+          </section>
+          <section aria-labelledby="analyze-result-panel">
+            <ReasoningPanel data={result} isLoading={isLoading} />
+          </section>
+          <RightDetailPanel>
+            <section aria-labelledby="analyze-governance-panel">
+              <GovernancePanel data={result} isLoading={isLoading} />
+            </section>
+          </RightDetailPanel>
+        </MainContentGrid>
+      </ConsoleSection>
       {result ? (
-        <section
-          className="glass"
-          style={{
-            marginTop: '1.5rem',
-            padding: '1rem 1.25rem',
-            borderRadius: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-          }}
+        <ConsoleSection
+          title="Next Actions"
+          description="Use execution here to confirm the run, then move broader monitoring back to the command center or hand supervision to the review workbench."
         >
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Next Actions
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          <div className="glass console-card console-card--soft" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="console-card__copy">
             This workspace owns execution and immediate inspection only. Use the command center to watch the broader system, and continue in the review workbench when the recommendation needs supervision.
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '0.75rem',
-            }}
-          >
-            <div
-              style={{
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '0.9rem 1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.35rem',
-              }}
-            >
-              <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>1. Confirm the result</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          <MainContentGrid columns="two-up">
+            <div className="glass console-card console-card--soft" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div className="console-card__title">1. Confirm the result</div>
+              <div className="console-card__copy">
                 Review the reasoning summary and governance result here before continuing.
               </div>
             </div>
-            <div
-              style={{
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '0.9rem 1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.35rem',
-              }}
-            >
-              <div style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+            <div className="glass console-card console-card--soft" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div className="console-card__title">
                 {needsReviewHandoff ? '2. Hand off to supervision' : '2. Choose the next surface'}
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <div className="console-card__copy">
                 {needsReviewHandoff
                   ? 'This result produced a recommendation. Continue in the review workbench for recommendation, trace, and outcome follow-through.'
                   : 'If no supervision path is active yet, use the command center for broad monitoring and the review workbench for queue-driven supervision.'}
               </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Link href="/" style={{ color: 'var(--primary-hover)' }}>
+          </MainContentGrid>
+          <div className="console-link-row">
+            <Link href="/" className="console-link">
               Return to command center
             </Link>
             {recommendationId ? (
-              <Link href={reviewHref} style={{ color: 'var(--primary-hover)' }}>
+              <Link href={reviewHref} className="console-link">
                 Hand off recommendation to review workbench
               </Link>
             ) : (
-              <Link href="/reviews" style={{ color: 'var(--primary-hover)' }}>
+              <Link href="/reviews" className="console-link">
                 Open review workbench
               </Link>
             )}
           </div>
-        </section>
+          </div>
+        </ConsoleSection>
       ) : null}
     </div>
   );

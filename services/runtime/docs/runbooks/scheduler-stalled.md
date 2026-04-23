@@ -5,6 +5,7 @@ Use this runbook when low-risk scheduled triggers stop dispatching or remain per
 - Check `/api/v1/health`
 - Check `/api/v1/health/history`
 - Confirm scheduler trigger summary is present
+- Confirm blocked reason counts and recovery action counts line up with the current incident window
 - Confirm blocked workflow runs are not masking a scheduler-owned issue
 
 Recover by:

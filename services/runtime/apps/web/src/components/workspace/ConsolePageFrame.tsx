@@ -2,7 +2,7 @@
 
 import { Suspense, type ReactNode } from 'react';
 
-import Sidebar from '@/components/layout/Sidebar';
+import { AppShell } from '@/components/layout/AppShell';
 import { ConsoleWorkspaceSeed } from '@/components/workspace/ConsoleWorkspaceSeed';
 import { WorkspaceTabs } from '@/components/workspace/WorkspaceTabs';
 import { ConsoleWorkspacePanel } from '@/components/workspace/ConsoleWorkspacePanel';
@@ -12,9 +12,8 @@ export function ConsolePageFrame({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceContext();
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
-      <main style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <AppShell>
+      <div className="console-frame">
         <Suspense fallback={null}>
           <ConsoleWorkspaceSeed />
         </Suspense>
@@ -28,7 +27,7 @@ export function ConsolePageFrame({ children }: { children: ReactNode }) {
         ) : null}
         <ConsoleWorkspacePanel />
         {children}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

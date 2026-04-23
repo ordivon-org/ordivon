@@ -5,6 +5,8 @@ from typing import Any
 
 from shared.utils.ids import new_id
 
+VALID_TRIGGER_TYPES = frozenset({"interval", "cron", "manual", "resume"})
+
 
 @dataclass(frozen=True, slots=True)
 class ScheduledTrigger:
@@ -16,3 +18,10 @@ class ScheduledTrigger:
     is_enabled: bool = True
     last_dispatched_at: str | None = None
     dispatch_count: int = 0
+
+    def __post_init__(self) -> None:
+        if self.trigger_type not in VALID_TRIGGER_TYPES:
+            raise ValueError(
+                f"Unsupported scheduler trigger_type: {self.trigger_type}. "
+                f"Expected one of {', '.join(sorted(VALID_TRIGGER_TYPES))}."
+            )

@@ -23,6 +23,8 @@ class MonitoringHistorySummary:
     execution_failures_by_family: dict[str, int]
     stale_or_blocked_run_count: int
     approval_blocked_count: int
+    blocked_reason_counts: dict[str, int]
+    recovery_action_counts: dict[str, int]
     top_workflow_failure_type: str | None = None
     top_execution_failure_family: str | None = None
     blocked_run_ids: tuple[str, ...] = ()

@@ -11,6 +11,8 @@ export interface FinanceAnalyzeSurfaceOptions {
     timeframe: string;
   };
   copy: {
+    queryPlaceholder: string;
+    analyzePlaceholder: string;
     dashboardHint: string;
     analyzeHint: string;
   };

@@ -24,6 +24,7 @@ class DashboardResult:
     pending_review_count: int
     system_health: str | None
     reasoning_provider: str | None = None
+    runtime_status: str | None = None
     hermes_status: str | None = None
     last_agent_action: dict[str, Any] | None = None
     total_balance_estimate: float | None = None

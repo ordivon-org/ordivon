@@ -81,7 +81,7 @@ export default function AnalyzeInput({
           <textarea
             id="analyze-input-query"
             rows={6}
-            placeholder="Describe your intent or market scenario..."
+            placeholder={financeAnalyze.copy.analyzePlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{

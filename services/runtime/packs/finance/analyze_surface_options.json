@@ -9,6 +9,8 @@
     "timeframe": "Timeframe"
   },
   "copy": {
+    "queryPlaceholder": "e.g. validate breakout strength, assess sentiment shift, summarize near-term risk...",
+    "analyzePlaceholder": "Describe your finance workflow intent, market scenario, or risk question...",
     "dashboardHint": "Finance-pack defaults are applied here before the workflow executes in the analyze workspace.",
     "analyzeHint": "This workflow request uses finance-pack defaults for symbol and timeframe. It does not place or execute an external order."
   }

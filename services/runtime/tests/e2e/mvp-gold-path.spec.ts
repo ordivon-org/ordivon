@@ -10,7 +10,7 @@ test.describe('AegisOS MVP gold path', () => {
     await expect(page.getByRole('heading', { name: 'Command Center' })).toBeVisible();
     await expect(page.getByText('Live command center for current system status')).toBeVisible();
 
-    await page.getByPlaceholder('e.g. BTC breakout validation, current sentiment...').fill('Check BTC breakout continuation');
+    await page.getByPlaceholder('e.g. validate breakout strength, assess sentiment shift, summarize near-term risk...').fill('Check BTC breakout continuation');
     await page.getByRole('button', { name: 'Analyze' }).click();
 
     await page.waitForURL(/\/analyze\?/);

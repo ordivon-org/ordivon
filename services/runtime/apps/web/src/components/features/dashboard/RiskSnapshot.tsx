@@ -101,7 +101,7 @@ export default function RiskSnapshot() {
           <span style={{ color: 'var(--text-muted)' }}>Reasoning Runtime:</span>
           <span style={{ marginLeft: '0.5rem', color: 'var(--foreground)', fontWeight: 'bold' }}>
             {data.reasoning_provider ?? 'unknown'}
-            {data.hermes_status ? ` (${data.hermes_status})` : ''}
+            {data.runtime_status ? ` (${data.runtime_status})` : data.hermes_status ? ` (${data.hermes_status})` : ''}
           </span>
         </div>
         <div>

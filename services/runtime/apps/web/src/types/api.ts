@@ -23,6 +23,8 @@ export interface HealthHistoryResponse {
   execution_failures_by_family: Record<string, number>;
   stale_or_blocked_run_count: number;
   approval_blocked_count: number;
+  blocked_reason_counts?: Record<string, number> | null;
+  recovery_action_counts?: Record<string, number> | null;
   top_workflow_failure_type?: string | null;
   top_execution_failure_family?: string | null;
   blocked_run_ids: string[];
@@ -118,6 +120,7 @@ export interface DashboardSummaryResponse {
   pending_review_count: number;
   system_health: string | null;
   reasoning_provider?: string | null;
+  runtime_status?: string | null;
   hermes_status?: string | null;
   last_agent_action?: {
     id: string;
@@ -154,6 +157,9 @@ export interface HealthResponse {
   system?: string;
   version?: string;
   reasoning_provider?: string | null;
+  runtime_status?: string | null;
+  runtime_detail?: string | null;
+  runtime_base_url?: string | null;
   hermes_status?: string | null;
   hermes_detail?: string | null;
   hermes_base_url?: string | null;
@@ -242,4 +248,62 @@ export interface TraceBundleResponse {
   report_artifact: TraceReferenceResponse;
   outcome: TraceReferenceResponse;
   knowledge_feedback: TraceReferenceResponse;
+}
+
+export interface KnowledgeRefResponse {
+  object_type: string;
+  object_id: string;
+  relation: string;
+  path?: string | null;
+}
+
+export interface KnowledgeEntryResponse {
+  id: string;
+  title: string;
+  narrative: string;
+  knowledge_type: string;
+  confidence: number;
+  feedback_targets: string[];
+  derived_from: KnowledgeRefResponse;
+  evidence_refs: KnowledgeRefResponse[];
+  created_at: string;
+}
+
+export interface KnowledgePacketSummaryResponse {
+  id: string;
+  recommendation_id: string;
+  review_id?: string | null;
+  knowledge_entry_ids: string[];
+  governance_hint_count: number;
+  intelligence_hint_count: number;
+}
+
+export interface RecurringIssueResponse {
+  issue_key: string;
+  occurrence_count: number;
+  sample_narratives: string[];
+  recommendation_ids: string[];
+  review_ids: string[];
+  knowledge_entry_ids: string[];
+}
+
+export interface CandidateRuleResponse {
+  id: string;
+  issue_key: string;
+  summary: string;
+  status: string;
+  recommendation_ids: string[];
+  review_ids: string[];
+  knowledge_entry_ids: string[];
+  created_at: string;
+}
+
+export interface KnowledgeRetrieveResponse {
+  root_type: string;
+  root_id: string;
+  advisory_only: boolean;
+  entries: KnowledgeEntryResponse[];
+  packets: KnowledgePacketSummaryResponse[];
+  recurring_issues: RecurringIssueResponse[];
+  candidate_rules: CandidateRuleResponse[];
 }

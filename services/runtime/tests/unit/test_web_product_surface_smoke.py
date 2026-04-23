@@ -106,10 +106,12 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     reviews_page = read("apps/web/src/app/reviews/page.tsx")
     workspace_shell = read("apps/web/src/components/workspace/WorkspaceShell.tsx")
     recommendation_workspace = read("apps/web/src/components/features/reviews/RecommendationWorkspacePanel.tsx")
+    review_knowledge = read("apps/web/src/components/features/reviews/ReviewKnowledgePanel.tsx")
     dashboard_page = read("apps/web/src/app/page.tsx")
     console_frame = read("apps/web/src/components/workspace/ConsolePageFrame.tsx")
     reports_route = read("apps/web/src/app/reports/page.tsx")
     history_page = read("apps/web/src/app/history/page.tsx")
+    history_panel = read("apps/web/src/components/features/history/MonitoringHistoryPanel.tsx")
 
     assert "/api/v1/reports/latest?limit=5" in reports_card
     assert "/api/v1/reports/latest?limit=20" in reports_list_page
@@ -178,6 +180,7 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "outcome_signal" in semantic
     assert "hint" in semantic
     assert "/api/v1/health" in system_status
+    assert "health.runtime_status" in system_status
     assert "health.monitoring_status" in system_status
     assert "health.recent_failed_workflow_count" in system_status
     assert "health.recent_failed_execution_count" in system_status
@@ -193,7 +196,13 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "ConsolePageFrame" in dashboard_page
     assert "ConsolePageFrame" in reports_route
     assert "ConsolePageFrame" in history_page
+    assert "/api/v1/knowledge/reviews/${detail.id}" in review_knowledge
+    assert "Advisory-only retrieval" in review_knowledge
+    assert "Operational History" in history_page
+    assert "/api/v1/health/history" in history_panel
+    assert "Blocked Reason Summary" in history_panel
+    assert "Recovery Actions" in history_panel
     assert "WorkspaceShell" in workspace_shell
     assert "Recommendation detail" in recommendation_workspace
     assert "/api/v1/recommendations/${recommendationId}" in recommendation_workspace
-    assert "Sidebar" in console_frame
+    assert "AppShell" in console_frame

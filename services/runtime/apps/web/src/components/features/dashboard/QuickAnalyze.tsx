@@ -61,7 +61,7 @@ export default function QuickAnalyze() {
           <input
             id="quick-analyze-query"
             type="text"
-            placeholder="e.g. BTC breakout validation, current sentiment..."
+            placeholder={financeAnalyze.copy.queryPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{

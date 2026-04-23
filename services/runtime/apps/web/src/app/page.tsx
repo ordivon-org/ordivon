@@ -7,84 +7,67 @@ import EvalStatus from '@/components/features/dashboard/EvalStatus';
 import RecentRecommendations from '@/components/features/dashboard/RecentRecommendations';
 import PendingReviews from '@/components/features/dashboard/PendingReviews';
 import ValidationHub from '@/components/features/validation/ValidationHub';
+import { ConsoleSection } from '@/components/layout/ConsoleSection';
+import { MainContentGrid } from '@/components/layout/MainContentGrid';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConsolePageFrame } from '@/components/workspace/ConsolePageFrame';
 
 export default function Dashboard() {
   return (
     <ConsolePageFrame>
-    <div className="dashboard-page">
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Command Center</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Live command center for current system status, recommendation previews, review queue previews, and product-level diagnostics.
-        </p>
-      </header>
+      <div className="console-page dashboard-page">
+      <PageHeader
+        eyebrow="Experience / Command Center"
+        title="Command Center"
+        description="Live command center for current system status, recommendation previews, review queue previews, and product-level diagnostics."
+      />
 
-      {/* 1. System Status Bar (Status & Verification) */}
       <SystemStatusBar />
 
-      <section aria-labelledby="dashboard-action-entry" style={{ marginBottom: '1rem' }}>
-        <h2 id="dashboard-action-entry" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
-          Action Entry
-        </h2>
-      </section>
+      <ConsoleSection
+        title="Action Entry"
+        description="Use the command center to seed a new workflow run. Deep execution still belongs in the analyze workspace."
+      >
+        <QuickAnalyze />
+      </ConsoleSection>
 
-      <QuickAnalyze />
+      <ConsoleSection
+        title="Audit / Decision / Report"
+        description="Preview decision and risk surfaces without turning the command center into a deep work page."
+      >
+        <MainContentGrid columns="two-up">
+          <LatestDecisionList />
+          <RiskSnapshot />
+        </MainContentGrid>
+      </ConsoleSection>
 
-      <section aria-labelledby="dashboard-audit-report" style={{ marginBottom: '0.75rem' }}>
-        <h2 id="dashboard-audit-report" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
-          Audit / Decision / Report
-        </h2>
-      </section>
+      <ConsoleSection
+        title="Reports / Diagnostics"
+        description="Operational and reporting surfaces stay visible here so the command center retains system awareness."
+      >
+        <MainContentGrid columns="two-up">
+          <LatestReportsList />
+          <EvalStatus />
+        </MainContentGrid>
+      </ConsoleSection>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
-        gap: '1.5rem',
-        marginBottom: '1.5rem'
-      }}>
-        <LatestDecisionList />
-        <RiskSnapshot />
+      <ConsoleSection
+        title="Recommendation / Review"
+        description="Keep these as previews and jump points. Recommendation follow-through and deep supervision still belong in the review workbench."
+      >
+        <MainContentGrid columns="two-up">
+          <RecentRecommendations />
+          <PendingReviews />
+        </MainContentGrid>
+      </ConsoleSection>
+
+      <ConsoleSection
+        title="Validation / Stability"
+        description="Validation and stability stay visible at the command-center layer without replacing execution or supervision ownership."
+      >
+        <ValidationHub />
+      </ConsoleSection>
       </div>
-
-      <section aria-labelledby="dashboard-reports-diagnostics" style={{ marginBottom: '0.75rem' }}>
-        <h2 id="dashboard-reports-diagnostics" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
-          Reports / Diagnostics
-        </h2>
-      </section>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
-        gap: '1.5rem'
-      }}>
-        <LatestReportsList />
-        <EvalStatus />
-      </div>
-
-      <section aria-labelledby="dashboard-recommendation-review" style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-        <h2 id="dashboard-recommendation-review" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
-          Recommendation / Review
-        </h2>
-      </section>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
-        gap: '1.5rem'
-      }}>
-        <RecentRecommendations />
-        <PendingReviews />
-      </div>
-
-      <section aria-labelledby="dashboard-validation-stability" style={{ marginBottom: '0.75rem', marginTop: '1.5rem' }}>
-        <h2 id="dashboard-validation-stability" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.65rem' }}>
-          Validation / Stability
-        </h2>
-      </section>
-
-      <ValidationHub />
-    </div>
     </ConsolePageFrame>
   );
 }

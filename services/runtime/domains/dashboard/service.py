@@ -58,6 +58,7 @@ class DashboardService:
             "pending_review_count": pending_review_count,
             "system_health": "nominal",
             "reasoning_provider": settings.reasoning_provider,
+            "runtime_status": "configured" if settings.reasoning_provider else None,
             "hermes_status": "configured" if settings.reasoning_provider == "hermes" else None,
             "last_agent_action": latest_agent_action,
             "total_balance_estimate": None,

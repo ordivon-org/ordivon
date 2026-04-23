@@ -453,6 +453,63 @@
         "title": "BlockedRunResponse",
         "type": "object"
       },
+      "CandidateRuleResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_key": {
+            "title": "Issue Key",
+            "type": "string"
+          },
+          "knowledge_entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Knowledge Entry Ids",
+            "type": "array"
+          },
+          "recommendation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendation Ids",
+            "type": "array"
+          },
+          "review_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Review Ids",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_key",
+          "summary",
+          "status",
+          "recommendation_ids",
+          "review_ids",
+          "knowledge_entry_ids",
+          "created_at"
+        ],
+        "title": "CandidateRuleResponse",
+        "type": "object"
+      },
       "EvalCaseResult": {
         "properties": {
           "case_id": {
@@ -599,6 +656,20 @@
             "title": "Approval Blocked Run Ids",
             "type": "array"
           },
+          "blocked_reason_counts": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason Counts"
+          },
           "blocked_run_ids": {
             "items": {
               "type": "string"
@@ -639,6 +710,20 @@
             },
             "title": "Recent Workflow Failures",
             "type": "array"
+          },
+          "recovery_action_counts": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Action Counts"
           },
           "scheduler": {
             "anyOf": [
@@ -729,6 +814,200 @@
           "description"
         ],
         "title": "IssueCreate",
+        "type": "object"
+      },
+      "KnowledgeEntryResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "derived_from": {
+            "$ref": "#/components/schemas/KnowledgeRefResponse"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeRefResponse"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "feedback_targets": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Feedback Targets",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "knowledge_type": {
+            "title": "Knowledge Type",
+            "type": "string"
+          },
+          "narrative": {
+            "title": "Narrative",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "narrative",
+          "knowledge_type",
+          "confidence",
+          "feedback_targets",
+          "derived_from",
+          "evidence_refs",
+          "created_at"
+        ],
+        "title": "KnowledgeEntryResponse",
+        "type": "object"
+      },
+      "KnowledgePacketSummaryResponse": {
+        "properties": {
+          "governance_hint_count": {
+            "title": "Governance Hint Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "intelligence_hint_count": {
+            "title": "Intelligence Hint Count",
+            "type": "integer"
+          },
+          "knowledge_entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Knowledge Entry Ids",
+            "type": "array"
+          },
+          "recommendation_id": {
+            "title": "Recommendation Id",
+            "type": "string"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          }
+        },
+        "required": [
+          "id",
+          "recommendation_id",
+          "knowledge_entry_ids",
+          "governance_hint_count",
+          "intelligence_hint_count"
+        ],
+        "title": "KnowledgePacketSummaryResponse",
+        "type": "object"
+      },
+      "KnowledgeRefResponse": {
+        "properties": {
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_type",
+          "object_id",
+          "relation"
+        ],
+        "title": "KnowledgeRefResponse",
+        "type": "object"
+      },
+      "KnowledgeRetrieveResponse": {
+        "properties": {
+          "advisory_only": {
+            "default": true,
+            "title": "Advisory Only",
+            "type": "boolean"
+          },
+          "candidate_rules": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateRuleResponse"
+            },
+            "title": "Candidate Rules",
+            "type": "array"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeEntryResponse"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "packets": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgePacketSummaryResponse"
+            },
+            "title": "Packets",
+            "type": "array"
+          },
+          "recurring_issues": {
+            "items": {
+              "$ref": "#/components/schemas/RecurringIssueResponse"
+            },
+            "title": "Recurring Issues",
+            "type": "array"
+          },
+          "root_id": {
+            "title": "Root Id",
+            "type": "string"
+          },
+          "root_type": {
+            "title": "Root Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "root_type",
+          "root_id",
+          "entries",
+          "packets",
+          "recurring_issues",
+          "candidate_rules"
+        ],
+        "title": "KnowledgeRetrieveResponse",
         "type": "object"
       },
       "PendingReviewListResponse": {
@@ -1064,6 +1343,56 @@
           }
         },
         "title": "RecommendationUpdate",
+        "type": "object"
+      },
+      "RecurringIssueResponse": {
+        "properties": {
+          "issue_key": {
+            "title": "Issue Key",
+            "type": "string"
+          },
+          "knowledge_entry_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Knowledge Entry Ids",
+            "type": "array"
+          },
+          "occurrence_count": {
+            "title": "Occurrence Count",
+            "type": "integer"
+          },
+          "recommendation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendation Ids",
+            "type": "array"
+          },
+          "review_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Review Ids",
+            "type": "array"
+          },
+          "sample_narratives": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sample Narratives",
+            "type": "array"
+          }
+        },
+        "required": [
+          "issue_key",
+          "occurrence_count",
+          "sample_narratives",
+          "recommendation_ids",
+          "review_ids",
+          "knowledge_entry_ids"
+        ],
+        "title": "RecurringIssueResponse",
         "type": "object"
       },
       "ReportListResponse": {
@@ -1746,6 +2075,28 @@
             ],
             "title": "Recent Failed Workflow Count"
           },
+          "runtime_base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Base Url"
+          },
+          "runtime_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Detail"
+          },
           "runtime_model": {
             "anyOf": [
               {
@@ -1767,6 +2118,17 @@
               }
             ],
             "title": "Runtime Provider"
+          },
+          "runtime_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Status"
           },
           "stale_or_blocked_run_count": {
             "anyOf": [
@@ -2411,6 +2773,90 @@
         "summary": "Health History",
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/api/v1/knowledge/recommendations/{recommendation_id}": {
+      "get": {
+        "operationId": "get_knowledge_for_recommendation_api_v1_knowledge_recommendations__recommendation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recommendation_id",
+            "required": true,
+            "schema": {
+              "title": "Recommendation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRetrieveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Knowledge For Recommendation",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/api/v1/knowledge/reviews/{review_id}": {
+      "get": {
+        "operationId": "get_knowledge_for_review_api_v1_knowledge_reviews__review_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRetrieveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Knowledge For Review",
+        "tags": [
+          "Knowledge"
         ]
       }
     },
