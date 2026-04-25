@@ -28,6 +28,15 @@ class FinanceDecisionCapability:
         service = DecisionIntakeService(DecisionIntakeRepository(db))
         intake = service.get_model(intake_id)
         
+        if intake.status != "validated":
+            from governance.decision import GovernanceDecision
+            decision = GovernanceDecision(
+                decision="reject",
+                reasons=[f"Intake status is '{intake.status}' — only validated intakes can be governed."],
+                source="finance_decisions.govern_intake",
+            )
+            return intake, decision
+        
         symbol = intake.payload.get("symbol")
         
         from governance.feedback import GovernanceFeedbackReader
