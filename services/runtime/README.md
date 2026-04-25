@@ -70,6 +70,69 @@ This repository uses `pnpm` as the only supported JavaScript package manager.
 - Do not use `npm`, `yarn`, or `bun` in this repo.
 - The workspace lockfile source of truth is [pnpm-lock.yaml](./pnpm-lock.yaml).
 
+## Development Setup (Linux / Arch WSL2)
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 20+
+- [pnpm](https://pnpm.io) 10.33+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [Docker](https://docs.docker.com/) (for PostgreSQL + Redis services)
+
+### First-Time Setup
+
+```bash
+cd ~/projects/financial-ai-os
+
+# Copy environment template (edit with your keys)
+cp .env.example .env
+
+# Start PostgreSQL and Redis (required)
+docker compose up -d postgres redis
+
+# Install Python dependencies (including dev tools)
+uv sync --extra dev
+
+# Install JavaScript dependencies
+pnpm install --frozen-lockfile
+```
+
+### Start Development
+
+```bash
+# Terminal 1 — API server (http://127.0.0.1:8000)
+uv run uvicorn apps.api.app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Terminal 2 — Web dev server (http://127.0.0.1:3000)
+pnpm dev:web
+```
+
+### Run Tests
+
+```bash
+# Unit tests (Python)
+uv run pytest tests/unit -q
+
+# Integration tests (Python)
+uv run pytest tests/integration -q
+
+# Frontend type check
+pnpm typecheck:web
+
+# E2E end-to-end (requires Playwright browser)
+pnpm exec playwright install --with-deps chromium
+pnpm test:e2e
+```
+
+### Lint & Security
+
+```bash
+uv run ruff check .
+uv run bandit -r .
+pnpm lint:web
+```
+
 ## Current Status
 
 The repository is past the idea stage and into a load-bearing systems phase:
