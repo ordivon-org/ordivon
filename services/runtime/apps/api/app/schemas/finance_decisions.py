@@ -44,5 +44,8 @@ class FinanceDecisionIntakeResponse(BaseModel):
     payload: dict
     validation_errors: list[DecisionIntakeValidationErrorResponse]
     governance_status: str
+    governance_decision: str | None = None
+    governance_reasons: list[str] | None = None
+    governance_policy_refs: list[str] | None = None
     advisory_hints: list[GovernanceAdvisoryHintResponse] | None = None
     created_at: str

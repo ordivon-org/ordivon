@@ -2095,6 +2095,45 @@
             "type": "string",
             "title": "Governance Status"
           },
+          "governance_decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Governance Decision"
+          },
+          "governance_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Governance Reasons"
+          },
+          "governance_policy_refs": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Governance Policy Refs"
+          },
           "advisory_hints": {
             "anyOf": [
               {

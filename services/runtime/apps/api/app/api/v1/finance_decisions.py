@@ -71,6 +71,9 @@ async def govern_finance_decision_intake(
             payload=model.payload,
             validation_errors=model.validation_errors,
             governance_status=model.governance_status,
+            governance_decision=decision.decision,
+            governance_reasons=list(decision.reasons),
+            governance_policy_refs=list(decision.active_policy_ids),
             advisory_hints=[hint.to_payload() for hint in decision.advisory_hints],
             created_at=model.created_at,
         )
