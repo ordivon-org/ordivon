@@ -9,7 +9,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     env: str = "development"
     debug: bool = True
-    db_url: str = "duckdb:///./data/pfios.duckdb"
+    db_url: str = "postgresql://pfios:pfios@127.0.0.1:5432/pfios"
+    duckdb_analytics_path: str = "./data/analytics.duckdb"
     audit_log_dir: str = "./data/logs/audit"
     reasoning_provider: str = "mock"
     hermes_base_url: str = "http://127.0.0.1:9120/pfios/v1"
