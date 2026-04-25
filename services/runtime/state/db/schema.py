@@ -1,5 +1,22 @@
 """
-DuckDB Pipeline Schema — LEGACY
+DuckDB Pipeline Schema — LEGACY (DuckDB-native, analytics support only)
+
+**IMPORTANT — PostgreSQL migration note:**
+This module uses the native ``duckdb`` driver directly, NOT SQLAlchemy.
+It is NOT the schema authority for the primary database.  The canonical
+startup path uses ``state/db/bootstrap.py`` (SQLAlchemy ``Base.metadata.create_all``)
+which works with both DuckDB and PostgreSQL.
+
+This module is retained for:
+  1. DuckDB-native legacy table definitions (historical data access).
+  2. Optional DuckDB analytics engine use (post-PostgreSQL migration).
+  3. Backward compatibility — ``ensure_pipeline_schema`` may be called by
+     external scripts that expect DuckDB-specific behavior.
+
+**PostgreSQL schema management (future):**
+When PostgreSQL becomes the primary database, all schema changes must be
+managed through Alembic migrations (``alembic/``), not through this module.
+Do NOT add PostgreSQL-specific DDL here.
 
 This module defines DuckDB tables inherited from the pre-PFIOS monolithic
 trading system.  **None of these tables are actively read or written by the
