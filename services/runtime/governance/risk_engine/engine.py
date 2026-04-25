@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from domains.decision_intake.models import DecisionIntake
 from domains.research.models import AnalysisResult
 from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
@@ -53,7 +56,7 @@ class RiskEngine:
 
     def validate_intake(
         self,
-        intake: "DecisionIntake",
+        intake: DecisionIntake,
         advisory_hints: list[GovernanceAdvisoryHint] | tuple[GovernanceAdvisoryHint, ...] | None = None,
     ) -> GovernanceDecision:
         reasons = []
