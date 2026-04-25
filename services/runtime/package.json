@@ -19,7 +19,7 @@
     "test:contract": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-contract.duckdb python -m pytest -q tests/contracts",
     "seed:e2e": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-e2e.duckdb python scripts/seed_mvp_e2e.py",
     "seed:mvp": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-mvp.duckdb python scripts/seed_mvp_e2e.py",
-    "seed:a11y": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-a11y.duckdb python scripts/seed_mvp_e2e.py",
+    "seed:a11y": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-a11y.duckdb uv run python scripts/seed_mvp_e2e.py",
     "seed:visual": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-visual.duckdb python scripts/seed_mvp_e2e.py",
     "seed:perf:web": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-web-perf.duckdb python scripts/seed_mvp_e2e.py",
     "seed:release": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-release.duckdb python scripts/seed_mvp_e2e.py",

@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
 from packs.finance.policy import get_finance_policy_overlays
-from packs.finance.trading_discipline import TradingDisciplinePolicy
 from packs.finance.tool_refs import get_finance_tool_refs
 
 

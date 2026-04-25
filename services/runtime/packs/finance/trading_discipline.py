@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 from domains.decision_intake.models import DecisionIntake
 
