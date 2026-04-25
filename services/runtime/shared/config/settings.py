@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     otel_service_name: str = "aegisos-api"
     otel_exporter_otlp_endpoint: str = ""
+    # LLM Response Cache
+    llm_cache_enabled: bool = False
+    llm_cache_ttl_seconds: int = 900
+    llm_cache_namespace: str = "llm:cache:v1"
 
     model_config = SettingsConfigDict(
         env_prefix="PFIOS_",
