@@ -5,6 +5,7 @@ from state.db.session import engine
 # Import all ORM models here so SQLAlchemy metadata can discover them.
 from domains.ai_actions.orm import AgentActionORM  # noqa: F401
 from domains.candidate_rules.orm import CandidateRuleORM  # noqa: F401
+from domains.decision_intake.orm import DecisionIntakeORM  # noqa: F401
 from domains.execution_records.orm import ExecutionReceiptORM  # noqa: F401
 from domains.execution_records.orm import ExecutionProgressRecordORM  # noqa: F401
 from domains.execution_records.orm import ExecutionRequestORM  # noqa: F401

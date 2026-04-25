@@ -8,6 +8,11 @@ class OutcomeService:
         self.repository = repository
 
     def create_snapshot(self, snapshot: OutcomeSnapshot):
+        # TODO: emit outcome_detected audit event here when independent
+        # outcome detection is implemented (Phase 4 Batch 4).  Currently
+        # outcomes are only created via ReviewService._backfill_outcome_snapshot
+        # which emits outcome_backfilled, but that has "backfill" semantics
+        # rather than "detected" semantics.
         return self.repository.create(snapshot)
 
     def classify_terminal_state(self, outcome_state: OutcomeState) -> bool:

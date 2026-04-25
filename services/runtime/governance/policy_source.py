@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
 from packs.finance.policy import get_finance_policy_overlays
+from packs.finance.trading_discipline import TradingDisciplinePolicy
 from packs.finance.tool_refs import get_finance_tool_refs
 
 
@@ -27,7 +28,7 @@ class GovernancePolicySource:
     def get_active_snapshot(self) -> GovernancePolicySnapshot:
         return GovernancePolicySnapshot(
             policy_set_id="governance.default.v1",
-            active_policy_ids=("forbidden_symbols_policy",),
+            active_policy_ids=("forbidden_symbols_policy", "trading_discipline_policy"),
             default_decision_rule_ids=(
                 "default_no_actions_escalate",
                 "default_pass_execute",
@@ -35,6 +36,9 @@ class GovernancePolicySource:
         )
 
     def get_active_policies(self) -> list[object]:
+        # Only return policies that can validate AnalysisResult.
+        # TradingDisciplinePolicy is intake-only and is applied directly
+        # in RiskEngine.validate_intake().
         return [ForbiddenSymbolsPolicy()]
 
     def get_active_policy_ids(self) -> tuple[str, ...]:

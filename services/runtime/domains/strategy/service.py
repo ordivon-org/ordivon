@@ -47,7 +47,22 @@ class RecommendationService:
                 recommendation_id=recommendation_id,
                 db=self.repository.db,
             )
-            
+
+            # Dedicated audit event for adoption — a key lifecycle signal
+            # indicating the user decided to act on the AI recommendation.
+            if target_status == RecommendationStatus.ADOPTED:
+                self.auditor.record_event(
+                    event_type="recommendation_adopted",
+                    payload={
+                        "recommendation_id": recommendation_id,
+                        "adopted_status": target_status.value,
+                    },
+                    entity_type="recommendation",
+                    entity_id=recommendation_id,
+                    recommendation_id=recommendation_id,
+                    db=self.repository.db,
+                )
+
         return self.repository.to_model(row)
 
     def list_recent(self, limit: int = 20):

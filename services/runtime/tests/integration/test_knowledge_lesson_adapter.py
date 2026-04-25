@@ -8,8 +8,8 @@ from domains.journal.models import Review
 from domains.journal.repository import ReviewRepository
 from domains.journal.service import ReviewService
 from knowledge import KnowledgeEntryBuilder
-from state.db.base import Base
 from shared.enums.domain import ReviewStatus, ReviewVerdict
+from state.db.base import Base
 
 
 def _make_db():
@@ -40,7 +40,7 @@ def test_completed_review_lessons_can_be_derived_into_knowledge_entries():
         )
         row = review_service.create(review)
 
-        _, lesson_rows = review_service.complete_review(
+        _, lesson_rows, knowledge_feedback = review_service.complete_review(
             review_id=row.id,
             observed_outcome="Trend failed",
             verdict=ReviewVerdict.INVALIDATED,
@@ -49,6 +49,9 @@ def test_completed_review_lessons_can_be_derived_into_knowledge_entries():
             lessons=["Wait for confirmation candle before entry"],
             followup_actions=["Tighten checklist"],
         )
+
+        assert lesson_rows
+        assert knowledge_feedback is not None
 
         lesson_model = lesson_repo.to_model(lesson_rows[0])
         knowledge_entry = KnowledgeEntryBuilder.from_lesson(lesson_model)

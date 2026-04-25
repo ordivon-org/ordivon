@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -51,6 +52,13 @@ export default function QuickAnalyze() {
       </div>
       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.5' }}>
         {financeAnalyze.copy.dashboardHint} Default timeframe: <span style={{ color: 'var(--foreground)' }}>{financeAnalyze.defaultTimeframe}</span>.
+      </div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.5' }}>
+        Need a structured high-consequence decision intake instead of a quick workflow request?{' '}
+        <Link href="/analyze?mode=controlled" className="console-link">
+          Start controlled decision
+        </Link>
+        .
       </div>
 
       <form onSubmit={handleAnalyze} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>

@@ -27,6 +27,7 @@ def test_analyze_page_uses_real_api_and_honest_failure_state():
     source = read("apps/web/src/app/analyze/page.tsx")
 
     assert "/api/v1/analyze-and-suggest" in source
+    assert "DecisionIntakePanel" in source
     assert "Analyze API is currently unavailable. No analysis result was generated." in source
     assert "Workflow Execution Workspace" in source
     assert "Hand off recommendation to review workbench" in source
@@ -35,7 +36,6 @@ def test_analyze_page_uses_real_api_and_honest_failure_state():
     assert "2. Hand off to supervision" in source
     assert "evt_offline" not in source
     assert "action_plan" not in source
-    assert "thesis" not in source
     assert "decision: 'allow'" not in source
 
 
@@ -46,6 +46,7 @@ def test_gold_path_handoff_copy_and_route_intent_are_explicit():
     pending_reviews = read("apps/web/src/components/features/dashboard/PendingReviews.tsx")
 
     assert "router.push(`/analyze?${params.toString()}`)" in quick_analyze
+    assert 'href="/analyze?mode=controlled"' in quick_analyze
     assert "autoRun: 'true'" in quick_analyze
     assert "Hand off recommendation to review workbench" in analyze_page
     assert "Continue in review workbench" in recos
@@ -54,6 +55,7 @@ def test_gold_path_handoff_copy_and_route_intent_are_explicit():
     assert 'href={`/reviews?recommendation_id=${recommendation.id}`}' in recos
     assert 'href={`/reviews?review_id=${review.id}&trace_ref=${review.id}`}' in pending_reviews
     assert 'href={`/reviews?review_id=${review.id}&recommendation_id=${review.recommendation_id}`}' in pending_reviews
+    assert not (ROOT / "apps/web/src/app/control").exists()
 
 
 def test_analyze_panels_only_render_real_contract_fields():

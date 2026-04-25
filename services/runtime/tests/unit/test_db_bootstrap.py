@@ -13,6 +13,7 @@ def test_db_bootstrap_creates_core_tables():
         "agent_actions",
         "intelligence_runs",
         "analyses",
+        "decision_intakes",
         "recommendations",
         "outcome_snapshots",
         "reviews",

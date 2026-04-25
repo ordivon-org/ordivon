@@ -510,6 +510,29 @@
         "title": "CandidateRuleResponse",
         "type": "object"
       },
+      "DecisionIntakeValidationErrorResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "code",
+          "message"
+        ],
+        "title": "DecisionIntakeValidationErrorResponse",
+        "type": "object"
+      },
       "EvalCaseResult": {
         "properties": {
           "case_id": {
@@ -690,6 +713,231 @@
           "created_at"
         ],
         "title": "FeedbackRecordResponse",
+        "type": "object"
+      },
+      "FinanceDecisionIntakeRequest": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "emotional_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emotional State"
+          },
+          "entry_condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Condition"
+          },
+          "invalidation_condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalidation Condition"
+          },
+          "is_chasing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Chasing"
+          },
+          "is_revenge_trade": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Revenge Trade"
+          },
+          "max_loss_usdt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Loss Usdt"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "position_size_usdt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Size Usdt"
+          },
+          "risk_unit_usdt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Unit Usdt"
+          },
+          "rule_exceptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Exceptions",
+            "type": "array"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "thesis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeframe"
+          }
+        },
+        "required": [
+          "symbol",
+          "direction"
+        ],
+        "title": "FinanceDecisionIntakeRequest",
+        "type": "object"
+      },
+      "FinanceDecisionIntakeResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "governance_status": {
+            "title": "Governance Status",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "intake_type": {
+            "title": "Intake Type",
+            "type": "string"
+          },
+          "pack_id": {
+            "title": "Pack Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "validation_errors": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionIntakeValidationErrorResponse"
+            },
+            "title": "Validation Errors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "pack_id",
+          "intake_type",
+          "status",
+          "validation_errors",
+          "governance_status",
+          "created_at"
+        ],
+        "title": "FinanceDecisionIntakeResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -2825,6 +3073,47 @@
         "summary": "Get Latest Eval",
         "tags": [
           "Evals"
+        ]
+      }
+    },
+    "/api/v1/finance-decisions/intake": {
+      "post": {
+        "operationId": "create_finance_decision_intake_api_v1_finance_decisions_intake_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinanceDecisionIntakeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceDecisionIntakeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Finance Decision Intake",
+        "tags": [
+          "FinanceDecisions"
         ]
       }
     },

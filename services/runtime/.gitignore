@@ -16,3 +16,5 @@ pfios.egg-info/
 .clinerules
 scratch/
 wiki/reports/
+repomix-lite.txt
+.direnv/

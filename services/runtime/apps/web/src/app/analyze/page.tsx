@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import AnalyzeInput from '@/components/features/analyze/AnalyzeInput';
+import { DecisionIntakePanel } from '@/components/features/analyze/DecisionIntakePanel';
 import { GovernanceDetailInspector } from '@/components/features/analyze/GovernanceDetailInspector';
 import GovernancePanel from '@/components/features/analyze/GovernancePanel';
 import ReasoningPanel from '@/components/features/analyze/ReasoningPanel';
@@ -21,6 +22,7 @@ function AnalyzePageInner() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeWorkspaceResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isControlledMode = searchParams.get('mode') === 'controlled';
 
   const handleRunAnalysis = async (query: string, symbol: string, timeframe?: string) => {
     setIsLoading(true);
@@ -96,6 +98,15 @@ function AnalyzePageInner() {
           {errorMessage}
         </div>
       )}
+
+      {isControlledMode ? (
+        <ConsoleSection
+          title="Controlled Decision Intake"
+          description="Batch 1 captures structured intake only. Governance, receipts, outcomes, reviews, and knowledge remain deferred."
+        >
+          <DecisionIntakePanel prioritized />
+        </ConsoleSection>
+      ) : null}
 
       <ConsoleSection
         title="Execution Surface"

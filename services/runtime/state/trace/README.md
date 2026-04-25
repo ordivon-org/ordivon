@@ -1,45 +1,23 @@
-# State Trace
+# PHASE 5 DEFERRED — not implemented
 
-`state/trace/` owns main-chain query bundles and trace resolution rules.
-
-## Current Focus
-
-- workflow trace
-- recommendation trace
-- review trace
-- honest `present / missing / unlinked` relation semantics
-
-## Read These Files First
-
-- `models.py`
-  - `TraceReference`
-  - `TraceBundle`
-- `service.py`
-  - trace root entrypoints
-  - relation hardening logic
-  - direct-ref vs audit/metadata fallback behavior
-
-## Active Trace Roots
-
-- `trace_workflow_run(workflow_run_id)`
-- `trace_recommendation(recommendation_id)`
-- `trace_review(review_id)`
-
-## Current Design Rule
-
-Trace prefers:
-
-1. direct persisted refs
-2. queryable object lookups
-3. audit/metadata fallback
-
-And only then returns:
-
-- `present`
-- `missing`
-- `unlinked`
-
-## Boundary
-
-Trace resolves relations.
-It does not create new business truth.
+     1|> **Status: Not implemented — placeholder only. The models.py and service.py described below do not exist yet. Trace logic currently lives in `apps/api/app/api/v1/traces.py`.**
+     2|
+     3|# State Trace
+     4|
+     5|`state/trace/` owns main-chain query bundles and trace resolution rules.
+     6|
+     7|## Current Focus
+     8|
+     9|- workflow trace
+    10|- recommendation trace
+    11|- review trace
+    12|- honest `present / missing / unlinked` relation semantics
+    13|
+    14|## Read These Files First
+    15|
+    16|- `models.py`
+    17|  - `TraceReference`
+    18|  - `TraceBundle`
+    19|- `service.py`
+    20|  - trace root entrypoints
+    21|

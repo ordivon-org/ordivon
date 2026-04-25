@@ -1,9 +1,29 @@
+"""
+DuckDB Pipeline Schema — LEGACY
+
+This module defines DuckDB tables inherited from the pre-PFIOS monolithic
+trading system.  **None of these tables are actively read or written by the
+current domain layer.**  All current domain truth lives in SQLAlchemy ORM
+models registered in ``state/db/bootstrap.py``.
+
+These DDL statements are retained so that:
+  1. Historical data in existing .duckdb files remains accessible.
+  2. The ``ensure_pipeline_schema`` entrypoint does not break on startup.
+
+Tables marked LEGACY below have **no active Python read/write code** as of
+2026-04-24.  They are candidates for removal once historical data has been
+migrated or archived.
+
+Tables marked ACTIVE are still referenced by the current pipeline.
+"""
+
 from __future__ import annotations
 
 import duckdb
 
 
 def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
+    # ACTIVE — used for startup initialization check
     conn.execute(
         """
         create table if not exists system_init (
@@ -15,6 +35,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     if conn.execute("select count(*) from system_init").fetchone()[0] == 0:
         conn.execute("insert into system_init values (1, current_timestamp)")
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists ohlcv (
@@ -25,6 +46,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists features (
@@ -37,6 +59,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists signals (
@@ -50,6 +73,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists ai_reviews (
@@ -65,6 +89,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists account_sync_runs (
@@ -75,6 +100,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists account_balances (
@@ -84,6 +110,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists account_positions (
@@ -96,6 +123,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists account_open_orders (
@@ -108,6 +136,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists position_states (
@@ -119,6 +148,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists position_lifecycles (
@@ -133,6 +163,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists position_events (
@@ -143,6 +174,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (approvals now use SQLAlchemy ApprovalRecordORM)
     conn.execute(
         """
         create table if not exists approvals (
@@ -154,6 +186,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (executions now use SQLAlchemy ExecutionReceiptORM)
     conn.execute(
         """
         create table if not exists executions (
@@ -168,6 +201,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists order_requests (
@@ -190,6 +224,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists order_events (
@@ -200,6 +235,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists risk_decisions (
@@ -213,6 +249,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists journals (
@@ -224,6 +261,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists assets (
@@ -234,6 +272,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists strategies (
@@ -245,6 +284,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists observations (
@@ -255,6 +295,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (policies now use GovernancePolicySource)
     conn.execute(
         """
         create table if not exists policies (
@@ -265,6 +306,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (audits now use SQLAlchemy AuditEventORM)
     conn.execute(
         """
         create table if not exists risk_audits (
@@ -278,6 +320,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (recommendations now use SQLAlchemy RecommendationORM)
     conn.execute(
         """
         create table if not exists recommendations (
@@ -299,6 +342,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (reviews now use SQLAlchemy ReviewORM)
     conn.execute(
         """
         create table if not exists performance_reviews (
@@ -317,6 +361,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (usage now uses SQLAlchemy UsageSnapshotORM)
     conn.execute(
         """
         create table if not exists usage_logs (
@@ -331,6 +376,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code (issues now use SQLAlchemy IssueORM)
     conn.execute(
         """
         create table if not exists issue_triage (
@@ -344,6 +390,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """
     )
 
+    # LEGACY — no active read/write code
     conn.execute(
         """
         create table if not exists validation_summaries (

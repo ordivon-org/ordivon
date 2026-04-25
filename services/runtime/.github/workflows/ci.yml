@@ -35,16 +35,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Compile backend modules
-        run: python -m compileall apps/api/app domains orchestrator governance execution state infra intelligence capabilities packs scripts shared
+        run: uv run python -m compileall apps/api/app domains orchestrator governance execution state infra intelligence capabilities packs scripts shared
 
       - name: Lint backend
-        run: python -m ruff check apps/api/app capabilities domains execution governance infra intelligence orchestrator packs shared state
+        run: uv run ruff check apps/api/app capabilities domains execution governance infra intelligence orchestrator packs shared state
 
   backend-unit:
     runs-on: ubuntu-latest
@@ -60,13 +61,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Run backend unit tests
-        run: python -m pytest -q tests/unit
+        run: uv run pytest -q tests/unit
 
   backend-integration:
     runs-on: ubuntu-latest
@@ -82,14 +84,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Run backend integration tests
         run: |
-          python -m pytest -q \
+          uv run pytest -q \
             tests/integration/test_hermes_analyze_api.py \
             tests/integration/test_health_monitoring_api.py \
             tests/integration/test_scheduler_persistence.py \
@@ -186,19 +189,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Regenerate OpenAPI snapshot
-        run: python scripts/export_openapi.py
+        run: uv run python scripts/export_openapi.py
 
       - name: Assert OpenAPI snapshot is committed
         run: git diff --exit-code -- tests/contracts/openapi.snapshot.json
 
       - name: Run contract tests
-        run: python -m pytest -q tests/contracts
+        run: uv run pytest -q tests/contracts
 
   a11y-smoke:
     runs-on: ubuntu-latest
@@ -217,10 +221,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -240,7 +245,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Seed database
-        run: python scripts/seed_mvp_e2e.py
+        run: uv run python scripts/seed_mvp_e2e.py
 
       - name: Run accessibility smoke
         run: pnpm test:e2e:a11y
@@ -265,10 +270,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -288,7 +294,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Seed MVP E2E database
-        run: python scripts/seed_mvp_e2e.py
+        run: uv run python scripts/seed_mvp_e2e.py
 
       - name: Run MVP E2E smoke
         run: pnpm test:e2e:mvp

@@ -490,7 +490,7 @@ def test_recommendation_surface_reuses_governance_decision_shape():
         "source": "risk_engine.default_validation",
         "advisory_hints": [],
         "policy_set_id": "governance.default.v1",
-        "active_policy_ids": ["forbidden_symbols_policy"],
+        "active_policy_ids": ["forbidden_symbols_policy", "trading_discipline_policy"],
         "default_decision_rule_ids": ["default_no_actions_escalate", "default_pass_execute"],
         "evidence": [],
         "actor": {

@@ -87,16 +87,16 @@ These task cards should follow:
 
 ## Current Priority Batch
 
-1. Additional finance-pack extraction beyond frontend analyze surface ownership
-2. Hermes legacy cleanup beyond compatibility alias
-3. Scheduler orchestration maturity beyond DB-backed persistence
-4. Monitoring/ops refinement beyond history endpoint summaries
-5. Richer console navigation beyond current seeded object tabs
-6. Trust-tier and product-semantic final polish across broader surfaces
+1. Phase 4 Batch 0 | Personal control loop rebaseline
+2. Phase 4 Batch 1 | Finance-seeded decision intake
+3. Phase 4 Batch 2 | Governance pre-action gate
+4. Phase 4 Batch 3 | Action-plan receipt
+5. Phase 4 Batch 4 | Outcome capture + review depth
+6. Phase 4 Batch 5 | Advisory knowledge + candidate-rule follow-through
 
 ## Selected Next Module
 
-- `Additional finance-pack extraction beyond frontend analyze surface ownership`
+- `Phase 4 Batch 1 | Finance-seeded decision intake`
 
 Latest completed module card:
 
@@ -153,6 +153,33 @@ Current refinement note:
   - MVP presentation and delivery closure
 - Current MVP delivery note:
   - CI now includes an `mvp-e2e` browser smoke path and a `Delivery` workflow bundles the current MVP docs/config surface after validated main-branch CI.
+
+## Phase 4 Rebaseline
+
+Phase 4 now reads as:
+
+- not a finance pivot
+- a finance-seeded pressure test for the general control loop
+- no repo-wide Ordivon rename
+- no `/control` page
+- no broker execution
+- no multi-agent
+- no candidate-rule-to-policy automation
+
+Batch 1 scope is intentionally narrow:
+
+- structured intake only
+- finance-pack-owned validation
+- persisted intake truth
+- `/analyze` intake panel
+
+Deferred beyond Batch 1:
+
+- governance
+- execution receipt
+- outcome
+- review checklist
+- knowledge feedback
 
 ## Daily Planning
 

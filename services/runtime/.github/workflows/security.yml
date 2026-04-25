@@ -27,11 +27,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools
-          pip install -e .[dev]
+        run: uv sync --extra dev
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -51,7 +51,7 @@ jobs:
         run: pnpm scan:security
 
       - name: Run pip-audit
-        run: python -m pip_audit
+        run: uv run pip-audit
 
   web-security:
     runs-on: ubuntu-latest

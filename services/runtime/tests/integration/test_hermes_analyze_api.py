@@ -109,7 +109,7 @@ def test_analyze_api_persists_agent_action_with_hermes(monkeypatch):
         assert analysis_meta["governance_decision"] == "execute"
         assert analysis_meta["governance_source"] == "risk_engine.default_validation"
         assert analysis_meta["governance_policy_set_id"] == "governance.default.v1"
-        assert analysis_meta["governance_active_policy_ids"] == ["forbidden_symbols_policy"]
+        assert analysis_meta["governance_active_policy_ids"] == ["forbidden_symbols_policy", "trading_discipline_policy"]
         assert analysis_meta["report_write_action_context"]["actor"] == "workflow.analyze"
         assert analysis_meta["metadata_update_action_context"]["context"] == "write_wiki_step"
         event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "analysis_completed").one()

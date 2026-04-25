@@ -2,47 +2,15 @@
 
 ## Status
 
-This document freezes the current working naming convention for the system while the repository and historical documentation still retain the legacy `PFIOS` name.
+This document freezes the current working naming convention for the system while the repository and historical documentation still retain legacy naming.
 
 ## Naming Rule
 
 Use the following working names from this point forward:
 
-- external product name: `AegisOS`
-- internal systems name: `CAIOS`
-- expanded internal name: `Controlled AI Operating System`
-
-## Why Two Names
-
-The system is entering a platformization stage where the old repo identity (`PFIOS`) is no longer sufficient as the only framing.
-
-Two working names are now useful:
-
-### External
-
-`AegisOS`
-
-Use this when describing the system as a product or platform.
-
-It emphasizes:
-
-- protection
-- governance
-- controlled execution
-- traceable operation
-
-### Internal
-
-`CAIOS`
-
-Use this when describing the architectural operating-system substrate.
-
-It emphasizes:
-
-- controlled AI
-- operating-system semantics
-- stable system laws
-- future core/pack/adapter separation
+- working product name: `AegisOS`
+- legacy repository lineage: `PFIOS`
+- internal architectural shorthand: `CAIOS`
 
 ## Repository Naming Reality
 
@@ -51,43 +19,43 @@ The repository, codebase, and many historical documents still use:
 - `PFIOS`
 - `financial-ai-os`
 
-That is acceptable for now.
+That remains acceptable for now.
 
-This document does **not** require a global rename.
+## Brand Transition Note
 
-Instead, use this rule:
+`Ordivon` is treated as a future external brand anchor only.
 
-- preserve legacy repository references where needed for continuity
-- use `AegisOS` / `CAIOS` in new architecture and platformization documents
+Phase 4 does not perform a repo-wide rename. It does not change import paths, package names, environment-variable lineage, or historical document references just to force brand consistency ahead of behavior.
+
+The working rule is:
+
+- keep `AegisOS` as the current working product/system identity
+- preserve `PFIOS` where repository continuity still depends on it
+- allow `Ordivon` only as a forward-looking external brand note in docs, not as a codebase-wide rename target
 
 ## Practical Usage Rules
 
 ### Use `AegisOS` when:
 
-- describing the platform externally
-- naming future product-facing architecture documents
-- describing the next-stage system identity
-
-### Use `CAIOS` when:
-
-- describing internal platform primitives
-- discussing core/pack/adapter separation
-- discussing operating-system-level contracts and runtime structure
+- describing the current product/system
+- writing current architecture and execution docs
+- describing the present working identity
 
 ### Use `PFIOS` when:
 
-- referring to historical documents
-- referring to current repository paths and environment variables
-- explaining continuity from the existing implementation baseline
+- referring to repository lineage
+- referring to current repository paths, env vars, and compatibility naming
+- explaining historical continuity
+
+### Use `Ordivon` when:
+
+- discussing future external branding only
+- explicitly noting that the brand transition is deferred
 
 ## Current Interpretation
 
 At this stage:
 
-- `PFIOS` is the repository and historical implementation lineage
-- `AegisOS` is the outward-facing working product name
-- `CAIOS` is the inward-facing architectural system name
-
-Compressed:
-
-**PFIOS is the current repo lineage. AegisOS is the product-facing working name. CAIOS is the internal platform name.**
+- `AegisOS` is the working product/system identity
+- `PFIOS` is the repository and historical lineage
+- `Ordivon` is a deferred external brand anchor, not a rename mandate

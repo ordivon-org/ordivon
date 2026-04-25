@@ -1,3 +1,11 @@
+# WARNING: The review lifecycle (submit/complete) currently operates outside the
+# PFIOSOrchestrator. Review submission and completion are handled directly
+# through capabilities and adapters rather than through orchestrator workflows.
+# This means review operations lack the orchestrator's recoverability guarantees,
+# governance gating, and uniform audit trail consistency.
+# See docs/architecture/review-workflow-gap.md and docs/audits/phase-4-readiness/
+# for the documented gap and remediation plan (P4 Batch 1).
+#
 from fastapi import APIRouter, HTTPException
 from dataclasses import asdict
 
