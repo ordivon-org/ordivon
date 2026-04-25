@@ -40,7 +40,7 @@ def test_completed_review_lessons_can_be_derived_into_knowledge_entries():
         )
         row = review_service.create(review)
 
-        _, lesson_rows, knowledge_feedback = review_service.complete_review(
+        review_row, lesson_rows, knowledge_feedback = review_service.complete_review(
             review_id=row.id,
             observed_outcome="Trend failed",
             verdict=ReviewVerdict.INVALIDATED,
@@ -52,6 +52,7 @@ def test_completed_review_lessons_can_be_derived_into_knowledge_entries():
 
         assert lesson_rows
         assert knowledge_feedback is not None
+        assert review_row.id == row.id
 
         lesson_model = lesson_repo.to_model(lesson_rows[0])
         knowledge_entry = KnowledgeEntryBuilder.from_lesson(lesson_model)
