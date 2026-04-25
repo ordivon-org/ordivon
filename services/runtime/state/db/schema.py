@@ -1,5 +1,6 @@
 """
 DuckDB Pipeline Schema — LEGACY (DuckDB-native, analytics support only)
+NOT DOMAIN TRUTH FOR P4 — the SQLAlchemy ORM is the single source of truth.
 
 **IMPORTANT — PostgreSQL migration note:**
 This module uses the native ``duckdb`` driver directly, NOT SQLAlchemy.
@@ -192,6 +193,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (approvals now use SQLAlchemy ApprovalRecordORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists approvals (
@@ -204,6 +206,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (executions now use SQLAlchemy ExecutionReceiptORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists executions (
@@ -313,6 +316,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (policies now use GovernancePolicySource)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists policies (
@@ -324,6 +328,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (audits now use SQLAlchemy AuditEventORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists risk_audits (
@@ -338,6 +343,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (recommendations now use SQLAlchemy RecommendationORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists recommendations (
@@ -360,6 +366,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (reviews now use SQLAlchemy ReviewORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists performance_reviews (
@@ -379,6 +386,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (usage now uses SQLAlchemy UsageSnapshotORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists usage_logs (
@@ -394,6 +402,7 @@ def ensure_pipeline_schema(conn: duckdb.DuckDBPyConnection) -> None:
     )
 
     # LEGACY — no active read/write code (issues now use SQLAlchemy IssueORM)
+    # NOT DOMAIN TRUTH FOR P4 — do not read/write governance state from DuckDB.
     conn.execute(
         """
         create table if not exists issue_triage (
