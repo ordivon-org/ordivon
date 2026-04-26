@@ -13,6 +13,16 @@ Canonical architecture documentation for Ordivon / AegisOS / PFIOS.
 | [layer-definition.md](layer-definition.md) | Layer responsibilities | — |
 | [system-overview.md](system-overview.md) | High-level system overview | — |
 
+## Core Baseline (Docs-D2)
+
+| Document | Purpose |
+|----------|---------|
+| [ordivon-system-definition.md](ordivon-system-definition.md) | **What is Ordivon, and what is it not** — canonical identity document |
+| [systems-engineering-baseline.md](systems-engineering-baseline.md) | **How the system must be built** — engineering rules and constraints |
+| [core-pack-adapter-boundary.md](core-pack-adapter-boundary.md) | **Who owns what** — anti-contamination rules for Core/Pack/Adapter |
+| [harness-adapter-boundary.md](harness-adapter-boundary.md) | **Harness must not pollute Core** — external runtime boundary rules |
+| [governance-receipt-review-loop.md](governance-receipt-review-loop.md) | **Receipt → Review → CandidateRule lifecycle** — the control loop |
+
 ## Platformization
 
 | Document | Purpose |
