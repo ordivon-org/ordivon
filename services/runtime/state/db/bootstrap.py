@@ -28,3 +28,9 @@ from state.usage.orm import UsageSnapshotORM  # noqa: F401
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+
+    # Run idempotent migrations for schema drift on existing databases.
+    # Each migration checks IF NOT EXISTS before adding columns.
+    from state.db.migrations.runner import run_migrations
+    with engine.connect() as conn:
+        run_migrations(conn)
