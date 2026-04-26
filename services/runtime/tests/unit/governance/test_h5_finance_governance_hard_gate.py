@@ -19,7 +19,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
         "symbol": "BTC/USDT",
         "timeframe": "1h",
         "direction": "long",
-        "thesis": "Valid thesis text.",
+        "thesis": "BTC breaking above resistance with volume confirmation; invalidated if price closes below 200 EMA.",
         "entry_condition": "Breakout confirmed.",
         "invalidation_condition": "Range reclaim.",
         "stop_loss": "Below support",

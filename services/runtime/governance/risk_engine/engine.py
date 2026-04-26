@@ -4,6 +4,7 @@ from domains.decision_intake.models import DecisionIntake
 from domains.research.models import AnalysisResult
 from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
+from governance.risk_engine.thesis_quality import check_thesis_quality
 
 # ── H-5 Finance Decision Governance Hard Gate ──────────────────────────────
 # Decision priority: reject > escalate > execute
@@ -101,6 +102,24 @@ class RiskEngine:
         thesis = _as_str(payload.get("thesis"))
         if not thesis:
             reject_reasons.append("Missing required field: thesis.")
+
+        # H-9C3: Thesis quality checks (only if thesis is present)
+        if thesis:
+            quality = check_thesis_quality(thesis)
+            if quality.is_banned:
+                reject_reasons.append(
+                    f"Thesis quality rejected: {quality.banned_match or 'generic pattern'}."
+                )
+            if quality.is_too_short:
+                escalate_reasons.append(
+                    f"Thesis is too short ({len(thesis.strip())} chars, "
+                    f"minimum 50) — requires human review."
+                )
+            if quality.lacks_verifiability:
+                escalate_reasons.append(
+                    "Thesis lacks verifiability criteria (no invalidation "
+                    "or confirmation conditions) — requires human review."
+                )
 
         stop_loss = _as_str(payload.get("stop_loss"))
         if not stop_loss:

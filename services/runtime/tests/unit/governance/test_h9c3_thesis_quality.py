@@ -45,7 +45,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
 
 def test_h9c3_thesis_too_short_escalated():
     engine = RiskEngine()
-    intake = _make_intake(payload={"thesis": "BTC looks good"})
+    intake = _make_intake(payload={"thesis": "Short thesis statement"})
     decision = engine.validate_intake(intake)
     assert decision.decision == "escalate"
     assert any("thesis" in r.lower() for r in decision.reasons)
