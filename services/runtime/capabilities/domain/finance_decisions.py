@@ -12,6 +12,7 @@ from execution.adapters.finance import FinancePlanReceiptAdapter, FinancePlanRec
 from governance.audit.auditor import RiskAuditor
 from governance.risk_engine.engine import RiskEngine
 from packs.finance.decision_intake import validate_finance_decision_intake
+from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 
 class PlanReceiptConflict(Exception):
@@ -63,7 +64,7 @@ class FinanceDecisionCapability:
         service = DecisionIntakeService(DecisionIntakeRepository(db))
         intake = service.get_model(intake_id)
 
-        decision = RiskEngine().validate_intake(intake)
+        decision = RiskEngine().validate_intake(intake, pack_policy=TradingDisciplinePolicy())
 
         updated_intake = service.update_governance_status(intake_id, decision.decision)
 
