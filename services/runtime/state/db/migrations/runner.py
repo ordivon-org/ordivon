@@ -6,7 +6,7 @@ and performs its changes only if they haven't been applied yet.
 
 from __future__ import annotations
 
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, inspect, text
 
 # ── Migration registry ──────────────────────────────────────────────────
 # Ordered list of (migration_id, migration_fn).  Each fn is idempotent.
@@ -22,6 +22,31 @@ def migration(migration_id: str):
     return decorator
 
 
+def _column_exists(conn: Connection, table: str, column: str) -> bool:
+    """Check whether a column exists on the given table.
+
+    Uses SQLAlchemy's DB-agnostic inspector.
+    """
+    inspector = inspect(conn)
+    try:
+        existing = {col["name"] for col in inspector.get_columns(table)}
+    except Exception:
+        # Table might not exist at all — let create_all handle that case.
+        return False
+    return column in existing
+
+
+def _add_column_if_missing(
+    conn: Connection, table: str, column: str, col_type: str
+) -> None:
+    """Add a column to a table if it doesn't already exist."""
+    if not _column_exists(conn, table, column):
+        conn.execute(text(
+            f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+        ))
+        conn.commit()
+
+
 # ── H9C1-001: Add outcome_ref columns to reviews table ──────────────────
 
 @migration("h9c1_001_add_outcome_ref_columns")
@@ -31,15 +56,12 @@ def add_outcome_ref_columns(conn: Connection) -> None:
     These columns exist in ReviewORM but may be missing from existing
     PostgreSQL databases that were created before the ORM change.
     """
-    conn.execute(text(
-        "ALTER TABLE reviews "
-        "ADD COLUMN IF NOT EXISTS outcome_ref_type VARCHAR(64)"
-    ))
-    conn.execute(text(
-        "ALTER TABLE reviews "
-        "ADD COLUMN IF NOT EXISTS outcome_ref_id VARCHAR(64)"
-    ))
-    conn.commit()
+    _add_column_if_missing(
+        conn, "reviews", "outcome_ref_type", "VARCHAR(64)"
+    )
+    _add_column_if_missing(
+        conn, "reviews", "outcome_ref_id", "VARCHAR(64)"
+    )
 
 
 # ── Runner ─────────────────────────────────────────────────────────────
