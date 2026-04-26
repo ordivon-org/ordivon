@@ -146,6 +146,30 @@ class RiskEngine:
         if payload.get("is_chasing") is True:
             escalate_reasons.append("is_chasing=true — requires human review.")
 
+        # H-9C2: Emotional state risk indicators → escalate
+        emotional = _as_str(payload.get("emotional_state"))
+        if emotional and _contains_emotional_risk(emotional):
+            escalate_reasons.append(
+                f"emotional_state='{emotional}' indicates elevated risk — "
+                f"requires human review."
+            )
+
+        # H-9C2: Rule exceptions present → escalate (any exception needs review)
+        rule_exceptions = payload.get("rule_exceptions")
+        if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
+            escalate_reasons.append(
+                f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — "
+                f"requires human review."
+            )
+
+        # H-9C2: Confidence too low → escalate (but not missing, which is not checked here)
+        confidence = payload.get("confidence")
+        if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
+            escalate_reasons.append(
+                f"confidence={confidence} is below 0.3 threshold — "
+                f"requires human review."
+            )
+
         # ── Decision (priority: reject > escalate > execute) ─────────
         if reject_reasons:
             return GovernanceDecision(
@@ -198,3 +222,23 @@ def _as_positive_float(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+# ── Emotional risk keyword detection ────────────────────────────────────────
+
+_EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
+    "stress", "stressed", "stressful",
+    "fear", "fearful", "scared", "terrified", "panicked", "panic",
+    "anger", "angry", "furious", "frustrated",
+    "fomo", "greedy", "desperate", "reckless",
+    "revenge", "impulsive",
+})
+
+
+def _contains_emotional_risk(emotional_state: str) -> bool:
+    """Return True if emotional_state contains known risk keywords.
+
+    Case-insensitive substring match against the tokenized input.
+    """
+    lowered = emotional_state.lower()
+    return any(keyword in lowered for keyword in _EMOTIONAL_RISK_KEYWORDS)
