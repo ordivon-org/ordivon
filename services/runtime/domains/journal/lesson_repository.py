@@ -42,6 +42,21 @@ class LessonRepository:
             .all()
         )
 
+    def list_for_review(self, review_id: str) -> list[LessonORM]:
+        """Return all lessons linked to a specific review_id.
+
+        Unlike list_for_recommendation(), this does NOT require
+        recommendation_id — it queries directly by review_id.
+        Used by H-10 KF generalization for finance DecisionIntake reviews
+        that have no recommendation_id.
+        """
+        return (
+            self.db.query(LessonORM)
+            .filter(LessonORM.review_id == review_id)
+            .order_by(LessonORM.created_at.asc())
+            .all()
+        )
+
     def to_model(self, row: LessonORM) -> Lesson:
         return Lesson(
             id=row.id,
