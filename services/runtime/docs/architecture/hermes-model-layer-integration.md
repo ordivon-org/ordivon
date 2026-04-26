@@ -1,352 +1,264 @@
-# Hermes Runtime Integration Into The Model Layer
-
-This document is subordinate to the canonical structure in [architecture-baseline](./architecture-baseline.md). If wording here conflicts with the baseline, the baseline wins.
-
-## Why This Is The Next Step
-
-`financial-ai-os` has finished a closure pass that tightened product truthfulness, capability boundaries, and side-effect discipline. That was necessary, but it does not by itself create a learning loop.
-
-Right now the `intelligence/` layer is still effectively a stub:
-
-- `shared.config.settings` exposes only `reasoning_provider = "mock"`
-- `intelligence/models/router.py` always returns `MockReasoningProvider`
-- `orchestrator/workflows/analyze.py` can run the chain, but the AI part only produces static mock analysis
-
-By contrast, `hermes-runtime` already provides:
-
-- runtime provider resolution across many model backends
-- smart cheap-vs-strong model routing
-- agentic tool execution
-- delegation and subagents
-- memory providers and turn/session sync
-- context-engine abstraction
-- mixture-of-agents support for difficult tasks
-
-That means Hermes should not be treated as "just another LLM client". It should become the execution-grade runtime beneath our AI-facing layer.
-
-## The Correct Integration Point
-
-Hermes should be integrated under `intelligence/`, not under:
-
-- `capabilities/`
-- `apps/api/`
-- `governance/`
-- `execution/` directly
-
-### Recommended placement
-
-- `intelligence/runtime/hermes_runtime_adapter.py`
-- `intelligence/providers/hermes_agent_provider.py`
-- `intelligence/tasks/`
-- `intelligence/contracts/agent_actions.py`
-
-### Why this layer
-
-`intelligence/` already owns:
-
-- prompt and model-facing behavior
-- provider routing
-- reusable AI task definitions
-
-Hermes is a runtime for executing AI tasks with tools, memory, delegation, and model routing. That is a model/runtime concern, not a business capability and not a UI/API concern.
-
-## What Hermes Should Do For Us
-
-Hermes should become the runtime that executes bounded AI tasks and emits structured results, not the owner of business semantics.
-
-### Hermes should own
-
-- model/provider selection
-- smart routing between cheap and strong models
-- optional subagent delegation
-- tool execution
-- memory/session mechanics
-- context compression and recall
-- multi-model aggregation where justified
-
-### PFIOS should still own
-
-- domain objects
-- workflow sequencing
-- governance decision semantics
-- audit persistence
-- report lineage
-- outcome tracking
-- recommendation/review lifecycle meaning
-
-In short:
-
-- Hermes decides how AI work is executed
-- PFIOS decides what the business objects mean and how they connect
-
-## Target Architecture
-
-### Current
-
-`API -> capability -> orchestrator -> intelligence.mock -> governance -> audit/report`
-
-### Target
-
-`API -> capability -> orchestrator workflow -> intelligence task provider -> Hermes runtime -> structured task result -> governance -> audit/report/outcome`
-
-## Integration Model
-
-Do not expose the entire Hermes conversation model to PFIOS.
-
-Instead, wrap Hermes as a bounded task runtime with explicit task contracts.
-
-### Task types to support first
-
-1. `analysis.generate`
-2. `recommendation.refine`
-3. `review.draft`
-4. `report.summarize`
-5. `lesson.extract`
-
-Each task should have:
-
-- structured input contract
-- structured output contract
-- action record
-- upstream references
-- downstream references
-- runtime metadata
-
-## The Missing Object We Need
-
-Before Hermes can create durable accumulation, PFIOS needs an explicit AI action record.
-
-### Introduce `AgentAction`
-
-Suggested fields:
-
-- `action_id`
-- `task_type`
-- `actor_type` = `ai`
-- `actor_runtime` = `hermes`
-- `provider`
-- `model`
-- `session_id`
-- `status`
-- `started_at`
-- `completed_at`
-- `reason`
-- `idempotency_key`
-- `input_summary`
-- `input_refs`
-- `output_summary`
-- `output_refs`
-- `tool_trace_ref`
-- `memory_write_refs`
-- `delegation_trace`
-- `error`
-- `metadata`
-
-This object should sit in PFIOS state/domain storage, not inside Hermes.
-
-Hermes may generate runtime traces, but PFIOS must persist the business-facing action record.
-
-## Recommended First Implementation Slice
-
-### Phase 1: Replace Mock Analysis With A Hermes-backed Provider
-
-Goal: keep the workflow shape unchanged while swapping the reasoning engine from static mock output to an agentic runtime-backed provider.
-
-### New files
-
-- `intelligence/providers/hermes_agent_provider.py`
-- `intelligence/runtime/hermes_runtime_adapter.py`
-- `intelligence/contracts/agent_actions.py`
-
-### Existing files to update
-
-- `shared/config/settings.py`
-  - add `reasoning_provider = "hermes" | "mock"`
-  - add Hermes config such as runtime path, model, provider, base URL, API mode
-- `intelligence/models/router.py`
-  - route to `HermesAgentProvider` when configured
-- `intelligence/engine.py`
-  - keep interface stable, still returning `AnalysisResult`
-- `orchestrator/workflows/analyze.py`
-  - after AI analysis returns, persist an `AgentAction`
-  - thread `agent_action_id` into audit/report metadata
-- `governance/audit/*`
-  - include `agent_action_id` in audit payload when analysis came from Hermes
-
-### Hermes adapter responsibilities
-
-- launch or invoke Hermes runtime in a controlled way
-- pass a bounded task payload instead of an open-ended conversation
-- collect:
-  - chosen model/provider
-  - task output
-  - tool execution metadata
-  - memory/delegation metadata if available
-- normalize into a PFIOS-side structured result
-
-### Provider responsibilities
-
-`HermesAgentProvider.analyze(ctx)` should still return a domain `AnalysisResult`, but with metadata like:
-
-- `provider = "hermes"`
-- `runtime_provider`
-- `runtime_model`
-- `agent_action_id`
-- `task_type = "analysis.generate"`
-
-## How Hermes Should Be Invoked
-
-There are three possible approaches.
-
-### Option A: subprocess runtime wrapper
-
-PFIOS shells out to Hermes with a dedicated task payload and reads back structured JSON.
-
-Pros:
-
-- fastest to prove
-- least invasive to Hermes
-- keeps runtime isolated
-
-Cons:
-
-- weaker structured observability unless we standardize output carefully
-
-### Option B: Python-side adapter using Hermes internals
-
-PFIOS imports Hermes modules directly and uses its runtime/provider resolution/tool stack in-process.
-
-Pros:
-
-- richest metadata access
-- easier to capture session IDs, delegation, memory hooks
-
-Cons:
-
-- tighter dependency coupling
-- more fragile against Hermes internal changes
-
-### Option C: service boundary
-
-Run Hermes as a dedicated runtime service and call it through a local RPC/API boundary.
-
-Pros:
-
-- strongest operational separation
-- good for future multi-agent scaling
-
-Cons:
-
-- most setup overhead now
-
-### Recommendation
-
-Start with **Option A**, but shape the adapter API so it can later move to Option B or C without changing orchestrator contracts.
-
-## Why Not Use Hermes Everywhere Immediately
-
-If Hermes is injected too high in the stack, it will blur semantics again.
-
-Bad pattern:
-
-- capability calls Hermes directly
-- Hermes decides business lifecycle meaning
-- audit/report/outcome become post-hoc guesses
-
-Good pattern:
-
-- orchestrator declares a task
-- intelligence provider runs Hermes
-- Hermes returns a bounded result
-- PFIOS persists domain objects and action lineage
-
-## The Learning Loop We Actually Want
-
-The target is not "Hermes can answer more flexibly".
-
-The target is:
-
-`Hermes action -> persisted AgentAction -> recommendation/review/audit/report/outcome linkage -> lesson extraction -> future task improvement`
-
-This is what turns runtime intelligence into system accumulation.
-
-## Minimal Closed Loop After Integration
-
-### Analyze flow
-
-1. user/API triggers analyze
-2. orchestrator builds context
-3. Hermes-backed provider executes `analysis.generate`
-4. PFIOS stores `AgentAction`
-5. PFIOS stores `AnalysisResult`
-6. governance evaluates
-7. recommendation may be created
-8. audit records reference both analysis and action
-9. report references the same lineage
-10. later outcome/review can attribute success/failure back to the originating AI action
-
-## What To Build Immediately After Phase 1
-
-### Phase 2: agent action persistence
-
-Add persistent storage and repository/service support for `AgentAction`.
-
-### Phase 3: review and lesson extraction tasks
-
-Use Hermes for:
-
-- review draft generation
-- lesson candidate extraction
-- report synthesis
-
-Each must write another `AgentAction`.
-
-### Phase 4: outcome feedback
-
-When outcome closes the loop, write feedback against:
-
-- `recommendation_id`
-- `analysis_id`
-- `agent_action_id`
-- `task_type`
-- `model/provider`
-
-That makes performance statistically attributable.
-
-## Concrete Recommendation
-
-The next engineering move should be:
-
-1. add a Hermes-backed provider under `intelligence/`
-2. keep the current orchestrator workflow shape
-3. introduce `AgentAction` persistence immediately with the provider rollout
-4. wire `agent_action_id` into audit/report metadata
-5. only then expand Hermes into review/report/lesson tasks
-
-This keeps the first step small enough to land while still moving toward the real goal:
-
-`an AI runtime that can execute work, accumulate evidence, and become part of the system's learning flywheel instead of remaining a stateless text generator.`
-
-## Current Default Runtime Binding
-
-The repository is now wired so PFIOS can call Hermes through the local bridge without importing Hermes internals.
-
-### Current defaults
-
-- `PFIOS_REASONING_PROVIDER=hermes`
-- `PFIOS_HERMES_BASE_URL=http://127.0.0.1:9120/pfios/v1`
-- `PFIOS_HERMES_DEFAULT_PROVIDER=gemini`
-- `PFIOS_HERMES_DEFAULT_MODEL=google/gemini-3.1-pro-preview`
-
-On the Hermes side the bridge reports and uses:
-
-- `HERMES_PFIOS_PROVIDER=gemini`
-- `HERMES_PFIOS_MODEL=google/gemini-3.1-pro-preview`
-
-This means the remaining operational requirement is just:
-
-1. start Hermes bridge
-2. point PFIOS at Hermes
-3. let PFIOS call Hermes over HTTP for `analysis.generate`
-
-No extra provider-specific wiring is required inside PFIOS as long as Hermes already has the Gemini credentials configured.
+# Hermes Bridge Integration
+
+> **Status**: Current architecture document — replaces pre-H-1 design narrative
+> **Date**: 2026-04-26
+> **Phase**: Docs-D3 — Hermes Bridge / Harness Boundary Rewrite
+> **Supersedes**: Previous version (2026-04-22) which described aspirational Hermes-runtime integration that does not exist
+
+## Purpose
+
+This document describes the **actual** Hermes Bridge integration as it exists in the repository. It is not a design proposal. It documents the H-1 validated path: One Real Model Under Ordivon Control.
+
+---
+
+## What This Is
+
+The Hermes Bridge (`services/hermes_bridge/`) is an **Ordivon-owned adapter** that wraps the OpenAI-compatible SDK to provide a controlled model inference endpoint. It is the current harness — the external runtime that executes model inference.
+
+The bridge is **not** the full Nous Research Hermes Agent CLI. It is a minimal HTTP service that:
+
+1. Accepts a bounded task contract (`POST /pfios/v1/tasks`)
+2. Calls an external model API via OpenAI-compatible SDK
+3. Returns a structured response
+4. Enforces hard safety invariants
+
+---
+
+## Validated Path (H-1: One Real Model Under Control)
+
+```
+Ordivon System
+  │
+  ├── orchestrator/workflows/analyze.py
+  │     Declares ANALYSIS_WORKFLOW
+  │
+  ├── intelligence/engine.py
+  │     Resolves provider: mock | hermes
+  │
+  ├── intelligence/runtime/hermes_client.py
+  │     HermesClient: Ordivon-side adapter
+  │     Translates task → bridge protocol
+  │
+  └── HTTP POST → 127.0.0.1:9120/pfios/v1/tasks
+                    │
+┌───────────────────┼──────────────────────────────────┐
+│    HERMES BRIDGE (services/hermes_bridge/)            │
+│                                                       │
+│  app.py: FastAPI server                               │
+│    ├── Auth: Bearer token (BRIDGE_API_TOKEN)          │
+│    ├── Task route: POST /pfios/v1/tasks               │
+│    │     └── Only accepts task_type="analysis.generate"│
+│    └── Health: GET /pfios/v1/health                   │
+│                                                       │
+│  hermes_runner.py:                                    │
+│    ├── Builds OpenAI-compatible request               │
+│    ├── Calls external model API                       │
+│    ├── Parses structured JSON response                │
+│    └── Returns TaskResponse                           │
+│                                                       │
+│  Safety (hard constants):                             │
+│    ├── ALLOW_TOOLS = False                            │
+│    ├── ALLOW_FILE_WRITE = False                       │
+│    └── ALLOW_SHELL = False                            │
+│                                                       │
+│  Default model: deepseek-v4-pro @ api.deepseek.com    │
+└───────────────────┬──────────────────────────────────┘
+                    │ OpenAI-compatible SDK
+                    ▼
+              External Model API
+                    │
+                    ▼
+            Structured JSON response
+                    │
+                    ▼ (back through the bridge → HermesClient)
+Ordivon System
+  │
+  ├── IntelligenceRun written (pending → completed)
+  ├── AgentAction written (provider, model, session_id, tool_trace, usage)
+  ├── AnalysisORM written
+  ├── GovernanceDecision executed
+  ├── Recommendation generated
+  ├── AuditEvent written
+  ├── ExecutionReceipt written
+  └── API returns complete structure with governance metadata
+```
+
+This path was validated in H-1B through H-1D. All stages — IntelligenceRun, AgentAction, GovernanceDecision, AuditEvent, ExecutionReceipt — are written by Ordivon Core, not by the bridge.
+
+---
+
+## What This Is NOT
+
+| This is NOT | The bridge does not | Reality |
+|-------------|--------------------|---------|
+| Full Hermes Agent harness | No Hermes CLI, no ACP, no MCP | Bridge is a standalone FastAPI app; does not import Hermes internals |
+| Agentic tool execution | No tools, no shell, no file write | `ALLOW_TOOLS=False`, `ALLOW_SHELL=False`, `ALLOW_FILE_WRITE=False` — hard constants |
+| Multi-task runtime | Only `analysis.generate` | Other task types return 400 |
+| Delegation engine | No subagents | `enable_delegation` in execution_policy is accepted but defaults to False |
+| Memory provider | No memory/session persistence | `enable_memory` defaults to False; bridge has no session store |
+| Mixture-of-agents | No MOA aggregation | `enable_moa` defaults to False |
+| Multiple providers | Currently DeepSeek only | Config changeable via env vars; no dynamic provider routing in bridge |
+| Ordivon truth source | Does not write to Ordivon DB | Bridge has no PostgreSQL/DuckDB connection; no ORM access |
+| Governance engine | Does not execute governance | Governance runs in Ordivon workflow after bridge returns |
+| Receipt creator | Does not create receipts | Receipts are created by Ordivon Execution layer |
+| Side-effect executor | Does not touch broker/filesystem | No broker, no notification, no report write from bridge |
+
+---
+
+## Ownership Boundary
+
+| Component | Owned by | Location |
+|-----------|----------|----------|
+| Bridge (FastAPI app) | Ordivon Adapter | `services/hermes_bridge/app.py` |
+| Bridge config | Ordivon Adapter | `services/hermes_bridge/config.py` |
+| Bridge schemas | Ordivon Adapter | `services/hermes_bridge/schemas.py` |
+| Bridge runner (SDK call) | Ordivon Adapter | `services/hermes_bridge/hermes_runner.py` |
+| HermesClient (Ordivon side) | Ordivon Adapter | `intelligence/runtime/hermes_client.py` |
+| RuntimeResolver (provider selection) | Ordivon Intelligence | `intelligence/engine.py` (resolves `reasoning_provider`) |
+| IntelligenceRun ORM | Ordivon Core | `domains/intelligence_runs/orm.py` |
+| AgentAction ORM | Ordivon Core | `domains/ai_actions/orm.py` |
+| AnalysisORM | Ordivon Core | `domains/analysis/orm.py` |
+| GovernanceDecision | Ordivon Core | `governance/` |
+| AuditEvent | Ordivon Core | `governance/audit/` |
+| ExecutionReceipt | Ordivon Core | `execution/` |
+
+---
+
+## Adapter Responsibilities
+
+The Hermes Bridge (as an adapter) is responsible for:
+
+| Responsibility | Implementation |
+|---------------|---------------|
+| Accept task contracts | `POST /pfios/v1/tasks` with `TaskRequest` schema |
+| Validate task type | Only `analysis.generate` accepted; others → 400 |
+| Authenticate callers | Bearer token from `BRIDGE_API_TOKEN` env |
+| Call external model API | OpenAI-compatible SDK → DeepSeek API (configurable) |
+| Parse structured response | Extract `summary`, `thesis`, `risks`, `suggested_actions` |
+| Return structured response | `TaskResponse` with status, output, provider, model, usage |
+| Report health | `GET /pfios/v1/health` returns provider/model/status |
+| Enforce safety invariants | Hard constants: no tools, no file write, no shell |
+
+The bridge is NOT responsible for:
+
+| Non-responsibility | Why |
+|--------------------|-----|
+| Writing IntelligenceRun | Core concern; written by orchestrator workflow |
+| Writing AgentAction | Core concern; written by HermesClient after bridge returns |
+| Writing AnalysisORM | Core concern |
+| Executing governance | Core concern; governance runs after intelligence completes |
+| Creating receipts | Core concern; execution layer creates receipts |
+| Persisting sessions | Bridge is stateless; no session store |
+| Managing memory | Bridge has no memory provider; `enable_memory=False` |
+| Tool execution | `ALLOW_TOOLS=False` — hard constant |
+
+---
+
+## Core Responsibilities
+
+Ordivon Core (not the bridge) is responsible for:
+
+| Responsibility | Code path |
+|---------------|-----------|
+| Workflow orchestration | `orchestrator/workflows/analyze.py` |
+| Provider resolution | `intelligence/engine.py` → `RuntimeResolver` |
+| IntelligenceRun persistence | `domains/intelligence_runs/orm.py` |
+| AgentAction persistence | `domains/ai_actions/orm.py` |
+| Analysis persistence | `domains/analysis/orm.py` |
+| Governance execution | `governance/` — runs AFTER intelligence returns |
+| Audit event writing | `governance/audit/` |
+| Execution receipt creation | `execution/` — creates plan-only or live receipts |
+| State truth management | PostgreSQL via SQLAlchemy ORM |
+
+---
+
+## Safety Constraints
+
+These are hard constants in `services/hermes_bridge/config.py`. They are NOT configuration. Changing them requires an explicit ADR and code change.
+
+| Constant | Value | Enforced by |
+|----------|-------|-------------|
+| `ALLOW_TOOLS` | `False` | Hard constant; bridge does not pass tool definitions to model |
+| `ALLOW_FILE_WRITE` | `False` | Hard constant; bridge has no filesystem access for model |
+| `ALLOW_SHELL` | `False` | Hard constant; bridge does not execute shell commands |
+
+The bridge exists to enforce these invariants. If a future harness bypasses the bridge, it must implement equivalent invariants.
+
+---
+
+## Environment Configuration
+
+### Bridge side (`services/hermes_bridge/`)
+
+| Env var | Default | Purpose |
+|---------|---------|---------|
+| `PFIOS_BRIDGE_HOST` | `127.0.0.1` | Listen address |
+| `PFIOS_BRIDGE_PORT` | `9120` | Listen port |
+| `PFIOS_BRIDGE_API_TOKEN` | `""` | Auth token (empty = auth disabled) |
+| `PFIOS_BRIDGE_PROVIDER` | `deepseek` | Model provider |
+| `PFIOS_BRIDGE_MODEL` | `deepseek-v4-pro` | Model name |
+| `PFIOS_BRIDGE_BASE_URL` | `https://api.deepseek.com` | API base URL |
+| `PFIOS_BRIDGE_API_KEY` | `$DEEPSEEK_API_KEY` | API key |
+
+### Ordivon side (settings.py)
+
+| Env var | Default | Purpose |
+|---------|---------|---------|
+| `PFIOS_REASONING_PROVIDER` | `mock` | Switch to `hermes` to use bridge |
+| `PFIOS_HERMES_BASE_URL` | `http://127.0.0.1:9120/pfios/v1` | Bridge endpoint |
+| `PFIOS_HERMES_API_TOKEN` | `""` | Must match `PFIOS_BRIDGE_API_TOKEN` |
+| `PFIOS_HERMES_DEFAULT_PROVIDER` | `gemini` | Provider reported to bridge |
+| `PFIOS_HERMES_DEFAULT_MODEL` | `google/gemini-3.1-pro-preview` | Model reported to bridge |
+| `PFIOS_HERMES_TIMEOUT_SECONDS` | `30.0` | Bridge call timeout |
+| `PFIOS_HERMES_MAX_RETRIES` | `1` | Retry count on failure |
+| `PFIOS_HERMES_RETRY_BACKOFF_SECONDS` | `0.2` | Backoff between retries |
+
+---
+
+## Future Harness Integration Requirements
+
+If a new model runtime (OpenAI direct, Anthropic, local llama.cpp, etc.) is added as a harness:
+
+1. Must implement the same contract: `POST /pfios/v1/tasks` → `TaskResponse`
+2. Must enforce equivalent safety invariants (no tools/shell/file write without explicit ADR)
+3. Must be registered in `RuntimeResolver` as a configuration-driven option
+4. Must not require changes to orchestrator, governance, or execution layers
+5. Must be feature-flagged (default OFF)
+6. Must pass H-1C bridge contract tests
+
+---
+
+## H-1 Validation Commands
+
+### Start bridge
+```bash
+uv run uvicorn services.hermes_bridge.app:app --host 127.0.0.1 --port 9120
+```
+
+### Health check
+```bash
+curl http://127.0.0.1:9120/pfios/v1/health
+# → {"status":"ok","bridge":"pfios-hermes-bridge","provider":"deepseek","model":"deepseek-v4-pro","tools_enabled":false}
+```
+
+### Contract tests
+```bash
+uv run pytest -q tests/unit/services/test_hermes_bridge_contract.py -vv
+```
+
+### Full H-1 validation (with mock provider)
+```bash
+PFIOS_DB_URL=postgresql://pfios:pfios@127.0.0.1:5432/pfios \
+uv run pytest -q tests/unit tests/integration -p no:cacheprovider
+```
+
+---
+
+## Relationship to Other Documents
+
+- [ordivon-system-definition.md](ordivon-system-definition.md) — what the system is
+- [harness-adapter-boundary.md](harness-adapter-boundary.md) — runtime boundary rules
+- [core-pack-adapter-boundary.md](core-pack-adapter-boundary.md) — adapter anti-contamination rules
+- [systems-engineering-baseline.md](systems-engineering-baseline.md) — engineering rules
+- [h1-real-model-under-control.md](../runtime/h1-real-model-under-control.md) — H-1 closure record
+- [hermes-runtime-bridge.md](../runbooks/hermes-runtime-bridge.md) — operational runbook
