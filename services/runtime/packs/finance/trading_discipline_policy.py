@@ -29,15 +29,49 @@ _EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
     "revenge", "impulsive",
 })
 
-_BANNED_THESIS_PATTERNS: frozenset[str] = frozenset({
-    "just feels right", "no specific thesis", "trust me",
-    "yolo", "vibes", "gut feeling", "intuition",
-    "going to the moon", "to the moon", "moon shot",
-    "full port", "all in", "yolo all in",
-    "pumping", "fomo is real", "i need in",
-    "no idea", "whatever", "because why not",
-    "feeling lucky", "hope this works", "pray for me",
-})
+_BANNED_THESIS_PATTERNS: tuple[str, ...] = (
+    "just feels right",
+    "feels right",
+    "looks good",
+    "probably pump",
+    "should go up",
+    "should go down",
+    "vibes",
+    "no specific thesis",
+    "trust me",
+    "yolo",
+    "because i said so",
+    "i think so",
+    "let's see",
+    "we'll see",
+    "who knows",
+    "idk",
+    "just a hunch",
+    "gut feeling",
+    "hoping for",
+    "praying for",
+)
+
+_INVALIDATION_WORDS: tuple[str, ...] = (
+    "unless",
+    "invalid",
+    "invalidate",
+    "falsif",
+    "if not",
+    "stop if",
+    "exit if",
+    "cut if",
+)
+
+_CONFIRMATION_WORDS: tuple[str, ...] = (
+    "confirm",
+    "confirmed when",
+    "verif",
+    "must hold",
+    "must close",
+    "needs to",
+    "requires",
+)
 
 
 class TradingDisciplinePolicy:
@@ -196,10 +230,6 @@ def _contains_emotional_risk(emotional_state: str) -> bool:
 def _has_verifiability(thesis: str) -> bool:
     """Check if thesis contains invalidation or confirmation language."""
     lowered = thesis.lower()
-    markers = [
-        "unless", "invalidated if", "invalid if",
-        "confirmed by", "confirmation", "confirm",
-        "if price", "if the", "stop if", "exit if",
-        "target at", "target is", "entry at",
-    ]
-    return any(marker in lowered for marker in markers)
+    has_invalidation = any(w in lowered for w in _INVALIDATION_WORDS)
+    has_confirmation = any(w in lowered for w in _CONFIRMATION_WORDS)
+    return has_invalidation or has_confirmation
