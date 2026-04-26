@@ -110,6 +110,9 @@ async def submit_performance_review(review: ReviewCreateRequest, db: Session = D
         res = review_capability.submit_review(review_service, payload, action_context)
         db.commit()
         return asdict(res)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
     except ReviewExecutionFailure as e:
         db.commit()
         raise HTTPException(

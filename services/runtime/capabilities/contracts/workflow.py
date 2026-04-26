@@ -77,6 +77,8 @@ class ReviewDetailResult:
     knowledge_feedback_packet_id: str | None = None
     governance_hint_count: int = 0
     intelligence_hint_count: int = 0
+    outcome_ref_type: str | None = None
+    outcome_ref_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

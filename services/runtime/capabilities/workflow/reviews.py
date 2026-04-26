@@ -12,6 +12,7 @@ from capabilities.contracts import (
     ReviewSkeletonResult,
 )
 from domains.journal.models import Review
+from domains.finance_outcome.repository import FinanceManualOutcomeRepository
 from domains.research.repository import AnalysisRepository
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.strategy.outcome_repository import OutcomeRepository
@@ -112,6 +113,8 @@ class ReviewCapability:
             knowledge_feedback_packet_id=review.knowledge_feedback_packet_id or (packet_model.id if packet_model is not None else None),
             governance_hint_count=len(packet_model.governance_hints) if packet_model is not None else 0,
             intelligence_hint_count=len(packet_model.intelligence_hints) if packet_model is not None else 0,
+            outcome_ref_type=review.outcome_ref_type,
+            outcome_ref_id=review.outcome_ref_id,
             metadata={
                 "trace_path": f"/api/v1/traces/reviews/{review.id}",
                 "knowledge_feedback_status": "prepared" if packet_model is not None else "not_prepared_yet",
@@ -125,6 +128,9 @@ class ReviewCapability:
         action_context: ActionContext | None,
     ) -> ReviewResult:
         context = require_action_context("review submission", action_context)
+        outcome_ref_type = payload.get("outcome_ref_type")
+        outcome_ref_id = payload.get("outcome_ref_id")
+        self._validate_outcome_ref(service.review_repository.db, outcome_ref_type, outcome_ref_id)
         review = Review(
             recommendation_id=payload.get("linked_recommendation_id") or payload.get("recommendation_id"),
             review_type="recommendation_postmortem",
@@ -134,6 +140,8 @@ class ReviewCapability:
             cause_tags=self._split_tags(payload.get("mistake_tags")),
             lessons=[lesson["lesson_text"] for lesson in payload.get("lessons", [])],
             followup_actions=[payload["new_rule_candidate"]] if payload.get("new_rule_candidate") else [],
+            outcome_ref_type=outcome_ref_type,
+            outcome_ref_id=outcome_ref_id,
         )
         adapter = build_default_execution_adapter_registry().resolve("review", service.review_repository.db)
         result = adapter.submit(
@@ -163,12 +171,17 @@ class ReviewCapability:
         action_context: ActionContext | None,
         review_type: str = "recommendation_postmortem",
         expected_outcome: str | None = None,
+        outcome_ref_type: str | None = None,
+        outcome_ref_id: str | None = None,
     ) -> ReviewResult:
         context = require_action_context("review creation", action_context)
+        self._validate_outcome_ref(service.review_repository.db, outcome_ref_type, outcome_ref_id)
         review = Review(
             recommendation_id=recommendation_id,
             review_type=review_type,
             expected_outcome=expected_outcome or "",
+            outcome_ref_type=outcome_ref_type,
+            outcome_ref_id=outcome_ref_id,
         )
         row = service.create(review)
         return ReviewResult(
@@ -251,7 +264,42 @@ class ReviewCapability:
             },
         )
 
-    def _split_tags(self, raw_tags: str | None) -> list[str]:
+    @staticmethod
+    def _validate_outcome_ref(db: Any, outcome_ref_type: str | None, outcome_ref_id: str | None) -> None:
+        """Validate outcome reference pair and that referenced outcome exists.
+
+        Rules:
+        - Both None: OK (no outcome reference).
+        - Only one provided: reject (must be a pair).
+        - Unsupported type: reject.
+        - ``finance_manual_outcome``: must reference an existing FinanceManualOutcome.
+        """
+        # pylint: disable=import-outside-toplevel
+        if outcome_ref_type is None and outcome_ref_id is None:
+            return
+
+        if outcome_ref_type is None and outcome_ref_id is not None:
+            raise ValueError("outcome_ref_id provided without outcome_ref_type")
+        if outcome_ref_type is not None and outcome_ref_id is None:
+            raise ValueError("outcome_ref_type provided without outcome_ref_id")
+
+        SUPPORTED = frozenset({"finance_manual_outcome"})
+        if outcome_ref_type not in SUPPORTED:
+            raise ValueError(
+                f"Unsupported outcome_ref_type: {outcome_ref_type!r}. "
+                f"Supported: {sorted(SUPPORTED)}"
+            )
+
+        if outcome_ref_type == "finance_manual_outcome":
+            repo = FinanceManualOutcomeRepository(db)
+            existing = repo.get(outcome_ref_id)
+            if existing is None:
+                raise ValueError(
+                    f"FinanceManualOutcome not found: {outcome_ref_id}"
+                )
+
+    @staticmethod
+    def _split_tags(raw_tags: str | None) -> list[str]:
         if not raw_tags:
             return []
         return [tag.strip() for tag in raw_tags.split(",") if tag.strip()]

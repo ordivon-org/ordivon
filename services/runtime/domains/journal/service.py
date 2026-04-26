@@ -114,7 +114,17 @@ class ReviewService:
         )
 
         lesson_rows = []
+        outcome_ref_source = (
+            f"finance_manual_outcome:{row.outcome_ref_id}"
+            if row.outcome_ref_id and row.outcome_ref_type == "finance_manual_outcome"
+            else None
+        )
         for idx, lesson_text in enumerate(lessons, start=1):
+            source_refs: list[str] = []
+            if row.recommendation_id:
+                source_refs.append(f"recommendation:{row.recommendation_id}")
+            if outcome_ref_source:
+                source_refs.append(outcome_ref_source)
             lesson_model = Lesson(
                 review_id=row.id,
                 recommendation_id=row.recommendation_id,
@@ -123,6 +133,7 @@ class ReviewService:
                 lesson_type="review_learning",
                 tags=cause_tags,
                 confidence=0.8,
+                source_refs=source_refs,
             )
             lesson_row = self.lesson_service.create(lesson_model)
             lesson_rows.append(lesson_row)

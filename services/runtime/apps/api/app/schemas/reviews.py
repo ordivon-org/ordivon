@@ -19,6 +19,8 @@ class ReviewCreateRequest(BaseModel):
     mistake_tags: Optional[str] = None
     lessons: List[ReviewLessonInput] = []
     new_rule_candidate: Optional[str] = None
+    outcome_ref_type: Optional[str] = None
+    outcome_ref_id: Optional[str] = None
     action_context: Optional[ActionContextInput] = None
 
 
@@ -76,4 +78,6 @@ class ReviewDetailResponse(BaseModel):
     knowledge_feedback_packet_id: Optional[str] = None
     governance_hint_count: int = 0
     intelligence_hint_count: int = 0
+    outcome_ref_type: Optional[str] = None
+    outcome_ref_id: Optional[str] = None
     metadata: dict = {}

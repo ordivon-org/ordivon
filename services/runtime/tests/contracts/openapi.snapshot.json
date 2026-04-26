@@ -3458,6 +3458,28 @@
             ],
             "title": "New Rule Candidate"
           },
+          "outcome_ref_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Ref Type"
+          },
+          "outcome_ref_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Ref Id"
+          },
           "action_context": {
             "anyOf": [
               {
@@ -3666,6 +3688,28 @@
             "type": "integer",
             "title": "Intelligence Hint Count",
             "default": 0
+          },
+          "outcome_ref_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Ref Type"
+          },
+          "outcome_ref_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Ref Id"
           },
           "metadata": {
             "additionalProperties": true,

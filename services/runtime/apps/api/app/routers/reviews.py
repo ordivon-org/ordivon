@@ -29,9 +29,14 @@ def create_review(req: ReviewCreateRequest, db: Session = Depends(get_db)):
             action_context=ActionContext(**req.action_context.model_dump()),
             review_type=req.review_type,
             expected_outcome=req.expected_outcome,
+            outcome_ref_type=req.outcome_ref_type,
+            outcome_ref_id=req.outcome_ref_id,
         )
         db.commit()
         return asdict(result)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

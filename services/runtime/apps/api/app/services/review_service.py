@@ -25,6 +25,8 @@ class ReviewService:
         action_context: ActionContext,
         review_type: str = "recommendation_postmortem",
         expected_outcome: str | None = None,
+        outcome_ref_type: str | None = None,
+        outcome_ref_id: str | None = None,
     ) -> dict[str, str]:
         return cls._capability.create_review(
             service=service,
@@ -32,6 +34,8 @@ class ReviewService:
             action_context=action_context,
             review_type=review_type,
             expected_outcome=expected_outcome,
+            outcome_ref_type=outcome_ref_type,
+            outcome_ref_id=outcome_ref_id,
         )
 
     @classmethod

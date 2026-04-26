@@ -62,6 +62,7 @@ def test_completed_review_lessons_can_be_derived_into_knowledge_entries():
         assert {ref.object_type for ref in knowledge_entry.evidence_refs} == {
             "review",
             "recommendation",
+            "source_ref",
         }
         assert knowledge_entry.narrative == "Wait for confirmation candle before entry"
     finally:
