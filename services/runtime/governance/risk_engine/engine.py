@@ -4,7 +4,7 @@ from domains.decision_intake.models import DecisionIntake
 from domains.research.models import AnalysisResult
 from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
-from governance.risk_engine.thesis_quality import check_thesis_quality
+from packs.finance.trading_discipline_policy import RejectReason, EscalateReason
 
 # ── H-5 Finance Decision Governance Hard Gate ──────────────────────────────
 # Decision priority: reject > escalate > execute
@@ -76,13 +76,15 @@ class RiskEngine:
     def validate_intake(
         self,
         intake: DecisionIntake,
+        pack_policy=None,  # ADR-006: optional Pack policy for domain validation
         advisory_hints: list[GovernanceAdvisoryHint] | tuple[GovernanceAdvisoryHint, ...] | None = None,
     ) -> GovernanceDecision:
-        """H-5 Finance Decision Governance Hard Gate.
+        """Evaluate a DecisionIntake and return execute/escalate/reject.
 
-        Evaluates a DecisionIntake and returns a deterministic
-        execute / escalate / reject decision with priority:
-        reject > escalate > execute.
+        Gate 0 (generic — stays in Core): intake must be validated.
+        Gates 1-4 (delegated to pack_policy per ADR-006): domain-specific.
+        If no pack_policy provided, all gates pass → execute.
+        Decision priority: reject > escalate > execute.
         """
         hints = tuple(advisory_hints or ())
         snapshot = self.policy_source.get_active_snapshot()
@@ -90,106 +92,33 @@ class RiskEngine:
         reject_reasons: list[str] = []
         escalate_reasons: list[str] = []
 
-        # ── Gate 0: Intake must be validated ──────────────────────────
+        # ── Gate 0: Intake must be validated (generic) ──────────────
         if intake.status != "validated":
             reject_reasons.append(
-                f"Intake status is '{intake.status}' — only validated intakes can be governed."
+                f"Intake status is '{intake.status}' — "
+                f"only validated intakes can be governed."
             )
 
-        payload = intake.payload
+        # ── Gates 1-4: Delegated to pack policy (ADR-006) ──────────
+        if pack_policy is not None and intake.payload:
+            payload = intake.payload
 
-        # ── Gate 1: Required discipline fields (missing → reject) ────
-        thesis = _as_str(payload.get("thesis"))
-        if not thesis:
-            reject_reasons.append("Missing required field: thesis.")
+            for reason in pack_policy.validate_fields(payload):
+                if isinstance(reason, RejectReason):
+                    reject_reasons.append(reason.message)
+                elif isinstance(reason, EscalateReason):
+                    escalate_reasons.append(reason.message)
 
-        # H-9C3: Thesis quality checks (only if thesis is present)
-        if thesis:
-            quality = check_thesis_quality(thesis)
-            if quality.is_banned:
-                reject_reasons.append(
-                    f"Thesis quality rejected: {quality.banned_match or 'generic pattern'}."
-                )
-            if quality.is_too_short:
-                escalate_reasons.append(
-                    f"Thesis is too short ({len(thesis.strip())} chars, "
-                    f"minimum 50) — requires human review."
-                )
-            if quality.lacks_verifiability:
-                escalate_reasons.append(
-                    "Thesis lacks verifiability criteria (no invalidation "
-                    "or confirmation conditions) — requires human review."
-                )
+            for reason in pack_policy.validate_numeric(payload):
+                reject_reasons.append(reason.message)
 
-        stop_loss = _as_str(payload.get("stop_loss"))
-        if not stop_loss:
-            reject_reasons.append("Missing required field: stop_loss.")
+            for reason in pack_policy.validate_limits(payload):
+                reject_reasons.append(reason.message)
 
-        emotional_state = _as_str(payload.get("emotional_state"))
-        if not emotional_state:
-            reject_reasons.append("Missing required field: emotional_state.")
+            for reason in pack_policy.validate_behavioral(payload):
+                escalate_reasons.append(reason.message)
 
-        # ── Gate 2: Required numeric fields (missing/zero → reject) ──
-        max_loss = _as_positive_float(payload.get("max_loss_usdt"))
-        if max_loss is None:
-            reject_reasons.append("Missing or non-positive field: max_loss_usdt.")
-
-        position_size = _as_positive_float(payload.get("position_size_usdt"))
-        if position_size is None:
-            reject_reasons.append("Missing or non-positive field: position_size_usdt.")
-
-        risk_unit = _as_positive_float(payload.get("risk_unit_usdt"))
-        if risk_unit is None:
-            reject_reasons.append("Missing or non-positive field: risk_unit_usdt.")
-
-        # ── Gate 3: Risk limit violations (only if numeric fields present) ──
-        if max_loss is not None and risk_unit is not None and risk_unit > 0:
-            if max_loss > _MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit:
-                reject_reasons.append(
-                    f"max_loss_usdt ({max_loss}) exceeds {_MAX_LOSS_TO_RISK_UNIT_RATIO}× "
-                    f"risk_unit_usdt ({risk_unit}), max allowed: {_MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit}."
-                )
-
-        if position_size is not None and risk_unit is not None and risk_unit > 0:
-            if position_size > _MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit:
-                reject_reasons.append(
-                    f"position_size_usdt ({position_size}) exceeds "
-                    f"{_MAX_POSITION_TO_RISK_UNIT_RATIO}× "
-                    f"risk_unit_usdt ({risk_unit}), max allowed: {_MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit}."
-                )
-
-        # ── Gate 4: Behavioural red flags (escalate, not reject) ─────
-        if payload.get("is_revenge_trade") is True:
-            escalate_reasons.append("is_revenge_trade=true — requires human review.")
-
-        if payload.get("is_chasing") is True:
-            escalate_reasons.append("is_chasing=true — requires human review.")
-
-        # H-9C2: Emotional state risk indicators → escalate
-        emotional = _as_str(payload.get("emotional_state"))
-        if emotional and _contains_emotional_risk(emotional):
-            escalate_reasons.append(
-                f"emotional_state='{emotional}' indicates elevated risk — "
-                f"requires human review."
-            )
-
-        # H-9C2: Rule exceptions present → escalate (any exception needs review)
-        rule_exceptions = payload.get("rule_exceptions")
-        if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
-            escalate_reasons.append(
-                f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — "
-                f"requires human review."
-            )
-
-        # H-9C2: Confidence too low → escalate (but not missing, which is not checked here)
-        confidence = payload.get("confidence")
-        if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
-            escalate_reasons.append(
-                f"confidence={confidence} is below 0.3 threshold — "
-                f"requires human review."
-            )
-
-        # ── Decision (priority: reject > escalate > execute) ─────────
+        # ── Decision (priority: reject > escalate > execute) ───────
         if reject_reasons:
             return GovernanceDecision(
                 decision="reject",
@@ -214,7 +143,7 @@ class RiskEngine:
 
         return GovernanceDecision(
             decision="execute",
-            reasons=["Passed H-5 Finance Governance Hard Gate."],
+            reasons=["Passed all governance gates."],
             source="risk_engine.finance_governance_hard_gate",
             advisory_hints=hints,
             policy_set_id=snapshot.policy_set_id,

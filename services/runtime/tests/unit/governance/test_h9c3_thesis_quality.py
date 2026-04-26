@@ -8,6 +8,7 @@ import pytest
 
 from domains.decision_intake.models import DecisionIntake
 from governance.risk_engine.engine import RiskEngine
+from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 
 def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
@@ -46,7 +47,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
 def test_h9c3_thesis_too_short_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": "Short thesis statement"})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "escalate"
     assert any("thesis" in r.lower() for r in decision.reasons)
 
@@ -55,7 +56,7 @@ def test_h9c3_thesis_boundary_short_escalated():
     """49 chars → escalate (below 50 threshold)."""
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": "B" * 49})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "escalate"
 
 
@@ -63,7 +64,7 @@ def test_h9c3_thesis_boundary_ok_not_escalated():
     """50 chars → not escalated for length."""
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": "B" * 50})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     # Length is OK — decision depends on other factors (might be execute or 
     # escalate for lack of verifiability, but NOT for length)
     if decision.decision == "escalate":
@@ -86,7 +87,7 @@ def test_h9c3_thesis_boundary_ok_not_escalated():
 def test_h9c3_banned_pattern_rejected(bad_thesis):
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": bad_thesis})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("thesis" in r.lower() for r in decision.reasons)
     assert any(("quality" in r.lower() or "pattern" in r.lower() or "generic" in r.lower())
@@ -96,7 +97,7 @@ def test_h9c3_banned_pattern_rejected(bad_thesis):
 def test_h9c3_banned_pattern_case_insensitive():
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": "JUST FEELS RIGHT"})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
 
 
@@ -110,7 +111,7 @@ def test_h9c3_no_invalidation_wording_escalated():
         "thesis": "BTC is going up because the trend is strong and volume is high "
                   "and the market sentiment is bullish across all timeframes."
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "escalate"
     assert any(
         w in str(decision.reasons).lower()
@@ -125,7 +126,7 @@ def test_h9c3_has_invalidation_wording_not_escalated():
         "thesis": "BTC is going up because the trend is strong, "
                   "invalidated if price closes below the 200 EMA."
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     # Should NOT escalate for invalidation wording
     if decision.decision == "escalate":
         assert not any("invalidation" in r.lower() for r in decision.reasons)
@@ -138,7 +139,7 @@ def test_h9c3_has_confirmation_wording_not_escalated():
         "thesis": "ETH breakout target is 2500, confirmed when 4h candle "
                   "closes above resistance with volume > 2x average."
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     if decision.decision == "escalate":
         assert not any("invalidation" in r.lower() for r in decision.reasons)
 
@@ -149,7 +150,7 @@ def test_h9c3_has_unless_not_escalated():
         "thesis": "SOL will continue its uptrend unless it loses the 100 level "
                   "on daily close, which would invalidate the momentum thesis."
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     if decision.decision == "escalate":
         assert not any("invalidation" in r.lower() for r in decision.reasons)
 
@@ -159,5 +160,5 @@ def test_h9c3_has_unless_not_escalated():
 def test_h9c3_valid_thesis_executed():
     engine = RiskEngine()
     intake = _make_intake()
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "execute"

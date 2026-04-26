@@ -9,6 +9,7 @@ import pytest
 from domains.decision_intake.models import DecisionIntake
 from governance.decision import GovernanceDecision
 from governance.risk_engine.engine import RiskEngine
+from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ def _valid_intake() -> DecisionIntake:
 def test_h5_invalid_intake_rejected():
     engine = RiskEngine()
     intake = _make_intake(status="invalid")
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("invalid" in r.lower() for r in decision.reasons)
 
@@ -63,7 +64,7 @@ def test_h5_invalid_intake_rejected():
 def test_h5_missing_thesis_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("thesis" in r.lower() for r in decision.reasons)
 
@@ -71,7 +72,7 @@ def test_h5_missing_thesis_rejected():
 def test_h5_empty_thesis_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": "   "})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("thesis" in r.lower() for r in decision.reasons)
 
@@ -81,7 +82,7 @@ def test_h5_empty_thesis_rejected():
 def test_h5_missing_stop_loss_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"stop_loss": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("stop_loss" in r.lower() for r in decision.reasons)
 
@@ -91,7 +92,7 @@ def test_h5_missing_stop_loss_rejected():
 def test_h5_missing_max_loss_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"max_loss_usdt": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("max_loss" in r.lower() for r in decision.reasons)
 
@@ -99,7 +100,7 @@ def test_h5_missing_max_loss_rejected():
 def test_h5_zero_max_loss_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"max_loss_usdt": 0.0})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("max_loss" in r.lower() for r in decision.reasons)
 
@@ -109,7 +110,7 @@ def test_h5_zero_max_loss_rejected():
 def test_h5_missing_position_size_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"position_size_usdt": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("position_size" in r.lower() for r in decision.reasons)
 
@@ -119,7 +120,7 @@ def test_h5_missing_position_size_rejected():
 def test_h5_missing_risk_unit_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"risk_unit_usdt": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("risk_unit" in r.lower() for r in decision.reasons)
 
@@ -129,7 +130,7 @@ def test_h5_missing_risk_unit_rejected():
 def test_h5_missing_emotional_state_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"emotional_state": None})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("emotional_state" in r.lower() for r in decision.reasons)
 
@@ -137,7 +138,7 @@ def test_h5_missing_emotional_state_rejected():
 def test_h5_empty_emotional_state_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"emotional_state": ""})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("emotional_state" in r.lower() for r in decision.reasons)
 
@@ -147,7 +148,7 @@ def test_h5_empty_emotional_state_rejected():
 def test_h5_revenge_trade_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"is_revenge_trade": True})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "escalate"
     assert any("revenge" in r.lower() for r in decision.reasons)
 
@@ -157,7 +158,7 @@ def test_h5_revenge_trade_escalated():
 def test_h5_chasing_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"is_chasing": True})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "escalate"
     assert any("chasing" in r.lower() for r in decision.reasons)
 
@@ -168,7 +169,7 @@ def test_h5_max_loss_exceeds_risk_unit_rejected():
     engine = RiskEngine()
     # max_loss = 25 > 2 * 10 = 20
     intake = _make_intake(payload={"max_loss_usdt": 25.0, "risk_unit_usdt": 10.0})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("max_loss" in r.lower() for r in decision.reasons)
     assert any("exceeds" in r.lower() for r in decision.reasons)
@@ -178,7 +179,7 @@ def test_h5_max_loss_equal_to_2x_risk_unit_allowed():
     engine = RiskEngine()
     # max_loss = 20 == 2 * 10 → boundary, not rejected
     intake = _make_intake(payload={"max_loss_usdt": 20.0, "risk_unit_usdt": 10.0})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     # Should not reject for max_loss; may escalate if other flags present
     if decision.decision == "reject":
         assert not any("max_loss" in r.lower() for r in decision.reasons)
@@ -190,7 +191,7 @@ def test_h5_position_size_exceeds_risk_unit_rejected():
     engine = RiskEngine()
     # position_size = 120 > 10 * 10 = 100
     intake = _make_intake(payload={"position_size_usdt": 120.0, "risk_unit_usdt": 10.0})
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("position_size" in r.lower() for r in decision.reasons)
     assert any("exceeds" in r.lower() for r in decision.reasons)
@@ -201,7 +202,7 @@ def test_h5_position_size_exceeds_risk_unit_rejected():
 def test_h5_valid_intake_executed():
     engine = RiskEngine()
     intake = _valid_intake()
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "execute"
     assert any("passed" in r.lower() for r in decision.reasons)
 
@@ -215,7 +216,7 @@ def test_h5_priority_reject_over_escalate_when_missing_field_and_revenge():
         "stop_loss": None,
         "is_revenge_trade": True,
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("stop_loss" in r.lower() for r in decision.reasons)
 
@@ -228,7 +229,7 @@ def test_h5_priority_reject_over_escalate_when_limit_and_chasing():
         "risk_unit_usdt": 10.0,
         "is_chasing": True,
     })
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
 
 
@@ -237,7 +238,7 @@ def test_h5_priority_reject_over_escalate_when_limit_and_chasing():
 def test_h5_governance_decision_has_reasons():
     engine = RiskEngine()
     intake = _valid_intake()
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert len(decision.reasons) >= 1
     assert isinstance(decision.reasons[0], str)
 
@@ -245,7 +246,7 @@ def test_h5_governance_decision_has_reasons():
 def test_h5_governance_decision_has_policy_refs():
     engine = RiskEngine()
     intake = _valid_intake()
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert len(decision.active_policy_ids) >= 1
     assert decision.policy_set_id != "governance.unknown"
 
@@ -253,7 +254,7 @@ def test_h5_governance_decision_has_policy_refs():
 def test_h5_governance_decision_source_is_hard_gate():
     engine = RiskEngine()
     intake = _valid_intake()
-    decision = engine.validate_intake(intake)
+    decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert "hard_gate" in decision.source or "finance_governance" in decision.source
 
 
