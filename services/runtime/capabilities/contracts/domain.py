@@ -28,4 +28,6 @@ class ReviewResult:
     created_at: str
     recommendation_id: str | None
     lessons_created: int
+    outcome_ref_type: str | None = None
+    outcome_ref_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

@@ -157,6 +157,8 @@ class ReviewCapability:
             created_at=row.created_at.isoformat() if hasattr(row, "created_at") else utc_now().isoformat(),
             recommendation_id=row.recommendation_id,
             lessons_created=len(payload.get("lessons", [])),
+            outcome_ref_type=row.outcome_ref_type,
+            outcome_ref_id=row.outcome_ref_id,
             metadata={
                 "action_context": asdict(context),
                 "execution_request_id": result.execution_request_id,
@@ -190,6 +192,8 @@ class ReviewCapability:
             created_at=row.created_at.isoformat() if hasattr(row, "created_at") else utc_now().isoformat(),
             recommendation_id=row.recommendation_id,
             lessons_created=0,
+            outcome_ref_type=row.outcome_ref_type,
+            outcome_ref_id=row.outcome_ref_id,
             metadata={"action_context": asdict(context)},
         )
 
@@ -231,6 +235,8 @@ class ReviewCapability:
             created_at=review_row.created_at.isoformat() if hasattr(review_row, "created_at") else utc_now().isoformat(),
             recommendation_id=review_row.recommendation_id,
             lessons_created=len(lesson_rows),
+            outcome_ref_type=review_row.outcome_ref_type,
+            outcome_ref_id=review_row.outcome_ref_id,
             metadata={
                 "action_context": asdict(context),
                 "execution_request_id": result.execution_request_id,
