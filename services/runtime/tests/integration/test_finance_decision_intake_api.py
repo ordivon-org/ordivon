@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from apps.api.app.deps import get_db
 from apps.api.app.main import app
+from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from governance.audit.orm import AuditEventORM
 from state.db.base import Base
 
@@ -250,7 +251,6 @@ def test_h5_governance_does_not_create_recommendation():
 # ── Side-effect: governance does NOT create ExecutionReceipt ────────────────
 
 def test_h5_governance_does_not_create_execution_receipt():
-    from domains.execution_records.orm import ExecutionReceiptORM
     with _client_with_db() as (client, testing_session_local):
         _, gov_resp = _create_and_govern(client)
         assert gov_resp["governance_decision"] == "execute"
@@ -265,7 +265,6 @@ def test_h5_governance_does_not_create_execution_receipt():
 # ── Side-effect: governance does NOT trigger broker/order/execution ─────────
 
 def test_h5_governance_does_not_trigger_broker():
-    from domains.execution_records.orm import ExecutionReceiptORM
     with _client_with_db() as (client, testing_session_local):
         _, gov_resp = _create_and_govern(client)
         assert gov_resp["governance_decision"] == "execute"
@@ -311,7 +310,6 @@ def test_h5_govern_response_has_decision_details():
 # ── Original test_route_does_not_create_execution_receipts (kept) ──────────
 
 def test_route_does_not_create_execution_receipts():
-    from domains.execution_records.orm import ExecutionReceiptORM
     with _client_with_db() as (client, testing_session_local):
         response = client.post("/api/v1/finance-decisions/intake", json=_valid_request())
         db = testing_session_local()
@@ -321,3 +319,156 @@ def test_route_does_not_create_execution_receipts():
             db.close()
     assert response.status_code == 200
     assert receipt_count == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# H-6: Plan-Only Receipt — Integration Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _create_govern_and_plan(client) -> dict:
+    """Create intake, govern to execute, create plan receipt. Returns plan response."""
+    payload = _valid_request()
+    resp = client.post("/api/v1/finance-decisions/intake", json=payload)
+    assert resp.status_code == 200, resp.text
+    intake_id = resp.json()["id"]
+
+    gov_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
+    assert gov_resp.status_code == 200, gov_resp.text
+    assert gov_resp.json()["governance_decision"] == "execute"
+
+    plan_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+    return plan_resp
+
+
+# ── H-6 Test 1: execute intake → plan receipt (happy path) ──────────────
+
+
+def test_h6_execute_intake_creates_plan_receipt():
+    with _client_with_db() as (client, _):
+        plan_resp = _create_govern_and_plan(client)
+        assert plan_resp.status_code == 200, plan_resp.text
+        body = plan_resp.json()
+        assert body["receipt_kind"] == "plan"
+        assert body["broker_execution"] is False
+        assert body["side_effect_level"] == "none"
+        assert body["decision_intake_id"].startswith("intake_")
+        assert body["governance_status"] == "execute"
+        assert body["execution_request_id"].startswith("exreq_")
+        assert body["execution_receipt_id"].startswith("exrcpt_")
+
+
+# ── H-6 Test 2: invalid intake → 422 ────────────────────────────────────
+
+
+def test_h6_invalid_intake_cannot_create_plan_receipt():
+    with _client_with_db() as (client, _):
+        payload = _valid_request()
+        payload["thesis"] = None
+        resp = client.post("/api/v1/finance-decisions/intake", json=payload)
+        assert resp.status_code == 200
+        intake_id = resp.json()["id"]
+        assert resp.json()["status"] == "invalid"
+
+        plan_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+        assert plan_resp.status_code == 422, plan_resp.text
+        assert "not_started" in plan_resp.json()["detail"]
+
+
+# ── H-6 Test 3: rejected intake → 422 ───────────────────────────────────
+
+
+def test_h6_rejected_intake_cannot_create_plan_receipt():
+    with _client_with_db() as (client, _):
+        payload = _valid_request()
+        payload["thesis"] = None
+        resp = client.post("/api/v1/finance-decisions/intake", json=payload)
+        intake_id = resp.json()["id"]
+        gov_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
+        assert gov_resp.json()["governance_decision"] == "reject"
+
+        plan_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+        assert plan_resp.status_code == 422, plan_resp.text
+        assert "reject" in plan_resp.json()["detail"]
+
+
+# ── H-6 Test 4: escalated intake → 422 ──────────────────────────────────
+
+
+def test_h6_escalated_intake_cannot_create_plan_receipt():
+    with _client_with_db() as (client, _):
+        payload = _valid_request()
+        payload["is_revenge_trade"] = True
+        resp = client.post("/api/v1/finance-decisions/intake", json=payload)
+        intake_id = resp.json()["id"]
+        gov_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
+        assert gov_resp.json()["governance_decision"] == "escalate"
+
+        plan_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+        assert plan_resp.status_code == 422, plan_resp.text
+        assert "escalate" in plan_resp.json()["detail"]
+
+
+# ── H-6 Test 5: repeated plan creation → 409 ────────────────────────────
+
+
+def test_h6_repeated_plan_creation_conflict():
+    with _client_with_db() as (client, _):
+        payload = _valid_request()
+        resp = client.post("/api/v1/finance-decisions/intake", json=payload)
+        intake_id = resp.json()["id"]
+        client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
+
+        # First plan — succeeds
+        plan1 = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+        assert plan1.status_code == 200, plan1.text
+
+        # Second plan — conflict
+        plan2 = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
+        assert plan2.status_code == 409, plan2.text
+        assert "already exists" in plan2.json()["detail"]
+
+
+# ── H-6 Test 6: plan receipt writes AuditEvent ──────────────────────────
+
+
+def test_h6_plan_receipt_writes_audit_event():
+    with _client_with_db() as (client, testing_session_local):
+        plan_resp = _create_govern_and_plan(client)
+        assert plan_resp.status_code == 200
+
+        db = testing_session_local()
+        try:
+            events = db.query(AuditEventORM).filter(
+                AuditEventORM.event_type == "plan_receipt_created"
+            ).all()
+            assert len(events) == 1, "H-6 must write plan_receipt_created AuditEvent"
+            assert events[0].entity_type == "decision_intake"
+        finally:
+            db.close()
+
+
+# ── H-6 Test 7: plan receipt does NOT create broker/order related records
+
+
+def test_h6_plan_receipt_does_not_create_broker_records():
+    with _client_with_db() as (client, testing_session_local):
+        plan_resp = _create_govern_and_plan(client)
+        assert plan_resp.status_code == 200
+
+        db = testing_session_local()
+        try:
+            # No order execution requests
+            order_reqs = db.query(ExecutionRequestORM).filter(
+                ExecutionRequestORM.action_id.like("%order%")
+            ).count()
+            assert order_reqs == 0
+
+            # Only one execution request (the plan one)
+            total_reqs = db.query(ExecutionRequestORM).count()
+            assert total_reqs == 1
+
+            req = db.query(ExecutionRequestORM).one()
+            assert req.action_id == "finance_decision_plan"
+        finally:
+            db.close()

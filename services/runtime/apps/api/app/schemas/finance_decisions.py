@@ -49,3 +49,13 @@ class FinanceDecisionIntakeResponse(BaseModel):
     governance_policy_refs: list[str] | None = None
     advisory_hints: list[GovernanceAdvisoryHintResponse] | None = None
     created_at: str
+
+
+class FinancePlanReceiptResponse(BaseModel):
+    execution_request_id: str
+    execution_receipt_id: str
+    receipt_kind: str
+    broker_execution: bool
+    side_effect_level: str
+    decision_intake_id: str
+    governance_status: str

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 
 VALID_SIDE_EFFECT_LEVELS = {
+    "none",
     "state_mutation",
     "artifact_write",
     "audit_write",
@@ -189,6 +190,16 @@ EXECUTION_ACTION_CATALOG: tuple[ExecutionActionSpec, ...] = (
         state_targets=("agent_actions",),
         primary_receipt_candidate=True,
         notes="AI artifact persistence with idempotency, still awaiting receipt alignment.",
+    ),
+    ExecutionActionSpec(
+        action_id="finance_decision_plan",
+        family="finance",
+        side_effect_level="none",
+        owner_path="execution.adapters.finance.FinancePlanReceiptAdapter.create_plan_receipt",
+        boundary_status="covered",
+        state_targets=(),
+        primary_receipt_candidate=True,
+        notes="H-6: Plan-only receipt — records intent, zero broker/order/trade execution.",
     ),
 )
 
