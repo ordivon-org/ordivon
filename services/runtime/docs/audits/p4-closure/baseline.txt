@@ -1,0 +1,29 @@
+# P4 → P5 Forward Hardening Sprint — Test Baseline
+
+> Recorded: 2026-04-26
+> Git HEAD: a70bdc7
+> Git tag: p4-finance-control-loop-validated
+
+## Test Counts (pre-Wave-0)
+
+| Suite | Count | Status |
+|-------|-------|--------|
+| Unit tests | 377 | ✅ All passed |
+| Integration tests | 134 | ✅ All passed |
+| PG full regression | 515 | ✅ All passed (verified during re-audit) |
+
+## Working Tree
+
+| File | Status |
+|------|--------|
+| scripts/h9_dogfood_runs.py | Untracked — to be committed in Wave 0.2 |
+| scripts/h9c_verification.py | Untracked — to be committed in Wave 0.2 |
+| .hermes/ | Untracked (local tooling, not to be committed) |
+
+## Services
+
+| Service | Status |
+|---------|--------|
+| pfios-postgres | Running |
+| pfios-redis | Check |
+| pfios-api | Check |
