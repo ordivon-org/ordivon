@@ -205,15 +205,17 @@ class ReviewService:
         return outcome_row
 
     def _build_knowledge_feedback(self, recommendation_id: str | None, review_id: str):
-        if recommendation_id is None:
-            return None
+        extraction = LessonExtractionService(self.review_repository.db)
+        if recommendation_id is not None:
+            entries = extraction.extract_for_recommendation(recommendation_id)
+        else:
+            entries = extraction.extract_for_review_by_id(review_id)
 
-        entries = LessonExtractionService(self.review_repository.db).extract_for_recommendation(recommendation_id)
         if not entries:
             return None
 
         packet = KnowledgeFeedbackService().build_packet(
-            recommendation_id,
+            recommendation_id or review_id,
             entries,
             review_id=review_id,
         )
