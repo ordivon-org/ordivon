@@ -323,6 +323,460 @@ runs.append({"tag": "Run 10", "intake": r10, "governance": r10_gov})
 print(f"  intake_id={r10.get('id')} → governance={r10_gov.get('governance_decision')}")
 print(f"  reasons={r10_gov.get('governance_reasons')}")
 
+# ══════════════════════════════════════════════════════════════════════
+# Wave 4: Extended Dogfood — 21 new runs (Runs 11-31)
+# ══════════════════════════════════════════════════════════════════════
+
+time.sleep(0.2)
+
+# --- Run 11: MATIC range reclaim → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 11: MATIC range reclaim → FULL CHAIN ===")
+r11 = intake({
+    "symbol": "MATICUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "MATIC reclaiming range support with volume spike confirming accumulation; "
+             "invalidated if price closes back below range low.",
+    "stop_loss": "5%", "max_loss_usdt": 120, "position_size_usdt": 800,
+    "risk_unit_usdt": 80, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.7,
+})
+r11_gov = govern(r11["id"]) if "id" in r11 else {}
+r11_plan = {}; r11_outcome = {}; r11_review = {}
+if r11_gov.get("governance_decision") == "execute":
+    r11_plan = plan(r11["id"])
+    if "execution_receipt_id" in r11_plan:
+        r11_outcome = outcome(r11["id"], {
+            "execution_receipt_id": r11_plan["execution_receipt_id"],
+            "observed_outcome": "MATIC rallied +11% to range high, plan executed.",
+            "verdict": "validated", "variance_summary": "Clean execution.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r11_outcome:
+            r11_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "MATIC reaches range high",
+                "actual_outcome": "MATIC rallied +11%",
+                "deviation": "Clean", "mistake_tags": "range_trading",
+                "lessons": [{"lesson_text": "MATIC range reclaims with volume are reliable setups."}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r11_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 11", "intake": r11, "governance": r11_gov, "plan": r11_plan, "outcome": r11_outcome, "review": r11_review})
+print(f"  intake_id={r11.get('id')} → governance={r11_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 12: XRP extreme leverage → REJECT ---
+print("\n=== RUN 12: XRP extreme leverage ===")
+r12 = intake({
+    "symbol": "XRPUSDT", "timeframe": "15m", "direction": "long",
+    "thesis": "XRP looking strong, go big or go home",
+    "stop_loss": "1%", "max_loss_usdt": 5000, "position_size_usdt": 50000,
+    "risk_unit_usdt": 500, "is_revenge_trade": False, "is_chasing": True,
+    "emotional_state": "excited", "confidence": 0.9,
+})
+r12_gov = govern(r12["id"]) if "id" in r12 else {}
+runs.append({"tag": "Run 12", "intake": r12, "governance": r12_gov})
+print(f"  → governance={r12_gov.get('governance_decision')}, reasons={r12_gov.get('governance_reasons')}")
+
+time.sleep(0.2)
+
+# --- Run 13: ARB anxious day trade → ESCALATE ---
+print("\n=== RUN 13: ARB anxious day trade ===")
+r13 = intake({
+    "symbol": "ARBUSDT", "timeframe": "1h", "direction": "short",
+    "thesis": "ARB breakdown below support with volume spike confirming distribution; "
+             "invalidated if price closes back above support.",
+    "stop_loss": "2%", "max_loss_usdt": 150, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "anxious", "confidence": 0.45,
+})
+r13_gov = govern(r13["id"]) if "id" in r13 else {}
+runs.append({"tag": "Run 13", "intake": r13, "governance": r13_gov})
+print(f"  → governance={r13_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 14: OP borderline risk ratio (exactly at limit) → EXECUTE ---
+print("\n=== RUN 14: OP borderline risk ratio ===")
+r14 = intake({
+    "symbol": "OPUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "OP holding above key S/R with higher lows pattern; invalidated if "
+             "price closes below the most recent higher low.",
+    "stop_loss": "4%", "max_loss_usdt": 200, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.6,
+})
+r14_gov = govern(r14["id"]) if "id" in r14 else {}
+runs.append({"tag": "Run 14", "intake": r14, "governance": r14_gov})
+print(f"  → governance={r14_gov.get('governance_decision')} (max_loss/risk_unit=2.0, position/risk_unit=10.0)")
+
+time.sleep(0.2)
+
+# --- Run 15: BTC weekly support → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 15: BTC weekly support → FULL CHAIN ===")
+r15 = intake({
+    "symbol": "BTCUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "BTC holding above weekly 50 MA with bullish MACD crossover; "
+             "invalidated if price closes below weekly 50 MA.",
+    "stop_loss": "3%", "max_loss_usdt": 600, "position_size_usdt": 4000,
+    "risk_unit_usdt": 400, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.75,
+})
+r15_gov = govern(r15["id"]) if "id" in r15 else {}
+r15_plan = {}; r15_outcome = {}; r15_review = {}
+if r15_gov.get("governance_decision") == "execute":
+    r15_plan = plan(r15["id"])
+    if "execution_receipt_id" in r15_plan:
+        r15_outcome = outcome(r15["id"], {
+            "execution_receipt_id": r15_plan["execution_receipt_id"],
+            "observed_outcome": "BTC rallied +5.2% above weekly resistance, plan validated.",
+            "verdict": "validated", "variance_summary": "Clean execution.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r15_outcome:
+            r15_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "BTC rallies from weekly support",
+                "actual_outcome": "BTC rallied +5.2%",
+                "deviation": "Clean", "mistake_tags": "trend_following",
+                "lessons": [{"lesson_text": "Weekly 50 MA retests are high-probability entries on BTC."}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r15_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 15", "intake": r15, "governance": r15_gov, "plan": r15_plan, "outcome": r15_outcome, "review": r15_review})
+print(f"  intake_id={r15.get('id')} → governance={r15_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 16: PEPE 1m scalp → REJECT (sub-5m + chasing) ---
+print("\n=== RUN 16: PEPE 1m scalp ===")
+r16 = intake({
+    "symbol": "PEPEUSDT", "timeframe": "1m", "direction": "long",
+    "thesis": "PEPE just pumped 200%, still going",
+    "stop_loss": "0.1%", "max_loss_usdt": 2000, "position_size_usdt": 8000,
+    "risk_unit_usdt": 500, "is_revenge_trade": False, "is_chasing": True,
+    "emotional_state": "excited", "confidence": 0.95,
+})
+r16_gov = govern(r16["id"]) if "id" in r16 else {}
+runs.append({"tag": "Run 16", "intake": r16, "governance": r16_gov})
+print(f"  → governance={r16_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 17: SOL fearful short → ESCALATE ---
+print("\n=== RUN 17: SOL fearful short ===")
+r17 = intake({
+    "symbol": "SOLUSDT", "timeframe": "4h", "direction": "short",
+    "thesis": "SOL breaking down with bear flag pattern; invalidated if price "
+             "closes back above flag resistance.",
+    "stop_loss": "3%", "max_loss_usdt": 300, "position_size_usdt": 2000,
+    "risk_unit_usdt": 200, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "fearful", "confidence": 0.4,
+})
+r17_gov = govern(r17["id"]) if "id" in r17 else {}
+runs.append({"tag": "Run 17", "intake": r17, "governance": r17_gov})
+print(f"  → governance={r17_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 18: BNB neutral swing → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 18: BNB neutral swing → FULL CHAIN ===")
+r18 = intake({
+    "symbol": "BNBUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "BNB double bottom at range low with RSI divergence; invalidated if "
+             "price closes below range low.",
+    "stop_loss": "3%", "max_loss_usdt": 250, "position_size_usdt": 2000,
+    "risk_unit_usdt": 200, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.65,
+})
+r18_gov = govern(r18["id"]) if "id" in r18 else {}
+r18_plan = {}; r18_outcome = {}; r18_review = {}
+if r18_gov.get("governance_decision") == "execute":
+    r18_plan = plan(r18["id"])
+    if "execution_receipt_id" in r18_plan:
+        r18_outcome = outcome(r18["id"], {
+            "execution_receipt_id": r18_plan["execution_receipt_id"],
+            "observed_outcome": "BNB bounced +6% from range low, exit at mid-range.",
+            "verdict": "validated", "variance_summary": "Clean execution.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r18_outcome:
+            r18_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "BNB bounces from range low",
+                "actual_outcome": "BNB bounced +6%",
+                "deviation": "Clean", "mistake_tags": "range_trading",
+                "lessons": [{"lesson_text": "RSI divergence at range lows is a high-confidence reversal signal."}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r18_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 18", "intake": r18, "governance": r18_gov, "plan": r18_plan, "outcome": r18_outcome, "review": r18_review})
+print(f"  intake_id={r18.get('id')} → governance={r18_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 19: DOGE rule_exceptions → ESCALATE ---
+print("\n=== RUN 19: DOGE rule_exceptions ===")
+r19 = intake({
+    "symbol": "DOGEUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "DOGE breaking trendline with volume; invalidated if closes back below trendline.",
+    "stop_loss": "4%", "max_loss_usdt": 100, "position_size_usdt": 500,
+    "risk_unit_usdt": 50, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.55,
+    "rule_exceptions": ["override position limit for event trade"],
+})
+r19_gov = govern(r19["id"]) if "id" in r19 else {}
+runs.append({"tag": "Run 19", "intake": r19, "governance": r19_gov})
+print(f"  → governance={r19_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 20: ETH reckless FOMO → REJECT ---
+print("\n=== RUN 20: ETH reckless FOMO ===")
+r20 = intake({
+    "symbol": "ETHUSDT", "timeframe": "5m", "direction": "long",
+    "thesis": "ETH just broke ATH, this is the one, going all in",
+    "stop_loss": "0.5%", "max_loss_usdt": 10000, "position_size_usdt": 50000,
+    "risk_unit_usdt": 2000, "is_revenge_trade": False, "is_chasing": True,
+    "emotional_state": "excited", "confidence": 0.95,
+})
+r20_gov = govern(r20["id"]) if "id" in r20 else {}
+runs.append({"tag": "Run 20", "intake": r20, "governance": r20_gov})
+print(f"  → governance={r20_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 21: INJ confidence too low → ESCALATE ---
+print("\n=== RUN 21: INJ low confidence ===")
+r21 = intake({
+    "symbol": "INJUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "INJ holding above 200 MA, not sure if this holds though; "
+             "invalidated if price closes below 200 MA.",
+    "stop_loss": "5%", "max_loss_usdt": 100, "position_size_usdt": 500,
+    "risk_unit_usdt": 50, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.2,
+})
+r21_gov = govern(r21["id"]) if "id" in r21 else {}
+runs.append({"tag": "Run 21", "intake": r21, "governance": r21_gov})
+print(f"  → governance={r21_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 22: LINK trend continuation → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 22: LINK trend continuation → FULL CHAIN ===")
+r22 = intake({
+    "symbol": "LINKUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "LINK daily higher high sequence with increasing volume, trend intact; "
+             "invalidated if price closes below prior day low.",
+    "stop_loss": "4%", "max_loss_usdt": 300, "position_size_usdt": 3000,
+    "risk_unit_usdt": 300, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.8,
+})
+r22_gov = govern(r22["id"]) if "id" in r22 else {}
+r22_plan = {}; r22_outcome = {}; r22_review = {}
+if r22_gov.get("governance_decision") == "execute":
+    r22_plan = plan(r22["id"])
+    if "execution_receipt_id" in r22_plan:
+        r22_outcome = outcome(r22["id"], {
+            "execution_receipt_id": r22_plan["execution_receipt_id"],
+            "observed_outcome": "LINK continued trend +8%, exited at extended target.",
+            "verdict": "validated", "variance_summary": "Better than expected.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r22_outcome:
+            r22_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "LINK continues daily uptrend",
+                "actual_outcome": "LINK +8% trend continuation",
+                "deviation": "Exceeded target", "mistake_tags": "trend_following",
+                "lessons": [{"lesson_text": "Daily trend continuation with volume confirmation is high-probability."}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r22_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 22", "intake": r22, "governance": r22_gov, "plan": r22_plan, "outcome": r22_outcome, "review": r22_review})
+print(f"  intake_id={r22.get('id')} → governance={r22_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 23: ATOM stress trade → ESCALATE (emotional + thesis quality) ---
+print("\n=== RUN 23: ATOM stressed trader ===")
+r23 = intake({
+    "symbol": "ATOMUSDT", "timeframe": "1h", "direction": "long",
+    "thesis": "ATOM looking decent on the chart, might go up from here; "
+             "invalidated if price drops back below the recent low.",
+    "stop_loss": "2%", "max_loss_usdt": 150, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "stressed", "confidence": 0.5,
+})
+r23_gov = govern(r23["id"]) if "id" in r23 else {}
+runs.append({"tag": "Run 23", "intake": r23, "governance": r23_gov})
+print(f"  → governance={r23_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 24: APT thesis too short → ESCALATE ---
+print("\n=== RUN 24: APT short thesis ===")
+r24 = intake({
+    "symbol": "APTUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "APT looking good on volume",
+    "stop_loss": "3%", "max_loss_usdt": 100, "position_size_usdt": 500,
+    "risk_unit_usdt": 50, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.6,
+})
+r24_gov = govern(r24["id"]) if "id" in r24 else {}
+runs.append({"tag": "Run 24", "intake": r24, "governance": r24_gov})
+print(f"  → governance={r24_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 25: AVAX breakdown → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 25: AVAX breakdown → FULL CHAIN ===")
+r25 = intake({
+    "symbol": "AVAXUSDT", "timeframe": "4h", "direction": "short",
+    "thesis": "AVAX head and shoulders breakdown with volume spike confirming distribution; "
+             "invalidated if price closes back above neckline.",
+    "stop_loss": "3%", "max_loss_usdt": 200, "position_size_usdt": 1500,
+    "risk_unit_usdt": 150, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.65,
+})
+r25_gov = govern(r25["id"]) if "id" in r25 else {}
+r25_plan = {}; r25_outcome = {}; r25_review = {}
+if r25_gov.get("governance_decision") == "execute":
+    r25_plan = plan(r25["id"])
+    if "execution_receipt_id" in r25_plan:
+        r25_outcome = outcome(r25["id"], {
+            "execution_receipt_id": r25_plan["execution_receipt_id"],
+            "observed_outcome": "AVAX dropped -7%, target exceeded, plan validated.",
+            "verdict": "validated", "variance_summary": "Pattern played out cleanly.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r25_outcome:
+            r25_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "AVAX breaks down from H&S",
+                "actual_outcome": "AVAX dropped -7%",
+                "deviation": "Exceeded target", "mistake_tags": "pattern_trading",
+                "lessons": [{"lesson_text": "H&S with volume confirmation on 4h is reliable for AVAX."}],
+                "new_rule_candidate": "Always wait for volume confirmation on pattern breaks.",
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r25_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 25", "intake": r25, "governance": r25_gov, "plan": r25_plan, "outcome": r25_outcome, "review": r25_review})
+print(f"  intake_id={r25.get('id')} → governance={r25_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 26: TIA missing stop_loss → REJECT ---
+print("\n=== RUN 26: TIA missing stop_loss ===")
+r26 = intake({
+    "symbol": "TIAUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "TIA breaking out with volume; invalidated if closes below breakout level.",
+    "max_loss_usdt": 200, "position_size_usdt": 1000, "risk_unit_usdt": 100,
+    "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.7,
+})
+r26_gov = govern(r26["id"]) if "id" in r26 else {}
+runs.append({"tag": "Run 26", "intake": r26, "governance": r26_gov})
+print(f"  → governance={r26_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 27: NEAR greedy → ESCALATE ---
+print("\n=== RUN 27: NEAR greedy ===")
+r27 = intake({
+    "symbol": "NEARUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "NEAR showing strong momentum, want to add to position; invalidated if "
+             "price closes below the breakout level.",
+    "stop_loss": "4%", "max_loss_usdt": 200, "position_size_usdt": 1500,
+    "risk_unit_usdt": 150, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "greedy", "confidence": 0.7,
+})
+r27_gov = govern(r27["id"]) if "id" in r27 else {}
+runs.append({"tag": "Run 27", "intake": r27, "governance": r27_gov})
+print(f"  → governance={r27_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 28: UNI conservative → EXECUTE → FULL CHAIN ---
+print("\n=== RUN 28: UNI conservative → FULL CHAIN ===")
+r28 = intake({
+    "symbol": "UNIUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "UNI weekly support with bullish engulfing candle and OBV divergence; "
+             "invalidated if price closes below weekly support.",
+    "stop_loss": "5%", "max_loss_usdt": 150, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.75,
+})
+r28_gov = govern(r28["id"]) if "id" in r28 else {}
+r28_plan = {}; r28_outcome = {}; r28_review = {}
+if r28_gov.get("governance_decision") == "execute":
+    r28_plan = plan(r28["id"])
+    if "execution_receipt_id" in r28_plan:
+        r28_outcome = outcome(r28["id"], {
+            "execution_receipt_id": r28_plan["execution_receipt_id"],
+            "observed_outcome": "UNI rallied +12% from support, exited at mid-range.",
+            "verdict": "validated", "variance_summary": "Exceeded target.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r28_outcome:
+            r28_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "UNI rallies from weekly support",
+                "actual_outcome": "UNI rallied +12%",
+                "deviation": "Exceeded target", "mistake_tags": "support_bounce",
+                "lessons": [{"lesson_text": "Bullish engulfing at weekly support with OBV divergence is a powerful signal."}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome", "outcome_ref_id": r28_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 28", "intake": r28, "governance": r28_gov, "plan": r28_plan, "outcome": r28_outcome, "review": r28_review})
+print(f"  intake_id={r28.get('id')} → governance={r28_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 29: LDO revenge trade → ESCALATE ---
+print("\n=== RUN 29: LDO revenge trade ===")
+r29 = intake({
+    "symbol": "LDOUSDT", "timeframe": "1h", "direction": "long",
+    "thesis": "LDO looks like it might bounce, need to recover losses from earlier; "
+             "invalidated if price drops below recent swing low.",
+    "stop_loss": "2%", "max_loss_usdt": 150, "position_size_usdt": 800,
+    "risk_unit_usdt": 80, "is_revenge_trade": True, "is_chasing": False,
+    "emotional_state": "frustrated", "confidence": 0.55,
+})
+r29_gov = govern(r29["id"]) if "id" in r29 else {}
+runs.append({"tag": "Run 29", "intake": r29, "governance": r29_gov})
+print(f"  → governance={r29_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 30: RNDR borderline reject (just over limit) → REJECT ---
+print("\n=== RUN 30: RNDR borderline reject ===")
+r30 = intake({
+    "symbol": "RNDRUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "RNDR breakout from consolidation pattern with volume confirmation; "
+             "invalidated if price closes back into consolidation range.",
+    "stop_loss": "4%", "max_loss_usdt": 250, "position_size_usdt": 1100,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.7,
+})
+r30_gov = govern(r30["id"]) if "id" in r30 else {}
+runs.append({"tag": "Run 30", "intake": r30, "governance": r30_gov})
+print(f"  → governance={r30_gov.get('governance_decision')} (max_loss/risk_unit=2.5 > 2.0 limit)")
+
+time.sleep(0.2)
+
+# --- Run 31: SUI thesis lacks verifiability + stressed → ESCALATE ---
+print("\n=== RUN 31: SUI stressed + no verifiability ===")
+r31 = intake({
+    "symbol": "SUIUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "SUI is pumping hard today, the chart looks incredible",
+    "stop_loss": "3%", "max_loss_usdt": 200, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "stressed", "confidence": 0.5,
+})
+r31_gov = govern(r31["id"]) if "id" in r31 else {}
+runs.append({"tag": "Run 31", "intake": r31, "governance": r31_gov})
+print(f"  → governance={r31_gov.get('governance_decision')}")
+
 # Complete reviews for full-chain runs
 print("\n=== COMPLETING REVIEWS ===")
 for run in runs:
