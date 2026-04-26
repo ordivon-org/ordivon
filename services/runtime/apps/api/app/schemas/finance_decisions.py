@@ -59,3 +59,26 @@ class FinancePlanReceiptResponse(BaseModel):
     side_effect_level: str
     decision_intake_id: str
     governance_status: str
+
+
+# ── H-7: Manual Outcome Capture ─────────────────────────────────────────
+
+
+class FinanceManualOutcomeRequest(BaseModel):
+    execution_receipt_id: str
+    observed_outcome: str
+    verdict: str
+    variance_summary: str | None = None
+    plan_followed: bool = False
+
+
+class FinanceManualOutcomeResponse(BaseModel):
+    outcome_id: str
+    decision_intake_id: str
+    execution_receipt_id: str
+    outcome_source: str
+    observed_outcome: str
+    verdict: str
+    variance_summary: str | None = None
+    plan_followed: bool
+    created_at: str

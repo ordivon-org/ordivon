@@ -15,6 +15,8 @@ class Review:
     complete_execution_request_id: str | None = None
     complete_execution_receipt_id: str | None = None
     knowledge_feedback_packet_id: str | None = None
+    outcome_ref_type: str | None = None
+    outcome_ref_id: str | None = None
     review_type: str = "recommendation_postmortem"
     status: ReviewStatus = ReviewStatus.PENDING
     expected_outcome: str = ""

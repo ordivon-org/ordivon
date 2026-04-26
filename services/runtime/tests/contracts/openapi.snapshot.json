@@ -1166,6 +1166,59 @@
         }
       }
     },
+    "/api/v1/finance-decisions/intake/{intake_id}/outcome": {
+      "post": {
+        "tags": [
+          "FinanceDecisions"
+        ],
+        "summary": "Capture Manual Outcome",
+        "description": "H-7: Capture manual outcome for a governed, plan-receipted intake.\n\nValidates the plan receipt is valid (H-6 gate).\nRejects duplicate outcomes (409).\nDoes NOT connect to broker, exchange, order, or trade systems.\nDoes NOT auto-create Review, CandidateRule, or Policy changes.",
+        "operationId": "capture_manual_outcome_api_v1_finance_decisions_intake__intake_id__outcome_post",
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intake Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinanceManualOutcomeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceManualOutcomeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/finance-decisions/intake/{intake_id}/govern": {
       "post": {
         "tags": [
@@ -2208,6 +2261,104 @@
           "created_at"
         ],
         "title": "FinanceDecisionIntakeResponse"
+      },
+      "FinanceManualOutcomeRequest": {
+        "properties": {
+          "execution_receipt_id": {
+            "type": "string",
+            "title": "Execution Receipt Id"
+          },
+          "observed_outcome": {
+            "type": "string",
+            "title": "Observed Outcome"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "variance_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variance Summary"
+          },
+          "plan_followed": {
+            "type": "boolean",
+            "title": "Plan Followed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_receipt_id",
+          "observed_outcome",
+          "verdict"
+        ],
+        "title": "FinanceManualOutcomeRequest"
+      },
+      "FinanceManualOutcomeResponse": {
+        "properties": {
+          "outcome_id": {
+            "type": "string",
+            "title": "Outcome Id"
+          },
+          "decision_intake_id": {
+            "type": "string",
+            "title": "Decision Intake Id"
+          },
+          "execution_receipt_id": {
+            "type": "string",
+            "title": "Execution Receipt Id"
+          },
+          "outcome_source": {
+            "type": "string",
+            "title": "Outcome Source"
+          },
+          "observed_outcome": {
+            "type": "string",
+            "title": "Observed Outcome"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "variance_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variance Summary"
+          },
+          "plan_followed": {
+            "type": "boolean",
+            "title": "Plan Followed"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome_id",
+          "decision_intake_id",
+          "execution_receipt_id",
+          "outcome_source",
+          "observed_outcome",
+          "verdict",
+          "plan_followed",
+          "created_at"
+        ],
+        "title": "FinanceManualOutcomeResponse"
       },
       "FinancePlanReceiptResponse": {
         "properties": {

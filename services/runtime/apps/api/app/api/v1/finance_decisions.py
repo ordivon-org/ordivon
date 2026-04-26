@@ -7,6 +7,8 @@ from apps.api.app.deps import get_db
 from apps.api.app.schemas.finance_decisions import (
     FinanceDecisionIntakeRequest,
     FinanceDecisionIntakeResponse,
+    FinanceManualOutcomeRequest,
+    FinanceManualOutcomeResponse,
     FinancePlanReceiptResponse,
 )
 from capabilities.domain.finance_decisions import (
@@ -14,9 +16,16 @@ from capabilities.domain.finance_decisions import (
     PlanReceiptConflict,
     PlanReceiptNotAllowed,
 )
+from capabilities.domain.finance_outcome import (
+    DecisionIntakeNotFound,
+    FinanceOutcomeCapability,
+    ManualOutcomeConflict,
+    PlanReceiptNotValid,
+)
 
 router = APIRouter()
 finance_decision_capability = FinanceDecisionCapability()
+finance_outcome_capability = FinanceOutcomeCapability()
 
 
 @router.post("/finance-decisions/intake", response_model=FinanceDecisionIntakeResponse)
@@ -65,7 +74,6 @@ async def get_finance_decision_intake(
 
 # ── H-6: Plan-Only Receipt ────────────────────────────────────────────────
 
-
 @router.post(
     "/finance-decisions/intake/{intake_id}/plan",
     response_model=FinancePlanReceiptResponse,
@@ -95,6 +103,57 @@ async def create_finance_decision_plan_receipt(
         raise HTTPException(status_code=422, detail=str(exc))
     except PlanReceiptConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── H-7: Manual Outcome Capture ──────────────────────────────────────
+
+
+@router.post(
+    "/finance-decisions/intake/{intake_id}/outcome",
+    response_model=FinanceManualOutcomeResponse,
+)
+async def capture_manual_outcome(
+    intake_id: str,
+    payload: FinanceManualOutcomeRequest,
+    db: Session = Depends(get_db),
+) -> FinanceManualOutcomeResponse:
+    """H-7: Capture manual outcome for a governed, plan-receipted intake.
+
+    Validates the plan receipt is valid (H-6 gate).
+    Rejects duplicate outcomes (409).
+    Does NOT connect to broker, exchange, order, or trade systems.
+    Does NOT auto-create Review, CandidateRule, or Policy changes.
+    """
+    try:
+        result = finance_outcome_capability.capture_manual_outcome(
+            decision_intake_id=intake_id,
+            execution_receipt_id=payload.execution_receipt_id,
+            observed_outcome=payload.observed_outcome,
+            verdict=payload.verdict,
+            variance_summary=payload.variance_summary,
+            plan_followed=payload.plan_followed,
+            db=db,
+        )
+        db.commit()
+        return FinanceManualOutcomeResponse(
+            outcome_id=result.outcome_id,
+            decision_intake_id=result.decision_intake_id,
+            execution_receipt_id=result.execution_receipt_id,
+            outcome_source=result.outcome_source,
+            observed_outcome=result.observed_outcome,
+            verdict=result.verdict,
+            variance_summary=result.variance_summary,
+            plan_followed=result.plan_followed,
+            created_at=result.created_at,
+        )
+    except ManualOutcomeConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except PlanReceiptNotValid as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except DecisionIntakeNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

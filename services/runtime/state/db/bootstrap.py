@@ -9,6 +9,7 @@ from domains.decision_intake.orm import DecisionIntakeORM  # noqa: F401
 from domains.execution_records.orm import ExecutionReceiptORM  # noqa: F401
 from domains.execution_records.orm import ExecutionProgressRecordORM  # noqa: F401
 from domains.execution_records.orm import ExecutionRequestORM  # noqa: F401
+from domains.finance_outcome.orm import FinanceManualOutcomeORM  # noqa: F401
 from domains.intelligence_runs.orm import IntelligenceRunORM  # noqa: F401
 from domains.research.orm import AnalysisORM  # noqa: F401
 from domains.workflow_runs.orm import WorkflowRunORM  # noqa: F401

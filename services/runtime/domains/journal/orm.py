@@ -16,6 +16,8 @@ class ReviewORM(Base):
     complete_execution_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     complete_execution_receipt_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     knowledge_feedback_packet_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    outcome_ref_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    outcome_ref_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     review_type: Mapped[str] = mapped_column(String(64), default="recommendation_postmortem")
     status: Mapped[str] = mapped_column(String(32), default="pending")

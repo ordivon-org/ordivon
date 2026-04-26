@@ -82,6 +82,9 @@ class ExecutionRecordRepository:
         self.db.flush()
         return row
 
+    def get_receipt(self, receipt_id: str) -> ExecutionReceiptORM | None:
+        return self.db.get(ExecutionReceiptORM, receipt_id)
+
     def create_receipt(self, receipt: ExecutionReceipt) -> ExecutionReceiptORM:
         row = ExecutionReceiptORM(
             id=receipt.id,
