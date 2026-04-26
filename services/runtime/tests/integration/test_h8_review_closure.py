@@ -75,7 +75,7 @@ def _valid_intake_payload() -> dict:
         "symbol": "BTC/USDT",
         "timeframe": "1h",
         "direction": "long",
-        "thesis": "Momentum and structure aligned.",
+        "thesis": "BTC breaking above resistance with volume confirmation; invalidated if price closes below 200 EMA.",
         "entry_condition": "Breakout with retest.",
         "invalidation_condition": "Range reclaim fails.",
         "stop_loss": "Below intraday support",
