@@ -23,6 +23,14 @@ Canonical architecture documentation for Ordivon / AegisOS / PFIOS.
 | [harness-adapter-boundary.md](harness-adapter-boundary.md) | **Harness must not pollute Core** — external runtime boundary rules |
 | [governance-receipt-review-loop.md](governance-receipt-review-loop.md) | **Receipt → Review → CandidateRule lifecycle** — the control loop |
 
+## Governance & Work Language
+
+| Document | Purpose |
+|----------|---------|
+| [ordivon-work-grammar.md](ordivon-work-grammar.md) | **Ordivon Work Grammar** — 12 rules, vocabulary, anti-bureaucracy guard |
+| [repo-governance-baseline.md](repo-governance-baseline.md) | **Repo Governance Baseline** — 12-layer reflexive governance matrix |
+| [prompt-patterns.md](../runbooks/prompt-patterns.md) | **Ordivon Prompt Patterns** — task templates for IDE/AI/audit/dogfood |
+
 ## Platformization
 
 | Document | Purpose |
