@@ -89,3 +89,18 @@ exclude_dirs = [
   "./apps/web/.next",
   "./build",
 ]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.3",
+]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+exclude = [
+    "**/build",
+    "**/build/**",
+    "**/.venv",
+    "**/node_modules",
+    "**/__pycache__",
+]
