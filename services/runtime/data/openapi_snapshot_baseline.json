@@ -1,0 +1,7 @@
+{
+  "path_count": 32,
+  "schema_count": 47,
+  "openapi_version": "3.1.0",
+  "info_version": "0.1.0",
+  "snapshot_path": "tests/contracts/openapi.snapshot.json"
+}

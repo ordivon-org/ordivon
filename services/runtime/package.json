@@ -12,6 +12,7 @@
     "verify:toolchain": "bash scripts/check_toolchain.sh",
     "verify:state-truth": "uv run python scripts/check_state_truth.py",
     "verify:dogfood": "uv run python scripts/check_dogfood_evidence.py",
+    "verify:openapi": "uv run python scripts/check_openapi_snapshot.py",
     "lint:web": "pnpm --dir apps/web exec eslint .",
     "typecheck:web": "pnpm --dir apps/web exec tsc --noEmit",
     "test:unit": "cross-env PFIOS_ENV=test PFIOS_DEBUG=false PFIOS_REASONING_PROVIDER=mock PFIOS_DB_URL=duckdb:///./data/quality-unit.duckdb uv run pytest -q tests/unit",
