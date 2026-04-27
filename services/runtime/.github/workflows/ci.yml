@@ -74,6 +74,9 @@ jobs:
         continue-on-error: true
         run: uv run lint-imports
 
+      - name: Check architecture boundaries
+        run: uv run python scripts/check_architecture.py
+
   backend-unit:
     runs-on: ubuntu-latest
     env:
