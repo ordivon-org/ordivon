@@ -1,0 +1,17 @@
+[importlinter]
+root_package = pfios
+
+[importlinter:contracts:layers]
+name = Core layers must not form cycles
+type = layers
+layers =
+  shared
+  state
+  governance
+  domains
+  execution
+  capabilities
+  intelligence
+  orchestrator
+  packs
+  apps

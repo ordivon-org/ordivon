@@ -33,6 +33,7 @@ dependencies = [
 dev = [
   "bandit>=1.8.6",
   "pip-audit>=2.9.0",
+  "import-linter>=2.3",
   "mypy>=1.18.0",
   "vulture>=2.14",
   "pytest>=9.0.0",
