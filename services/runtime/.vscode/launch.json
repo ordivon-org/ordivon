@@ -1,0 +1,76 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API Server (uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "apps.api.app.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--reload"
+      ],
+      "jinja": true,
+      "justMyCode": false,
+      "env": {
+        "PFIOS_DB_URL": "postgresql://pfios:pfios@127.0.0.1:5432/pfios_test",
+        "PFIOS_ENV": "test",
+        "PFIOS_REASONING_PROVIDER": "mock"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Pytest: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${file}",
+        "-v",
+        "--no-header",
+        "--tb=short"
+      ],
+      "justMyCode": false,
+      "env": {
+        "PFIOS_DB_URL": "duckdb:///:memory:",
+        "PFIOS_REASONING_PROVIDER": "mock"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Pytest: All Tests (PG)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests",
+        "-v",
+        "--no-header"
+      ],
+      "justMyCode": false,
+      "env": {
+        "PFIOS_DB_URL": "postgresql://pfios:pfios@127.0.0.1:5432/pfios_test",
+        "PFIOS_REASONING_PROVIDER": "mock"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Dogfood Runner",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/h9f_31_dogfood.py",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "CI Quality Gates",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/ci-quality-gates.sh",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
