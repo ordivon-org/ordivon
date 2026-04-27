@@ -32,6 +32,7 @@ def db() -> Session:
 
 # ── Helper: valid payload for intake creation ──────────────────────────
 
+
 def _valid_payload() -> dict:
     return {
         "symbol": "BTC/USDT",
@@ -57,6 +58,7 @@ def _valid_payload() -> dict:
 # ═════════════════════════════════════════════════════════════════════════
 # Test 1: plan_intake rejects "reject" governance_status
 # ═════════════════════════════════════════════════════════════════════════
+
 
 def test_plan_intake_rejects_rejected_status(db: Session):
     """plan_intake raises PlanReceiptNotAllowed when governance_status is 'reject'."""
@@ -88,6 +90,7 @@ def test_plan_intake_rejects_rejected_status(db: Session):
 # Test 2: plan_intake rejects "escalate" governance_status
 # ═════════════════════════════════════════════════════════════════════════
 
+
 def test_plan_intake_rejects_escalated_status(db: Session):
     """plan_intake raises PlanReceiptNotAllowed when governance_status is 'escalate'."""
     service = DecisionIntakeService(DecisionIntakeRepository(db))
@@ -118,6 +121,7 @@ def test_plan_intake_rejects_escalated_status(db: Session):
 # Test 3: plan_intake allows "execute" governance_status
 # ═════════════════════════════════════════════════════════════════════════
 
+
 def test_plan_intake_allows_execute_status(db: Session):
     """plan_intake succeeds when governance_status is 'execute' (happy path)."""
     cap = FinanceDecisionCapability()
@@ -140,6 +144,7 @@ def test_plan_intake_allows_execute_status(db: Session):
 # ═════════════════════════════════════════════════════════════════════════
 # Test 4: plan_intake rejects duplicate plan receipts
 # ═════════════════════════════════════════════════════════════════════════
+
 
 def test_plan_intake_rejects_duplicate(db: Session):
     """Second plan_intake call raises PlanReceiptConflict (idempotency guard)."""

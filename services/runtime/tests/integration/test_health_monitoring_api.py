@@ -86,7 +86,11 @@ def test_health_history_api_exposes_blocked_runs_and_scheduler_summary():
                 status="failed",
                 request_summary="Analyze ETH",
                 failed_step="ReasonStep",
-                lineage_refs={"blocked_reason": "approval_required", "resume_reason": "fallback_path_completed", "resume_count": 1},
+                lineage_refs={
+                    "blocked_reason": "approval_required",
+                    "resume_reason": "fallback_path_completed",
+                    "resume_count": 1,
+                },
                 step_statuses=[{"step": "ReasonStep", "status": "completed", "recovery_action": "fallback"}],
             )
         )

@@ -72,6 +72,7 @@ def _create_and_plan(db) -> tuple[str, str]:
 
 # ── Test 1: reject nonexistent receipt ────────────────────────────────
 
+
 def test_capture_outcome_rejects_nonexistent_receipt():
     """capture_manual_outcome with nonexistent execution_receipt_id raises PlanReceiptNotValid."""
     engine, testing_session_local = _make_db()
@@ -97,6 +98,7 @@ def test_capture_outcome_rejects_nonexistent_receipt():
 
 
 # ── Test 2: succeed with valid receipt ────────────────────────────────
+
 
 def test_capture_outcome_succeeds_with_valid_receipt():
     """Create intake → govern → plan → capture_manual_outcome with valid receipt."""

@@ -31,6 +31,7 @@ from knowledge.retrieval import KnowledgeRetrievalService
 from shared.enums.domain import RecommendationStatus, ReviewStatus, ReviewVerdict
 from state.db.base import Base
 
+
 @contextmanager
 def _app_client():
     with TestClient(app) as client:
@@ -610,7 +611,9 @@ def test_knowledge_surface_exposes_advisory_entries_recurring_issues_and_candida
             lessons=["Wait for confirmation candle before entry"],
             followup_actions=["Tighten invalidation"],
         )
-        recurring_issues = KnowledgeRetrievalService(db).aggregate_recurring_issues_for_recommendation("reco_knowledge_surface")
+        recurring_issues = KnowledgeRetrievalService(db).aggregate_recurring_issues_for_recommendation(
+            "reco_knowledge_surface"
+        )
         CandidateRuleService(CandidateRuleRepository(db)).create_from_recurring_issue(recurring_issues[0])
         db.commit()
     finally:

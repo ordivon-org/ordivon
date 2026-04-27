@@ -20,6 +20,7 @@ from state.db.base import Base
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+
 def _make_db():
     engine = create_engine(
         "sqlite://",
@@ -49,6 +50,7 @@ def _valid_payload() -> dict:
 
 # ── Test 1: plan without governance must fail ────────────────────────
 
+
 def test_plan_without_governance_fails():
     """plan_intake must raise PlanReceiptNotAllowed when governance was not called."""
     engine, testing_session_local = _make_db()
@@ -70,6 +72,7 @@ def test_plan_without_governance_fails():
 
 # ── Test 2: full chain (create → govern → plan) succeeds ─────────────
 
+
 def test_full_chain_governance_before_plan_succeeds():
     """create_intake → govern_intake → plan_intake must produce a valid receipt."""
     engine, testing_session_local = _make_db()
@@ -80,14 +83,10 @@ def test_full_chain_governance_before_plan_succeeds():
         db.commit()
 
         updated_intake, decision = cap.govern_intake(intake.id, db)
-        assert decision.decision == "execute", (
-            f"Expected execute, got {decision.decision}: {decision.reasons}"
-        )
+        assert decision.decision == "execute", f"Expected execute, got {decision.decision}: {decision.reasons}"
 
         result = cap.plan_intake(intake.id, db)
-        assert result.execution_receipt_id is not None, (
-            "plan_intake must return a non-None execution_receipt_id"
-        )
+        assert result.execution_receipt_id is not None, "plan_intake must return a non-None execution_receipt_id"
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)

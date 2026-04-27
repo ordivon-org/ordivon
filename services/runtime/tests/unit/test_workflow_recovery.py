@@ -1,6 +1,11 @@
 from intelligence.runtime.errors import RuntimeExecutionError
 from orchestrator.contracts.workflow import WorkflowContext
-from orchestrator.runtime.recovery import RecoveryDetail, RecoveryPolicy, consume_recovery_detail, record_recovery_detail
+from orchestrator.runtime.recovery import (
+    RecoveryDetail,
+    RecoveryPolicy,
+    consume_recovery_detail,
+    record_recovery_detail,
+)
 from orchestrator.workflows.analyze import ReasonStep
 from domains.research.models import AnalysisRequest
 

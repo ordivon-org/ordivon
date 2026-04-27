@@ -31,12 +31,10 @@ def _make_db():
 def test_candidate_rule_status_cannot_be_active():
     """Structural invariant: VALID_CANDIDATE_RULE_STATES excludes 'active' and 'policy'."""
     assert "active" not in VALID_CANDIDATE_RULE_STATES, (
-        "VALID_CANDIDATE_RULE_STATES must not contain 'active' — CandidateRule "
-        "is NOT a live/active policy."
+        "VALID_CANDIDATE_RULE_STATES must not contain 'active' — CandidateRule is NOT a live/active policy."
     )
     assert "policy" not in VALID_CANDIDATE_RULE_STATES, (
-        "VALID_CANDIDATE_RULE_STATES must not contain 'policy' — CandidateRule "
-        "is NOT a policy itself."
+        "VALID_CANDIDATE_RULE_STATES must not contain 'policy' — CandidateRule is NOT a policy itself."
     )
 
 
@@ -66,12 +64,10 @@ def test_candidate_rule_creation_does_not_change_governance_snapshot():
     after = policy_source.get_active_snapshot()
 
     assert after.active_policy_ids == before.active_policy_ids, (
-        "Creating a CandidateRule must not change the active_policy_ids "
-        "in the governance snapshot."
+        "Creating a CandidateRule must not change the active_policy_ids in the governance snapshot."
     )
     assert after.policy_set_id == before.policy_set_id, (
-        "Creating a CandidateRule must not change the policy_set_id "
-        "in the governance snapshot."
+        "Creating a CandidateRule must not change the policy_set_id in the governance snapshot."
     )
 
 

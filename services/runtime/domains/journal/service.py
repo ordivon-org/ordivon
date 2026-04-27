@@ -143,12 +143,14 @@ class ReviewService:
             )
             lesson_row = self.lesson_service.create(lesson_model)
             lesson_rows.append(lesson_row)
-            lesson_records.append({
-                "id": lesson_row.id,
-                "lesson_type": lesson_type,
-                "body": lesson_text,
-                "tags": cause_tags,
-            })
+            lesson_records.append(
+                {
+                    "id": lesson_row.id,
+                    "lesson_type": lesson_type,
+                    "body": lesson_text,
+                    "tags": cause_tags,
+                }
+            )
 
             if self.auditor is not None:
                 self.auditor.record_event(
@@ -166,9 +168,7 @@ class ReviewService:
                 )
 
         # ── Draft extraction: rule_candidate lessons → CandidateRule drafts ──
-        extraction = CandidateRuleDraftExtractionService(
-            CandidateRuleRepository(self.review_repository.db)
-        )
+        extraction = CandidateRuleDraftExtractionService(CandidateRuleRepository(self.review_repository.db))
         extraction.extract_from_review(
             review_id=row.id,
             recommendation_id=row.recommendation_id,

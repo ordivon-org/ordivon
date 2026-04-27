@@ -26,6 +26,6 @@ def test_generic_frontend_analyze_components_consume_pack_surface_options():
 
     assert "getFinanceAnalyzeSurfaceOptions" in quick_analyze
     assert "getFinanceAnalyzeSurfaceOptions" in analyze_input
-    assert "<option value=\"BTC/USDT\">" not in quick_analyze
-    assert "<option value=\"BTC/USDT\">" not in analyze_input
+    assert '<option value="BTC/USDT">' not in quick_analyze
+    assert '<option value="BTC/USDT">' not in analyze_input
     assert "['15m', '1h', '4h', '1d']" not in analyze_input

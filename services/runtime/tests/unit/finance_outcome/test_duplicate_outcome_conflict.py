@@ -28,6 +28,7 @@ def db() -> Session:
 
 # ── Test: duplicate execution_receipt_id is not rejected at DB level ─────
 
+
 def test_duplicate_execution_receipt_id_allowed(db: Session):
     """Create two outcomes with the same execution_receipt_id.
 
@@ -71,12 +72,7 @@ def test_duplicate_execution_receipt_id_allowed(db: Session):
     assert row2.execution_receipt_id == receipt_id
 
     # Verify both persisted at the ORM level
-    rows = (
-        db.query(FinanceManualOutcomeORM)
-        .filter(FinanceManualOutcomeORM.execution_receipt_id == receipt_id)
-        .all()
-    )
+    rows = db.query(FinanceManualOutcomeORM).filter(FinanceManualOutcomeORM.execution_receipt_id == receipt_id).all()
     assert len(rows) == 2, (
-        "Expected 2 rows with same execution_receipt_id; "
-        "ORM does not enforce uniqueness on this column."
+        "Expected 2 rows with same execution_receipt_id; ORM does not enforce uniqueness on this column."
     )

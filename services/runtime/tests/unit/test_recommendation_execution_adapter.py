@@ -64,7 +64,9 @@ def test_recommendation_status_update_adapter_writes_success_request_and_receipt
         assert receipt_row.result_ref == "reco_exec_ok"
         assert recommendation_row is not None
         assert recommendation_row.status == RecommendationStatus.ADOPTED.value
-        success_audits = db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_status_update").all()
+        success_audits = (
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_status_update").all()
+        )
         assert len(success_audits) == 1
     finally:
         db.close()
@@ -92,7 +94,9 @@ def test_recommendation_transition_can_suppress_success_audit():
             emit_recommendation_status_audit=False,
         )
 
-        success_audits = db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_status_update").all()
+        success_audits = (
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_status_update").all()
+        )
         assert recommendation.status == RecommendationStatus.ADOPTED
         assert len(success_audits) == 0
     finally:

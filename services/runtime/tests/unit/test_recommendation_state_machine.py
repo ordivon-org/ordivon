@@ -5,10 +5,13 @@ from shared.errors.domain import InvalidStateTransition
 
 def test_recommendation_valid_transition():
     sm = RecommendationStateMachine()
-    assert sm.can_transition(
-        RecommendationStatus.GENERATED,
-        RecommendationStatus.ADOPTED,
-    ) is True
+    assert (
+        sm.can_transition(
+            RecommendationStatus.GENERATED,
+            RecommendationStatus.ADOPTED,
+        )
+        is True
+    )
 
 
 def test_recommendation_invalid_transition():

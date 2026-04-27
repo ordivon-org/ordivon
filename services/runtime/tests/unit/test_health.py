@@ -42,7 +42,9 @@ def test_health_reports_degraded_when_hermes_is_unavailable(monkeypatch):
     settings.reasoning_provider = "hermes"
     monkeypatch.setattr(
         "apps.api.app.api.v1.health.resolve_runtime",
-        lambda: type("UnavailableRuntime", (), {"health": lambda self: (_ for _ in ()).throw(Exception("unavailable"))})(),
+        lambda: type(
+            "UnavailableRuntime", (), {"health": lambda self: (_ for _ in ()).throw(Exception("unavailable"))}
+        )(),
     )
     client = TestClient(app)
     response = client.get("/api/v1/health")
@@ -128,7 +130,11 @@ def test_health_returns_monitoring_snapshot_from_real_rows():
     assert payload["last_workflow_at"] is not None
     assert payload["last_audit_at"] is not None
     assert payload["monitoring_window_hours"] == 24
-    assert payload["workflow_failures_by_type"].get("reason", 0) + payload["workflow_failures_by_type"].get("workflow_failed", 0) == 1
+    assert (
+        payload["workflow_failures_by_type"].get("reason", 0)
+        + payload["workflow_failures_by_type"].get("workflow_failed", 0)
+        == 1
+    )
     assert payload["execution_failures_by_family"]["review"] == 1
     assert payload["top_execution_failure_family"] == "review"
 

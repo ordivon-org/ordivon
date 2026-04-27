@@ -18,7 +18,7 @@ def test_review_capability_list_pending_maps_rows_to_contract():
                 expected_outcome="Target holds",
                 created_at=datetime(2026, 4, 20, tzinfo=timezone.utc),
             )
-        ]
+        ],
     )
 
     result = capability.list_pending(service, limit=5)

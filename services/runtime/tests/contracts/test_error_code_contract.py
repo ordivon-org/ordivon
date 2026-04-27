@@ -60,8 +60,7 @@ def test_reject_path_returns_governance_error(app_client: TestClient) -> None:
         json=_intake_payload(thesis="YOLO"),
     )
     assert create_resp.status_code == 200, (
-        f"Expected intake creation to succeed, got {create_resp.status_code}: "
-        f"{create_resp.text}"
+        f"Expected intake creation to succeed, got {create_resp.status_code}: {create_resp.text}"
     )
     intake = create_resp.json()
     intake_id = intake["id"]
@@ -72,13 +71,11 @@ def test_reject_path_returns_governance_error(app_client: TestClient) -> None:
         f"/api/v1/finance-decisions/intake/{intake_id}/govern",
     )
     assert govern_resp.status_code == 200, (
-        f"Expected govern to succeed, got {govern_resp.status_code}: "
-        f"{govern_resp.text}"
+        f"Expected govern to succeed, got {govern_resp.status_code}: {govern_resp.text}"
     )
     governed = govern_resp.json()
     assert governed["governance_status"] == "reject", (
-        f"Expected governance_status='reject', got "
-        f"'{governed['governance_status']}'"
+        f"Expected governance_status='reject', got '{governed['governance_status']}'"
     )
 
     # Step 3: Plan — should fail because governance_status is "reject"
@@ -86,20 +83,14 @@ def test_reject_path_returns_governance_error(app_client: TestClient) -> None:
         f"/api/v1/finance-decisions/intake/{intake_id}/plan",
     )
     assert plan_resp.status_code in {400, 403, 409, 422}, (
-        f"Expected plan to return a client error (400/403/409/422), "
-        f"got {plan_resp.status_code}: {plan_resp.text}"
+        f"Expected plan to return a client error (400/403/409/422), got {plan_resp.status_code}: {plan_resp.text}"
     )
 
     # Assert structured error: must have at least one of detail/error/message
     err_payload = plan_resp.json()
-    has_structured_key = (
-        "detail" in err_payload
-        or "error" in err_payload
-        or "message" in err_payload
-    )
+    has_structured_key = "detail" in err_payload or "error" in err_payload or "message" in err_payload
     assert has_structured_key, (
-        f"Expected structured error with 'detail', 'error', or 'message' key, "
-        f"got keys: {list(err_payload.keys())}"
+        f"Expected structured error with 'detail', 'error', or 'message' key, got keys: {list(err_payload.keys())}"
     )
 
 
@@ -112,17 +103,11 @@ def test_not_found_returns_structured_error(app_client: TestClient) -> None:
         "/api/v1/finance-decisions/intake/nonexistent-intake-id",
     )
     assert response.status_code == 404, (
-        f"Expected 404 for nonexistent intake, got {response.status_code}: "
-        f"{response.text}"
+        f"Expected 404 for nonexistent intake, got {response.status_code}: {response.text}"
     )
 
     err_payload = response.json()
-    has_structured_key = (
-        "detail" in err_payload
-        or "error" in err_payload
-        or "message" in err_payload
-    )
+    has_structured_key = "detail" in err_payload or "error" in err_payload or "message" in err_payload
     assert has_structured_key, (
-        f"Expected structured error with 'detail', 'error', or 'message' key, "
-        f"got keys: {list(err_payload.keys())}"
+        f"Expected structured error with 'detail', 'error', or 'message' key, got keys: {list(err_payload.keys())}"
     )

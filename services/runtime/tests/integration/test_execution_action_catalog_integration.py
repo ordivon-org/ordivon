@@ -80,10 +80,7 @@ def test_execution_action_catalog_aligns_with_analyze_side_effects(monkeypatch):
         assert metadata_update.primary_receipt_candidate is True
         assert recommendation_generate.side_effect_level == "state_mutation"
 
-        event_types = {
-            row.event_type
-            for row in db.query(AuditEventORM).all()
-        }
+        event_types = {row.event_type for row in db.query(AuditEventORM).all()}
         assert "analysis_report_written" in event_types
         assert "recommendation_generated" in event_types
     finally:

@@ -44,7 +44,10 @@ class _FakeClient:
 
 
 def test_hermes_client_health_check_handles_timeout(monkeypatch):
-    monkeypatch.setattr("intelligence.runtime.hermes_client.httpx.Client", lambda *args, **kwargs: _FakeClient(exc=httpx.TimeoutException("timeout")))
+    monkeypatch.setattr(
+        "intelligence.runtime.hermes_client.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(exc=httpx.TimeoutException("timeout")),
+    )
     client = HermesClient(base_url="http://test")
 
     with pytest.raises(HermesUnavailableError):
@@ -53,7 +56,10 @@ def test_hermes_client_health_check_handles_timeout(monkeypatch):
 
 def test_hermes_client_run_task_returns_payload(monkeypatch):
     payload = {"status": "completed", "task_id": "task_1", "output": {"summary": "ok"}}
-    monkeypatch.setattr("intelligence.runtime.hermes_client.httpx.Client", lambda *args, **kwargs: _FakeClient(response=_FakeResponse(200, payload)))
+    monkeypatch.setattr(
+        "intelligence.runtime.hermes_client.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(response=_FakeResponse(200, payload)),
+    )
     client = HermesClient(base_url="http://test")
 
     result = client.run_task("analysis.generate", {"task_id": "task_1"})
@@ -62,7 +68,10 @@ def test_hermes_client_run_task_returns_payload(monkeypatch):
 
 def test_hermes_client_run_task_raises_on_non_success_payload(monkeypatch):
     payload = {"status": "failed", "error": "bad output"}
-    monkeypatch.setattr("intelligence.runtime.hermes_client.httpx.Client", lambda *args, **kwargs: _FakeClient(response=_FakeResponse(200, payload)))
+    monkeypatch.setattr(
+        "intelligence.runtime.hermes_client.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(response=_FakeResponse(200, payload)),
+    )
     client = HermesClient(base_url="http://test")
 
     with pytest.raises(HermesTaskError):
@@ -91,7 +100,9 @@ def test_hermes_client_run_task_retries_timeout(monkeypatch):
 
 def test_hermes_client_run_task_raises_detailed_server_error(monkeypatch):
     response = _FakeResponse(503, {"detail": "bridge unavailable"})
-    monkeypatch.setattr("intelligence.runtime.hermes_client.httpx.Client", lambda *args, **kwargs: _FakeClient(response=response))
+    monkeypatch.setattr(
+        "intelligence.runtime.hermes_client.httpx.Client", lambda *args, **kwargs: _FakeClient(response=response)
+    )
     client = HermesClient(base_url="http://test", max_retries=0)
 
     with pytest.raises(HermesTaskError, match="503"):

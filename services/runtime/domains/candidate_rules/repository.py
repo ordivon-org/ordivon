@@ -38,11 +38,7 @@ class CandidateRuleRepository:
 
     def find_by_lesson_id(self, lesson_id: str) -> CandidateRuleORM | None:
         """Check if a CandidateRule already exists for a given lesson (idempotency)."""
-        return (
-            self.db.query(CandidateRuleORM)
-            .filter(CandidateRuleORM.lesson_ids_json.contains(lesson_id))
-            .first()
-        )
+        return self.db.query(CandidateRuleORM).filter(CandidateRuleORM.lesson_ids_json.contains(lesson_id)).first()
 
     def list_all(self) -> list[CandidateRuleORM]:
         return self.db.query(CandidateRuleORM).order_by(CandidateRuleORM.created_at.desc()).all()

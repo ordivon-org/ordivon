@@ -10,6 +10,7 @@ Covers:
   7. No Policy promotion (status never accepted_candidate)
   8. No broker/order/trade/execution side effects
 """
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -22,6 +23,7 @@ from domains.candidate_rules.models import CandidateRule, VALID_CANDIDATE_RULE_S
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
+
 
 def _make_repo(db=None):
     """Create a CandidateRuleRepository with a mock db."""
@@ -45,6 +47,7 @@ def _make_lesson(**overrides):
 # ═══════════════════════════════════════════════════════════════════════
 # Test 1: rule_candidate lesson creates CandidateRule draft
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_rule_candidate_lesson_creates_draft():
     """A lesson with lesson_type='rule_candidate' produces a CandidateRule draft."""
@@ -83,6 +86,7 @@ def test_rule_candidate_lesson_creates_draft():
 # Test 2: CandidateRule state == draft (never accepted_candidate)
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_draft_never_promoted_to_accepted_candidate():
     """Extraction must never set status='accepted_candidate'."""
     repo = _make_repo()
@@ -111,6 +115,7 @@ def test_draft_never_promoted_to_accepted_candidate():
 # Test 3: source_refs include review_id and lesson_id
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_source_refs_include_review_and_lesson():
     """source_refs must contain review:<id> and lesson:<id>."""
     repo = _make_repo()
@@ -137,6 +142,7 @@ def test_source_refs_include_review_and_lesson():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 4: source_refs include outcome_ref when present
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_source_refs_include_outcome_ref():
     """When Review has outcome_ref_type/id, source_refs include them."""
@@ -165,6 +171,7 @@ def test_source_refs_include_outcome_ref():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 5: non-rule_candidate lesson does not create CandidateRule
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_non_rule_candidate_lesson_skipped():
     """Only lesson_type='rule_candidate' triggers draft creation."""
@@ -197,6 +204,7 @@ def test_non_rule_candidate_lesson_skipped():
 # Test 6: repeated completion does not duplicate CandidateRule
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_idempotent_extraction():
     """Calling extract_from_review twice with the same lesson creates only one draft."""
     repo = _make_repo()
@@ -223,6 +231,7 @@ def test_idempotent_extraction():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 7: no Policy promotion
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_no_policy_promotion():
     """Verify that the service has no method or path to promote to Policy."""
@@ -251,6 +260,7 @@ def test_no_policy_promotion():
 # Test 8: no broker/order/trade/execution side effects
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_no_broker_order_trade_imports():
     """The draft_extraction module must not import broker/order/trade modules."""
     import inspect
@@ -258,16 +268,11 @@ def test_no_broker_order_trade_imports():
 
     source = inspect.getsource(draft_extraction)
     # Only check import lines — not docstrings or comments
-    import_lines = [
-        l for l in source.splitlines()
-        if l.strip().startswith(("from ", "import "))
-    ]
+    import_lines = [l for l in source.splitlines() if l.strip().startswith(("from ", "import "))]
     source_imports = "\n".join(import_lines)
     forbidden = ["broker", "place_order", "execute_trade"]
     for word in forbidden:
-        assert word not in source_imports, (
-            f"draft_extraction.py imports forbidden module: '{word}'"
-        )
+        assert word not in source_imports, f"draft_extraction.py imports forbidden module: '{word}'"
 
 
 def test_draft_extraction_no_db_side_effects():
@@ -291,6 +296,7 @@ def test_draft_extraction_no_db_side_effects():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 9: extraction errors don't block (fail-safe)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_extraction_error_does_not_block():
     """If one lesson fails extraction, others still proceed."""

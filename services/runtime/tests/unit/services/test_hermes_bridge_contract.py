@@ -65,6 +65,7 @@ def _fake_failed_run(task):
 
 # ── 1. Health ────────────────────────────────────────────────────────
 
+
 def test_health_returns_provider_and_model():
     """GET /pfios/v1/health returns 200 with provider/model/tools_enabled=False."""
     client = TestClient(app)
@@ -93,6 +94,7 @@ def test_health_tools_explicitly_disabled():
 
 
 # ── 2. Successful task ───────────────────────────────────────────────
+
 
 def test_tasks_analysis_generate_success(monkeypatch):
     """POST /pfios/v1/tasks with task_type=analysis.generate returns completed."""
@@ -124,6 +126,7 @@ def test_tasks_analysis_generate_success(monkeypatch):
 
 
 # ── 3. Unsupported task_type ─────────────────────────────────────────
+
 
 def test_tasks_unsupported_task_type():
     """POST /pfios/v1/tasks with unsupported task_type must fail with 400."""
@@ -162,6 +165,7 @@ def test_tasks_non_analysis_task_type():
 
 
 # ── 4. Auth rejection ────────────────────────────────────────────────
+
 
 def test_health_rejects_missing_auth(monkeypatch):
     """When BRIDGE_API_TOKEN is set, missing Authorization header → 401."""
@@ -240,6 +244,7 @@ def test_health_accepts_valid_bearer_token(monkeypatch):
 
 # ── 5. Invalid model output must fail, not fake completed ────────────
 
+
 def test_tasks_failed_model_output_is_not_completed(monkeypatch):
     """When run_analysis returns status=failed (e.g. invalid JSON),
     the /tasks endpoint must NOT return status=completed."""
@@ -284,31 +289,25 @@ def test_tasks_failed_output_has_no_summary(monkeypatch):
 
 # ── 6. Config safety flags ───────────────────────────────────────────
 
+
 def test_config_safety_flags_all_false():
     """ALLOW_TOOLS, ALLOW_FILE_WRITE, ALLOW_SHELL must all be False.
     This is a hard invariant for H-1: 'One Real Model Under Control' —
     the bridge owns the model, the model does not own tools."""
     assert bridge_config.ALLOW_TOOLS is False, (
-        "H-1 safety violation: ALLOW_TOOLS must be False. "
-        "The bridge is an analysis adapter, not an agent harness."
+        "H-1 safety violation: ALLOW_TOOLS must be False. The bridge is an analysis adapter, not an agent harness."
     )
-    assert bridge_config.ALLOW_FILE_WRITE is False, (
-        "H-1 safety violation: ALLOW_FILE_WRITE must be False."
-    )
-    assert bridge_config.ALLOW_SHELL is False, (
-        "H-1 safety violation: ALLOW_SHELL must be False."
-    )
+    assert bridge_config.ALLOW_FILE_WRITE is False, "H-1 safety violation: ALLOW_FILE_WRITE must be False."
+    assert bridge_config.ALLOW_SHELL is False, "H-1 safety violation: ALLOW_SHELL must be False."
 
 
 # ── 7. Contract: bridge does not participate in LLM cache ────────────
+
 
 def test_bridge_has_no_llm_cache_config():
     """The bridge config must not expose llm_cache_enabled.
     LLM cache is an Ordivon concern (R-3B), not a bridge concern."""
     assert not hasattr(bridge_config, "LLM_CACHE_ENABLED"), (
-        "llm_cache_enabled does not belong in bridge config. "
-        "Cache decisions live in Ordivon, not in the bridge."
+        "llm_cache_enabled does not belong in bridge config. Cache decisions live in Ordivon, not in the bridge."
     )
-    assert not hasattr(bridge_config, "llm_cache_enabled"), (
-        "llm_cache_enabled does not belong in bridge config."
-    )
+    assert not hasattr(bridge_config, "llm_cache_enabled"), "llm_cache_enabled does not belong in bridge config."

@@ -19,6 +19,7 @@ from knowledge.wiki.service import MarkdownWikiService
 engine = create_engine("sqlite:///:memory:")
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
@@ -29,6 +30,7 @@ def db():
         db.close()
         Base.metadata.drop_all(bind=engine)
 
+
 class TestAnalyzeTransaction:
     """
     Ensures the analyze workflow is atomic and wiki writing has compensation.
@@ -38,26 +40,23 @@ class TestAnalyzeTransaction:
         # 1. Setup
         orchestrator = PFIOSOrchestrator()
         request = AnalysisRequest(query="test", symbol="BTC", timeframe="1d")
-        
+
         # Mock AuditTrailStep to fail
-        with patch.object(AuditTrailStep, 'execute', side_effect=Exception("Audit fail")):
+        with patch.object(AuditTrailStep, "execute", side_effect=Exception("Audit fail")):
             with pytest.raises(Exception, match="Audit fail"):
                 orchestrator.execute_analyze(request, db=db)
-        
+
         # 2. Verification
-        # Since the orchestrator only commits at the very end, 
+        # Since the orchestrator only commits at the very end,
         # a failure in the middle should mean NOTHING is committed.
-        db.rollback() # Ensure session state is clean for check
+        db.rollback()  # Ensure session state is clean for check
         assert db.query(AnalysisORM).count() == 0
         assert db.query(RecommendationORM).count() == 0
 
     def test_wiki_compensation_on_db_metadata_fail(self, db: Session):
         # 1. Setup
         # We need a context that has already passed through PersistAnalysisStep
-        ctx = WorkflowContext(
-            request=AnalysisRequest(query="test", symbol="BTC", timeframe="1d"),
-            db=db
-        )
+        ctx = WorkflowContext(request=AnalysisRequest(query="test", symbol="BTC", timeframe="1d"), db=db)
         ctx.analysis_id = "ana_test_123"
         ctx.analysis = AnalysisResult(id="ana_test_123", thesis="test", summary="test")
         ctx.metadata["side_effect_contexts"] = {
@@ -80,17 +79,19 @@ class TestAnalyzeTransaction:
                 idempotency_key="audit-report-test",
             ),
         }
-        
+
         # Mock the wiki service to write a real (temp) file
         wiki_service = MarkdownWikiService(base_dir="test_wiki")
         step = WriteWikiStep()
         step.wiki_service = wiki_service
-        
+
         # Mock AnalysisService.update_metadata to fail
-        with patch('orchestrator.workflows.analyze.AnalysisService.update_metadata', side_effect=Exception("DB update fail")):
+        with patch(
+            "orchestrator.workflows.analyze.AnalysisService.update_metadata", side_effect=Exception("DB update fail")
+        ):
             with pytest.raises(Exception, match="DB update fail"):
                 step.execute(ctx)
-        
+
         # 2. Verification
         # Check if file was deleted
         sym = "BTC"
@@ -105,10 +106,11 @@ class TestAnalyzeTransaction:
         assert receipt_row.error == "DB update fail"
         assert ctx.metadata["_workflow_recovery_detail"].action == "compensation"
         assert ctx.metadata["_workflow_recovery_detail"].detail["compensation_applied"] is True
-        
+
         # Cleanup test dir if it exists
         if os.path.exists("test_wiki"):
             import shutil
+
             shutil.rmtree("test_wiki")
 
     def test_wiki_write_requires_action_context(self, db: Session):
@@ -127,16 +129,17 @@ class TestAnalyzeTransaction:
 
         if os.path.exists("test_wiki"):
             import shutil
+
             shutil.rmtree("test_wiki")
 
     def test_workflow_full_success_commits(self, db: Session):
         # 1. Setup
         orchestrator = PFIOSOrchestrator()
         request = AnalysisRequest(query="test", symbol="BTC", timeframe="1d")
-        
+
         # 2. Action
         orchestrator.execute_analyze(request, db=db)
-        
+
         # 3. Verification
         # Everything should be in DB now because commit happened at the end
         assert db.query(AnalysisORM).count() == 1

@@ -78,10 +78,11 @@ def test_cache_disabled_never_calls_redis():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response") as mock_get, \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response") as mock_get,
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set,
+    ):
         mock_settings.llm_cache_enabled = False
         mock_settings.llm_cache_ttl_seconds = 900
         runtime.analyze(ctx)
@@ -101,10 +102,11 @@ def test_cache_miss_calls_provider_and_sets_cache():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None) as mock_get, \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None) as mock_get,
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set,
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -128,9 +130,10 @@ def test_cache_hit_skips_provider():
     mock_client = MagicMock()
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached) as mock_get:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached) as mock_get,
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -152,9 +155,10 @@ def test_cache_hit_result_has_cache_hit_metadata():
     mock_client = MagicMock()
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -173,9 +177,10 @@ def test_cache_hit_result_has_agent_action():
     mock_client = MagicMock()
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -205,10 +210,11 @@ def test_same_input_produces_same_cache_key():
     def _capture_key(key, response, ttl_seconds=None):
         keys.append(key)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None), \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response", side_effect=_capture_key):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None),
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response", side_effect=_capture_key),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -231,9 +237,12 @@ def test_redis_get_error_falls_back_to_provider():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", side_effect=ConnectionError("boom")) as mock_get:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch(
+            "adapters.runtimes.hermes.runtime.get_cached_llm_response", side_effect=ConnectionError("boom")
+        ) as mock_get,
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -255,10 +264,11 @@ def test_provider_error_not_cached():
     mock_client.run_task.side_effect = HermesRuntimeError("simulated failure", retryable=False)
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None) as mock_get, \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None) as mock_get,
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set,
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -282,10 +292,11 @@ def test_redis_set_error_does_not_crash():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None), \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response", side_effect=ConnectionError("redis down")):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None),
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response", side_effect=ConnectionError("redis down")),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -307,6 +318,7 @@ def test_cache_key_never_contains_api_token():
     assert "token" not in str(payload).lower() or "api_token" not in payload
 
     from adapters.runtimes.hermes.runtime import _build_cache_key_from_request
+
     key = _build_cache_key_from_request(request)
     assert key is not None
     assert "token" not in key.lower()
@@ -319,6 +331,7 @@ def test_cache_key_never_contains_api_token():
 
 def test_default_llm_cache_enabled_is_false():
     from shared.config.settings import settings
+
     assert settings.llm_cache_enabled is False
 
 
@@ -331,9 +344,10 @@ def test_default_runtime_does_not_use_cache():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.get_cached_llm_response") as mock_get, \
-         patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set:
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response") as mock_get,
+        patch("adapters.runtimes.hermes.runtime.set_cached_llm_response") as mock_set,
+    ):
         result = runtime.analyze(ctx)
 
     mock_get.assert_not_called()
@@ -353,9 +367,10 @@ def test_cache_hit_produces_runtime_metadata():
     mock_client = MagicMock()
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=cached),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"
@@ -376,9 +391,10 @@ def test_live_response_does_not_have_cache_hit():
     mock_client.run_task.return_value = fake_response
     runtime = HermesRuntime(client=mock_client)
 
-    with patch("adapters.runtimes.hermes.runtime.settings") as mock_settings, \
-         patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None):
-
+    with (
+        patch("adapters.runtimes.hermes.runtime.settings") as mock_settings,
+        patch("adapters.runtimes.hermes.runtime.get_cached_llm_response", return_value=None),
+    ):
         mock_settings.llm_cache_enabled = True
         mock_settings.llm_cache_ttl_seconds = 900
         mock_settings.llm_cache_namespace = "llm:cache:v1"

@@ -84,9 +84,7 @@ def test_recommendation_status_update_api_keeps_response_audit_execution_and_sta
         assert audit_row is not None
         payload = from_json_text(audit_row.payload_json, {})
         success_audit_count = (
-            db.query(AuditEventORM)
-            .filter(AuditEventORM.event_type == "recommendation_status_update")
-            .count()
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_status_update").count()
         )
 
         assert body["status"] == "success"

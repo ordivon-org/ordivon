@@ -1,4 +1,5 @@
 """CandidateRule persistence regression — verifies new fields survive DB round-trip."""
+
 from sqlalchemy.orm import Session
 
 from domains.candidate_rules.models import CandidateRule

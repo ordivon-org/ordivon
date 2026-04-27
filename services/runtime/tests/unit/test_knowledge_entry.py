@@ -28,9 +28,7 @@ def test_knowledge_entry_rejects_state_truth_object_type():
                 object_id="lesson_1",
                 relation="derived_from",
             ),
-            evidence_refs=(
-                KnowledgeRef(object_type="review", object_id="review_1", relation="supports"),
-            ),
+            evidence_refs=(KnowledgeRef(object_type="review", object_id="review_1", relation="supports"),),
         )
         assert False, "Expected ValueError for state truth masquerade"
     except ValueError as exc:
@@ -59,4 +57,3 @@ def test_knowledge_entry_builder_maps_lesson_to_structured_knowledge():
         "source_ref",
     }
     assert entry.feedback_targets == ("governance", "intelligence")
-

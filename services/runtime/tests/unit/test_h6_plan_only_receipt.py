@@ -99,11 +99,14 @@ def test_invalid_intake_cannot_create_plan_receipt():
     db = testing_session_local()
     try:
         cap = FinanceDecisionCapability()
-        model = cap.create_intake({
-            "symbol": "BTC/USDT",
-            "direction": "long",
-            "thesis": None,
-        }, db)
+        model = cap.create_intake(
+            {
+                "symbol": "BTC/USDT",
+                "direction": "long",
+                "thesis": None,
+            },
+            db,
+        )
         db.commit()
         assert model.status == "invalid"
 
@@ -126,11 +129,14 @@ def test_rejected_intake_cannot_create_plan_receipt():
     db = testing_session_local()
     try:
         cap = FinanceDecisionCapability()
-        model = cap.create_intake({
-            "symbol": "BTC/USDT",
-            "direction": "long",
-            "thesis": None,
-        }, db)
+        model = cap.create_intake(
+            {
+                "symbol": "BTC/USDT",
+                "direction": "long",
+                "thesis": None,
+            },
+            db,
+        )
         db.commit()
 
         updated, decision = cap.govern_intake(model.id, db)
@@ -154,9 +160,12 @@ def test_escalated_intake_cannot_create_plan_receipt():
     engine, testing_session_local = _make_db()
     db = testing_session_local()
     try:
-        intake_id, decision = _create_and_govern(db, payload_override={
-            "is_revenge_trade": True,
-        })
+        intake_id, decision = _create_and_govern(
+            db,
+            payload_override={
+                "is_revenge_trade": True,
+            },
+        )
         assert decision.decision == "escalate"
 
         cap = FinanceDecisionCapability()
@@ -233,9 +242,7 @@ def test_plan_creation_creates_execution_request_orm():
         result = cap.plan_intake(intake_id, db)
         db.commit()
 
-        request = db.query(ExecutionRequestORM).filter(
-            ExecutionRequestORM.id == result.execution_request_id
-        ).one()
+        request = db.query(ExecutionRequestORM).filter(ExecutionRequestORM.id == result.execution_request_id).one()
         assert request.action_id == "finance_decision_plan"
         assert request.family == "finance"
         assert request.status == "succeeded"
@@ -256,9 +263,7 @@ def test_plan_creation_creates_execution_receipt_orm():
         result = cap.plan_intake(intake_id, db)
         db.commit()
 
-        receipt = db.query(ExecutionReceiptORM).filter(
-            ExecutionReceiptORM.id == result.execution_receipt_id
-        ).one()
+        receipt = db.query(ExecutionReceiptORM).filter(ExecutionReceiptORM.id == result.execution_receipt_id).one()
         assert receipt.status == "succeeded"
         assert receipt.request_id == result.execution_request_id
     finally:
@@ -278,9 +283,7 @@ def test_plan_creation_writes_audit_event():
         cap.plan_intake(intake_id, db)
         db.commit()
 
-        events = db.query(AuditEventORM).filter(
-            AuditEventORM.event_type == "plan_receipt_created"
-        ).all()
+        events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "plan_receipt_created").all()
         assert len(events) == 1
         assert events[0].entity_type == "decision_intake"
         assert events[0].entity_id == intake_id
@@ -294,6 +297,7 @@ def test_plan_creation_writes_audit_event():
 
 def test_plan_creation_does_not_create_recommendation():
     from domains.strategy.orm import RecommendationORM
+
     engine, testing_session_local = _make_db()
     db = testing_session_local()
     try:
@@ -322,15 +326,11 @@ def test_plan_creation_does_not_create_outcome():
         db.commit()
 
         # No Outcome model exists yet — verify no outcome-related audit events
-        outcome_events = db.query(AuditEventORM).filter(
-            AuditEventORM.event_type.like("%outcome%")
-        ).count()
+        outcome_events = db.query(AuditEventORM).filter(AuditEventORM.event_type.like("%outcome%")).count()
         assert outcome_events == 0, "H-6 must not create outcome events"
 
         # No broker-execution audit events
-        broker_events = db.query(AuditEventORM).filter(
-            AuditEventORM.event_type.like("%broker%")
-        ).count()
+        broker_events = db.query(AuditEventORM).filter(AuditEventORM.event_type.like("%broker%")).count()
         assert broker_events == 0, "H-6 must not create broker events"
     finally:
         db.close()
@@ -350,9 +350,7 @@ def test_plan_creation_does_not_trigger_broker_order_trade():
         db.commit()
 
         # Verify no broker-related execution requests
-        broker_requests = db.query(ExecutionRequestORM).filter(
-            ExecutionRequestORM.action_id.like("%order%")
-        ).count()
+        broker_requests = db.query(ExecutionRequestORM).filter(ExecutionRequestORM.action_id.like("%order%")).count()
         assert broker_requests == 0
 
         # Only one execution request: finance_decision_plan

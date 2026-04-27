@@ -109,9 +109,7 @@ def test_validation_issue_report_failure_returns_failed_refs_and_no_issue_row(mo
         request_row = db.get(ExecutionRequestORM, request_id)
         receipt_row = db.get(ExecutionReceiptORM, receipt_id)
         failed_audit = (
-            db.query(AuditEventORM)
-            .filter(AuditEventORM.event_type == "validation_issue_report_failed")
-            .one()
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "validation_issue_report_failed").one()
         )
 
         assert request_row is not None

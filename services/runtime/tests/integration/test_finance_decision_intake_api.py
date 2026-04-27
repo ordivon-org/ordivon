@@ -86,6 +86,7 @@ def _create_and_govern(client, payload_override=None):
 
 # ── Existing tests (kept, updated for H-5) ─────────────────────────────────
 
+
 def test_valid_request_returns_validated_with_governance_not_started():
     with _client_with_db() as (client, _):
         response = client.post("/api/v1/finance-decisions/intake", json=_valid_request())
@@ -126,11 +127,15 @@ def test_transport_type_errors_still_return_422():
 
 # ── H-5 Rule 1: invalid intake → reject ────────────────────────────────────
 
+
 def test_h5_govern_invalid_intake_rejected():
     with _client_with_db() as (client, testing_session_local):
-        _, gov_resp = _create_and_govern(client, payload_override={
-            "thesis": None,  # makes it invalid
-        })
+        _, gov_resp = _create_and_govern(
+            client,
+            payload_override={
+                "thesis": None,  # makes it invalid
+            },
+        )
         assert gov_resp["governance_status"] == "reject"
         assert gov_resp["governance_decision"] == "reject"
         assert len(gov_resp["governance_reasons"]) >= 1
@@ -138,6 +143,7 @@ def test_h5_govern_invalid_intake_rejected():
 
 
 # ── H-5 Rule 2: missing thesis → reject ────────────────────────────────────
+
 
 def test_h5_govern_missing_thesis_rejected():
     """When thesis is missing, validation fails → intake is invalid → governance rejects."""
@@ -153,17 +159,20 @@ def test_h5_govern_missing_thesis_rejected():
         gov_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
         assert gov_resp.status_code == 200
         assert gov_resp.json()["governance_decision"] == "reject"
-        assert any("thesis" in r.lower() or "invalid" in r.lower()
-                   for r in gov_resp.json()["governance_reasons"])
+        assert any("thesis" in r.lower() or "invalid" in r.lower() for r in gov_resp.json()["governance_reasons"])
 
 
 # ── H-5 Rule 8: revenge_trade=true → escalate ──────────────────────────────
 
+
 def test_h5_govern_revenge_trade_escalated():
     with _client_with_db() as (client, _):
-        _, gov_resp = _create_and_govern(client, payload_override={
-            "is_revenge_trade": True,
-        })
+        _, gov_resp = _create_and_govern(
+            client,
+            payload_override={
+                "is_revenge_trade": True,
+            },
+        )
         assert gov_resp["governance_status"] == "escalate"
         assert gov_resp["governance_decision"] == "escalate"
         assert any("revenge" in r.lower() for r in gov_resp["governance_reasons"])
@@ -171,11 +180,15 @@ def test_h5_govern_revenge_trade_escalated():
 
 # ── H-5 Rule 9: chasing=true → escalate ────────────────────────────────────
 
+
 def test_h5_govern_chasing_escalated():
     with _client_with_db() as (client, _):
-        _, gov_resp = _create_and_govern(client, payload_override={
-            "is_chasing": True,
-        })
+        _, gov_resp = _create_and_govern(
+            client,
+            payload_override={
+                "is_chasing": True,
+            },
+        )
         assert gov_resp["governance_status"] == "escalate"
         assert gov_resp["governance_decision"] == "escalate"
         assert any("chasing" in r.lower() for r in gov_resp["governance_reasons"])
@@ -183,29 +196,38 @@ def test_h5_govern_chasing_escalated():
 
 # ── H-5 Rule 10: max_loss > 2× risk_unit → reject ──────────────────────────
 
+
 def test_h5_govern_max_loss_exceeds_limit_rejected():
     with _client_with_db() as (client, _):
-        _, gov_resp = _create_and_govern(client, payload_override={
-            "max_loss_usdt": 30.0,
-            "risk_unit_usdt": 10.0,
-        })
+        _, gov_resp = _create_and_govern(
+            client,
+            payload_override={
+                "max_loss_usdt": 30.0,
+                "risk_unit_usdt": 10.0,
+            },
+        )
         assert gov_resp["governance_status"] == "reject"
         assert gov_resp["governance_decision"] == "reject"
 
 
 # ── H-5 Rule 11: position_size > 10× risk_unit → reject ────────────────────
 
+
 def test_h5_govern_position_size_exceeds_limit_rejected():
     with _client_with_db() as (client, _):
-        _, gov_resp = _create_and_govern(client, payload_override={
-            "position_size_usdt": 200.0,
-            "risk_unit_usdt": 10.0,
-        })
+        _, gov_resp = _create_and_govern(
+            client,
+            payload_override={
+                "position_size_usdt": 200.0,
+                "risk_unit_usdt": 10.0,
+            },
+        )
         assert gov_resp["governance_status"] == "reject"
         assert gov_resp["governance_decision"] == "reject"
 
 
 # ── H-5 Rule 12: valid intake → execute ────────────────────────────────────
+
 
 def test_h5_govern_valid_intake_executed():
     with _client_with_db() as (client, _):
@@ -217,6 +239,7 @@ def test_h5_govern_valid_intake_executed():
 
 
 # ── H-5 Priority: reject > escalate > execute ──────────────────────────────
+
 
 def test_h5_govern_priority_reject_over_escalate():
     """missing emotional_state + is_revenge_trade → invalid intake → governance rejects."""
@@ -234,21 +257,21 @@ def test_h5_govern_priority_reject_over_escalate():
 
 # ── Side-effect: governance does NOT create Recommendation ──────────────────
 
+
 def test_h5_governance_does_not_create_recommendation():
     with _client_with_db() as (client, testing_session_local):
         _, gov_resp = _create_and_govern(client)
         assert gov_resp["governance_decision"] == "execute"
         db = testing_session_local()
         try:
-            rec_events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type == "recommendation_generated"
-            ).count()
+            rec_events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_generated").count()
         finally:
             db.close()
         assert rec_events == 0, "H-5 must not generate Recommendation events"
 
 
 # ── Side-effect: governance does NOT create ExecutionReceipt ────────────────
+
 
 def test_h5_governance_does_not_create_execution_receipt():
     with _client_with_db() as (client, testing_session_local):
@@ -264,6 +287,7 @@ def test_h5_governance_does_not_create_execution_receipt():
 
 # ── Side-effect: governance does NOT trigger broker/order/execution ─────────
 
+
 def test_h5_governance_does_not_trigger_broker():
     with _client_with_db() as (client, testing_session_local):
         _, gov_resp = _create_and_govern(client)
@@ -278,15 +302,14 @@ def test_h5_governance_does_not_trigger_broker():
 
 # ── Governance writes AuditEvent ───────────────────────────────────────────
 
+
 def test_h5_governance_writes_audit_event():
     with _client_with_db() as (client, testing_session_local):
         _, gov_resp = _create_and_govern(client)
         assert gov_resp["governance_decision"] == "execute"
         db = testing_session_local()
         try:
-            events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type == "governance_evaluated"
-            ).all()
+            events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "governance_evaluated").all()
         finally:
             db.close()
         assert len(events) == 1, "H-5 must write one governance_evaluated AuditEvent"
@@ -295,6 +318,7 @@ def test_h5_governance_writes_audit_event():
 
 
 # ── Response includes governance metadata ──────────────────────────────────
+
 
 def test_h5_govern_response_has_decision_details():
     with _client_with_db() as (client, _):
@@ -308,6 +332,7 @@ def test_h5_govern_response_has_decision_details():
 
 
 # ── Original test_route_does_not_create_execution_receipts (kept) ──────────
+
 
 def test_route_does_not_create_execution_receipts():
     with _client_with_db() as (client, testing_session_local):
@@ -439,9 +464,7 @@ def test_h6_plan_receipt_writes_audit_event():
 
         db = testing_session_local()
         try:
-            events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type == "plan_receipt_created"
-            ).all()
+            events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "plan_receipt_created").all()
             assert len(events) == 1, "H-6 must write plan_receipt_created AuditEvent"
             assert events[0].entity_type == "decision_intake"
         finally:
@@ -459,9 +482,7 @@ def test_h6_plan_receipt_does_not_create_broker_records():
         db = testing_session_local()
         try:
             # No order execution requests
-            order_reqs = db.query(ExecutionRequestORM).filter(
-                ExecutionRequestORM.action_id.like("%order%")
-            ).count()
+            order_reqs = db.query(ExecutionRequestORM).filter(ExecutionRequestORM.action_id.like("%order%")).count()
             assert order_reqs == 0
 
             # Only one execution request (the plan one)

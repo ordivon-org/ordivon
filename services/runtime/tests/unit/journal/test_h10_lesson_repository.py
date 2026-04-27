@@ -63,10 +63,8 @@ def test_list_for_review_returns_multiple_lessons(db):
     """同一 review 有多个 lesson 时全部返回，按时间排序。"""
     repo = LessonRepository(db)
 
-    l1 = LessonORM(id="l-1", review_id="review-multi", recommendation_id=None,
-                   body="First", source_refs_json="[]")
-    l2 = LessonORM(id="l-2", review_id="review-multi", recommendation_id=None,
-                   body="Second", source_refs_json="[]")
+    l1 = LessonORM(id="l-1", review_id="review-multi", recommendation_id=None, body="First", source_refs_json="[]")
+    l2 = LessonORM(id="l-2", review_id="review-multi", recommendation_id=None, body="Second", source_refs_json="[]")
     db.add_all([l1, l2])
     db.commit()
 

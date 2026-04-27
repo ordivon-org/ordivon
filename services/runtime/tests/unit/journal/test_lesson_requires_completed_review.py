@@ -71,9 +71,7 @@ def test_lesson_can_only_be_created_for_completed_review(db):
         message = str(exc).lower()
         if "completed" in message or "pending" in message:
             # Guard exists — invariant is enforced ✓
-            pytest.skip(
-                f"Guard exists: lesson creation rejected with ValueError: {exc}"
-            )
+            pytest.skip(f"Guard exists: lesson creation rejected with ValueError: {exc}")
         # Unexpected ValueError (not related to review status)
         raise
 

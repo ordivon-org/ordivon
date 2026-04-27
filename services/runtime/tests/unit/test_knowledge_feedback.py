@@ -28,4 +28,3 @@ def test_knowledge_feedback_service_builds_governance_and_intelligence_hints():
     assert len(packet.governance_hints) == 1
     assert len(packet.intelligence_hints) == 1
     assert packet.governance_hints[0].summary == "Wait for confirmation before entry"
-

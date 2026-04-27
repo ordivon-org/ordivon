@@ -35,6 +35,7 @@ def test_review_result_populated_outcome_ref():
 def test_review_result_serializable():
     """ReviewResult 可以被序列化（dataclass asdict）。"""
     from dataclasses import asdict
+
     result = ReviewResult(
         id="rv-test",
         status="completed",

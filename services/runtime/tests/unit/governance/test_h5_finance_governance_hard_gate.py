@@ -14,6 +14,7 @@ from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
     """Create a DecisionIntake for testing."""
     p = {
@@ -51,6 +52,7 @@ def _valid_intake() -> DecisionIntake:
 
 # ── Rule 1: invalid intake → reject ────────────────────────────────────────
 
+
 def test_h5_invalid_intake_rejected():
     engine = RiskEngine()
     intake = _make_intake(status="invalid")
@@ -60,6 +62,7 @@ def test_h5_invalid_intake_rejected():
 
 
 # ── Rule 2: missing thesis → reject ────────────────────────────────────────
+
 
 def test_h5_missing_thesis_rejected():
     engine = RiskEngine()
@@ -79,6 +82,7 @@ def test_h5_empty_thesis_rejected():
 
 # ── Rule 3: missing stop_loss → reject ─────────────────────────────────────
 
+
 def test_h5_missing_stop_loss_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"stop_loss": None})
@@ -88,6 +92,7 @@ def test_h5_missing_stop_loss_rejected():
 
 
 # ── Rule 4: missing max_loss_usdt → reject ─────────────────────────────────
+
 
 def test_h5_missing_max_loss_rejected():
     engine = RiskEngine()
@@ -107,6 +112,7 @@ def test_h5_zero_max_loss_rejected():
 
 # ── Rule 5: missing position_size_usdt → reject ────────────────────────────
 
+
 def test_h5_missing_position_size_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"position_size_usdt": None})
@@ -117,6 +123,7 @@ def test_h5_missing_position_size_rejected():
 
 # ── Rule 6: missing risk_unit_usdt → reject ────────────────────────────────
 
+
 def test_h5_missing_risk_unit_rejected():
     engine = RiskEngine()
     intake = _make_intake(payload={"risk_unit_usdt": None})
@@ -126,6 +133,7 @@ def test_h5_missing_risk_unit_rejected():
 
 
 # ── Rule 7: missing emotional_state → reject ───────────────────────────────
+
 
 def test_h5_missing_emotional_state_rejected():
     engine = RiskEngine()
@@ -145,6 +153,7 @@ def test_h5_empty_emotional_state_rejected():
 
 # ── Rule 8: is_revenge_trade=true → escalate ───────────────────────────────
 
+
 def test_h5_revenge_trade_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"is_revenge_trade": True})
@@ -155,6 +164,7 @@ def test_h5_revenge_trade_escalated():
 
 # ── Rule 9: is_chasing=true → escalate ─────────────────────────────────────
 
+
 def test_h5_chasing_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"is_chasing": True})
@@ -164,6 +174,7 @@ def test_h5_chasing_escalated():
 
 
 # ── Rule 10: max_loss_usdt exceeds 2× risk_unit → reject ──────────────────
+
 
 def test_h5_max_loss_exceeds_risk_unit_rejected():
     engine = RiskEngine()
@@ -187,6 +198,7 @@ def test_h5_max_loss_equal_to_2x_risk_unit_allowed():
 
 # ── Rule 11: position_size exceeds 10× risk_unit → reject ──────────────────
 
+
 def test_h5_position_size_exceeds_risk_unit_rejected():
     engine = RiskEngine()
     # position_size = 120 > 10 * 10 = 100
@@ -199,6 +211,7 @@ def test_h5_position_size_exceeds_risk_unit_rejected():
 
 # ── Rule 12: valid intake → execute ────────────────────────────────────────
 
+
 def test_h5_valid_intake_executed():
     engine = RiskEngine()
     intake = _valid_intake()
@@ -209,13 +222,16 @@ def test_h5_valid_intake_executed():
 
 # ── Priority: reject > escalate > execute ──────────────────────────────────
 
+
 def test_h5_priority_reject_over_escalate_when_missing_field_and_revenge():
     """missing stop_loss + is_revenge_trade → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "stop_loss": None,
-        "is_revenge_trade": True,
-    })
+    intake = _make_intake(
+        payload={
+            "stop_loss": None,
+            "is_revenge_trade": True,
+        }
+    )
     decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
     assert any("stop_loss" in r.lower() for r in decision.reasons)
@@ -224,16 +240,19 @@ def test_h5_priority_reject_over_escalate_when_missing_field_and_revenge():
 def test_h5_priority_reject_over_escalate_when_limit_and_chasing():
     """max_loss exceeds limit + is_chasing → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "max_loss_usdt": 30.0,
-        "risk_unit_usdt": 10.0,
-        "is_chasing": True,
-    })
+    intake = _make_intake(
+        payload={
+            "max_loss_usdt": 30.0,
+            "risk_unit_usdt": 10.0,
+            "is_chasing": True,
+        }
+    )
     decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
 
 
 # ── GovernanceDecision metadata ────────────────────────────────────────────
+
 
 def test_h5_governance_decision_has_reasons():
     engine = RiskEngine()
@@ -260,10 +279,12 @@ def test_h5_governance_decision_source_is_hard_gate():
 
 # ── validate_analysis unchanged ────────────────────────────────────────────
 
+
 def test_h5_validate_analysis_still_works():
     """H-5 must not break the existing validate_analysis path."""
     from datetime import datetime
     from domains.research.models import AnalysisResult
+
     engine = RiskEngine()
     analysis = AnalysisResult(
         id="ana_h5_test",
@@ -282,9 +303,11 @@ def test_h5_validate_analysis_still_works():
 
 # ── validate_analysis still rejects forbidden symbols ──────────────────────
 
+
 def test_h5_validate_analysis_still_rejects_forbidden():
     from datetime import datetime
     from domains.research.models import AnalysisResult
+
     engine = RiskEngine()
     analysis = AnalysisResult(
         id="ana_h5_test2",

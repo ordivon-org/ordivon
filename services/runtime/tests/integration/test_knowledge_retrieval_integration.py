@@ -94,11 +94,19 @@ def test_repeated_review_lessons_aggregate_into_recurring_issues():
 
         analysis_repo.create(AnalysisResult(id="analysis_agg_1", query="Analyze BTC", symbol="BTC/USDT"))
         analysis_repo.create(AnalysisResult(id="analysis_agg_2", query="Analyze BTC again", symbol="BTC/USDT"))
-        recommendation_repo.create(Recommendation(id="reco_agg_1", analysis_id="analysis_agg_1", title="A", summary="A"))
-        recommendation_repo.create(Recommendation(id="reco_agg_2", analysis_id="analysis_agg_2", title="B", summary="B"))
+        recommendation_repo.create(
+            Recommendation(id="reco_agg_1", analysis_id="analysis_agg_1", title="A", summary="A")
+        )
+        recommendation_repo.create(
+            Recommendation(id="reco_agg_2", analysis_id="analysis_agg_2", title="B", summary="B")
+        )
 
-        review_1 = review_service.create(Review(recommendation_id="reco_agg_1", status=ReviewStatus.PENDING, expected_outcome="Trend holds"))
-        review_2 = review_service.create(Review(recommendation_id="reco_agg_2", status=ReviewStatus.PENDING, expected_outcome="Trend holds"))
+        review_1 = review_service.create(
+            Review(recommendation_id="reco_agg_1", status=ReviewStatus.PENDING, expected_outcome="Trend holds")
+        )
+        review_2 = review_service.create(
+            Review(recommendation_id="reco_agg_2", status=ReviewStatus.PENDING, expected_outcome="Trend holds")
+        )
 
         review_service.complete_review(
             review_id=review_1.id,

@@ -52,9 +52,9 @@ def test_gold_path_handoff_copy_and_route_intent_are_explicit():
     assert "Continue in review workbench" in recos
     assert "Start supervision in review workbench" in recos
     assert "Open recommendation in review workbench" in recos
-    assert 'href={`/reviews?recommendation_id=${recommendation.id}`}' in recos
-    assert 'href={`/reviews?review_id=${review.id}&trace_ref=${review.id}`}' in pending_reviews
-    assert 'href={`/reviews?review_id=${review.id}&recommendation_id=${review.recommendation_id}`}' in pending_reviews
+    assert "href={`/reviews?recommendation_id=${recommendation.id}`}" in recos
+    assert "href={`/reviews?review_id=${review.id}&trace_ref=${review.id}`}" in pending_reviews
+    assert "href={`/reviews?review_id=${review.id}&recommendation_id=${review.recommendation_id}`}" in pending_reviews
     assert not (ROOT / "apps/web/src/app/control").exists()
 
 
@@ -149,7 +149,7 @@ def test_dashboard_reports_validation_evals_and_reviews_use_real_v1_surfaces():
     assert "Trace in audits" not in recos
     assert "Trace to reports" not in recos
     assert "Open supporting recommendation tab" in recos
-    assert 'href={`/reviews?recommendation_id=${recommendation.id}`}' in recos
+    assert "href={`/reviews?recommendation_id=${recommendation.id}`}" in recos
     assert "/api/v1/reviews/pending?limit=5" in pending_reviews
     assert "Command-center preview of supervision-needed review objects." in pending_reviews
     assert "Continue in review workbench" in pending_reviews

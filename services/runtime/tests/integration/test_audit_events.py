@@ -23,6 +23,7 @@ from shared.enums.domain import RecommendationStatus, ReviewVerdict
 engine = create_engine("sqlite:///:memory:")
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
@@ -32,6 +33,7 @@ def db():
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+
 
 class TestAuditEvents:
     """
@@ -43,11 +45,11 @@ class TestAuditEvents:
         repo = RecommendationRepository(db)
         # Create initial reco
         reco_model = Recommendation(
-            id="reco_update", 
-            analysis_id="ana_1", 
-            title="Update test", 
+            id="reco_update",
+            analysis_id="ana_1",
+            title="Update test",
             summary="testing",
-            status=RecommendationStatus.GENERATED
+            status=RecommendationStatus.GENERATED,
         )
         repo.create(reco_model)
         db.commit()
@@ -112,19 +114,20 @@ class TestAuditEvents:
 
         # 2. Action
         issue = Issue(id="iss_rollback", title="Should vanish", severity="p1", category="test")
-        
+
         with pytest.raises(Exception, match="Audit failure"):
             service.create(issue)
-        
+
         # 3. Verification
         # Business row should NOT exist in DB because commit was never reached
         # (Note: create() calls repo.create which calls flush, but not commit if we errored in service)
-        db.rollback() # Ensure session state is clean for query
-        exists = repo.db.get(AuditEventORM, "iss_rollback") # Check via raw query if you prefer
+        db.rollback()  # Ensure session state is clean for query
+        exists = repo.db.get(AuditEventORM, "iss_rollback")  # Check via raw query if you prefer
         from domains.journal.issue_orm import IssueORM
+
         check_issue = db.get(IssueORM, "iss_rollback")
         assert check_issue is None
-        
+
         check_audit = db.query(AuditEventORM).count()
         assert check_audit == 0
 
@@ -137,7 +140,9 @@ class TestAuditEvents:
         service = ReviewService(rev_repo, lesson_service, auditor)
 
         # Create a review first
-        review = Review(id="rev_to_complete", recommendation_id="reco_1", review_type="postmortem", expected_outcome="win")
+        review = Review(
+            id="rev_to_complete", recommendation_id="reco_1", review_type="postmortem", expected_outcome="win"
+        )
         rev_repo.create(review)
         db.commit()
 
@@ -149,12 +154,13 @@ class TestAuditEvents:
             variance_summary="Bad luck",
             cause_tags=["market"],
             lessons=["Don't gamble", "Watch trends"],
-            followup_actions=[]
+            followup_actions=[],
         )
 
         # 3. Verification
         # Check that 2 lessons were created and 2 audit events for lessons were recorded
         from domains.journal.lesson_orm import LessonORM
+
         lesson_count = db.query(LessonORM).count()
         assert lesson_count == 2
 

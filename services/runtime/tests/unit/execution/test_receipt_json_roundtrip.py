@@ -36,6 +36,7 @@ def _make_receipt(detail: dict) -> ExecutionReceipt:
 
 # ── Test 1: plan metadata detail survives round-trip ──────────────────────
 
+
 def test_plan_metadata_detail_round_trip(db: Session):
     """Create ExecutionReceipt with plan metadata, persist, read back; detail matches."""
     repo = ExecutionRecordRepository(db)
@@ -66,6 +67,7 @@ def test_plan_metadata_detail_round_trip(db: Session):
 
 
 # ── Test 2: nested structures survive round-trip ──────────────────────────
+
 
 def test_nested_detail_survives_round_trip(db: Session):
     """Nested dict, list, float, bool in detail survive full round-trip."""

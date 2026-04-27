@@ -85,15 +85,9 @@ def test_analyze_api_writes_execution_request_and_receipt(monkeypatch):
         receipt_rows = db.query(ExecutionReceiptORM).order_by(ExecutionReceiptORM.action_id.asc()).all()
         analysis_row = db.query(AnalysisORM).one()
         recommendation_row = db.query(RecommendationORM).one()
-        audit_row = (
-            db.query(AuditEventORM)
-            .filter(AuditEventORM.event_type == "analysis_report_written")
-            .one()
-        )
+        audit_row = db.query(AuditEventORM).filter(AuditEventORM.event_type == "analysis_report_written").one()
         recommendation_audit_row = (
-            db.query(AuditEventORM)
-            .filter(AuditEventORM.event_type == "recommendation_generated")
-            .one()
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_generated").one()
         )
 
         assert len(request_rows) == 2

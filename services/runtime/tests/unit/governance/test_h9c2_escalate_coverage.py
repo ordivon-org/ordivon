@@ -44,6 +44,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
 
 # ── H-9C2 Rule 1: emotional_state stress → escalate ─────────────────────
 
+
 def test_h9c2_emotional_stress_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"emotional_state": "stressed"})
@@ -90,6 +91,7 @@ def test_h9c2_emotional_neutral_not_escalated():
 
 # ── H-9C2 Rule 2: rule_exceptions not empty → escalate ────────────────
 
+
 def test_h9c2_rule_exceptions_not_empty_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"rule_exceptions": ["override position limit"]})
@@ -114,6 +116,7 @@ def test_h9c2_rule_exceptions_none_not_escalated():
 
 
 # ── H-9C2 Rule 3: confidence < 0.3 → escalate ─────────────────────────
+
 
 def test_h9c2_confidence_too_low_escalated():
     engine = RiskEngine()
@@ -146,13 +149,16 @@ def test_h9c2_confidence_high_not_escalated():
 
 # ── Priority: reject still beats escalate ──────────────────────────────
 
+
 def test_h9c2_priority_reject_over_escalate_emotion():
     """missing stop_loss + stressed → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "stop_loss": None,
-        "emotional_state": "stressed",
-    })
+    intake = _make_intake(
+        payload={
+            "stop_loss": None,
+            "emotional_state": "stressed",
+        }
+    )
     decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
 
@@ -160,15 +166,18 @@ def test_h9c2_priority_reject_over_escalate_emotion():
 def test_h9c2_priority_reject_over_escalate_low_confidence():
     """missing thesis + low confidence → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "thesis": None,
-        "confidence": 0.2,
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": None,
+            "confidence": 0.2,
+        }
+    )
     decision = engine.validate_intake(intake, pack_policy=TradingDisciplinePolicy())
     assert decision.decision == "reject"
 
 
 # ── Existing triggers still work ───────────────────────────────────────
+
 
 def test_h9c2_existing_revenge_trade_still_escalates():
     engine = RiskEngine()

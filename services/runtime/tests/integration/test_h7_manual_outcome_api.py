@@ -169,6 +169,7 @@ def test_h7_outcome_rejects_non_plan_receipt():
         db = testing_session_local()
         try:
             import json
+
             receipt = db.get(ExecutionReceiptORM, receipt_id)
             detail = json.loads(receipt.detail_json) if receipt.detail_json else {}
             detail["receipt_kind"] = "execution"
@@ -428,11 +429,15 @@ def test_h7_outcome_does_not_create_broker_order_trade():
 
         db = testing_session_local()
         try:
-            broker_reqs = db.query(ExecutionRequestORM).filter(
-                ExecutionRequestORM.action_id.like("%order%")
-                | ExecutionRequestORM.action_id.like("%trade%")
-                | ExecutionRequestORM.action_id.like("%broker%")
-            ).count()
+            broker_reqs = (
+                db.query(ExecutionRequestORM)
+                .filter(
+                    ExecutionRequestORM.action_id.like("%order%")
+                    | ExecutionRequestORM.action_id.like("%trade%")
+                    | ExecutionRequestORM.action_id.like("%broker%")
+                )
+                .count()
+            )
             assert broker_reqs == 0, "Outcome must not create broker/order/trade"
 
             # Only one execution request: the plan receipt
@@ -482,10 +487,11 @@ def test_h7_outcome_does_not_promote_policy():
 
         db = testing_session_local()
         try:
-            policy_events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type.like("%policy%")
-                | AuditEventORM.event_type.like("%promote%")
-            ).count()
+            policy_events = (
+                db.query(AuditEventORM)
+                .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
+                .count()
+            )
             assert policy_events == 0, "H-7 must not promote Policy"
 
             all_events = db.query(AuditEventORM).all()
@@ -513,15 +519,14 @@ def test_h7_outcome_writes_audit_event():
 
         db = testing_session_local()
         try:
-            events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type == "outcome_captured"
-            ).all()
+            events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "outcome_captured").all()
             assert len(events) == 1, "H-7 must write outcome_captured AuditEvent"
             event = events[0]
             assert event.entity_type == "decision_intake"
             assert event.entity_id == intake_id
 
             import json
+
             payload = json.loads(event.payload_json) if event.payload_json else {}
             assert payload["outcome_id"] == outcome_id
             assert payload["outcome_source"] == "manual"

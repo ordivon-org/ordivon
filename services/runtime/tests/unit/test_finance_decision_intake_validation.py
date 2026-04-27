@@ -18,6 +18,7 @@ from state.db.base import Base
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+
 def _make_db():
     engine = create_engine(
         "sqlite://",
@@ -53,6 +54,7 @@ def _valid_payload() -> dict:
 
 # ── 1. valid decision intake can be created ──────────────────────────
 
+
 def test_valid_decision_intake_can_be_created():
     result = validate_finance_decision_intake(_valid_payload())
     assert result.is_valid is True
@@ -61,6 +63,7 @@ def test_valid_decision_intake_can_be_created():
 
 
 # ── 2. missing thesis is invalid ─────────────────────────────────────
+
 
 def test_missing_thesis_is_invalid():
     payload = _valid_payload()
@@ -72,6 +75,7 @@ def test_missing_thesis_is_invalid():
 
 # ── 3. missing stop_loss is invalid ──────────────────────────────────
 
+
 def test_missing_stop_loss_is_invalid():
     payload = _valid_payload()
     del payload["stop_loss"]
@@ -81,6 +85,7 @@ def test_missing_stop_loss_is_invalid():
 
 
 # ── 4. missing max_loss_usdt is invalid ──────────────────────────────
+
 
 def test_missing_max_loss_usdt_is_invalid():
     payload = _valid_payload()
@@ -92,6 +97,7 @@ def test_missing_max_loss_usdt_is_invalid():
 
 # ── 5. revenge_trade must be explicit ────────────────────────────────
 
+
 def test_revenge_trade_must_be_explicit():
     payload = _valid_payload()
     del payload["is_revenge_trade"]
@@ -102,6 +108,7 @@ def test_revenge_trade_must_be_explicit():
 
 # ── 6. chasing must be explicit ──────────────────────────────────────
 
+
 def test_chasing_must_be_explicit():
     payload = _valid_payload()
     payload["is_chasing"] = None
@@ -111,6 +118,7 @@ def test_chasing_must_be_explicit():
 
 
 # ── 7. create intake does not create recommendation ──────────────────
+
 
 def test_create_intake_does_not_create_recommendation():
     engine, testing_session_local = _make_db()
@@ -128,6 +136,7 @@ def test_create_intake_does_not_create_recommendation():
 
 # ── 8. create intake does not create execution receipt ───────────────
 
+
 def test_create_intake_does_not_create_execution_receipt():
     engine, testing_session_local = _make_db()
     db = testing_session_local()
@@ -143,6 +152,7 @@ def test_create_intake_does_not_create_execution_receipt():
 
 
 # ── 9. create intake does not trigger governance ─────────────────────
+
 
 def test_create_intake_does_not_trigger_governance():
     """Governance must remain not_started after creation — requires explicit call."""
@@ -167,6 +177,7 @@ def test_create_intake_does_not_trigger_governance():
 
 # ── 10. create intake does not trigger broker / order / execution ────
 
+
 def test_create_intake_does_not_trigger_broker_order_execution():
     """
     Broker/order/execution modules must not be importable from the intake
@@ -186,11 +197,13 @@ def test_create_intake_does_not_trigger_broker_order_execution():
 
         # Verify no execution-side tables have been touched
         from domains.execution_records.orm import ExecutionReceiptORM
+
         receipts = db.query(ExecutionReceiptORM).count()
         assert receipts == 0
 
         # Verify no recommendation tables touched
         from domains.strategy.orm import RecommendationORM
+
         recos = db.query(RecommendationORM).count()
         assert recos == 0
     finally:
@@ -199,6 +212,7 @@ def test_create_intake_does_not_trigger_broker_order_execution():
 
 
 # ── 11. invalid intake cannot be governed ────────────────────────────
+
 
 def test_invalid_intake_cannot_be_governed():
     """An intake with validation errors must not be accepted by governance."""

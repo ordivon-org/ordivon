@@ -150,6 +150,7 @@ def test_outcome_cannot_use_non_plan_receipt():
         # Tamper with the receipt to change receipt_kind
         receipt = db.get(ExecutionReceiptORM, receipt_id)
         import json
+
         detail = json.loads(receipt.detail_json) if receipt.detail_json else {}
         detail["receipt_kind"] = "execution"
         receipt.detail_json = json.dumps(detail)
@@ -395,6 +396,7 @@ def test_duplicate_outcome_returns_conflict():
 
 def test_outcome_creation_does_not_create_broker_order_trade():
     from domains.candidate_rules.orm import CandidateRuleORM
+
     engine, testing_session_local = _make_db()
     db = testing_session_local()
     try:
@@ -411,11 +413,15 @@ def test_outcome_creation_does_not_create_broker_order_trade():
         db.commit()
 
         # No broker/order/trade execution requests
-        broker_requests = db.query(ExecutionRequestORM).filter(
-            ExecutionRequestORM.action_id.like("%order%")
-            | ExecutionRequestORM.action_id.like("%trade%")
-            | ExecutionRequestORM.action_id.like("%broker%")
-        ).count()
+        broker_requests = (
+            db.query(ExecutionRequestORM)
+            .filter(
+                ExecutionRequestORM.action_id.like("%order%")
+                | ExecutionRequestORM.action_id.like("%trade%")
+                | ExecutionRequestORM.action_id.like("%broker%")
+            )
+            .count()
+        )
         assert broker_requests == 0, "Outcome must not create broker/order/trade"
 
         # Only one execution request: the plan receipt
@@ -431,6 +437,7 @@ def test_outcome_creation_does_not_create_broker_order_trade():
 
 def test_outcome_creation_does_not_create_candidate_rule():
     from domains.candidate_rules.orm import CandidateRuleORM
+
     engine, testing_session_local = _make_db()
     db = testing_session_local()
     try:
@@ -473,10 +480,11 @@ def test_outcome_creation_does_not_promote_policy():
         db.commit()
 
         # No policy-related audit events
-        policy_events = db.query(AuditEventORM).filter(
-            AuditEventORM.event_type.like("%policy%")
-            | AuditEventORM.event_type.like("%promote%")
-        ).count()
+        policy_events = (
+            db.query(AuditEventORM)
+            .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
+            .count()
+        )
         assert policy_events == 0, "H-7 must not promote Policy"
 
         # The only audit events: governance_evaluated, plan_receipt_created, outcome_captured
@@ -509,15 +517,14 @@ def test_outcome_writes_audit_event():
         )
         db.commit()
 
-        events = db.query(AuditEventORM).filter(
-            AuditEventORM.event_type == "outcome_captured"
-        ).all()
+        events = db.query(AuditEventORM).filter(AuditEventORM.event_type == "outcome_captured").all()
         assert len(events) == 1
         event = events[0]
         assert event.entity_type == "decision_intake"
         assert event.entity_id == intake_id
 
         import json
+
         payload = json.loads(event.payload_json) if event.payload_json else {}
         assert payload["outcome_id"] == result.outcome_id
         assert payload["outcome_source"] == "manual"

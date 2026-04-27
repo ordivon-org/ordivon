@@ -141,6 +141,7 @@ def _create_review_payload(outcome_id: str | None = None, outcome_ref_type: str 
 
 # ── Test 1: review can be created with finance manual outcome reference ────
 
+
 def test_h8_create_review_with_outcome_ref():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -169,6 +170,7 @@ def test_h8_create_review_with_outcome_ref():
 
 # ── Test 2: review detail returns outcome_ref_type/outcome_ref_id ─────────
 
+
 def test_h8_review_detail_returns_outcome_ref():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -191,6 +193,7 @@ def test_h8_review_detail_returns_outcome_ref():
 
 # ── Test 3: review rejects missing finance manual outcome reference ────────
 
+
 def test_h8_review_rejects_missing_outcome():
     with _client_with_db() as (client, _):
         payload = _create_review_payload(
@@ -204,6 +207,7 @@ def test_h8_review_rejects_missing_outcome():
 
 # ── Test 4: review rejects unsupported outcome_ref_type ────────────────────
 
+
 def test_h8_review_rejects_unsupported_outcome_ref_type():
     with _client_with_db() as (client, _):
         payload = _create_review_payload(
@@ -216,6 +220,7 @@ def test_h8_review_rejects_unsupported_outcome_ref_type():
 
 
 # ── Test 5: review rejects partial outcome ref pair ────────────────────────
+
 
 def test_h8_review_rejects_partial_outcome_ref_pair():
     with _client_with_db() as (client, _):
@@ -238,6 +243,7 @@ def test_h8_review_rejects_partial_outcome_ref_pair():
 
 
 # ── Test 6: complete_review preserves outcome_ref_type/outcome_ref_id ─────
+
 
 def test_h8_complete_review_preserves_outcome_ref():
     with _client_with_db() as (client, testing_session_local):
@@ -296,6 +302,7 @@ def test_h8_complete_review_preserves_outcome_ref():
 
 # ── Test 7: complete_review derives lesson rows ────────────────────────────
 
+
 def test_h8_complete_review_derives_lessons():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -352,6 +359,7 @@ def test_h8_complete_review_derives_lessons():
 
 # ── Test 8: lesson source_refs include finance_manual_outcome ──────────────
 
+
 def test_h8_lesson_source_refs_include_outcome():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -398,6 +406,7 @@ def test_h8_lesson_source_refs_include_outcome():
             # Check lesson source_refs via ORM
             lesson_orm = db.get(LessonORM, lesson_rows[0].id)
             import json
+
             source_refs = json.loads(lesson_orm.source_refs_json or "[]")
             expected_ref = f"finance_manual_outcome:{outcome_id}"
             assert expected_ref in source_refs, f"Expected {expected_ref} in {source_refs}"
@@ -407,6 +416,7 @@ def test_h8_lesson_source_refs_include_outcome():
 
 
 # ── Test 9: knowledge feedback still derives on recommendation-backed path ─
+
 
 def test_h8_knowledge_feedback_derives():
     with _client_with_db() as (client, testing_session_local):
@@ -465,6 +475,7 @@ def test_h8_knowledge_feedback_derives():
 
 # ── Test 10: review completion does NOT create CandidateRule ───────────────
 
+
 def test_h8_review_completion_does_not_create_candidate_rule():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -516,6 +527,7 @@ def test_h8_review_completion_does_not_create_candidate_rule():
 
 # ── Test 11: review completion does NOT promote Policy ─────────────────────
 
+
 def test_h8_review_completion_does_not_promote_policy():
     with _client_with_db() as (client, testing_session_local):
         outcome = _create_outcome(client)
@@ -555,16 +567,18 @@ def test_h8_review_completion_does_not_promote_policy():
             db.commit()
 
             # Check no policy-related audit events
-            policy_events = db.query(AuditEventORM).filter(
-                AuditEventORM.event_type.like("%policy%")
-                | AuditEventORM.event_type.like("%promote%")
-            ).count()
+            policy_events = (
+                db.query(AuditEventORM)
+                .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
+                .count()
+            )
             assert policy_events == 0, "Review completion must not promote Policy"
         finally:
             db.close()
 
 
 # ── Test 12: review completion does NOT trigger broker/order/trade ─────────
+
 
 def test_h8_review_completion_does_not_trigger_broker():
     with _client_with_db() as (client, testing_session_local):
@@ -608,11 +622,15 @@ def test_h8_review_completion_does_not_trigger_broker():
             db.commit()
 
             # Verify no new broker/order/trade execution requests
-            broker_reqs = db.query(ExecutionRequestORM).filter(
-                ExecutionRequestORM.action_id.like("%order%")
-                | ExecutionRequestORM.action_id.like("%trade%")
-                | ExecutionRequestORM.action_id.like("%broker%")
-            ).count()
+            broker_reqs = (
+                db.query(ExecutionRequestORM)
+                .filter(
+                    ExecutionRequestORM.action_id.like("%order%")
+                    | ExecutionRequestORM.action_id.like("%trade%")
+                    | ExecutionRequestORM.action_id.like("%broker%")
+                )
+                .count()
+            )
             assert broker_reqs == 0, "Review completion must not trigger broker/order/trade"
         finally:
             db.close()

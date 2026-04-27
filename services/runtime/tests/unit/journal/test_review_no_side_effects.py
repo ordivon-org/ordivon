@@ -55,8 +55,7 @@ def test_complete_review_does_not_create_candidate_rule(db: Session):
 
     after_count = db.query(CandidateRuleORM).count()
     assert after_count == before_count, (
-        f"complete_review auto-created CandidateRule: "
-        f"before={before_count}, after={after_count}"
+        f"complete_review auto-created CandidateRule: before={before_count}, after={after_count}"
     )
 
 
@@ -88,11 +87,10 @@ def test_complete_review_does_not_create_policy_audit_events(db: Session):
     )
     db.flush()
 
-    policy_events = db.query(AuditEventORM).filter(
-        AuditEventORM.event_type.like("%policy%")
-        | AuditEventORM.event_type.like("%promote%")
-    ).count()
-
-    assert policy_events == 0, (
-        f"complete_review generated policy-related audit events: {policy_events}"
+    policy_events = (
+        db.query(AuditEventORM)
+        .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
+        .count()
     )
+
+    assert policy_events == 0, f"complete_review generated policy-related audit events: {policy_events}"

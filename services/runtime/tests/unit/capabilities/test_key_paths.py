@@ -1,6 +1,5 @@
 """Capabilities key-path tests — governance pipeline for finance and coding decisions."""
 
-
 from domains.decision_intake.models import DecisionIntake
 from governance.risk_engine.engine import RiskEngine
 from packs.coding.policy import CodingDisciplinePolicy

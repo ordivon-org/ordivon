@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
 
+
 @contextmanager
 def _app_client():
     with TestClient(app) as client:

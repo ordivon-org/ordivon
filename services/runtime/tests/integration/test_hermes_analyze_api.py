@@ -109,7 +109,10 @@ def test_analyze_api_persists_agent_action_with_hermes(monkeypatch):
         assert analysis_meta["governance_decision"] == "execute"
         assert analysis_meta["governance_source"] == "risk_engine.default_validation"
         assert analysis_meta["governance_policy_set_id"] == "governance.default.v1"
-        assert analysis_meta["governance_active_policy_ids"] == ["forbidden_symbols_policy", "trading_discipline_policy"]
+        assert analysis_meta["governance_active_policy_ids"] == [
+            "forbidden_symbols_policy",
+            "trading_discipline_policy",
+        ]
         assert analysis_meta["report_write_action_context"]["actor"] == "workflow.analyze"
         assert analysis_meta["metadata_update_action_context"]["context"] == "write_wiki_step"
         event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "analysis_completed").one()
@@ -119,7 +122,9 @@ def test_analyze_api_persists_agent_action_with_hermes(monkeypatch):
         assert event_payload["governance_policy_set_id"] == "governance.default.v1"
         assert "agent_action_id" in event.payload_json
         assert "intelligence_run_id" in event.payload_json
-        recommendation_event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_generated").one()
+        recommendation_event = (
+            db.query(AuditEventORM).filter(AuditEventORM.event_type == "recommendation_generated").one()
+        )
         recommendation_payload = from_json_text(recommendation_event.payload_json, {})
         assert recommendation_payload["decision"] == "execute"
         progress_rows = (
@@ -466,14 +471,16 @@ def test_analyze_api_consumes_governance_feedback_hints_from_prior_review(monkey
     assert payload["decision"] == "execute"
     assert payload["metadata"]["governance_advisory_hint_status"] == "available"
     assert len(payload["metadata"]["governance_advisory_hints"]) == 1
-    assert (
-        payload["metadata"]["governance_advisory_hints"][0]["summary"]
-        == "Wait for confirmation before entry"
-    )
+    assert payload["metadata"]["governance_advisory_hints"][0]["summary"] == "Wait for confirmation before entry"
 
     db = TestingSessionLocal()
     try:
-        event = db.query(AuditEventORM).filter(AuditEventORM.event_type == "analysis_completed").order_by(AuditEventORM.created_at.desc()).first()
+        event = (
+            db.query(AuditEventORM)
+            .filter(AuditEventORM.event_type == "analysis_completed")
+            .order_by(AuditEventORM.created_at.desc())
+            .first()
+        )
         assert event is not None
         event_payload = from_json_text(event.payload_json, {})
         assert len(event_payload["governance_advisory_hints"]) == 1

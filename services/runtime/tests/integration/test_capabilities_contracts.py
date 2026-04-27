@@ -12,7 +12,7 @@ from capabilities.contracts import (
     ValidationSummaryResult,
     UsageSyncResult,
     ReportResult,
-    DashboardResult
+    DashboardResult,
 )
 from capabilities.analyze import AnalyzeCapability, AnalyzeCapabilityInput
 from capabilities.recommendations import RecommendationCapability
@@ -32,6 +32,7 @@ def make_action_context() -> ActionContext:
         idempotency_key="test-suite-key",
     )
 
+
 class TestCapabilityContracts:
     """
     Contract tests to ensure Capability layer returns strictly typed dataclasses
@@ -48,14 +49,12 @@ class TestCapabilityContracts:
             "suggested_actions": ["Buy"],
             "analysis_id": "ana_123",
             "recommendation_id": "reco_456",
-            "governance": {"decision": "execute", "source": "test-suite", "reasons": []}
+            "governance": {"decision": "execute", "source": "test-suite", "reasons": []},
         }
-        
+
         cap = AnalyzeCapability(orchestrator=orchestrator)
-        result_dict = await cap.analyze_and_suggest(
-            AnalyzeCapabilityInput(query="test", symbols=["BTC"])
-        )
-        
+        result_dict = await cap.analyze_and_suggest(AnalyzeCapabilityInput(query="test", symbols=["BTC"]))
+
         # Verify it can be mapped back to the contract or has all keys
         assert result_dict["status"] == "success"
         assert result_dict["decision"] == "execute"
@@ -80,12 +79,12 @@ class TestCapabilityContracts:
         mock_row.decision_reason = None
         mock_row.review_required = True
         mock_row.latest_outcome_snapshot_id = None
-        
+
         service.list_recent.return_value = [mock_row]
-        
+
         cap = RecommendationCapability()
         results = cap.list_recent(service)
-        
+
         assert len(results) == 1
         res = results[0]
         assert isinstance(res, RecommendationResult)
@@ -101,7 +100,7 @@ class TestCapabilityContracts:
     def test_review_capability_skeleton_honest_none(self):
         cap = ReviewCapability()
         res = cap.generate_skeleton("rep_1", "reco_1")
-        
+
         assert isinstance(res, ReviewSkeletonResult)
         assert res.id is None  # Honest None for draft
         assert res.status == "draft"
@@ -129,7 +128,7 @@ class TestCapabilityContracts:
         adapter_result.review_row.recommendation_id = "reco_1"
         adapter_result.execution_request_id = "exreq_123"
         adapter_result.execution_receipt_id = "exrcpt_123"
-        
+
         cap = ReviewCapability()
         with patch("capabilities.workflow.reviews.build_default_execution_adapter_registry", return_value=registry):
             adapter.submit.return_value = adapter_result
@@ -141,7 +140,7 @@ class TestCapabilityContracts:
                 },
                 make_action_context(),
             )
-        
+
         assert isinstance(res, ReviewResult)
         assert res.id == "rev_123"
         assert res.lessons_created == 1
@@ -158,12 +157,12 @@ class TestCapabilityContracts:
             "recommendations_count": 2,
             "open_p0_count": 0,
             "open_p1_count": 1,
-            "go_no_go": "STABLE"
+            "go_no_go": "STABLE",
         }
-        
+
         cap = ValidationCapability()
         res = cap.get_summary(usage_service, issue_repo)
-        
+
         assert isinstance(res, ValidationSummaryResult)
         assert res.days_active == 5
         assert res.open_critical_issues == 1
@@ -175,10 +174,10 @@ class TestCapabilityContracts:
         mock_row.id = "snap_1"
         mock_row.created_at = datetime(2024, 1, 1)
         usage_service.create.return_value = mock_row
-        
+
         cap = ValidationCapability()
         res = cap.sync_usage(usage_service, make_action_context())
-        
+
         assert isinstance(res, UsageSyncResult)
         assert res.snapshot_id == "snap_1"
 
@@ -191,12 +190,12 @@ class TestCapabilityContracts:
         mock_row.metadata = {"status": "generated", "document_path": "/path/to/doc.md"}
         mock_row.created_at = datetime(2024, 1, 1)
         mock_row.query = "Is ETH a buy?"
-        
+
         service.list_recent.return_value = [mock_row]
-        
+
         cap = ReportCapability()
         results = cap.list_latest(service)
-        
+
         assert len(results) == 1
         res = results[0]
         assert isinstance(res, ReportResult)
@@ -213,12 +212,12 @@ class TestCapabilityContracts:
             "recent_outcomes": [{"state": "success"}],
             "pending_review_count": 2,
             "system_health": "good",
-            "total_balance_estimate": 1000.5
+            "total_balance_estimate": 1000.5,
         }
-        
+
         cap = DashboardCapability()
         res = cap.get_summary(service)
-        
+
         assert isinstance(res, DashboardResult)
         assert res.recommendation_stats["active"] == 5
         assert res.total_balance_estimate == 1000.5

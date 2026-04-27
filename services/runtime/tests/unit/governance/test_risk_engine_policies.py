@@ -3,6 +3,7 @@ from domains.research.models import AnalysisResult
 from governance.risk_engine.engine import RiskEngine
 from datetime import datetime
 
+
 class TestRiskEnginePolicies:
     @pytest.fixture
     def risk_engine(self):
@@ -19,11 +20,11 @@ class TestRiskEnginePolicies:
             thesis="Consolidation break",
             suggested_actions=["ACCUMULATE"],
             metadata={},
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         decision = risk_engine.validate_analysis(analysis)
-        
+
         assert decision.decision == "execute"
         assert decision.allowed is True
         assert decision.source == "risk_engine.default_validation"
@@ -40,11 +41,11 @@ class TestRiskEnginePolicies:
             thesis="Speculation",
             suggested_actions=["BUY"],
             metadata={},
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         decision = risk_engine.validate_analysis(analysis)
-        
+
         assert decision.decision == "reject"
         assert decision.allowed is False
         assert decision.source == "risk_engine.forbidden_symbols_policy"
@@ -61,11 +62,11 @@ class TestRiskEnginePolicies:
             thesis="Hype",
             suggested_actions=["BUY"],
             metadata={},
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         decision = risk_engine.validate_analysis(analysis)
-        
+
         assert decision.decision == "reject"
         assert decision.allowed is False
         assert any("MEME" in r for r in decision.reasons)
@@ -79,13 +80,13 @@ class TestRiskEnginePolicies:
             timeframe="4h",
             summary="Unclear",
             thesis="Wait",
-            suggested_actions=[], # EMPTY
+            suggested_actions=[],  # EMPTY
             metadata={},
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         decision = risk_engine.validate_analysis(analysis)
-        
+
         assert decision.decision == "escalate"
         assert decision.allowed is False
         assert decision.source == "risk_engine.default_validation"

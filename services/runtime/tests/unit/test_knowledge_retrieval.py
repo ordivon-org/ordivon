@@ -33,9 +33,7 @@ def test_knowledge_retrieval_by_recommendation_returns_entries_and_packets():
     engine, TestingSessionLocal = _make_db()
     db = TestingSessionLocal()
     try:
-        AnalysisRepository(db).create(
-            AnalysisResult(id="analysis_retrieval_1", query="Analyze BTC", symbol="BTC/USDT")
-        )
+        AnalysisRepository(db).create(AnalysisResult(id="analysis_retrieval_1", query="Analyze BTC", symbol="BTC/USDT"))
         RecommendationRepository(db).create(
             Recommendation(
                 id="reco_retrieval_1",
@@ -99,9 +97,7 @@ def test_knowledge_retrieval_by_review_filters_packets_to_review():
     engine, TestingSessionLocal = _make_db()
     db = TestingSessionLocal()
     try:
-        AnalysisRepository(db).create(
-            AnalysisResult(id="analysis_retrieval_2", query="Analyze BTC", symbol="BTC/USDT")
-        )
+        AnalysisRepository(db).create(AnalysisResult(id="analysis_retrieval_2", query="Analyze BTC", symbol="BTC/USDT"))
         RecommendationRepository(db).create(
             Recommendation(
                 id="reco_retrieval_2",
@@ -162,12 +158,54 @@ def test_knowledge_retrieval_by_symbol_returns_entries_across_recommendations():
 
         analysis_repo.create(AnalysisResult(id="analysis_symbol_1", query="Analyze BTC", symbol="BTC/USDT"))
         analysis_repo.create(AnalysisResult(id="analysis_symbol_2", query="Analyze BTC again", symbol="BTC/USDT"))
-        recommendation_repo.create(Recommendation(id="reco_symbol_1", analysis_id="analysis_symbol_1", title="A", summary="A"))
-        recommendation_repo.create(Recommendation(id="reco_symbol_2", analysis_id="analysis_symbol_2", title="B", summary="B"))
-        lesson_repo.create(Lesson(id="lesson_symbol_1", review_id="review_symbol_1", recommendation_id="reco_symbol_1", title="L1", body="Wait for confirmation", source_refs=["src:1"]))
-        lesson_repo.create(Lesson(id="lesson_symbol_2", review_id="review_symbol_2", recommendation_id="reco_symbol_2", title="L2", body="Size smaller on breakout", source_refs=["src:2"]))
-        outcome_repo.create(OutcomeSnapshot(id="outcome_symbol_1", recommendation_id="reco_symbol_1", outcome_state=OutcomeState.FAILED, observed_metrics={}, evidence_refs=["review:review_symbol_1"], trigger_reason="review", note="n1"))
-        outcome_repo.create(OutcomeSnapshot(id="outcome_symbol_2", recommendation_id="reco_symbol_2", outcome_state=OutcomeState.FAILED, observed_metrics={}, evidence_refs=["review:review_symbol_2"], trigger_reason="review", note="n2"))
+        recommendation_repo.create(
+            Recommendation(id="reco_symbol_1", analysis_id="analysis_symbol_1", title="A", summary="A")
+        )
+        recommendation_repo.create(
+            Recommendation(id="reco_symbol_2", analysis_id="analysis_symbol_2", title="B", summary="B")
+        )
+        lesson_repo.create(
+            Lesson(
+                id="lesson_symbol_1",
+                review_id="review_symbol_1",
+                recommendation_id="reco_symbol_1",
+                title="L1",
+                body="Wait for confirmation",
+                source_refs=["src:1"],
+            )
+        )
+        lesson_repo.create(
+            Lesson(
+                id="lesson_symbol_2",
+                review_id="review_symbol_2",
+                recommendation_id="reco_symbol_2",
+                title="L2",
+                body="Size smaller on breakout",
+                source_refs=["src:2"],
+            )
+        )
+        outcome_repo.create(
+            OutcomeSnapshot(
+                id="outcome_symbol_1",
+                recommendation_id="reco_symbol_1",
+                outcome_state=OutcomeState.FAILED,
+                observed_metrics={},
+                evidence_refs=["review:review_symbol_1"],
+                trigger_reason="review",
+                note="n1",
+            )
+        )
+        outcome_repo.create(
+            OutcomeSnapshot(
+                id="outcome_symbol_2",
+                recommendation_id="reco_symbol_2",
+                outcome_state=OutcomeState.FAILED,
+                observed_metrics={},
+                evidence_refs=["review:review_symbol_2"],
+                trigger_reason="review",
+                note="n2",
+            )
+        )
 
         result = KnowledgeRetrievalService(db).retrieve_for_symbol("BTC/USDT")
 
@@ -191,12 +229,54 @@ def test_recurring_issue_aggregation_normalizes_and_counts_repeated_lessons():
 
         analysis_repo.create(AnalysisResult(id="analysis_issue_1", query="Analyze BTC", symbol="BTC/USDT"))
         analysis_repo.create(AnalysisResult(id="analysis_issue_2", query="Analyze BTC again", symbol="BTC/USDT"))
-        recommendation_repo.create(Recommendation(id="reco_issue_1", analysis_id="analysis_issue_1", title="A", summary="A"))
-        recommendation_repo.create(Recommendation(id="reco_issue_2", analysis_id="analysis_issue_2", title="B", summary="B"))
-        lesson_repo.create(Lesson(id="lesson_issue_1", review_id="review_issue_1", recommendation_id="reco_issue_1", title="L1", body="Wait for confirmation candle!", source_refs=["src:1"]))
-        lesson_repo.create(Lesson(id="lesson_issue_2", review_id="review_issue_2", recommendation_id="reco_issue_2", title="L2", body="Wait for confirmation candle", source_refs=["src:2"]))
-        outcome_repo.create(OutcomeSnapshot(id="outcome_issue_1", recommendation_id="reco_issue_1", outcome_state=OutcomeState.FAILED, observed_metrics={}, evidence_refs=["review:review_issue_1"], trigger_reason="review", note="n1"))
-        outcome_repo.create(OutcomeSnapshot(id="outcome_issue_2", recommendation_id="reco_issue_2", outcome_state=OutcomeState.FAILED, observed_metrics={}, evidence_refs=["review:review_issue_2"], trigger_reason="review", note="n2"))
+        recommendation_repo.create(
+            Recommendation(id="reco_issue_1", analysis_id="analysis_issue_1", title="A", summary="A")
+        )
+        recommendation_repo.create(
+            Recommendation(id="reco_issue_2", analysis_id="analysis_issue_2", title="B", summary="B")
+        )
+        lesson_repo.create(
+            Lesson(
+                id="lesson_issue_1",
+                review_id="review_issue_1",
+                recommendation_id="reco_issue_1",
+                title="L1",
+                body="Wait for confirmation candle!",
+                source_refs=["src:1"],
+            )
+        )
+        lesson_repo.create(
+            Lesson(
+                id="lesson_issue_2",
+                review_id="review_issue_2",
+                recommendation_id="reco_issue_2",
+                title="L2",
+                body="Wait for confirmation candle",
+                source_refs=["src:2"],
+            )
+        )
+        outcome_repo.create(
+            OutcomeSnapshot(
+                id="outcome_issue_1",
+                recommendation_id="reco_issue_1",
+                outcome_state=OutcomeState.FAILED,
+                observed_metrics={},
+                evidence_refs=["review:review_issue_1"],
+                trigger_reason="review",
+                note="n1",
+            )
+        )
+        outcome_repo.create(
+            OutcomeSnapshot(
+                id="outcome_issue_2",
+                recommendation_id="reco_issue_2",
+                outcome_state=OutcomeState.FAILED,
+                observed_metrics={},
+                evidence_refs=["review:review_issue_2"],
+                trigger_reason="review",
+                note="n2",
+            )
+        )
 
         summaries = KnowledgeRetrievalService(db).aggregate_recurring_issues_for_symbol("BTC/USDT")
 

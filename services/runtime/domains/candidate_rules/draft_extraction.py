@@ -12,6 +12,7 @@ Rules:
   - Fails safe: extraction errors do not block Review completion.
   - No Policy promotion, no broker/order/trade side effects.
 """
+
 from __future__ import annotations
 
 import logging

@@ -13,7 +13,11 @@ from domains.knowledge_feedback.models import KnowledgeFeedbackPacketRecord
 from domains.workflow_runs.checkpoint_state import CheckpointState
 from domains.workflow_runs.models import WorkflowRun
 from execution.adapters.recommendations import RecommendationExecutionAdapter
-from execution.registry import ExecutionAdapterContractError, ExecutionAdapterRegistry, build_default_execution_adapter_registry
+from execution.registry import (
+    ExecutionAdapterContractError,
+    ExecutionAdapterRegistry,
+    build_default_execution_adapter_registry,
+)
 from governance.approval import ApprovalRequiredError, HumanApprovalGate
 from governance.approval_repository import ApprovalRepository
 from intelligence.context_builder import HintAwareContextBuilder

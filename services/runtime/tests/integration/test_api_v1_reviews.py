@@ -102,7 +102,9 @@ def test_api_v1_review_submit_returns_success_and_writes_audit(client: TestClien
     assert review_row.id == body["id"]
 
 
-def test_api_v1_review_submit_failure_returns_failed_refs_and_no_review_row(client: TestClient, db: Session, monkeypatch):
+def test_api_v1_review_submit_failure_returns_failed_refs_and_no_review_row(
+    client: TestClient, db: Session, monkeypatch
+):
     def _boom(*args, **kwargs):
         raise RuntimeError("submit exploded")
 
@@ -479,7 +481,9 @@ def test_api_v1_review_detail_returns_real_review_execution_outcome_and_packet_s
     assert body["metadata"]["knowledge_feedback_status"] == "prepared"
 
 
-def test_api_v1_review_detail_honestly_returns_missing_execution_outcome_and_packet_signals(client: TestClient, db: Session):
+def test_api_v1_review_detail_honestly_returns_missing_execution_outcome_and_packet_signals(
+    client: TestClient, db: Session
+):
     ReviewRepository(db).create(
         Review(
             id="review_detail_missing",

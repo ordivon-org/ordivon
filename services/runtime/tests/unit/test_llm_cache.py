@@ -52,21 +52,21 @@ _BASE_KWARGS: CacheKeyKwargs = cast(
     cast(
         object,
         dict(
-    provider="gemini",
-    model="google/gemini-3.1-pro-preview",
-    task_type="analysis.generate",
-    query="Analyze BTC momentum",
-    symbol="BTC/USDT",
-    timeframe="1h",
-    risk_mode="normal",
-    market_signals={"rsi": 45, "macd": "bearish"},
-    memory_lessons=["lesson a", "lesson b"],
-    related_reviews=["review 1"],
-    active_policies=["ForbiddenSymbolsPolicy", "TradingDisciplinePolicy"],
-    portfolio_snapshot={"cash": 10000, "positions": []},
-    prompt_version="v1",
+            provider="gemini",
+            model="google/gemini-3.1-pro-preview",
+            task_type="analysis.generate",
+            query="Analyze BTC momentum",
+            symbol="BTC/USDT",
+            timeframe="1h",
+            risk_mode="normal",
+            market_signals={"rsi": 45, "macd": "bearish"},
+            memory_lessons=["lesson a", "lesson b"],
+            related_reviews=["review 1"],
+            active_policies=["ForbiddenSymbolsPolicy", "TradingDisciplinePolicy"],
+            portfolio_snapshot={"cash": 10000, "positions": []},
+            prompt_version="v1",
+        ),
     ),
-),
 )
 
 
@@ -315,16 +315,19 @@ def test_cache_key_none_distinguished_from_some():
 
 def test_llm_cache_enabled_default_false():
     from shared.config.settings import settings
+
     assert settings.llm_cache_enabled is False
 
 
 def test_llm_cache_ttl_default_900():
     from shared.config.settings import settings
+
     assert settings.llm_cache_ttl_seconds == 900
 
 
 def test_llm_cache_namespace_default():
     from shared.config.settings import settings
+
     assert settings.llm_cache_namespace == "llm:cache:v1"
 
 
@@ -406,9 +409,7 @@ def test_cache_key_round_trip_via_mock():
     payload = {"summary": "test summary", "thesis": "test thesis"}
 
     mock_client = MagicMock()
-    mock_client.get.side_effect = lambda k: (
-        json.dumps(payload) if k == key else None
-    )
+    mock_client.get.side_effect = lambda k: json.dumps(payload) if k == key else None
 
     with patch("infra.cache.llm_cache.get_redis_client", return_value=mock_client):
         set_cached_llm_response(key, payload)
