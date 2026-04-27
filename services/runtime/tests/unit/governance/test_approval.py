@@ -1,4 +1,5 @@
 """Governance Approval tests — approve/reject/expire paths and guard checks."""
+
 import pytest
 from unittest.mock import MagicMock
 
@@ -13,6 +14,7 @@ from governance.approval import (
 # ═══════════════════════════════════════════════════════════════════════
 # D1.1 — ApprovalRecord model validation
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_approval_record_valid():
     """A valid ApprovalRecord must construct without error."""
@@ -79,6 +81,7 @@ def test_approval_record_valid_states():
 # D1.2 — HumanApprovalGate approve path
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_approve_updates_status():
     repo = MagicMock()
     mock_row = MagicMock()
@@ -129,6 +132,7 @@ def test_approve_not_found_raises():
 # D1.3 — HumanApprovalGate reject path
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_reject_updates_status():
     repo = MagicMock()
     mock_row = MagicMock()
@@ -160,6 +164,7 @@ def test_reject_not_found_raises():
 # ═══════════════════════════════════════════════════════════════════════
 # D1.4 — HumanApprovalGate ensure_approved guard
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_ensure_approved_no_requirement_returns_none():
     repo = MagicMock()
@@ -250,6 +255,7 @@ def test_ensure_approved_passes_when_approved():
 # ═══════════════════════════════════════════════════════════════════════
 # D1.5 — ApprovalRequiredError
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_approval_required_error_has_status_code():
     err = ApprovalRequiredError("test", status_code=409, approval_id="app_001")

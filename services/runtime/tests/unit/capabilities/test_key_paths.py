@@ -1,9 +1,9 @@
 """Capabilities key-path tests — governance pipeline for finance and coding decisions."""
-import pytest
+
 
 from domains.decision_intake.models import DecisionIntake
 from governance.risk_engine.engine import RiskEngine
-from packs.coding.policy import CodingDisciplinePolicy, CodingRejectReason, CodingEscalateReason
+from packs.coding.policy import CodingDisciplinePolicy
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 
@@ -11,13 +11,13 @@ from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 # D3.1 — Finance decisions govern_intake key paths
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def _finance_intake(**payload_overrides):
     payload = {
         "symbol": "BTCUSDT",
         "timeframe": "1h",
         "direction": "long",
-        "thesis": "BTC breaking above resistance with volume confirmation; "
-                  "invalidated if price closes below 200 EMA.",
+        "thesis": "BTC breaking above resistance with volume confirmation; invalidated if price closes below 200 EMA.",
         "stop_loss": "2%",
         "max_loss_usdt": 200,
         "position_size_usdt": 1000,
@@ -65,6 +65,7 @@ def test_finance_stressed_emotional_state_escalates():
 # ═══════════════════════════════════════════════════════════════════════
 # D3.2 — Coding decisions key paths
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def _coding_intake(**payload_overrides):
     payload = {
@@ -116,6 +117,7 @@ def test_coding_high_impact_escalates():
 # D3.3 — Cross-Pack: RiskEngine is Pack-agnostic
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_risk_engine_handles_both_packs():
     """Same RiskEngine instance validates both Finance and Coding intakes."""
     engine = RiskEngine()
@@ -131,9 +133,11 @@ def test_risk_engine_handles_both_packs():
 # D3.4 — No broker/order/trade in capabilities paths
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_capability_tests_no_broker_imports():
     """This test file must not import broker/order/trade."""
     import inspect
+
     source = inspect.getsource(inspect.getmodule(test_capability_tests_no_broker_imports))
     forbidden = ["broker", "place_order", "execute_trade"]
     import_lines = [l for l in source.splitlines() if l.strip().startswith(("from ", "import "))]

@@ -1,4 +1,5 @@
 """FinanceManualOutcome tests — verdict validation, source constraints, required fields."""
+
 import pytest
 
 from domains.finance_outcome.models import (
@@ -11,6 +12,7 @@ from domains.finance_outcome.models import (
 # ═══════════════════════════════════════════════════════════════════════
 # D2.1 — Valid verdicts accepted
 # ═══════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.parametrize("verdict", sorted(VALID_OUTCOME_VERDICTS))
 def test_valid_verdict_accepted(verdict):
@@ -37,6 +39,7 @@ def test_invalid_verdict_rejected():
 # ═══════════════════════════════════════════════════════════════════════
 # D2.2 — outcome_source must be manual
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_outcome_source_defaults_to_manual():
     outcome = FinanceManualOutcome(
@@ -66,6 +69,7 @@ def test_valid_outcome_sources_contains_only_manual():
 # D2.3 — Required fields
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_missing_decision_intake_id_raises():
     with pytest.raises(ValueError, match="decision_intake_id"):
         FinanceManualOutcome(
@@ -87,6 +91,7 @@ def test_missing_execution_receipt_id_raises():
 # ═══════════════════════════════════════════════════════════════════════
 # D2.4 — plan_followed default
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_plan_followed_defaults_to_false():
     outcome = FinanceManualOutcome(
@@ -111,6 +116,7 @@ def test_plan_followed_can_be_true():
 # D2.5 — ID generation
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_outcome_id_generated_with_fmout_prefix():
     outcome = FinanceManualOutcome(
         decision_intake_id="intake_001",
@@ -123,6 +129,7 @@ def test_outcome_id_generated_with_fmout_prefix():
 # ═══════════════════════════════════════════════════════════════════════
 # D2.6 — observed_outcome and variance_summary optional
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_observed_outcome_defaults_to_empty():
     outcome = FinanceManualOutcome(
