@@ -23,7 +23,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `python -m uvicorn apps.api.app.main:app --host 127.0.0.1 --port ${apiPort}`,
+      command: `uv run uvicorn apps.api.app.main:app --host 127.0.0.1 --port ${apiPort}`,
       url: `${apiBaseURL}/api/v1/health`,
       reuseExistingServer: false,
       timeout: 60_000,
