@@ -777,6 +777,190 @@ r31_gov = govern(r31["id"]) if "id" in r31 else {}
 runs.append({"tag": "Run 31", "intake": r31, "governance": r31_gov})
 print(f"  → governance={r31_gov.get('governance_decision')}")
 
+# ══════════════════════════════════════════════════════════════════════
+# Wave 5: Escalate-targeting runs (Runs 32-34)
+# ══════════════════════════════════════════════════════════════════════
+
+time.sleep(0.2)
+
+# --- Run 32: Stressed emotional state with reasonable thesis → ESCALATE ---
+print("\n=== RUN 32: Stressed + reasonable thesis → ESCALATE ===")
+r32 = intake({
+    "symbol": "FTMUSDT", "timeframe": "4h", "direction": "long",
+    "thesis": "FTM forming a bullish flag after breaking above 200 EMA with volume confirming; "
+             "invalidated if price closes below flag support.",
+    "stop_loss": "4%", "max_loss_usdt": 200, "position_size_usdt": 1500,
+    "risk_unit_usdt": 150, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "stressed", "confidence": 0.55,
+})
+r32_gov = govern(r32["id"]) if "id" in r32 else {}
+runs.append({"tag": "Run 32", "intake": r32, "governance": r32_gov})
+print(f"  → governance={r32_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 33: is_chasing=True scenario with plausible thesis → ESCALATE ---
+print("\n=== RUN 33: Chasing trade → ESCALATE ===")
+r33 = intake({
+    "symbol": "RUNEUSDT", "timeframe": "1h", "direction": "long",
+    "thesis": "RUNE just broke out 15% on news catalyst, still room to run; "
+             "invalidated if price closes below breakout level.",
+    "stop_loss": "3%", "max_loss_usdt": 300, "position_size_usdt": 2000,
+    "risk_unit_usdt": 200, "is_revenge_trade": False, "is_chasing": True,
+    "emotional_state": "neutral", "confidence": 0.6,
+})
+r33_gov = govern(r33["id"]) if "id" in r33 else {}
+runs.append({"tag": "Run 33", "intake": r33, "governance": r33_gov})
+print(f"  → governance={r33_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 34: rule_exceptions=["override"] → ESCALATE ---
+print("\n=== RUN 34: Rule exception override → ESCALATE ===")
+r34 = intake({
+    "symbol": "GRTUSDT", "timeframe": "4h", "direction": "short",
+    "thesis": "GRT rejection at range high with bearish divergence on RSI and declining OBV; "
+             "invalidated if price closes above range high.",
+    "stop_loss": "3%", "max_loss_usdt": 150, "position_size_usdt": 1000,
+    "risk_unit_usdt": 100, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.55,
+    "rule_exceptions": ["override"],
+})
+r34_gov = govern(r34["id"]) if "id" in r34 else {}
+runs.append({"tag": "Run 34", "intake": r34, "governance": r34_gov})
+print(f"  → governance={r34_gov.get('governance_decision')}")
+
+# ══════════════════════════════════════════════════════════════════════
+# Wave 6: Knowledge Feedback chain runs (Runs 35-37)
+# ══════════════════════════════════════════════════════════════════════
+
+time.sleep(0.2)
+
+# --- Run 35: DOT fake breakdown → FULL KF CHAIN ---
+print("\n=== RUN 35: DOT fake breakdown → FULL KF CHAIN ===")
+r35 = intake({
+    "symbol": "DOTUSDT", "timeframe": "4h", "direction": "short",
+    "thesis": "DOT breaking below consolidation range with volume spike; "
+             "invalidated if price closes back above range support.",
+    "stop_loss": "3%", "max_loss_usdt": 200, "position_size_usdt": 1500,
+    "risk_unit_usdt": 150, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.65,
+})
+r35_gov = govern(r35["id"]) if "id" in r35 else {}
+r35_plan = {}; r35_outcome = {}; r35_review = {}
+if r35_gov.get("governance_decision") == "execute":
+    r35_plan = plan(r35["id"])
+    if "execution_receipt_id" in r35_plan:
+        r35_outcome = outcome(r35["id"], {
+            "execution_receipt_id": r35_plan["execution_receipt_id"],
+            "observed_outcome": "DOT wicked below range then reversed sharply. Stop loss hit at -3%.",
+            "verdict": "invalidated",
+            "variance_summary": "Fake breakdown — liquidity grab before reversal.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r35_outcome:
+            r35_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "DOT sustains breakdown, drops 5-6%",
+                "actual_outcome": "DOT wicked then reversed, -3% stop loss hit",
+                "deviation": "False breakdown signal, market trapped short sellers",
+                "mistake_tags": "false_breakdown, liquidity_grab",
+                "lessons": [
+                    {"lesson_text": "Wait for candle close below range before entering breakdown trades."},
+                    {"lesson_text": "Liquidity grabs are common on DOT at range boundaries."},
+                ],
+                "new_rule_candidate": "Require 4h candle close beyond range before entry on breakdowns",
+                "outcome_ref_type": "finance_manual_outcome",
+                "outcome_ref_id": r35_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 35", "intake": r35, "governance": r35_gov, "plan": r35_plan, "outcome": r35_outcome, "review": r35_review})
+print(f"  intake_id={r35.get('id')} → governance={r35_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 36: FIL trend continuation → FULL KF CHAIN ---
+print("\n=== RUN 36: FIL trend continuation → FULL KF CHAIN ===")
+r36 = intake({
+    "symbol": "FILUSDT", "timeframe": "1d", "direction": "long",
+    "thesis": "FIL holding above 50 MA on daily with MACD golden cross and increasing OBV; "
+             "invalidated if price closes below 50 MA.",
+    "stop_loss": "5%", "max_loss_usdt": 250, "position_size_usdt": 2500,
+    "risk_unit_usdt": 250, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "calm", "confidence": 0.75,
+})
+r36_gov = govern(r36["id"]) if "id" in r36 else {}
+r36_plan = {}; r36_outcome = {}; r36_review = {}
+if r36_gov.get("governance_decision") == "execute":
+    r36_plan = plan(r36["id"])
+    if "execution_receipt_id" in r36_plan:
+        r36_outcome = outcome(r36["id"], {
+            "execution_receipt_id": r36_plan["execution_receipt_id"],
+            "observed_outcome": "FIL rallied +9% over 3 days, exited at extended target. Thesis fully validated.",
+            "verdict": "validated",
+            "variance_summary": "Trend continuation stronger than anticipated, exceeded target.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r36_outcome:
+            r36_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "FIL continues daily uptrend, exit at +8-10%",
+                "actual_outcome": "FIL rallied +9%, thesis validated",
+                "deviation": "Within plan range, trend strength exceeded expectations",
+                "mistake_tags": "trend_following, patience",
+                "lessons": [
+                    {"lesson_text": "Daily MACD golden cross with OBV confirmation on FIL is high-probability."},
+                    {"lesson_text": "Patience on daily timeframe pays off — 3 day hold was appropriate."},
+                ],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome",
+                "outcome_ref_id": r36_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 36", "intake": r36, "governance": r36_gov, "plan": r36_plan, "outcome": r36_outcome, "review": r36_review})
+print(f"  intake_id={r36.get('id')} → governance={r36_gov.get('governance_decision')}")
+
+time.sleep(0.2)
+
+# --- Run 37: ALGO tight stop → FULL KF CHAIN ---
+print("\n=== RUN 37: ALGO tight stop → FULL KF CHAIN ===")
+r37 = intake({
+    "symbol": "ALGOUSDT", "timeframe": "1h", "direction": "short",
+    "thesis": "ALGO rejection at resistance with shooting star candle and RSI bearish divergence; "
+             "invalidated if price closes above shooting star high.",
+    "stop_loss": "2%", "max_loss_usdt": 200, "position_size_usdt": 1500,
+    "risk_unit_usdt": 150, "is_revenge_trade": False, "is_chasing": False,
+    "emotional_state": "neutral", "confidence": 0.6,
+})
+r37_gov = govern(r37["id"]) if "id" in r37 else {}
+r37_plan = {}; r37_outcome = {}; r37_review = {}
+if r37_gov.get("governance_decision") == "execute":
+    r37_plan = plan(r37["id"])
+    if "execution_receipt_id" in r37_plan:
+        r37_outcome = outcome(r37["id"], {
+            "execution_receipt_id": r37_plan["execution_receipt_id"],
+            "observed_outcome": "ALGO wicked through resistance triggering stop loss, then dropped -5%. "
+                               "Correct direction, wrong stop placement.",
+            "verdict": "invalidated",
+            "variance_summary": "Stop too tight for ALGO 1h volatility — wick stopped out before move.",
+            "plan_followed": True,
+        })
+        if "outcome_id" in r37_outcome:
+            r37_review = submit_review({
+                "recommendation_id": None, "review_type": "recommendation_postmortem",
+                "expected_outcome": "ALGO drops 3-4% from resistance rejection",
+                "actual_outcome": "Stop loss hit on wick, then ALGO dropped -5%",
+                "deviation": "Correct direction, wrong stop placement cost the trade",
+                "mistake_tags": "stop_placement, entry_timing",
+                "lessons": [
+                    {"lesson_text": "ALGO 1h volatility requires wider stops — 2% too tight at resistance."},
+                    {"lesson_text": "Shooting star high is prone to wicking — place stop above wick, not entry candle."},
+                ],
+                "new_rule_candidate": "Stop must be above candle wick, not just candle body, for rejection setups",
+                "outcome_ref_type": "finance_manual_outcome",
+                "outcome_ref_id": r37_outcome["outcome_id"],
+            })
+runs.append({"tag": "Run 37", "intake": r37, "governance": r37_gov, "plan": r37_plan, "outcome": r37_outcome, "review": r37_review})
+print(f"  intake_id={r37.get('id')} → governance={r37_gov.get('governance_decision')}")
+
 # Complete reviews for full-chain runs
 print("\n=== COMPLETING REVIEWS ===")
 for run in runs:
