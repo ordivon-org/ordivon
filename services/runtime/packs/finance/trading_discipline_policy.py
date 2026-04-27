@@ -12,11 +12,13 @@ from __future__ import annotations
 class RejectReason:
     def __init__(self, message: str) -> None:
         self.message = message
+        self.severity = "reject"
 
 
 class EscalateReason:
     def __init__(self, message: str) -> None:
         self.message = message
+        self.severity = "escalate"
 
 
 # ── Constants (from RiskEngine engine.py + thesis_quality.py) ─────────

@@ -4,7 +4,6 @@ from domains.decision_intake.models import DecisionIntake
 from domains.research.models import AnalysisResult
 from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
-from packs.finance.trading_discipline_policy import RejectReason, EscalateReason
 
 
 class RiskEngine:
@@ -83,9 +82,10 @@ class RiskEngine:
             payload = intake.payload
 
             for reason in pack_policy.validate_fields(payload):
-                if isinstance(reason, RejectReason):
+                sev = reason.severity
+                if sev == "reject":
                     reject_reasons.append(reason.message)
-                elif isinstance(reason, EscalateReason):
+                elif sev == "escalate":
                     escalate_reasons.append(reason.message)
 
             for reason in pack_policy.validate_numeric(payload):
