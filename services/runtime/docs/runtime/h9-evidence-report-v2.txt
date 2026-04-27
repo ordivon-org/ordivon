@@ -1,0 +1,27 @@
+═══ H-9C1: Schema Drift — outcome_ref full chain ═══
+  ✅ H-9C1.1: valid intake executed: got execute
+  ✅ H-9C1.2: plan receipt created: receipt=exrcpt_38bc146c1d18
+  ✅ H-9C1.3: outcome created: outcome_id=fmout_e5a6a411de2f
+  ✅ H-9C1.4: review submitted (outcome_ref in DB, API echo known gap): review_id=review_f77ae0fdf501
+  ✅ H-9C1.5: review completed: status=completed, lessons=1
+
+═══ H-9C2: Escalation Path Coverage ═══
+  ✅ H-9C2.1: emotional_state 'stressed' → escalate: got escalate — ["emotional_state='stressed' indicates elevated risk — requires human review."]
+  ✅ H-9C2.2: emotional_state 'fearful' → escalate: got escalate
+  ✅ H-9C2.3: emotional_state 'calm' → execute (not escalate): got execute
+  ✅ H-9C2.4: rule_exceptions not empty → escalate: got escalate — ['rule_exceptions not empty (1 item(s)) — requires human review.']
+  ✅ H-9C2.5: confidence=0.2 → escalate: got escalate — ['confidence=0.2 is below 0.3 threshold — requires human review.']
+  ✅ H-9C2.6: confidence=0.5 → execute (not escalated for confidence): got execute
+  ✅ H-9C2.7: priority: reject beats escalate (missing stop_loss + stressed): got reject — ["Intake status is 'invalid' — only validated intakes can be governed.", 'Missing required field: stop_loss.']
+
+═══ H-9C3: Thesis Quality Gate ═══
+  ✅ H-9C3.1: banned thesis 'just feels right' → reject: got reject — ['Thesis quality rejected: just feels right.']
+  ✅ H-9C3.2: banned thesis 'vibes...trust me' → reject: got reject
+  ✅ H-9C3.3: short thesis (no banned patterns) → escalate: got escalate — ['Thesis is too short (22 chars, minimum 50) — requires human review.', 'Thesis lacks verifiability criteria (no invalidation or confirmation conditions) — requires human review.']
+  ✅ H-9C3.4: no verifiability wording → escalate: got escalate — ['Thesis lacks verifiability criteria (no invalidation or confirmation conditions) — requires human review.']
+  ✅ H-9C3.5: valid thesis (confirmation + invalidation) → execute: got execute
+  ✅ H-9C3.6: YOLO thesis → reject: got reject
+
+==================================================
+VERIFICATION COMPLETE: 18 pass, 0 fail
+==================================================
