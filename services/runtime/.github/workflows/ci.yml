@@ -66,6 +66,10 @@ jobs:
         continue-on-error: true
         run: uv run mypy governance/
 
+      - name: Dead code check
+        continue-on-error: true
+        run: uv run vulture governance/ domains/ capabilities/ state/ execution/ shared/ infra/ packs/ intelligence/ orchestrator/ apps/api/app/
+
   backend-unit:
     runs-on: ubuntu-latest
     env:

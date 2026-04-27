@@ -1,0 +1,3 @@
+[tool.vulture]
+exclude = [".venv", "node_modules", "__pycache__", ".git", "tests", "scripts", "alembic"]
+min_confidence = 80
