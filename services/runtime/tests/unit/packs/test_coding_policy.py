@@ -2,6 +2,7 @@
 
 Tests all five gates and integration with RiskEngine.
 """
+
 import pytest
 
 from domains.decision_intake.models import DecisionIntake
@@ -14,6 +15,7 @@ from packs.coding.policy import (
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
+
 
 def _valid_payload(**overrides):
     """Build a valid coding payload with sensible defaults."""
@@ -43,6 +45,7 @@ def _valid_intake(payload=None):
 # Test 1: missing task_description → reject
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_missing_task_description_rejects():
     """Empty task_description must reject."""
     policy = CodingDisciplinePolicy()
@@ -55,6 +58,7 @@ def test_missing_task_description_rejects():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 2: missing file_paths → reject
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_missing_file_paths_rejects():
     """Empty file_paths must reject."""
@@ -69,16 +73,20 @@ def test_missing_file_paths_rejects():
 # Test 3: forbidden file path → reject
 # ═══════════════════════════════════════════════════════════════════════
 
-@pytest.mark.parametrize("bad_path", [
-    ".env",
-    "config/secrets.yaml",
-    "keys/private_key.pem",
-    "state/db/migrations/runner.py",
-    "pyproject.toml",
-    "uv.lock",
-    "package.json",
-    "pnpm-lock.yaml",
-])
+
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        ".env",
+        "config/secrets.yaml",
+        "keys/private_key.pem",
+        "state/db/migrations/runner.py",
+        "pyproject.toml",
+        "uv.lock",
+        "package.json",
+        "pnpm-lock.yaml",
+    ],
+)
 def test_forbidden_file_path_rejects(bad_path):
     """Each forbidden path pattern must trigger reject."""
     policy = CodingDisciplinePolicy()
@@ -92,6 +100,7 @@ def test_forbidden_file_path_rejects(bad_path):
 # Test 4: high impact → escalate
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_high_impact_escalates():
     """estimated_impact='high' must escalate."""
     policy = CodingDisciplinePolicy()
@@ -104,6 +113,7 @@ def test_high_impact_escalates():
 # Test 5: missing test_plan → escalate
 # ═══════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.parametrize("bad_test_plan", [None, "", "   "])
 def test_missing_test_plan_escalates(bad_test_plan):
     """Missing or whitespace-only test_plan must escalate."""
@@ -115,6 +125,7 @@ def test_missing_test_plan_escalates(bad_test_plan):
 # ═══════════════════════════════════════════════════════════════════════
 # Test 6: valid payload → execute through RiskEngine
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_valid_coding_payload_executes_through_risk_engine():
     """A fully valid coding payload must pass RiskEngine with execute verdict."""
@@ -130,15 +141,18 @@ def test_valid_coding_payload_executes_through_risk_engine():
 # Test 7: multiple violations accumulate
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_multiple_violations_accumulate():
     """Empty task + empty file_paths + high impact + missing test_plan → all collected."""
     engine = RiskEngine()
-    intake = _valid_intake(_valid_payload(
-        task_description="",
-        file_paths=[],
-        estimated_impact="high",
-        test_plan=None,
-    ))
+    intake = _valid_intake(
+        _valid_payload(
+            task_description="",
+            file_paths=[],
+            estimated_impact="high",
+            test_plan=None,
+        )
+    )
     policy = CodingDisciplinePolicy()
     decision = engine.validate_intake(intake, pack_policy=policy)
     # reject beats escalate → must be reject
@@ -151,6 +165,7 @@ def test_multiple_violations_accumulate():
 # ═══════════════════════════════════════════════════════════════════════
 # Test 8: severity protocol compliance
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def test_coding_reasons_have_severity_and_message():
     """All coding reasons must have .severity and .message attributes."""
@@ -175,6 +190,7 @@ def test_coding_reason_severity_only_reject_or_escalate():
 # Test 9: valid payload with all optional fields
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_valid_payload_all_fields():
     """A fully populated payload must produce no reasons."""
     policy = CodingDisciplinePolicy()
@@ -198,9 +214,11 @@ def test_valid_payload_all_fields():
 # Test 10: CodingDecisionPayload model validation
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def test_coding_decision_payload_invalid_impact_raises():
     """Invalid estimated_impact must raise ValueError."""
     from packs.coding.models import CodingDecisionPayload
+
     with pytest.raises(ValueError, match="estimated_impact"):
         CodingDecisionPayload(
             task_description="test",

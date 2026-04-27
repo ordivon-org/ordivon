@@ -3,6 +3,7 @@
 CodingDecisionPayload represents an AI coding agent's proposed action:
 what task, which files, estimated impact, reasoning, and test plan.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,6 +24,5 @@ class CodingDecisionPayload:
     def __post_init__(self) -> None:
         if self.estimated_impact not in VALID_IMPACT_LEVELS:
             raise ValueError(
-                f"estimated_impact must be one of {sorted(VALID_IMPACT_LEVELS)}, "
-                f"got {self.estimated_impact!r}"
+                f"estimated_impact must be one of {sorted(VALID_IMPACT_LEVELS)}, got {self.estimated_impact!r}"
             )

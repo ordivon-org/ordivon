@@ -4,9 +4,9 @@ All gates return reasons with .severity (reject/escalate) per ADR-006
 severity protocol.  Core RiskEngine never sees these reason types — it only
 reads reason.severity and reason.message.
 """
+
 from __future__ import annotations
 
-from packs.coding.models import CodingDecisionPayload
 
 
 # ── Reason types (ADR-006 severity protocol) ────────────────────────
@@ -86,9 +86,7 @@ class CodingDisciplinePolicy:
                 for forbidden in _FORBIDDEN_PATH_PATTERNS:
                     if forbidden in fp_lower:
                         reasons.append(
-                            CodingRejectReason(
-                                f"Forbidden file path: '{fp}' matches protected pattern '{forbidden}'."
-                            )
+                            CodingRejectReason(f"Forbidden file path: '{fp}' matches protected pattern '{forbidden}'.")
                         )
                         break  # one reason per file
 
@@ -101,17 +99,13 @@ class CodingDisciplinePolicy:
         impact = (payload.get("estimated_impact") or "").strip().lower()
         if impact == "high":
             reasons.append(
-                CodingEscalateReason(
-                    f"estimated_impact='high' — requires human review before code changes."
-                )
+                CodingEscalateReason("estimated_impact='high' — requires human review before code changes.")
             )
 
         test_plan = payload.get("test_plan")
         if not test_plan or not str(test_plan).strip():
             reasons.append(
-                CodingEscalateReason(
-                    "Missing test_plan — code changes without a test plan require human review."
-                )
+                CodingEscalateReason("Missing test_plan — code changes without a test plan require human review.")
             )
 
         return reasons

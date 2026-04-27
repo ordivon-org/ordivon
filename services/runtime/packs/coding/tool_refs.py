@@ -4,6 +4,7 @@ This module mirrors packs/finance/tool_refs.py in structure.
 It is used ONLY by pack-level code (capabilities, policy_source).
 Never imported by governance/.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
