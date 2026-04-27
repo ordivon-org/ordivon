@@ -60,8 +60,8 @@ def close_redis_client() -> None:
     if _client is not None:
         try:
             _client.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Ignoring Redis client close failure during shutdown: %s", exc, exc_info=True)
         finally:
             _client = None
             logger.info("Redis client closed")
