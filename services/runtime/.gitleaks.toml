@@ -1,0 +1,14 @@
+[allowlist]
+  description = "Global allowlist"
+  paths = [
+    '''pnpm-lock\.yaml''',
+    '''\.git/''',
+    '''\.venv/''',
+  ]
+
+[[rules]]
+  id = "generic-api-key"
+  [rules.allowlist]
+    description = "Allow docs mentioning secrets conceptually (not actual keys)"
+    paths = ['''docs/.*\.md$''']
+    regexTarget = "line"
