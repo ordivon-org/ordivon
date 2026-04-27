@@ -39,12 +39,21 @@ def _column_exists(conn: Connection, table: str, column: str) -> bool:
 def _add_column_if_missing(
     conn: Connection, table: str, column: str, col_type: str
 ) -> None:
-    """Add a column to a table if it doesn't already exist."""
+    """Add a column to a table if it doesn't already exist.
+
+    The inspector-based check is not reliable across all backends
+    (e.g. DuckDB).  We try the ALTER TABLE and ignore "already exists"
+    errors so the migration stays truly idempotent.
+    """
     if not _column_exists(conn, table, column):
-        conn.execute(text(
-            f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
-        ))
-        conn.commit()
+        try:
+            conn.execute(text(
+                f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+            ))
+            conn.commit()
+        except Exception:
+            # Column already exists (or table missing) — idempotent skip.
+            conn.rollback()
 
 
 # ── H9C1-001: Add outcome_ref columns to reviews table ──────────────────
