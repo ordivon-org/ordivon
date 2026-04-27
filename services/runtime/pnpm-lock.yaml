@@ -5,8 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  uuid: ^14.0.0
-  tmp: ^0.2.4
+  postcss: '>=8.5.10'
+  uuid: '>=14.0.0'
+  tmp: '>=0.2.4'
 
 importers:
 
@@ -24,6 +25,9 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      pyright:
+        specifier: ''
+        version: 1.1.409
 
   apps/web:
     dependencies:
@@ -2220,10 +2224,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  postcss@8.4.31:
-    resolution: {integrity: sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.10:
     resolution: {integrity: sha512-pMMHxBOZKFU6HgAZ4eyGnwXF/EvPGGqUr0MnZ5+99485wwW41kW91A4LOGxSHhgugZmSChL5AlElNdwlNgcnLQ==}
     engines: {node: ^10 || ^12 || >=14}
@@ -2261,6 +2261,11 @@ packages:
   puppeteer-core@24.42.0:
     resolution: {integrity: sha512-T4zXokk/izH01fYPhyyev1A4piWiOKrYq7CUFpdoYQxmOnXoV6YjUabmfIjCYkNspSoAXIxRid3Tw+Vg0fthYg==}
     engines: {node: '>=18'}
+
+  pyright@1.1.409:
+    resolution: {integrity: sha512-13VFQyw4mJzshZxcxiYbNjo1hG/WHSRDj70Y3lbJEHqCkI2dvBAUTti8VV6Ezsr5gT93pFvC0e/jAQS4JdHarA==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
 
   qs@6.14.2:
     resolution: {integrity: sha512-V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q==}
@@ -4858,7 +4863,7 @@ snapshots:
       '@next/env': 15.5.15
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001788
-      postcss: 8.4.31
+      postcss: 8.5.10
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.6(@babel/core@7.29.0)(react@18.3.1)
@@ -4993,12 +4998,6 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.2
 
-  postcss@8.4.31:
-    dependencies:
-      nanoid: 3.3.11
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
   postcss@8.5.10:
     dependencies:
       nanoid: 3.3.11
@@ -5058,6 +5057,10 @@ snapshots:
       - react-native-b4a
       - supports-color
       - utf-8-validate
+
+  pyright@1.1.409:
+    optionalDependencies:
+      fsevents: 2.3.3
 
   qs@6.14.2:
     dependencies:
