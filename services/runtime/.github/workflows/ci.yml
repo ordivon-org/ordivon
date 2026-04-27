@@ -100,6 +100,46 @@ jobs:
       - name: Run backend unit tests
         run: uv run pytest -q tests/unit
 
+  backend-unit-pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: pfios
+          POSTGRES_PASSWORD: pfios
+          POSTGRES_DB: pfios_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PFIOS_DB_URL: postgresql://pfios:pfios@127.0.0.1:5432/pfios_test
+      PFIOS_ENV: test
+      PFIOS_DEBUG: "false"
+      PFIOS_REASONING_PROVIDER: mock
+      PFIOS_AUDIT_LOG_DIR: ./data/logs/audit
+      PFIOS_TIMEZONE: Asia/Shanghai
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Install Python dev dependencies
+        run: uv sync --extra dev
+      - name: Check schema drift (Alembic autogenerate)
+        run: bash scripts/check_schema_drift.sh
+      - name: Run unit tests on PostgreSQL
+        run: uv run pytest -q tests/unit
+
   backend-integration:
     runs-on: ubuntu-latest
     env:
@@ -121,6 +161,53 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run backend integration tests
+        run: |
+          uv run pytest -q \
+            tests/integration/test_hermes_analyze_api.py \
+            tests/integration/test_health_monitoring_api.py \
+            tests/integration/test_scheduler_persistence.py \
+            tests/integration/test_api_product_surfaces.py \
+            tests/integration/test_api_semantic_outputs.py \
+            tests/integration/test_workflow_run_lineage_api.py
+
+  backend-integration-pg:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: pfios
+          POSTGRES_PASSWORD: pfios
+          POSTGRES_DB: pfios_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PFIOS_DB_URL: postgresql://pfios:pfios@127.0.0.1:5432/pfios_test
+      PFIOS_ENV: test
+      PFIOS_DEBUG: "false"
+      PFIOS_REASONING_PROVIDER: mock
+      PFIOS_AUDIT_LOG_DIR: ./data/logs/audit
+      PFIOS_TIMEZONE: Asia/Shanghai
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Install Python dev dependencies
+        run: uv sync --extra dev
+      - name: Check schema drift (Alembic autogenerate)
+        run: bash scripts/check_schema_drift.sh
+      - name: Run integration tests on PostgreSQL
         run: |
           uv run pytest -q \
             tests/integration/test_hermes_analyze_api.py \
