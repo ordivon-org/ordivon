@@ -68,6 +68,20 @@ def add_outcome_ref_columns(conn: Connection) -> None:
     _add_column_if_missing(conn, "reviews", "outcome_ref_id", "VARCHAR(64)")
 
 
+# ── WB-001: Add lesson_ids + source_refs columns to candidate_rules ────
+
+
+@migration("wb_001_add_candidate_rule_lesson_and_source_refs")
+def add_candidate_rule_lesson_and_source_refs(conn: Connection) -> None:
+    """Add lesson_ids_json and source_refs_json to candidate_rules table.
+
+    Wave B introduced Lesson → CandidateRule draft extraction.
+    These columns store the lesson IDs and structured source references.
+    """
+    _add_column_if_missing(conn, "candidate_rules", "lesson_ids_json", "TEXT DEFAULT '[]'")
+    _add_column_if_missing(conn, "candidate_rules", "source_refs_json", "TEXT DEFAULT '[]'")
+
+
 # ── Runner ─────────────────────────────────────────────────────────────
 
 
