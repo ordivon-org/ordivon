@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any, TypedDict, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,8 +19,39 @@ from infra.cache.llm_cache import (
     stable_json_dumps,
 )
 
+
+class CacheKeyKwargs(TypedDict, total=False):
+    """Typed kwargs for build_llm_cache_key — preserves per-key types through ** unpacking."""
+
+    provider: str
+    model: str
+    task_type: str
+    query: str
+    symbol: str | None
+    timeframe: str | None
+    risk_mode: str | None
+    market_signals: dict[str, Any] | None
+    memory_lessons: list[Any] | None
+    related_reviews: list[Any] | None
+    active_policies: list[Any] | None
+    portfolio_snapshot: dict[str, Any] | None
+    prompt_version: str | None
+    cache_schema_version: str
+
+
+def _k(**overrides: object) -> CacheKeyKwargs:
+    """Return typed CacheKeyKwargs from base + overrides — preserves type through ** unpacking."""
+    # _BASE_KWARGS is structurally a CacheKeyKwargs; the cast through object
+    # is needed because {**TypedDict, **dict} widens to dict in pyright.
+    return cast(CacheKeyKwargs, cast(object, {**_BASE_KWARGS, **overrides}))
+
+
 # Shared kwargs for cache key tests
-_BASE_KWARGS = dict(
+_BASE_KWARGS: CacheKeyKwargs = cast(
+    CacheKeyKwargs,
+    cast(
+        object,
+        dict(
     provider="gemini",
     model="google/gemini-3.1-pro-preview",
     task_type="analysis.generate",
@@ -33,6 +65,8 @@ _BASE_KWARGS = dict(
     active_policies=["ForbiddenSymbolsPolicy", "TradingDisciplinePolicy"],
     portfolio_snapshot={"cash": 10000, "positions": []},
     prompt_version="v1",
+    ),
+),
 )
 
 
@@ -121,14 +155,14 @@ def test_cache_key_includes_provider_model_task_type():
 
 
 def test_cache_key_query_whitespace_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "query": "Analyze BTC momentum"})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "query": "  analyze   btc  momentum  "})
+    k1 = build_llm_cache_key(**_k(query="Analyze BTC momentum"))
+    k2 = build_llm_cache_key(**_k(query="  analyze   btc  momentum  "))
     assert k1 == k2
 
 
 def test_cache_key_query_case_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "query": "ANALYZE BTC MOMENTUM"})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "query": "analyze btc momentum"})
+    k1 = build_llm_cache_key(**_k(query="ANALYZE BTC MOMENTUM"))
+    k2 = build_llm_cache_key(**_k(query="analyze btc momentum"))
     assert k1 == k2
 
 
@@ -137,79 +171,79 @@ def test_cache_key_query_case_stable():
 
 def test_cache_key_changes_on_provider():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "provider": "openai"})
+    k2 = build_llm_cache_key(**_k(provider="openai"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_model():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "model": "gpt-4o"})
+    k2 = build_llm_cache_key(**_k(model="gpt-4o"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_task_type():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "task_type": "summarize"})
+    k2 = build_llm_cache_key(**_k(task_type="summarize"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_symbol():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "symbol": "ETH/USDT"})
+    k2 = build_llm_cache_key(**_k(symbol="ETH/USDT"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_timeframe():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "timeframe": "4h"})
+    k2 = build_llm_cache_key(**_k(timeframe="4h"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_risk_mode():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "risk_mode": "conservative"})
+    k2 = build_llm_cache_key(**_k(risk_mode="conservative"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_market_signals():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "market_signals": {"rsi": 70}})
+    k2 = build_llm_cache_key(**_k(market_signals={"rsi": 70}))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_memory_lessons():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "memory_lessons": ["new lesson"]})
+    k2 = build_llm_cache_key(**_k(memory_lessons=["new lesson"]))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_related_reviews():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "related_reviews": ["review 2"]})
+    k2 = build_llm_cache_key(**_k(related_reviews=["review 2"]))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_active_policies():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "active_policies": ["OnlyOne"]})
+    k2 = build_llm_cache_key(**_k(active_policies=["OnlyOne"]))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_portfolio_snapshot():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "portfolio_snapshot": {"cash": 5000, "positions": []}})
+    k2 = build_llm_cache_key(**_k(portfolio_snapshot={"cash": 5000, "positions": []}))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_prompt_version():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "prompt_version": "v2"})
+    k2 = build_llm_cache_key(**_k(prompt_version="v2"))
     assert k1 != k2
 
 
 def test_cache_key_changes_on_cache_schema_version():
     k1 = build_llm_cache_key(**_BASE_KWARGS)
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "cache_schema_version": "2"})
+    k2 = build_llm_cache_key(**_k(cache_schema_version="2"))
     assert k1 != k2
 
 
@@ -217,62 +251,62 @@ def test_cache_key_changes_on_cache_schema_version():
 
 
 def test_cache_key_none_symbol_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "symbol": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "symbol": None})
+    k1 = build_llm_cache_key(**_k(symbol=None))
+    k2 = build_llm_cache_key(**_k(symbol=None))
     assert k1 == k2
 
 
 def test_cache_key_none_timeframe_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "timeframe": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "timeframe": None})
+    k1 = build_llm_cache_key(**_k(timeframe=None))
+    k2 = build_llm_cache_key(**_k(timeframe=None))
     assert k1 == k2
 
 
 def test_cache_key_none_risk_mode_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "risk_mode": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "risk_mode": None})
+    k1 = build_llm_cache_key(**_k(risk_mode=None))
+    k2 = build_llm_cache_key(**_k(risk_mode=None))
     assert k1 == k2
 
 
 def test_cache_key_none_market_signals_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "market_signals": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "market_signals": None})
+    k1 = build_llm_cache_key(**_k(market_signals=None))
+    k2 = build_llm_cache_key(**_k(market_signals=None))
     assert k1 == k2
 
 
 def test_cache_key_none_memory_lessons_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "memory_lessons": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "memory_lessons": None})
+    k1 = build_llm_cache_key(**_k(memory_lessons=None))
+    k2 = build_llm_cache_key(**_k(memory_lessons=None))
     assert k1 == k2
 
 
 def test_cache_key_none_related_reviews_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "related_reviews": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "related_reviews": None})
+    k1 = build_llm_cache_key(**_k(related_reviews=None))
+    k2 = build_llm_cache_key(**_k(related_reviews=None))
     assert k1 == k2
 
 
 def test_cache_key_none_active_policies_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "active_policies": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "active_policies": None})
+    k1 = build_llm_cache_key(**_k(active_policies=None))
+    k2 = build_llm_cache_key(**_k(active_policies=None))
     assert k1 == k2
 
 
 def test_cache_key_none_portfolio_snapshot_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "portfolio_snapshot": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "portfolio_snapshot": None})
+    k1 = build_llm_cache_key(**_k(portfolio_snapshot=None))
+    k2 = build_llm_cache_key(**_k(portfolio_snapshot=None))
     assert k1 == k2
 
 
 def test_cache_key_none_prompt_version_stable():
-    k1 = build_llm_cache_key(**{**_BASE_KWARGS, "prompt_version": None})
-    k2 = build_llm_cache_key(**{**_BASE_KWARGS, "prompt_version": None})
+    k1 = build_llm_cache_key(**_k(prompt_version=None))
+    k2 = build_llm_cache_key(**_k(prompt_version=None))
     assert k1 == k2
 
 
 def test_cache_key_none_distinguished_from_some():
-    k_none = build_llm_cache_key(**{**_BASE_KWARGS, "symbol": None})
-    k_some = build_llm_cache_key(**{**_BASE_KWARGS, "symbol": "BTC/USDT"})
+    k_none = build_llm_cache_key(**_k(symbol=None))
+    k_some = build_llm_cache_key(**_k(symbol="BTC/USDT"))
     assert k_none != k_some
 
 
