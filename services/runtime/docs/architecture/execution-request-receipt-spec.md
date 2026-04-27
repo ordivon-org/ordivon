@@ -35,6 +35,18 @@ Execution requests now capture:
 - `recommendation_id`
 - `payload`
 
+## Plan Receipt Constraints
+
+Finance decision plan receipts (`action_id="finance_decision_plan"`) must satisfy:
+
+- `receipt_kind` == `"plan"`
+- `broker_execution` == `false` (plan-only, no real trade execution)
+- `side_effect_level` == `"none"` (plan receipts are read-only projections)
+- `decision_intake_id` must be present (traceability to the original intake)
+
+These constraints are enforced by the runtime evidence checker
+(`scripts/check_runtime_evidence.py`) and the architecture boundary tests.
+
 ## Receipt Model
 
 Execution receipts now capture:
