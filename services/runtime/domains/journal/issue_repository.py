@@ -26,12 +26,7 @@ class IssueRepository:
         return row
 
     def list_open(self) -> list[IssueORM]:
-        return (
-            self.db.query(IssueORM)
-            .filter(IssueORM.status == "open")
-            .order_by(IssueORM.created_at.desc())
-            .all()
-        )
+        return self.db.query(IssueORM).filter(IssueORM.status == "open").order_by(IssueORM.created_at.desc()).all()
 
     def to_model(self, row: IssueORM) -> Issue:
         return Issue(

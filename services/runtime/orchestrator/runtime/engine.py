@@ -37,11 +37,11 @@ class PFIOSOrchestrator:
         """Run the full analyze workflow and return the rendered report."""
         ctx = WorkflowContext(request=request, db=db)
         ctx = self._run_workflow("analyze", ctx)
-        
+
         # Atomically commit the entire workflow if DB session exists
         if db:
             db.commit()
-            
+
         return ctx.metadata.get("report", {})
 
     # ── internal ────────────────────────────────────────────────

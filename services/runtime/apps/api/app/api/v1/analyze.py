@@ -21,7 +21,7 @@ async def analyze_and_suggest(payload: AnalyzeRequest, db: Session = Depends(get
                 symbols=payload.symbols,
                 timeframe=payload.timeframe,
             ),
-            db=db
+            db=db,
         )
         return AnalyzeResponse(**result)
     except RuntimeExecutionError as e:

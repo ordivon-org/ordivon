@@ -23,7 +23,7 @@ async def get_dashboard_summary(db: Session = Depends(get_db)) -> dict[str, Any]
             review_repo=ReviewRepository(db),
             agent_action_repo=AgentActionRepository(db),
         )
-        
+
         result_contract = dashboard_capability.get_summary(dashboard_service)
         return asdict(result_contract)
     except Exception as e:

@@ -14,6 +14,4 @@ class IntelligenceRunStateMachine:
 
     def ensure_transition(self, current: str, target: str) -> None:
         if not self.can_transition(current, target):
-            raise InvalidStateTransition(
-                f"Invalid intelligence run transition: {current} -> {target}"
-            )
+            raise InvalidStateTransition(f"Invalid intelligence run transition: {current} -> {target}")

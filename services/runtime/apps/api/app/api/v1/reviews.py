@@ -70,9 +70,7 @@ async def get_pending_reviews(limit: int = 10, db: Session = Depends(get_db)):
             recommendation_service=RecommendationService(RecommendationRepository(db)),
         )
         result = review_capability.list_pending(review_service, limit=limit)
-        return PendingReviewListResponse(
-            reviews=[PendingReviewResponse(**asdict(review)) for review in result.reviews]
-        )
+        return PendingReviewListResponse(reviews=[PendingReviewResponse(**asdict(review)) for review in result.reviews])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -106,7 +104,11 @@ async def submit_performance_review(review: ReviewCreateRequest, db: Session = D
             recommendation_service=RecommendationService(RecommendationRepository(db)),
         )
         payload = review.model_dump()
-        action_context = build_action_context(payload.pop("action_context"), "submit_review", payload.get("linked_recommendation_id") or payload.get("recommendation_id") or "review-submit")
+        action_context = build_action_context(
+            payload.pop("action_context"),
+            "submit_review",
+            payload.get("linked_recommendation_id") or payload.get("recommendation_id") or "review-submit",
+        )
         res = review_capability.submit_review(review_service, payload, action_context)
         db.commit()
         return asdict(res)

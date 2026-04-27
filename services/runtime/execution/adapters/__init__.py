@@ -13,7 +13,12 @@ from execution.adapters.validation import (
     ValidationExecutionFailure,
     ValidationExecutionResult,
 )
-from execution.registry import ExecutionAdapterContract, ExecutionAdapterContractError, ExecutionAdapterRegistry, build_default_execution_adapter_registry
+from execution.registry import (
+    ExecutionAdapterContract,
+    ExecutionAdapterContractError,
+    ExecutionAdapterRegistry,
+    build_default_execution_adapter_registry,
+)
 
 __all__ = [
     "RecommendationExecutionAdapter",

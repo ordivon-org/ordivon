@@ -27,12 +27,7 @@ class LessonRepository:
         return row
 
     def list_recent(self, limit: int = 50) -> list[LessonORM]:
-        return (
-            self.db.query(LessonORM)
-            .order_by(LessonORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(LessonORM).order_by(LessonORM.created_at.desc()).limit(limit).all()
 
     def list_for_recommendation(self, recommendation_id: str) -> list[LessonORM]:
         return (
@@ -51,10 +46,7 @@ class LessonRepository:
         that have no recommendation_id.
         """
         return (
-            self.db.query(LessonORM)
-            .filter(LessonORM.review_id == review_id)
-            .order_by(LessonORM.created_at.asc())
-            .all()
+            self.db.query(LessonORM).filter(LessonORM.review_id == review_id).order_by(LessonORM.created_at.asc()).all()
         )
 
     def to_model(self, row: LessonORM) -> Lesson:

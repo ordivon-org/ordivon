@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from packs.finance.analyze_profile import DEFAULT_FINANCE_TIMEFRAME, SUPPORTED_FINANCE_TIMEFRAMES
 
+
 class AnalyzeRequest(BaseModel):
     query: str
     symbols: List[str] = []

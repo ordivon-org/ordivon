@@ -32,9 +32,7 @@ class PlanReceiptNotValid(Exception):
     def __init__(self, execution_receipt_id: str, reason: str):
         self.execution_receipt_id = execution_receipt_id
         self.reason = reason
-        super().__init__(
-            f"Plan receipt {execution_receipt_id} is not valid: {reason}"
-        )
+        super().__init__(f"Plan receipt {execution_receipt_id} is not valid: {reason}")
 
 
 class ManualOutcomeConflict(Exception):
@@ -44,8 +42,7 @@ class ManualOutcomeConflict(Exception):
         self.decision_intake_id = decision_intake_id
         self.existing_outcome_id = existing_outcome_id
         super().__init__(
-            f"Manual outcome already exists for intake {decision_intake_id} "
-            f"(existing outcome: {existing_outcome_id})."
+            f"Manual outcome already exists for intake {decision_intake_id} (existing outcome: {existing_outcome_id})."
         )
 
 
@@ -114,8 +111,7 @@ class FinanceOutcomeCapability:
         if receipt.action_id != "finance_decision_plan":
             raise PlanReceiptNotValid(
                 execution_receipt_id,
-                f"Receipt action_id is '{receipt.action_id}', "
-                f"expected 'finance_decision_plan'.",
+                f"Receipt action_id is '{receipt.action_id}', expected 'finance_decision_plan'.",
             )
 
         # Gate: detail must contain plan-only metadata

@@ -55,12 +55,7 @@ class AgentActionRepository:
         return self.db.query(AgentActionORM).filter(AgentActionORM.idempotency_key == idempotency_key).first()
 
     def list_recent(self, limit: int = 20) -> list[AgentActionORM]:
-        return (
-            self.db.query(AgentActionORM)
-            .order_by(AgentActionORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(AgentActionORM).order_by(AgentActionORM.created_at.desc()).limit(limit).all()
 
     def to_model(self, row: AgentActionORM) -> AgentAction:
         return AgentAction(

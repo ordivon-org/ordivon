@@ -43,7 +43,7 @@ class ReviewService:
                 payload={
                     "expected_outcome": review.expected_outcome,
                     "actual_outcome": review.observed_outcome,
-                    "lessons_count": len(review.lessons) if hasattr(review, "lessons") else 0
+                    "lessons_count": len(review.lessons) if hasattr(review, "lessons") else 0,
                 },
                 entity_type="review",
                 entity_id=row.id,
@@ -166,11 +166,7 @@ class ReviewService:
         verdict: ReviewVerdict,
         variance_summary: str | None,
     ):
-        if (
-            recommendation_id is None
-            or self.outcome_service is None
-            or self.recommendation_service is None
-        ):
+        if recommendation_id is None or self.outcome_service is None or self.recommendation_service is None:
             return None
 
         snapshot = OutcomeSnapshot(

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Any
 from .common import BaseResponse
 
+
 class AnalyzeResponse(BaseResponse):
     decision: str
     summary: str
@@ -14,6 +15,7 @@ class AnalyzeResponse(BaseResponse):
     workflow: str = "analyze_and_suggest"
     metadata: dict[str, Any] = {}
 
+
 class ReportSummaryResponse(BaseModel):
     report_id: str
     symbol: str | None = None
@@ -22,6 +24,7 @@ class ReportSummaryResponse(BaseModel):
     report_path: str | None = None
     created_at: str
     metadata: dict[str, Any] = {}
+
 
 class ReportListResponse(BaseModel):
     reports: List[ReportSummaryResponse]

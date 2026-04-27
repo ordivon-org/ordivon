@@ -28,7 +28,9 @@ def normalize_audit_event(event: AuditEvent) -> AuditEvent:
     return event
 
 
-def structured_payload_or_legacy(event_type: str, entity_type: str | None, entity_id: str | None, payload_json: str, parsed_payload: Any) -> StructuredAuditPayload:
+def structured_payload_or_legacy(
+    event_type: str, entity_type: str | None, entity_id: str | None, payload_json: str, parsed_payload: Any
+) -> StructuredAuditPayload:
     if isinstance(parsed_payload, dict) and parsed_payload.get("schema_version") == AUDIT_SCHEMA_VERSION:
         details = parsed_payload.get("details", {})
         if not isinstance(details, dict):

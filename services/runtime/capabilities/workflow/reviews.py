@@ -66,9 +66,15 @@ class ReviewCapability:
                     created_at=row.created_at.isoformat()
                     if hasattr(row.created_at, "isoformat")
                     else str(row.created_at),
-                    workflow_run_id=self._analysis_metadata(service, analysis_repository, row.recommendation_id).get("workflow_run_id"),
-                    intelligence_run_id=self._analysis_metadata(service, analysis_repository, row.recommendation_id).get("intelligence_run_id"),
-                    recommendation_generate_receipt_id=self._analysis_metadata(service, analysis_repository, row.recommendation_id).get("recommendation_generate_receipt_id"),
+                    workflow_run_id=self._analysis_metadata(service, analysis_repository, row.recommendation_id).get(
+                        "workflow_run_id"
+                    ),
+                    intelligence_run_id=self._analysis_metadata(
+                        service, analysis_repository, row.recommendation_id
+                    ).get("intelligence_run_id"),
+                    recommendation_generate_receipt_id=self._analysis_metadata(
+                        service, analysis_repository, row.recommendation_id
+                    ).get("recommendation_generate_receipt_id"),
                     latest_outcome_status=self._latest_outcome_status(outcome_repository, row.recommendation_id),
                     latest_outcome_reason=self._latest_outcome_reason(outcome_repository, row.recommendation_id),
                     knowledge_hint_count=self._knowledge_hint_count(extraction_service, row.recommendation_id),
@@ -110,7 +116,8 @@ class ReviewCapability:
             complete_execution_receipt_id=review.complete_execution_receipt_id,
             latest_outcome_status=latest_outcome_status,
             latest_outcome_reason=latest_outcome_reason,
-            knowledge_feedback_packet_id=review.knowledge_feedback_packet_id or (packet_model.id if packet_model is not None else None),
+            knowledge_feedback_packet_id=review.knowledge_feedback_packet_id
+            or (packet_model.id if packet_model is not None else None),
             governance_hint_count=len(packet_model.governance_hints) if packet_model is not None else 0,
             intelligence_hint_count=len(packet_model.intelligence_hints) if packet_model is not None else 0,
             outcome_ref_type=review.outcome_ref_type,
@@ -232,7 +239,9 @@ class ReviewCapability:
         return ReviewResult(
             id=review_row.id,
             status=review_row.status.value if hasattr(review_row.status, "value") else review_row.status,
-            created_at=review_row.created_at.isoformat() if hasattr(review_row, "created_at") else utc_now().isoformat(),
+            created_at=review_row.created_at.isoformat()
+            if hasattr(review_row, "created_at")
+            else utc_now().isoformat(),
             recommendation_id=review_row.recommendation_id,
             lessons_created=len(lesson_rows),
             outcome_ref_type=review_row.outcome_ref_type,
@@ -291,18 +300,13 @@ class ReviewCapability:
 
         SUPPORTED = frozenset({"finance_manual_outcome"})
         if outcome_ref_type not in SUPPORTED:
-            raise ValueError(
-                f"Unsupported outcome_ref_type: {outcome_ref_type!r}. "
-                f"Supported: {sorted(SUPPORTED)}"
-            )
+            raise ValueError(f"Unsupported outcome_ref_type: {outcome_ref_type!r}. Supported: {sorted(SUPPORTED)}")
 
         if outcome_ref_type == "finance_manual_outcome":
             repo = FinanceManualOutcomeRepository(db)
             existing = repo.get(outcome_ref_id)
             if existing is None:
-                raise ValueError(
-                    f"FinanceManualOutcome not found: {outcome_ref_id}"
-                )
+                raise ValueError(f"FinanceManualOutcome not found: {outcome_ref_id}")
 
     @staticmethod
     def _split_tags(raw_tags: str | None) -> list[str]:
@@ -329,7 +333,9 @@ class ReviewCapability:
         except Exception:
             return {}
 
-    def _latest_outcome_status(self, outcome_repository: OutcomeRepository, recommendation_id: str | None) -> str | None:
+    def _latest_outcome_status(
+        self, outcome_repository: OutcomeRepository, recommendation_id: str | None
+    ) -> str | None:
         if not recommendation_id:
             return None
         try:
@@ -340,7 +346,9 @@ class ReviewCapability:
         except Exception:
             return None
 
-    def _latest_outcome_reason(self, outcome_repository: OutcomeRepository, recommendation_id: str | None) -> str | None:
+    def _latest_outcome_reason(
+        self, outcome_repository: OutcomeRepository, recommendation_id: str | None
+    ) -> str | None:
         if not recommendation_id:
             return None
         try:

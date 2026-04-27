@@ -26,6 +26,7 @@ class UsageService:
 
         key_lessons = []
         from shared.utils.serialization import from_json_text
+
         for row in usage_rows:
             metadata = from_json_text(row.metadata_json, {})
             note = metadata.get("note") or metadata.get("last_symbol")

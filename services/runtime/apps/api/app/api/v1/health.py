@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from apps.api.app.schemas.common import BlockedRunResponse, HealthHistoryResponse, SchedulerTriggerHealthResponse, StatusResponse
+from apps.api.app.schemas.common import (
+    BlockedRunResponse,
+    HealthHistoryResponse,
+    SchedulerTriggerHealthResponse,
+    StatusResponse,
+)
 from apps.api.app.deps import get_db
 from adapters.runtimes.factory import resolve_runtime
 from infra.monitoring import MonitoringService
@@ -9,6 +14,7 @@ from shared.config.settings import settings
 from shared.observability import span
 
 router = APIRouter()
+
 
 @router.get("/health", response_model=StatusResponse)
 async def health_check(db: Session = Depends(get_db)):
@@ -73,16 +79,12 @@ async def health_check(db: Session = Depends(get_db)):
             monitoring_detail = "Monitoring snapshot could not be confirmed."
 
         return StatusResponse(
-            status=(
-                "degraded"
-                if runtime_status == "unavailable"
-                or monitoring_status == "unavailable"
-                else "ok"
-            ),
+            status=("degraded" if runtime_status == "unavailable" or monitoring_status == "unavailable" else "ok"),
             reasoning_provider=settings.reasoning_provider,
             runtime_status=runtime_status,
             runtime_detail=runtime_detail,
-            runtime_base_url=runtime_base_url or (settings.hermes_base_url if settings.reasoning_provider == "hermes" else None),
+            runtime_base_url=runtime_base_url
+            or (settings.hermes_base_url if settings.reasoning_provider == "hermes" else None),
             hermes_status=hermes_status,
             hermes_detail=hermes_detail,
             hermes_base_url=settings.hermes_base_url if settings.reasoning_provider == "hermes" else None,
@@ -163,6 +165,7 @@ async def health_history(db: Session = Depends(get_db)):
                 else None
             ),
         )
+
 
 @router.get("/version", response_model=StatusResponse)
 async def get_version():

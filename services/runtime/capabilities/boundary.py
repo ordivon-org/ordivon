@@ -13,9 +13,7 @@ class ActionContext:
 
 def require_action_context(action: str, action_context: ActionContext | None) -> ActionContext:
     if action_context is None:
-        raise ValueError(
-            f"{action} requires action context with actor, context, reason, and idempotency_key."
-        )
+        raise ValueError(f"{action} requires action context with actor, context, reason, and idempotency_key.")
 
     missing = [
         field_name

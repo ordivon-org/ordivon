@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Any
 
+
 class BaseResponse(BaseModel):
     status: str = "success"
     message: str | None = None
@@ -11,6 +12,7 @@ class ActionContextInput(BaseModel):
     context: str
     reason: str
     idempotency_key: str
+
 
 class StatusResponse(BaseModel):
     status: str
@@ -92,6 +94,7 @@ class AgentActionSummaryResponse(BaseModel):
     started_at: str | None = None
     completed_at: str | None = None
     created_at: str
+
 
 class ErrorResponse(BaseModel):
     status: str = "error"

@@ -205,7 +205,9 @@ class ReasonStep:
         analysis.timeframe = ctx.request.timeframe
         analysis.metadata["intelligence_feedback_hint_status"] = ctx.metadata.get("intelligence_feedback_hint_status")
         analysis.metadata["intelligence_memory_lesson_count"] = ctx.metadata.get("intelligence_memory_lesson_count", 0)
-        analysis.metadata["intelligence_related_review_count"] = ctx.metadata.get("intelligence_related_review_count", 0)
+        analysis.metadata["intelligence_related_review_count"] = ctx.metadata.get(
+            "intelligence_related_review_count", 0
+        )
         if ctx.metadata.get("intelligence_feedback_hint_error"):
             analysis.metadata["intelligence_feedback_hint_error"] = ctx.metadata.get("intelligence_feedback_hint_error")
         if ctx.intelligence_run_id:
@@ -473,13 +475,15 @@ class AuditTrailStep:
                 "symbol": ctx.request.symbol,
                 "decision": ctx.governance.decision if ctx.governance else "reject",
                 "governance_source": ctx.governance.source if ctx.governance else "workflow.missing_decision",
-                "governance_reasons": list(ctx.governance.reasons) if ctx.governance else ["Governance decision missing."],
+                "governance_reasons": list(ctx.governance.reasons)
+                if ctx.governance
+                else ["Governance decision missing."],
                 "governance_policy_set_id": ctx.governance.policy_set_id if ctx.governance else "governance.unknown",
                 "governance_active_policy_ids": list(ctx.governance.active_policy_ids) if ctx.governance else [],
-                "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids) if ctx.governance else [],
-                "governance_advisory_hints": [
-                    hint.to_payload() for hint in ctx.governance.advisory_hints
-                ]
+                "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids)
+                if ctx.governance
+                else [],
+                "governance_advisory_hints": [hint.to_payload() for hint in ctx.governance.advisory_hints]
                 if ctx.governance
                 else [],
                 "recommendation_generate_request_id": ctx.metadata.get("recommendation_generate_request_id"),
@@ -508,13 +512,17 @@ class AuditTrailStep:
                     "analysis_id": ctx.analysis.id,
                     "decision": ctx.governance.decision if ctx.governance else "reject",
                     "governance_source": ctx.governance.source if ctx.governance else "workflow.missing_decision",
-                    "governance_reasons": list(ctx.governance.reasons) if ctx.governance else ["Governance decision missing."],
-                    "governance_policy_set_id": ctx.governance.policy_set_id if ctx.governance else "governance.unknown",
+                    "governance_reasons": list(ctx.governance.reasons)
+                    if ctx.governance
+                    else ["Governance decision missing."],
+                    "governance_policy_set_id": ctx.governance.policy_set_id
+                    if ctx.governance
+                    else "governance.unknown",
                     "governance_active_policy_ids": list(ctx.governance.active_policy_ids) if ctx.governance else [],
-                    "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids) if ctx.governance else [],
-                    "governance_advisory_hints": [
-                        hint.to_payload() for hint in ctx.governance.advisory_hints
-                    ]
+                    "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids)
+                    if ctx.governance
+                    else [],
+                    "governance_advisory_hints": [hint.to_payload() for hint in ctx.governance.advisory_hints]
                     if ctx.governance
                     else [],
                     "recommendation_generate_request_id": ctx.metadata.get("recommendation_generate_request_id"),
@@ -595,13 +603,13 @@ class WriteWikiStep:
         md_content += f"**Agent Action ID:** {ctx.agent_action_id or 'unavailable'}\n\n"
         md_content += f"**Intelligence Run ID:** {ctx.intelligence_run_id or 'unavailable'}\n\n"
         md_content += f"**Workflow Run ID:** {ctx.workflow_run_id or 'unavailable'}\n\n"
-        
+
         if ctx.analysis.risks:
             md_content += "## Risks\n"
             for r in ctx.analysis.risks:
                 md_content += f"- {r}\n"
             md_content += "\n"
-            
+
         if ctx.analysis.suggested_actions:
             md_content += "## Suggested Actions\n"
             for a in ctx.analysis.suggested_actions:
@@ -633,28 +641,33 @@ class WriteWikiStep:
             ctx.analysis.metadata["workflow_run_id"] = ctx.workflow_run_id
             ctx.analysis.metadata["execution_request_id"] = request_row.id
             ctx.analysis.metadata["execution_receipt_id"] = receipt_row.id
-            service.update_metadata(ctx.analysis_id, {
-                "document_path": path,
-                "status": "generated",
-                "agent_action_id": ctx.agent_action_id,
-                "intelligence_run_id": ctx.intelligence_run_id,
-                "workflow_run_id": ctx.workflow_run_id,
-                "execution_request_id": request_row.id,
-                "execution_receipt_id": receipt_row.id,
-                "recommendation_generate_request_id": ctx.metadata.get("recommendation_generate_request_id"),
-                "recommendation_generate_receipt_id": ctx.metadata.get("recommendation_generate_receipt_id"),
-                "governance_decision": ctx.governance.decision if ctx.governance else None,
-                "governance_source": ctx.governance.source if ctx.governance else None,
-                "governance_reasons": list(ctx.governance.reasons) if ctx.governance else [],
-                "governance_policy_set_id": ctx.governance.policy_set_id if ctx.governance else None,
-                "governance_active_policy_ids": list(ctx.governance.active_policy_ids) if ctx.governance else [],
-                "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids) if ctx.governance else [],
-                "governance_advisory_hint_status": ctx.analysis.metadata.get("governance_advisory_hint_status"),
-                "governance_advisory_hints": ctx.analysis.metadata.get("governance_advisory_hints", []),
-                "governance_advisory_hint_error": ctx.analysis.metadata.get("governance_advisory_hint_error"),
-                "report_write_action_context": asdict(write_context),
-                "metadata_update_action_context": asdict(metadata_context),
-            })
+            service.update_metadata(
+                ctx.analysis_id,
+                {
+                    "document_path": path,
+                    "status": "generated",
+                    "agent_action_id": ctx.agent_action_id,
+                    "intelligence_run_id": ctx.intelligence_run_id,
+                    "workflow_run_id": ctx.workflow_run_id,
+                    "execution_request_id": request_row.id,
+                    "execution_receipt_id": receipt_row.id,
+                    "recommendation_generate_request_id": ctx.metadata.get("recommendation_generate_request_id"),
+                    "recommendation_generate_receipt_id": ctx.metadata.get("recommendation_generate_receipt_id"),
+                    "governance_decision": ctx.governance.decision if ctx.governance else None,
+                    "governance_source": ctx.governance.source if ctx.governance else None,
+                    "governance_reasons": list(ctx.governance.reasons) if ctx.governance else [],
+                    "governance_policy_set_id": ctx.governance.policy_set_id if ctx.governance else None,
+                    "governance_active_policy_ids": list(ctx.governance.active_policy_ids) if ctx.governance else [],
+                    "governance_default_decision_rule_ids": list(ctx.governance.default_decision_rule_ids)
+                    if ctx.governance
+                    else [],
+                    "governance_advisory_hint_status": ctx.analysis.metadata.get("governance_advisory_hint_status"),
+                    "governance_advisory_hints": ctx.analysis.metadata.get("governance_advisory_hints", []),
+                    "governance_advisory_hint_error": ctx.analysis.metadata.get("governance_advisory_hint_error"),
+                    "report_write_action_context": asdict(write_context),
+                    "metadata_update_action_context": asdict(metadata_context),
+                },
+            )
             RiskAuditor().record_event(
                 "analysis_report_written",
                 {
@@ -677,6 +690,7 @@ class WriteWikiStep:
         except Exception as e:
             # Compensating deletion: DB update failed, remove the orphaned markdown file.
             import os
+
             compensation_applied = False
             try:
                 if path and os.path.exists(path):
@@ -709,7 +723,7 @@ class WriteWikiStep:
                 report["execution_request_id"] = request_row.id
                 report["execution_receipt_id"] = receipt_row.id
             raise e
-            
+
         return ctx
 
 

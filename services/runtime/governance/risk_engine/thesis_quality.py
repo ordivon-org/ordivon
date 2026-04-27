@@ -87,9 +87,7 @@ def check_thesis_quality(thesis: str) -> ThesisQualityResult:
         if pattern in lowered:
             result.is_banned = True
             result.banned_match = pattern
-            result.reasons.append(
-                f"Thesis matches banned generic pattern: '{pattern}'."
-            )
+            result.reasons.append(f"Thesis matches banned generic pattern: '{pattern}'.")
             break
 
     # Check 2: Minimum length
@@ -106,9 +104,6 @@ def check_thesis_quality(thesis: str) -> ThesisQualityResult:
 
     if not has_invalidation and not has_confirmation:
         result.lacks_verifiability = True
-        result.reasons.append(
-            "Thesis lacks invalidation or confirmation criteria — "
-            "not verifiable."
-        )
+        result.reasons.append("Thesis lacks invalidation or confirmation criteria — not verifiable.")
 
     return result

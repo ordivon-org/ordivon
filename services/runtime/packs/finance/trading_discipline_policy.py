@@ -8,26 +8,45 @@ from __future__ import annotations
 
 # ── Reason types (mirror RiskEngine's reject/escalate distinction) ────
 
+
 class RejectReason:
     def __init__(self, message: str) -> None:
         self.message = message
 
+
 class EscalateReason:
     def __init__(self, message: str) -> None:
         self.message = message
+
 
 # ── Constants (from RiskEngine engine.py + thesis_quality.py) ─────────
 
 _MAX_LOSS_TO_RISK_UNIT_RATIO = 2.0
 _MAX_POSITION_TO_RISK_UNIT_RATIO = 10.0
 
-_EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
-    "stress", "stressed", "stressful",
-    "fear", "fearful", "scared", "terrified", "panicked", "panic",
-    "anger", "angry", "furious", "frustrated",
-    "fomo", "greedy", "desperate", "reckless",
-    "revenge", "impulsive",
-})
+_EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "stress",
+        "stressed",
+        "stressful",
+        "fear",
+        "fearful",
+        "scared",
+        "terrified",
+        "panicked",
+        "panic",
+        "anger",
+        "angry",
+        "furious",
+        "frustrated",
+        "fomo",
+        "greedy",
+        "desperate",
+        "reckless",
+        "revenge",
+        "impulsive",
+    }
+)
 
 _BANNED_THESIS_PATTERNS: tuple[str, ...] = (
     "just feels right",
@@ -92,20 +111,21 @@ class TradingDisciplinePolicy:
             lowered = thesis.lower()
             for banned in _BANNED_THESIS_PATTERNS:
                 if banned in lowered:
-                    reasons.append(RejectReason(
-                        f"Thesis quality rejected: {banned}."
-                    ))
+                    reasons.append(RejectReason(f"Thesis quality rejected: {banned}."))
                     break
             if len(thesis.strip()) < 50:
-                reasons.append(EscalateReason(
-                    f"Thesis is too short ({len(thesis.strip())} chars, "
-                    f"minimum 50) — requires human review."
-                ))
+                reasons.append(
+                    EscalateReason(
+                        f"Thesis is too short ({len(thesis.strip())} chars, minimum 50) — requires human review."
+                    )
+                )
             if not _has_verifiability(thesis):
-                reasons.append(EscalateReason(
-                    "Thesis lacks verifiability criteria (no invalidation "
-                    "or confirmation conditions) — requires human review."
-                ))
+                reasons.append(
+                    EscalateReason(
+                        "Thesis lacks verifiability criteria (no invalidation "
+                        "or confirmation conditions) — requires human review."
+                    )
+                )
 
         stop_loss = _as_str(payload.get("stop_loss"))
         if not stop_loss:
@@ -147,21 +167,25 @@ class TradingDisciplinePolicy:
 
         if max_loss is not None and risk_unit is not None and risk_unit > 0:
             if max_loss > _MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit:
-                reasons.append(RejectReason(
-                    f"max_loss_usdt ({max_loss}) exceeds "
-                    f"{_MAX_LOSS_TO_RISK_UNIT_RATIO}× risk_unit_usdt "
-                    f"({risk_unit}), max allowed: "
-                    f"{_MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit}."
-                ))
+                reasons.append(
+                    RejectReason(
+                        f"max_loss_usdt ({max_loss}) exceeds "
+                        f"{_MAX_LOSS_TO_RISK_UNIT_RATIO}× risk_unit_usdt "
+                        f"({risk_unit}), max allowed: "
+                        f"{_MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit}."
+                    )
+                )
 
         if position_size is not None and risk_unit is not None and risk_unit > 0:
             if position_size > _MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit:
-                reasons.append(RejectReason(
-                    f"position_size_usdt ({position_size}) exceeds "
-                    f"{_MAX_POSITION_TO_RISK_UNIT_RATIO}× risk_unit_usdt "
-                    f"({risk_unit}), max allowed: "
-                    f"{_MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit}."
-                ))
+                reasons.append(
+                    RejectReason(
+                        f"position_size_usdt ({position_size}) exceeds "
+                        f"{_MAX_POSITION_TO_RISK_UNIT_RATIO}× risk_unit_usdt "
+                        f"({risk_unit}), max allowed: "
+                        f"{_MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit}."
+                    )
+                )
 
         return reasons
 
@@ -171,40 +195,32 @@ class TradingDisciplinePolicy:
         reasons: list[EscalateReason] = []
 
         if payload.get("is_revenge_trade") is True:
-            reasons.append(EscalateReason(
-                "is_revenge_trade=true — requires human review."
-            ))
+            reasons.append(EscalateReason("is_revenge_trade=true — requires human review."))
 
         if payload.get("is_chasing") is True:
-            reasons.append(EscalateReason(
-                "is_chasing=true — requires human review."
-            ))
+            reasons.append(EscalateReason("is_chasing=true — requires human review."))
 
         emotional = _as_str(payload.get("emotional_state"))
         if emotional and _contains_emotional_risk(emotional):
-            reasons.append(EscalateReason(
-                f"emotional_state='{emotional}' indicates elevated risk — "
-                f"requires human review."
-            ))
+            reasons.append(
+                EscalateReason(f"emotional_state='{emotional}' indicates elevated risk — requires human review.")
+            )
 
         rule_exceptions = payload.get("rule_exceptions")
         if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
-            reasons.append(EscalateReason(
-                f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — "
-                f"requires human review."
-            ))
+            reasons.append(
+                EscalateReason(f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — requires human review.")
+            )
 
         confidence = payload.get("confidence")
         if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
-            reasons.append(EscalateReason(
-                f"confidence={confidence} is below 0.3 threshold — "
-                f"requires human review."
-            ))
+            reasons.append(EscalateReason(f"confidence={confidence} is below 0.3 threshold — requires human review."))
 
         return reasons
 
 
 # ── Private helpers (from RiskEngine) ─────────────────────────────────
+
 
 def _as_str(value: object) -> str | None:
     if isinstance(value, str) and value.strip():

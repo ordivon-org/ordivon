@@ -31,11 +31,7 @@ class FinanceManualOutcome:
             raise ValueError("FinanceManualOutcome requires execution_receipt_id.")
         if self.outcome_source not in VALID_OUTCOME_SOURCES:
             raise ValueError(
-                f"Unsupported outcome_source: {self.outcome_source}. "
-                f"Must be one of: {VALID_OUTCOME_SOURCES}"
+                f"Unsupported outcome_source: {self.outcome_source}. Must be one of: {VALID_OUTCOME_SOURCES}"
             )
         if self.verdict not in VALID_OUTCOME_VERDICTS:
-            raise ValueError(
-                f"Unsupported verdict: {self.verdict}. "
-                f"Must be one of: {VALID_OUTCOME_VERDICTS}"
-            )
+            raise ValueError(f"Unsupported verdict: {self.verdict}. Must be one of: {VALID_OUTCOME_VERDICTS}")

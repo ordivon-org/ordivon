@@ -29,12 +29,7 @@ class DecisionIntakeRepository:
         return self.db.get(DecisionIntakeORM, intake_id)
 
     def list_recent(self, limit: int = 20) -> list[DecisionIntakeORM]:
-        return (
-            self.db.query(DecisionIntakeORM)
-            .order_by(DecisionIntakeORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(DecisionIntakeORM).order_by(DecisionIntakeORM.created_at.desc()).limit(limit).all()
 
     def update_governance_status(self, intake_id: str, governance_status: str) -> DecisionIntakeORM | None:
         row = self.get(intake_id)

@@ -45,11 +45,7 @@ class ExecutionRecordRepository:
         return self.db.get(ExecutionRequestORM, request_id)
 
     def get_request_by_idempotency_key(self, idempotency_key: str) -> ExecutionRequestORM | None:
-        return (
-            self.db.query(ExecutionRequestORM)
-            .filter(ExecutionRequestORM.idempotency_key == idempotency_key)
-            .first()
-        )
+        return self.db.query(ExecutionRequestORM).filter(ExecutionRequestORM.idempotency_key == idempotency_key).first()
 
     def update_request_status(self, request_id: str, status: str) -> ExecutionRequestORM | None:
         row = self.get_request(request_id)

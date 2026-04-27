@@ -6,7 +6,7 @@ from shared.config.settings import settings
 
 class DashboardService:
     """Read-only aggregation service for dashboard metrics across domains."""
-    
+
     def __init__(
         self,
         recommendation_repo: RecommendationRepository,
@@ -20,13 +20,13 @@ class DashboardService:
     def get_aggregated_metrics(self) -> dict:
         reco_stats = self.recommendation_repo.get_status_counts()
         recent_outcomes_rows = self.recommendation_repo.get_recent_outcomes(limit=5)
-        
+
         # Aggregation logic
         def extract_symbol(title: str | None) -> str:
             if title and " for " in title:
                 return title.split(" for ", 1)[1]
             return "UNKNOWN"
-            
+
         recent_outcomes = [
             {
                 "state": row[0],
@@ -36,7 +36,7 @@ class DashboardService:
             }
             for row in recent_outcomes_rows
         ]
-        
+
         # Get pending reviews using the dedicated review repo logic
         pending_review_count = len(self.review_repo.list_pending())
         latest_agent_action = None

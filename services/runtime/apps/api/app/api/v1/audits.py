@@ -13,6 +13,7 @@ from apps.api.app.deps import get_db
 from governance.audit.repository import AuditEventRepository
 from governance.audit.service import AuditService
 
+
 @router.get("/recent", response_model=AuditListResponse)
 async def get_recent_audits(limit: int = 10, db: Session = Depends(get_db)):
     try:

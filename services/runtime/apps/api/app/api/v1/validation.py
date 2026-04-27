@@ -31,6 +31,7 @@ def build_issue_action_context(raw_action_context, severity: str, area: str) -> 
         idempotency_key=f"{severity}:{area}",
     )
 
+
 @router.get("/summary", response_model=WeeklyValidationSummary)
 async def get_validation_summary(db: Session = Depends(get_db)):
     try:

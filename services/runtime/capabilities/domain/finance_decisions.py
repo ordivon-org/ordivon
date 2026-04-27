@@ -15,23 +15,23 @@ from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 class PlanReceiptConflict(Exception):
     """A plan receipt for this intake already exists (idempotency guard)."""
+
     def __init__(self, intake_id: str, existing_request_id: str):
         self.intake_id = intake_id
         self.existing_request_id = existing_request_id
         super().__init__(
-            f"Plan receipt already exists for intake {intake_id} "
-            f"(execution request {existing_request_id})."
+            f"Plan receipt already exists for intake {intake_id} (execution request {existing_request_id})."
         )
 
 
 class PlanReceiptNotAllowed(Exception):
     """Governance status does not allow plan receipt creation."""
+
     def __init__(self, intake_id: str, governance_status: str):
         self.intake_id = intake_id
         self.governance_status = governance_status
         super().__init__(
-            f"Plan receipt requires governance_status=execute, "
-            f"got '{governance_status}' for intake {intake_id}."
+            f"Plan receipt requires governance_status=execute, got '{governance_status}' for intake {intake_id}."
         )
 
 

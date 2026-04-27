@@ -2,6 +2,7 @@
 
 from capabilities.reports import ReportCapability
 
+
 class ObjectService:
     _capability = ReportCapability()
 
@@ -10,7 +11,7 @@ class ObjectService:
         from state.db.session import SessionLocal
         from domains.research.repository import AnalysisRepository
         from domains.research.service import AnalysisService
-        
+
         db = SessionLocal()
         try:
             service = AnalysisService(AnalysisRepository(db))

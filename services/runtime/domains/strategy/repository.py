@@ -38,12 +38,7 @@ class RecommendationRepository:
         return self.db.get(RecommendationORM, recommendation_id)
 
     def list_recent(self, limit: int = 20) -> list[RecommendationORM]:
-        return (
-            self.db.query(RecommendationORM)
-            .order_by(RecommendationORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(RecommendationORM).order_by(RecommendationORM.created_at.desc()).limit(limit).all()
 
     def list_by_status(self, status: RecommendationStatus) -> list[RecommendationORM]:
         return (
@@ -109,6 +104,7 @@ class RecommendationRepository:
 
     def get_status_counts(self) -> list[tuple[str, int]]:
         from sqlalchemy import func
+
         return (
             self.db.query(RecommendationORM.status, func.count(RecommendationORM.id))
             .group_by(RecommendationORM.status)
@@ -117,6 +113,7 @@ class RecommendationRepository:
 
     def get_recent_outcomes(self, limit: int = 5) -> list[Any]:
         from domains.strategy.outcome_orm import OutcomeSnapshotORM
+
         return (
             self.db.query(
                 OutcomeSnapshotORM.outcome_state,

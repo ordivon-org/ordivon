@@ -17,4 +17,4 @@ def get_db():
 
 def get_db_connection(read_only: bool = True):
     """Raw DPAPI connection (compatibility helper)."""
-    return engine.connect() if not read_only else engine.connect() # SQLite handles this internally
+    return engine.connect() if not read_only else engine.connect()  # SQLite handles this internally

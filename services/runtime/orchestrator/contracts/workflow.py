@@ -12,6 +12,7 @@ from governance.risk_engine.engine import GovernanceDecision
 from sqlalchemy.orm import Session
 from shared.time.clock import utc_now
 
+
 @dataclass(slots=True)
 class WorkflowContext:
     """Mutable context bag carried through an orchestration workflow."""
@@ -35,5 +36,4 @@ class WorkflowContext:
 class WorkflowStep(Protocol):
     """Protocol that every workflow step must implement."""
 
-    def execute(self, ctx: WorkflowContext) -> WorkflowContext:
-        ...
+    def execute(self, ctx: WorkflowContext) -> WorkflowContext: ...

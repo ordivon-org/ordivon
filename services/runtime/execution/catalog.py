@@ -223,8 +223,7 @@ def validate_execution_catalog(
             )
         if spec.boundary_status not in VALID_BOUNDARY_STATUSES:
             raise ValueError(
-                f"Execution catalog action {spec.action_id} uses unsupported boundary_status "
-                f"{spec.boundary_status!r}."
+                f"Execution catalog action {spec.action_id} uses unsupported boundary_status {spec.boundary_status!r}."
             )
         if not spec.owner_path.strip():
             raise ValueError(f"Execution catalog action {spec.action_id} is missing owner_path.")

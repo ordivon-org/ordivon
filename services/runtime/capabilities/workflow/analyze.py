@@ -77,11 +77,15 @@ class AnalyzeCapability:
                 "governance_source": governance.source,
                 "governance": governance_payload,
                 "governance_advisory_hints": list(governance_payload.get("advisory_hints", [])),
-                "governance_advisory_hint_status": report_metadata.get("governance_advisory_hint_status", "not_linked_yet"),
+                "governance_advisory_hint_status": report_metadata.get(
+                    "governance_advisory_hint_status", "not_linked_yet"
+                ),
                 "governance_policy_set_id": governance_payload.get("policy_set_id", "governance.unknown"),
                 "governance_active_policy_ids": list(governance_payload.get("active_policy_ids", [])),
                 "governance_default_decision_rule_ids": list(governance_payload.get("default_decision_rule_ids", [])),
-                "intelligence_feedback_hint_status": report_metadata.get("intelligence_feedback_hint_status", "not_linked_yet"),
+                "intelligence_feedback_hint_status": report_metadata.get(
+                    "intelligence_feedback_hint_status", "not_linked_yet"
+                ),
                 "intelligence_memory_lesson_count": report_metadata.get("intelligence_memory_lesson_count", 0),
                 "intelligence_related_review_count": report_metadata.get("intelligence_related_review_count", 0),
                 "agent_action_id": report.get("agent_action_id"),

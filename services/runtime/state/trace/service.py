@@ -420,8 +420,7 @@ class TraceGraph:
         elif recommendation_id:
             rows = (
                 query.filter(
-                    (AuditEventORM.recommendation_id == recommendation_id)
-                    | (AuditEventORM.analysis_id == analysis_id)
+                    (AuditEventORM.recommendation_id == recommendation_id) | (AuditEventORM.analysis_id == analysis_id)
                 )
                 .order_by(AuditEventORM.created_at.desc())
                 .limit(10)
@@ -473,8 +472,7 @@ class TraceGraph:
 
         review_row = self._get_review(review_id)
         if review_row is not None and (
-            review_row.complete_execution_request_id
-            or review_row.complete_execution_receipt_id
+            review_row.complete_execution_request_id or review_row.complete_execution_receipt_id
         ):
             request_row = self._get_execution_request(review_row.complete_execution_request_id)
             receipt_row = self._get_execution_receipt(review_row.complete_execution_receipt_id)

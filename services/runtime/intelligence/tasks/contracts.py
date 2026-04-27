@@ -175,8 +175,7 @@ class AnalysisTaskResultBundle:
             model=metadata.runtime_model,
             session_id=metadata.session_id,
             status=status,
-            reason=_require_optional_str(response_obj.get("reason"), "reason")
-            or request.reason,
+            reason=_require_optional_str(response_obj.get("reason"), "reason") or request.reason,
             idempotency_key=_require_optional_str(response_obj.get("idempotency_key"), "idempotency_key")
             or request.idempotency_key,
             trace_id=metadata.trace_id or request.trace_id,

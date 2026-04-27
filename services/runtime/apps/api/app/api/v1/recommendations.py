@@ -33,14 +33,13 @@ def build_action_context(raw_action_context, recommendation_id: str, lifecycle_s
         idempotency_key=f"{recommendation_id}:{lifecycle_status}",
     )
 
+
 @router.get("/recent", response_model=RecommendationListResponse)
 async def get_recent_recommendations(limit: int = 10, db: Session = Depends(get_db)):
     try:
         service = RecommendationService(RecommendationRepository(db), None)
         recos = recommendation_capability.list_recent(service, limit)
-        return RecommendationListResponse(
-            recommendations=[RecommendationResponse(**asdict(reco)) for reco in recos]
-        )
+        return RecommendationListResponse(recommendations=[RecommendationResponse(**asdict(reco)) for reco in recos])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

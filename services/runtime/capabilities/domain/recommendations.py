@@ -72,7 +72,9 @@ class RecommendationCapability:
         policy_snapshot = GovernancePolicySource().get_active_snapshot()
 
         metadata: dict[str, Any] = {
-            "symbol_source": "recorded" if getattr(row, "symbol", None) else ("inferred_from_title" if inferred_symbol else "unavailable"),
+            "symbol_source": "recorded"
+            if getattr(row, "symbol", None)
+            else ("inferred_from_title" if inferred_symbol else "unavailable"),
             "outcome_snapshot_id": getattr(row, "latest_outcome_snapshot_id", None),
             "workflow_run_id": analysis_metadata.get("workflow_run_id"),
             "intelligence_run_id": analysis_metadata.get("intelligence_run_id"),
@@ -80,16 +82,26 @@ class RecommendationCapability:
             "recommendation_generate_receipt_id": analysis_metadata.get("recommendation_generate_receipt_id"),
             "knowledge_hint_count": len(knowledge_entries),
             "knowledge_hint_summaries": [entry.narrative for entry in knowledge_entries[:2]],
-            "governance_policy_set_id": analysis_metadata.get("governance_policy_set_id", policy_snapshot.policy_set_id),
-            "governance_active_policy_ids": analysis_metadata.get("governance_active_policy_ids", list(policy_snapshot.active_policy_ids)),
-            "governance_default_decision_rule_ids": analysis_metadata.get("governance_default_decision_rule_ids", list(policy_snapshot.default_decision_rule_ids)),
+            "governance_policy_set_id": analysis_metadata.get(
+                "governance_policy_set_id", policy_snapshot.policy_set_id
+            ),
+            "governance_active_policy_ids": analysis_metadata.get(
+                "governance_active_policy_ids", list(policy_snapshot.active_policy_ids)
+            ),
+            "governance_default_decision_rule_ids": analysis_metadata.get(
+                "governance_default_decision_rule_ids", list(policy_snapshot.default_decision_rule_ids)
+            ),
             "governance": recommendation_governance_view(
                 decision=getattr(row, "decision", None),
                 reason=getattr(row, "decision_reason", None),
                 source=analysis_metadata.get("governance_source"),
                 policy_set_id=analysis_metadata.get("governance_policy_set_id", policy_snapshot.policy_set_id),
-                active_policy_ids=analysis_metadata.get("governance_active_policy_ids", list(policy_snapshot.active_policy_ids)),
-                default_decision_rule_ids=analysis_metadata.get("governance_default_decision_rule_ids", list(policy_snapshot.default_decision_rule_ids)),
+                active_policy_ids=analysis_metadata.get(
+                    "governance_active_policy_ids", list(policy_snapshot.active_policy_ids)
+                ),
+                default_decision_rule_ids=analysis_metadata.get(
+                    "governance_default_decision_rule_ids", list(policy_snapshot.default_decision_rule_ids)
+                ),
             ),
         }
         if recorded_confidence is None:
@@ -171,7 +183,11 @@ class RecommendationCapability:
         if not isinstance(value, str) or not value:
             return None
 
-        contextual_match = re.search(r"\b(?:for|buy|sell|hold|exit|reduce|accumulate)\s+([A-Za-z]{2,10}(?:[-/][A-Za-z]{2,10})?)\b", value, re.IGNORECASE)
+        contextual_match = re.search(
+            r"\b(?:for|buy|sell|hold|exit|reduce|accumulate)\s+([A-Za-z]{2,10}(?:[-/][A-Za-z]{2,10})?)\b",
+            value,
+            re.IGNORECASE,
+        )
         if contextual_match:
             return contextual_match.group(1).replace("/", "-").upper()
 

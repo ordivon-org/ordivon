@@ -11,10 +11,12 @@ class UsageSnapshotRepository:
 
     def create(self, snapshot: UsageSnapshot) -> UsageSnapshotORM:
         from datetime import datetime
-        
+
         row = UsageSnapshotORM(
             id=snapshot.id,
-            snapshot_date=datetime.fromisoformat(snapshot.created_at) if isinstance(snapshot.created_at, str) else snapshot.created_at,
+            snapshot_date=datetime.fromisoformat(snapshot.created_at)
+            if isinstance(snapshot.created_at, str)
+            else snapshot.created_at,
             analyses_count=snapshot.analyses_count,
             recommendations_generated_count=snapshot.recommendations_generated_count,
             recommendations_adopted_count=snapshot.recommendations_adopted_count,
@@ -29,12 +31,7 @@ class UsageSnapshotRepository:
         return row
 
     def list_recent(self, limit: int = 30) -> list[UsageSnapshotORM]:
-        return (
-            self.db.query(UsageSnapshotORM)
-            .order_by(UsageSnapshotORM.snapshot_date.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(UsageSnapshotORM).order_by(UsageSnapshotORM.snapshot_date.desc()).limit(limit).all()
 
     def to_model(self, row: UsageSnapshotORM) -> UsageSnapshot:
         return UsageSnapshot(

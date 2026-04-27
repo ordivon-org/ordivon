@@ -11,7 +11,9 @@ class FinanceAnalyzeDefaults:
     timeframe: str = DEFAULT_FINANCE_TIMEFRAME
 
 
-def build_finance_analyze_defaults(*, symbol: str | None = None, timeframe: str | None = None) -> FinanceAnalyzeDefaults:
+def build_finance_analyze_defaults(
+    *, symbol: str | None = None, timeframe: str | None = None
+) -> FinanceAnalyzeDefaults:
     return FinanceAnalyzeDefaults(
         symbol=symbol or DEFAULT_FINANCE_SYMBOL,
         timeframe=timeframe or DEFAULT_FINANCE_TIMEFRAME,

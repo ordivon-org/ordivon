@@ -64,10 +64,7 @@ def build_monitoring_history_summary(db: Session, *, window_hours: int) -> Monit
                     break
 
     execution_failures_by_family: dict[str, int] = {}
-    request_family_by_id = {
-        row.id: row.family
-        for row in db.query(ExecutionRequestORM).all()
-    }
+    request_family_by_id = {row.id: row.family for row in db.query(ExecutionRequestORM).all()}
     recent_execution_failures: list[dict[str, str]] = []
     for row in execution_rows:
         if row.status != "failed":

@@ -28,7 +28,9 @@ class KnowledgeFeedbackPacketRepository:
     def get(self, packet_id: str) -> KnowledgeFeedbackPacketORM | None:
         return self.db.get(KnowledgeFeedbackPacketORM, packet_id)
 
-    def list_for_recommendations(self, recommendation_ids: list[str], limit: int = 10) -> list[KnowledgeFeedbackPacketORM]:
+    def list_for_recommendations(
+        self, recommendation_ids: list[str], limit: int = 10
+    ) -> list[KnowledgeFeedbackPacketORM]:
         if not recommendation_ids:
             return []
         return (
@@ -61,8 +63,12 @@ class KnowledgeFeedbackPacketRepository:
             recommendation_id=row.recommendation_id,
             review_id=row.review_id,
             knowledge_entry_ids=tuple(from_json_text(row.knowledge_entry_ids_json, [])),
-            governance_hints=tuple(self._payload_to_hint(payload) for payload in from_json_text(row.governance_hints_json, [])),
-            intelligence_hints=tuple(self._payload_to_hint(payload) for payload in from_json_text(row.intelligence_hints_json, [])),
+            governance_hints=tuple(
+                self._payload_to_hint(payload) for payload in from_json_text(row.governance_hints_json, [])
+            ),
+            intelligence_hints=tuple(
+                self._payload_to_hint(payload) for payload in from_json_text(row.intelligence_hints_json, [])
+            ),
             created_at=row.created_at.isoformat(),
         )
 
@@ -81,5 +87,7 @@ class KnowledgeFeedbackPacketRepository:
             target=str(payload.get("target") or ""),
             hint_type=str(payload.get("hint_type") or ""),
             summary=str(payload.get("summary") or ""),
-            evidence_object_ids=tuple(str(item) for item in payload.get("evidence_object_ids", []) if isinstance(item, str)),
+            evidence_object_ids=tuple(
+                str(item) for item in payload.get("evidence_object_ids", []) if isinstance(item, str)
+            ),
         )

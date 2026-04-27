@@ -73,10 +73,14 @@ class ValidationCapability:
                 "idempotency_key": context.idempotency_key,
             },
         )
-        result = build_default_execution_adapter_registry().resolve("validation", issue_service.repository.db).report_issue(
-            service=issue_service,
-            issue=issue,
-            action_context=context,
+        result = (
+            build_default_execution_adapter_registry()
+            .resolve("validation", issue_service.repository.db)
+            .report_issue(
+                service=issue_service,
+                issue=issue,
+                action_context=context,
+            )
         )
 
         return {
@@ -95,7 +99,9 @@ class ValidationCapability:
         if not usage_rows:
             return None
 
-        snapshot_dates = [row.snapshot_date.date().isoformat() for row in usage_rows if getattr(row, "snapshot_date", None)]
+        snapshot_dates = [
+            row.snapshot_date.date().isoformat() for row in usage_rows if getattr(row, "snapshot_date", None)
+        ]
         if not snapshot_dates:
             return None
 

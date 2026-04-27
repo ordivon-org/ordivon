@@ -50,10 +50,9 @@ async def create_finance_decision_intake(
 
 
 @router.get("/finance-decisions/intake/{intake_id}", response_model=FinanceDecisionIntakeResponse)
-async def get_finance_decision_intake(
-    intake_id: str, db: Session = Depends(get_db)
-) -> FinanceDecisionIntakeResponse:
+async def get_finance_decision_intake(intake_id: str, db: Session = Depends(get_db)) -> FinanceDecisionIntakeResponse:
     from shared.errors.domain import DomainNotFound
+
     try:
         model = finance_decision_capability.get_intake(intake_id, db)
         return FinanceDecisionIntakeResponse(
@@ -73,6 +72,7 @@ async def get_finance_decision_intake(
 
 
 # ── H-6: Plan-Only Receipt ────────────────────────────────────────────────
+
 
 @router.post(
     "/finance-decisions/intake/{intake_id}/plan",
@@ -163,6 +163,7 @@ async def govern_finance_decision_intake(
     intake_id: str, db: Session = Depends(get_db)
 ) -> FinanceDecisionIntakeResponse:
     from shared.errors.domain import DomainNotFound
+
     try:
         model, decision = finance_decision_capability.govern_intake(intake_id, db)
         db.commit()

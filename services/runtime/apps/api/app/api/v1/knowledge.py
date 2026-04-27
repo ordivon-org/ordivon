@@ -67,7 +67,9 @@ def _candidate_rule_responses(db: Session, issue_keys: set[str]) -> list[Candida
     return responses
 
 
-def _response_for(root_type: str, root_id: str, retrieval, recurring_issues, candidate_rules) -> KnowledgeRetrieveResponse:
+def _response_for(
+    root_type: str, root_id: str, retrieval, recurring_issues, candidate_rules
+) -> KnowledgeRetrieveResponse:
     return KnowledgeRetrieveResponse(
         root_type=root_type,
         root_id=root_id,

@@ -6,6 +6,7 @@ from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
 from governance.policy_source import GovernancePolicySource
 from packs.finance.trading_discipline_policy import RejectReason, EscalateReason
 
+
 class RiskEngine:
     def __init__(self):
         self.policy_source = GovernancePolicySource()
@@ -21,7 +22,7 @@ class RiskEngine:
         for policy in self.policy_source.get_active_policies():
             violations = policy.check(analysis)
             reasons.extend(violations)
-            
+
         if reasons:
             return GovernanceDecision(
                 decision="reject",
@@ -75,10 +76,7 @@ class RiskEngine:
 
         # ── Gate 0: Intake must be validated (generic) ──────────────
         if intake.status != "validated":
-            reject_reasons.append(
-                f"Intake status is '{intake.status}' — "
-                f"only validated intakes can be governed."
-            )
+            reject_reasons.append(f"Intake status is '{intake.status}' — only validated intakes can be governed.")
 
         # ── Gates 1-4: Delegated to pack policy (ADR-006) ──────────
         if pack_policy is not None and intake.payload:
@@ -131,4 +129,3 @@ class RiskEngine:
             active_policy_ids=snapshot.active_policy_ids,
             default_decision_rule_ids=snapshot.default_decision_rule_ids,
         )
-

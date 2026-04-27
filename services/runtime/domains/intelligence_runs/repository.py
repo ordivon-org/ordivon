@@ -52,12 +52,7 @@ class IntelligenceRunRepository:
         return self.db.query(IntelligenceRunORM).filter(IntelligenceRunORM.task_id == task_id).first()
 
     def list_recent(self, limit: int = 20) -> list[IntelligenceRunORM]:
-        return (
-            self.db.query(IntelligenceRunORM)
-            .order_by(IntelligenceRunORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(IntelligenceRunORM).order_by(IntelligenceRunORM.created_at.desc()).limit(limit).all()
 
     def update_status(
         self,

@@ -35,9 +35,7 @@ class HermesClient:
         self.timeout_seconds = timeout_seconds or settings.hermes_timeout_seconds
         self.max_retries = max_retries if max_retries is not None else settings.hermes_max_retries
         self.retry_backoff_seconds = (
-            retry_backoff_seconds
-            if retry_backoff_seconds is not None
-            else settings.hermes_retry_backoff_seconds
+            retry_backoff_seconds if retry_backoff_seconds is not None else settings.hermes_retry_backoff_seconds
         )
 
     def _headers(self) -> dict[str, str]:

@@ -7,6 +7,7 @@ from shared.errors.domain import DomainNotFound
 
 from governance.audit.auditor import RiskAuditor
 
+
 class RecommendationService:
     def __init__(self, repository: RecommendationRepository, auditor: RiskAuditor | None = None) -> None:
         self.repository = repository
@@ -37,7 +38,7 @@ class RecommendationService:
             status=target_status,
             latest_outcome_snapshot_id=latest_outcome_snapshot_id,
         )
-        
+
         if self.auditor and emit_recommendation_status_audit:
             self.auditor.record_event(
                 event_type="recommendation_status_update",

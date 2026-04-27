@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
+
 class EvalSummary(BaseModel):
     total_cases: int
     passed_cases: int
@@ -9,12 +10,14 @@ class EvalSummary(BaseModel):
     parse_failure_rate: float
     aggressive_action_rate: float
 
+
 class EvalCaseResult(BaseModel):
     case_id: str
     status: str
     risk_decision: str
     scores: Dict[str, Any]
     notes: List[str]
+
 
 class EvalRunResponse(BaseModel):
     run_id: str
@@ -23,4 +26,4 @@ class EvalRunResponse(BaseModel):
     dataset: str
     summary: EvalSummary
     cases: List[EvalCaseResult]
-    gate_decision: str = "PASS" # 默认为 PASS，由逻辑判断
+    gate_decision: str = "PASS"  # 默认为 PASS，由逻辑判断

@@ -16,9 +16,11 @@ _MIGRATIONS: list[tuple[str, object]] = []
 
 def migration(migration_id: str):
     """Decorator: register an idempotent migration function."""
+
     def decorator(fn):
         _MIGRATIONS.append((migration_id, fn))
         return fn
+
     return decorator
 
 
@@ -36,9 +38,7 @@ def _column_exists(conn: Connection, table: str, column: str) -> bool:
     return column in existing
 
 
-def _add_column_if_missing(
-    conn: Connection, table: str, column: str, col_type: str
-) -> None:
+def _add_column_if_missing(conn: Connection, table: str, column: str, col_type: str) -> None:
     """Add a column to a table if it doesn't already exist.
 
     The inspector-based check is not reliable across all backends
@@ -47,9 +47,7 @@ def _add_column_if_missing(
     """
     if not _column_exists(conn, table, column):
         try:
-            conn.execute(text(
-                f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
-            ))
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
             conn.commit()
         except Exception:
             # Column already exists (or table missing) — idempotent skip.
@@ -58,6 +56,7 @@ def _add_column_if_missing(
 
 # ── H9C1-001: Add outcome_ref columns to reviews table ──────────────────
 
+
 @migration("h9c1_001_add_outcome_ref_columns")
 def add_outcome_ref_columns(conn: Connection) -> None:
     """Add outcome_ref_type and outcome_ref_id to reviews table.
@@ -65,15 +64,12 @@ def add_outcome_ref_columns(conn: Connection) -> None:
     These columns exist in ReviewORM but may be missing from existing
     PostgreSQL databases that were created before the ORM change.
     """
-    _add_column_if_missing(
-        conn, "reviews", "outcome_ref_type", "VARCHAR(64)"
-    )
-    _add_column_if_missing(
-        conn, "reviews", "outcome_ref_id", "VARCHAR(64)"
-    )
+    _add_column_if_missing(conn, "reviews", "outcome_ref_type", "VARCHAR(64)")
+    _add_column_if_missing(conn, "reviews", "outcome_ref_id", "VARCHAR(64)")
 
 
 # ── Runner ─────────────────────────────────────────────────────────────
+
 
 def run_migrations(conn: Connection) -> int:
     """Execute all registered migrations in order.

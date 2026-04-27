@@ -54,6 +54,4 @@ class RecommendationStateMachine:
         target: RecommendationStatus,
     ) -> None:
         if not self.can_transition(current, target):
-            raise InvalidStateTransition(
-                f"Invalid recommendation transition: {current} -> {target}"
-            )
+            raise InvalidStateTransition(f"Invalid recommendation transition: {current} -> {target}")

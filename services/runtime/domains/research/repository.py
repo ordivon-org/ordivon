@@ -38,12 +38,7 @@ class AnalysisRepository:
         return row
 
     def list_recent(self, limit: int = 20) -> list[AnalysisORM]:
-        return (
-            self.db.query(AnalysisORM)
-            .order_by(AnalysisORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(AnalysisORM).order_by(AnalysisORM.created_at.desc()).limit(limit).all()
 
     def to_model(self, row: AnalysisORM) -> AnalysisResult:
         return AnalysisResult(

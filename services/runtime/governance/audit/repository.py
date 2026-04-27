@@ -28,12 +28,7 @@ class AuditEventRepository:
         return row
 
     def list_recent(self, limit: int = 100) -> list[AuditEventORM]:
-        return (
-            self.db.query(AuditEventORM)
-            .order_by(AuditEventORM.created_at.desc())
-            .limit(limit)
-            .all()
-        )
+        return self.db.query(AuditEventORM).order_by(AuditEventORM.created_at.desc()).limit(limit).all()
 
     def list_for_review(self, review_id: str) -> list[AuditEventORM]:
         return (

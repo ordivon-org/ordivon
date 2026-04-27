@@ -2,6 +2,7 @@ from domains.journal.issue_models import Issue
 from domains.journal.issue_repository import IssueRepository
 from governance.audit.auditor import RiskAuditor
 
+
 class IssueService:
     def __init__(self, repository: IssueRepository, auditor: RiskAuditor | None = None) -> None:
         self.repository = repository
