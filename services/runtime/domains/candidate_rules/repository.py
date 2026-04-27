@@ -27,12 +27,22 @@ class CandidateRuleRepository:
             status=rule.status,
             recommendation_ids_json=to_json_text(list(rule.recommendation_ids)),
             review_ids_json=to_json_text(list(rule.review_ids)),
+            lesson_ids_json=to_json_text(list(rule.lesson_ids)),
             knowledge_entry_ids_json=to_json_text(list(rule.knowledge_entry_ids)),
+            source_refs_json=to_json_text(list(rule.source_refs)),
             created_at=_parse_dt(rule.created_at),
         )
         self.db.add(row)
         self.db.flush()
         return row
+
+    def find_by_lesson_id(self, lesson_id: str) -> CandidateRuleORM | None:
+        """Check if a CandidateRule already exists for a given lesson (idempotency)."""
+        return (
+            self.db.query(CandidateRuleORM)
+            .filter(CandidateRuleORM.lesson_ids_json.contains(lesson_id))
+            .first()
+        )
 
     def list_all(self) -> list[CandidateRuleORM]:
         return self.db.query(CandidateRuleORM).order_by(CandidateRuleORM.created_at.desc()).all()
@@ -45,6 +55,8 @@ class CandidateRuleRepository:
             status=row.status,
             recommendation_ids=tuple(from_json_text(row.recommendation_ids_json, [])),
             review_ids=tuple(from_json_text(row.review_ids_json, [])),
+            lesson_ids=tuple(from_json_text(row.lesson_ids_json, [])),
             knowledge_entry_ids=tuple(from_json_text(row.knowledge_entry_ids_json, [])),
+            source_refs=tuple(from_json_text(row.source_refs_json, [])),
             created_at=row.created_at.isoformat(),
         )

@@ -17,7 +17,9 @@ class CandidateRule:
     status: str = "draft"
     recommendation_ids: tuple[str, ...] = field(default_factory=tuple)
     review_ids: tuple[str, ...] = field(default_factory=tuple)
+    lesson_ids: tuple[str, ...] = field(default_factory=tuple)
     knowledge_entry_ids: tuple[str, ...] = field(default_factory=tuple)
+    source_refs: tuple[str, ...] = field(default_factory=tuple)
     created_at: str = field(default_factory=lambda: utc_now().isoformat())
 
     def __post_init__(self) -> None:

@@ -191,6 +191,7 @@ class ReviewExecutionAdapter:
         action_context: ActionContext,
         approval_id: str | None = None,
         require_approval: bool = False,
+        lesson_types: list[str] | None = None,
     ) -> ReviewExecutionResult:
         self.approval_gate.ensure_approved(
             action_key="review.complete",
@@ -232,6 +233,7 @@ class ReviewExecutionAdapter:
                 lessons=lessons,
                 followup_actions=followup_actions,
                 emit_review_completed_audit=False,
+                lesson_types=lesson_types,
             )
         except ApprovalRequiredError:
             raise

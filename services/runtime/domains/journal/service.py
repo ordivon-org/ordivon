@@ -2,6 +2,8 @@ from domains.journal.models import Review
 from domains.journal.repository import ReviewRepository
 from domains.journal.lesson_models import Lesson
 from domains.journal.lesson_service import LessonService
+from domains.candidate_rules.draft_extraction import CandidateRuleDraftExtractionService
+from domains.candidate_rules.repository import CandidateRuleRepository
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.knowledge_feedback.service import KnowledgeFeedbackPacketService
 from domains.strategy.outcome_models import OutcomeSnapshot
@@ -73,6 +75,7 @@ class ReviewService:
         lessons: list[str],
         followup_actions: list[str],
         emit_review_completed_audit: bool = True,
+        lesson_types: list[str] | None = None,
     ):
         row = self.review_repository.get(review_id)
         if row is None:
@@ -113,30 +116,39 @@ class ReviewService:
             variance_summary=variance_summary,
         )
 
+        lesson_records: list[dict] = []
         lesson_rows = []
         outcome_ref_source = (
             f"finance_manual_outcome:{row.outcome_ref_id}"
             if row.outcome_ref_id and row.outcome_ref_type == "finance_manual_outcome"
             else None
         )
+        types = lesson_types or []
         for idx, lesson_text in enumerate(lessons, start=1):
             source_refs: list[str] = []
             if row.recommendation_id:
                 source_refs.append(f"recommendation:{row.recommendation_id}")
             if outcome_ref_source:
                 source_refs.append(outcome_ref_source)
+            lesson_type = types[idx - 1] if idx - 1 < len(types) else "review_learning"
             lesson_model = Lesson(
                 review_id=row.id,
                 recommendation_id=row.recommendation_id,
                 title=f"Lesson {idx} from review {row.id}",
                 body=lesson_text,
-                lesson_type="review_learning",
+                lesson_type=lesson_type,
                 tags=cause_tags,
                 confidence=0.8,
                 source_refs=source_refs,
             )
             lesson_row = self.lesson_service.create(lesson_model)
             lesson_rows.append(lesson_row)
+            lesson_records.append({
+                "id": lesson_row.id,
+                "lesson_type": lesson_type,
+                "body": lesson_text,
+                "tags": cause_tags,
+            })
 
             if self.auditor is not None:
                 self.auditor.record_event(
@@ -152,6 +164,18 @@ class ReviewService:
                     recommendation_id=row.recommendation_id,
                     db=self.review_repository.db,
                 )
+
+        # ── Draft extraction: rule_candidate lessons → CandidateRule drafts ──
+        extraction = CandidateRuleDraftExtractionService(
+            CandidateRuleRepository(self.review_repository.db)
+        )
+        extraction.extract_from_review(
+            review_id=row.id,
+            recommendation_id=row.recommendation_id,
+            lessons=lesson_records,
+            outcome_ref_type=row.outcome_ref_type,
+            outcome_ref_id=row.outcome_ref_id,
+        )
 
         knowledge_feedback = self._build_knowledge_feedback(row.recommendation_id, row.id)
 

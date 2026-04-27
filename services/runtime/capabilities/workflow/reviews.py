@@ -217,6 +217,7 @@ class ReviewCapability:
         action_context: ActionContext | None,
         approval_id: str | None = None,
         require_approval: bool = False,
+        lesson_types: list[str] | None = None,
     ) -> ReviewResult:
         context = require_action_context("review completion", action_context)
         adapter = build_default_execution_adapter_registry().resolve("review", service.review_repository.db)
@@ -232,6 +233,7 @@ class ReviewCapability:
             action_context=context,
             approval_id=approval_id,
             require_approval=require_approval,
+            lesson_types=lesson_types,
         )
         review_row = result.review_row
         lesson_rows = result.lesson_rows
