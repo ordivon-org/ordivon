@@ -83,7 +83,7 @@ def _make_request(policy=None, **kwargs) -> PolicyApprovalRequest:
         policy = _make_policy(evidence_refs=(_make_evidence(),), owner=_make_owner())
     defaults = {
         "policy": policy,
-        "evidence_readiness": ReadinessLevel.READY_FOR_ACTIVATION,
+        "evidence_readiness": ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW,
         "shadow_summary": "All shadow cases passed.",
         "shadow_verdicts": (ShadowVerdict.WOULD_RECOMMEND_MERGE, ShadowVerdict.WOULD_EXECUTE),
         "reviewers": (Reviewer("alice", ReviewerRole.TECHNICAL_REVIEWER),),

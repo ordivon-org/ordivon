@@ -207,7 +207,7 @@ def test_single_event_evidence_not_activation_ready():
 
     gate = PolicyEvidenceGate()
     result = gate.assess(policy)
-    assert result.level != ReadinessLevel.READY_FOR_ACTIVATION
+    assert result.level != ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW
     assert any("ci_artifact" in w for w in result.warnings)
 
 
@@ -230,7 +230,7 @@ def test_missing_rollback_plan_not_activation_ready():
 
     gate = PolicyEvidenceGate()
     result = gate.assess(policy)
-    assert result.level != ReadinessLevel.READY_FOR_ACTIVATION
+    assert result.level != ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW
     # Without rollback_plan, even strong evidence only reaches READY_FOR_REVIEW
     assert result.level == ReadinessLevel.READY_FOR_REVIEW
 
@@ -367,7 +367,7 @@ def test_activation_readiness_is_not_auto_activation():
         rollback_plan=_make_rollback(),
     )
     gate_result = evaluator._evidence_gate.assess(policy)
-    assert gate_result.level == ReadinessLevel.READY_FOR_ACTIVATION
+    assert gate_result.level == ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW
     # But the policy state must remain DRAFT
     assert policy.state == PolicyState.DRAFT
     # The evaluator does not transition the policy

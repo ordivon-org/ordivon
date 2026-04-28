@@ -6,7 +6,7 @@ Completed runtime baseline records, H-stage closure documents, and bridge specif
 
 | Document | Stage | Status | Date |
 |----------|-------|--------|------|
-| [policy-platform-closure-review.md](policy-platform-closure-review.md) | Policy Platform Phase 5 Closure | **CLOSED** | 2026-04-29 |
+| [policy-platform-red-team-closure.md](policy-platform-red-team-closure.md) | Policy Platform Red-Team Closure | **CLOSED** | 2026-04-29 |
 | [h1-real-model-under-control.md](h1-real-model-under-control.md) | H-1: One Real Model Under Control | **CLOSED** | 2026-04-26 |
 | [h2-to-h5-closure-summary.md](h2-to-h5-closure-summary.md) | H-2 through H-5 Summary | **CLOSED** | 2026-04-26 |
 

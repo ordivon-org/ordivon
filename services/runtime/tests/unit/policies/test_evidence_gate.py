@@ -147,7 +147,7 @@ def test_full_evidence_owner_rollback_is_activation_ready():
         rollback_plan=_make_rollback(),
     )
     result = gate.assess(policy)
-    assert result.level == ReadinessLevel.READY_FOR_ACTIVATION
+    assert result.level == ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -196,7 +196,7 @@ def test_codeql_finding_alone_is_not_activation_ready():
         rollback_plan=_make_rollback(),
     )
     result = gate.assess(policy)
-    assert result.level != ReadinessLevel.READY_FOR_ACTIVATION
+    assert result.level != ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW
     assert any("ci_artifact" in w for w in result.warnings)
 
 
@@ -390,4 +390,4 @@ def test_result_is_ready_property():
     assert not EvidenceGateResult(level=ReadinessLevel.NOT_READY).is_ready
     assert EvidenceGateResult(level=ReadinessLevel.READY_FOR_REVIEW).is_ready
     assert EvidenceGateResult(level=ReadinessLevel.READY_FOR_SHADOW).is_ready
-    assert EvidenceGateResult(level=ReadinessLevel.READY_FOR_ACTIVATION).is_ready
+    assert EvidenceGateResult(level=ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW).is_ready

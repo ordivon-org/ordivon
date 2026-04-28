@@ -202,8 +202,8 @@ def test_full_dogfood_path_approved_for_shadow():
     # Step 2: Evidence Gate
     evidence_gate = PolicyEvidenceGate()
     gate_result = evidence_gate.assess(policy)
-    assert gate_result.level == ReadinessLevel.READY_FOR_ACTIVATION, (
-        f"Expected READY_FOR_ACTIVATION, got {gate_result.level}: {gate_result.reasons}"
+    assert gate_result.level == ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW, (
+        f"Expected READY_FOR_HUMAN_ACTIVATION_REVIEW, got {gate_result.level}: {gate_result.reasons}"
     )
     assert gate_result.is_ready
 

@@ -6,7 +6,7 @@ Does NOT activate, enforce, or modify policies.
 Shadow mode answers: "If this policy existed, what would it have
 recommended on these cases?"
 
-Output is always advisory. READY_FOR_ACTIVATION means "ready for human
+Output is always advisory. READY_FOR_HUMAN_ACTIVATION_REVIEW means "ready for human
 activation review", not automatic activation.
 """
 
@@ -195,7 +195,7 @@ class PolicyShadowEvaluator:
                     reasons=("Policy evidence not ready for shadow recommendation.",) + gate_result.reasons,
                     confidence=0.5,
                 )
-            if gate_result.level != ReadinessLevel.READY_FOR_ACTIVATION:
+            if gate_result.level != ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW:
                 return PolicyShadowResult(
                     case_id=case.case_id,
                     policy_id=policy.policy_id,
@@ -203,7 +203,7 @@ class PolicyShadowEvaluator:
                     reasons=(
                         f"Policy evidence at level '{gate_result.level.value}' — "
                         "not sufficient for merge recommendation. "
-                        "Requires READY_FOR_ACTIVATION evidence.",
+                        "Requires READY_FOR_HUMAN_ACTIVATION_REVIEW evidence.",
                     )
                     + gate_result.warnings,
                     confidence=0.5,
@@ -319,11 +319,11 @@ class PolicyShadowEvaluator:
     def activation_readiness_check(self, policy: PolicyRecord) -> bool:
         """Check if a policy is ready for human activation review.
 
-        READY_FOR_ACTIVATION from the evidence gate means "ready for
+        READY_FOR_HUMAN_ACTIVATION_REVIEW from the evidence gate means "ready for
         human review before activation" — it does NOT mean the policy
         is automatically activated.
 
-        Returns True if the evidence gate says READY_FOR_ACTIVATION.
+        Returns True if the evidence gate says READY_FOR_HUMAN_ACTIVATION_REVIEW.
         """
         result = self._evidence_gate.assess(policy)
-        return result.level == ReadinessLevel.READY_FOR_ACTIVATION
+        return result.level == ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW

@@ -8,7 +8,7 @@ Readiness levels (ascending):
   NOT_READY            — insufficient evidence, cannot proceed
   READY_FOR_REVIEW     — enough evidence for human review, not for activation
   READY_FOR_SHADOW     — ready for shadow evaluation (advisory only)
-  READY_FOR_ACTIVATION — ready for active_enforced (blocking)
+  READY_FOR_HUMAN_ACTIVATION_REVIEW — ready for human activation review, NOT auto-activation
 """
 
 from __future__ import annotations
@@ -29,7 +29,9 @@ class ReadinessLevel(str, Enum):
     NOT_READY = "not_ready"
     READY_FOR_REVIEW = "ready_for_review"  # human review of draft
     READY_FOR_SHADOW = "ready_for_shadow"  # shadow/advisory evaluation
-    READY_FOR_ACTIVATION = "ready_for_activation"  # active_enforced
+    READY_FOR_HUMAN_ACTIVATION_REVIEW = (
+        "ready_for_activation_review"  # ready for human activation review, NOT auto-activation
+    )
 
 
 # Ref types that count as legitimate evidence sources
@@ -166,7 +168,7 @@ class PolicyEvidenceGate:
 
         if owner_ready and rollback_ready and not has_weak_solo and learning_loop_refs:
             return EvidenceGateResult(
-                level=ReadinessLevel.READY_FOR_ACTIVATION,
+                level=ReadinessLevel.READY_FOR_HUMAN_ACTIVATION_REVIEW,
                 warnings=tuple(warnings),
             )
         elif owner_ready and rollback_ready:
