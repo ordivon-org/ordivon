@@ -57,7 +57,7 @@ describe('RecentRecommendations', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Command-center preview of recommendation objects\./i)).toBeVisible();
+      expect(screen.getByText(/BTC\/USDT/i)).toBeVisible();
     });
     expect(screen.getByRole('link', { name: 'Continue in review workbench' })).toHaveAttribute(
       'href',
