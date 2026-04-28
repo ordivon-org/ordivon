@@ -113,10 +113,22 @@ Intake → Governance → Receipt → Outcome → Review → Lesson → Candidat
 - Core does NOT know Coding details (task_description, file_paths, test_plan)
 - Core does NOT know GitHub details (PR, labels, changed files)
 - Core does NOT know CodeQL, Bandit, Gitleaks
-- Core consumes severity protocol only (`reason.severity`, `reason.message`)
+- Core control paths consume severity protocol only (`reason.severity`, `reason.message`)
+- `governance/policy_source.py` is an **ADR-006 whitelist exception**: it imports
+  Pack metadata (tool refs, policy overlays) but NOT Pack reason types. This is
+  approved because tool namespace metadata is configuration, not business logic.
+  The whitelist is enforced by `scripts/check_architecture.py`.
+
+**Two validation paths**:
+- `validate_intake(intake, pack_policy=...)` — ADR-006 path. Pack policy validates
+  domain payload. Core reads `.severity` and `.message`. Used by CLI/GitHub adapters.
+- `validate_analysis(analysis)` — Legacy path. Validates AnalysisResult objects
+  against active policies. Still functional but not the primary governance path
+  for new adapters.
 
 **Maturity**: Stable. Ordivon's most valuable asset. Must resist platform-concept
-pull — Core must never import `github`, `codeql`, or pack-specific types.
+pull — Core control paths must never import Pack reason types. The `policy_source.py`
+whitelist is narrow and audited.
 
 ---
 
@@ -125,14 +137,36 @@ pull — Core must never import `github`, `codeql`, or pack-specific types.
 **What**: Where system truth is persisted. ORM-mapped entities that form the
 authoritative record of governance events.
 
-**Key domains**:
+**Key domains** (18 total, classified by ownership):
+
+**Core truth / control state**:
 - `domains/decision_intake/` — intake records
 - `domains/execution_records/` — receipts and requests
 - `domains/journal/` — reviews, lessons
 - `domains/candidate_rules/` — draft rules, review paths
+- `domains/knowledge_feedback/` — knowledge feedback packets
+- `domains/intelligence_runs/` — intelligence execution records
+- `domains/workflow_runs/` — workflow orchestration state
+
+**Pack-specific state** (finance-related, lives under `domains/` but semantically belongs to Finance Pack):
 - `domains/finance_outcome/` — finance-specific outcomes
-- `domains/strategy/` — recommendations
-- `domains/knowledge_feedback/` — knowledge packets
+- `domains/strategy/` — recommendations, plans
+- `domains/market/` — market data models
+- `domains/portfolio/` — portfolio state
+- `domains/risk/` — risk models
+- `domains/trading/` — trading state
+
+**Product / view / support state**:
+- `domains/dashboard/` — dashboard data
+- `domains/reporting/` — report models
+- `domains/userprefs/` — user preferences
+- `domains/ai_actions/` — AI action records
+- `domains/research/` — research artifacts
+
+**Note**: Current physical layout under `domains/` does not equal semantic
+ownership. Finance Pack state (market, portfolio, risk, trading) currently
+lives under `domains/` but should be treated as Pack-specific truth, not
+Core truth. A future domain extraction phase should clarify physical layout.
 
 **Fact chains**:
 ```text
@@ -193,17 +227,22 @@ until domain semantics demand it.
 
 ### L4 — Capability / API Facade
 
-**What**: External entry points into Core and Pack capabilities. Currently
-HTTP API + capability wrappers.
+**What**: External entry points into Core and Pack capabilities. This layer
+intentionally bridges Core and Pack — it may import Pack types to orchestrate
+domain-specific governance workflows. Currently HTTP API + capability wrappers.
 
 **Key assets**:
 - `capabilities/domain/` — finance decisions, planning, outcomes
 - `capabilities/workflow/` — reviews, completions
+- `capabilities/contracts/` — typed contract definitions
 - `apps/api/` — FastAPI application
 
 **Invariants**:
 - Capabilities call governance, never bypass it
 - Routes call `RiskEngine.validate_intake()`, never re-implement risk checks
+- `capabilities/domain/finance_decisions.py` may import Finance Pack types —
+  this is NOT an ADR-006 violation because the capability layer is an approved
+  orchestration boundary, not Core governance internals
 
 **Maturity**: Adequate. Ordivon's center of gravity has shifted from HTTP API
 to CLI/CI composability. The API is not the single entry point — it's one of
@@ -288,12 +327,21 @@ proves the system has not drifted.
 | L2 | Integration tests | pytest |
 | L3 | Contract tests | pytest + JSON schema |
 | L4 | Architecture boundaries | `check_architecture.py` |
-| L5 | Runtime evidence | `check_runtime_evidence.py` |
-| L6 | DB-backed audit | `audit_runtime_evidence_db.py` |
+| L5 | Runtime evidence (static) | `check_runtime_evidence.py` |
+| L6 | DB-backed evidence audit | `audit_runtime_evidence_db.py` |
 | L7 | Eval corpus | `evals/run_evals.py` |
 | L8 | Security | Gitleaks, Bandit, pip-audit |
 | L9 | PG full regression | pytest on PostgreSQL |
 | L10 | Repo CLI smoke | CLI adapter tests |
+
+**Additional verification scripts** (not yet classified into gate layers):
+
+| Script | Purpose | Category |
+|--------|---------|----------|
+| `check_dogfood_evidence.py` | Validates dogfood run declarations and evidence | Evidence contract |
+| `check_openapi_snapshot.py` | Compares live OpenAPI against committed snapshot | API contract |
+| `check_redis.py` | Validates Redis connectivity and health | Infra state |
+| `check_state_truth.py` | Verifies state truth boundary invariants | Architecture boundary |
 
 **Gate classification**:
 - **Hard Gate**: failure blocks (ruff, unit tests, eval corpus, architecture checker, contracts, Gitleaks)
@@ -401,7 +449,29 @@ works in real scenarios without over-committing to any single use case.
 - Research Governance
 - Planning Governance
 
-## 4. Current Maturity Table
+## 4. Known Documentation Drift (Phase 3C-R — Closed)
+
+This section records documentation accuracy corrections made in Phase 3C-R.
+These were documentation lag behind code — NOT architecture errors. All core
+invariants remain intact:
+
+- Core/Pack separation via severity protocol ✅
+- Adapter read-only boundary ✅
+- CandidateRule ≠ Policy ✅
+- PolicyProposal ≠ active Policy ✅
+
+**Corrections applied (Phase 3C-R)**:
+1. L1: `policy_source.py` ADR-006 whitelist exception documented
+2. L1: `validate_intake()` vs `validate_analysis()` dual path documented
+3. L2: 18-domain inventory with Core/Pack/Product classification
+4. L4: Capability layer bridge role clarified
+5. L7: 7-checker inventory with category classification
+
+**Open debt** (not yet corrected):
+- Finance Pack state (market, portfolio, risk, trading) still lives under `domains/`
+  rather than `packs/finance/state/` — requires future domain extraction phase
+
+## 5. Current Maturity Table
 
 | Layer | Platform | Maturity | Key Risk |
 |-------|----------|----------|----------|
@@ -417,7 +487,7 @@ works in real scenarios without over-committing to any single use case.
 | L9 | Policy | Draft | Premature activation risk |
 | L10 | Product | Adequate | Wedge over-deepening |
 
-## 5. Phase 3 Definition
+## 6. Phase 3 Definition
 
 Phase 3 was **not** just "Repo Governance Pack." It was:
 
@@ -446,7 +516,7 @@ What Phase 3 proved:
 - Read-only GitHub integration is production-ready
 - JSON contract + artifact pattern is generalizable
 
-## 6. Phase 4 Definition
+## 7. Phase 4 Definition
 
 Phase 4 should be:
 
@@ -476,7 +546,7 @@ What Phase 4 should NOT do:
 - ❌ Auto-fix security findings
 - ❌ Auto-merge PRs based on governance decisions
 
-## 7. Open Architecture Debts
+## 8. Open Architecture Debts
 
 These are known issues that do not block Phase 4 entry but should be resolved
 during Phase 4:
@@ -492,7 +562,7 @@ during Phase 4:
 | Dual outcome system (OutcomeSnapshot + FinanceManualOutcome) | Low | Document in Domain Truth Map |
 | Constitution document fragmentation | Low | Phase 4 Architecture Register |
 
-## 8. Entry Conditions for Phase 4
+## 9. Entry Conditions for Phase 4
 
 Before entering Phase 4.1 (CodeQL), the following must be true:
 
@@ -504,7 +574,7 @@ Before entering Phase 4.1 (CodeQL), the following must be true:
 - [x] Security Platform baseline documented
 - [x] CodeQL permissions model defined (`security-events: write`, NOT PR write)
 
-## 9. Recommended Next Phases
+## 10. Recommended Next Phases
 
 | Phase | Action | Type |
 |-------|--------|------|
@@ -516,7 +586,7 @@ Before entering Phase 4.1 (CodeQL), the following must be true:
 | 4.6 | Architecture Register | Documentation cleanup |
 | 4.8 | Workspace residue cleanup | Maintenance |
 
-## 10. Key Principles (Reaffirmed)
+## 11. Key Principles (Reaffirmed)
 
 1. **Classify before execute** — governance runs before action, not after
 2. **Core never imports Pack types** — severity protocol is the contract
