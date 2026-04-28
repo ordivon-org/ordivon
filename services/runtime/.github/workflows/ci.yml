@@ -87,6 +87,24 @@ jobs:
           fi
           exit $EC
 
+      - name: Render evidence report
+        if: always()
+        run: |
+          mkdir -p reports
+          uv run python scripts/render_repo_governance_report.py \
+            --input repo_gov_result.json \
+            --output-dir reports
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-governance-evidence
+          path: |
+            reports/repo-governance-report.json
+            reports/repo-governance-report.md
+          retention-days: 30
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
