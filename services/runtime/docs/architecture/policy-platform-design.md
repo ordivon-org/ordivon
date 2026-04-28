@@ -424,14 +424,17 @@ For future phases, owner may be a role (e.g., "security-owner",
 - Review checklist covers: problem, evidence, freshness, multi-incident, scope,
   false positive risk, rollback, shadow test, owner
 
-### Phase 5.5: First Shadow Policy Dogfood (next)
+### Phase 5.5: First Shadow Policy Dogfood (complete)
 
-### Phase 5.5: First Shadow Policy Dogfood
+- ~~Shadow evaluation layer~~ → ✅ Complete
+  - `domains/policies/shadow.py` — PolicyShadowCase, PolicyShadowResult, PolicyShadowEvaluator
+  - ShadowVerdict: WOULD_EXECUTE / WOULD_ESCALATE / WOULD_REJECT / WOULD_HOLD / WOULD_RECOMMEND_MERGE / NO_MATCH
+  - Red-team corpus: 11 shadow cases + 6 invariants in `tests/unit/policies/test_shadow.py`
+  - Evaluator is read-only — never mutates PolicyRecord, never calls RiskEngine
+  - READY_FOR_ACTIVATION means ready for human activation review, not automatic activation
+- ~~Run through full lifecycle~~ → Deferred to Phase 5.6 (first real CandidateRule dogfood)
 
-- Select one real CandidateRule from operational data
-- Run it through the full lifecycle: draft → review → accepted → proposal → activation
-- Document the entire process as a runbook
-- This is the "dogfood" phase — validate the design with real data
+### Phase 5.6: Iteration + Hardening (next)
 
 ### Phase 5.6: Iteration + Hardening
 
