@@ -252,16 +252,16 @@ classification (record failures, do not block non-security PRs).
 
 | Phase | Action | CI Change |
 |-------|--------|-----------|
-| **3.5** (this phase) | Plan only | Zero CI workflow changes |
-| **3.6** | Add PR Fast Gate | New `verification-fast` job in `ci.yml`: eval corpus + runtime evidence + repo CLI smoke + architecture checker |
+| **3.5** | Plan only | Zero CI workflow changes |
+| **3.6** (this phase) | ✅ Add PR Fast Gate | New `verification-fast` job in `ci.yml`: eval corpus + runtime evidence + repo CLI smoke + architecture checker |
 | **3.7** | GitHub Actions Adapter | Repo Governance CLI runs as a GHA action; PR receives governance annotation |
 | **3.8** | Add Main Branch Gate | DB-backed audit + PG full regression on push to main |
 | **3.9** | Add Scheduled Deep Gate | Nightly full regression + coverage |
 
-## 14. Non-Goals
+## 14. Non-Goals (Phase 3.5)
 
-- Does NOT modify any existing CI workflow files
-- Does NOT add new CI jobs
+- Does NOT add PR Full Gate / Main Branch Gate / Scheduled Deep Gate
+- Does NOT add PG full regression or DB-backed audit to PR Fast Gate
 - Does NOT change gate classification of existing CI steps
 - Does NOT require new infrastructure or services
 - Does NOT force all gates to be hard gates

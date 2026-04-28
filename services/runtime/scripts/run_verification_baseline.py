@@ -339,8 +339,151 @@ def print_json_summary(summary: BaselineSummary) -> None:
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
+def run_pr_fast_gates() -> BaselineSummary:
+    """Run only PR Fast Gate: skip heavy test suites and DB audit."""
+    summary = BaselineSummary()
+    python = sys.executable
+
+    # ── Layer 0: Static Analysis ─────────────────────────────
+    wave_files = [
+        str(SCRIPTS / "run_verification_baseline.py"),
+        str(SCRIPTS / "audit_runtime_evidence_db.py"),
+        str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
+        str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
+        str(SCRIPTS / "repo_governance_cli.py"),
+        str(ROOT / "domains" / "candidate_rules" / "__init__.py"),
+    ]
+    summary.results.append(
+        _run_gate(
+            "ruff check (Wave files)",
+            "hard",
+            "L0",
+            [python, "-m", "ruff", "check", *wave_files],
+        )
+    )
+    summary.results.append(
+        _run_gate(
+            "ruff format check (Wave files)",
+            "hard",
+            "L0",
+            [python, "-m", "ruff", "format", "--check", *wave_files],
+        )
+    )
+
+    # ── Layer 4: Architecture Boundaries ────────────────────
+    summary.results.append(
+        _run_gate(
+            "Architecture boundaries",
+            "hard",
+            "L4",
+            [python, str(SCRIPTS / "check_architecture.py")],
+        )
+    )
+
+    # ── Layer 5: Runtime Evidence (Static) ──────────────────
+    summary.results.append(
+        _run_gate(
+            "Runtime evidence integrity",
+            "hard",
+            "L5",
+            [python, str(SCRIPTS / "check_runtime_evidence.py")],
+        )
+    )
+
+    # ── Layer 7: Eval Corpus ────────────────────────────────
+    summary.results.append(
+        _run_gate(
+            "Eval corpus (24 cases)",
+            "hard",
+            "L7",
+            [python, str(ROOT / "evals" / "run_evals.py")],
+        )
+    )
+
+    # ── Layer 10: Repo CLI Smoke ────────────────────────────
+
+    result = _run_gate(
+        "Repo CLI smoke (valid→execute)",
+        "hard",
+        "L10",
+        [
+            python,
+            str(SCRIPTS / "repo_governance_cli.py"),
+            "--task-description",
+            "Fix unit test naming",
+            "--file-path",
+            "tests/unit/test_example.py",
+            "--estimated-impact",
+            "low",
+            "--reasoning",
+            "Small test-only cleanup",
+            "--test-plan",
+            "uv run pytest tests/unit/test_example.py",
+            "--json",
+        ],
+    )
+    try:
+        parsed = json.loads(result.output)
+        if parsed.get("decision") != "execute":
+            result.passed = False
+            result.output += " [unexpected decision: " + parsed.get("decision", "?") + "]"
+    except json.JSONDecodeError:
+        result.passed = False
+        result.output = "JSON parse failed: " + result.output[:200]
+    summary.results.append(result)
+
+    fb_result = _run_gate(
+        "Repo CLI smoke (forbidden→reject)",
+        "hard",
+        "L10",
+        [
+            python,
+            str(SCRIPTS / "repo_governance_cli.py"),
+            "--task-description",
+            "Update environment secret",
+            "--file-path",
+            ".env",
+            "--estimated-impact",
+            "low",
+            "--reasoning",
+            "Dangerous secret change",
+            "--test-plan",
+            "manual review",
+            "--json",
+        ],
+    )
+    try:
+        parsed = json.loads(fb_result.output)
+        if parsed.get("decision") != "reject":
+            fb_result.passed = False
+            fb_result.output += " [expected reject, got " + parsed.get("decision", "?") + "]"
+        else:
+            fb_result.passed = True
+    except json.JSONDecodeError:
+        fb_result.passed = False
+        fb_result.output = "JSON parse failed: " + fb_result.output[:200]
+    summary.results.append(fb_result)
+
+    return summary
+
+
 def main() -> int:
-    summary = run_all_gates()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ordivon Verification Baseline Runner")
+    parser.add_argument(
+        "--profile",
+        choices=["full", "pr-fast"],
+        default="full",
+        help="Which gate set to run (default: full)",
+    )
+    args = parser.parse_args()
+
+    if args.profile == "pr-fast":
+        summary = run_pr_fast_gates()
+    else:
+        summary = run_all_gates()
+
     print_summary(summary)
     print_json_summary(summary)
     return 0 if summary.overall_ready else 1
