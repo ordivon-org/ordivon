@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **ACTIVE** (Phase 4.10 — Dependabot pnpm/npm enabled)
+Status: **CLOSED** (Phase 4.13 — Security / External Tooling Platform Closure)
 Date: 2026-04-29
-Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9 → 4.10
-Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `uv`, `pnpm`, `uv-enabled`, `pnpm-enabled`
+Phase: 3.13 → 4.1 → 4.13
+Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `closure`, `hard-gate`, `supply-chain`, `advisory`
 
 ## 1. Purpose
 

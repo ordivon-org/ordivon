@@ -6,6 +6,7 @@ Completed runtime baseline records, H-stage closure documents, and bridge specif
 
 | Document | Stage | Status | Date |
 |----------|-------|--------|------|
+| [security-external-tooling-closure.md](security-external-tooling-closure.md) | Security / External Tooling Phase 4 Closure | **CLOSED** | 2026-04-29 |
 | [h1-real-model-under-control.md](h1-real-model-under-control.md) | H-1: One Real Model Under Control | **CLOSED** | 2026-04-26 |
 | [h2-to-h5-closure-summary.md](h2-to-h5-closure-summary.md) | H-2 through H-5 Summary | **CLOSED** | 2026-04-26 |
 
