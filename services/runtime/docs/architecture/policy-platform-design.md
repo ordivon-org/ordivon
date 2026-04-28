@@ -401,14 +401,19 @@ For future phases, owner may be a role (e.g., "security-owner",
 - ~~Add rollback mechanism~~ → ✅ Complete
 - ~~Tests: all valid transitions, all forbidden transitions, rollback → reactivate path~~ → ✅ Complete
 
-### Phase 5.3: Activation Pipeline (next)
+### Phase 5.3: CandidateRule → Policy Bridge (complete)
 
-### Phase 5.3: Activation Pipeline
+- ~~Resolve dual-track boundary between `domains/candidate_rules/policy_proposal.py` and `domains/policies/*`~~ → ✅ Complete
+  - `PolicyProposal` lightweight dataclass retired
+  - `CandidateRulePolicyBridge` creates `PolicyRecord(state=draft)` from accepted_candidate
+  - Bridge is a thin adapter — CandidateRule learning path → Policy Platform
+  - All guards preserved: only accepted_candidate, duplicate prevention, evidence lineage
+  - Draft policy has no owner/rollback_plan — those are required only at activation
+  - `tests/unit/capabilities/test_policy_proposal.py` — 19 tests covering full boundary
+- ~~Bridge PolicyProposal → Policy activation~~ → Deferred to Phase 5.4 (activation pipeline)
+- ~~Tests: missing-evidence rejection, missing-reviewer rejection~~ → Covered in 5.2-P (PolicyRecord invariants)
 
-- Bridge PolicyProposal → Policy activation
-- Implement activation boundary checks (§5): evidence, reviewer, owner, risk, rollback plan
-- Add `activate_policy()` method that enforces all boundary checks
-- Tests: missing-evidence rejection, missing-reviewer rejection, missing-rollback rejection
+### Phase 5.4: Policy Registry (next)
 
 ### Phase 5.4: Policy Registry
 
