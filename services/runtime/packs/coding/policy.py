@@ -8,7 +8,6 @@ reads reason.severity and reason.message.
 from __future__ import annotations
 
 
-
 # ── Reason types (ADR-006 severity protocol) ────────────────────────
 
 
@@ -98,9 +97,7 @@ class CodingDisciplinePolicy:
 
         impact = (payload.get("estimated_impact") or "").strip().lower()
         if impact == "high":
-            reasons.append(
-                CodingEscalateReason("estimated_impact='high' — requires human review before code changes.")
-            )
+            reasons.append(CodingEscalateReason("estimated_impact='high' — requires human review before code changes."))
 
         test_plan = payload.get("test_plan")
         if not test_plan or not str(test_plan).strip():
