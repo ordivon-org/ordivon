@@ -1,5 +1,10 @@
 name: CodeQL
 
+# Phase 4.3: workflow-health hard gate on main branch.
+# Init/analyze/upload failure will fail CI.
+# Finding severity is NOT a hard gate — findings are security evidence
+# requiring human triage. Zero-alert baseline recorded Phase 4.2.
+
 on:
   push:
     branches: [main]

@@ -132,40 +132,41 @@ Per Phase 4.2 hard boundaries:
 - ❌ No Pack policy changes
 - ❌ No uv.lock / .coveragerc committed
 
-## 9. Follow-up Recommendation
+## 9. Follow-up (Phase 4.3 Update)
 
-### Immediate (Phase 4.3 readiness conditions)
+### Phase 4.3: Hard Gate Enabled
 
-With a zero-alert baseline:
-- ✅ Workflow is stable
-- ✅ Permissions are correct
-- ✅ Both languages analyzed successfully
-- ✅ No false positives to suppress
+The recommendation in the original Phase 4.2 triage was adopted:
+CodeQL is now a **workflow-health hard gate** on main branch.
 
-CodeQL is a candidate for promoting to main-branch hard gate
-(`continue-on-error: false` on push to main). However, the zero-alert
-baseline means there is nothing to gate on yet — the hard gate would
-always pass.
+| Action | Status |
+|--------|--------|
+| Enable hard gate now | ✅ Done (Phase 4.3) |
+| Workflow-health gates: init/analyze/upload failure → CI block | ✅ Active |
+| Finding-severity gates: alert threshold → CI block | ❌ Deferred |
+| Finding-severity policy design | 📋 Future phase |
 
-### Recommended: Delay Hard Gate Until First Real Finding Appears
+**What changed (Phase 4.3):**
+- `codeql.yml` commented with hard gate semantics
+- Doc updates in onboarding plan, security baseline, and this triage doc
 
-| Phase | Action | Rationale |
-|-------|--------|-----------|
-| **4.2** | Zero-alert baseline recorded | ✅ Done (this doc) |
-| **4.3** | Monitor for natural alert appearance | A hard gate with zero historical alerts provides no signal |
-| **4.4** | After first real alert, triage, then enable hard gate | Prevents future regression of the same pattern |
-| **4.x** | Dependabot / Scorecard onboarding | Continue Security Platform build-out |
+**What did NOT change:**
+- No `continue-on-error` change (never present)
+- Permissions unchanged (`contents: read`, `security-events: write`)
+- No source, test, API, ORM, or OpenAPI changes
+- No CandidateRule or PolicyProposal created
+- Finding severity remains advisory
 
-### Alternative: Enable Hard Gate Now
+### Next: Finding-Severity Hard Gate Design
 
-If the team prefers, CodeQL can be promoted to hard gate immediately.
-The risk is minimal because:
-- Zero alerts means the gate will never block
-- If a future commit introduces a detectable issue, it will be caught
-- The gate cost is low (~2 min CI time)
+Before CodeQL can block on findings:
+1. **Alert policy**: define which severities/rule IDs are gating
+2. **False positive protocol**: suppress/dismiss known FPs before gating
+3. **Baseline acknowledgment**: existing alerts must be acknowledged or fixed before new ones are blocked
+4. **Branch protection**: requires `required status checks` on CodeQL
+5. **Owner sign-off**: explicit decision to move from advisory to blocking
 
-Recommendation: enable hard gate now. It costs nothing, creates no
-noise, and provides a safety net for future commits.
+This design is a separate workstream from the workflow-health hard gate.
 
 ## 10. Related Documents
 

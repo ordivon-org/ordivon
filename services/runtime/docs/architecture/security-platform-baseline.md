@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **IMPLEMENTED** (CodeQL advisory workflow deployed, zero-alert baseline triaged)
+Status: **IMPLEMENTED** (CodeQL hard gate on main branch, zero-alert baseline)
 Date: 2026-04-28
-Phase: 3.13 → 4.1 → 4.2
-Tags: `security`, `platform`, `gates`, `codeql`, `bandit`, `gitleaks`, `triage`
+Phase: 3.13 → 4.1 → 4.2 → 4.3
+Tags: `security`, `platform`, `gates`, `codeql`, `bandit`, `gitleaks`, `triage`, `hard-gate`
 
 ## 1. Purpose
 
@@ -74,13 +74,12 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | CI job | `CodeQL` in `codeql.yml` |
 | Trigger | Push to main, pull_request to main, weekly schedule (Mon 03:00 UTC) |
 | Permissions | `contents: read`, `security-events: write` |
-| Gate class | **Advisory** — dry-run; uploads SARIF results to Security tab |
+| Gate class | **Hard** (workflow-health) — init/analyze/upload failure blocks CI; finding severity remains advisory |
 | Tool | `github/codeql-action` (init@v3, analyze@v3) |
 | Languages | Python, JavaScript/TypeScript |
-| Status | ✅ Deployed (Phase 4.1), triaged (Phase 4.2) |
-| Triage result | Zero alerts (open=0, dismissed=0, fixed=0) |
-| Hard gate ready | Yes — recommended for Phase 4.3 |
-| Triage doc | `docs/runtime/codeql-findings-triage.md` |
+| Status | ✅ Deployed (4.1), triaged (4.2), hard gate (4.3) |
+| Hard gate scope | Workflow health only (not finding severity) |
+| Finding severity | Advisory — requires human triage, not automatic CI block |
 
 ## 4. Security Gate Classification
 
@@ -124,7 +123,7 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | Bandit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip-audit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip CVE patch | — | — | Hard | Hard | ✅ Adopted |
-| CodeQL | — | Advisory | Advisory | Advisory | ✅ Advisory |
+| CodeQL | — | Advisory | Hard (workflow-health) | Advisory | ✅ Hard Gate |
 | Dependabot | — | — | Escalation | Escalation | 📋 Plan |
 | OpenSSF Scorecard | — | — | — | Advisory | 📋 Plan |
 | Semgrep | — | — | — | Advisory | 🔮 Evaluate later |
@@ -181,10 +180,8 @@ Security findings inform governance classification, not replace it.
 
 1. ~~CodeQL onboarding plan~~ → ✅ Deployed (Phase 4.1, `codeql.yml`)
 2. ~~CodeQL findings triage~~ → ✅ Complete (Phase 4.2, zero-alert baseline)
-3. CodeQL hard gate promotion (Phase 4.3):
-   - Condition met: stable workflow, zero alerts, permissions correct
-   - Action: add `continue-on-error: false` on push to main
-   - Risk: minimal — zero-alert baseline means gate never blocks
-4. Dependabot configuration with governance gate (Phase 4.x)
-5. OpenSSF Scorecard as informational badge (Phase 4.x)
-6. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
+3. ~~CodeQL hard gate promotion~~ → ✅ Complete (Phase 4.3, workflow-health hard gate)
+4. Finding-severity hard gate design (future): requires alert policy, false positive protocol, owner sign-off
+5. Dependabot configuration with governance gate (Phase 4.x)
+6. OpenSSF Scorecard as informational badge (Phase 4.x)
+7. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)

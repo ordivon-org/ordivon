@@ -1,9 +1,9 @@
 # CodeQL Onboarding Plan
 
-Status: **IMPLEMENTED** (Phase 4.1)
+Status: **IMPLEMENTED** (Phase 4.1–4.3: workflow deployed, triaged, hard gate)
 Date: 2026-04-28
-Phase: 3.13 → 4.1
-Tags: `codeql`, `security`, `onboarding`, `plan`, `implemented`
+Phase: 3.13 → 4.1 → 4.2 → 4.3
+Tags: `codeql`, `security`, `onboarding`, `plan`, `implemented`, `hard-gate`
 
 ## 1. Purpose
 
@@ -224,8 +224,35 @@ for details.
 | 3.13 | Plan | ✅ Complete |
 | 4.1 | Add CodeQL workflow | ✅ Complete |
 | 4.2 | Triage findings | ✅ Complete (zero alerts) |
-| 4.3 | Promote to hard gate | ⏳ Ready (recommended) |
+| 4.3 | Promote to hard gate | ✅ Complete (workflow-health only) |
 | 4.x | Dependabot / Scorecard | 📋 Plan |
+
+### Phase 4.3: Workflow-Health Hard Gate
+
+CodeQL is now a **workflow-health hard gate** on main branch.
+This means:
+
+| What is gated | What is NOT gated |
+|---------------|-------------------|
+| CodeQL init failure | Individual finding severity |
+| CodeQL analyze failure | Alert count threshold |
+| SARIF upload failure | Specific CWE categories |
+| Workflow crash/timeout | Security posture score |
+
+**Finding severity remains advisory.** A CodeQL alert is security
+evidence requiring human triage, not an automatic CI block. The
+zero-alert baseline (Phase 4.2) means this hard gate costs nothing
+while providing a safety net for future commits.
+
+**Finding-severity hard gate** (e.g., "block PR if new high-severity
+alert") requires a separate policy design phase that addresses:
+- Alert-to-severity mapping
+- False positive handling protocol
+- Baseline alert acknowledgment (suppression)
+- Branch protection rule changes
+- Owner sign-off
+
+That design is out of scope for Phase 4.3. The foundation is in place.
 
 ## 16. Related Documents
 
