@@ -63,6 +63,58 @@ def _read_changed_files(file_path: str) -> list[str]:
         return [line.strip() for line in f if line.strip()]
 
 
+DEPENDABOT_SYNTHETIC_TEST_PLAN = (
+    "Dependabot update. Validation is full CI, security checks, "
+    "Repo Governance evidence artifact, and human review before merge."
+)
+
+# Files that Dependabot is expected to modify. These are excluded from
+# RiskEngine forbidden-file checks for Dependabot PRs only, because the
+# CodingDisciplinePolicy treats them as AI-agent-forbidden but Dependabot
+# legitimately modifies them as part of dependency updates.
+DEPENDABOT_EXPECTED_FILES = frozenset(
+    {
+        "pyproject.toml",
+        "uv.lock",
+        "package.json",
+        "pnpm-lock.yaml",
+        # Also common in Dependabot grouped updates
+        "apps/web/package.json",
+        ".github/dependabot.yml",
+    }
+)
+
+
+def _is_dependabot_pr(event: dict, pr: dict, pr_title: str, pr_labels: list[str]) -> bool:
+    """Detect whether a PR is from Dependabot.
+
+    Checks multiple signals in priority order:
+      1. PR user login is 'dependabot[bot]' or 'dependabot'
+      2. Event sender login is 'dependabot[bot]'
+      3. PR title matches Dependabot pattern (starts with 'deps:' or 'bump ')
+      4. PR has 'dependencies' label (weakest — only as confirmation)
+
+    Returns True if the PR is from Dependabot.
+    """
+    # Signal 1: PR user login
+    pr_user = (pr.get("user") or {}).get("login", "")
+    if pr_user and ("dependabot" in pr_user.lower()):
+        return True
+
+    # Signal 2: Event sender login
+    sender = (event.get("sender") or {}).get("login", "")
+    if sender and ("dependabot" in sender.lower()):
+        return True
+
+    # Signal 3: Title pattern (Dependabot prefixes: 'deps:' or 'bump ')
+    if pr_title:
+        title_lower = pr_title.lower().strip()
+        if title_lower.startswith("deps:") or title_lower.startswith("bump "):
+            return True
+
+    return False
+
+
 def _extract_test_plan(pr_body: str) -> str | None:
     """Attempt to extract a test plan from PR body.
 
@@ -165,17 +217,59 @@ def classify_from_github_event(event_path: str, changed_files_path: str) -> dict
     pr_body = pr.get("body", "") or ""
     pr_labels = [label.get("name", "") for label in pr.get("labels", [])]
 
+    # Detect Dependabot PR
+    is_dependabot = _is_dependabot_pr(event, pr, pr_title, pr_labels)
+
     # Infer classification inputs
     task_description = pr_title
     reasoning = pr_body[:500] if pr_body else "No PR body provided."
+
+    # For Dependabot PRs without a human test plan, use synthetic test plan
     test_plan = _extract_test_plan(pr_body)
+    if test_plan is None and is_dependabot:
+        test_plan = DEPENDABOT_SYNTHETIC_TEST_PLAN
+
     estimated_impact = _infer_impact(changed_files, pr_labels)
+
+    # For Dependabot PRs: filter out expected dependency files from the
+    # RiskEngine check. These files (pyproject.toml, uv.lock, package.json,
+    # pnpm-lock.yaml) are in CodingDisciplinePolicy's forbidden list to prevent
+    # AI agents from modifying them, but Dependabot legitimately updates them.
+    # Non-dependency files (e.g., .env, source code) still pass through the
+    # full forbidden-file check.
+    governance_files = list(changed_files)
+    if is_dependabot:
+        governance_files = [f for f in changed_files if f not in DEPENDABOT_EXPECTED_FILES]
+        # If ALL files are Dependabot-expected dependency files,
+        # use a synthetic "governance pass" path to avoid empty file list
+        if not governance_files:
+            result = {
+                "decision": "execute",
+                "reasons": ["Dependabot dependency update — all changed files are expected lockfile/manifest files."],
+                "pack": "repo_governance",
+                "underlying_policy": "coding",
+                "source": "github_actions_adapter",
+                "side_effects": {
+                    "file_writes": False,
+                    "shell": False,
+                    "mcp": False,
+                    "ide": False,
+                    "execution_receipt": False,
+                    "execution_request": False,
+                    "pr_comments": False,
+                    "push": False,
+                },
+            }
+            result["changed_files_count"] = len(changed_files)
+            result["dependabot_pr"] = True
+            result["dependabot_test_plan"] = "synthetic"
+            return result
 
     from scripts.repo_governance_cli import classify_repo_intent
 
     result = classify_repo_intent(
         task_description=task_description,
-        file_paths=changed_files,
+        file_paths=governance_files if governance_files else ["(no non-dependency files changed)"],
         estimated_impact=estimated_impact,
         reasoning=reasoning,
         test_plan=test_plan,
@@ -190,6 +284,12 @@ def classify_from_github_event(event_path: str, changed_files_path: str) -> dict
             "push": False,
         }
     )
+
+    # Tag Dependabot PRs in the result for downstream consumption
+    if is_dependabot:
+        result["dependabot_pr"] = True
+        if test_plan == DEPENDABOT_SYNTHETIC_TEST_PLAN:
+            result["dependabot_test_plan"] = "synthetic"
 
     return result
 

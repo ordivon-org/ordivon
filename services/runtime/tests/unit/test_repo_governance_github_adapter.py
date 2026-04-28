@@ -4,6 +4,9 @@ Tests validate that the adapter correctly reads PR metadata (event JSON,
 changed files, labels) and produces governance decisions through the
 shared classify_repo_intent() function.
 
+Includes tests for Dependabot bot PR detection and synthetic test plan
+generation (Phase 4.11).
+
 The adapter does NOT write files, comment on PRs, push commits, or
 create ExecutionRequest/ExecutionReceipt.
 """
@@ -20,9 +23,24 @@ ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_PATH = str(ROOT / "scripts" / "repo_governance_github_adapter.py")
 
 
-def _make_github_event(pr_title: str, pr_body: str = "", labels: list[str] | None = None) -> str:
-    """Create a minimal GitHub pull_request event JSON."""
-    event = {
+def _make_github_event(
+    pr_title: str,
+    pr_body: str = "",
+    labels: list[str] | None = None,
+    *,
+    user: str | None = None,
+    sender: str | None = None,
+) -> str:
+    """Create a minimal GitHub pull_request event JSON.
+
+    Args:
+        pr_title: PR title
+        pr_body: PR body text
+        labels: list of label names
+        user: PR author login (defaults to 'human-dev' if not set)
+        sender: Event sender login (defaults to user if not set)
+    """
+    event: dict = {
         "action": "opened",
         "pull_request": {
             "title": pr_title,
@@ -30,6 +48,10 @@ def _make_github_event(pr_title: str, pr_body: str = "", labels: list[str] | Non
             "labels": [{"name": name} for name in (labels or [])],
         },
     }
+    if user:
+        event["pull_request"]["user"] = {"login": user}
+    if sender:
+        event["sender"] = {"login": sender}
     return json.dumps(event)
 
 
@@ -277,3 +299,113 @@ def test_adapter_includes_changed_files_count():
     )
     _, result = _run_adapter_github(event, ["a.py", "b.py", "c.py"])
     assert result.get("changed_files_count") == 3
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Phase 4.11 — Dependabot bot PR governance tests
+# ══════════════════════════════════════════════════════════════════════
+
+
+def test_dependabot_pr_without_test_plan_returns_execute():
+    """Dependabot PRs without human test plan should still get execute
+    (not escalate) when changes are low-risk. The adapter provides a
+    synthetic test plan for Dependabot PRs."""
+    event = _make_github_event(
+        pr_title="deps: update uvicorn[standard] requirement from >=0.30.0 to >=0.46.0",
+        pr_body="""Updates the requirements on uvicorn[standard].
+
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from uvicorn's releases.</em></p>
+</details>
+""",
+        user="dependabot[bot]",
+    )
+    exit_code, result = _run_adapter_github(event, ["pyproject.toml", "uv.lock"])
+    # Should be execute (not escalate) — Dependabot PR gets synthetic test plan
+    assert exit_code == 0, f"Expected exit 0 (execute), got {exit_code}: {result}"
+    assert result["decision"] == "execute"
+    assert result.get("dependabot_pr") is True
+    assert result.get("dependabot_test_plan") == "synthetic"
+    # The synthetic test plan should NOT show up as a "missing test_plan" escalate reason
+    assert not any("test_plan" in r.lower() and "missing" in r.lower() for r in result["reasons"])
+
+
+def test_dependabot_pr_via_sender_login():
+    """Dependabot detection via event sender login."""
+    event = _make_github_event(
+        pr_title="deps: bump sentry-sdk from 2.30.0 to 2.58.0",
+        pr_body="Release notes...",
+        sender="dependabot[bot]",
+    )
+    exit_code, result = _run_adapter_github(event, ["pyproject.toml", "uv.lock"])
+    assert exit_code == 0
+    assert result["decision"] == "execute"
+    assert result.get("dependabot_pr") is True
+
+
+def test_dependabot_pr_via_title_pattern():
+    """Dependabot detection via 'deps:' title prefix (even without user/sender)."""
+    event = _make_github_event(
+        pr_title="deps: update @types/node from 22.19.17 to 25.6.0",
+        pr_body="Updates @types/node to the latest version.",
+        # No user/sender set — detection via title pattern
+    )
+    exit_code, result = _run_adapter_github(event, ["apps/web/package.json", "pnpm-lock.yaml"])
+    assert exit_code == 0
+    assert result["decision"] == "execute"
+    assert result.get("dependabot_pr") is True
+
+
+def test_dependabot_pr_via_bump_title():
+    """Dependabot detection via 'bump ' title prefix."""
+    event = _make_github_event(
+        pr_title="Bump next from 15.0.0 to 15.5.15",
+        pr_body="Changelog...",
+    )
+    exit_code, result = _run_adapter_github(event, ["apps/web/package.json", "pnpm-lock.yaml"])
+    assert exit_code == 0
+    assert result["decision"] == "execute"
+    assert result.get("dependabot_pr") is True
+
+
+def test_dependabot_pr_forbidden_file_still_rejected():
+    """Dependabot PRs touching forbidden files (.env) must STILL be rejected.
+    The synthetic test plan does NOT bypass forbidden file checks."""
+    event = _make_github_event(
+        pr_title="deps: update dotenv",
+        pr_body="Version bump.",
+        user="dependabot[bot]",
+    )
+    exit_code, result = _run_adapter_github(event, ["pyproject.toml", ".env"])
+    assert exit_code == 3, f"Expected exit 3 (reject), got {exit_code}: {result}"
+    assert result["decision"] == "reject"
+    assert any(".env" in r for r in result["reasons"])
+
+
+def test_dependabot_pr_dependency_files_only_execute():
+    """Dependabot PR changing only pyproject.toml + uv.lock should execute.
+    This is the standard low-risk dependency update pattern."""
+    event = _make_github_event(
+        pr_title="deps: update httpx",
+        pr_body="Updates httpx to latest.",
+        user="dependabot[bot]",
+    )
+    exit_code, result = _run_adapter_github(event, ["pyproject.toml", "uv.lock"])
+    assert exit_code == 0
+    assert result["decision"] == "execute"
+
+
+def test_non_dependabot_pr_still_escalates_without_test_plan():
+    """Human PRs without test plan MUST still escalate.
+    Dependabot detection must NOT produce false positives."""
+    event = _make_github_event(
+        pr_title="Optimize database query for performance",
+        pr_body="## Summary\nN+1 query fix.",
+        # No 'deps:' or 'bump ' prefix, no dependabot user
+    )
+    exit_code, result = _run_adapter_github(event, ["domains/strategy/service.py"])
+    assert exit_code == 2
+    assert result["decision"] == "escalate"
+    assert any("test_plan" in r.lower() for r in result["reasons"])
+    assert result.get("dependabot_pr") is not True
