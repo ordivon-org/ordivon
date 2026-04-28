@@ -137,12 +137,19 @@ For each real P0 console:
 
 ## 7. Phase 6C Readiness
 
-- [ ] Console Shell implemented with Design Tokens
-- [ ] Left Navigation with layer grouping
+Before any UI implementation:
+
+- [ ] Design System Architecture stable (design-system-architecture.md)
+- [ ] Token taxonomy complete (design-token-spec.md)
+- [ ] Governance component taxonomy complete (governance-component-spec.md)
+- [ ] Primitive strategy selected (component-primitive-strategy.md) — Radix UI primary
+- [ ] Console Shell layout defined with Design Tokens
+- [ ] Left Navigation with layer grouping implemented
 - [ ] Top Status Bar with actor + freshness + notifications
 - [ ] All 8 P0 badge components implemented
-- [ ] AdvisoryBoundaryBanner implemented
-- [ ] PreviewDataBanner implemented
-- [ ] HighRiskActionButton with confirmation dialog
+- [ ] AdvisoryBoundaryBanner implemented and mandatory on Policy surfaces
+- [ ] PreviewDataBanner implemented and mandatory on preview surfaces
+- [ ] HighRiskActionButton with confirmation dialog implemented
 - [ ] Shadow Policy Workbench skeleton with safety labels
 - [ ] active_enforced disabled everywhere with reason text
+- [ ] Component workbench (Storybook) available for governance state documentation
