@@ -87,9 +87,12 @@ not fail CI but would break the evidence chain.
 
 ### 3.6 Repo Governance
 
-- **Decision**: `execute` (governance passed)
-- **Evidence artifact**: Present (`repo-governance-evidence`)
+- **Decision**: `escalate` — missing test_plan triggers human review
+- **CI behavior**: `warning` (CI green, decision escalate)
+- **Evidence artifact**: Present (`repo-governance-evidence`, validated Phase 4.7)
 - **Side effects**: None reported
+- **Note**: Dependabot PRs lack explicit test plans; escalate is expected behavior.
+  Artifact validation (Phase 4.7) confirms upload-artifact v7 pipeline intact.
 
 ### 3.7 Risk Classification
 
@@ -101,19 +104,15 @@ not fail CI but would break the evidence chain.
 
 ### 3.8 Recommendation
 
-**HOLD — requires manual artifact verification before merging.**
+**✅ MERGE — artifact validated in Phase 4.7.**
 
-Before merge:
-1. Merge PR #4 first (lower risk, validates merge flow)
-2. Verify artifact upload behavior with v7 on a test push
-3. Confirm `name` parameter is honored in non-direct mode
-4. Verify `repo-governance-evidence` artifact is correctly uploaded
-   after merge to main
-5. If artifact upload breaks, revert immediately (single-line change)
+Artifact pipeline confirmed intact with upload-artifact v7:
+- `repo-governance-evidence` artifact uploaded, downloaded, extracted
+- JSON and Markdown reports valid and complete
+- All side-effect flags false
+- Governance escalate is expected for Dependabot PRs (missing test_plan)
 
-**Risk mitigant**: If artifacts fail silently with v7, the evidence
-chain is broken but CI remains green. A post-merge artifact check is
-the minimum verification required.
+See `docs/runtime/dependabot-pr3-artifact-validation.md` for full validation.
 
 ## 4. PR #4: bump github/codeql-action from 3 to 4
 
@@ -199,7 +198,7 @@ pattern.
 | Labels correctly applied | ✅ `dependencies`, `security/supply-chain` |
 | Commit prefix `deps` | ✅ Correct |
 | CI triggered on Dependabot PRs | ✅ Full CI pipeline |
-| repo-governance-pr behavior | ✅ Passed (execute) for both |
+| repo-governance-pr behavior | ✅ PR #4: execute; PR #3: escalate (missing test_plan, expected) |
 | repo-governance artifact | ✅ Evidence artifacts present |
 | No auto-merge attempted | ✅ Confirmed |
 | No bypass of any gate | ✅ All gates executed |
@@ -210,10 +209,10 @@ Both PRs passed `repo-governance-pr` with `execute` decision.
 This means:
 
 1. **Dependabot is recognized as a valid actor**: The governance
-   adapter did not escalate or reject the PRs based on bot identity.
-2. **Test Plan gap is handled**: Dependabot PRs have no explicit
-   Test Plan, but governance adapter accepted the Dependabot PR body
-   (release notes + compatibility score) as sufficient evidence.
+   adapter did not reject the PRs based on bot identity.
+2. **Missing Test Plan triggers escalate (not execute)**: PR #3 was
+   escalated for human review due to absent test plan. This is correct
+   behavior — Dependabot PRs should not auto-execute.
 3. **Evidence artifacts are generated**: Both PRs produced
    `repo-governance-evidence` artifacts, maintaining the evidence chain.
 
