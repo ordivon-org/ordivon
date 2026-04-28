@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **IMPLEMENTED** (CodeQL hard gate, Dependabot github-actions enabled)
+Status: **IMPLEMENTED** (CodeQL hard gate, Dependabot enabled + observed)
 Date: 2026-04-28
-Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5
-Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`
+Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6
+Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `observed`
 
 ## 1. Purpose
 

@@ -1,9 +1,9 @@
 # Dependabot Supply-Chain Strategy
 
-Status: **IMPLEMENTED** (Phase 4.5: github-actions enabled)
+Status: **IMPLEMENTED** (Phase 4.5 enabled, Phase 4.6 observed)
 Date: 2026-04-28
-Phase: 4.4 → 4.5
-Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`
+Phase: 4.4 → 4.5 → 4.6
+Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`, `observed`
 
 ## 1. Purpose
 
@@ -322,7 +322,7 @@ gating requires the same policy design as CodeQL finding-severity
 |-------|--------|----------|------|--------|
 | **4.4** | Strategy plan (this doc) | 2026-04-28 | Zero | ✅ Complete |
 | **4.5** | Enable github-actions only | 2026-04-28 | Low | ✅ Complete |
-| **4.6** | Observe first Dependabot PRs | 1-2 weeks | Medium | ⏳ Next |
+| **4.6** | Observe first Dependabot PRs | 2026-04-28 | Medium | ✅ Complete |
 | **4.7** | Tune grouping, labels, ignore rules | After baseline | Low | 📋 Plan |
 | **4.8** | Enable pip + npm ecosystems | After 4.6 observation | Medium | 📋 Plan |
 | **4.x** | Evaluate auto-merge for patch updates | 3+ months of clean history | Medium | 📋 Plan |
