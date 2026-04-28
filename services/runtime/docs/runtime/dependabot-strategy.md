@@ -1,9 +1,9 @@
 # Dependabot Supply-Chain Strategy
 
-Status: **ACTIVE** (Phase 4.9 — Python/uv minimal enablement)
+Status: **ACTIVE** (Phase 4.11 — Dependabot bot governance + PR triage)
 Date: 2026-04-29
-Phase: 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9
-Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`, `observed`, `uv`, `pnpm`, `uv-enabled`
+Phase: 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9 → 4.10 → 4.11
+Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `enabled`, `github-actions`, `uv`, `pnpm`, `governance`, `triage`
 
 ## 1. Purpose
 
@@ -271,10 +271,10 @@ They are maintenance, not incident response.
 ## 9. Proposed dependabot.yml v2 (Draft — Not Deployed)
 
 ```yaml
-# Draft: .github/dependabot.yml v2 (Phase 4.9 DEPLOYED — uv ecosystem now active)
+# Draft: .github/dependabot.yml v2 (Phase 4.10 DEPLOYED — all 3 ecosystems active)
 #
-# The uv ecosystem is now enabled alongside github-actions.
-# npm is still deferred to Phase 4.11.
+# github-actions + uv + npm (pnpm adapter) are now enabled.
+# bun is deferred.
 
 version: 2
 updates:
@@ -392,10 +392,9 @@ updates:
 | **4.6** | Observe first Dependabot PRs | 2026-04-28 | Medium | ✅ Complete |
 | **4.7** | Tune grouping, labels, ignore rules | 2026-04-28 | Low | ✅ Complete |
 | **4.8** | **uv/pnpm strategy refinement** | 2026-04-29 | Low | ✅ Complete |
-| **4.9** | **Enable Python/uv minimal config** | 2026-04-29 | Medium | ▶️ Current |
-| **4.10** | Observe first Python/uv Dependabot PR | After 4.9 deploy | Medium | 📋 Plan |
-| **4.11** | Enable Node/pnpm minimal config | After 4.10 observation | Medium | 📋 Plan |
-| **4.12** | Observe first Node/pnpm Dependabot PR | After 4.11 deploy | Medium | 📋 Plan |
+| **4.9** | Enable Python/uv minimal config | 2026-04-29 | Medium | ✅ Complete |
+| **4.10** | **Enable Node/pnpm minimal config** | 2026-04-29 | Medium | ▶️ Current |
+| **4.11** | Observe first Node/pnpm Dependabot PR | After 4.10 deploy | Medium | 📋 Plan |
 | **4.x** | Evaluate auto-merge for patch updates | 3+ months of clean history | Medium | 📋 Plan |
 
 ### Phase 4.8: uv/pnpm Strategy Refinement (Complete)
@@ -408,21 +407,32 @@ updates:
 - Defined phased rollout order: uv first, then npm
 - Established governance rules for future enablement
 
-### Phase 4.9: Python/uv Minimal Enablement (This Phase)
+### Phase 4.9: Python/uv Minimal Enablement (Complete)
 
-**What is deployed:**
+**What was deployed:**
 - `.github/dependabot.yml` updated: `package-ecosystem: uv` added
 - Schedule: weekly Monday 09:00 Asia/Shanghai
 - Open PR limit: 2 per ecosystem
 - Labels: `dependencies`, `security/supply-chain`, `python`
 - Commit prefix: `deps`
-- GitHub Actions ecosystem unchanged (still active)
+- GitHub Actions ecosystem unchanged
+- Config accepted by GitHub; no uv PR generated yet (no-update baseline)
+
+### Phase 4.10: Node/pnpm Minimal Enablement (This Phase)
+
+**What is deployed:**
+- `.github/dependabot.yml` updated: `package-ecosystem: npm` added
+- Schedule: weekly Monday 09:00 Asia/Shanghai
+- Open PR limit: 2 per ecosystem
+- Labels: `dependencies`, `security/supply-chain`, `node`, `pnpm`
+- Commit prefix: `deps`
+- GitHub Actions + uv ecosystems unchanged
 
 **What is NOT deployed:**
-- No npm/pnpm ecosystem
 - No bun ecosystem
 - No auto-merge
 - No grouping configuration (baseline observation first)
+- npm key is GitHub Node.js adapter — pnpm remains execution truth
 
 ### Phase 4.4–4.7: Completed (GitHub Actions Baseline)
 
@@ -510,22 +520,23 @@ These rules apply to all future Dependabot ecosystem enablement phases
 | 7 | **Ecosystem key ≠ tool recommendation** | The Dependabot `package-ecosystem` key is an upstream adapter. Project toolchain (`uv`, `pnpm`) remains authoritative. |
 | 8 | **pip and npm CLI are not project entry points** | No workflow, script, or CI job should use `pip install` or `npm install` as the primary dependency command. `uv` and `pnpm` are the T0 tools. |
 
-## 13. Non-Goals (Phase 4.9)
+## 13. Non-Goals (Phase 4.10)
 
 Per Ordivon governance:
 
-- ❌ No npm/pnpm ecosystem enabled
 - ❌ No bun ecosystem enabled
 - ❌ No auto-merge
 - ❌ No pyproject.toml changes
-- ❌ No uv.lock changes (this phase — Dependabot may modify it in future PRs)
-- ❌ No package.json / pnpm-lock.yaml changes
+- ❌ No uv.lock changes (this phase)
+- ❌ No package.json changes (this phase)
+- ❌ No pnpm-lock.yaml changes (this phase — Dependabot may modify it in future PRs)
 - ❌ No CI workflow changes
 - ❌ No source code changes
 - ❌ No test changes
 - ❌ No PR comment / Checks API integration
 - ❌ No CandidateRule or PolicyProposal creation
 - ❌ No grouping configuration (baseline first)
+- ❌ npm key is NOT a directive to use `npm install` — pnpm is the execution truth
 
 ## 14. Related Documents
 

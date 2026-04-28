@@ -7,6 +7,7 @@ Operational guides and prompt patterns for Ordivon development.
 | Document | Purpose |
 |----------|---------|
 | [prompt-patterns.md](prompt-patterns.md) | **Ordivon Prompt Patterns** — task templates for audit, fix, feature, generalization, dogfood, reflection |
+| [ordivon-agent-operating-doctrine.md](ordivon-agent-operating-doctrine.md) | **Agent Operating Doctrine** — long-term governance rules, evidence principles, actor trust model, and self-check for any IDE/AI agent working on Ordivon |
 
 ## Operations
 
