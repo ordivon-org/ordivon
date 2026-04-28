@@ -424,7 +424,15 @@ For future phases, owner may be a role (e.g., "security-owner",
 - Review checklist covers: problem, evidence, freshness, multi-incident, scope,
   false positive risk, rollback, shadow test, owner
 
-### Phase 5.5: First Shadow Policy Dogfood (complete)
+### Phase 5.7: First Shadow Policy Dogfood (complete)
+
+- ~~Dogfood the full Policy Platform path~~ → ✅ Complete
+  - Shadow policy candidate: "Trusted Dependabot dependency-only PRs..."
+  - `tests/unit/policies/test_dogfood.py` — 12 tests exercising full 5.2→5.6 path
+  - Dogfood cases: DF-005 (sentry-sdk), DF-006 (uvicorn), DF-008 (@types/node) → WOULD_RECOMMEND_MERGE
+  - DF-007 (React CI failure) → WOULD_HOLD, DF-STALE → WOULD_HOLD, DF-SPOOF → WOULD_ESCALATE
+  - Full path result: APPROVED_FOR_SHADOW (not active, not enforced)
+  - Policy state never mutated, no active_enforced created
 
 - ~~Shadow evaluation layer~~ → ✅ Complete
   - `domains/policies/shadow.py` — PolicyShadowCase, PolicyShadowResult, PolicyShadowEvaluator
