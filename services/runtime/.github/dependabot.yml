@@ -1,8 +1,7 @@
-# Dependabot configuration — Phase 4.9 uv minimal enablement.
+# Dependabot configuration — Phase 4.10 pnpm/npm minimal enablement.
 #
-# GitHub Actions (Phase 4.5) + Python/uv (Phase 4.9).
-# npm/pnpm and bun deferred to Phase 4.11+.
-# No auto-merge. All Dependabot PRs pass through normal CI gates
+# GitHub Actions (Phase 4.5) + Python/uv (Phase 4.9) + Node/pnpm (Phase 4.10).
+# bun deferred. No auto-merge. All Dependabot PRs pass through normal CI gates
 # including repo-governance-pr.
 #
 # See: docs/runtime/dependabot-strategy.md
@@ -35,5 +34,21 @@ updates:
       - dependencies
       - security/supply-chain
       - python
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - security/supply-chain
+      - node
+      - pnpm
     commit-message:
       prefix: deps
