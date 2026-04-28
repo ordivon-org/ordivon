@@ -23,7 +23,16 @@ Usage:
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
+
+# Ensure project root is on sys.path — needed when running as standalone script
+# (pytest handles this via pyproject.toml pythonpath setting)
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from sqlalchemy.orm import Session
 
 from domains.candidate_rules.orm import CandidateRuleORM  # noqa: E402

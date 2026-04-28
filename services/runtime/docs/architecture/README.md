@@ -36,6 +36,8 @@ Canonical architecture documentation for Ordivon / AegisOS / PFIOS.
 
 | Document | Purpose |
 |----------|---------|
+| [ordivon-platform-map.md](ordivon-platform-map.md) | **Ordivon Platform Map** — 9 platforms, responsibilities, promotion rules (Phase 3.4) |
+| [verification-platform.md](verification-platform.md) | **Verification Platform** — 10-layer gate classification, baseline runner (Phase 3.4) |
 | [core-pack-adapter-baseline.md](core-pack-adapter-baseline.md) | Core / Pack / Adapter baseline |
 | [core-primitives-spec-v1.md](core-primitives-spec-v1.md) | Core primitives spec v1 |
 | [adapter-boundary-spec-v1.md](adapter-boundary-spec-v1.md) | Adapter boundary rules |
