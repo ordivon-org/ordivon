@@ -1,6 +1,6 @@
 # Policy Platform Design — Activation Boundary
 
-Status: **PROPOSED** (Phase 5.1)
+Status: **CLOSED** (Phase 5.8 — Policy Platform Closure Review)
 Date: 2026-04-29
 Phase: 5.1
 Tags: `policy`, `design`, `activation`, `candidate-rule`, `lifecycle`, `governance`
