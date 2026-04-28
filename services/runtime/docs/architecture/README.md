@@ -6,6 +6,7 @@ Canonical architecture documentation for Ordivon / AegisOS / PFIOS.
 
 | Document | Purpose | Date |
 |----------|---------|------|
+| [ordivon-current-architecture.md](ordivon-current-architecture.md) | **Canonical Architecture Reference** — 10-layer model, maturity, Phase 3/4 boundaries (Phase 3C) | 2026-04-28 |
 | [architecture-baseline.md](architecture-baseline.md) | Canonical architecture baseline — **start here** | 2026-04-22 |
 | [LANGUAGE.md](LANGUAGE.md) | Shared architecture vocabulary | — |
 | [aegisos-working-identity.md](aegisos-working-identity.md) | Working naming convention | — |
