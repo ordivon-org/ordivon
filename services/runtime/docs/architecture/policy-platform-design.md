@@ -413,14 +413,18 @@ For future phases, owner may be a role (e.g., "security-owner",
 - ~~Bridge PolicyProposal → Policy activation~~ → Deferred to Phase 5.4 (activation pipeline)
 - ~~Tests: missing-evidence rejection, missing-reviewer rejection~~ → Covered in 5.2-P (PolicyRecord invariants)
 
-### Phase 5.4: Policy Registry (next)
+### Phase 5.4: Policy Evidence Gate + Review Checklist (complete)
 
-### Phase 5.4: Policy Registry
+- ~~Implement PolicyEvidenceGate~~ → ✅ Complete
+  - `domains/policies/evidence_gate.py` — ReadinessLevel (NOT_READY / READY_FOR_REVIEW / READY_FOR_SHADOW / READY_FOR_ACTIVATION)
+  - PolicyReviewChecklist with 9 structured questions
+  - `tests/unit/policies/test_evidence_gate.py` — 23 tests
+- Evidence gate validates: evidence existence, ref_types, freshness, scope, risk,
+  weak solo evidence, learning loop lineage, owner, rollback_plan
+- Review checklist covers: problem, evidence, freshness, multi-incident, scope,
+  false positive risk, rollback, shadow test, owner
 
-- Runtime policy registry that loads active Policies
-- Integration point with RiskEngine (RiskEngine reads active Policies)
-- Policy conflict resolution (§8.2)
-- Tests: registry loads correct Policies, conflicting Policies escalate
+### Phase 5.5: First Shadow Policy Dogfood (next)
 
 ### Phase 5.5: First Shadow Policy Dogfood
 
