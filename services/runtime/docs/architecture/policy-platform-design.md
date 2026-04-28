@@ -391,12 +391,17 @@ For future phases, owner may be a role (e.g., "security-owner",
 - Review and approval by Stage Summit stakeholders
 - Resolution of open design questions (§9)
 
-### Phase 5.2: Policy Entity + State Machine
+### Phase 5.2: Policy Entity + State Machine (complete)
 
-- Create `Policy` dataclass or ORM entity with state machine
-- Implement state transitions as defined in §6
-- Add rollback mechanism (state transition to `rolled_back`)
-- Tests: all valid transitions, all forbidden transitions, rollback → reactivate path
+- ~~Create `Policy` dataclass or ORM entity with state machine~~ → ✅ Complete
+  - `domains/policies/models.py` — PolicyRecord, PolicyScope, PolicyState, PolicyRisk, PolicyEvidenceRef, PolicyRollbackPlan, PolicyOwner
+  - `domains/policies/state_machine.py` — PolicyStateMachine with transition guards
+  - `tests/unit/policies/test_policy_state_machine.py` — 36 tests covering all transitions, guards, terminal states, and pure model validation
+- ~~Implement state transitions as defined in §6~~ → ✅ Complete
+- ~~Add rollback mechanism~~ → ✅ Complete
+- ~~Tests: all valid transitions, all forbidden transitions, rollback → reactivate path~~ → ✅ Complete
+
+### Phase 5.3: Activation Pipeline (next)
 
 ### Phase 5.3: Activation Pipeline
 
@@ -412,7 +417,7 @@ For future phases, owner may be a role (e.g., "security-owner",
 - Policy conflict resolution (§8.2)
 - Tests: registry loads correct Policies, conflicting Policies escalate
 
-### Phase 5.5: First Real Activation
+### Phase 5.5: First Shadow Policy Dogfood
 
 - Select one real CandidateRule from operational data
 - Run it through the full lifecycle: draft → review → accepted → proposal → activation
