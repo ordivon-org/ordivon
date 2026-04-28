@@ -88,15 +88,21 @@ DEPENDABOT_EXPECTED_FILES = frozenset(
 def _is_dependabot_pr(event: dict, pr: dict, pr_title: str, pr_labels: list[str]) -> bool:
     """Detect whether a PR is from Dependabot.
 
-    Checks multiple signals in priority order:
-      1. PR user login is 'dependabot[bot]' or 'dependabot'
-      2. Event sender login is 'dependabot[bot]'
-      3. PR title matches Dependabot pattern (starts with 'deps:' or 'bump ')
-      4. PR has 'dependencies' label (weakest — only as confirmation)
+    Trusts ONLY GitHub actor metadata. Title/body patterns are NOT used
+    because they can be spoofed by human PRs. The synthetic test_plan
+    is only injected for PRs with a verified Dependabot identity.
 
-    Returns True if the PR is from Dependabot.
+    Trusted signals (any one is sufficient):
+      1. pr.user.login is 'dependabot[bot]' (preferred)
+      2. event.sender.login is 'dependabot[bot]' (fallback)
+
+    Rejected signals (NOT used — insecure):
+      - PR title starting with 'deps:' or 'bump '
+      - PR body content
+      - 'dependencies' label
+      - Branch name pattern
     """
-    # Signal 1: PR user login
+    # Signal 1: PR user login (strongest)
     pr_user = (pr.get("user") or {}).get("login", "")
     if pr_user and ("dependabot" in pr_user.lower()):
         return True
@@ -105,12 +111,6 @@ def _is_dependabot_pr(event: dict, pr: dict, pr_title: str, pr_labels: list[str]
     sender = (event.get("sender") or {}).get("login", "")
     if sender and ("dependabot" in sender.lower()):
         return True
-
-    # Signal 3: Title pattern (Dependabot prefixes: 'deps:' or 'bump ')
-    if pr_title:
-        title_lower = pr_title.lower().strip()
-        if title_lower.startswith("deps:") or title_lower.startswith("bump "):
-            return True
 
     return False
 

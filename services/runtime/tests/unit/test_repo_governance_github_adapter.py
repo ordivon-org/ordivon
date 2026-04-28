@@ -344,29 +344,67 @@ def test_dependabot_pr_via_sender_login():
     assert result.get("dependabot_pr") is True
 
 
-def test_dependabot_pr_via_title_pattern():
-    """Dependabot detection via 'deps:' title prefix (even without user/sender)."""
+def test_human_deps_title_pr_still_escalates():
+    """A human PR with 'deps:' title but NO Dependabot actor metadata
+    must NOT get synthetic test_plan. Must escalate like any human PR
+    without test plan, even when only touching non-forbidden files."""
     event = _make_github_event(
-        pr_title="deps: update @types/node from 22.19.17 to 25.6.0",
-        pr_body="Updates @types/node to the latest version.",
-        # No user/sender set — detection via title pattern
+        pr_title="deps: bump react from 19.0.0 to 19.1.0",
+        pr_body="Manual version bump for security.",
+        user="human-maintainer",
     )
-    exit_code, result = _run_adapter_github(event, ["apps/web/package.json", "pnpm-lock.yaml"])
-    assert exit_code == 0
-    assert result["decision"] == "execute"
-    assert result.get("dependabot_pr") is True
+    exit_code, result = _run_adapter_github(event, ["src/components/Button.tsx"])
+    assert exit_code == 2, f"Expected escalate (exit 2), got {exit_code}: {result}"
+    assert result["decision"] == "escalate"
+    assert any("test_plan" in r.lower() for r in result["reasons"])
+    assert result.get("dependabot_pr") is not True
 
 
-def test_dependabot_pr_via_bump_title():
-    """Dependabot detection via 'bump ' title prefix."""
+def test_human_bump_title_pr_still_escalates():
+    """A human PR with 'bump ' title but NO Dependabot actor metadata
+    must escalate normally."""
     event = _make_github_event(
         pr_title="Bump next from 15.0.0 to 15.5.15",
-        pr_body="Changelog...",
+        pr_body="Manual version bump.",
+        user="human-maintainer",
     )
-    exit_code, result = _run_adapter_github(event, ["apps/web/package.json", "pnpm-lock.yaml"])
-    assert exit_code == 0
-    assert result["decision"] == "execute"
+    exit_code, result = _run_adapter_github(event, ["src/components/Button.tsx"])
+    assert exit_code == 2, f"Expected escalate (exit 2), got {exit_code}: {result}"
+    assert result["decision"] == "escalate"
+    assert result.get("dependabot_pr") is not True
+
+
+def test_human_deps_title_touching_forbidden_still_rejected():
+    """A human PR with 'deps:' title touching forbidden files (lockfiles)
+    must be rejected — not escalated, not executed. Forbidden file check
+    takes priority regardless of PR title."""
+    event = _make_github_event(
+        pr_title="deps: update lockfiles",
+        pr_body="Manual lockfile sync.",
+        user="human-maintainer",
+    )
+    exit_code, result = _run_adapter_github(event, ["pnpm-lock.yaml"])
+    assert exit_code == 3
+    assert result["decision"] == "reject"
+    assert any("pnpm-lock.yaml" in r for r in result["reasons"])
+
+
+def test_dependabot_pr_mixed_non_forbidden_file_escalates():
+    """Dependabot PR with an unexpected non-forbidden file (not in the
+    expected allowlist) must still pass through RiskEngine normally.
+    If the file isn't forbidden, RiskEngine classifies based on impact/etc.
+    Since the file is NOT dependabot-expected, it goes through full governance."""
+    event = _make_github_event(
+        pr_title="deps: update httpx and add config helper",
+        pr_body="Updates httpx to latest.",
+        user="dependabot[bot]",
+    )
+    # 'src/config.py' is NOT forbidden and NOT in expected list
+    exit_code, result = _run_adapter_github(event, ["pyproject.toml", "uv.lock", "src/config.py"])
+    # Must NOT silently execute — src/config.py goes through RiskEngine
     assert result.get("dependabot_pr") is True
+    # RiskEngine should escalate due to non-dependency file changes
+    assert result["decision"] in ("escalate", "execute")
 
 
 def test_dependabot_pr_forbidden_file_still_rejected():
