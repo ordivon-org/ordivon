@@ -204,20 +204,20 @@ def test_approved_cannot_jump_to_active_enforced():
 
 
 @pytest.mark.parametrize(
-    "terminal_state",
+    "terminal_state,extra_kwargs",
     [
-        PolicyState.DEPRECATED,
-        PolicyState.ROLLED_BACK,
-        PolicyState.REJECTED,
+        (PolicyState.DEPRECATED, {"deprecation_reason": "Test deprecation"}),
+        (PolicyState.ROLLED_BACK, {"rollback_reason": "Test rollback"}),
+        (PolicyState.REJECTED, {}),
     ],
 )
-def test_terminal_states_have_no_outgoing_transitions(terminal_state):
+def test_terminal_states_have_no_outgoing_transitions(terminal_state, extra_kwargs):
     """Terminal states should reject any transition attempt."""
     machine = PolicyStateMachine()
     for target in PolicyState:
         if target == terminal_state:
             continue
-        policy = _make_policy(state=terminal_state)
+        policy = _make_policy(state=terminal_state, **extra_kwargs)
         result = machine.transition(policy, target)
         assert not result.allowed, f"{terminal_state.value} → {target.value} should be rejected"
 
@@ -472,6 +472,153 @@ def test_transition_increments_version():
 
     result2 = machine.transition(result.new_policy, PolicyState.APPROVED)
     assert result2.new_policy.version == 3
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Phase 5.2-P — Direct Construction Invariant Tests
+# ══════════════════════════════════════════════════════════════════════
+
+
+def test_direct_construction_active_shadow_without_evidence_fails():
+    """Cannot directly construct ACTIVE_SHADOW without evidence_refs."""
+    with pytest.raises(ValueError, match="PolicyEvidenceRef"):
+        _make_policy(
+            state=PolicyState.ACTIVE_SHADOW,
+            owner=_make_owner(),
+            rollback_plan=_make_rollback_plan(),
+            # no evidence_refs
+        )
+
+
+def test_direct_construction_active_shadow_without_owner_fails():
+    """Cannot directly construct ACTIVE_SHADOW without owner."""
+    with pytest.raises(ValueError, match="PolicyOwner"):
+        _make_policy(
+            state=PolicyState.ACTIVE_SHADOW,
+            evidence_refs=(_make_evidence(),),
+            rollback_plan=_make_rollback_plan(),
+            # no owner
+        )
+
+
+def test_direct_construction_active_shadow_without_rollback_fails():
+    """Cannot directly construct ACTIVE_SHADOW without rollback_plan."""
+    with pytest.raises(ValueError, match="PolicyRollbackPlan"):
+        _make_policy(
+            state=PolicyState.ACTIVE_SHADOW,
+            evidence_refs=(_make_evidence(),),
+            owner=_make_owner(),
+            # no rollback_plan
+        )
+
+
+def test_direct_construction_active_enforced_without_evidence_fails():
+    """Cannot directly construct ACTIVE_ENFORCED without evidence_refs."""
+    with pytest.raises(ValueError, match="PolicyEvidenceRef"):
+        _make_policy(
+            state=PolicyState.ACTIVE_ENFORCED,
+            owner=_make_owner(),
+            rollback_plan=_make_rollback_plan(),
+        )
+
+
+def test_direct_construction_active_enforced_without_owner_fails():
+    """Cannot directly construct ACTIVE_ENFORCED without owner."""
+    with pytest.raises(ValueError, match="PolicyOwner"):
+        _make_policy(
+            state=PolicyState.ACTIVE_ENFORCED,
+            evidence_refs=(_make_evidence(),),
+            rollback_plan=_make_rollback_plan(),
+        )
+
+
+def test_direct_construction_active_enforced_without_rollback_fails():
+    """Cannot directly construct ACTIVE_ENFORCED without rollback_plan."""
+    with pytest.raises(ValueError, match="PolicyRollbackPlan"):
+        _make_policy(
+            state=PolicyState.ACTIVE_ENFORCED,
+            evidence_refs=(_make_evidence(),),
+            owner=_make_owner(),
+        )
+
+
+def test_direct_construction_rolled_back_without_reason_fails():
+    """Cannot directly construct ROLLED_BACK without rollback_reason."""
+    with pytest.raises(ValueError, match="rollback_reason"):
+        _make_policy(
+            state=PolicyState.ROLLED_BACK,
+            evidence_refs=(_make_evidence(),),
+            owner=_make_owner(),
+            rollback_plan=_make_rollback_plan(),
+            # no rollback_reason
+        )
+
+
+def test_direct_construction_deprecated_without_reason_fails():
+    """Cannot directly construct DEPRECATED without deprecation_reason."""
+    with pytest.raises(ValueError, match="deprecation_reason"):
+        _make_policy(
+            state=PolicyState.DEPRECATED,
+            evidence_refs=(_make_evidence(),),
+            owner=_make_owner(),
+            rollback_plan=_make_rollback_plan(),
+            # no deprecation_reason
+        )
+
+
+def test_direct_construction_valid_active_shadow_succeeds():
+    """Direct construction of ACTIVE_SHADOW with all required metadata should succeed."""
+    policy = _make_policy(
+        state=PolicyState.ACTIVE_SHADOW,
+        evidence_refs=(_make_evidence(),),
+        owner=_make_owner(),
+        rollback_plan=_make_rollback_plan(),
+    )
+    assert policy.state == PolicyState.ACTIVE_SHADOW
+
+
+def test_direct_construction_valid_rolled_back_succeeds():
+    """Direct construction of ROLLED_BACK with reason should succeed."""
+    policy = _make_policy(
+        state=PolicyState.ROLLED_BACK,
+        evidence_refs=(_make_evidence(),),
+        owner=_make_owner(),
+        rollback_plan=_make_rollback_plan(),
+        rollback_reason="Emergency rollback",
+    )
+    assert policy.state == PolicyState.ROLLED_BACK
+    assert policy.rollback_reason == "Emergency rollback"
+
+
+def test_direct_construction_valid_deprecated_succeeds():
+    """Direct construction of DEPRECATED with reason should succeed."""
+    policy = _make_policy(
+        state=PolicyState.DEPRECATED,
+        evidence_refs=(_make_evidence(),),
+        owner=_make_owner(),
+        rollback_plan=_make_rollback_plan(),
+        deprecation_reason="No longer needed",
+    )
+    assert policy.state == PolicyState.DEPRECATED
+    assert policy.deprecation_reason == "No longer needed"
+
+
+def test_direct_construction_draft_without_metadata_succeeds():
+    """Draft state without evidence/owner/rollback should still succeed
+    (these are only required for activation states)."""
+    policy = _make_policy(state=PolicyState.DRAFT)
+    assert policy.state == PolicyState.DRAFT
+
+
+def test_with_state_unchecked_still_works_for_state_machine():
+    """Verify _with_state_unchecked still creates new PolicyRecord.
+    The state machine uses this internally after validating transitions."""
+    machine = PolicyStateMachine()
+    policy = _make_policy(state=PolicyState.DRAFT)
+    result = machine.transition(policy, PolicyState.PROPOSED)
+    assert result.allowed
+    assert result.new_policy.state == PolicyState.PROPOSED
+    assert result.new_policy.version == 2
 
 
 def test_transition_preserves_predecessor():

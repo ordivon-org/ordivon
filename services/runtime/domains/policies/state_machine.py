@@ -15,10 +15,6 @@ from typing import Callable
 from domains.policies.models import (
     PolicyRecord,
     PolicyState,
-    PolicyRisk,
-    PolicyEvidenceRef,
-    PolicyRollbackPlan,
-    PolicyOwner,
 )
 
 
@@ -229,7 +225,7 @@ class PolicyStateMachine:
                 )
 
         # 4. Create new PolicyRecord with updated state
-        new_policy = policy.with_state(target, **overrides)
+        new_policy = policy._with_state_unchecked(target, **overrides)
         return TransitionResult(allowed=True, new_policy=new_policy)
 
     def can_transition(self, policy: PolicyRecord, target: PolicyState) -> bool:

@@ -163,10 +163,39 @@ class PolicyRecord:
         if not self.title.strip():
             raise ValueError("PolicyRecord requires title.")
 
-    def with_state(self, new_state: PolicyState, **overrides) -> PolicyRecord:
+        # ── State invariants (Phase 5.2-P hardening) ──────────────────
+        # These prevent direct construction of invalid active or terminal
+        # Policy states without the required metadata. Even if someone
+        # bypasses PolicyStateMachine, the value object itself rejects
+        # semantically invalid constructions.
+
+        _ACTIVATION_STATES = {PolicyState.ACTIVE_SHADOW, PolicyState.ACTIVE_ENFORCED}
+
+        if self.state in _ACTIVATION_STATES:
+            if not self.evidence_refs:
+                raise ValueError(f"PolicyRecord in state '{self.state.value}' requires at least one PolicyEvidenceRef.")
+            if self.owner is None:
+                raise ValueError(f"PolicyRecord in state '{self.state.value}' requires a PolicyOwner.")
+            if self.rollback_plan is None:
+                raise ValueError(f"PolicyRecord in state '{self.state.value}' requires a PolicyRollbackPlan.")
+
+        if self.state == PolicyState.ROLLED_BACK:
+            if not (self.rollback_reason or "").strip():
+                raise ValueError("PolicyRecord in state 'rolled_back' requires rollback_reason.")
+
+        if self.state == PolicyState.DEPRECATED:
+            if not (self.deprecation_reason or "").strip():
+                raise ValueError("PolicyRecord in state 'deprecated' requires deprecation_reason.")
+
+    def _with_state_unchecked(self, new_state: PolicyState, **overrides) -> PolicyRecord:
         """Return a new PolicyRecord with updated state and optional field overrides.
 
-        Does NOT validate state transitions — use PolicyStateMachine for that.
+        INTERNAL USE ONLY — does NOT validate state transitions.
+        Use PolicyStateMachine.transition() for validated transitions.
+
+        This method exists to allow the state machine to construct new
+        PolicyRecord instances during valid transitions. Direct callers
+        bypass all guards and should be avoided.
         """
         kwargs = {
             "policy_id": self.policy_id,
