@@ -29,6 +29,7 @@ Completed runtime baseline records, H-stage closure documents, and bridge specif
 | [runtime-evidence-baseline.md](runtime-evidence-baseline.md) | Runtime evidence checker baseline | 2026-04-28 |
 | [db-backed-runtime-evidence-audit.md](db-backed-runtime-evidence-audit.md) | DB-backed audit evidence | 2026-04-28 |
 | [eval-corpus-v1-plan.md](eval-corpus-v1-plan.md) | Eval Corpus v1 plan | 2026-04-28 |
+| [repo-governance-cli.md](repo-governance-cli.md) | Repo Governance CLI prototype | 2026-04-28 |
 
 ## CandidateRule & Policy
 
