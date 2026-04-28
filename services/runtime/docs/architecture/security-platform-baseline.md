@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **ACTIVE** (Phase 4.9 — Dependabot Python/uv enabled)
+Status: **ACTIVE** (Phase 4.10 — Dependabot pnpm/npm enabled)
 Date: 2026-04-29
-Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9
-Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `observed`, `uv`, `pnpm`, `uv-enabled`
+Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9 → 4.10
+Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `uv`, `pnpm`, `uv-enabled`, `pnpm-enabled`
 
 ## 1. Purpose
 
@@ -85,18 +85,18 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 
 | Property | Value |
 |----------|-------|
-| Status | ✅ Enabled — github-actions + uv (Phase 4.9); npm deferred to 4.11 |
+| Status | ✅ Enabled — github-actions + uv + npm/pnpm (Phase 4.10); bun deferred |
 | Config file | `.github/dependabot.yml` |
-| Enabled ecosystems | `github-actions`, `uv` |
-| Deferred ecosystems | `npm` (Phase 4.11), `bun` (not planned) |
+| Enabled ecosystems | `github-actions`, `uv`, `npm` (pnpm adapter) |
+| Deferred ecosystems | `bun` (not planned) |
 | Schedule | Weekly Monday 09:00 Asia/Shanghai |
 | Open PR limit | 2 per ecosystem |
 | Auto-merge | ❌ Disabled |
 | Gate class | **Advisory** — PRs pass normal CI gates; external actor under observation |
 | Python ecosystem key | `uv` — reflects uv as execution truth; uv.lock is governed lockfile |
-| Node ecosystem key | `npm` (deferred) — GitHub adapter for pnpm-lock.yaml |
+| Node ecosystem key | `npm` — GitHub Node.js adapter for pnpm-lock.yaml; pnpm is execution truth |
 | Bun | Not configured — `bun.lock` is not a governed lockfile |
-| Next phase | 4.10: Observe first Python/uv Dependabot PR |
+| Next phase | 4.11: Observe first Node/pnpm Dependabot PR |
 
 ## 4. Security Gate Classification
 
@@ -218,9 +218,8 @@ Security findings inform governance classification, not replace it.
 6. ~~Dependabot config + enable~~ → ✅ Complete (Phase 4.5, github-actions only)
 7. ~~Dependabot first PR observation~~ → ✅ Complete (Phase 4.6–4.7)
 8. ~~Dependabot uv/pnpm strategy refinement~~ → ✅ Complete (Phase 4.8)
-9. ~~Dependabot Python/uv minimal enablement~~ → ▶️ Current (Phase 4.9)
-10. Dependabot Python/uv first PR observation (Phase 4.10)
-11. Dependabot Node/pnpm minimal enablement (Phase 4.11)
-12. Dependabot Node/pnpm first PR observation (Phase 4.12)
-13. OpenSSF Scorecard as informational badge (Phase 4.x)
-14. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
+9. ~~Dependabot Python/uv minimal enablement~~ → ✅ Complete (Phase 4.9)
+10. ~~Dependabot Node/pnpm minimal enablement~~ → ▶️ Current (Phase 4.10)
+11. Dependabot Node/pnpm first PR observation (Phase 4.11)
+12. OpenSSF Scorecard as informational badge (Phase 4.x)
+13. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
