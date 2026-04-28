@@ -30,6 +30,7 @@ Canonical architecture documentation for Ordivon / AegisOS / PFIOS.
 | [ordivon-work-grammar.md](ordivon-work-grammar.md) | **Ordivon Work Grammar** — 12 rules, vocabulary, anti-bureaucracy guard |
 | [repo-governance-baseline.md](repo-governance-baseline.md) | **Repo Governance Baseline** — 12-layer reflexive governance matrix |
 | [prompt-patterns.md](../runbooks/prompt-patterns.md) | **Ordivon Prompt Patterns** — task templates for IDE/AI/audit/dogfood |
+| [repo-governance-pack-architecture.md](repo-governance-pack-architecture.md) | **Repo Governance Pack Architecture** — Phase 3 product wedge design |
 
 ## Platformization
 

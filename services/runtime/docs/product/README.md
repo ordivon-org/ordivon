@@ -1,16 +1,7 @@
 # Product Docs
 
-- [Experience State Spec](./experience-state-spec.md)
-- [Task Template System](./task-template-system.md)
-- [Module Definition Template v2](./module-definition-template-v2.md)
-- [AI Financial Assistant Roadmap](./ai-financial-assistant-roadmap.md)
-- [AegisOS Quality Matrix](./aegisos-quality-matrix.md)
-- Layer execution map: [docs/architecture/layer-module-inventory.md](../architecture/layer-module-inventory.md)
-- Active task cards: [docs/tasks/README.md](../tasks/README.md)
-- [Product Closure Master TODO](./product-closure-todo.md)
-- [Product Closure Report 2026-04-19](./product-closure-report-2026-04-19.md)
-- Capability boundary reference: [docs/architecture/capability-boundary-spec.md](../architecture/capability-boundary-spec.md)
+Product strategy and design documents for Ordivon.
 
-Use this directory for product-facing behavior, user journeys, feature scope, and operator expectations.
-
-Architecture explains how the system is built. Product docs explain what the system is supposed to do for the user.
+| Document | Purpose | Date |
+|----------|---------|------|
+| [repo-governance-pack.md](repo-governance-pack.md) | Repo Governance Pack product strategy | 2026-04-28 |

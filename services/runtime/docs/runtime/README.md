@@ -18,7 +18,24 @@ Completed runtime baseline records, H-stage closure documents, and bridge specif
 - **H-4**: DecisionIntake payloads are validated with discipline rules before reaching governance.
 - **H-5**: Governance hard gate enforces 12 rules: reject > escalate > execute priority.
 
-## Bridge Specifications
+## Evidence & Audit
+
+| Document | Purpose | Date |
+|----------|---------|------|
+| [h9-dogfood-protocol.md](h9-dogfood-protocol.md) | H-9 dogfood protocol | 2026-04-26 |
+| [h9-evidence-report.md](h9-evidence-report.md) | H-9 evidence report | 2026-04-26 |
+| [coding-pack-dogfood-evidence.md](coding-pack-dogfood-evidence.md) | Coding Pack 10-run evidence | 2026-04-28 |
+| [cross-pack-dogfood-evidence.md](cross-pack-dogfood-evidence.md) | Cross-Pack 20-run evidence | 2026-04-28 |
+| [runtime-evidence-baseline.md](runtime-evidence-baseline.md) | Runtime evidence checker baseline | 2026-04-28 |
+| [db-backed-runtime-evidence-audit.md](db-backed-runtime-evidence-audit.md) | DB-backed audit evidence | 2026-04-28 |
+| [eval-corpus-v1-plan.md](eval-corpus-v1-plan.md) | Eval Corpus v1 plan | 2026-04-28 |
+
+## CandidateRule & Policy
+
+| Document | Purpose | Date |
+|----------|---------|------|
+| [candidate-rule-review-path.md](candidate-rule-review-path.md) | CandidateRule human review path | 2026-04-28 |
+| [policy-proposal-path.md](policy-proposal-path.md) | PolicyProposal draft path | 2026-04-28 |
 
 - [Hermes Runtime Bridge Runbook](../runbooks/hermes-runtime-bridge.md) — operational runbook for the standalone bridge
 - [Hermes Model Layer Integration](../architecture/hermes-model-layer-integration.md) — pre-H-1 design doc (needs rewrite)
