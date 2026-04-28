@@ -31,6 +31,12 @@ Completed runtime baseline records, H-stage closure documents, and bridge specif
 | [eval-corpus-v1-plan.md](eval-corpus-v1-plan.md) | Eval Corpus v1 plan | 2026-04-28 |
 | [repo-governance-cli.md](repo-governance-cli.md) | Repo Governance CLI prototype | 2026-04-28 |
 
+## Verification Platform
+
+| Document | Purpose | Date |
+|----------|---------|------|
+| [verification-ci-gate-plan.md](verification-ci-gate-plan.md) | Verification Platform CI gate plan | 2026-04-28 |
+
 ## CandidateRule & Policy
 
 | Document | Purpose | Date |
