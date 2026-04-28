@@ -6,6 +6,6 @@ Design Pack governance, Ordivon application object, and UI console inventory.
 
 | Document | Purpose | Date |
 |----------|---------|------|
-| [design-pack-contract.md](design-pack-contract.md) | Design Pack governance contract — DesignIntent, DesignGovernanceDecision, lifecycle, boundaries | 2026-04-29 |
-| [ordivon-application-object.md](ordivon-application-object.md) | Ordivon as the first Design-Pack-governed Application Object — AppManifest, SurfaceRegistry, DataBindingMap, HighRiskActionMap | 2026-04-29 |
-| [ui-console-inventory.md](ui-console-inventory.md) | Complete 14-console inventory with maturity, priority, risks, and evidence labels | 2026-04-29 |
+| [design-system-baseline.md](design-system-baseline.md) | Design System Baseline — tokens, principles, layouts, light/dark strategy | 2026-04-29 |
+| [governance-ui-patterns.md](governance-ui-patterns.md) | Governance UI Pattern Library — 23 components, evidence display, Policy safety rules | 2026-04-29 |
+| [console-unification-plan.md](console-unification-plan.md) | Console Unification Plan — P0 specs, implementation order, readiness checklist | 2026-04-29 |
