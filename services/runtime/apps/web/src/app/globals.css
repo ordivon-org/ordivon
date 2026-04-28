@@ -28,6 +28,58 @@
   --table-row-height: 52px;
   --font-sans: "Segoe UI", "Inter", "Noto Sans SC", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+
+  /* ── Ordivon Governance Tokens (Phase 6C) ───────────────────── */
+  --ordivon-evidence-current: #35c99a;
+  --ordivon-evidence-current-bg: rgba(53, 201, 154, 0.15);
+  --ordivon-evidence-stale: #6d7f9e;
+  --ordivon-evidence-stale-bg: rgba(109, 127, 158, 0.10);
+  --ordivon-evidence-regenerated: #06b6d4;
+  --ordivon-evidence-regenerated-bg: rgba(6, 182, 212, 0.15);
+  --ordivon-evidence-missing: #4a5568;
+  --ordivon-evidence-missing-bg: rgba(74, 85, 104, 0.10);
+
+  --ordivon-policy-draft: #6d7f9e;
+  --ordivon-policy-proposed: #3b82f6;
+  --ordivon-policy-approved: #06b6d4;
+  --ordivon-policy-shadow: #7c93ff;
+  --ordivon-policy-shadow-bg: rgba(124, 147, 255, 0.15);
+  --ordivon-policy-enforced: #f36f6f;
+  --ordivon-policy-enforced-bg: rgba(243, 111, 111, 0.10);
+  --ordivon-policy-deprecated: #4a5568;
+  --ordivon-policy-rolled-back: #f5b94a;
+  --ordivon-policy-rejected: #f36f6f;
+
+  --ordivon-shadow-recommend: #35c99a;
+  --ordivon-shadow-execute: #35c99a;
+  --ordivon-shadow-escalate: #f5b94a;
+  --ordivon-shadow-hold: #f5b94a;
+  --ordivon-shadow-reject: #f36f6f;
+  --ordivon-shadow-no-match: #4a5568;
+
+  --ordivon-approval-shadow: #7c93ff;
+  --ordivon-approval-shadow-bg: rgba(124, 147, 255, 0.12);
+  --ordivon-approval-rejected: #f36f6f;
+  --ordivon-approval-needs: #f5b94a;
+  --ordivon-approval-deferred: #6d7f9e;
+
+  --ordivon-actor-human: #6d7f9e;
+  --ordivon-actor-dependabot: #3b82f6;
+  --ordivon-actor-workflow: #4a5568;
+  --ordivon-actor-ai-agent: #7c93ff;
+  --ordivon-actor-unknown: #f36f6f;
+
+  --ordivon-banner-advisory-bg: rgba(124, 147, 255, 0.08);
+  --ordivon-banner-advisory-border: #7c93ff;
+  --ordivon-banner-preview-bg: rgba(245, 185, 74, 0.08);
+  --ordivon-banner-preview-border: #f5b94a;
+
+  --ordivon-action-disabled-bg: rgba(109, 127, 158, 0.12);
+  --ordivon-action-disabled-text: #4a5568;
+
+  --ordivon-risk-low: #35c99a;
+  --ordivon-risk-medium: #f5b94a;
+  --ordivon-risk-high: #f36f6f;
 }
 
 html,
