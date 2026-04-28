@@ -194,33 +194,40 @@ If any of the following occur, stop CodeQL onboarding and report:
 - No Ordivon CandidateRule extraction from CodeQL alerts (future: Phase 5.x)
 - No connection to MCP/IDE/AI agent
 
-## 12. Phase 4.1 Remote Validation Checklist
+## 15. Phase 4.2 Triage Outcome
 
-After push, verify in GitHub Actions:
+Date: 2026-04-28
+Document: `docs/runtime/codeql-findings-triage.md`
 
-- [ ] CodeQL workflow triggered (push to main)
-- [ ] CodeQL workflow triggered (PR event, if applicable)
-- [ ] `python` analysis: init → analyze → upload success
-- [ ] `javascript-typescript` analysis: init → analyze → upload success
-- [ ] Permissions: `contents: read`, `security-events: write` (no broader)
-- [ ] No PR comment generated
-- [ ] No file modified
-- [ ] Security tab populated with SARIF results
-- [ ] `backend-static` still success
-- [ ] `verification-fast` still success
-- [ ] `secret-scan` still success
-- [ ] `repo-governance-pr` skipped on push event
+### Alert Summary
 
-## 13. Known Limitations (Phase 4.1)
+| State | Count |
+|-------|-------|
+| Open | 0 |
+| Dismissed | 0 |
+| Fixed | 0 |
 
-| Limitation | Impact | Follow-up |
-|-----------|--------|-----------|
-| Alert baseline unknown | Alerts may be noisy; volume uncharacterized | Phase 4.2: audit and suppress false positives |
-| No Python autobuild override | CodeQL default autobuild may miss installed deps | Monitor; add `setup-python` + `uv sync` if needed |
-| JS/TS coverage limited | Only `apps/web/` has frontend code | Acceptable; expand if repo gains more JS/TS |
-| Weekly schedule only | No intra-week scheduled deep scan | Acceptable for advisory phase |
+**Result: Zero-alert baseline.** Both Python and JavaScript/TypeScript
+analyses found no security issues at the first run.
 
-## 14. Related Documents
+### Hard Gate Recommendation
+
+With a zero-alert baseline, CodeQL can be promoted to main-branch hard
+gate immediately — it costs nothing (always passes) and provides a
+safety net for future commits. See `codeql-findings-triage.md` Section 9
+for details.
+
+### Updated Rollout Phases
+
+| Phase | Action | Status |
+|-------|--------|--------|
+| 3.13 | Plan | ✅ Complete |
+| 4.1 | Add CodeQL workflow | ✅ Complete |
+| 4.2 | Triage findings | ✅ Complete (zero alerts) |
+| 4.3 | Promote to hard gate | ⏳ Ready (recommended) |
+| 4.x | Dependabot / Scorecard | 📋 Plan |
+
+## 16. Related Documents
 
 | Document | Relationship |
 |----------|-------------|

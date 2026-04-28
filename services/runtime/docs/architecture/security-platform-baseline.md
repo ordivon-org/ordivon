@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **IMPLEMENTED** (CodeQL advisory workflow deployed)
+Status: **IMPLEMENTED** (CodeQL advisory workflow deployed, zero-alert baseline triaged)
 Date: 2026-04-28
-Phase: 3.13 → 4.1
-Tags: `security`, `platform`, `gates`, `codeql`, `bandit`, `gitleaks`
+Phase: 3.13 → 4.1 → 4.2
+Tags: `security`, `platform`, `gates`, `codeql`, `bandit`, `gitleaks`, `triage`
 
 ## 1. Purpose
 
@@ -77,7 +77,10 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | Gate class | **Advisory** — dry-run; uploads SARIF results to Security tab |
 | Tool | `github/codeql-action` (init@v3, analyze@v3) |
 | Languages | Python, JavaScript/TypeScript |
-| Status | ✅ Deployed (Phase 4.1) |
+| Status | ✅ Deployed (Phase 4.1), triaged (Phase 4.2) |
+| Triage result | Zero alerts (open=0, dismissed=0, fixed=0) |
+| Hard gate ready | Yes — recommended for Phase 4.3 |
+| Triage doc | `docs/runtime/codeql-findings-triage.md` |
 
 ## 4. Security Gate Classification
 
@@ -177,7 +180,11 @@ Security findings inform governance classification, not replace it.
 ## 10. Next Steps
 
 1. ~~CodeQL onboarding plan~~ → ✅ Deployed (Phase 4.1, `codeql.yml`)
-2. CodeQL baseline audit (Phase 4.2): review Security tab alerts, suppress false positives
-3. Dependabot configuration with governance gate (Phase 4.x)
-4. OpenSSF Scorecard as informational badge (Phase 4.x)
-5. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
+2. ~~CodeQL findings triage~~ → ✅ Complete (Phase 4.2, zero-alert baseline)
+3. CodeQL hard gate promotion (Phase 4.3):
+   - Condition met: stable workflow, zero alerts, permissions correct
+   - Action: add `continue-on-error: false` on push to main
+   - Risk: minimal — zero-alert baseline means gate never blocks
+4. Dependabot configuration with governance gate (Phase 4.x)
+5. OpenSSF Scorecard as informational badge (Phase 4.x)
+6. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
