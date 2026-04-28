@@ -256,7 +256,8 @@ classification (record failures, do not block non-security PRs).
 | **3.6** | ✅ Add PR Fast Gate | New `verification-fast` job in `ci.yml`: eval corpus + runtime evidence + repo CLI smoke + architecture checker |
 | **3.7** | ✅ GitHub Actions Adapter | Read-only adapter: reads PR metadata → classify → JSON output |
 | **3.8** | ✅ GitHub Workflow + Contract | `repo-governance-pr` job in `ci.yml`: reads PR → classify → execute pass / escalate warn / reject fail. JSON contract schema added.
-| **3.9** (this phase) | ✅ Evidence Artifact | `repo-governance-pr` generates JSON + Markdown evidence reports uploaded as GitHub Actions artifacts. |
+| **3.9** | ✅ Evidence Artifact | `repo-governance-pr` generates JSON + Markdown evidence reports uploaded as GitHub Actions artifacts. |
+| **3.10** (this phase) | ✅ Remote CI Validation + Failure Semantics | Validated workflow behavior, documented execute/escalate/reject/error semantics, PR comment deferred. |
 
 ## 14. Non-Goals (Phase 3.5)
 
