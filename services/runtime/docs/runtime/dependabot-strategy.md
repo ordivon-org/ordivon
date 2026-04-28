@@ -1,9 +1,9 @@
 # Dependabot Supply-Chain Strategy
 
-Status: **PLAN** (Phase 4.4)
+Status: **IMPLEMENTED** (Phase 4.5: github-actions enabled)
 Date: 2026-04-28
-Phase: 4.4
-Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`
+Phase: 4.4 → 4.5
+Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`
 
 ## 1. Purpose
 
@@ -318,23 +318,54 @@ gating requires the same policy design as CodeQL finding-severity
 
 ## 11. Rollout Plan
 
-| Phase | Action | Timeline | Risk |
-|-------|--------|----------|------|
-| **4.4** | Strategy plan (this doc) | 2026-04-28 | Zero |
-| **4.5** | Create `dependabot.yml` with disabled/schedule-only config | Next | Low |
-| **4.6** | Observe first Dependabot PRs (1-2 weeks) | 1-2 weeks | Medium |
-| **4.7** | Tune grouping, labels, ignore rules | After baseline | Low |
-| **4.x** | Evaluate auto-merge for patch updates | 3+ months of clean history | Medium |
+| Phase | Action | Timeline | Risk | Status |
+|-------|--------|----------|------|--------|
+| **4.4** | Strategy plan (this doc) | 2026-04-28 | Zero | ✅ Complete |
+| **4.5** | Enable github-actions only | 2026-04-28 | Low | ✅ Complete |
+| **4.6** | Observe first Dependabot PRs | 1-2 weeks | Medium | ⏳ Next |
+| **4.7** | Tune grouping, labels, ignore rules | After baseline | Low | 📋 Plan |
+| **4.8** | Enable pip + npm ecosystems | After 4.6 observation | Medium | 📋 Plan |
+| **4.x** | Evaluate auto-merge for patch updates | 3+ months of clean history | Medium | 📋 Plan |
 
-### Phase 4.5 Pre-flight Checklist
+### Phase 4.5: GitHub Actions Only Enablement
 
-- [ ] Confirm `pip` ecosystem works with uv-based project
-- [ ] Confirm `npm` ecosystem works with pnpm-lock.yaml
-- [ ] Confirm GitHub Actions updates are correctly scoped
-- [ ] Confirm `open-pull-requests-limit` is respected across ecosystems
-- [ ] Confirm Dependabot PRs trigger `repo-governance-pr`
-- [ ] Verify that grouped PRs are correctly batched
-- [ ] Verify that major updates are not grouped
+**What was deployed:**
+- `.github/dependabot.yml` created with `package-ecosystem: github-actions`
+- Schedule: weekly Monday 09:00 Asia/Shanghai
+- Open PR limit: 2
+- Labels: `dependencies`, `security/supply-chain`
+- Commit prefix: `deps`
+- No pip or npm ecosystem configured
+
+**Why github-actions first:**
+- Zero lockfile churn — action versions are single-line YAML changes
+- Lowest noise — at most 2 PRs per week for all action bumps combined
+- Highest supply-chain value — action versions directly affect CI security
+- Validates Dependabot behavior (PR creation, CI triggering, governance path)
+  before enabling ecosystems that modify lockfiles
+
+**Why pip/npm deferred:**
+- `pip` + `uv.lock`: Dependabot doesn't regenerate uv.lock; PRs would be incomplete
+- `npm` + `pnpm-lock.yaml`: Needs verification of pnpm compatibility
+- Both introduce lockfile churn — needs observation of github-actions behavior first
+- Deferred to Phase 4.8 after github-actions baseline is stable
+
+**Expected behavior:**
+- Dependabot checks for outdated GitHub Actions weekly
+- If updates found, opens at most 2 PRs (one per action group, if needed)
+- PRs trigger full CI pipeline including `repo-governance-pr`
+- Human review + merge required (no auto-merge)
+
+### Phase 4.5 Pre-flight Checklist (Revised)
+
+- [x] `.github/dependabot.yml` deployed (github-actions only)
+- [x] `open-pull-requests-limit: 2` configured
+- [x] Labels: `dependencies`, `security/supply-chain`
+- [ ] Observe first Dependabot PR (wait for Monday 09:00 or on-demand trigger)
+- [ ] Confirm Dependabot PR triggers `repo-governance-pr`
+- [ ] Confirm Dependabot PR passes `backend-static`, `verification-fast`, `secret-scan`
+- [ ] pip ecosystem compatibility test (Phase 4.8)
+- [ ] npm/pnpm compatibility test (Phase 4.8)
 
 ## 12. Non-Goals
 
@@ -342,12 +373,11 @@ Per Ordivon governance:
 
 - ❌ No auto-merge
 - ❌ No dependency version changes in this phase
-- ❌ No `dependabot.yml` created in this phase
-- ❌ No Dependabot enabled
-- ❌ No Dependabot PRs generated
+- ❌ No pip or npm ecosystem enabled (Phase 4.8)
+- ❌ No Dependabot PRs for lockfile-based ecosystems
 - ❌ No source code changes
 - ❌ No test changes
-- ❌ No CI workflow changes
+- ❌ No CI workflow changes (except adding dependabot.yml)
 - ❌ No CandidateRule or PolicyProposal creation
 - ❌ No auto-fix or auto-approve
 - ❌ No bypass of repo-governance-pr

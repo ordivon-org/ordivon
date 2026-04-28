@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **IMPLEMENTED** (CodeQL hard gate, Dependabot strategy planned)
+Status: **IMPLEMENTED** (CodeQL hard gate, Dependabot github-actions enabled)
 Date: 2026-04-28
-Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4
-Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`
+Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5
+Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`
 
 ## 1. Purpose
 
@@ -85,15 +85,14 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 
 | Property | Value |
 |----------|-------|
-| Status | 📋 Strategy planned (Phase 4.4) |
-| Strategy doc | `docs/runtime/dependabot-strategy.md` |
-| Target ecosystems | `github-actions`, `pip` (uv), `npm` (pnpm) |
-| Proposed schedule | Weekly Monday 09:00 Asia/Shanghai |
-| Open PR limit | 5 (across all ecosystems) |
+| Status | ✅ Enabled — github-actions only (Phase 4.5) |
+| Config file | `.github/dependabot.yml` |
+| Enabled ecosystem | `github-actions` (pip/npm deferred to 4.8) |
+| Schedule | Weekly Monday 09:00 Asia/Shanghai |
+| Open PR limit | 2 |
 | Auto-merge | ❌ Disabled |
-| Gate class | **Planned Advisory** — PRs pass normal CI gates |
-| Config file | `.github/dependabot.yml` (not created yet) |
-| Next phase | 4.5: Create config, enable schedule-only |
+| Gate class | **Advisory** — PRs pass normal CI gates; external actor under observation |
+| Next phase | 4.6: Observe first Dependabot PR |
 
 ## 4. Security Gate Classification
 
@@ -138,7 +137,7 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | pip-audit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip CVE patch | — | — | Hard | Hard | ✅ Adopted |
 | CodeQL | — | Advisory | Hard (workflow-health) | Advisory | ✅ Hard Gate |
-| Dependabot | — | — | Advisory | Advisory | 📋 Strategy |
+| Dependabot | — | — | Advisory | Advisory | ✅ Enabled (github-actions) |
 | OpenSSF Scorecard | — | — | — | Advisory | 📋 Plan |
 | Semgrep | — | — | — | Advisory | 🔮 Evaluate later |
 | Trivy | — | — | — | Advisory | 🔮 Evaluate later |
@@ -197,6 +196,7 @@ Security findings inform governance classification, not replace it.
 3. ~~CodeQL hard gate promotion~~ → ✅ Complete (Phase 4.3, workflow-health hard gate)
 4. Finding-severity hard gate design (future): requires alert policy, false positive protocol, owner sign-off
 5. ~~Dependabot strategy plan~~ → ✅ Complete (Phase 4.4, `docs/runtime/dependabot-strategy.md`)
-6. Dependabot config + enable (Phase 4.5): `.github/dependabot.yml` with weekly schedule
-7. OpenSSF Scorecard as informational badge (Phase 4.x)
-8. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
+6. ~~Dependabot config + enable~~ → ✅ Complete (Phase 4.5, github-actions only)
+7. Dependabot first PR observation (Phase 4.6): wait for weekly scan or manual trigger
+8. OpenSSF Scorecard as informational badge (Phase 4.x)
+9. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)

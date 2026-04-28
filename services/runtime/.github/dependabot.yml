@@ -1,0 +1,23 @@
+# Dependabot configuration — Phase 4.5 minimal enablement.
+#
+# GitHub Actions only. pip and npm deferred to Phase 4.6+.
+# No auto-merge. All Dependabot PRs pass through normal CI gates
+# including repo-governance-pr.
+#
+# See: docs/runtime/dependabot-strategy.md
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - security/supply-chain
+    commit-message:
+      prefix: deps
