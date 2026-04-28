@@ -36,9 +36,21 @@ class CandidateRuleRepository:
         self.db.flush()
         return row
 
+    def get(self, rule_id: str) -> CandidateRuleORM | None:
+        return self.db.get(CandidateRuleORM, rule_id)
+
     def find_by_lesson_id(self, lesson_id: str) -> CandidateRuleORM | None:
         """Check if a CandidateRule already exists for a given lesson (idempotency)."""
         return self.db.query(CandidateRuleORM).filter(CandidateRuleORM.lesson_ids_json.contains(lesson_id)).first()
+
+    def update_status(self, rule_id: str, status: str) -> CandidateRuleORM | None:
+        """Update the status of a CandidateRule. Returns None if not found."""
+        row = self.get(rule_id)
+        if row is None:
+            return None
+        row.status = status
+        self.db.flush()
+        return row
 
     def list_all(self) -> list[CandidateRuleORM]:
         return self.db.query(CandidateRuleORM).order_by(CandidateRuleORM.created_at.desc()).all()
