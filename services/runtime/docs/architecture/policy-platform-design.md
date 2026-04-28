@@ -434,13 +434,16 @@ For future phases, owner may be a role (e.g., "security-owner",
   - READY_FOR_ACTIVATION means ready for human activation review, not automatic activation
 - ~~Run through full lifecycle~~ → Deferred to Phase 5.6 (first real CandidateRule dogfood)
 
-### Phase 5.6: Iteration + Hardening (next)
+### Phase 5.6: Approval Gate + Rollback Contract (complete)
 
-### Phase 5.6: Iteration + Hardening
-
-- Based on Phase 5.5 findings, iterate on the design
-- Hardening: error handling, concurrent activation prevention, rollback safety
-- Eval Corpus expansion for Policy-specific cases
+- ~~PolicyApprovalGate + PolicyRollbackContract~~ → ✅ Complete
+  - `domains/policies/approval.py` — PolicyApprovalRequest, PolicyApprovalDecision, PolicyApprovalGate, PolicyRollbackContract
+  - ApprovalOutcome: APPROVED_FOR_SHADOW / REJECTED / NEEDS_MORE_EVIDENCE / NEEDS_MORE_SHADOW / DEFERRED
+  - Reviewer roles: TECHNICAL_REVIEWER, DOMAIN_OWNER, GOVERNANCE_REVIEWER
+  - 8 gates: no stale evidence, owner required, rollback required, no WOULD_REJECT, 
+    no WOULD_HOLD, risk-based reviewer requirement, active_enforced deferred
+  - `tests/unit/policies/test_approval.py` — 22 tests
+- active_enforced is explicitly DEFERRED — only approved_for_shadow is permitted
 
 ## 11. Related Documents
 
