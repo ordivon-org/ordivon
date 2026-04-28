@@ -202,13 +202,21 @@ jobs:
 
       - name: Smoke repo CLI (forbidden → reject)
         run: |
+          EC=0
           uv run python scripts/repo_governance_cli.py \
             --task-description "Update environment secret" \
             --file-path .env \
             --estimated-impact low \
             --reasoning "Dangerous secret change" \
             --test-plan "manual review" \
-            --json
+            --json || EC=$?
+          # exit 3 = reject is the EXPECTED outcome for forbidden files
+          if [ "$EC" = "3" ]; then
+            echo "✅ Correctly rejected forbidden .env"
+            exit 0
+          fi
+          echo "❌ Unexpected exit code: $EC (expected 3)"
+          exit 1
 
   backend-unit:
     runs-on: ubuntu-latest
