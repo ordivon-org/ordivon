@@ -97,7 +97,7 @@ jobs:
           printf "sha=%s\nbuilt_at=%s\n" "${GITHUB_SHA}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > delivery-bundle/metadata.txt
 
       - name: Upload delivery bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aegisos-delivery-bundle
           path: delivery-bundle
