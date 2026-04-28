@@ -63,11 +63,11 @@ with traceable evidence.
 
 ## First Adoption Candidates (Adopt Soon)
 
-| Tool | Rationale | Effort | Phase |
-|------|-----------|--------|-------|
-| CodeQL | Code analysis, low integration cost, GitHub-native | 1 CI job | 4.x |
-| Dependabot | Auto-PR for dep updates, needs governance gate | Configure `.github/dependabot.yml` | 4.x |
-| OpenSSF Scorecard | Read-only security posture report | 1 CI job | 4.x |
+| Tool | Rationale | Effort | Phase | Status |
+|------|-----------|--------|-------|--------|
+| CodeQL | Code analysis, low integration cost, GitHub-native | 1 CI job | 4.1-4.3 | ✅ Hard Gate |
+| Dependabot | Auto-PR for dep updates, needs governance gate | Configure `.github/dependabot.yml` | 4.4+ | 📋 Strategy planned |
+| OpenSSF Scorecard | Read-only security posture report | 1 CI job | 4.x | 📋 Plan |
 
 ## Deferred Candidates (Evaluate Later)
 
@@ -108,10 +108,14 @@ with traceable evidence.
 
 ## Follow-up Phases
 
-| Phase | Action |
-|-------|--------|
-| 4.1 | Adopt CodeQL (1 CI job, read-only) |
-| 4.2 | Configure Dependabot with governance gate |
-| 4.3 | Add OpenSSF Scorecard |
-| 4.4 | Re-evaluate Checks API based on artifact data |
-| 4.5 | Evaluate Semgrep after CandidateRule→Policy path matures |
+| Phase | Action | Status |
+|-------|--------|--------|
+| 4.1 | Adopt CodeQL (1 CI job, read-only) | ✅ Complete |
+| 4.2 | CodeQL findings triage | ✅ Complete (zero alerts) |
+| 4.3 | CodeQL workflow-health hard gate | ✅ Complete |
+| 4.4 | Dependabot supply-chain strategy plan | ✅ Complete (this phase) |
+| 4.5 | Create + enable dependabot.yml | ⏳ Next |
+| 4.6 | Observe first Dependabot PRs | 📋 Plan |
+| 4.x | OpenSSF Scorecard | 📋 Plan |
+| 4.x | Re-evaluate Checks API based on artifact data | 📋 Plan |
+| 4.x | Evaluate Semgrep after CandidateRule→Policy matures | 📋 Plan |
