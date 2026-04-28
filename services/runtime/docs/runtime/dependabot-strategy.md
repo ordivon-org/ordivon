@@ -1,9 +1,9 @@
 # Dependabot Supply-Chain Strategy
 
-Status: **IMPLEMENTED** (Phase 4.5 enabled, Phase 4.6 observed)
-Date: 2026-04-28
-Phase: 4.4 → 4.5 → 4.6
-Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`, `observed`
+Status: **ACTIVE** (Phase 4.9 — Python/uv minimal enablement)
+Date: 2026-04-29
+Phase: 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9
+Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `plan`, `enabled`, `github-actions`, `observed`, `uv`, `pnpm`, `uv-enabled`
 
 ## 1. Purpose
 
@@ -13,8 +13,11 @@ or vulnerable dependencies. Unlike scanners (Gitleaks, Bandit, CodeQL),
 Dependabot is an **external actor** that modifies the repo by creating PRs.
 
 This document establishes the gate semantics, noise-control strategy,
-and rollout plan **before** any `dependabot.yml` is created or any PR
-is generated.
+and rollout plan **before** any Python or Node ecosystem is enabled.
+
+**Phase 4.8 is a strategy refinement phase**: it corrects the ecosystem
+naming to reflect our real T0 tooling (uv / pnpm) before enabling
+Python or Node Dependabot. No new Dependabot configuration is deployed.
 
 ## 2. Why Dependabot Is Different from Scanners
 
@@ -30,16 +33,58 @@ is generated.
 **Dependabot PRs must pass through the same governance gates as human PRs.**
 There is no special Dependabot bypass.
 
-## 3. Current Dependency Ecosystems
+## 3. Tool Identity vs Ecosystem Key (CRITICAL)
 
-### 3.1 Python (uv / pip)
+Dependabot's `package-ecosystem` key is a **GitHub upstream adapter identifier**.
+It tells GitHub's dependency graph which parser to use for discovering
+dependencies. It is NOT a directive about which local tool to use for
+installation, locking, or building.
+
+| Concern | Governed By |
+|---------|-------------|
+| **Execution truth** (install, build, lock) | Project toolchain: `uv`, `pnpm`, `bun` |
+| **Dependabot ecosystem key** (upstream parser) | GitHub dependency graph adapter |
+| **CI verification** (test after bump) | Project CI: `uv run`, `pnpm test`, etc. |
+| **Lockfile format** (what Dependabot modifies) | Determined by ecosystem key + Dependabot support |
+
+**Rule**: Never let the Dependabot ecosystem key dictate the project toolchain.
+The ecosystem key is the upstream adapter; the project toolchain is the
+execution truth. These are separate concerns.
+
+### 3.1 Why `uv` vs `pip` Matters
+
+Dependabot has a `uv` ecosystem key (supported since ~2025). It understands
+`uv.lock` format and `pyproject.toml` with uv-compatible dependency specs.
+Using `pip` as the ecosystem key when the project uses `uv` would mean:
+
+- Dependabot parses `requirements.txt` style entries, not `uv.lock`
+- Dependabot may miss dependencies declared only in `uv.lock`
+- Dependabot PRs may not regenerate `uv.lock` correctly
+- The ecosystem key misleads contributors into thinking `pip` is the tool
+
+**Decision**: Use `package-ecosystem: uv` for Python. This is the correct
+adapter for a uv-managed project.
+
+### 3.2 Why `npm` Key for pnpm Is Acceptable
+
+Dependabot does not have a dedicated `pnpm` ecosystem key. The `npm` key
+is the general Node.js dependency graph adapter, and it supports pnpm
+workspaces and `pnpm-lock.yaml` in Dependabot v2+.
+
+**Decision**: Use `package-ecosystem: npm` for Node/pnpm. This is a
+GitHub platform naming constraint, not an endorsement of `npm install`.
+The project toolchain remains `pnpm`.
+
+## 4. Current Dependency Ecosystems
+
+### 4.1 Python (uv)
 
 | Property | Value |
 |----------|-------|
 | Manifest | `pyproject.toml` |
 | Lockfile | `uv.lock` |
-| Package manager | uv (pip-compatible) |
-| Dependabot ecosystem | `pip` |
+| Package manager | **uv** (execution truth) |
+| Dependabot ecosystem | `uv` (upstream adapter key) |
 | Directory | `/` (root) |
 
 **Key packages**: fastapi, uvicorn, pydantic, sqlalchemy, duckdb,
@@ -49,21 +94,31 @@ opentelemetry-*, python-dotenv, sentry-sdk, pytz.
 **Dev dependencies** (separate group): bandit, pip-audit, import-linter,
 mypy, vulture, pytest, pytest-asyncio, ruff.
 
-### 3.2 Node / TypeScript (pnpm workspace)
+**pip status**: pip is NOT the project toolchain entry point.
+`pip install` and `pip freeze` are not used in Ordivon workflows.
+The Dependabot ecosystem key `uv` reflects this — there is no `pip`
+ecosystem configured.
+
+### 4.2 Node / TypeScript (pnpm workspace)
 
 | Property | Value |
 |----------|-------|
 | Root manifest | `package.json` |
 | Web manifest | `apps/web/package.json` |
 | Lockfile | `pnpm-lock.yaml` |
-| Package manager | pnpm@10.33.0 |
-| Dependabot ecosystem | `npm` |
+| Package manager | **pnpm@10.33.0** (execution truth) |
+| Dependabot ecosystem | `npm` (GitHub Node.js adapter key) |
 | Directory | `/` (root, monorepo root) |
 
 Workspace: `apps/web` (Next.js dashboard). Root has e2e/dev tooling;
 `apps/web` has the application dependencies.
 
-### 3.3 GitHub Actions
+**npm status**: The `npm` ecosystem key is a GitHub platform naming
+convention for all Node.js dependency graphs. It does NOT mean the
+project uses `npm install`. The project toolchain is `pnpm`, and CI
+verification uses `pnpm test` / `pnpm run build`.
+
+### 4.3 GitHub Actions
 
 | Property | Value |
 |----------|-------|
@@ -75,35 +130,63 @@ Workspace: `apps/web` (Next.js dashboard). Root has e2e/dev tooling;
 pnpm/action-setup@v6, setup-node@v6, gitleaks-action@v2, upload-artifact@v4,
 codeql-action/init@v3, codeql-action/analyze@v3.
 
-### 3.4 Docker
+### 4.4 Bun (Runtime / Tooling Only)
+
+| Property | Value |
+|----------|-------|
+| Status | Optional runtime/tooling — NOT a governed dependency ecosystem |
+| Dependabot ecosystem | **Not configured** |
+| Lockfile | `bun.lock` (not present / not governed) |
+
+Bun is used as an optional runtime for scripts and tests where fast startup
+is beneficial. It is not the primary package manager (pnpm is), and its
+lockfile is not the governed supply-chain artifact.
+
+**Decision**: Bun is excluded from Dependabot. It will only be considered
+for `package-ecosystem: bun` if and when `bun.lock` becomes the primary,
+governed lockfile for the Node.js dependency tree. This is not expected
+in the current architecture.
+
+### 4.5 Docker
 
 No Dockerfile detected. Docker ecosystem deferred until containerization.
 
-## 4. Recommended v1 Ecosystems
+## 5. Recommended v1 Ecosystems
 
 | # | Ecosystem | Directory | Rationale |
 |---|-----------|-----------|-----------|
 | 1 | `github-actions` | `/` | Lowest noise, highest value — action versions matter for CI security |
-| 2 | `pip` | `/` | Core application dependencies; uv.lock needs special handling |
-| 3 | `npm` | `/` | Root + workspace dependencies |
+| 2 | `uv` | `/` | Core application dependencies; uv.lock is the governed lockfile |
+| 3 | `npm` | `/` | Root + workspace Node dependencies; pnpm-lock.yaml via npm adapter |
 
 GitHub Actions first because:
 - No lockfile churn
 - PRs are single-line YAML changes
 - Low false positive rate
 - Directly improves CI supply-chain security
+- Already enabled and observed (Phase 4.5–4.7)
 
-## 5. Noise-Control Strategy
+Python/uv second because:
+- Core runtime dependencies — highest supply-chain impact
+- `uv` ecosystem key is the correct adapter
+- Validates Dependabot + uv.lock compatibility before Node enablement
 
-### 5.1 Schedule
+Node/pnpm third because:
+- Web dashboard dependencies
+- `npm` key supports pnpm-lock.yaml
+- Lower blast radius than Python core
+
+## 6. Noise-Control Strategy
+
+### 6.1 Schedule
 
 | Trigger | Rationale |
 |---------|-----------|
-| Weekly (Monday 09:00 UTC) | Batches updates; predictable review window |
+| Weekly (Monday 09:00 UTC+8) | Batches updates; predictable review window |
 | No daily schedule | Prevents reviewer fatigue |
 | No on-demand trigger | Initial phase is controlled |
 
-### 5.2 Open PR Limit
+### 6.2 Open PR Limit
 
 ```yaml
 open-pull-requests-limit: 5
@@ -111,13 +194,13 @@ open-pull-requests-limit: 5
 
 Across all ecosystems combined. Prevents PR flood on first enablement.
 
-### 5.3 Grouping Strategy
+### 6.3 Grouping Strategy
 
 | Group | Contents | Rationale |
 |-------|----------|-----------|
-| `python-patch` | pip patch updates | Low risk, batch review |
-| `python-minor` | pip minor updates | Medium risk, smaller batches |
-| `python-major` | pip major updates | **Ungrouped** — one PR per major bump |
+| `uv-patch` | uv patch updates | Low risk, batch review |
+| `uv-minor` | uv minor updates | Medium risk, smaller batches |
+| `uv-major` | uv major updates | **Ungrouped** — one PR per major bump |
 | `npm-patch` | npm/pnpm patch updates | Low risk, batch review |
 | `npm-minor` | npm/pnpm minor updates | Medium risk, batch review |
 | `npm-major` | npm/pnpm major updates | **Ungrouped** — one PR per major bump |
@@ -127,13 +210,13 @@ Across all ecosystems combined. Prevents PR flood on first enablement.
 Major updates are never grouped — each is a separate PR requiring
 independent changelog review and test verification.
 
-### 5.4 Auto-Merge
+### 6.4 Auto-Merge
 
-**Disabled.** Phase 4.4–4.7: all Dependabot PRs require human review
+**Disabled.** Phase 4.4–4.12: all Dependabot PRs require human review
 and merge. Auto-merge may be evaluated after 3+ months of clean
-Dependabot PR history.
+Dependabot PR history across all ecosystems.
 
-## 6. Repo Governance Interaction
+## 7. Repo Governance Interaction
 
 Dependabot PRs are normal PRs. They trigger:
 
@@ -161,7 +244,7 @@ If governance escalation is too noisy, adjust the adapter or add a
 Dependabot-specific Test Plan template via `commit-message` or
 `pull-request-body` configuration.
 
-## 7. Security vs Version Updates
+## 8. Security vs Version Updates
 
 | Type | Priority | Behavior |
 |------|----------|----------|
@@ -185,17 +268,17 @@ governance.
 Non-security dependency bumps follow the weekly schedule.
 They are maintenance, not incident response.
 
-## 8. Proposed dependabot.yml v1 (Draft — Not Deployed)
+## 9. Proposed dependabot.yml v2 (Draft — Not Deployed)
 
 ```yaml
-# Draft: .github/dependabot.yml (Phase 4.4 PLAN ONLY — not created)
+# Draft: .github/dependabot.yml v2 (Phase 4.9 DEPLOYED — uv ecosystem now active)
 #
-# This is the proposed v1 configuration. It will be created and
-# enabled in Phase 4.5 after stakeholder review.
+# The uv ecosystem is now enabled alongside github-actions.
+# npm is still deferred to Phase 4.11.
 
 version: 2
 updates:
-  # --- GitHub Actions ---
+  # --- GitHub Actions (already enabled, unchanged) ---
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -208,15 +291,15 @@ updates:
       - dependencies
       - github-actions
     commit-message:
-      prefix: ci
+      prefix: deps
       include: scope
     groups:
       actions:
         patterns:
           - "*"
 
-  # --- Python (pip via pyproject.toml) ---
-  - package-ecosystem: pip
+  # --- Python (uv — NOT pip) ---
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
@@ -231,21 +314,15 @@ updates:
       prefix: build
       include: scope
     groups:
-      python-patch:
+      uv-patch:
         update-types:
           - patch
-      python-minor:
+      uv-minor:
         update-types:
           - minor
     # Major updates ungrouped — individual PRs
-    ignore:
-      # Ignore pre-release/dev dependency updates unless security
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-        # Not ignored — this section is for demonstration
-        # Real ignore rules will be tuned during Phase 4.7
 
-  # --- Node.js (npm/pnpm) ---
+  # --- Node.js (npm adapter key for pnpm) ---
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -274,116 +351,183 @@ updates:
 
 | Decision | Rationale |
 |----------|-----------|
+| `package-ecosystem: uv` not `pip` | uv is the project's execution truth; `uv` key parses `uv.lock` |
+| `package-ecosystem: npm` for pnpm | GitHub has no `pnpm` key; `npm` key supports `pnpm-lock.yaml` |
 | `open-pull-requests-limit: 5` across all ecosystems | Cap total concurrent PRs |
 | Groups share the same limit | Prevents one ecosystem from dominating |
 | Major updates ungrouped | Requires individual changelog review |
 | `timezone: Asia/Shanghai` | Matches project timezone (PFIOS_TIMEZONE) |
-| `commit-message.prefix: build` / `ci` | Matches conventional commits |
+| `commit-message.prefix: build` / `deps` | Matches conventional commits |
 | No `target-branch` | Defaults to default branch (main) |
+| Bun NOT configured | `bun.lock` is not a governed lockfile |
 
 ### Known Limitations
 
 | Limitation | Impact | Mitigation |
 |-----------|--------|------------|
-| `pip` ecosystem doesn't update `uv.lock` | PR bumps pyproject.toml but lockfile must be regenerated | CI should run `uv lock` or reviewer regenerates |
-| `npm` ecosystem works with pnpm-lock.yaml | Dependabot v2+ supports pnpm | Confirm during Phase 4.5 testing |
+| `uv` ecosystem may not regenerate all lockfile metadata | PR bumps pyproject.toml but lockfile may need manual `uv lock` | CI should run `uv lock --check` or reviewer regenerates |
+| `npm` ecosystem works with pnpm-lock.yaml | Dependabot v2+ supports pnpm | Confirm during Phase 4.11 testing |
 | Group `update-types` may not work with all package managers | Grouping may fail silently | Monitor first PRs; fall back to ungrouped |
-| `python-major` ungrouped may produce many PRs on first run | Initial backlog of major updates | Acceptable for first run; tune after baseline |
-
-## 9. Gate Semantics
-
-| Gate Level | Dependabot Status | Notes |
-|------------|-------------------|-------|
-| PR Fast | Standard CI | Dependabot PRs run all PR-triggered checks |
-| PR Full | Standard CI | Standard governance path |
-| Main Branch | No special gate | Merged deps follow normal CI |
-| Scheduled Deep | Future: dep health report | Could integrate `pip-audit` + `pnpm audit` summary |
-
-**Finding-severity gate**: Dependabot security alerts appear in the
-Security tab. They are evidence, not automatic blocks. Severity-based
-gating requires the same policy design as CodeQL finding-severity
-(Phase 4.3 deferred).
+| `uv-major` ungrouped may produce many PRs on first run | Initial backlog of major updates | Acceptable for first run; tune after baseline |
 
 ## 10. Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
 | PR noise (too many PRs) | Medium | High (reviewer fatigue) | `open-pull-requests-limit: 5`, weekly schedule, grouping |
-| Lockfile churn (uv.lock) | Medium | Medium | `pip` ecosystem limitations; CI regenerates |
-| Ecosystem incompatibility (uv + Dependabot) | Medium | Medium | Test in Phase 4.5; fallback to manual pip-audit |
+| Lockfile churn (uv.lock) | Medium | Medium | `uv` ecosystem supported; CI runs `uv lock --check` |
+| Ecosystem incompatibility (uv + Dependabot) | Low-Medium | Medium | Test in Phase 4.9; fallback to manual pip-audit |
+| `pnpm-lock.yaml` format changes break Dependabot | Low | Medium | Monitor pnpm compatibility during Phase 4.11 |
 | Grouped update blast radius | Low | Medium | Keep groups small; separate major updates |
 | Supply-chain compromise (malicious dep) | Low | Critical | Human review of changelogs; pip-audit gate |
 | Governance adapter escalation (missing Test Plan) | Medium | Low | Adapt governance or add Dependabot template |
-| `pnpm-lock.yaml` format changes break Dependabot | Low | Medium | Monitor pnpm compatibility |
+| Ecosystem key confusion (pip/npm misdirection) | Medium | Medium | **Mitigated in Phase 4.8**: docs clarify uv/pnpm as execution truth |
 
 ## 11. Rollout Plan
 
 | Phase | Action | Timeline | Risk | Status |
 |-------|--------|----------|------|--------|
-| **4.4** | Strategy plan (this doc) | 2026-04-28 | Zero | ✅ Complete |
+| **4.4** | Strategy plan (this doc v1) | 2026-04-28 | Zero | ✅ Complete |
 | **4.5** | Enable github-actions only | 2026-04-28 | Low | ✅ Complete |
 | **4.6** | Observe first Dependabot PRs | 2026-04-28 | Medium | ✅ Complete |
-| **4.7** | Tune grouping, labels, ignore rules | After baseline | Low | 📋 Plan |
-| **4.8** | Enable pip + npm ecosystems | After 4.6 observation | Medium | 📋 Plan |
+| **4.7** | Tune grouping, labels, ignore rules | 2026-04-28 | Low | ✅ Complete |
+| **4.8** | **uv/pnpm strategy refinement** | 2026-04-29 | Low | ✅ Complete |
+| **4.9** | **Enable Python/uv minimal config** | 2026-04-29 | Medium | ▶️ Current |
+| **4.10** | Observe first Python/uv Dependabot PR | After 4.9 deploy | Medium | 📋 Plan |
+| **4.11** | Enable Node/pnpm minimal config | After 4.10 observation | Medium | 📋 Plan |
+| **4.12** | Observe first Node/pnpm Dependabot PR | After 4.11 deploy | Medium | 📋 Plan |
 | **4.x** | Evaluate auto-merge for patch updates | 3+ months of clean history | Medium | 📋 Plan |
 
-### Phase 4.5: GitHub Actions Only Enablement
+### Phase 4.8: uv/pnpm Strategy Refinement (Complete)
 
-**What was deployed:**
-- `.github/dependabot.yml` created with `package-ecosystem: github-actions`
+**What was done:**
+- Clarified tool identity vs ecosystem key distinction
+- Corrected Python ecosystem from `pip` to `uv` in documentation
+- Clarified Node ecosystem uses `npm` key but `pnpm` is execution truth
+- Defined Bun governance boundary (not included in Dependabot)
+- Defined phased rollout order: uv first, then npm
+- Established governance rules for future enablement
+
+### Phase 4.9: Python/uv Minimal Enablement (This Phase)
+
+**What is deployed:**
+- `.github/dependabot.yml` updated: `package-ecosystem: uv` added
 - Schedule: weekly Monday 09:00 Asia/Shanghai
-- Open PR limit: 2
-- Labels: `dependencies`, `security/supply-chain`
+- Open PR limit: 2 per ecosystem
+- Labels: `dependencies`, `security/supply-chain`, `python`
 - Commit prefix: `deps`
-- No pip or npm ecosystem configured
+- GitHub Actions ecosystem unchanged (still active)
 
-**Why github-actions first:**
-- Zero lockfile churn — action versions are single-line YAML changes
-- Lowest noise — at most 2 PRs per week for all action bumps combined
-- Highest supply-chain value — action versions directly affect CI security
-- Validates Dependabot behavior (PR creation, CI triggering, governance path)
-  before enabling ecosystems that modify lockfiles
+**What is NOT deployed:**
+- No npm/pnpm ecosystem
+- No bun ecosystem
+- No auto-merge
+- No grouping configuration (baseline observation first)
 
-**Why pip/npm deferred:**
-- `pip` + `uv.lock`: Dependabot doesn't regenerate uv.lock; PRs would be incomplete
-- `npm` + `pnpm-lock.yaml`: Needs verification of pnpm compatibility
-- Both introduce lockfile churn — needs observation of github-actions behavior first
-- Deferred to Phase 4.8 after github-actions baseline is stable
-
-**Expected behavior:**
-- Dependabot checks for outdated GitHub Actions weekly
-- If updates found, opens at most 2 PRs (one per action group, if needed)
-- PRs trigger full CI pipeline including `repo-governance-pr`
-- Human review + merge required (no auto-merge)
-
-### Phase 4.5 Pre-flight Checklist (Revised)
+### Phase 4.4–4.7: Completed (GitHub Actions Baseline)
 
 - [x] `.github/dependabot.yml` deployed (github-actions only)
 - [x] `open-pull-requests-limit: 2` configured
 - [x] Labels: `dependencies`, `security/supply-chain`
-- [ ] Observe first Dependabot PR (wait for Monday 09:00 or on-demand trigger)
-- [ ] Confirm Dependabot PR triggers `repo-governance-pr`
-- [ ] Confirm Dependabot PR passes `backend-static`, `verification-fast`, `secret-scan`
-- [ ] pip ecosystem compatibility test (Phase 4.8)
-- [ ] npm/pnpm compatibility test (Phase 4.8)
+- [x] First Dependabot PR observed (PR #3: codeql-action 3→4)
+- [x] Evidence artifact chain validated for Dependabot PRs
+- [x] Dependabot PRs pass CI gates
 
-## 12. Non-Goals
+### Phase 4.9: Python/uv Minimal Enablement (Future)
+
+**Required conditions before enabling:**
+- Phase 4.8 sealed with clean verification
+- Python/uv Dependabot compatibility confirmed via research
+- Governance adapter ready for Dependabot PRs with lockfile changes
+
+**What will be deployed:**
+```yaml
+- package-ecosystem: uv
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: "09:00"
+    timezone: Asia/Shanghai
+  open-pull-requests-limit: 5
+  labels:
+    - dependencies
+    - python
+  commit-message:
+    prefix: build
+    include: scope
+  groups:
+    uv-patch:
+      update-types:
+        - patch
+    uv-minor:
+      update-types:
+        - minor
+```
+
+**What will NOT be in Phase 4.9:**
+- No auto-merge
+- No pip ecosystem
+- No Node/pnpm ecosystem
+- No Bun ecosystem
+
+### Phase 4.10: Python/uv First PR Observation (Future)
+
+Wait for weekly Dependabot scan to produce first uv PR. Verify:
+- PR modifies correct files (pyproject.toml + uv.lock)
+- CI gates pass (backend-static, verification-fast, secret-scan, repo-governance-pr)
+- Evidence artifact is generated
+- Lockfile regenerates correctly (or reviewer instructions are clear)
+
+### Phase 4.11: Node/pnpm Minimal Enablement (Future)
+
+**Required conditions before enabling:**
+- Phase 4.10 completed with ≥1 clean uv PR observed
+- pnpm-lock.yaml compatibility with Dependabot `npm` key confirmed
+
+**What will NOT be in Phase 4.11:**
+- No auto-merge
+- No npm ecosystem (the key is `npm` but the tool is pnpm)
+- No Bun ecosystem
+
+### Phase 4.12: Node/pnpm First PR Observation (Future)
+
+Same observation protocol as Phase 4.10, applied to pnpm-lock.yaml.
+
+## 12. Governance Rules for Dependabot Ecosystem Enablement
+
+These rules apply to all future Dependabot ecosystem enablement phases
+(4.9, 4.11, and any future ecosystems):
+
+| # | Rule | Rationale |
+|---|------|-----------|
+| 1 | **One ecosystem at a time** | Enabling uv + npm simultaneously creates two unknown variables. Isolate each enablement for clean observation. |
+| 2 | **No auto-merge** | All Dependabot PRs require human review. This is non-negotiable until 3+ months of clean history. |
+| 3 | **Lockfile changes are supply-chain evidence** | Every lockfile modification must be traceable to a Dependabot PR. `uv.lock` and `pnpm-lock.yaml` diffs are audit artifacts. |
+| 4 | **Dependabot PRs must pass all CI gates** | `backend-static`, `verification-fast`, `secret-scan`, `repo-governance-pr`, `CodeQL` — no bypass. |
+| 5 | **Evidence artifact required** | Each Dependabot PR must produce a verifiable evidence artifact (same as human PRs). |
+| 6 | **No CandidateRule or PolicyProposal in enablement phases** | Observation phases (4.9–4.12) are for data collection. Governance rules come after observation. |
+| 7 | **Ecosystem key ≠ tool recommendation** | The Dependabot `package-ecosystem` key is an upstream adapter. Project toolchain (`uv`, `pnpm`) remains authoritative. |
+| 8 | **pip and npm CLI are not project entry points** | No workflow, script, or CI job should use `pip install` or `npm install` as the primary dependency command. `uv` and `pnpm` are the T0 tools. |
+
+## 13. Non-Goals (Phase 4.9)
 
 Per Ordivon governance:
 
+- ❌ No npm/pnpm ecosystem enabled
+- ❌ No bun ecosystem enabled
 - ❌ No auto-merge
-- ❌ No dependency version changes in this phase
-- ❌ No pip or npm ecosystem enabled (Phase 4.8)
-- ❌ No Dependabot PRs for lockfile-based ecosystems
+- ❌ No pyproject.toml changes
+- ❌ No uv.lock changes (this phase — Dependabot may modify it in future PRs)
+- ❌ No package.json / pnpm-lock.yaml changes
+- ❌ No CI workflow changes
 - ❌ No source code changes
 - ❌ No test changes
-- ❌ No CI workflow changes (except adding dependabot.yml)
+- ❌ No PR comment / Checks API integration
 - ❌ No CandidateRule or PolicyProposal creation
-- ❌ No auto-fix or auto-approve
-- ❌ No bypass of repo-governance-pr
-- ❌ No uv.lock or pnpm-lock.yaml modification
+- ❌ No grouping configuration (baseline first)
 
-## 13. Related Documents
+## 14. Related Documents
 
 | Document | Relationship |
 |----------|-------------|
@@ -392,3 +536,5 @@ Per Ordivon governance:
 | `docs/runtime/codeql-onboarding-plan.md` | Preceding security tool onboarding |
 | `docs/runtime/codeql-findings-triage.md` | Triage methodology (reusable for deps) |
 | `docs/runtime/verification-ci-gate-plan.md` | CI gate roadmap |
+| `docs/runtime/dependabot-first-pr-observation.md` | Phase 4.6 first PR observation |
+| `docs/runtime/dependabot-pr3-artifact-validation.md` | Phase 4.7 artifact validation |

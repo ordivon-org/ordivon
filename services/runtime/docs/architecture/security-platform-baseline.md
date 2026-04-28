@@ -1,9 +1,9 @@
 # Security Platform Baseline
 
-Status: **IMPLEMENTED** (CodeQL hard gate, Dependabot enabled + observed)
-Date: 2026-04-28
-Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6
-Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `observed`
+Status: **ACTIVE** (Phase 4.9 — Dependabot Python/uv enabled)
+Date: 2026-04-29
+Phase: 3.13 → 4.1 → 4.2 → 4.3 → 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9
+Tags: `security`, `platform`, `gates`, `codeql`, `dependabot`, `bandit`, `gitleaks`, `triage`, `hard-gate`, `supply-chain`, `enabled`, `observed`, `uv`, `pnpm`, `uv-enabled`
 
 ## 1. Purpose
 
@@ -85,14 +85,18 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 
 | Property | Value |
 |----------|-------|
-| Status | ✅ Enabled — github-actions only (Phase 4.5) |
+| Status | ✅ Enabled — github-actions + uv (Phase 4.9); npm deferred to 4.11 |
 | Config file | `.github/dependabot.yml` |
-| Enabled ecosystem | `github-actions` (pip/npm deferred to 4.8) |
+| Enabled ecosystems | `github-actions`, `uv` |
+| Deferred ecosystems | `npm` (Phase 4.11), `bun` (not planned) |
 | Schedule | Weekly Monday 09:00 Asia/Shanghai |
-| Open PR limit | 2 |
+| Open PR limit | 2 per ecosystem |
 | Auto-merge | ❌ Disabled |
 | Gate class | **Advisory** — PRs pass normal CI gates; external actor under observation |
-| Next phase | 4.6: Observe first Dependabot PR |
+| Python ecosystem key | `uv` — reflects uv as execution truth; uv.lock is governed lockfile |
+| Node ecosystem key | `npm` (deferred) — GitHub adapter for pnpm-lock.yaml |
+| Bun | Not configured — `bun.lock` is not a governed lockfile |
+| Next phase | 4.10: Observe first Python/uv Dependabot PR |
 
 ## 4. Security Gate Classification
 
@@ -119,7 +123,22 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | OpenSSF Scorecard (future) | Aggregate posture; not a per-PR gate |
 | Semgrep custom rules (future) | Rule-specific false positive profiles |
 
-## 5. Proposed Gate Levels
+## 5. Tool Identity vs Ecosystem Key
+
+Dependabot's `package-ecosystem` key is a **GitHub upstream adapter identifier**,
+not a directive about which local tool to use. This distinction is critical
+for supply-chain governance:
+
+| Ecosystem | Execution Truth | Dependabot Key | Rationale |
+|-----------|----------------|----------------|-----------|
+| Python | **uv** (`uv lock`, `uv run`) | `uv` | Correct adapter for uv.lock |
+| Node.js | **pnpm** (`pnpm install`, `pnpm test`) | `npm` | GitHub has no `pnpm` key; `npm` key supports pnpm-lock.yaml |
+| Bun | Not governed | Not configured | `bun.lock` is not the primary lockfile |
+
+**Rule**: Never let the Dependabot ecosystem key dictate the project toolchain.
+See `docs/runtime/dependabot-strategy.md` §3 for full rationale.
+
+## 6. Proposed Gate Levels
 
 | Gate Level | Security Tools | Trigger | Est. Time |
 |-----------|---------------|---------|-----------|
@@ -128,7 +147,7 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | Main Branch Gate | Gitleaks, Bandit, pip-audit, CodeQL | Push to main | ~3m |
 | Scheduled Deep Gate | All above + Scorecard | Weekly cron | ~5m |
 
-## 6. Tool Placement Matrix
+## 7. Tool Placement Matrix
 
 | Tool | PR Fast | PR Full | Main Branch | Scheduled Deep | Status |
 |------|---------|---------|-------------|----------------|--------|
@@ -137,13 +156,13 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | pip-audit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip CVE patch | — | — | Hard | Hard | ✅ Adopted |
 | CodeQL | — | Advisory | Hard (workflow-health) | Advisory | ✅ Hard Gate |
-| Dependabot | — | — | Advisory | Advisory | ✅ Enabled (github-actions) |
+| Dependabot | — | — | Advisory | Advisory | ✅ Enabled (github-actions); uv/npm planned |
 | OpenSSF Scorecard | — | — | — | Advisory | 📋 Plan |
 | Semgrep | — | — | — | Advisory | 🔮 Evaluate later |
 | Trivy | — | — | — | Advisory | 🔮 Evaluate later |
 | OPA / Conftest | — | — | — | — | 🔮 Evaluate later |
 
-## 7. Why Not All Tools Belong in PR Fast Gate
+## 8. Why Not All Tools Belong in PR Fast Gate
 
 PR Fast Gate must complete in < 2 minutes. Security tools with:
 - High CI runtime (CodeQL: 2-5 min)
@@ -159,7 +178,7 @@ is amortized).
 learn to ignore security. The classification system (Hard → block, Escalation →
 review, Advisory → record) prevents desensitization.
 
-## 8. Evidence Requirements
+## 9. Evidence Requirements
 
 Security tool outputs are evidence. For tools already in CI:
 - Bandit/pip-audit: workflow log is evidence
@@ -175,7 +194,7 @@ AuditEvent). This is acceptable — security evidence lives in CI artifacts, not
 in Ordivon DB. If a security finding triggers a governance action (escalate →
 Review → CandidateRule), that action IS recorded in the Evidence Platform.
 
-## 9. Relationship to Repo Governance
+## 10. Relationship to Repo Governance
 
 Security tools and Repo Governance complement each other:
 
@@ -189,14 +208,19 @@ Security tools and Repo Governance complement each other:
 Ordivon does not auto-fix or auto-block based on security findings alone.
 Security findings inform governance classification, not replace it.
 
-## 10. Next Steps
+## 11. Next Steps
 
 1. ~~CodeQL onboarding plan~~ → ✅ Deployed (Phase 4.1, `codeql.yml`)
 2. ~~CodeQL findings triage~~ → ✅ Complete (Phase 4.2, zero-alert baseline)
 3. ~~CodeQL hard gate promotion~~ → ✅ Complete (Phase 4.3, workflow-health hard gate)
 4. Finding-severity hard gate design (future): requires alert policy, false positive protocol, owner sign-off
-5. ~~Dependabot strategy plan~~ → ✅ Complete (Phase 4.4, `docs/runtime/dependabot-strategy.md`)
+5. ~~Dependabot strategy plan~~ → ✅ Complete (Phase 4.4)
 6. ~~Dependabot config + enable~~ → ✅ Complete (Phase 4.5, github-actions only)
-7. Dependabot first PR observation (Phase 4.6): wait for weekly scan or manual trigger
-8. OpenSSF Scorecard as informational badge (Phase 4.x)
-9. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)
+7. ~~Dependabot first PR observation~~ → ✅ Complete (Phase 4.6–4.7)
+8. ~~Dependabot uv/pnpm strategy refinement~~ → ✅ Complete (Phase 4.8)
+9. ~~Dependabot Python/uv minimal enablement~~ → ▶️ Current (Phase 4.9)
+10. Dependabot Python/uv first PR observation (Phase 4.10)
+11. Dependabot Node/pnpm minimal enablement (Phase 4.11)
+12. Dependabot Node/pnpm first PR observation (Phase 4.12)
+13. OpenSSF Scorecard as informational badge (Phase 4.x)
+14. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)

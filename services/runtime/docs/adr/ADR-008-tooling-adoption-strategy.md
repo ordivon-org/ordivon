@@ -1,8 +1,8 @@
 # ADR-008: Tooling Adoption Strategy
 
-Status: **proposed**
-Date: 2026-04-28
-Phase: 3.12
+Status: **proposed** (updated Phase 4.8)
+Date: 2026-04-28 (updated 2026-04-29)
+Phase: 3.12 → 4.8
 
 ## Context
 
@@ -50,6 +50,12 @@ with traceable evidence.
    severity protocol, evidence chains, or CandidateRule learning — Ordivon
    builds it.
 
+6. **Ecosystem key ≠ tool recommendation**: GitHub platform keys (Dependabot
+   `package-ecosystem`, Actions `setup-*`) are upstream adapter identifiers.
+   The project toolchain (uv, pnpm, bun) is the execution truth. Never let
+   a platform naming convention redirect the project toolchain. See
+   `docs/runtime/dependabot-strategy.md` §3 for full rationale.
+
 ## Build vs Buy Criteria
 
 | Criterion | Buy (Adopt) | Build |
@@ -66,7 +72,7 @@ with traceable evidence.
 | Tool | Rationale | Effort | Phase | Status |
 |------|-----------|--------|-------|--------|
 | CodeQL | Code analysis, low integration cost, GitHub-native | 1 CI job | 4.1-4.3 | ✅ Hard Gate |
-| Dependabot | Auto-PR for dep updates, needs governance gate | Configure `.github/dependabot.yml` | 4.4+ | 📋 Strategy planned |
+| Dependabot | Auto-PR for dep updates, needs governance gate | Configure `.github/dependabot.yml` | 4.4-4.12 | ⏳ github-actions enabled; uv/npm strategy refined (4.8) |
 | OpenSSF Scorecard | Read-only security posture report | 1 CI job | 4.x | 📋 Plan |
 
 ## Deferred Candidates (Evaluate Later)
@@ -99,6 +105,7 @@ with traceable evidence.
 - Prevents scope creep (no "let's try every tool")
 - Protects Ordivon's unique value (severity protocol, evidence chain)
 - Read-only-first reduces security surface
+- Tool identity vs ecosystem key distinction prevents supply-chain confusion
 
 ### Negative
 
@@ -113,9 +120,15 @@ with traceable evidence.
 | 4.1 | Adopt CodeQL (1 CI job, read-only) | ✅ Complete |
 | 4.2 | CodeQL findings triage | ✅ Complete (zero alerts) |
 | 4.3 | CodeQL workflow-health hard gate | ✅ Complete |
-| 4.4 | Dependabot supply-chain strategy plan | ✅ Complete (this phase) |
-| 4.5 | Create + enable dependabot.yml | ⏳ Next |
-| 4.6 | Observe first Dependabot PRs | 📋 Plan |
+| 4.4 | Dependabot supply-chain strategy plan | ✅ Complete |
+| 4.5 | Create + enable dependabot.yml (github-actions) | ✅ Complete |
+| 4.6 | Observe first Dependabot PRs | ✅ Complete |
+| 4.7 | Tune Dependabot grouping + validate evidence artifacts | ✅ Complete |
+| 4.8 | Dependabot uv/pnpm strategy refinement | ▶️ Current |
+| 4.9 | Enable Python/uv Dependabot (minimal config) | 📋 Plan |
+| 4.10 | Observe first Python/uv Dependabot PR | 📋 Plan |
+| 4.11 | Enable Node/pnpm Dependabot (minimal config) | 📋 Plan |
+| 4.12 | Observe first Node/pnpm Dependabot PR | 📋 Plan |
 | 4.x | OpenSSF Scorecard | 📋 Plan |
 | 4.x | Re-evaluate Checks API based on artifact data | 📋 Plan |
 | 4.x | Evaluate Semgrep after CandidateRule→Policy matures | 📋 Plan |
