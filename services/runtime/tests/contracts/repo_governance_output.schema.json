@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/repo-governance-output-v1.json",
+  "title": "Repo Governance Output Contract v1",
+  "description": "JSON output schema for Repo Governance CLI and GitHub Actions adapter.",
+  "type": "object",
+  "required": [
+    "decision",
+    "reasons",
+    "pack",
+    "underlying_policy",
+    "source",
+    "side_effects"
+  ],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["execute", "escalate", "reject"]
+    },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "pack": {
+      "type": "string",
+      "const": "repo_governance"
+    },
+    "underlying_policy": {
+      "type": "string",
+      "const": "coding"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["repo_governance_cli", "github_actions_adapter"]
+    },
+    "changed_files_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "side_effects": {
+      "type": "object",
+      "required": [
+        "file_writes",
+        "shell",
+        "mcp",
+        "ide",
+        "execution_receipt",
+        "execution_request"
+      ],
+      "properties": {
+        "file_writes": { "type": "boolean", "const": false },
+        "shell": { "type": "boolean", "const": false },
+        "mcp": { "type": "boolean", "const": false },
+        "ide": { "type": "boolean", "const": false },
+        "execution_receipt": { "type": "boolean", "const": false },
+        "execution_request": { "type": "boolean", "const": false },
+        "pr_comments": { "type": "boolean", "const": false },
+        "push": { "type": "boolean", "const": false }
+      }
+    }
+  }
+}

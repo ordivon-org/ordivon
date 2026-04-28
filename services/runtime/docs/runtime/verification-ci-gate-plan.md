@@ -254,8 +254,8 @@ classification (record failures, do not block non-security PRs).
 |-------|--------|-----------|
 | **3.5** | Plan only | Zero CI workflow changes |
 | **3.6** | ✅ Add PR Fast Gate | New `verification-fast` job in `ci.yml`: eval corpus + runtime evidence + repo CLI smoke + architecture checker |
-| **3.7** (this phase) | ✅ GitHub Actions Adapter | Read-only adapter: reads PR metadata → classify → JSON output |
-| **3.8** | Add Main Branch Gate | DB-backed audit + PG full regression on push to main |
+| **3.7** | ✅ GitHub Actions Adapter | Read-only adapter: reads PR metadata → classify → JSON output |
+| **3.8** (this phase) | ✅ GitHub Workflow + Contract | `repo-governance-pr` job in `ci.yml`: reads PR → classify → execute pass / escalate warn / reject fail. JSON contract schema added.
 | **3.9** | Add Scheduled Deep Gate | Nightly full regression + coverage |
 
 ## 14. Non-Goals (Phase 3.5)

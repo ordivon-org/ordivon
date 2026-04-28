@@ -21,6 +21,72 @@ env:
   PFIOS_E2E_BASE_URL: http://127.0.0.1:3000
 
 jobs:
+  repo-governance-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      PFIOS_DB_URL: duckdb:///./data/github-ci-repo-gov.duckdb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Install Python dev dependencies
+        run: uv sync --extra dev
+
+      - name: Get changed files
+        run: |
+          git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+
+      - name: Run repo governance adapter
+        id: repo-gov
+        run: |
+          ADAPTER="scripts/repo_governance_github_adapter.py"
+          EC=0
+          uv run python "$ADAPTER" \
+            --github-event-path "$GITHUB_EVENT_PATH" \
+            --changed-files-file changed_files.txt \
+            --json > repo_gov_result.json || EC=$?
+
+          cat repo_gov_result.json
+
+          DECISION=$(python -c "import json; print(json.load(open('repo_gov_result.json')).get('decision',''))")
+          echo "decision=$DECISION" >> $GITHUB_OUTPUT
+          echo "exit_code=$EC" >> $GITHUB_OUTPUT
+
+          case $EC in
+            0) echo "✅ Governance: execute — safe to proceed" ;;
+            2) echo "⚠️  Governance: escalate — human review recommended" ;;
+            3) echo "❌ Governance: reject — blocked" ;;
+            *) echo "❌ Adapter error (exit $EC)";;
+          esac
+
+          # escalate (exit 2) → warning, pass
+          # reject (exit 3) or error (exit 1) → fail
+          if [ "$EC" = "2" ]; then
+            echo "::warning::Repo governance: escalate — human review required"
+            exit 0
+          fi
+          exit $EC
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
