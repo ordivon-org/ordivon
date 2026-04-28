@@ -1,0 +1,102 @@
+[
+  {
+    "case_id": "XP01",
+    "pack": "cross_pack",
+    "description": "RiskEngine validates Finance + Coding using same severity protocol",
+    "input_finance": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "BTC breaking resistance with volume confirmation; invalidated below 200 EMA.",
+        "stop_loss": "2%", "max_loss_usdt": 200, "position_size_usdt": 1000,
+        "risk_unit_usdt": 200, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "input_coding": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Fix flaky assertion in test_user_auth.py",
+        "file_paths": ["tests/unit/test_user_auth.py"],
+        "estimated_impact": "low",
+        "reasoning": "Timestamp comparison without tolerance.",
+        "test_plan": "Run pytest tests/unit/test_user_auth.py -x 10 times."
+      }
+    },
+    "expected": {
+      "finance_decision": "execute",
+      "coding_decision": "execute"
+    },
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["eval-corpus-v1"]
+  },
+  {
+    "case_id": "XP02",
+    "pack": "cross_pack",
+    "description": "Finance policy does not affect Coding classification",
+    "input_finance": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "ETHUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "Valid thesis with volume confirmation criteria and clear invalidation below support.",
+        "stop_loss": "2%",
+        "max_loss_usdt": 200, "position_size_usdt": 1000, "risk_unit_usdt": 200,
+        "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "input_coding": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Update docs", "file_paths": ["README.md"],
+        "estimated_impact": "low", "reasoning": "Docs update.",
+        "test_plan": "Manual review."
+      }
+    },
+    "expected": {
+      "finance_decision": "execute",
+      "coding_decision": "execute"
+    },
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["eval-corpus-v1"]
+  },
+  {
+    "case_id": "XP03",
+    "pack": "cross_pack",
+    "description": "Coding policy does not affect Finance classification",
+    "input_finance": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "", "stop_loss": "2%", "max_loss_usdt": 200,
+        "position_size_usdt": 1000, "risk_unit_usdt": 200,
+        "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "input_coding": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Refactor auth", "file_paths": ["auth.py"],
+        "estimated_impact": "low", "reasoning": "Clean up.",
+        "test_plan": "Run auth tests."
+      }
+    },
+    "expected": {
+      "finance_decision": "reject",
+      "coding_decision": "execute"
+    },
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["eval-corpus-v1"]
+  },
+  {
+    "case_id": "XP04",
+    "pack": "cross_pack",
+    "description": "Core does not import Pack semantics",
+    "check_type": "static",
+    "check_command": "rg 'from packs.finance|from packs.coding|import packs.finance|import packs.coding' governance/ -n",
+    "expected": {"exit_code": 0, "output_empty": false, "note": "policy_source.py imports are ADR-006 whitelisted (tool namespace metadata)"},
+    "forbidden_side_effects": [],
+    "source_refs": ["eval-corpus-v1", "adr-006"]
+  }
+]

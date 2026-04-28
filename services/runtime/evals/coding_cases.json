@@ -1,0 +1,182 @@
+[
+  {
+    "case_id": "C01",
+    "pack": "coding",
+    "description": "Test fix with plan should execute",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Fix flaky assertion in test_user_auth.py",
+        "file_paths": ["tests/unit/test_user_auth.py"],
+        "estimated_impact": "low",
+        "reasoning": "The assertion compares timestamps without tolerance.",
+        "test_plan": "Run pytest tests/unit/test_user_auth.py -x 10 times."
+      }
+    },
+    "expected": {"decision": "execute", "reason_patterns": ["Passed all governance gates"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt", "no file writes", "no shell/MCP/IDE"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C02",
+    "pack": "coding",
+    "description": "Doc change with plan should execute",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Update README with new setup instructions",
+        "file_paths": ["README.md", "docs/setup.md"],
+        "estimated_impact": "low",
+        "reasoning": "Outdated instructions since uv migration.",
+        "test_plan": "Manual review of rendered markdown."
+      }
+    },
+    "expected": {"decision": "execute", "reason_patterns": ["Passed all governance gates"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C03",
+    "pack": "coding",
+    "description": "Missing task_description should reject",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "",
+        "file_paths": ["apps/api/app/main.py"],
+        "estimated_impact": "low",
+        "reasoning": "Need to refactor.",
+        "test_plan": "Run unit tests."
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["task_description"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C04",
+    "pack": "coding",
+    "description": "Missing file_paths should reject",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Refactor the authentication middleware",
+        "file_paths": [],
+        "estimated_impact": "medium",
+        "reasoning": "Extract duplicate logic.",
+        "test_plan": "Run auth test suite."
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["file_paths"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C05",
+    "pack": "coding",
+    "description": "Forbidden .env should reject",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Add new environment variable",
+        "file_paths": [".env"],
+        "estimated_impact": "medium",
+        "reasoning": "Need DB_REPLICA_URL for read replica.",
+        "test_plan": "Verify app starts with new env var."
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["Forbidden file path", ".env"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C06",
+    "pack": "coding",
+    "description": "Forbidden uv.lock should reject",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Update dependency version",
+        "file_paths": ["uv.lock"],
+        "estimated_impact": "low",
+        "reasoning": "Patch version bump.",
+        "test_plan": "Run pip-audit after update."
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["Forbidden file path", "uv.lock"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C07",
+    "pack": "coding",
+    "description": "Forbidden migration runner should reject",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Add idempotent migration",
+        "file_paths": ["state/db/migrations/runner.py"],
+        "estimated_impact": "high",
+        "reasoning": "New ORM column needs migration.",
+        "test_plan": "Run schema drift check."
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["Forbidden file path", "migrations"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C08",
+    "pack": "coding",
+    "description": "High impact should escalate",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Rewrite risk engine validation logic",
+        "file_paths": ["governance/risk_engine/engine.py"],
+        "estimated_impact": "high",
+        "reasoning": "Need to support streaming validation.",
+        "test_plan": "Run full governance test suite."
+      }
+    },
+    "expected": {"decision": "escalate", "reason_patterns": ["high"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C09",
+    "pack": "coding",
+    "description": "Missing test_plan should escalate",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Optimize database query in recommendation service",
+        "file_paths": ["domains/strategy/service.py"],
+        "estimated_impact": "medium",
+        "reasoning": "N+1 query detected.",
+        "test_plan": null
+      }
+    },
+    "expected": {"decision": "escalate", "reason_patterns": ["test_plan"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "C10",
+    "pack": "coding",
+    "description": "Multi-file medium change with plan should execute",
+    "input": {
+      "pack_id": "coding", "intake_type": "code_change",
+      "payload": {
+        "task_description": "Extract shared validation helpers",
+        "file_paths": ["shared/validation.py", "capabilities/domain/finance_decisions.py"],
+        "estimated_impact": "medium",
+        "reasoning": "Duplicate validation logic across capability files.",
+        "test_plan": "Run pytest tests/unit/capabilities/ -v."
+      }
+    },
+    "expected": {"decision": "execute", "reason_patterns": ["Passed all governance gates"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  }
+]

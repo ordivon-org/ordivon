@@ -1,0 +1,183 @@
+[
+  {
+    "case_id": "F01",
+    "pack": "finance",
+    "description": "Valid conservative plan should execute",
+    "input": {
+      "pack_id": "finance",
+      "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "BTC breaking above resistance with volume confirmation; invalidated below 200 EMA.",
+        "stop_loss": "2%", "max_loss_usdt": 200, "position_size_usdt": 1000,
+        "risk_unit_usdt": 200, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "expected": {"decision": "execute", "reason_patterns": ["Passed all governance gates"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt", "no file writes", "no shell/MCP/IDE"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F02",
+    "pack": "finance",
+    "description": "Missing thesis should reject",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "ETHUSDT", "timeframe": "4h", "direction": "short",
+        "thesis": "", "stop_loss": "5%", "max_loss_usdt": 500,
+        "position_size_usdt": 2000, "risk_unit_usdt": 250,
+        "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "neutral", "confidence": 0.6
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["thesis"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F03",
+    "pack": "finance",
+    "description": "Missing stop_loss should reject",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "SOLUSDT", "timeframe": "15m", "direction": "long",
+        "thesis": "SOL bouncing off support with RSI divergence confirmation.",
+        "stop_loss": "", "max_loss_usdt": 300, "position_size_usdt": 1500,
+        "risk_unit_usdt": 150, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.65
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["stop_loss"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F04",
+    "pack": "finance",
+    "description": "Revenge trade should escalate",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "5m", "direction": "long",
+        "thesis": "Quick scalp after previous loss to recover.",
+        "stop_loss": "1%", "max_loss_usdt": 100, "position_size_usdt": 500,
+        "risk_unit_usdt": 100, "is_revenge_trade": true, "is_chasing": false,
+        "emotional_state": "angry", "confidence": 0.9
+      }
+    },
+    "expected": {"decision": "escalate", "reason_patterns": ["revenge"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F05",
+    "pack": "finance",
+    "description": "Chasing should escalate",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "DOGEUSDT", "timeframe": "1m", "direction": "long",
+        "thesis": "Price is pumping, don't want to miss the move.",
+        "stop_loss": "10%", "max_loss_usdt": 1000, "position_size_usdt": 5000,
+        "risk_unit_usdt": 500, "is_revenge_trade": false, "is_chasing": true,
+        "emotional_state": "fomo", "confidence": 0.95
+      }
+    },
+    "expected": {"decision": "escalate", "reason_patterns": ["chasing"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F06",
+    "pack": "finance",
+    "description": "max_loss > 2x risk_unit should reject",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "Strong trend continuation with volume confirmation.",
+        "stop_loss": "5%", "max_loss_usdt": 1000, "position_size_usdt": 2000,
+        "risk_unit_usdt": 200, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["max_loss", "risk_unit"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F07",
+    "pack": "finance",
+    "description": "position > 10x risk_unit should reject",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "ETHUSDT", "timeframe": "4h", "direction": "long",
+        "thesis": "ETH breaking key level with DeFi TVL confirmation; invalid if TVL drops.",
+        "stop_loss": "3%", "max_loss_usdt": 300, "position_size_usdt": 5000,
+        "risk_unit_usdt": 200, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.7
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["position", "risk_unit"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F08",
+    "pack": "finance",
+    "description": "Low-quality thesis should reject",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "1h", "direction": "long",
+        "thesis": "just feels right", "stop_loss": "2%",
+        "max_loss_usdt": 200, "position_size_usdt": 1000, "risk_unit_usdt": 200,
+        "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.8
+      }
+    },
+    "expected": {"decision": "reject", "reason_patterns": ["thesis"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F09",
+    "pack": "finance",
+    "description": "Valid conservative plan should execute",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "LINKUSDT", "timeframe": "1d", "direction": "long",
+        "thesis": "LINK accumulation zone with oracle network growth; invalidated below $10.",
+        "stop_loss": "5%", "max_loss_usdt": 150, "position_size_usdt": 1000,
+        "risk_unit_usdt": 150, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "calm", "confidence": 0.75
+      }
+    },
+    "expected": {"decision": "execute", "reason_patterns": ["Passed all governance gates"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  },
+  {
+    "case_id": "F10",
+    "pack": "finance",
+    "description": "Stressed emotional state should escalate",
+    "input": {
+      "pack_id": "finance", "intake_type": "trading_decision",
+      "payload": {
+        "symbol": "BTCUSDT", "timeframe": "15m", "direction": "short",
+        "thesis": "Range breakdown confirmed with volume spike; exit if reclaims range.",
+        "stop_loss": "2%", "max_loss_usdt": 150, "position_size_usdt": 750,
+        "risk_unit_usdt": 150, "is_revenge_trade": false, "is_chasing": false,
+        "emotional_state": "stressed", "confidence": 0.4
+      }
+    },
+    "expected": {"decision": "escalate", "reason_patterns": ["emotional_state", "stressed"]},
+    "forbidden_side_effects": ["no ExecutionRequest", "no ExecutionReceipt"],
+    "source_refs": ["cross-pack-dogfood-wave-f"]
+  }
+]
