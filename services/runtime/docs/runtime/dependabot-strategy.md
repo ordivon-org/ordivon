@@ -1,9 +1,9 @@
 # Dependabot Supply-Chain Strategy
 
-Status: **ACTIVE** (Phase 4.10 — Node/pnpm minimal enablement)
+Status: **ACTIVE** (Phase 4.11 — Dependabot bot governance + PR triage)
 Date: 2026-04-29
-Phase: 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9 → 4.10
-Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `enabled`, `github-actions`, `uv`, `pnpm`, `uv-enabled`, `pnpm-enabled`
+Phase: 4.4 → 4.5 → 4.6 → 4.7 → 4.8 → 4.9 → 4.10 → 4.11
+Tags: `dependabot`, `supply-chain`, `dependencies`, `security`, `enabled`, `github-actions`, `uv`, `pnpm`, `governance`, `triage`
 
 ## 1. Purpose
 

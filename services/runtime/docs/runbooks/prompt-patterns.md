@@ -344,3 +344,66 @@ advisory: checker 本身是 CandidateRule。
 3. 不生成 CandidateRule — checker 本身是 advisory。
 4. 不升级 Policy。
 ```
+
+## 13. Compressed Phase Prompt Principle (Phase 4D+)
+
+With the introduction of the [Ordivon Agent Operating Doctrine](ordivon-agent-operating-doctrine.md),
+phase prompts should be **compressed** — stating only what is specific to
+the phase, with all reusable rules deferred to the doctrine.
+
+### Compressed Prompt Template
+
+```
+当前阶段：Phase X — Task Name
+
+Stage identity: [one-line description]
+
+Purpose: [single problem being solved]
+
+Boundaries:
+  允许: [what can change]
+  禁止: [hard stops]
+
+Verification: [seal commands]
+
+Receipt: [what output must contain]
+
+Agent self-check per Ordivon Agent Operating Doctrine §8.
+```
+
+### What Moves to the Doctrine
+
+The following should NOT be repeated in every phase prompt:
+- Full governance philosophy
+- Actor trust model (Dependabot vs human vs AI agent)
+- Evidence freshness rules (current / stale / regenerated)
+- CandidateRule → Policy lifecycle
+- Adapter boundary rules
+- "No auto-merge / no comment / no bypass" boilerplate
+
+Instead, the prompt says: "See doctrine §3, §3.2, §4.2" for the specific
+rules that apply to the task type.
+
+### Before/After Example
+
+**Before** (Phase 4.11 — 300+ word prompt):
+```
+不绕过 Repo Governance
+不降低边界检查
+不改依赖版本
+不手动改 uv.lock / pnpm-lock.yaml
+不改业务源码
+不改前端源码
+不改 API / ORM / OpenAPI
+不改 RiskEngine / Pack policy
+不创建 CandidateRule / PolicyProposal
+不接 Checks API / MCP / IDE / AI agent
+repo-governance-pr 不应因缺 Test Plan 直接失败
+[30 more lines of rules]
+```
+
+**After** (compressed):
+```
+禁止: 不改源码/测试/CI/deps/lockfiles. 不绕过治理.
+Governance rules per doctrine §3.4, §3.5, §4.2.
+```
