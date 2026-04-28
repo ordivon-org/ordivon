@@ -1,8 +1,8 @@
 # Security Platform Baseline
 
-Status: **DOCUMENTED**
+Status: **IMPLEMENTED** (CodeQL advisory workflow deployed)
 Date: 2026-04-28
-Phase: 3.13
+Phase: 3.13 → 4.1
 Tags: `security`, `platform`, `gates`, `codeql`, `bandit`, `gitleaks`
 
 ## 1. Purpose
@@ -67,6 +67,18 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | Purpose | Upgrade pip to patched version in CI |
 | Gate class | Hard — CI must not run with vulnerable pip |
 
+### 3.5 CodeQL (Semantic Code Analysis)
+
+| Property | Value |
+|----------|-------|
+| CI job | `CodeQL` in `codeql.yml` |
+| Trigger | Push to main, pull_request to main, weekly schedule (Mon 03:00 UTC) |
+| Permissions | `contents: read`, `security-events: write` |
+| Gate class | **Advisory** — dry-run; uploads SARIF results to Security tab |
+| Tool | `github/codeql-action` (init@v3, analyze@v3) |
+| Languages | Python, JavaScript/TypeScript |
+| Status | ✅ Deployed (Phase 4.1) |
+
 ## 4. Security Gate Classification
 
 ### Hard Gate (fail → block)
@@ -80,7 +92,7 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 
 | Gate | Rationale |
 |------|-----------|
-| CodeQL security alerts (future) | Requires baseline tuning; false positives possible |
+| CodeQL security alerts | Advisory — dry-run; uploads SARIF results to Security tab |
 | Dependabot critical alerts (future) | Requires human dependency decision |
 
 ### Advisory Gate (fail → record, never block)
@@ -109,7 +121,7 @@ Corpus) within the Verification Platform, not as its own top-level platform.
 | Bandit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip-audit | — | Advisory | Advisory | Advisory | ✅ Adopted |
 | pip CVE patch | — | — | Hard | Hard | ✅ Adopted |
-| CodeQL | — | — | Escalation → Hard | Escalation → Hard | 📋 Plan |
+| CodeQL | — | Advisory | Advisory | Advisory | ✅ Advisory |
 | Dependabot | — | — | Escalation | Escalation | 📋 Plan |
 | OpenSSF Scorecard | — | — | — | Advisory | 📋 Plan |
 | Semgrep | — | — | — | Advisory | 🔮 Evaluate later |
@@ -164,7 +176,8 @@ Security findings inform governance classification, not replace it.
 
 ## 10. Next Steps
 
-1. CodeQL onboarding plan (`docs/runtime/codeql-onboarding-plan.md`)
-2. Dependabot configuration with governance gate
-3. OpenSSF Scorecard as informational badge
-4. Semgrep evaluation after CandidateRule→Policy matures
+1. ~~CodeQL onboarding plan~~ → ✅ Deployed (Phase 4.1, `codeql.yml`)
+2. CodeQL baseline audit (Phase 4.2): review Security tab alerts, suppress false positives
+3. Dependabot configuration with governance gate (Phase 4.x)
+4. OpenSSF Scorecard as informational badge (Phase 4.x)
+5. Semgrep evaluation after CandidateRule→Policy matures (Phase 4.x)

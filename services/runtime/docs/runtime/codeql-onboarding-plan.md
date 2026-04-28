@@ -1,9 +1,9 @@
 # CodeQL Onboarding Plan
 
-Status: **PLAN**
+Status: **IMPLEMENTED** (Phase 4.1)
 Date: 2026-04-28
-Phase: 3.13
-Tags: `codeql`, `security`, `onboarding`, `plan`
+Phase: 3.13 → 4.1
+Tags: `codeql`, `security`, `onboarding`, `plan`, `implemented`
 
 ## 1. Purpose
 
@@ -76,7 +76,7 @@ commit is pushed.
 - ❌ PR merge/unmerge
 - ❌ Branch protection changes
 
-## 6. Proposed Workflow
+## 6. Actual Workflow (Phase 4.1)
 
 ```yaml
 name: CodeQL
@@ -84,9 +84,10 @@ name: CodeQL
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
-    - cron: "0 6 * * 3"  # Weekly Wednesday 06:00 UTC
-  # PR trigger deferred to Phase 4.x after baseline is stable
+    - cron: "0 3 * * 1"  # Weekly Monday 03:00 UTC
 
 permissions:
   contents: read
@@ -94,11 +95,14 @@ permissions:
 
 jobs:
   analyze:
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        language: [python]
+        language:
+          - python
+          - javascript-typescript
     steps:
       - uses: actions/checkout@v6
       - uses: github/codeql-action/init@v3
@@ -111,10 +115,23 @@ jobs:
 
 | Choice | Rationale |
 |--------|-----------|
-| Push to main only (not PR) | First onboarding; avoid PR noise |
-| Weekly schedule | Cost amortization; not every commit needs scanning |
-| No PR trigger initially | Baseline must be stable before per-PR gating |
-| Python only | Ordivon's primary language; JavaScript later if frontend grows |
+| PR trigger included | Task specification (Phase 4.1) includes PR; advisory-only, no blocking |
+| Python + JS/TS | Repo has both `pyproject.toml` and `apps/web/package.json` |
+| No autobuild step | CodeQL's default Python/JS autobuild is sufficient |
+| `security-events: write` only | Upload SARIF results to Security tab; no PR write/comment/push |
+| `fail-fast: false` | One language failure does not cancel the other |
+
+### Phase 4.1 Gate Semantics
+
+| Event | Behavior | Blocking? |
+|-------|----------|-----------|
+| PR push | CodeQL uploads results to Security tab | No |
+| Main branch push | CodeQL uploads results to Security tab | No |
+| Weekly schedule | CodeQL uploads results to Security tab | No |
+
+This matches the dry-run/advisory phase: establish baseline, understand alert
+volume and false positive rate. Zero CI impact — CodeQL workflow runs
+independently and does not gate any verification or governance step.
 
 ## 7. Gate Semantics
 
@@ -148,13 +165,13 @@ Phase 1-2.
 
 ## 8. Rollout Phases
 
-| Phase | Action | Timeline | CI Change |
-|-------|--------|----------|-----------|
-| **3.13** | Plan only (this doc) | Now | Zero |
-| **4.1** | Add CodeQL workflow (dry-run) | Next phase | New `codeql.yml` |
-| **4.2** | Tune alert baseline | 2-4 weeks | Review Security tab |
-| **4.3** | Promote main branch to hard gate | After baseline stable | `continue-on-error: false` |
-| **4.4** | Add PR trigger | After main gate proven | Add `pull_request` event |
+| Phase | Action | Timeline | CI Change | Status |
+|-------|--------|----------|-----------|--------|
+| **3.13** | Plan only (this doc) | 2026-04-28 | Zero | ✅ Complete |
+| **4.1** | Add CodeQL workflow (dry-run) | 2026-04-28 | New `codeql.yml` | ✅ Complete |
+| **4.2** | Tune alert baseline | 2-4 weeks | Review Security tab | ⏳ Next |
+| **4.3** | Promote main branch to hard gate | After baseline stable | `continue-on-error: false` | 📋 Plan |
+| **4.4** | Add PR trigger | After main gate proven | Add `pull_request` event | 📋 Plan (PR already present; hardening deferred) |
 
 ## 9. Stop Conditions
 
@@ -177,7 +194,33 @@ If any of the following occur, stop CodeQL onboarding and report:
 - No Ordivon CandidateRule extraction from CodeQL alerts (future: Phase 5.x)
 - No connection to MCP/IDE/AI agent
 
-## 11. Related Documents
+## 12. Phase 4.1 Remote Validation Checklist
+
+After push, verify in GitHub Actions:
+
+- [ ] CodeQL workflow triggered (push to main)
+- [ ] CodeQL workflow triggered (PR event, if applicable)
+- [ ] `python` analysis: init → analyze → upload success
+- [ ] `javascript-typescript` analysis: init → analyze → upload success
+- [ ] Permissions: `contents: read`, `security-events: write` (no broader)
+- [ ] No PR comment generated
+- [ ] No file modified
+- [ ] Security tab populated with SARIF results
+- [ ] `backend-static` still success
+- [ ] `verification-fast` still success
+- [ ] `secret-scan` still success
+- [ ] `repo-governance-pr` skipped on push event
+
+## 13. Known Limitations (Phase 4.1)
+
+| Limitation | Impact | Follow-up |
+|-----------|--------|-----------|
+| Alert baseline unknown | Alerts may be noisy; volume uncharacterized | Phase 4.2: audit and suppress false positives |
+| No Python autobuild override | CodeQL default autobuild may miss installed deps | Monitor; add `setup-python` + `uv sync` if needed |
+| JS/TS coverage limited | Only `apps/web/` has frontend code | Acceptable; expand if repo gains more JS/TS |
+| Weekly schedule only | No intra-week scheduled deep scan | Acceptable for advisory phase |
+
+## 14. Related Documents
 
 | Document | Relationship |
 |----------|-------------|
