@@ -90,6 +90,68 @@ def validate_args(args: argparse.Namespace) -> list[str]:
     return errors
 
 
+def classify_repo_intent(
+    *,
+    task_description: str,
+    file_paths: list[str],
+    estimated_impact: str,
+    reasoning: str,
+    test_plan: str | None = None,
+    source: str = "repo_governance_cli",
+) -> dict:
+    """Classify a repo governance intent. Shared between CLI and GitHub adapter.
+
+    Returns a result dict with decision, reasons, pack, underlying_policy,
+    source, and side_effects.  Does NOT write files, call shell/MCP/IDE, or
+    create ExecutionRequest/ExecutionReceipt.
+    """
+    from packs.coding.models import CodingDecisionPayload
+    from domains.decision_intake.models import DecisionIntake
+    from governance.risk_engine.engine import RiskEngine
+    from packs.coding.policy import CodingDisciplinePolicy
+
+    payload = CodingDecisionPayload(
+        task_description=task_description.strip(),
+        file_paths=tuple(file_paths),
+        estimated_impact=estimated_impact,
+        reasoning=reasoning.strip(),
+        test_plan=test_plan.strip() if test_plan else None,
+    )
+
+    intake = DecisionIntake(
+        pack_id="coding",
+        intake_type="code_change",
+        payload={
+            "task_description": payload.task_description,
+            "file_paths": list(payload.file_paths),
+            "estimated_impact": payload.estimated_impact,
+            "reasoning": payload.reasoning,
+            "test_plan": payload.test_plan,
+        },
+        status="validated",
+    )
+
+    engine = RiskEngine()
+    policy = CodingDisciplinePolicy()
+    decision = engine.validate_intake(intake, pack_policy=policy)
+
+    return {
+        "decision": decision.decision,
+        "reasons": decision.reasons,
+        "pack": "repo_governance",
+        "underlying_policy": "coding",
+        "source": source,
+        "side_effects": {
+            "file_writes": False,
+            "shell": False,
+            "mcp": False,
+            "ide": False,
+            "execution_receipt": False,
+            "execution_request": False,
+        },
+    }
+
+
 def make_intake(args: argparse.Namespace):
     """Construct a DecisionIntake from CLI arguments."""
     from packs.coding.models import CodingDecisionPayload
@@ -119,31 +181,15 @@ def make_intake(args: argparse.Namespace):
 
 
 def classify(args: argparse.Namespace) -> dict:
-    """Run governance classification and return a result dict."""
-    from governance.risk_engine.engine import RiskEngine
-    from packs.coding.policy import CodingDisciplinePolicy
-
-    intake = make_intake(args)
-    engine = RiskEngine()
-    policy = CodingDisciplinePolicy()
-    decision = engine.validate_intake(intake, pack_policy=policy)
-
-    result = {
-        "decision": decision.decision,
-        "reasons": decision.reasons,
-        "pack": "repo_governance",
-        "underlying_policy": "coding",
-        "source": "repo_governance_cli",
-        "side_effects": {
-            "file_writes": False,
-            "shell": False,
-            "mcp": False,
-            "ide": False,
-            "execution_receipt": False,
-            "execution_request": False,
-        },
-    }
-    return result
+    """Run governance classification from CLI args. Delegates to classify_repo_intent."""
+    return classify_repo_intent(
+        task_description=args.task_description,
+        file_paths=args.file_paths,
+        estimated_impact=args.estimated_impact,
+        reasoning=args.reasoning,
+        test_plan=args.test_plan,
+        source="repo_governance_cli",
+    )
 
 
 def main() -> int:
