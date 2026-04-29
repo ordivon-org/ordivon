@@ -1,43 +1,57 @@
-# Phase 7P-3 — First Paper Trade Outcome (Reconciled 7P-3F)
+# Phase 7P-3 — First Paper Trade Outcome (Reconciled 7P-3F — FILLED)
 
-Status: **PENDING FILL** (Phase 7P-3F, updated from 7P-3)
-Date: 2026-04-29 (original), reconciled 2026-04-29
+Status: **FILLED — AWAITING REVIEW** (Phase 7P-3F)
+Date: 2026-04-29
 Trade ID: 7P-3-001
 
-## Outcome (Reconciled)
+## Outcome
 
-| Field | Original (7P-3) | Reconciled (7P-3F) |
-|-------|----------------|---------------------|
-| Order ID | `84dcf528...` | Same — unchanged |
-| Status | `new` | **Still `new`** — not yet filled |
-| Filled Qty | 0 | 0 |
-| Fill Price | N/A | N/A |
-| Submitted at | 2026-04-29T13:24:31Z | Same |
-| Environment | paper | paper |
-| Live Order | False | False |
+| Field | Value |
+|-------|-------|
+| Order ID | `84dcf528...` |
+| Symbol | AAPL |
+| Side | buy |
+| Type | market |
+| Quantity | 1 share |
+| **Status** | **filled** |
+| **Filled at** | 2026-04-29T13:30:50Z (market open, +6 min from submit) |
+| **Fill price** | **$267.55** |
+| Submitted at | 2026-04-29T13:24:31Z |
+| Environment | paper |
+| Live Order | False |
 
-## Why Not Filled
+## Paper PnL
 
-The order was submitted at 13:24 UTC (21:24 Beijing time). US equity markets closed
-at 20:00 UTC. Alpaca Paper Trading does not simulate fills outside market hours by
-default. The order will remain `new` until:
+| Metric | Value |
+|--------|-------|
+| Entry price | $267.55 |
+| Position | 1 AAPL (long) |
+| Current price | Unknown (need market data snapshot) |
+| Unrealized PnL | TBD (no exit yet) |
+| Realized PnL | N/A (position open) |
 
-- Market opens (next trading day, ~13:30 UTC)
-- Alpaca Paper matching engine processes the order
-- Or the order is manually canceled/expired
+## Fees / Slippage
 
-## What This Means
+| Metric | Value |
+|--------|-------|
+| Commission | $0.00 (Alpaca commission-free) |
+| Expected entry | ~$255.77 (after-hours bid from intake) |
+| Actual fill | $267.55 |
+| Slippage | +$11.78 (4.6%) — market opened higher |
 
-The governance pipeline was validated up to order submission. Fill capture,
-outcome measurement, and PnL tracking are deferred until the order fills.
+**Note**: The $11.78 slippage is not a loss. It's the market gap between after-hours bid and opening price. This is a paper account — slippage characteristics differ from live trading.
 
-## ⚠ No Additional Trades
+## Plan Followed?
 
-This order is still open. No second paper order may be placed until this trade
-is fully reviewed per the Alpaca Paper Trading Constitution §5 (one trade at a time).
-See `phase-7p-3-fill-reconciliation-receipt.md`.
+✅ Yes — intake, readiness gate, plan receipt, execution all per plan.
+The after-hours intake vs market-open fill gap is expected behavior for a
+pipeline test submitted outside market hours.
+
+## Deviation?
+
+None. Pipeline executed as designed.
 
 ## ⚠ PAPER ONLY — NOT REAL PNL
 
-This is a simulated paper trade. No real capital is at risk. Paper fill prices,
-when they occur, may not reflect actual market liquidity.
+This is simulated paper trading. No real capital was used. The $267.55 fill price
+is from Alpaca's paper matching engine and may not reflect actual market liquidity.

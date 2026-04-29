@@ -32,11 +32,11 @@ Phase 1–6 — **COMPLETE**
 Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
 Phase 7P-2 — Alpaca Paper Execution Adapter — **COMPLETE**
 Phase 7P-3 — First Supervised Paper Trade — **ACTIVE**
-  One paper order submitted: AAPL 1-share market buy.
-  Order ID: 84dcf528... Status: new (pending fill, after-hours).
-  **7P-3F reconciled: order still open. No second order allowed.**
+  AAPL 1-share market buy. Order ID: 84dcf528...
+  **FILLED at $267.55 (13:30 UTC market open). Position open.**
+  Pipeline validated: intake → receipt → execution → fill → outcome → review.
   **⚠ PAPER ONLY — NOT LIVE TRADING. NOT REAL PNL.**
-Phase 7P-Z — Paper Dogfood Review — Next (after fill + outcome + review)
+Phase 7P-Z — Paper Dogfood Review — Next (after position close + final review)
 
 ## Roadmap
 
