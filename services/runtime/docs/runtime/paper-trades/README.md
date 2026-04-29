@@ -22,6 +22,9 @@ Intake → Plan Receipt → Execution Receipt → Outcome → Review
 
 - [Phase 7P-3: Entry docs](phase-7p-3-first-paper-trade-intake.md)
 - [Phase 7P-Z: Closeout + Review](phase-7p-z-formal-review.md)
+- [Paper Trade Ledger](paper-trade-ledger.md) — all trades, status, next-allowed
+- [Trade Template](paper-trade-template.md) — repeatable receipt format
+- [Phase 8 Readiness Tracker](phase-7p-readiness-tracker.md) — live trading deferred
 - [Repeated Dogfood Protocol](../alpaca-paper-repeated-dogfood-protocol.md)
 - [CandidateRule Handling](../alpaca-paper-candidate-rule-handling.md)
 - [Stage Closure](phase-7p-z-stage-closure.md)
