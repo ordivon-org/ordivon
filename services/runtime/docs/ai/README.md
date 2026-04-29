@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase 7P-2 (2026-04-29)
-> **Active phase**: Phase 7P-2 — Alpaca Paper Execution Adapter
-> **Next**: Phase 7P-3 — First Supervised Paper Trade
+> **Last updated**: Phase 7P-3 (2026-04-29)
+> **Active phase**: Phase 7P-3 — First Supervised Paper Trade
+> **Next**: Phase 7P-Z — Paper Dogfood Review
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 

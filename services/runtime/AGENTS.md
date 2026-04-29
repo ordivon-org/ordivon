@@ -30,12 +30,13 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 Phase 1–6 — **COMPLETE**
 Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
-Phase 7P-2 — Alpaca Paper Execution Adapter — **ACTIVE**
-  PaperExecutionAdapter implemented. Separate from ReadOnlyAdapterCapability.
-  Paper-only guards at init. No live URL/key/order path.
-  submit_paper_order requires plan_receipt_id + no_live_disclaimer.
-  **No paper order has been placed yet.** First trade: Phase 7P-3.
-Phase 7P-3 — First Supervised Paper Trade — Next
+Phase 7P-2 — Alpaca Paper Execution Adapter — **COMPLETE**
+Phase 7P-3 — First Supervised Paper Trade — **ACTIVE**
+  One paper order submitted: AAPL 1-share market buy.
+  Order ID: 84dcf528... (Alpaca Paper). Status: new (pending fill).
+  Full lifecycle recorded: intake → receipt → execution → outcome → review placeholder.
+  **⚠ PAPER ONLY — NOT LIVE TRADING. NOT REAL PNL.**
+Phase 7P-Z — Paper Dogfood Review — Next
 
 ## Roadmap
 
@@ -43,9 +44,9 @@ Phase 7P-3 — First Supervised Paper Trade — Next
 |-------|-------|--------|----------------|
 | 7A-R | Boundary correction | COMPLETE | Docs only |
 | 7P-1 | Alpaca Paper Trading Constitution | COMPLETE | Docs only, paper ≠ live |
-| **7P-2** | **Alpaca Paper Execution Adapter** | **ACTIVE** | Separate from ReadOnlyAdapterCapability |
-| 7P-3 | First Supervised Paper Trade | Next | Paper API, no broker write |
-| 7P-Z | Paper Dogfood Review | Planned | CandidateRule only |
+| 7P-2 | Alpaca Paper Execution Adapter | COMPLETE | Separate from ReadOnlyAdapterCapability |
+| **7P-3** | **First Supervised Paper Trade** | **ACTIVE** | One paper order executed, paper only |
+| 7P-Z | Paper Dogfood Review | Next | Review first trade + CandidateRule |
 | 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money |
 
 **Critical**: Real-money live trading has NOT started. Phase 7P tests paper execution only.
