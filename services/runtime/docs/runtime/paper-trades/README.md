@@ -1,43 +1,23 @@
 # Alpaca Paper Trades — Phase 7P Record
 
-This directory records supervised Alpaca Paper trades executed through Ordivon's
-paper-only execution adapter. Each trade is a governed dogfood event, not a
-profitability test.
-
-**⚠ PAPER ONLY — NOT LIVE TRADING. NOT REAL MONEY. NOT FINANCIAL ADVICE.**
+**⚠ PAPER ONLY — NOT LIVE TRADING. NOT REAL MONEY.**
 
 ## Trade Records
 
-| Trade | Date | Symbol | Entry | Exit | Paper PnL | Review |
-|-------|------|--------|-------|------|-----------|--------|
-| [7P-3-001](phase-7p-3-first-paper-trade-intake.md) | 2026-04-29 | AAPL | $267.55 | $269.07 | +$1.52 (simulated) | [✅](phase-7p-z-formal-review.md) |
+| ID | Symbol | Entry | Exit | PnL | Review |
+|----|--------|-------|------|-----|--------|
+| [PT-001](PT-001.md) | AAPL | $267.55 | $269.07 | +$1.52 | ✅ |
+| [PT-002](PT-002.md) | MSFT | $423.88 | $424.14 | +$0.26 | ✅ |
+| [PT-003](PT-003.md) | GOOGL | $352.50 | $352.26 | -$0.24 | ✅ |
+| [PT-004](PT-004.md) | NFLX | limit $90 | pending | — | ⏳ |
 
-## Lifecycle
+## Infrastructure
 
-Each trade follows the full Ordivon governance loop:
-
-```
-Intake → Plan Receipt → Execution Receipt → Outcome → Review
-```
-
-- [Phase 7P-3: Entry docs](phase-7p-3-first-paper-trade-intake.md)
-- [Phase 7P-Z: Closeout + Review](phase-7p-z-formal-review.md)
-- [Paper Trade Ledger](paper-trade-ledger.md) — all trades, status, next-allowed
-- [Trade Template](paper-trade-template.md) — repeatable receipt format
-- [Phase 8 Readiness Tracker](phase-7p-readiness-tracker.md) — live trading deferred
+- [Paper Trade Ledger](paper-trade-ledger.md)
+- [Trade Template](paper-trade-template.md)
+- [Phase 8 Readiness Tracker](phase-7p-readiness-tracker.md)
 - [Repeated Dogfood Protocol](../alpaca-paper-repeated-dogfood-protocol.md)
 - [CandidateRule Handling](../alpaca-paper-candidate-rule-handling.md)
-- [Stage Closure](phase-7p-z-stage-closure.md)
-
-## Key Finding
-
-The full governance pipeline validated end-to-end on Alpaca Paper. PaperExecutionAdapter
-remained correctly separated from ReadOnlyAdapterCapability. All 6 paper-only safety
-guards held. One CandidateRule proposed (advisory only). Live trading remains deferred.
-
-## Non-Goals
-
-- These trades are not live trading evidence.
-- Paper PnL is not real profitability.
-- Paper success does not authorize live trading.
-- Reviews produce CandidateRules only, not Policies.
+- [Boundary Tests (HOLD/REJECT)](phase-7p-b1-hold-reject-cases.md)
+- [Boundary Tests (NO-GO)](phase-7p-n1-nogo-live-auto.md)
+- [Boundary Tests (HOLD stale)](phase-7p-h1-hold-stale-observation.md)

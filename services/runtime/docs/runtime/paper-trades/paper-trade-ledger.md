@@ -6,7 +6,7 @@ Status: **ACTIVE** | Date: 2026-04-29
 
 | ID | Symbol | Entry | Exit | Paper PnL | Status | Review |
 |----|--------|-------|------|-----------|--------|--------|
-| [PT-001](phase-7p-z-formal-review.md) | AAPL | $267.55 | $269.07 | +$1.52 | closed | ✅ |
+| [PT-001](PT-001.md) | AAPL | $267.55 | $269.07 | +$1.52 | closed | ✅ | CR-7P-001, CR-7P-002 |
 | [PT-002](PT-002.md) | MSFT | $423.88 | $424.14 | +$0.26 | closed | ✅ |
 | [PT-003](PT-003.md) | GOOGL | $352.50 | $352.26 | -$0.24 | closed | ✅ |
 | [PT-004](PT-004.md) | NFLX | limit $90 (pending) | — | — | **open** | ⏳ |
