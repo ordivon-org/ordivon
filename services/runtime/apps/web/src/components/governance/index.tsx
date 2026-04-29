@@ -237,6 +237,51 @@ export function PolicyReviewCard({ policy }: { policy: PolicyReview }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   CandidateRuleStatusLabel — for Knowledge / CandidateRule surfaces
+   ═══════════════════════════════════════════════════════════════════ */
+
+type CRStatus = "draft" | "under_review" | "accepted_candidate" | "rejected";
+
+const CR_STATUS_MAP: Record<CRStatus, { fg: string; label: string }> = {
+  draft:              { fg: "var(--ordivon-policy-draft)",  label: "DRAFT" },
+  under_review:       { fg: "var(--ordivon-policy-proposed)", label: "UNDER REVIEW" },
+  accepted_candidate: { fg: "var(--ordivon-policy-shadow)",  label: "ACCEPTED CANDIDATE" },
+  rejected:           { fg: "var(--ordivon-policy-rejected)", label: "REJECTED" },
+};
+
+export function CandidateRuleStatusLabel({ status, sourceCount = 0 }: { status: CRStatus; sourceCount?: number }) {
+  const s = CR_STATUS_MAP[status] ?? CR_STATUS_MAP.draft;
+  return (
+    <span className="ordivon-badge" style={{ color: s.fg, borderColor: s.fg }}>
+      {s.label}
+      {sourceCount > 0 && <span className="ordivon-badge__note"> — {sourceCount} source ref{sourceCount !== 1 ? "s" : ""}</span>}
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ReviewGovernanceBanner — governance context for review surfaces
+   ═══════════════════════════════════════════════════════════════════ */
+
+export function CandidateRuleIsNotPolicyBanner() {
+  return (
+    <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-advisory-bg)", borderColor: "var(--ordivon-banner-advisory-border)", fontSize: "0.78rem" }}>
+      <strong>⚠ CandidateRule ≠ Policy</strong>
+      <p>A CandidateRule is a learned pattern, not an active constraint. It must pass through human review, PolicyProposal, shadow evaluation, and approval before it can become a Policy. No active policy is created from this surface.</p>
+    </div>
+  );
+}
+
+export function ReviewAdvisoryBanner() {
+  return (
+    <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-advisory-bg)", borderColor: "var(--ordivon-banner-advisory-border)", fontSize: "0.78rem" }}>
+      <strong>⚠ REVIEW GUIDANCE — ADVISORY ONLY</strong>
+      <p>AI-generated review suggestions, lesson extractions, and candidate rule drafts are advisory. They inform human judgment but do not replace it. All governance decisions require explicit human review.</p>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Shared badge styles (append to globals.css via inline)
    ═══════════════════════════════════════════════════════════════════ */
 
