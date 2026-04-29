@@ -15,6 +15,8 @@ Status: **ACTIVE** | Date: 2026-04-29 | Last updated: 2026-04-29
 | ID | Phase | Scenario | Decision | Order |
 |----|-------|----------|----------|-------|
 | H1-001 | 7P-H1 | Stale observation (freshness=missing) | **HOLD** | None |
+| N1-A | 7P-N1 | Live URL (api.alpaca.markets) | **NO-GO** | None |
+| N1-B | 7P-N1 | AI auto-trading request | **NO-GO** | None |
 
 ## Summary
 
