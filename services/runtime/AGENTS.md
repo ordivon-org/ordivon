@@ -30,18 +30,20 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 Phase 1–6 — **COMPLETE**
 Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
-Phase 7P-1 — Alpaca Paper Trading Constitution — **ACTIVE** (docs only)
-  Paper execution is NOT live trading. No paper orders placed yet.
-  PaperExecutionAdapter must be separate from ReadOnlyAdapterCapability.
+Phase 7P-2 — Alpaca Paper Execution Adapter — **ACTIVE**
+  PaperExecutionAdapter implemented. Separate from ReadOnlyAdapterCapability.
+  Paper-only guards at init. No live URL/key/order path.
+  submit_paper_order requires plan_receipt_id + no_live_disclaimer.
+Phase 7P-3 — First Supervised Paper Trade — Next
 
 ## Roadmap
 
 | Phase | Stage | Status | Key Constraint |
 |-------|-------|--------|----------------|
 | 7A-R | Boundary correction | COMPLETE | Docs only |
-| **7P-1** | **Alpaca Paper Trading Constitution** | **ACTIVE** | Docs only, paper ≠ live |
-| 7P-2 | Alpaca Paper Execution Adapter | Next | Separate from ReadOnlyAdapterCapability |
-| 7P-3 | First Supervised Paper Trade | Planned | Paper API, no broker write |
+| 7P-1 | Alpaca Paper Trading Constitution | COMPLETE | Docs only, paper ≠ live |
+| **7P-2** | **Alpaca Paper Execution Adapter** | **ACTIVE** | Separate from ReadOnlyAdapterCapability |
+| 7P-3 | First Supervised Paper Trade | Next | Paper API, no broker write |
 | 7P-Z | Paper Dogfood Review | Planned | CandidateRule only |
 | 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money |
 
