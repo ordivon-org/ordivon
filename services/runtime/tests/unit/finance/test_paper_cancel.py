@@ -5,10 +5,7 @@ All tests mock HTTP. No real API calls. No secrets.
 
 from __future__ import annotations
 
-import os
-from unittest.mock import patch
 
-import httpx
 import pytest
 
 from adapters.finance.paper_execution import (
@@ -16,7 +13,6 @@ from adapters.finance.paper_execution import (
     PaperCancelReceipt,
     PaperExecutionCapability,
     PaperOrderValidationError,
-    PaperLiveRejectedError,
 )
 
 
