@@ -330,4 +330,50 @@ All data from Alpaca carries server-side timestamps. Freshness computed client-s
 
 ### Capital Controls Note
 $100 is well within personal foreign exchange limits ($50,000/year).
-Depositing $100 to a US stock brokerage from China is legally straightforward.
+
+## 13. Exposure Boundary (Phase 6L — Sealed)
+
+### 13.1 `/health/finance-observation` — Paper-Only, Read-Only
+
+The health endpoint `GET /health/finance-observation` is a **Phase 6 paper-only** endpoint.
+It has the following exposure guarantees:
+
+| Property | Value |
+|----------|-------|
+| Environment | Always `"paper"` |
+| Account equity | Alpaca Paper simulated balance ($100,000 default), NOT real money |
+| Account alias | Masked (PA37****E5AT) — full ID never exposed |
+| API keys | Read from `.env` server-side only — never in response |
+| write_capabilities | Always `[]` — no write methods exist |
+| HTTP methods used | GET only (account, market data) |
+| Rate limits | Read-only endpoints, 200 req/min |
+
+### 13.2 Future Live Account Health
+
+If Phase 7 enables a live brokerage connection:
+
+- A **separate endpoint** must be created (e.g., `GET /health/finance-observation/live`)
+- That endpoint **must require authentication** (API token, session, or IP whitelist)
+- The current `/health/finance-observation` endpoint remains paper-only
+- Live endpoint must not be accessible without explicit authorization
+- Live account equity/cash represents real money — exposure controls are mandatory
+
+### 13.3 Current Equity/Cash Values
+
+The `total_equity` and `available_cash` fields in the health response refer to
+**Alpaca Paper Trading simulated account balance only**. They do not represent:
+- Real brokerage account balances
+- Ordivon's actual capital allocation ($100 for Phase 7 dogfood)
+- Any real financial asset
+
+### 13.4 Frontend Health Integration
+
+The `/finance-prep` page fetches from `/health/finance-observation` and renders:
+- Provider status (connected/degraded/unavailable)
+- Paper-only labels (persistent)
+- Redacted account alias (as returned by server)
+- Observation freshness (CURRENT/STALE/DEGRADED/MISSING)
+- Empty write capabilities
+
+The page **never** makes direct API calls to Alpaca from the browser.
+All Alpaca communication is server-side only, through the health endpoint.
