@@ -28,21 +28,22 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 ## Active Phase
 
-Phase 1–6 — **COMPLETE** (Core, Repo Governance, Security, Policy, Design, Finance Observation)
-Phase 7A-R — Roadmap Correction — **ACTIVE** (docs only)
-  → Alpaca Paper is the next dogfood stage, not live trading.
-  → The $100 live constitution is a future draft, not active authorization.
+Phase 1–6 — **COMPLETE**
+Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
+Phase 7P-1 — Alpaca Paper Trading Constitution — **ACTIVE** (docs only)
+  Paper execution is NOT live trading. No paper orders placed yet.
+  PaperExecutionAdapter must be separate from ReadOnlyAdapterCapability.
 
-## Corrected Roadmap
+## Roadmap
 
 | Phase | Stage | Status | Key Constraint |
 |-------|-------|--------|----------------|
-| 7A-R | Boundary correction | **ACTIVE** | Docs only |
-| 7P-1 | Alpaca Paper Trading Constitution | Next | Paper only, no real money |
-| 7P-2 | Alpaca Paper Execution Adapter | Planned | Separate from ReadOnlyAdapterCapability |
+| 7A-R | Boundary correction | COMPLETE | Docs only |
+| **7P-1** | **Alpaca Paper Trading Constitution** | **ACTIVE** | Docs only, paper ≠ live |
+| 7P-2 | Alpaca Paper Execution Adapter | Next | Separate from ReadOnlyAdapterCapability |
 | 7P-3 | First Supervised Paper Trade | Planned | Paper API, no broker write |
 | 7P-Z | Paper Dogfood Review | Planned | CandidateRule only |
-| 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money, manual only, no API orders |
+| 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money |
 
 **Critical**: Real-money live trading has NOT started. Phase 7P tests paper execution only.
 The $100 live constitution exists as a draft but is not active authorization.

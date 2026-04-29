@@ -15,9 +15,9 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | Phase 4 | COMPLETE | Dependabot + Security Platform (14 sub-phases) |
 | Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
 | Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
-| **Phase 7A-R** | **ACTIVE** | Roadmap Correction — Alpaca Paper before Live (docs only) |
-| Phase 7P-1 | NEXT | Alpaca Paper Trading Constitution (paper only, no real money) |
-| Phase 7P-2 | PLANNED | Alpaca Paper Execution Adapter (separate from ReadOnlyAdapterCapability) |
+| Phase 7A-R | COMPLETE | Roadmap Correction — Alpaca Paper before Live (docs only) |
+| **Phase 7P-1** | **ACTIVE** | Alpaca Paper Trading Constitution (docs only, paper ≠ live) |
+| Phase 7P-2 | NEXT | Alpaca Paper Execution Adapter (separate from ReadOnlyAdapterCapability) |
 | Phase 7P-3 | PLANNED | First Supervised Paper Trade |
 | Phase 7P-Z | PLANNED | Paper Dogfood Review |
 | Phase 8 | **DEFERRED** | $100 Manual Live Micro-Capital Dogfood (real money) |
