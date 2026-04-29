@@ -282,6 +282,166 @@ export function ReviewAdvisoryBanner() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   FinanceLivePrepBanner — no-live-trading warning
+   ═══════════════════════════════════════════════════════════════════ */
+
+export function FinanceLivePrepBanner() {
+  return (
+    <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-preview-bg)", borderColor: "var(--ordivon-banner-preview-border)" }}>
+      <strong>⚠ PREVIEW — NOT PRODUCTION</strong>
+      <p>No live trading is enabled. No broker API is connected. This is a governance prep surface for future manual trading workflows. All data is sample/mock data only.</p>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FinanceConstitutionSummary — manual-only trading constraints
+   ═══════════════════════════════════════════════════════════════════ */
+
+type ConstitutionRule = { rule: string; value: string };
+
+export function FinanceConstitutionSummary({ rules }: { rules: ConstitutionRule[] }) {
+  return (
+    <div className="ordivon-evidence-list">
+      <h3 className="console-card__title">FINANCE CONSTITUTION</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Constraint</th><th>Value</th></tr></thead>
+        <tbody>
+          {rules.map((r, i) => (
+            <tr key={i}><td>{r.rule}</td><td className="ordivon-mono">{r.value}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RiskBudgetPanel — sample risk budget card
+   ═══════════════════════════════════════════════════════════════════ */
+
+type RiskBudget = {
+  totalCapital: string;
+  maxTotalLoss: string;
+  maxPerTradeRisk: string;
+  dailyStopPct: string;
+  streakStopLosses: string;
+};
+
+export function RiskBudgetPanel({ budget }: { budget: RiskBudget }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">RISK BUDGET (SAMPLE)</h3>
+      <div className="ordivon-workbench__row" style={{ gap: "1.5rem", fontSize: "0.82rem" }}>
+        <div><span style={{ color: "var(--text-muted)" }}>Total Capital</span><br /><strong>{budget.totalCapital}</strong></div>
+        <div><span style={{ color: "var(--text-muted)" }}>Max Total Loss</span><br /><strong style={{ color: "var(--ordivon-shadow-reject)" }}>{budget.maxTotalLoss}</strong></div>
+        <div><span style={{ color: "var(--text-muted)" }}>Per-Trade Risk</span><br /><strong style={{ color: "var(--ordivon-shadow-escalate)" }}>{budget.maxPerTradeRisk}</strong></div>
+        <div><span style={{ color: "var(--text-muted)" }}>Daily Stop</span><br /><strong>{budget.dailyStopPct}</strong></div>
+        <div><span style={{ color: "var(--text-muted)" }}>Streak Stop</span><br /><strong>{budget.streakStopLosses}</strong></div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DecisionIntakePreview — sample intake form
+   ═══════════════════════════════════════════════════════════════════ */
+
+type IntakeRow = { label: string; value: string };
+
+export function DecisionIntakePreview({ rows }: { rows: IntakeRow[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">DECISION INTAKE (SAMPLE)</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}><td style={{ width: "33%" }}>{r.label}</td><td className="ordivon-mono">{r.value}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PlanReceiptPreview — sample plan receipt
+   ═══════════════════════════════════════════════════════════════════ */
+
+type ReceiptRow = { label: string; value: string; allowed?: boolean };
+
+export function PlanReceiptPreview({ rows }: { rows: ReceiptRow[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">PLAN RECEIPT (SAMPLE)</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ width: "33%" }}>{r.label}</td>
+              <td className="ordivon-mono">
+                {r.value}
+                {r.allowed === false && <span style={{ color: "var(--ordivon-shadow-reject)", marginLeft: "0.6rem" }}>FORBIDDEN</span>}
+                {r.allowed === true && <span style={{ color: "var(--ordivon-shadow-execute)", marginLeft: "0.6rem" }}>ALLOWED</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OutcomeCapturePreview — sample outcome capture
+   ═══════════════════════════════════════════════════════════════════ */
+
+export function OutcomeCapturePreview({ rows }: { rows: IntakeRow[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">MANUAL OUTCOME CAPTURE (SAMPLE)</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}><td style={{ width: "33%" }}>{r.label}</td><td className="ordivon-mono">{r.value}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PostTradeReviewQueuePreview — sample review queue
+   ═══════════════════════════════════════════════════════════════════ */
+
+type ReviewEntry = { status: string; trade: string; candidateLesson: string; crStatus?: CRStatus };
+
+export function PostTradeReviewQueuePreview({ entries }: { entries: ReviewEntry[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">POST-TRADE REVIEW QUEUE (SAMPLE)</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Status</th><th>Trade</th><th>Candidate Lesson</th><th>CR Status</th></tr></thead>
+        <tbody>
+          {entries.map((e, i) => (
+            <tr key={i}>
+              <td><span className="ordivon-badge" style={{ color: e.status === "PENDING" ? "var(--ordivon-evidence-stale)" : "var(--ordivon-evidence-current)", borderColor: e.status === "PENDING" ? "var(--ordivon-evidence-stale)" : "var(--ordivon-evidence-current)" }}>{e.status}</span></td>
+              <td className="ordivon-mono">{e.trade}</td>
+              <td className="ordivon-mono" style={{ fontSize: "0.7rem" }}>{e.candidateLesson}</td>
+              <td>{e.crStatus ? <CandidateRuleStatusLabel status={e.crStatus} /> : <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Shared badge styles (append to globals.css via inline)
    ═══════════════════════════════════════════════════════════════════ */
 
