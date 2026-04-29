@@ -22,7 +22,7 @@ import {
 
 const OBS_SOURCES = [
   { label: "Market Data", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC (after-hours)" },
-  { label: "Account", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC (PA37AKH0E5AT)" },
+  { label: "Account", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC (PA37****E5AT)" },
   { label: "Positions", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC" },
   { label: "Fills", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "No fills yet (paper account empty)" },
 ];
@@ -135,7 +135,7 @@ export default function FinancePrepPage() {
         {/* ── 0. Observation Layer — Alpaca Paper ────────── */}
 
         <ObservationModeBanner />
-        <ProviderStatusBanner status="connected" adapterId="alpaca-paper" paperUrl="paper-api.alpaca.markets" />
+        <ProviderStatusBanner status="configured" adapterId="alpaca-paper" paperUrl="paper-api.alpaca.markets" />
 
         <section>
           <h2 style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>

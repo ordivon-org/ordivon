@@ -520,17 +520,25 @@ export function ObservationSourcePanel({ sources }: { sources: ObsSource[] }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ProviderStatusBanner — Alpaca Paper provider connection status
+   ProviderStatusBanner — Alpaca Paper provider status
    ═══════════════════════════════════════════════════════════════════ */
 
-type ProviderStatus = "connected" | "degraded" | "unavailable";
+type ProviderStatus = "connected" | "configured" | "degraded" | "unavailable";
 
 export function ProviderStatusBanner({ status, adapterId = "alpaca-paper", paperUrl = "paper-api.alpaca.markets" }: { status: ProviderStatus; adapterId?: string; paperUrl?: string }) {
   if (status === "connected") {
     return (
       <div className="ordivon-banner" style={{ background: "rgba(50,200,80,0.06)", borderColor: "var(--ordivon-shadow-execute)" }}>
         <strong>🔌 PROVIDER CONNECTED — {adapterId}</strong>
-        <p>Connected to {paperUrl}. Observation data is refreshed on request. All operations are read-only. No orders can be placed through this connection.</p>
+        <p>Live connection to {paperUrl}. Observation data is refreshed on request. All operations are read-only. No orders can be placed through this connection.</p>
+      </div>
+    );
+  }
+  if (status === "configured") {
+    return (
+      <div className="ordivon-banner" style={{ background: "rgba(50,180,220,0.06)", borderColor: "var(--ordivon-approval-shadow)" }}>
+        <strong>📋 PAPER PROVIDER READY — {adapterId}</strong>
+        <p>Alpaca Paper Trading provider is implemented and configured. Read-only provider code exists. This page uses static preview data — it does not perform a live Alpaca account read. No orders can be placed through this surface.</p>
       </div>
     );
   }
