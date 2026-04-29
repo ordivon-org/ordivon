@@ -1,28 +1,53 @@
-# Phase 7P-3 — First Paper Trade Review Placeholder
+# Phase 7P-3 — First Paper Trade Review (Reconciled 7P-3F)
 
-Status: **PENDING** (Phase 7P-3)
-Date: 2026-04-29
+Status: **PENDING FILL** (Phase 7P-3F)
+Date: 2026-04-29 (original), reconciled 2026-04-29
 Trade ID: 7P-3-001
 
 ## Review Status
 
-Trade executed, review pending fill and outcome resolution.
+Trade submitted. Fill pending (market closed). Review deferred until fill.
 
-## What Should Be Reviewed Later
+## Current State
 
-1. Did the order fill? At what price?
-2. Was the paper fill price reasonable vs market?
-3. Did the full intake→receipt→execution→outcome pipeline work?
-4. Were any adapter errors encountered?
-5. Did the readiness gate catch any issues?
+| Field | Value |
+|-------|-------|
+| Order status | `new` (not filled) |
+| Filled qty | 0 |
+| Reason | After-hours submission. Market closed. |
+| Next check | After next market open (~13:30 UTC next trading day) |
 
-## Lesson Candidate
+## What Was Validated (So Far)
 
-- **Observation**: Paper order submission through AlpacaPaperExecutionAdapter works end-to-end (intake → receipt → POST /v2/orders → status check → outcome).
-- **CandidateRule (advisory only)**: Paper trade intake should require market-open check to avoid after-hours submissions with indefinite fill delay.
-- **⚠ CandidateRule ≠ Policy**: This is an advisory observation. It must not be converted to a blocking Policy without ≥2 weeks observation, ≥3 real interceptions, and human review.
+1. ✅ Intake → Plan Receipt pipeline works
+2. ✅ Readiness gate (9/9) passes correctly
+3. ✅ AlpacaPaperExecutionAdapter initializes with paper-only guards
+4. ✅ PaperOrderRequest validates correctly
+5. ✅ `submit_paper_order()` submits to paper-api (not live-api)
+6. ✅ Execution receipt captured with paper-only metadata
+7. ✅ Order visible in Alpaca Paper account
+
+## What Still Needs Validation
+
+1. ⏳ Fill capture (requires market open)
+2. ⏳ Paper PnL calculation
+3. ⏳ Full outcome → review loop
+4. ⏳ Lesson → CandidateRule extraction
+
+## Lesson Candidate (Preliminary)
+
+- **Observation**: After-hours paper order submission results in indefinite `new` status. Pipeline test should check market hours before submitting orders intended for immediate fill observation.
+- **CandidateRule (advisory)**: Paper trade intake gate should include a market-hours check if the test expects same-day fill observation.
+- **⚠ CandidateRule ≠ Policy**: Advisory only. Not a blocking rule.
+
+## ⚠ No Second Order
+
+Per Alpaca Paper Trading Constitution §5 and the Phase 7P-3F reconciliation,
+no second paper order may be placed until this trade is:
+- filled
+- outcome captured
+- reviewed
 
 ## ⚠ Paper Success ≠ Live Readiness
 
-This paper trade validated the governance pipeline. It does NOT mean live trading
-is ready. Live trading remains deferred to Phase 8 with separate authorization.
+Live trading remains deferred to Phase 8.

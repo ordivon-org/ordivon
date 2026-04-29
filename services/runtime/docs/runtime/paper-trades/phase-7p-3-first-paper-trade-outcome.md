@@ -1,32 +1,43 @@
-# Phase 7P-3 — First Paper Trade Outcome
+# Phase 7P-3 — First Paper Trade Outcome (Reconciled 7P-3F)
 
-Status: **COMPLETED** (Phase 7P-3)
-Date: 2026-04-29
+Status: **PENDING FILL** (Phase 7P-3F, updated from 7P-3)
+Date: 2026-04-29 (original), reconciled 2026-04-29
 Trade ID: 7P-3-001
 
-## Outcome
+## Outcome (Reconciled)
 
-| Field | Value |
-|-------|-------|
-| Order ID | `84dcf528-a5d0-4932-a352-43af310f12d9` |
-| Order Status | `new` (submitted, awaiting paper fill) |
-| Fill Status | Pending — market closed (after-hours) |
-| Fill Price | N/A (not yet filled) |
-| Simulated Fees | N/A (Alpaca commission-free, paper) |
-| Slippage Estimate | N/A |
-| Paper PnL | N/A (position not yet filled) |
-| Plan Followed? | ✅ Yes — intake, receipt, execution per plan |
-| Deviation? | None |
-| What Failed? | Nothing. Order submitted successfully to paper endpoint. Fill pending due to market hours. |
+| Field | Original (7P-3) | Reconciled (7P-3F) |
+|-------|----------------|---------------------|
+| Order ID | `84dcf528...` | Same — unchanged |
+| Status | `new` | **Still `new`** — not yet filled |
+| Filled Qty | 0 | 0 |
+| Fill Price | N/A | N/A |
+| Submitted at | 2026-04-29T13:24:31Z | Same |
+| Environment | paper | paper |
+| Live Order | False | False |
 
-## Notes
+## Why Not Filled
 
-- The order was submitted during after-hours (market closed). Alpaca Paper will simulate a fill when the market opens or when paper matching engine processes it.
-- This is expected behavior for a paper trading pipeline test.
-- The governance pipeline (intake → receipt → execution) was validated end-to-end.
-- Post-trade review should check fill status after market open.
+The order was submitted at 13:24 UTC (21:24 Beijing time). US equity markets closed
+at 20:00 UTC. Alpaca Paper Trading does not simulate fills outside market hours by
+default. The order will remain `new` until:
+
+- Market opens (next trading day, ~13:30 UTC)
+- Alpaca Paper matching engine processes the order
+- Or the order is manually canceled/expired
+
+## What This Means
+
+The governance pipeline was validated up to order submission. Fill capture,
+outcome measurement, and PnL tracking are deferred until the order fills.
+
+## ⚠ No Additional Trades
+
+This order is still open. No second paper order may be placed until this trade
+is fully reviewed per the Alpaca Paper Trading Constitution §5 (one trade at a time).
+See `phase-7p-3-fill-reconciliation-receipt.md`.
 
 ## ⚠ PAPER ONLY — NOT REAL PNL
 
-This is a simulated paper trade. No real capital was at risk. Paper fill quality
-does not represent live market conditions.
+This is a simulated paper trade. No real capital is at risk. Paper fill prices,
+when they occur, may not reflect actual market liquidity.
