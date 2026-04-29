@@ -12,7 +12,6 @@ from typing import Protocol
 
 from domains.finance import (
     AccountSnapshot,
-    DataFreshnessStatus,
     FeeSlippageRecord,
     FillRecord,
     MarketDataSnapshot,

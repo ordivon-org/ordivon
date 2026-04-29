@@ -10,7 +10,6 @@ from domains.finance import (
     AccountSnapshot,
     DataFreshnessStatus,
     FeeSlippageRecord,
-    FillRecord,
     MarketDataSnapshot,
     ObservationSource,
     OrderSide,
@@ -36,21 +35,24 @@ class TestDataFreshness:
 
     def test_stale_market_data(self):
         snap = MarketDataSnapshot(
-            symbol="AAPL", price=100.0,
+            symbol="AAPL",
+            price=100.0,
             timestamp=datetime.now(timezone.utc) - timedelta(seconds=120),
         )
         assert snap.freshness() == DataFreshnessStatus.STALE
 
     def test_degraded_market_data(self):
         snap = MarketDataSnapshot(
-            symbol="AAPL", price=100.0,
+            symbol="AAPL",
+            price=100.0,
             timestamp=datetime.now(timezone.utc) - timedelta(seconds=1000),
         )
         assert snap.freshness() == DataFreshnessStatus.DEGRADED
 
     def test_missing_market_data(self):
         snap = MarketDataSnapshot(
-            symbol="AAPL", price=100.0,
+            symbol="AAPL",
+            price=100.0,
             timestamp=datetime.now(timezone.utc) - timedelta(hours=2),
         )
         assert snap.freshness() == DataFreshnessStatus.MISSING
@@ -142,7 +144,10 @@ class TestMissingAccountSnapshot:
 
     def test_zero_equity_account_is_valid(self):
         snap = AccountSnapshot(
-            venue="MOCK", account_alias="empty", total_equity=0.0, available_cash=0.0,
+            venue="MOCK",
+            account_alias="empty",
+            total_equity=0.0,
+            available_cash=0.0,
         )
         assert snap.total_equity == 0.0
         assert snap.available_cash == 0.0
@@ -188,16 +193,24 @@ class TestPositionSnapshot:
 
     def test_buy_position_pnl(self):
         pos = PositionSnapshot(
-            symbol="AAPL", side=OrderSide.BUY, quantity=10,
-            entry_price=100.0, mark_price=105.0, unrealized_pnl=50.0,
+            symbol="AAPL",
+            side=OrderSide.BUY,
+            quantity=10,
+            entry_price=100.0,
+            mark_price=105.0,
+            unrealized_pnl=50.0,
         )
         assert pos.unrealized_pnl == 50.0
         assert pos.realized_pnl == 50.0  # computed aligns
 
     def test_sell_position(self):
         pos = PositionSnapshot(
-            symbol="AAPL", side=OrderSide.SELL, quantity=10,
-            entry_price=100.0, mark_price=95.0, unrealized_pnl=50.0,
+            symbol="AAPL",
+            side=OrderSide.SELL,
+            quantity=10,
+            entry_price=100.0,
+            mark_price=95.0,
+            unrealized_pnl=50.0,
         )
         assert pos.side == OrderSide.SELL
 

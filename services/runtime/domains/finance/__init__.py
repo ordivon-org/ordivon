@@ -18,10 +18,10 @@ from enum import Enum
 class DataFreshnessStatus(str, Enum):
     """Freshness of observed financial data."""
 
-    CURRENT = "current"       # ≤ 1 min old
-    STALE = "stale"           # > 1 min, ≤ 15 min old
-    DEGRADED = "degraded"     # > 15 min old, source may be unreliable
-    MISSING = "missing"       # no data available
+    CURRENT = "current"  # ≤ 1 min old
+    STALE = "stale"  # > 1 min, ≤ 15 min old
+    DEGRADED = "degraded"  # > 15 min old, source may be unreliable
+    MISSING = "missing"  # no data available
 
 
 class OrderSide(str, Enum):
