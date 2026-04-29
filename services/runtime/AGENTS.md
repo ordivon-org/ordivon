@@ -28,13 +28,25 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 ## Active Phase
 
-Phase 6 — Design Pack, UI Governance, Finance Observation — **COMPLETE** (16 sub-phases)
-Phase 7A — Manual Live Micro-Capital Constitution — **ACTIVE**
-  Live trading: ❌ NOT STARTED. Phase 7A is constitution/plan only.
-  Broker write / API orders: ❌ NO-GO.
-  Execution: MANUAL ONLY (human places trades outside Ordivon).
-  Alpaca Paper: observation/paper reference only.
-Phase 7B — First Supervised Manual Trade (not started)
+Phase 1–6 — **COMPLETE** (Core, Repo Governance, Security, Policy, Design, Finance Observation)
+Phase 7A-R — Roadmap Correction — **ACTIVE** (docs only)
+  → Alpaca Paper is the next dogfood stage, not live trading.
+  → The $100 live constitution is a future draft, not active authorization.
+
+## Corrected Roadmap
+
+| Phase | Stage | Status | Key Constraint |
+|-------|-------|--------|----------------|
+| 7A-R | Boundary correction | **ACTIVE** | Docs only |
+| 7P-1 | Alpaca Paper Trading Constitution | Next | Paper only, no real money |
+| 7P-2 | Alpaca Paper Execution Adapter | Planned | Separate from ReadOnlyAdapterCapability |
+| 7P-3 | First Supervised Paper Trade | Planned | Paper API, no broker write |
+| 7P-Z | Paper Dogfood Review | Planned | CandidateRule only |
+| 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money, manual only, no API orders |
+
+**Critical**: Real-money live trading has NOT started. Phase 7P tests paper execution only.
+The $100 live constitution exists as a draft but is not active authorization.
+Live broker write / API order placement remains NO-GO.
 
 ## Finance Observation Status
 

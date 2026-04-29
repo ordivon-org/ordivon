@@ -1,9 +1,15 @@
 # Finance Live Micro-Capital Constitution
 
-Status: **DOCUMENTED** (Phase 7A)
+Status: **DRAFT — DEFERRED TO PHASE 8** (Phase 7A, reclassified 7A-R)
 Date: 2026-04-29
-Phase: 7A
-Tags: `finance`, `constitution`, `micro-capital`, `manual`, `dogfood`, `live`
+Phase: 7A-R
+Tags: `finance`, `constitution`, `micro-capital`, `manual`, `live`, `deferred`
+
+> **⚠ DEFERRED LIVE DRAFT**: This constitution is a future live-stage draft.
+> It is NOT active execution authorization. The next dogfood stage is
+> **Alpaca Paper Trading** (Phase 7P), not real-money live trading.
+> Live broker write / API order placement remains NO-GO.
+> See `AGENTS.md` for the corrected roadmap.
 
 ## 1. Purpose
 

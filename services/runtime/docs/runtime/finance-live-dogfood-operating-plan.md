@@ -1,9 +1,12 @@
 # Finance Live Dogfood Operating Plan
 
-Status: **DOCUMENTED** (Phase 7A)
+Status: **DRAFT — DEFERRED TO PHASE 8** (Phase 7A, reclassified 7A-R)
 Date: 2026-04-29
-Phase: 7A
-Tags: `finance`, `dogfood`, `operating-plan`, `manual`, `micro-capital`
+Phase: 7A-R
+Tags: `finance`, `dogfood`, `operating-plan`, `manual`, `deferred`
+
+> **⚠ DEFERRED LIVE DRAFT**: See constitution header. This operating plan
+> is a future live-stage draft. The next stage is Alpaca Paper Trading (Phase 7P).
 
 ## 1. Purpose
 

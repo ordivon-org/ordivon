@@ -9,14 +9,29 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 
 | Phase | Status | Key Outcome |
 |-------|--------|-------------|
-| Phase 1 | COMPLETE | Governance engine POC |
-| Phase 2 | COMPLETE | CandidateRule, lessons, Waves 0-5 |
-| Phase 3 | COMPLETE | Multi-pack eval framework |
-| Phase 4 | COMPLETE | Dependabot + security platform (14 sub-phases) |
+| Phase 1 | COMPLETE | Core Governance Engine |
+| Phase 2 | COMPLETE | CandidateRule, Lessons, Waves 0-5 |
+| Phase 3 | COMPLETE | Multi-pack Eval Framework |
+| Phase 4 | COMPLETE | Dependabot + Security Platform (14 sub-phases) |
 | Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
-| Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation |
-| **Phase 7A** | **ACTIVE** | Manual Live Micro-Capital Constitution + Dogfood Plan |
-| Phase 7B | NOT STARTED | First Supervised Manual Trade |
+| Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
+| **Phase 7A-R** | **ACTIVE** | Roadmap Correction — Alpaca Paper before Live (docs only) |
+| Phase 7P-1 | NEXT | Alpaca Paper Trading Constitution (paper only, no real money) |
+| Phase 7P-2 | PLANNED | Alpaca Paper Execution Adapter (separate from ReadOnlyAdapterCapability) |
+| Phase 7P-3 | PLANNED | First Supervised Paper Trade |
+| Phase 7P-Z | PLANNED | Paper Dogfood Review |
+| Phase 8 | **DEFERRED** | $100 Manual Live Micro-Capital Dogfood (real money) |
+
+## 2. Corrected Phase 7 Path
+
+Phase 7 is now routed through **Alpaca Paper Trading** before any real-money live experiment.
+
+| Phase 7P Sub-Phase | Description | Key Constraint |
+|-------------------|-------------|----------------|
+| 7P-1 | Alpaca Paper Trading Constitution | Paper only, no real money |
+| 7P-2 | Alpaca Paper Execution Adapter | MUST be separate from ReadOnlyAdapterCapability |
+| 7P-3 | First Supervised Paper Trade | Paper API, no broker write |
+| 7P-Z | Paper Dogfood Review | CandidateRule only, no Policy activation |
 
 ## 2. Phase 6 Sub-Phase Status
 

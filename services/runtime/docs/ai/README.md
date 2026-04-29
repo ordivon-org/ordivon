@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase 7A (2026-04-29)
-> **Active phase**: Phase 7A — Manual Live Micro-Capital Constitution
-> **Next**: Phase 7B — First Supervised Manual Trade (not started)
+> **Last updated**: Phase 7A-R (2026-04-29)
+> **Active phase**: Phase 7A-R — Roadmap Correction (Alpaca Paper before Live)
+> **Next**: Phase 7P-1 — Alpaca Paper Trading Constitution
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 
