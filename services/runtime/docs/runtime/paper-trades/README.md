@@ -22,6 +22,8 @@ Intake → Plan Receipt → Execution Receipt → Outcome → Review
 
 - [Phase 7P-3: Entry docs](phase-7p-3-first-paper-trade-intake.md)
 - [Phase 7P-Z: Closeout + Review](phase-7p-z-formal-review.md)
+- [Repeated Dogfood Protocol](../alpaca-paper-repeated-dogfood-protocol.md)
+- [CandidateRule Handling](../alpaca-paper-candidate-rule-handling.md)
 - [Stage Closure](phase-7p-z-stage-closure.md)
 
 ## Key Finding

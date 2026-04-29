@@ -31,11 +31,10 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 Phase 1–6 — **COMPLETE**
 Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
 Phase 7P-2 — Alpaca Paper Execution Adapter — **COMPLETE**
-Phase 7P-Z — Paper Dogfood Review — **ACTIVE**
-  First paper trade CLOSED: AAPL entry $267.55 → exit $269.07, +$1.52 paper PnL.
-  11-document trail complete. 1 CandidateRule (advisory). All boundaries held.
-  ⚠ PAPER ONLY — NOT LIVE TRADING. NOT REAL PNL. Sample size = 1.
-Phase 8 — $100 Manual Live Micro-Capital Dogfood — **DEFERRED**
+Phase 7P-Z — Paper Dogfood Review — **COMPLETE** (see commit ce4d2d3)
+Phase 7P-R — Repeated Paper Dogfood Protocol — **ACTIVE** (docs only)
+  Protocol defined: review-before-next-trade, frequency limits, stop conditions.
+  2 CandidateRules (advisory only). Phase 8 readiness: ≥5 paper round trips.
 
 ## Roadmap
 
@@ -45,7 +44,8 @@ Phase 8 — $100 Manual Live Micro-Capital Dogfood — **DEFERRED**
 | 7P-1 | Alpaca Paper Trading Constitution | COMPLETE | Docs only, paper ≠ live |
 | 7P-2 | Alpaca Paper Execution Adapter | COMPLETE | Separate from ReadOnlyAdapterCapability |
 | 7P-3 | First Supervised Paper Trade | COMPLETE | Entry + fill captured |
-| **7P-Z** | **Paper Dogfood Review** | **ACTIVE** | Round trip closed, formal review done |
+| 7P-Z | Paper Dogfood Review | COMPLETE | Round trip closed, formal review done |
+| **7P-R** | **Repeated Paper Dogfood Protocol** | **ACTIVE** | Docs only, protocol + CandidateRule handling |
 | 8 | $100 Manual Live Micro-Capital Dogfood | **DEFERRED** | Real money |
 
 **Critical**: Real-money live trading has NOT started. Phase 7P tests paper execution only.
