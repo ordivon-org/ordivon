@@ -10,6 +10,12 @@ Status: **ACTIVE** | Date: 2026-04-29 | Last updated: 2026-04-29
 | [PT-002](PT-002.md) | MSFT | $423.88 | $424.14 | +$0.26 | ✅ | — |
 | [PT-003](PT-003.md) | GOOGL | $352.50 | $352.26 | **-$0.24** | ✅ | Preflight REJECT |
 
+## Blocked Attempts
+
+| ID | Phase | Scenario | Decision | Order |
+|----|-------|----------|----------|-------|
+| H1-001 | 7P-H1 | Stale observation (freshness=missing) | **HOLD** | None |
+
 ## Summary
 
 | Metric | Value |
