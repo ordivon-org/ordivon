@@ -8,9 +8,9 @@ profitability test.
 
 ## Trade Records
 
-| Trade | Date | Symbol | Side | Status | Outcome |
-|-------|------|--------|------|--------|---------|
-| [7P-3-001](phase-7p-3-first-paper-trade-intake.md) | 2026-04-29 | AAPL | buy | pending | — |
+| Trade | Date | Symbol | Entry | Exit | Paper PnL | Review |
+|-------|------|--------|-------|------|-----------|--------|
+| [7P-3-001](phase-7p-3-first-paper-trade-intake.md) | 2026-04-29 | AAPL | $267.55 | $269.07 | +$1.52 (simulated) | [✅](phase-7p-z-formal-review.md) |
 
 ## Lifecycle
 
@@ -20,8 +20,15 @@ Each trade follows the full Ordivon governance loop:
 Intake → Plan Receipt → Execution Receipt → Outcome → Review
 ```
 
-All documents in this directory follow this naming convention:
-`phase-7p-X-{trade-id}-{stage}.md`
+- [Phase 7P-3: Entry docs](phase-7p-3-first-paper-trade-intake.md)
+- [Phase 7P-Z: Closeout + Review](phase-7p-z-formal-review.md)
+- [Stage Closure](phase-7p-z-stage-closure.md)
+
+## Key Finding
+
+The full governance pipeline validated end-to-end on Alpaca Paper. PaperExecutionAdapter
+remained correctly separated from ReadOnlyAdapterCapability. All 6 paper-only safety
+guards held. One CandidateRule proposed (advisory only). Live trading remains deferred.
 
 ## Non-Goals
 
