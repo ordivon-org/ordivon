@@ -35,6 +35,19 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 - `domains/finance/` — MarketDataSnapshot, AccountSnapshot, ReadOnlyAdapterCapability
 - Read-only adapter boundary (write permissions permanently False)
 
+### 6H — Provider Selection (Current)
+- Alpaca Paper Trading selected for Phase 6I-6J observation (global, no KYC)
+- Polygon.io as backup market data provider
+- Phase 7 live: Futu (富途) or Interactive Brokers (盈透) for China operator
+- Paper trading first validates governance pipeline at zero risk
+- see `docs/runtime/finance-observation-provider-plan.md`
+
+### 6I — Alpaca Paper Adapter (Next)
+- Implement `AlpacaObservationProvider` as read-only adapter
+- Connect to Alpaca Paper Trading (paper-api.alpaca.markets)
+- No order placement, no broker write
+- China operator: no region constraint for paper trading
+
 ## 3. Absolute NO-GO Boundaries
 
 These are **design-time prohibitions**. No agent may violate them.
