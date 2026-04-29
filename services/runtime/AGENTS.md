@@ -34,6 +34,7 @@ Phase 7P-2 — Alpaca Paper Execution Adapter — **ACTIVE**
   PaperExecutionAdapter implemented. Separate from ReadOnlyAdapterCapability.
   Paper-only guards at init. No live URL/key/order path.
   submit_paper_order requires plan_receipt_id + no_live_disclaimer.
+  **No paper order has been placed yet.** First trade: Phase 7P-3.
 Phase 7P-3 — First Supervised Paper Trade — Next
 
 ## Roadmap
