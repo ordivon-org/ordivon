@@ -28,9 +28,13 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 ## Active Phase
 
-Phase 6 — Design Pack, UI Governance, Finance Observation — **COMPLETE** (16 sub-phases, Stage Summit published)
-  Key: Phase 6Z closure review done. Red-team: 9/10 finance vectors CLEARED, 7/7 design vectors CLEARED.
-Phase 7A — Manual Live Micro-Capital Constitution (next, not started)
+Phase 6 — Design Pack, UI Governance, Finance Observation — **COMPLETE** (16 sub-phases)
+Phase 7A — Manual Live Micro-Capital Constitution — **ACTIVE**
+  Live trading: ❌ NOT STARTED. Phase 7A is constitution/plan only.
+  Broker write / API orders: ❌ NO-GO.
+  Execution: MANUAL ONLY (human places trades outside Ordivon).
+  Alpaca Paper: observation/paper reference only.
+Phase 7B — First Supervised Manual Trade (not started)
 
 ## Finance Observation Status
 

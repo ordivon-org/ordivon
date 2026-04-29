@@ -14,8 +14,9 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | Phase 3 | COMPLETE | Multi-pack eval framework |
 | Phase 4 | COMPLETE | Dependabot + security platform (14 sub-phases) |
 | Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
-| **Phase 6** | **COMPLETE** | Design Pack, UI Governance, Finance Observation |
-| Phase 7A | NOT STARTED | Manual Live Micro-Capital Constitution + Dogfood Plan |
+| Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation |
+| **Phase 7A** | **ACTIVE** | Manual Live Micro-Capital Constitution + Dogfood Plan |
+| Phase 7B | NOT STARTED | First Supervised Manual Trade |
 
 ## 2. Phase 6 Sub-Phase Status
 
