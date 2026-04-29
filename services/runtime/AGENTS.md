@@ -28,10 +28,9 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 ## Active Phase
 
-Phase 6 — Design Pack, UI Governance, Finance Observation (read-only) — **ACTIVE**
-  Completed: 6A–6L (Design Pack baseline, workbench surfaces, Finance observation models,
-  Alpaca Paper provider, health snapshot, /finance-prep health integration)
-Phase 7 — NOT STARTED (Finance Live Micro-Capital Dogfood)
+Phase 6 — Design Pack, UI Governance, Finance Observation — **COMPLETE** (16 sub-phases, Stage Summit published)
+  Key: Phase 6Z closure review done. Red-team: 9/10 finance vectors CLEARED, 7/7 design vectors CLEARED.
+Phase 7A — Manual Live Micro-Capital Constitution (next, not started)
 
 ## Finance Observation Status
 

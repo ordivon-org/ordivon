@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase 6L (2026-04-29)
-> **Active phase**: Phase 6 — Finance Observation LIVE
-> **Next**: Phase 7 (not started)
+> **Last updated**: Phase 6Z (2026-04-29)
+> **Active phase**: Phase 6 — COMPLETE (Stage Summit published)
+> **Next**: Phase 7A — Manual Live Micro-Capital Constitution (not started)
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 
