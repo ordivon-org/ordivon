@@ -13,6 +13,7 @@ docs/ai/agent-working-rules.md             ← How to operate (verification, rec
 docs/ai/task-prompt-template.md            ← Compressed phase prompt format
 
 docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
+docs/runtime/ordivon-value-philosophy.md            ← Why Ordivon is not a trading bot
 ```
 
 ## Critical Rules (Read Before Editing)
