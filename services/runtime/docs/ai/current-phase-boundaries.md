@@ -15,9 +15,9 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | Phase 4 | COMPLETE | Dependabot + Security Platform (14 sub-phases) |
 | Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
 | Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
-| Phase 7P-3 | COMPLETE | First Supervised Paper Trade (entry + fill captured) |
-| **Phase 7P-Z** | **ACTIVE** | Paper Dogfood Review (round trip closed, formal review done) |
-| Phase 8 | **DEFERRED** | $100 Manual Live Micro-Capital Dogfood (real money) |
+| **Phase 7P** | **CLOSED** | Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published |
+| DG | **NEXT** | Document Governance Pack |
+| Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
 
