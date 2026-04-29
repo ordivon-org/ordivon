@@ -34,9 +34,8 @@ Phase 7A-R — Roadmap Correction — **COMPLETE** (see commit 0704feb)
 Phase 7P-2 — Alpaca Paper Execution Adapter — **COMPLETE**
 Phase 7P-Z — Paper Dogfood Review — **COMPLETE** (see commit ce4d2d3)
 Phase 7P-R — Repeated Paper Dogfood Protocol — **ACTIVE**
-  Protocol active. 2 paper round trips complete (PT-001 AAPL +$1.52, PT-002 MSFT +$0.26).
-  Both reviewed. 0 boundary violations. Phase 8: 2/10 criteria. DEFERRED.
-  Next trade requires review confirmed + human GO.
+  Protocol active. 3 paper round trips (PT-001 AAPL +$1.52, PT-002 MSFT +$0.26,
+  PT-003 GOOGL -$0.24). All reviewed. 0 violations. Phase 8: 3/10. DEFERRED.
 ## Roadmap
 
 | Phase | Stage | Status | Key Constraint |

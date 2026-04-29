@@ -1,34 +1,26 @@
 # Alpaca Paper Trade Ledger
 
-Status: **ACTIVE** (Phase 7P-L)
-Date: 2026-04-29
-Last updated: 2026-04-29
+Status: **ACTIVE** | Date: 2026-04-29 | Last updated: 2026-04-29
 
 **⚠ PAPER ONLY — NOT LIVE TRADING. ALL PNL IS SIMULATED.**
 
-## Active Trades
-
-| ID | Phase | Symbol | Entry | Exit | Paper PnL | Status | Review | Next? |
-|----|-------|--------|-------|------|-----------|--------|--------|-------|
-| [PT-001](#pt-001) | 7P-3 | AAPL | $267.55 | $269.07 | +$1.52 | closed | ✅ | after review |
-| [PT-002](#pt-002) | 7P-4 | MSFT | $423.88 | $424.14 | +$0.26 | closed | ✅ | after review |
-
-## PT-001 — First Paper Trade
-
-AAPL buy 1 @ $267.55, sell 1 @ $269.07, +$1.52 simulated. After-hours entry (13:24), market-open fill (13:30). 22 min hold. [Full review](phase-7p-z-formal-review.md). CR-7P-001, CR-7P-002.
-
-## PT-002 — Second Paper Trade
-
-MSFT buy 1 @ $423.88, sell 1 @ $424.14, +$0.26 simulated. Market-hours entry (14:13), immediate fill (< 1s). 37 sec hold. [Full review](PT-002.md). CR-7P-001 validated (no after-hours gap). CR-7P-002 followed.
+| ID | Symbol | Entry | Exit | Paper PnL | Review | Boundary |
+|----|--------|-------|------|-----------|--------|----------|
+| [PT-001](phase-7p-z-formal-review.md) | AAPL | $267.55 | $269.07 | +$1.52 | ✅ | — |
+| [PT-002](PT-002.md) | MSFT | $423.88 | $424.14 | +$0.26 | ✅ | — |
+| [PT-003](PT-003.md) | GOOGL | $352.50 | $352.26 | **-$0.24** | ✅ | Preflight REJECT |
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Total paper trades | 2 |
-| Completed round trips | 2 |
-| Open positions | 0 |
-| Reviews complete | 2 |
+| Total paper trades | 3 |
+| Completed round trips | 3 |
+| Positive PnL trades | 2 |
+| Negative PnL trades | 1 |
+| Cumulative paper PnL | +$1.54 (simulated) |
+| Reviews complete | 3 |
 | Boundary violations | 0 |
+| Boundary preflights | 1 (PT-003: missing reason → REJECT → corrected) |
 | CandidateRules | 2 (advisory only) |
-| Next trade allowed? | After review confirmed + human GO |
+| Next trade allowed? | After review + protocol + human GO |
