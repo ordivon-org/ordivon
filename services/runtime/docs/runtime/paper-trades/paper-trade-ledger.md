@@ -10,45 +10,25 @@ Last updated: 2026-04-29
 
 | ID | Phase | Symbol | Entry | Exit | Paper PnL | Status | Review | Next? |
 |----|-------|--------|-------|------|-----------|--------|--------|-------|
-| [PT-001](#pt-001) | 7P-3 | AAPL | $267.55 | $269.07 | +$1.52 | closed | [✅](phase-7p-z-formal-review.md) | after review |
+| [PT-001](#pt-001) | 7P-3 | AAPL | $267.55 | $269.07 | +$1.52 | closed | ✅ | after review |
+| [PT-002](#pt-002) | 7P-4 | MSFT | $423.88 | $424.14 | +$0.26 | closed | ✅ | after review |
 
-## PT-001 — First Paper Trade (7P-3, completed 7P-Z)
+## PT-001 — First Paper Trade
 
-| Field | Value |
-|-------|-------|
-| trade_id | PT-001 |
-| phase | 7P-3 (entry) → 7P-Z (closeout + review) |
-| symbol | AAPL |
-| entry_side | buy |
-| entry_price | $267.55 |
-| entry_order_id | `84dcf528...` |
-| entry_filled_at | 2026-04-29T13:30:50Z |
-| exit_side | sell (close) |
-| exit_price | $269.07 |
-| exit_order_id | `44d87140...` |
-| exit_filled_at | 2026-04-29T13:52:13Z |
-| holding_period | ~22 minutes |
-| paper_pnl | +$1.52 (simulated) |
-| paper_only | true |
-| live_order | false |
-| intake_complete | ✅ phase-7p-3-first-paper-trade-intake.md |
-| plan_receipt_complete | ✅ entry + closeout |
-| execution_receipt_complete | ✅ entry + closeout |
-| fill_reconciliation_complete | ✅ |
-| outcome_complete | ✅ |
-| review_complete | ✅ phase-7p-z-formal-review.md |
-| boundary_violations | 0 |
-| next_action_allowed | only after review confirmed + human GO |
-| candidate_rules | [CR-7P-001](../alpaca-paper-candidate-rule-handling.md#cr-7p-001-market-hours-awareness-gate), [CR-7P-002](../alpaca-paper-candidate-rule-handling.md#cr-7p-002-pre-trade-review-completion-gate) |
+AAPL buy 1 @ $267.55, sell 1 @ $269.07, +$1.52 simulated. After-hours entry (13:24), market-open fill (13:30). 22 min hold. [Full review](phase-7p-z-formal-review.md). CR-7P-001, CR-7P-002.
+
+## PT-002 — Second Paper Trade
+
+MSFT buy 1 @ $423.88, sell 1 @ $424.14, +$0.26 simulated. Market-hours entry (14:13), immediate fill (< 1s). 37 sec hold. [Full review](PT-002.md). CR-7P-001 validated (no after-hours gap). CR-7P-002 followed.
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Total paper trades | 1 |
-| Completed round trips | 1 |
+| Total paper trades | 2 |
+| Completed round trips | 2 |
 | Open positions | 0 |
-| Reviews complete | 1 |
+| Reviews complete | 2 |
 | Boundary violations | 0 |
 | CandidateRules | 2 (advisory only) |
 | Next trade allowed? | After review confirmed + human GO |
