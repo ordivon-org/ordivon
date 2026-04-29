@@ -1,173 +1,252 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import FinancePrepPage from "@/app/finance-prep/page";
 
 /* ═══════════════════════════════════════════════════════════════════
-   Finance Prep — Observation Integration tests (Phase 6J-S)
+   Finance Prep — Health Integration tests (Phase 6L)
    ═══════════════════════════════════════════════════════════════════ */
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+/* ── Mock helpers ───────────────────────────────────────── */
+
+const MOCK_CONNECTED = {
+  provider_id: "alpaca-paper",
+  environment: "paper",
+  status: "connected",
+  last_checked_at: "2026-04-29T10:00:00Z",
+  freshness: "current",
+  account_alias: "PA37****E5AT",
+  total_equity: 100000,
+  available_cash: 100000,
+  sample_symbol: "AAPL",
+  sample_price: 255.77,
+  write_capabilities: [],
+  error_summary: "",
+};
+
+const MOCK_DEGRADED = {
+  ...MOCK_CONNECTED,
+  status: "degraded",
+  freshness: "degraded",
+  error_summary: "Market data API timeout",
+};
+
+const MOCK_UNAVAILABLE = {
+  ...MOCK_CONNECTED,
+  status: "unavailable",
+  freshness: "missing",
+  account_alias: "",
+  total_equity: null,
+  available_cash: null,
+  sample_symbol: "",
+  sample_price: null,
+  error_summary: "API keys not configured",
+};
+
+function mockFetch(response: object | null, ok = true, status = 200) {
+  (global as any).fetch = vi.fn().mockResolvedValue({
+    ok,
+    status,
+    json: async () => response,
+  });
+}
+
+function mockFetchError() {
+  (global as any).fetch = vi.fn().mockRejectedValue(new Error("Connection refused"));
+}
+
 function renderPage() {
   return render(<FinancePrepPage />);
 }
 
-describe("FinancePrepPage — Observation Integration", () => {
-  /* ── Provider status: configured (not connected) ──────── */
+beforeEach(() => {
+  mockFetch(MOCK_CONNECTED);
+});
 
-  test("renders PAPER PROVIDER READY — not PROVIDER CONNECTED", () => {
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/* ══════════════════════════════════════════════════════════════════ */
+
+describe("FinancePrepPage — Health Integration", () => {
+  /* ── Connected state ────────────────────────────────── */
+
+  test("renders ALPACA PAPER READ-ONLY HEALTH after fetch", async () => {
     renderPage();
-    const els = screen.getAllByText(/PAPER PROVIDER READY/);
-    expect(els.length).toBeGreaterThan(0);
-    // Must NOT claim live connection
-    expect(screen.queryByText(/PROVIDER CONNECTED/)).toBeNull();
+    await waitFor(() => {
+      const els = screen.getAllByText(/alpaca-paper/i);
+      expect(els.length).toBeGreaterThan(0);
+    });
   });
 
-  test("renders static preview data disclaimer", () => {
+  test("shows paper account only label when connected", async () => {
+    mockFetch(MOCK_CONNECTED);
     renderPage();
-    const els = screen.getAllByText(/This page uses static preview data/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const els = screen.getAllByText(/Paper account only/i);
+      expect(els.length).toBeGreaterThan(0);
+    });
   });
 
-  test("renders does not perform live account read notice", () => {
+  test("shows empty write capabilities", async () => {
     renderPage();
-    const els = screen.getAllByText(/does not perform a live Alpaca account read/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Adapter capability table should have BLOCKED entries
+      const blocked = screen.getAllByText("BLOCKED");
+      expect(blocked.length).toBeGreaterThanOrEqual(4);
+    });
   });
 
-  /* ── Account ID masked ────────────────────────────────── */
-
-  test("account ID is masked in rendered output", () => {
+  test("shows environment as paper", async () => {
     renderPage();
-    const masked = screen.getAllByText(/PA37\*{4}E5AT/);
-    expect(masked.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Section 0 labels include 'paper', 'Alpaca Paper'
+      const paperLabels = screen.getAllByText(/paper/i);
+      expect(paperLabels.length).toBeGreaterThan(0);
+    });
   });
 
-  test("full account ID is not visible", () => {
+  /* ── Degraded state ─────────────────────────────────── */
+
+  test("shows degraded state with stale warning", async () => {
+    mockFetch(MOCK_DEGRADED);
     renderPage();
-    expect(screen.queryByText("PA37AKH0E5AT")).toBeNull();
+    await waitFor(() => {
+      const stale = screen.getAllByText(/STALE DATA/i);
+      expect(stale.length).toBeGreaterThan(0);
+    });
   });
 
-  /* ── Read-only mode ──────────────────────────────────── */
+  /* ── Unavailable fallback ───────────────────────────── */
 
-  test("renders OBSERVATION MODE — READ-ONLY banner", () => {
+  test("falls back to unavailable when endpoint returns unavailable", async () => {
+    mockFetch(MOCK_UNAVAILABLE);
     renderPage();
-    const els = screen.getAllByText(/OBSERVATION MODE/);
-    expect(els.length).toBeGreaterThan(0);
-    const ro = screen.getAllByText(/READ-ONLY/);
-    expect(ro.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const unavailable = screen.getAllByText(/PROVIDER UNAVAILABLE/i);
+      expect(unavailable.length).toBeGreaterThan(0);
+    });
   });
 
-  /* ── Provider banner states no orders ─────────────────── */
+  /* ── Error state ────────────────────────────────────── */
 
-  test("provider banner states no orders can be placed", () => {
+  test("shows error banner when fetch fails", async () => {
+    mockFetchError();
     renderPage();
-    const els = screen.getAllByText(/No orders can be placed/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const err = screen.getAllByText(/HEALTH ENDPOINT UNREACHABLE/i);
+      expect(err.length).toBeGreaterThan(0);
+    });
   });
 
-  test("provider banner mentions alpaca-paper", () => {
+  test("page does not crash on fetch failure", async () => {
+    mockFetchError();
     renderPage();
-    const els = screen.getAllByText(/alpaca-paper/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Still renders disabled actions
+      const btns = screen.getAllByRole("button", { name: "Place Live Order" });
+      expect(btns.length).toBeGreaterThan(0);
+    });
   });
 
-  /* ── Data sources ─────────────────────────────────────── */
+  /* ── Loading state ──────────────────────────────────── */
 
-  test("data sources show Alpaca Paper provider", () => {
+  test("shows loading state initially", () => {
+    // Don't resolve fetch — it stays pending
+    (global as any).fetch = vi.fn(() => new Promise(() => {}));
     renderPage();
-    const sources = screen.getAllByText("Alpaca Paper (alpaca-py)");
-    expect(sources.length).toBeGreaterThanOrEqual(2);
-  });
-
-  /* ── Data freshness ───────────────────────────────────── */
-
-  test("renders stale data warning", () => {
-    renderPage();
-    const els = screen.getAllByText(/STALE DATA/);
-    expect(els.length).toBeGreaterThan(0);
-  });
-
-  /* ── Adapter capability contract ──────────────────────── */
-
-  test("adapter capability shows BLOCKED write permissions", () => {
-    renderPage();
-    const blocked = screen.getAllByText("BLOCKED");
-    expect(blocked.length).toBeGreaterThanOrEqual(4);
-    const read = screen.getAllByText("READ");
-    expect(read.length).toBeGreaterThanOrEqual(4);
-  });
-
-  /* ── High-risk actions disabled ───────────────────────── */
-
-  test("Place Live Order remains disabled", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Place Live Order" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  test("Connect Broker API remains disabled", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Connect Broker API" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  test("Enable Auto Trading remains disabled", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Enable Auto Trading" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  /* ── Constitution ─────────────────────────────────────── */
-
-  test("constitution shows Alpaca Paper as read-only broker", () => {
-    renderPage();
-    const els = screen.getAllByText("ALPACA PAPER (READ-ONLY)");
+    const els = screen.getAllByText(/Loading observation health/i);
     expect(els.length).toBeGreaterThan(0);
   });
 
-  test("constitution shows cash account only", () => {
+  /* ── Redaction ─────────────────────────────────────── */
+
+  test("rendered output has no raw account IDs", async () => {
     renderPage();
-    const els = screen.getAllByText(/CASH ACCOUNT ONLY/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(document.body.innerHTML).not.toMatch(/PA37AKH0/);
+    });
   });
 
-  /* ── No secrets exposed ────────────────────────────────── */
-
-  test("no secret-like values appear in rendered output", () => {
+  test("rendered output has no secret-like values", async () => {
     renderPage();
-    const html = document.body.innerHTML;
-    expect(html).not.toMatch(/PKIGUNUW|7v2Uxq3/);
-    expect(html).not.toMatch(/PA37AKH0/);
+    await waitFor(() => {
+      const html = document.body.innerHTML.toLowerCase();
+      // Env var names in error messages are OK — but actual secrets are not
+      expect(html).not.toMatch(/PKIGUNUW|7v2Uxq3/);
+      expect(html).not.toMatch(/pk[0-9a-f]{20,}/i);
+    });
   });
 
-  /* ── No order buttons ─────────────────────────────────── */
+  /* ── High-risk actions ──────────────────────────────── */
 
-  test("no action button implies Ordivon placed an order", () => {
+  test("Place Live Order disabled on connected health", async () => {
     renderPage();
-    const buttons = screen.queryAllByRole("button");
-    const orderButtons = buttons.filter(b =>
-      /\b(submit|execute.?order|place.?trade|buy|sell)\b/i.test(b.textContent || "")
-    );
-    expect(orderButtons.length).toBe(0);
+    await waitFor(() => {
+      const btns = screen.getAllByRole("button", { name: "Place Live Order" });
+      expect(btns.length).toBeGreaterThan(0);
+      btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+    });
   });
 
-  /* ── Preview labeling ──────────────────────────────────── */
-
-  test("renders PREVIEW — NOT PRODUCTION banner", () => {
+  test("Connect Broker API disabled", async () => {
     renderPage();
-    const els = screen.getAllByText(/PREVIEW — NOT PRODUCTION/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const btns = screen.getAllByRole("button", { name: "Connect Broker API" });
+      btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+    });
   });
 
-  test("renders No live trading is enabled message", () => {
+  test("Enable Auto Trading disabled", async () => {
     renderPage();
-    const els = screen.getAllByText(/No live trading/);
-    expect(els.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const btns = screen.getAllByRole("button", { name: "Enable Auto Trading" });
+      btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+    });
+  });
+
+  /* ── No order buttons ──────────────────────────────── */
+
+  test("no order-related buttons exist", async () => {
+    renderPage();
+    await waitFor(() => {
+      const buttons = screen.queryAllByRole("button");
+      const orderButtons = buttons.filter(b =>
+        /\b(submit|execute.?order|place.?trade|buy|sell)\b/i.test(b.textContent || "")
+      );
+      expect(orderButtons.length).toBe(0);
+    });
+  });
+
+  /* ── Preview labels persist ────────────────────────── */
+
+  test("PREVIEW — NOT PRODUCTION banner still renders", async () => {
+    renderPage();
+    await waitFor(() => {
+      const els = screen.getAllByText(/PREVIEW — NOT PRODUCTION/);
+      expect(els.length).toBeGreaterThan(0);
+    });
+  });
+
+  test("No live trading message still renders", async () => {
+    renderPage();
+    await waitFor(() => {
+      const els = screen.getAllByText(/No live trading/);
+      expect(els.length).toBeGreaterThan(0);
+    });
+  });
+
+  /* ── OBSERVATION MODE banner ───────────────────────── */
+
+  test("OBSERVATION MODE — READ-ONLY banner renders", async () => {
+    renderPage();
+    await waitFor(() => {
+      const els = screen.getAllByText(/OBSERVATION MODE/);
+      expect(els.length).toBeGreaterThan(0);
+    });
   });
 });

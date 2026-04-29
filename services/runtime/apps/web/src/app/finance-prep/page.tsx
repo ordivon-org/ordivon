@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+import { getApiBaseUrl } from "@/lib/api";
 import {
   FinanceLivePrepBanner,
   FinanceConstitutionSummary,
@@ -18,25 +21,22 @@ import {
   ProviderStatusBanner,
 } from "@/components/governance";
 
-/* ── Observation Layer — Alpaca Paper Integration ─────────── */
+/* ── Health response type ─────────────────────────────────── */
 
-const OBS_SOURCES = [
-  { label: "Market Data", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC (after-hours)" },
-  { label: "Account", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC (PA37****E5AT)" },
-  { label: "Positions", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC" },
-  { label: "Fills", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "No fills yet (paper account empty)" },
-];
-
-const ADAPTER_CAPABILITIES = [
-  { capability: "can_read_market_data (alpaca-paper)", enabled: true },
-  { capability: "can_read_account (alpaca-paper)", enabled: true },
-  { capability: "can_read_positions (alpaca-paper)", enabled: true },
-  { capability: "can_read_fills (alpaca-paper)", enabled: true },
-  { capability: "can_place_order", enabled: false },
-  { capability: "can_cancel_order", enabled: false },
-  { capability: "can_withdraw", enabled: false },
-  { capability: "can_transfer", enabled: false },
-];
+type HealthStatus = {
+  provider_id: string;
+  environment: string;
+  status: string;
+  last_checked_at: string;
+  freshness: string;
+  account_alias: string;
+  total_equity: number | null;
+  available_cash: number | null;
+  sample_symbol: string;
+  sample_price: number | null;
+  write_capabilities: string[];
+  error_summary: string;
+};
 
 /* ── Constitution ─────────────────────────────────────────── */
 
@@ -115,7 +115,7 @@ const DISABLED = [
   },
   {
     action: "Connect Broker API",
-    reason: "Broker API integration requires Phase 7 readiness review, separate credentials vault, and explicit governance approval. Alpaca Paper Trading is currently the only configured provider (read-only, paper only).",
+    reason: "Broker API integration requires Phase 7 readiness review, separate credentials vault, and explicit governance approval.",
   },
   {
     action: "Enable Auto Trading",
@@ -123,29 +123,121 @@ const DISABLED = [
   },
 ];
 
+/* ── Adapter capability table ─────────────────────────────── */
+
+const ADAPTER_CAPS = [
+  { capability: "can_read_market_data", enabled: true },
+  { capability: "can_read_account", enabled: true },
+  { capability: "can_read_positions", enabled: true },
+  { capability: "can_read_fills", enabled: true },
+  { capability: "can_place_order", enabled: false },
+  { capability: "can_cancel_order", enabled: false },
+  { capability: "can_withdraw", enabled: false },
+  { capability: "can_transfer", enabled: false },
+];
+
 /* ── Page ──────────────────────────────────────────────────── */
 
 export default function FinancePrepPage() {
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchHealth() {
+      try {
+        const base = getApiBaseUrl();
+        const resp = await fetch(`${base}/health/finance-observation`, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data: HealthStatus = await resp.json();
+        if (!cancelled) {
+          setHealth(data);
+          setError(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Unknown error");
+          setHealth(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchHealth();
+    return () => { cancelled = true; };
+  }, []);
+
+  /* ── Derived observation display ──────────────────────── */
+
+  const providerStatus: "connected" | "configured" | "degraded" | "unavailable" =
+    !health ? "unavailable" :
+    health.status === "connected" ? "connected" :
+    health.status === "degraded" ? "degraded" :
+    health.status === "unavailable" ? "unavailable" :
+    "configured";
+
+  const obsSources = health ? [
+    { label: "Market Data", source: `Alpaca Paper (${health.environment})`, freshness: (health.freshness as "current" | "stale" | "degraded" | "missing"), lastUpdated: health.sample_symbol ? `${health.sample_symbol} @ ${health.sample_price}` : health.last_checked_at },
+    { label: "Account", source: `Alpaca Paper (${health.environment})`, freshness: (health.freshness as "current" | "stale" | "degraded" | "missing"), lastUpdated: health.account_alias ? `Alias: ${health.account_alias} | Equity: $${health.total_equity?.toLocaleString() ?? "—"}` : health.last_checked_at },
+    { label: "Positions", source: `Alpaca Paper (${health.environment})`, freshness: "degraded" as const, lastUpdated: health.last_checked_at },
+    { label: "Fills", source: `Alpaca Paper (${health.environment})`, freshness: "stale" as const, lastUpdated: "No fills yet (paper account empty)" },
+  ] : [
+    { label: "Market Data", source: "Unavailable", freshness: "missing" as const, lastUpdated: "—" },
+    { label: "Account", source: "Unavailable", freshness: "missing" as const, lastUpdated: "—" },
+    { label: "Positions", source: "Unavailable", freshness: "missing" as const, lastUpdated: "—" },
+    { label: "Fills", source: "Unavailable", freshness: "missing" as const, lastUpdated: "—" },
+  ];
+
+  const hasStale = health
+    ? health.freshness !== "current"
+    : true;
+
+  /* ── Render ───────────────────────────────────────────── */
+
   return (
     <div style={{ padding: "2rem", maxWidth: "960px", margin: "0 auto" }}>
       <GovernanceStyles />
       <article className="ordivon-workbench" style={{ gap: "1.5rem" }}>
         <FinanceLivePrepBanner />
 
-        {/* ── 0. Observation Layer — Alpaca Paper ────────── */}
+        {/* ── 0. Observation Layer ──────────────────────── */}
 
         <ObservationModeBanner />
-        <ProviderStatusBanner status="configured" adapterId="alpaca-paper" paperUrl="paper-api.alpaca.markets" />
+
+        {loading && (
+          <div className="ordivon-banner" style={{ background: "rgba(137,176,255,0.06)", borderColor: "var(--border-color)" }}>
+            <strong>⏳ Loading observation health...</strong>
+            <p>Connecting to Alpaca Paper health endpoint. This may take a moment.</p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-preview-bg)", borderColor: "var(--ordivon-banner-preview-border)" }}>
+            <strong>⚠ HEALTH ENDPOINT UNREACHABLE</strong>
+            <p>Could not reach /health/finance-observation: {error}. Displaying fallback data. Ensure the API server is running and Alpaca keys are configured.</p>
+          </div>
+        )}
+
+        {!loading && (
+          <ProviderStatusBanner status={providerStatus} adapterId={health?.provider_id ?? "alpaca-paper"} paperUrl="paper-api.alpaca.markets" />
+        )}
 
         <section>
           <h2 style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>
             0 — Observation Layer (Alpaca Paper, Read-Only)
           </h2>
-          <ObservationSourcePanel sources={OBS_SOURCES} />
+          <ObservationSourcePanel sources={obsSources} />
           <div style={{ height: "0.5rem" }} />
-          <StaleDataWarning hasStale={true} />
-          <div style={{ height: "0.75rem" }} />
-          <AdapterCapabilityTable rows={ADAPTER_CAPABILITIES} />
+          <StaleDataWarning hasStale={hasStale} />
+          <div style={{ height: "0.5rem" }} />
+          {health && (
+            <div className="ordivon-banner" style={{ background: "rgba(50,180,220,0.04)", borderColor: "var(--ordivon-approval-shadow)", fontSize: "0.78rem", marginBottom: "0.75rem" }}>
+              <strong>📋 Paper account only — not live trading</strong>
+              <p>Environment: {health.environment}. Write capabilities: [{health.write_capabilities.join(", ") || "none"}]. This is a paper trading simulation. No real money is involved. No orders can be placed.</p>
+            </div>
+          )}
+          <AdapterCapabilityTable rows={ADAPTER_CAPS} />
         </section>
 
         {/* ── 1. Constitution &amp; Risk Budget ────────── */}
