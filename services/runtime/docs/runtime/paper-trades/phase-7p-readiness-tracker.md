@@ -33,5 +33,5 @@ Last updated: 2026-04-29
 
 | CR | Status | Validated? |
 |----|--------|-----------|
-| CR-7P-001 | Advisory | ✅ PT-002 market-hours: no price gap |
-| CR-7P-002 | Advisory | ✅ Protocol followed on PT-002 |
+| CR-7P-001 | Advisory | ✅ Observed effective in PT-002 (market-hours eliminated price gap). NOT Policy. |
+| CR-7P-002 | Advisory | ✅ Protocol followed on PT-002. NOT Policy. |
