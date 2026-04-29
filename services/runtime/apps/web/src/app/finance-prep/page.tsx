@@ -11,7 +11,31 @@ import {
   CandidateRuleIsNotPolicyBanner,
   DisabledHighRiskAction,
   GovernanceStyles,
+  ObservationModeBanner,
+  AdapterCapabilityTable,
+  ObservationSourcePanel,
+  StaleDataWarning,
 } from "@/components/governance";
+
+/* ── Observation Layer (sample) ───────────────────────────── */
+
+const OBS_SOURCES = [
+  { label: "Market Data", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
+  { label: "Account", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
+  { label: "Positions", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
+  { label: "Fills", source: "Manual Entry", freshness: "current" as const, lastUpdated: "2026-04-29 09:00 UTC" },
+];
+
+const ADAPTER_CAPABILITIES = [
+  { capability: "can_read_market_data", enabled: true },
+  { capability: "can_read_account", enabled: true },
+  { capability: "can_read_positions", enabled: true },
+  { capability: "can_read_fills", enabled: true },
+  { capability: "can_place_order", enabled: false },
+  { capability: "can_cancel_order", enabled: false },
+  { capability: "can_withdraw", enabled: false },
+  { capability: "can_transfer", enabled: false },
+];
 
 /* ── Constitution ─────────────────────────────────────────── */
 
@@ -106,6 +130,23 @@ export default function FinancePrepPage() {
       <GovernanceStyles />
       <article className="ordivon-workbench" style={{ gap: "1.5rem" }}>
         <FinanceLivePrepBanner />
+
+        {/* ── 0. Observation Layer ──────────────────────── */}
+
+        <ObservationModeBanner />
+
+        <section>
+          <h2 style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>
+            0 — Observation Layer
+          </h2>
+          <ObservationSourcePanel sources={OBS_SOURCES} />
+          <div style={{ height: "0.5rem" }} />
+          <StaleDataWarning hasStale={true} />
+          <div style={{ height: "0.75rem" }} />
+          <AdapterCapabilityTable rows={ADAPTER_CAPABILITIES} />
+        </section>
+
+        {/* ── 1. Constitution &amp; Risk Budget ────────── */}
 
         <section>
           <h2 style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>

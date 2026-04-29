@@ -18,6 +18,7 @@ CORE_MODULES = ["governance", "state", "domains", "capabilities", "execution", "
 ALLOWED_FILES = {
     "governance/policy_source.py",  # ADR-006: tool namespace refs (metadata only)
     "state/db/schema.py",           # Legacy DuckDB analytics schema (DDL only, not domain logic)
+    "domains/finance/read_only_adapter.py",  # Phase 6G: read-only capability contract (declares what is NOT allowed)
 }
 
 # Patterns that are FORBIDDEN in Core modules

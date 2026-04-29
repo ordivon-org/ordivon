@@ -9,7 +9,7 @@ import React from "react";
    EvidenceFreshnessBadge
    ═══════════════════════════════════════════════════════════════════ */
 
-type Freshness = "current" | "stale" | "regenerated" | "missing" | "partial";
+type Freshness = "current" | "stale" | "regenerated" | "missing" | "partial" | "degraded";
 
 const FRESHNESS_STYLE: Record<Freshness, { bg: string; fg: string; label: string }> = {
   current:      { bg: "var(--ordivon-evidence-current-bg)", fg: "var(--ordivon-evidence-current)", label: "CURRENT" },
@@ -17,6 +17,7 @@ const FRESHNESS_STYLE: Record<Freshness, { bg: string; fg: string; label: string
   regenerated:  { bg: "var(--ordivon-evidence-regenerated-bg)", fg: "var(--ordivon-evidence-regenerated)", label: "REGENERATED" },
   missing:      { bg: "var(--ordivon-evidence-missing-bg)", fg: "var(--ordivon-evidence-missing)", label: "MISSING" },
   partial:      { bg: "var(--ordivon-evidence-stale-bg)",   fg: "var(--ordivon-evidence-stale)",   label: "PARTIAL" },
+  degraded:     { bg: "var(--ordivon-evidence-stale-bg)",   fg: "var(--ordivon-evidence-stale)",   label: "DEGRADED" },
 };
 
 export function EvidenceFreshnessBadge({ freshness }: { freshness: Freshness }) {
@@ -437,6 +438,97 @@ export function PostTradeReviewQueuePreview({ entries }: { entries: ReviewEntry[
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ObservationModeBanner — read-only adapter status
+   ═══════════════════════════════════════════════════════════════════ */
+
+export function ObservationModeBanner() {
+  return (
+    <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-advisory-bg)", borderColor: "var(--ordivon-banner-advisory-border)" }}>
+      <strong>🔒 OBSERVATION MODE — READ-ONLY</strong>
+      <p>This adapter has no write permissions. It cannot place orders, cancel orders, withdraw funds, or transfer assets. All data is observed, not acted upon.</p>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AdapterCapabilityTable — read-only capability contract display
+   ═══════════════════════════════════════════════════════════════════ */
+
+type CapabilityRow = { capability: string; enabled: boolean };
+
+export function AdapterCapabilityTable({ rows }: { rows: CapabilityRow[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">ADAPTER CAPABILITY CONTRACT</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Capability</th><th>Status</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td>{r.capability}</td>
+              <td>
+                <span className="ordivon-badge" style={{
+                  color: r.enabled ? "var(--ordivon-shadow-execute)" : "var(--ordivon-shadow-reject)",
+                  borderColor: r.enabled ? "var(--ordivon-shadow-execute)" : "var(--ordivon-shadow-reject)",
+                }}>
+                  {r.enabled ? "READ" : "BLOCKED"}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ObservationSourcePanel — market/account data freshness display
+   ═══════════════════════════════════════════════════════════════════ */
+
+type ObsSource = {
+  label: string;
+  source: string;
+  freshness: Freshness;
+  lastUpdated: string;
+};
+
+export function ObservationSourcePanel({ sources }: { sources: ObsSource[] }) {
+  return (
+    <div className="console-card console-card--soft">
+      <h3 className="console-card__title">DATA SOURCES &amp; FRESHNESS</h3>
+      <table className="ordivon-table">
+        <thead><tr><th>Source</th><th>Provider</th><th>Freshness</th><th>Last Updated</th></tr></thead>
+        <tbody>
+          {sources.map((s, i) => (
+            <tr key={i}>
+              <td>{s.label}</td>
+              <td className="ordivon-mono">{s.source}</td>
+              <td><EvidenceFreshnessBadge freshness={s.freshness} /></td>
+              <td className="ordivon-mono" style={{ fontSize: "0.7rem" }}>{s.lastUpdated}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   StaleDataWarning — when any observation data is not current
+   ═══════════════════════════════════════════════════════════════════ */
+
+export function StaleDataWarning({ hasStale }: { hasStale: boolean }) {
+  if (!hasStale) return null;
+  return (
+    <div className="ordivon-banner" style={{ background: "rgba(255,180,50,0.08)", borderColor: "var(--ordivon-evidence-stale)" }}>
+      <strong>⚠ STALE DATA</strong>
+      <p>One or more observation sources have stale data (last updated &gt; 1 minute ago). Displayed information may not reflect current market conditions. No trades should be based on stale data.</p>
     </div>
   );
 }

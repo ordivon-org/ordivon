@@ -97,4 +97,51 @@ describe("FinancePrepPage", () => {
     expect(btns.length).toBeGreaterThan(0);
     btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
   });
+
+  /* ── Observation Layer ───────────────────────────────── */
+
+  test("renders observation mode read-only banner", () => {
+    renderPage();
+    const els = screen.getAllByText(/OBSERVATION MODE/);
+    expect(els.length).toBeGreaterThan(0);
+    const ro = screen.getAllByText(/READ-ONLY/);
+    expect(ro.length).toBeGreaterThan(0);
+    const nw = screen.getAllByText(/cannot place orders/);
+    expect(nw.length).toBeGreaterThan(0);
+  });
+
+  test("renders adapter capability table with BLOCKED write permissions", () => {
+    renderPage();
+    const blocked = screen.getAllByText("BLOCKED");
+    expect(blocked.length).toBeGreaterThanOrEqual(4);
+    const read = screen.getAllByText("READ");
+    expect(read.length).toBeGreaterThanOrEqual(4);
+  });
+
+  test("renders data sources with freshness badges", () => {
+    renderPage();
+    expect(screen.getAllByText(/DATA SOURCES/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("MockObservationProvider").length).toBeGreaterThan(0);
+  });
+
+  test("renders stale data warning", () => {
+    renderPage();
+    const els = screen.getAllByText(/STALE DATA/);
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  test("read-only capability never shows write enabled", () => {
+    renderPage();
+    // All disabled actions must use BLOCKED, never READ for writes
+    const blocked = screen.getAllByText("BLOCKED");
+    // 4 write permissions blocked + at minimum
+    expect(blocked.length).toBeGreaterThanOrEqual(4);
+  });
+
+  test("Place Live Order still disabled after observation layer", () => {
+    renderPage();
+    const btns = screen.getAllByRole("button", { name: "Place Live Order" });
+    expect(btns.length).toBeGreaterThan(0);
+    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+  });
 });
