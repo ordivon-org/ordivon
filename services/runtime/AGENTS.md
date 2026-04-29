@@ -28,8 +28,25 @@ docs/runbooks/ordivon-agent-operating-doctrine.md  ← Full canonical doctrine
 
 ## Active Phase
 
-Phase 6 — Design Pack, UI Governance, Finance Observation (read-only)
-Phase 7 — NOT STARTED (Finance Live Micro-Capital)
+Phase 6 — Design Pack, UI Governance, Finance Observation (read-only) — **ACTIVE**
+  Completed: 6A–6L (Design Pack baseline, workbench surfaces, Finance observation models,
+  Alpaca Paper provider, health snapshot, /finance-prep health integration)
+Phase 7 — NOT STARTED (Finance Live Micro-Capital Dogfood)
+
+## Finance Observation Status
+
+| Component | Status |
+|-----------|--------|
+| Observation domain models | ✅ Phase 6G |
+| ReadOnlyAdapterCapability | ✅ Phase 6G |
+| Provider selection (Alpaca + Futu/IB) | ✅ Phase 6H |
+| AlpacaObservationProvider | ✅ Phase 6I |
+| Health snapshot (server-side) | ✅ Phase 6K |
+| /finance-prep health integration | ✅ Phase 6L |
+| Live Alpaca API calls | ✅ Via /health/finance-observation (read-only GET) |
+| Order placement | ❌ BLOCKED (frozen capability) |
+| Broker write | ❌ BLOCKED |
+| Live real-money trading | ❌ Phase 7 |
 
 ## Tool Truth
 
