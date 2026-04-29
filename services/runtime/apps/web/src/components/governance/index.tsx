@@ -520,6 +520,37 @@ export function ObservationSourcePanel({ sources }: { sources: ObsSource[] }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   ProviderStatusBanner — Alpaca Paper provider connection status
+   ═══════════════════════════════════════════════════════════════════ */
+
+type ProviderStatus = "connected" | "degraded" | "unavailable";
+
+export function ProviderStatusBanner({ status, adapterId = "alpaca-paper", paperUrl = "paper-api.alpaca.markets" }: { status: ProviderStatus; adapterId?: string; paperUrl?: string }) {
+  if (status === "connected") {
+    return (
+      <div className="ordivon-banner" style={{ background: "rgba(50,200,80,0.06)", borderColor: "var(--ordivon-shadow-execute)" }}>
+        <strong>🔌 PROVIDER CONNECTED — {adapterId}</strong>
+        <p>Connected to {paperUrl}. Observation data is refreshed on request. All operations are read-only. No orders can be placed through this connection.</p>
+      </div>
+    );
+  }
+  if (status === "degraded") {
+    return (
+      <div className="ordivon-banner" style={{ background: "rgba(255,180,50,0.08)", borderColor: "var(--ordivon-evidence-stale)" }}>
+        <strong>⚠ PROVIDER DEGRADED — {adapterId}</strong>
+        <p>Provider is configured but responding with errors or stale data. Falling back to last-known values. Check API key permissions and rate limits.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="ordivon-banner" style={{ background: "var(--ordivon-banner-preview-bg)", borderColor: "var(--ordivon-banner-preview-border)" }}>
+      <strong>⚠ PROVIDER UNAVAILABLE — MOCK FALLBACK</strong>
+      <p>No observation provider is connected. Displaying sample/mock data only. To connect Alpaca Paper Trading, set ALPACA_API_KEY, ALPACA_SECRET_KEY, and ALPACA_PAPER=true in environment.</p>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    StaleDataWarning — when any observation data is not current
    ═══════════════════════════════════════════════════════════════════ */
 

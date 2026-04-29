@@ -15,22 +15,23 @@ import {
   AdapterCapabilityTable,
   ObservationSourcePanel,
   StaleDataWarning,
+  ProviderStatusBanner,
 } from "@/components/governance";
 
-/* ── Observation Layer (sample) ───────────────────────────── */
+/* ── Observation Layer — Alpaca Paper Integration ─────────── */
 
 const OBS_SOURCES = [
-  { label: "Market Data", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
-  { label: "Account", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
-  { label: "Positions", source: "MockObservationProvider", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC" },
-  { label: "Fills", source: "Manual Entry", freshness: "current" as const, lastUpdated: "2026-04-29 09:00 UTC" },
+  { label: "Market Data", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "2026-04-29 08:30 UTC (after-hours)" },
+  { label: "Account", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC (PA37AKH0E5AT)" },
+  { label: "Positions", source: "Alpaca Paper (alpaca-py)", freshness: "degraded" as const, lastUpdated: "2026-04-29 09:26 UTC" },
+  { label: "Fills", source: "Alpaca Paper (alpaca-py)", freshness: "stale" as const, lastUpdated: "No fills yet (paper account empty)" },
 ];
 
 const ADAPTER_CAPABILITIES = [
-  { capability: "can_read_market_data", enabled: true },
-  { capability: "can_read_account", enabled: true },
-  { capability: "can_read_positions", enabled: true },
-  { capability: "can_read_fills", enabled: true },
+  { capability: "can_read_market_data (alpaca-paper)", enabled: true },
+  { capability: "can_read_account (alpaca-paper)", enabled: true },
+  { capability: "can_read_positions (alpaca-paper)", enabled: true },
+  { capability: "can_read_fills (alpaca-paper)", enabled: true },
   { capability: "can_place_order", enabled: false },
   { capability: "can_cancel_order", enabled: false },
   { capability: "can_withdraw", enabled: false },
@@ -43,9 +44,9 @@ const CONSTITUTION = [
   { rule: "Capital", value: "100 USD (placeholder)" },
   { rule: "Execution", value: "MANUAL ONLY" },
   { rule: "Leverage", value: "NONE" },
-  { rule: "Margin", value: "NONE" },
+  { rule: "Margin", value: "NONE — CASH ACCOUNT ONLY" },
   { rule: "Derivatives", value: "NONE" },
-  { rule: "Broker API", value: "NOT CONNECTED" },
+  { rule: "Broker API", value: "ALPACA PAPER (READ-ONLY)" },
   { rule: "Auto Trading", value: "DISABLED" },
   { rule: "Intake Required", value: "MANDATORY BEFORE TRADE" },
   { rule: "Outcome Capture Required", value: "MANDATORY AFTER TRADE" },
@@ -110,11 +111,11 @@ const SAMPLE_REVIEWS = [
 const DISABLED = [
   {
     action: "Place Live Order",
-    reason: "Live order execution is not enabled. This is a governance prep surface. Broker API is not connected. See Phase 7 Finance Live Micro-Capital Dogfood.",
+    reason: "Live order execution is not enabled. This is a governance prep surface. Alpaca Paper Trading connection is read-only. See Phase 7 Finance Live Micro-Capital Dogfood.",
   },
   {
     action: "Connect Broker API",
-    reason: "Broker API integration requires Phase 7 readiness review, separate credentials vault, and explicit governance approval. Not available in preview.",
+    reason: "Broker API integration requires Phase 7 readiness review, separate credentials vault, and explicit governance approval. Alpaca Paper Trading is currently the only configured provider (read-only, paper only).",
   },
   {
     action: "Enable Auto Trading",
@@ -131,13 +132,14 @@ export default function FinancePrepPage() {
       <article className="ordivon-workbench" style={{ gap: "1.5rem" }}>
         <FinanceLivePrepBanner />
 
-        {/* ── 0. Observation Layer ──────────────────────── */}
+        {/* ── 0. Observation Layer — Alpaca Paper ────────── */}
 
         <ObservationModeBanner />
+        <ProviderStatusBanner status="connected" adapterId="alpaca-paper" paperUrl="paper-api.alpaca.markets" />
 
         <section>
           <h2 style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 0.5rem" }}>
-            0 — Observation Layer
+            0 — Observation Layer (Alpaca Paper, Read-Only)
           </h2>
           <ObservationSourcePanel sources={OBS_SOURCES} />
           <div style={{ height: "0.5rem" }} />

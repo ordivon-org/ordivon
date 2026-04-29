@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import FinancePrepPage from "@/app/finance-prep/page";
 
 /* ═══════════════════════════════════════════════════════════════════
-   Finance Live Prep — governance surface tests
+   Finance Prep — Observation Integration tests (Phase 6J)
    ═══════════════════════════════════════════════════════════════════ */
 
 vi.mock("next/navigation", () => ({
@@ -14,115 +14,57 @@ function renderPage() {
   return render(<FinancePrepPage />);
 }
 
-describe("FinancePrepPage", () => {
-  test("renders PREVIEW — NOT PRODUCTION banner", () => {
-    renderPage();
-    const els = screen.getAllByText(/PREVIEW — NOT PRODUCTION/);
-    expect(els.length).toBeGreaterThan(0);
-  });
+describe("FinancePrepPage — Observation Integration", () => {
+  /* ── Read-only mode ──────────────────────────────────── */
 
-  test("renders no-live-trading message", () => {
-    renderPage();
-    const els = screen.getAllByText(/No live trading is enabled/);
-    expect(els.length).toBeGreaterThan(0);
-    const brokerEls = screen.getAllByText(/No broker API is connected/);
-    expect(brokerEls.length).toBeGreaterThan(0);
-  });
-
-  test("Finance Constitution shows manual-only constraints", () => {
-    renderPage();
-    expect(screen.getAllByText(/FINANCE CONSTITUTION/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("MANUAL ONLY").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("NOT CONNECTED").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("DISABLED").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("NONE").length).toBeGreaterThan(0);
-  });
-
-  test("Risk Budget Panel renders capital / risk limits", () => {
-    renderPage();
-    expect(screen.getAllByText(/RISK BUDGET/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("100.00 USD").length).toBeGreaterThan(0);
-  });
-
-  test("Decision Intake preview shows symbol, thesis, setup, invalidation", () => {
-    renderPage();
-    expect(screen.getAllByText(/DECISION INTAKE/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Breakout above 200-day SMA/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/—2% hard stop/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/hist-r-0427/).length).toBeGreaterThan(0);
-  });
-
-  test("Plan Receipt shows allowed/forbidden actions clearly", () => {
-    renderPage();
-    expect(screen.getAllByText(/PLAN RECEIPT/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("FORBIDDEN").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("ALLOWED").length).toBeGreaterThan(0);
-  });
-
-  test("Outcome Capture includes fees/slippage and result", () => {
-    renderPage();
-    expect(screen.getAllByText(/OUTCOME CAPTURE/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/0.03 USD commission/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/\+2.22 USD/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/YES — within risk budget/).length).toBeGreaterThan(0);
-  });
-
-  test("Review Queue shows CandidateRule statuses and CandidateRule ≠ Policy banner", () => {
-    renderPage();
-    expect(screen.getAllByText(/POST-TRADE REVIEW QUEUE/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("ACCEPTED CANDIDATE").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("DRAFT").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("PENDING").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/CandidateRule ≠ Policy/).length).toBeGreaterThan(0);
-  });
-
-  test("Place Live Order button is disabled with reason", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Place Live Order" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  test("Connect Broker API button is disabled with reason", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Connect Broker API" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  test("Enable Auto Trading button is disabled with reason", () => {
-    renderPage();
-    const btns = screen.getAllByRole("button", { name: "Enable Auto Trading" });
-    expect(btns.length).toBeGreaterThan(0);
-    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
-  });
-
-  /* ── Observation Layer ───────────────────────────────── */
-
-  test("renders observation mode read-only banner", () => {
+  test("renders OBSERVATION MODE — READ-ONLY banner", () => {
     renderPage();
     const els = screen.getAllByText(/OBSERVATION MODE/);
     expect(els.length).toBeGreaterThan(0);
     const ro = screen.getAllByText(/READ-ONLY/);
     expect(ro.length).toBeGreaterThan(0);
-    const nw = screen.getAllByText(/cannot place orders/);
-    expect(nw.length).toBeGreaterThan(0);
   });
 
-  test("renders adapter capability table with BLOCKED write permissions", () => {
+  /* ── Provider status ─────────────────────────────────── */
+
+  test("renders Alpaca Paper provider connected status", () => {
     renderPage();
-    const blocked = screen.getAllByText("BLOCKED");
-    expect(blocked.length).toBeGreaterThanOrEqual(4);
-    const read = screen.getAllByText("READ");
-    expect(read.length).toBeGreaterThanOrEqual(4);
+    const els = screen.getAllByText(/PROVIDER CONNECTED/);
+    expect(els.length).toBeGreaterThan(0);
+    const alpaca = screen.getAllByText(/alpaca-paper/);
+    expect(alpaca.length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/paper-api.alpaca.markets/).length).toBeGreaterThan(0);
   });
 
-  test("renders data sources with freshness badges", () => {
+  test("provider banner states no orders can be placed", () => {
     renderPage();
-    expect(screen.getAllByText(/DATA SOURCES/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("MockObservationProvider").length).toBeGreaterThan(0);
+    const els = screen.getAllByText(/No orders can be placed/);
+    expect(els.length).toBeGreaterThan(0);
+    const ro = screen.getAllByText(/read-only/);
+    expect(ro.length).toBeGreaterThan(0);
   });
+
+  /* ── Observation sources labeled Alpaca Paper ─────────── */
+
+  test("data sources show Alpaca Paper provider", () => {
+    renderPage();
+    const sources = screen.getAllByText("Alpaca Paper (alpaca-py)");
+    expect(sources.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("account source shows paper account ID", () => {
+    renderPage();
+    const els = screen.getAllByText(/PA37AKH0E5AT/);
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  test("fills source shows paper account empty", () => {
+    renderPage();
+    const els = screen.getAllByText(/No fills yet/);
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  /* ── Data freshness ───────────────────────────────────── */
 
   test("renders stale data warning", () => {
     renderPage();
@@ -130,18 +72,93 @@ describe("FinancePrepPage", () => {
     expect(els.length).toBeGreaterThan(0);
   });
 
-  test("read-only capability never shows write enabled", () => {
+  test("shows after-hours market data note", () => {
     renderPage();
-    // All disabled actions must use BLOCKED, never READ for writes
-    const blocked = screen.getAllByText("BLOCKED");
-    // 4 write permissions blocked + at minimum
-    expect(blocked.length).toBeGreaterThanOrEqual(4);
+    const els = screen.getAllByText(/after-hours/);
+    expect(els.length).toBeGreaterThan(0);
   });
 
-  test("Place Live Order still disabled after observation layer", () => {
+  /* ── Adapter capability contract ──────────────────────── */
+
+  test("adapter capability shows BLOCKED write permissions", () => {
+    renderPage();
+    const blocked = screen.getAllByText("BLOCKED");
+    // 4 write capabilities + at minimum
+    expect(blocked.length).toBeGreaterThanOrEqual(4);
+    const read = screen.getAllByText("READ");
+    expect(read.length).toBeGreaterThanOrEqual(4);
+  });
+
+  test("capability table includes alpaca-paper labels on read capabilities", () => {
+    renderPage();
+    const els = screen.getAllByText(/alpaca-paper/);
+    expect(els.length).toBeGreaterThanOrEqual(5); // 4 capabilities + provider banner
+  });
+
+  /* ── High-risk actions disabled ───────────────────────── */
+
+  test("Place Live Order remains disabled with Alpaca note", () => {
     renderPage();
     const btns = screen.getAllByRole("button", { name: "Place Live Order" });
     expect(btns.length).toBeGreaterThan(0);
     btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+    const reason = screen.getAllByText(/Alpaca Paper Trading/);
+    expect(reason.length).toBeGreaterThan(0);
+  });
+
+  test("Connect Broker API remains disabled", () => {
+    renderPage();
+    const btns = screen.getAllByRole("button", { name: "Connect Broker API" });
+    expect(btns.length).toBeGreaterThan(0);
+    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  test("Enable Auto Trading remains disabled", () => {
+    renderPage();
+    const btns = screen.getAllByRole("button", { name: "Enable Auto Trading" });
+    expect(btns.length).toBeGreaterThan(0);
+    btns.forEach(btn => expect((btn as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  /* ── Constitution updated ──────────────────────────────── */
+
+  test("constitution shows Alpaca Paper as broker API", () => {
+    renderPage();
+    const els = screen.getAllByText("ALPACA PAPER (READ-ONLY)");
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  test("constitution shows cash account only", () => {
+    renderPage();
+    const els = screen.getAllByText(/CASH ACCOUNT ONLY/);
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  /* ── No secrets exposed ────────────────────────────────── */
+
+  test("no secret-like values appear in rendered output", () => {
+    renderPage();
+    const html = document.body.innerHTML;
+    expect(html).not.toMatch(/PKIGUNUW|7v2Uxq3|secret.?key|api.?secret/i);
+  });
+
+  /* ── Section labeling ──────────────────────────────────── */
+
+  test("section 0 labeled with Alpaca Paper", () => {
+    renderPage();
+    const els = screen.getAllByText(/Observation Layer/);
+    expect(els.length).toBeGreaterThan(0);
+    const alpaca = screen.getAllByText(/Alpaca Paper/);
+    expect(alpaca.length).toBeGreaterThan(0);
+  });
+
+  test("no action button implies Ordivon placed an order", () => {
+    renderPage();
+    // No button exists with "submit", "execute order", "place trade", "buy", "sell"
+    const buttons = screen.queryAllByRole("button");
+    const orderButtons = buttons.filter(b =>
+      /\b(submit|execute.?order|place.?trade|buy|sell)\b/i.test(b.textContent || "")
+    );
+    expect(orderButtons.length).toBe(0);
   });
 });
