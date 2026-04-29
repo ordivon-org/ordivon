@@ -15,6 +15,9 @@
 
 - [Paper Trade Ledger](paper-trade-ledger.md)
 - [Trade Template](paper-trade-template.md)
+- [JSONL Ledger](paper-dogfood-ledger.jsonl) — 28 events, machine-readable
+- [Ledger Schema](paper-dogfood-ledger-schema.md) — event model + 16 invariants
+- [Ledger Checker](../../scripts/check_paper_dogfood_ledger.py) — `uv run python`
 - [Phase 8 Readiness Tracker](phase-7p-readiness-tracker.md)
 - [Repeated Dogfood Protocol](../alpaca-paper-repeated-dogfood-protocol.md)
 - [CandidateRule Handling](../alpaca-paper-candidate-rule-handling.md)
