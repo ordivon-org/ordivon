@@ -10,6 +10,7 @@ No shared capability class. No shared write methods.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import Any
@@ -50,12 +51,13 @@ class PaperExecutionCapability:
     adapter_id: str = "alpaca-paper-execution"
     environment: str = "paper"
     can_place_paper_order: bool = True
-    can_cancel_paper_order: bool = False
+    can_cancel_paper_order: bool = True
     can_place_live_order: bool = False
     can_cancel_live_order: bool = False
     can_withdraw: bool = False
     can_transfer: bool = False
     can_auto_trade: bool = False
+    can_replace_order: bool = False
 
     def __post_init__(self) -> None:
         if self.can_place_live_order:
@@ -142,6 +144,54 @@ class PaperOrderReceipt:
     plan_receipt_id: str = ""
 
 
+# ── Paper Cancel Request ────────────────────────────────────────────
+
+
+@dataclass
+class PaperCancelRequest:
+    """Validated paper cancel request. Paper-only. No replace. No auto."""
+
+    provider_order_id: str
+    cancel_receipt_id: str
+    no_live_disclaimer: bool = False
+    human_go: bool = False
+    reason: str = ""
+    environment: str = "paper"
+
+    def __post_init__(self) -> None:
+        if not self.provider_order_id:
+            raise PaperOrderValidationError("provider_order_id required for cancel.")
+        if not self.cancel_receipt_id:
+            raise PaperOrderValidationError("cancel_receipt_id is required. No paper cancel without a receipt.")
+        if not self.no_live_disclaimer:
+            raise PaperOrderValidationError("no_live_disclaimer must be True. Cancel is paper-only.")
+        if not self.human_go:
+            raise PaperOrderValidationError("human_go must be True. No automatic paper cancel.")
+        if not self.reason.strip():
+            raise PaperOrderValidationError("reason is required for paper cancel.")
+        if self.environment != "paper":
+            raise PaperOrderValidationError("Cancel is paper-only. environment must be 'paper'.")
+
+
+# ── Paper Cancel Receipt ─────────────────────────────────────────────
+
+
+@dataclass
+class PaperCancelReceipt:
+    """Receipt returned after canceling a paper order. Never live. Never replace."""
+
+    provider_order_id: str = ""
+    cancel_receipt_id: str = ""
+    status: str = ""
+    canceled_at: str = ""
+    environment: str = "paper"
+    live_order: bool = False
+    source: str = "alpaca-paper"
+    reason: str = ""
+    no_replace: bool = True
+    no_auto: bool = True
+
+
 # ── Adapter ─────────────────────────────────────────────────────────
 
 
@@ -208,6 +258,21 @@ class AlpacaPaperExecutionAdapter:
             status=response.get("status", ""),
         )
 
+    def cancel_paper_order(self, request: PaperCancelRequest) -> PaperCancelReceipt:
+        """Cancel an existing paper order. DELETE only. Never live. Paper lifecycle control only."""
+        try:
+            self._delete(f"/v2/orders/{request.provider_order_id}")
+        except PaperUnavailableError:
+            # 204 No Content from Alpaca on successful cancel — body is empty
+            pass
+        return PaperCancelReceipt(
+            provider_order_id=request.provider_order_id,
+            cancel_receipt_id=request.cancel_receipt_id,
+            status="canceled",
+            canceled_at="",
+            reason=request.reason,
+        )
+
     # ── HTTP ───────────────────────────────────────────────────
 
     def _client(self) -> httpx.Client:
@@ -229,16 +294,25 @@ class AlpacaPaperExecutionAdapter:
     def _get(self, path: str) -> Any:
         return self._request("GET", self.base_url.rstrip("/") + path)
 
+    def _delete(self, path: str) -> Any:
+        return self._request("DELETE", self.base_url.rstrip("/") + path)
+
     def _request(self, method: str, url: str, payload: dict | None = None) -> Any:
         if method == "GET":
             resp = self._client().get(url)
         elif method == "POST":
             resp = self._client().post(url, json=payload)
+        elif method == "DELETE":
+            resp = self._client().delete(url)
         else:
-            raise PaperLiveRejectedError(f"Only GET and POST (paper orders) allowed. Got {method}")
+            raise PaperLiveRejectedError(
+                f"Only GET, POST (paper orders), and DELETE (paper cancel) allowed. Got {method}"
+            )
         try:
             resp.raise_for_status()
-            return resp.json()
+            return resp.json() if resp.content else {}
+        except json.JSONDecodeError:
+            return {}  # 204 No Content etc.
         except httpx.HTTPStatusError as e:
             raise PaperUnavailableError(f"Alpaca Paper returned {e.response.status_code} for {_redacted(url)}") from e
         except httpx.RequestError as e:

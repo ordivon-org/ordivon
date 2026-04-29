@@ -281,7 +281,7 @@ class TestNoLiveMethods:
 
     def test_only_allowed_public_methods(self, adapter):
         public = [m for m in dir(adapter) if not m.startswith("_") and callable(getattr(adapter, m, None))]
-        allowed = {"get_capability", "submit_paper_order", "get_order_status", "close"}
+        allowed = {"get_capability", "submit_paper_order", "get_order_status", "cancel_paper_order", "close"}
         for m in public:
             assert m in allowed, f"Unexpected public method: {m}"
 

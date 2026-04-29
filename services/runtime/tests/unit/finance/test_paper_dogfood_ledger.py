@@ -201,7 +201,7 @@ class TestCheckerOutput:
         if not LEDGER_PATH.exists():
             pytest.skip("ledger not found")
         events = _load_ledger(LEDGER_PATH)
-        assert len(events) == 28
+        assert len(events) == 30  # updated 7P-C: +2 events
 
     def test_checker_exit_zero_on_valid(self):
         import subprocess
