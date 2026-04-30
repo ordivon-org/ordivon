@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Post-DG-HZ (2026-05-01)
-> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | Post-DG Hygiene — CLOSED
-> **Next**: Knowledge Navigation / Wiki Extension, CLI/Productization, or Rust Kernel Scoping (planning only)
+> **Last updated**: PV-1 (2026-05-01)
+> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | Post-DG Hygiene — CLOSED | PV-1 — PROPOSAL
+> **Next**: PV-2 CLI Skeleton or Knowledge Navigation / Wiki Extension
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 

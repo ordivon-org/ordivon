@@ -48,6 +48,7 @@ receipts, ledgers — with the same discipline applied to paper trades.
 - **DG Pack**: CLOSED — 18 sub-phases, 94 governance tests, 30 registry entries
 - **pr-fast**: 11/11 hard gates
 - **Open debt**: none (VD-001 through VD-004 all closed in Post-DG-H1/H2)
+- **PV-1**: PROPOSAL — Ordivon Verify CLI product contract (docs only)
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P

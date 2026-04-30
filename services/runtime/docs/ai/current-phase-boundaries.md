@@ -34,6 +34,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **Post-DG-H1** | **CLOSED** | Fix VD-004 manifest test instability (shallow copy bug) |
 | **Post-DG-H2-R** | **CLOSED** | Close VD-001 by reclassification (tool_limitation + command_mismatch) |
 | **Post-DG-H3** | **CLOSED** | Clean 4 non-DG F401 historical imports from governance tests |
+| **PV-1** | **PROPOSAL** | Ordivon Verify CLI product contract (product brief + CLI contract + user journey) |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
