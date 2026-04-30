@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-2 registry checker)
+Status: **DOCUMENTED** (DG-3 staleness audit)
 Date: 2026-04-30
-Phase: DG-2
+Phase: DG-3
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -19,9 +19,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-1** | **COMPLETE** | Document Governance Pack — 7 doc files, taxonomy + lifecycle + wiki |
 | **DG-1A** | **COMPLETE** | AI Output Contract Middleware — receipt template + verification discipline |
 | **DG-1B** | **COMPLETE** | Document Governance Pack Acceptance Seal — commit + tag |
-| **DG-2** | **ACTIVE** | Document Registry Prototype + Doc Consistency Checker |
+| **DG-2** | **COMPLETE** | Document Registry Prototype + Doc Consistency Checker — 28 entries |
+| **DG-3** | **ACTIVE** | Document Staleness Audit + Authority Conflict Review |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-3/DG-4 | **NEXT** | Wiki surface / Freshness checker |
+| DG-4 | **NEXT** | Staleness Automation + Freshness Checker |
 
 ## 2. Corrected Phase 7 Path
 
@@ -105,21 +106,19 @@ These are **design-time prohibitions**. No agent may violate them.
 | Enable high-risk actions | NO | Must stay disabled with reason |
 | Add new dependencies | AVOID | Pure CSS + React preference |
 
-### Document Governance (DG-1 through DG-2)
+### Document Governance (DG-1 through DG-3)
 | Action | Allowed? | Notes |
 |--------|----------|-------|
-| Add docs/governance/ markdown | YES | Design-only, no code |
-| Add docs/ai/ onboarding docs | YES | AI context updates allowed |
-| Define document types, lifecycle, authority | YES | DG-1 accepted |
-| Define AI output contract | YES | DG-1A accepted |
-| Commit + tag accepted docs | YES | DG-1B complete |
-| Build document registry + checker | YES | DG-2 — this phase |
+| Build document registry + checker | YES | DG-2 complete — 28 entries, 22 tests |
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
+| Perform staleness audit | YES | DG-3 — this phase |
+| Fix critical staleness found in audit | YES | DG-3 — ordvivon-root-context.md updated |
+| Add high-risk docs to registry | YES | DG-3 — 11 added, 28 total |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |
 | Enable live trading or broker write | NO | Phase 8 DEFERRED |
-| Start DG-3 wiki implementation | NO | DG-3/DG-4 NEXT — not started |
+| Build Wiki surface | NO | DG-4+ — after registry stabilization |
 
 ## 6. Key Files Reference
 

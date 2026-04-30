@@ -1,8 +1,8 @@
 # Ordivon Root Context
 
-Status: **DOCUMENTED** (Phase 6R)
-Date: 2026-04-29
-Phase: 6R
+Status: **DOCUMENTED** (updated DG-3)
+Date: 2026-04-30
+Phase: DG-3
 Tags: `ordivon`, `root-context`, `identity`, `governance`, `doctrine`, `ai-onboarding`
 
 ## 1. What Ordivon Is
@@ -112,7 +112,11 @@ Dependabot ecosystem key is an upstream parsing adapter — it does NOT represen
 ## 5. Current Phase
 
 Phase 1–5: **COMPLETE**
-Phase 6: **ACTIVE** (Design Pack, UI Governance, Finance Observation)
-Phase 7: **NOT STARTED** (Finance Live Micro-Capital Dogfood)
+Phase 6: **COMPLETE** (Design Pack, UI Governance, Finance Observation — 16 sub-phases)
+**Phase 7P: CLOSED** (Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published 2026-04-29)
+**DG-1/DG-1A: ACCEPTED** (Document Governance Pack + AI Output Contract)
+**DG-2: COMPLETE** (Document Registry + Checker)
+**DG-3: ACTIVE** (Document Staleness Audit)
+Phase 8: **DEFERRED** (Manual Live Micro-Capital — 3/10 readiness criteria)
 
-See `docs/ai/current-phase-boundaries.md` for detailed status.
+See `docs/ai/current-phase-boundaries.md` for detailed status and boundary matrix.

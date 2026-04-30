@@ -19,7 +19,8 @@ receipts, ledgers — with the same discipline applied to paper trades.
 | [wiki-architecture.md](wiki-architecture.md) | Future wiki structure: site map, page types, metadata display |
 | [ai-onboarding-doc-policy.md](ai-onboarding-doc-policy.md) | Leveled AI read path (L0–L4), verification, maintenance |
 | [document-registry-schema.md](document-registry-schema.md) | Future manifest format: fields, validation rules, samples |
-| [document-registry.jsonl](document-registry.jsonl) | Machine-readable document registry — 17 entries |
+| [document-staleness-audit-dg-3.md](document-staleness-audit-dg-3.md) | DG-3 staleness audit: 55 docs, 1 critical fix, 10 safe phrases |
+| [document-registry.jsonl](document-registry.jsonl) | Machine-readable document registry — 28 entries |
 | [../../scripts/check_document_registry.py](../../scripts/check_document_registry.py) | Registry checker — 22 invariants, exit 0 on pass |
 
 ## Key Principles at a Glance
@@ -35,8 +36,9 @@ receipts, ledgers — with the same discipline applied to paper trades.
 
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
-- **DG-1** (this pack): ACCEPTED — Document Governance Pack, 7 docs + registry + checker
-- **DG-2**: ACTIVE — Document Registry Prototype + Doc Consistency Checker
+- **DG-1** (this pack): ACCEPTED — Document Governance Pack, 7 docs
+- **DG-2**: COMPLETE — Registry + Checker (28 entries, 22 tests)
+- **DG-3**: ACTIVE — Staleness Audit + Authority Conflict Review
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P
@@ -47,8 +49,9 @@ evidence, not execution authority.
 
 ## Next Steps After DG-1 Acceptance
 
-1. ✅ Document registry populated with current project docs — 17 entries (DG-2)
-2. ⬜ Staleness audit of existing documentation
+1. ✅ Document registry populated — 28 entries (DG-2 + DG-3)
+2. ✅ Staleness audit of existing documentation — 55 docs, 1 critical fix (DG-3)
 3. ✅ Document checker built — `scripts/check_document_registry.py` (DG-2)
-4. ⬜ Wiki surface implemented (navigation + metadata display)
-5. ⬜ AI onboarding freshness automated (CI check)
+4. ⬜ Staleness automation + freshness checker (DG-4)
+5. ⬜ Wiki surface implemented (navigation + metadata display)
+6. ⬜ AI onboarding freshness automated (CI check)

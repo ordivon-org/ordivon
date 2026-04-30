@@ -9,29 +9,29 @@ docs/ai/README.md                        AI onboarding start
 docs/ai/ordivon-root-context.md          Identity + 10-layer architecture
 docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries
 docs/ai/agent-output-contract.md         Required output shape for every AI task
-docs/governance/README.md                Document Governance Pack (DG-1 active)
+docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-2: ACTIVE
+## Current Status — Phase 7P: CLOSED | DG-3: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG-1: Document Governance Pack — ACCEPTED** (7 files)
-**DG-1A: AI Output Contract — ACCEPTED** (docs/ai/agent-output-contract.md)
+**DG-1/DG-1A: ACCEPTED** (Document Governance Pack + AI Output Contract)
+**DG-2: COMPLETE** (Document Registry + Checker — 28 entries, 22 tests)
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
 204 backend tests. 57 frontend tests. 7/7 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-2 — Document Registry Prototype + Doc Consistency Checker.
-17 doc registry entries, 22 checker tests, all invariants pass.
-No new governance concepts. No code changes outside docs/scripts/tests.
-**Next**: DG-3 — Wiki surface or DG-4 — freshness checker.
+**Active work**: DG-3 — Document Staleness Audit + Authority Conflict Review.
+Audited 55 docs. 1 critical staleness found and fixed (ordivon-root-context.md).
+Registry grown to 28 entries. All high-risk phrases safe.
+**Next**: DG-4 — Staleness Automation + Freshness Checker.
 
 ## Critical Boundaries
 
