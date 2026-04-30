@@ -12,17 +12,13 @@ CHECKER = Path(__file__).resolve().parents[3] / "scripts" / "check_receipt_integ
 def _run_checker_on_file(content: str) -> tuple[int, str]:
     """Write content to temp file and run checker against it."""
     import tempfile
-    import os
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write(content)
         tmp = f.name
     try:
         result = subprocess.run(
             [sys.executable, str(CHECKER), tmp],
-            capture_output=True,
-            text=True,
-            timeout=30,
+            capture_output=True, text=True, timeout=30,
         )
         return result.returncode, result.stdout
     finally:
@@ -30,7 +26,6 @@ def _run_checker_on_file(content: str) -> tuple[int, str]:
 
 
 # ── Positive: valid receipt passes ────────────────────────────────────
-
 
 def test_valid_receipt_passes():
     content = "# Test Receipt\n\nAll verification gates passed.\nTracked working tree clean.\n"
@@ -40,7 +35,6 @@ def test_valid_receipt_passes():
 
 # ── Negative: Skipped None + not run ──────────────────────────────────
 
-
 def test_skipped_none_with_not_run_fails():
     content = "# Receipt\n\nSkipped Verification: None\n\nRuff not run.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -48,7 +42,6 @@ def test_skipped_none_with_not_run_fails():
 
 
 # ── Negative: SEALED + pending ────────────────────────────────────────
-
 
 def test_sealed_with_pending_fails():
     content = "# Receipt\n\nStatus: SEALED\n\nPending verification.\n"
@@ -58,7 +51,6 @@ def test_sealed_with_pending_fails():
 
 # ── Negative: clean working tree + untracked ──────────────────────────
 
-
 def test_clean_working_tree_with_untracked_fails():
     content = "# Receipt\n\nclean working tree.\nUntracked residue present.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -66,7 +58,6 @@ def test_clean_working_tree_with_untracked_fails():
 
 
 # ── Positive: tracked working tree clean + untracked ──────────────────
-
 
 def test_tracked_working_tree_clean_passes():
     content = "# Receipt\n\nTracked working tree clean.\nUntracked residue remains.\n"
@@ -76,7 +67,6 @@ def test_tracked_working_tree_clean_passes():
 
 # ── Negative: stale 7/7 baseline ─────────────────────────────────────
 
-
 def test_stale_baseline_7_7_fails():
     content = "# Receipt\n\n7/7 baseline passed.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -84,7 +74,6 @@ def test_stale_baseline_7_7_fails():
 
 
 # ── Positive: 7/7 → 8/8 historical transition ────────────────────────
-
 
 def test_historical_7_7_to_8_8_passes():
     content = "# Phase DG-5 Receipt\n\nBefore DG-5: 7/7. After DG-5: 8/8 baseline.\n"
@@ -94,7 +83,6 @@ def test_historical_7_7_to_8_8_passes():
 
 # ── Negative: Ruff clean with pre-existing debt ───────────────────────
 
-
 def test_ruff_clean_with_preexisting_fails():
     content = "# Receipt\n\nRuff clean. Pre-existing debt remains.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -102,7 +90,6 @@ def test_ruff_clean_with_preexisting_fails():
 
 
 # ── Positive: DG scope clean with pre-existing debt ───────────────────
-
 
 def test_dg_scope_clean_passes():
     content = "# Receipt\n\nDG-5 files clean. Pre-existing debt in scripts/ remains.\n"
@@ -112,7 +99,6 @@ def test_dg_scope_clean_passes():
 
 # ── Negative: CandidateRule validated ─────────────────────────────────
 
-
 def test_candidate_rule_validated_fails():
     content = "# Receipt\n\nCandidateRule validated successfully.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -121,7 +107,6 @@ def test_candidate_rule_validated_fails():
 
 # ── Positive: CandidateRule advisory ──────────────────────────────────
 
-
 def test_candidate_rule_advisory_passes():
     content = "# Receipt\n\nCandidateRule supported by evidence, advisory only, NOT Policy.\n"
     exit_code, _ = _run_checker_on_file(content)
@@ -129,7 +114,6 @@ def test_candidate_rule_advisory_passes():
 
 
 # ── Positive: safe NO-GO phrases ──────────────────────────────────────
-
 
 def test_safe_nogo_phrases_pass():
     content = (
@@ -142,7 +126,6 @@ def test_safe_nogo_phrases_pass():
 
 # ── Summary counts ────────────────────────────────────────────────────
 
-
 def test_summary_includes_counts():
     content = "# Test\n\nTracked working tree clean.\n"
     exit_code, out = _run_checker_on_file(content)
@@ -153,12 +136,9 @@ def test_summary_includes_counts():
 
 # ── Historical skip ───────────────────────────────────────────────────
 
-
 def test_historical_files_excluded():
     """Files under archive/ should be skipped."""
     import tempfile
-    import os
-
     archive_dir = Path(tempfile.mkdtemp())
     archive_file = archive_dir / "archive" / "old-receipt.md"
     archive_file.parent.mkdir(parents=True, exist_ok=True)
@@ -166,13 +146,9 @@ def test_historical_files_excluded():
     try:
         result = subprocess.run(
             [sys.executable, str(CHECKER), str(archive_dir)],
-            capture_output=True,
-            text=True,
-            timeout=30,
+            capture_output=True, text=True, timeout=30,
         )
-        # Should pass because archive/ is excluded
         assert result.returncode == 0
     finally:
         import shutil
-
         shutil.rmtree(archive_dir)
