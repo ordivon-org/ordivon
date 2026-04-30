@@ -42,6 +42,7 @@ def _make_entry(**overrides) -> dict:
 def _run_checker(entries: list[dict], env: dict = None) -> tuple[int, str]:
     """Run the checker against a temp registry, return (exit_code, stdout)."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         for e in entries:
             f.write(json.dumps(e) + "\n")
@@ -52,7 +53,9 @@ def _run_checker(entries: list[dict], env: dict = None) -> tuple[int, str]:
             run_env.update(env)
         result = subprocess.run(
             [sys.executable, str(CHECKER), tmp],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
             env=run_env,
         )
         return result.returncode, result.stdout
@@ -62,15 +65,30 @@ def _run_checker(entries: list[dict], env: dict = None) -> tuple[int, str]:
 
 # ── Positive: valid registry passes ───────────────────────────────────
 
+
 def test_valid_registry_passes():
     """A registry with all valid entries must pass."""
     entries = [
-        _make_entry(doc_id="a", path="AGENTS.md", doc_type="root_context", status="current",
-                    authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-30", stale_after_days=7),
-        _make_entry(doc_id="b", path="docs/ai/README.md", doc_type="ai_onboarding", status="current",
-                    authority="current_status", ai_read_priority=1,
-                    last_verified="2026-04-30", stale_after_days=14),
+        _make_entry(
+            doc_id="a",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-30",
+            stale_after_days=7,
+        ),
+        _make_entry(
+            doc_id="b",
+            path="docs/ai/README.md",
+            doc_type="ai_onboarding",
+            status="current",
+            authority="current_status",
+            ai_read_priority=1,
+            last_verified="2026-04-30",
+            stale_after_days=14,
+        ),
     ]
     exit_code, out = _run_checker(entries)
     assert exit_code == 0, f"Expected pass but got: {out}"
@@ -79,20 +97,40 @@ def test_valid_registry_passes():
 
 # ── Negative: missing last_verified on critical AI doc ────────────────
 
+
 def test_critical_ai_doc_missing_last_verified_fails():
     """Critical AI doc without last_verified must fail."""
     entries = [
-        _make_entry(doc_id="agents-md", path="AGENTS.md", doc_type="root_context",
-                    status="current", authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-30", stale_after_days=7),
-        _make_entry(doc_id="ai-readme", path="docs/ai/README.md", doc_type="ai_onboarding",
-                    status="current", authority="current_status", ai_read_priority=1,
-                    last_verified="2026-04-30", stale_after_days=14),
-        _make_entry(doc_id="phase-boundaries", path="docs/ai/current-phase-boundaries.md",
-                    doc_type="phase_boundary", status="current", authority="source_of_truth",
-                    ai_read_priority=1,
-                    # Missing last_verified!
-                    stale_after_days=7),
+        _make_entry(
+            doc_id="agents-md",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-30",
+            stale_after_days=7,
+        ),
+        _make_entry(
+            doc_id="ai-readme",
+            path="docs/ai/README.md",
+            doc_type="ai_onboarding",
+            status="current",
+            authority="current_status",
+            ai_read_priority=1,
+            last_verified="2026-04-30",
+            stale_after_days=14,
+        ),
+        _make_entry(
+            doc_id="phase-boundaries",
+            path="docs/ai/current-phase-boundaries.md",
+            doc_type="phase_boundary",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=1,
+            # Missing last_verified!
+            stale_after_days=7,
+        ),
     ]
     exit_code, out = _run_checker(entries)
     assert exit_code != 0, f"Expected fail but passed: {out}"
@@ -100,12 +138,20 @@ def test_critical_ai_doc_missing_last_verified_fails():
 
 # ── Freshness: stale when exceeded ────────────────────────────────────
 
+
 def test_stale_last_verified_fails():
     """Doc with last_verified older than stale_after_days must fail."""
     entries = [
-        _make_entry(doc_id="agents-md", path="AGENTS.md", doc_type="root_context",
-                    status="current", authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-20", stale_after_days=7),
+        _make_entry(
+            doc_id="agents-md",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-20",
+            stale_after_days=7,
+        ),
     ]
     # REFERENCE_DATE=2026-04-30: 10 days ago > 7 day max
     exit_code, _ = _run_checker(entries, env={"REFERENCE_DATE": "2026-04-30"})
@@ -114,12 +160,20 @@ def test_stale_last_verified_fails():
 
 # ── Freshness: fresh passes ───────────────────────────────────────────
 
+
 def test_fresh_last_verified_passes():
     """Doc within staleness window must pass."""
     entries = [
-        _make_entry(doc_id="agents-md", path="AGENTS.md", doc_type="root_context",
-                    status="current", authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-28", stale_after_days=7),
+        _make_entry(
+            doc_id="agents-md",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-28",
+            stale_after_days=7,
+        ),
     ]
     # REFERENCE_DATE=2026-04-30: 2 days ago <= 7 day max
     exit_code, _ = _run_checker(entries, env={"REFERENCE_DATE": "2026-04-30"})
@@ -128,16 +182,24 @@ def test_fresh_last_verified_passes():
 
 # ── Semantic: Phase 8 ACTIVE phrase fails ─────────────────────────────
 
+
 def test_phase_8_active_phrase_fails():
     """Current doc containing 'Phase 8 ACTIVE' must fail semantic check."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test Doc\n\nPhase 8 is active and ready for live trading.\n")
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code != 0, f"Expected fail: {out}"
@@ -147,16 +209,24 @@ def test_phase_8_active_phrase_fails():
 
 # ── Semantic: live trading active phrase fails ────────────────────────
 
+
 def test_live_trading_active_phrase_fails():
     """Current doc saying 'live trading is active' must fail."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test\n\nLive trading is now active.\n")
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code != 0, f"Expected fail: {out}"
@@ -166,16 +236,24 @@ def test_live_trading_active_phrase_fails():
 
 # ── Semantic: CandidateRule as Policy fails ───────────────────────────
 
+
 def test_candidate_rule_as_policy_phrase_fails():
     """Doc saying 'CandidateRule is Policy' must fail."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test\n\nThis CandidateRule is Policy and active.\n")
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code != 0, f"Expected fail: {out}"
@@ -185,16 +263,24 @@ def test_candidate_rule_as_policy_phrase_fails():
 
 # ── Semantic: ledger as execution authority fails ─────────────────────
 
+
 def test_ledger_as_execution_authority_phrase_fails():
     """Doc saying 'ledger is execution authority' must fail."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test\n\nThe JSONL ledger authorizes execution.\n")
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code != 0, f"Expected fail: {out}"
@@ -204,16 +290,24 @@ def test_ledger_as_execution_authority_phrase_fails():
 
 # ── Semantic: Phase 6 ACTIVE stale phrase fails ───────────────────────
 
+
 def test_phase_6_active_phrase_fails():
     """Doc saying 'Phase 6 ACTIVE' must fail (should be COMPLETE)."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test Doc\n\nPhase 6 is ACTIVE.\n")
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code != 0, f"Expected fail: {out}"
@@ -223,9 +317,11 @@ def test_phase_6_active_phrase_fails():
 
 # ── Semantic: safe NO-GO context passes ───────────────────────────────
 
+
 def test_safe_nogo_context_passes():
     """Doc with 'Phase 8 remains DEFERRED' in safe context must pass."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("# Test\n\nPhase 8 remains DEFERRED. No live trading is NO-GO.\n")
         f.write("CandidateRules are NOT Policy — advisory only.\n")
@@ -233,8 +329,14 @@ def test_safe_nogo_context_passes():
         tmp = f.name
     try:
         entries = [
-            _make_entry(doc_id="test", path=tmp, doc_type="runtime",
-                        status="current", authority="current_status", ai_read_priority=3),
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
         ]
         exit_code, out = _run_checker(entries)
         assert exit_code == 0, f"Expected pass: {out}"
@@ -244,12 +346,20 @@ def test_safe_nogo_context_passes():
 
 # ── Deterministic date injection works ────────────────────────────────
 
+
 def test_deterministic_date_injection_works():
     """REFERENCE_DATE env var controls staleness comparison."""
     entries = [
-        _make_entry(doc_id="agents-md", path="AGENTS.md", doc_type="root_context",
-                    status="current", authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-20", stale_after_days=7),
+        _make_entry(
+            doc_id="agents-md",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-20",
+            stale_after_days=7,
+        ),
     ]
     # With reference date 2026-04-25 (5 days after) → should pass
     exit_code, _ = _run_checker(entries, env={"REFERENCE_DATE": "2026-04-25"})
@@ -261,15 +371,30 @@ def test_deterministic_date_injection_works():
 
 # ── Checker summary includes freshness count ──────────────────────────
 
+
 def test_checker_summary_includes_freshness_counts():
     """Summary must show last_verified and stale_after_days counts."""
     entries = [
-        _make_entry(doc_id="a", path="AGENTS.md", doc_type="root_context", status="current",
-                    authority="source_of_truth", ai_read_priority=0,
-                    last_verified="2026-04-30", stale_after_days=7),
-        _make_entry(doc_id="b", path="docs/ai/README.md", doc_type="ai_onboarding", status="current",
-                    authority="current_status", ai_read_priority=1,
-                    last_verified="2026-04-30", stale_after_days=14),
+        _make_entry(
+            doc_id="a",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-04-30",
+            stale_after_days=7,
+        ),
+        _make_entry(
+            doc_id="b",
+            path="docs/ai/README.md",
+            doc_type="ai_onboarding",
+            status="current",
+            authority="current_status",
+            ai_read_priority=1,
+            last_verified="2026-04-30",
+            stale_after_days=14,
+        ),
     ]
     exit_code, out = _run_checker(entries)
     assert exit_code == 0
@@ -280,16 +405,20 @@ def test_checker_summary_includes_freshness_counts():
 
 # ── Original DG-2 tests retained below ────────────────────────────────
 
+
 def test_invalid_json_fails():
     """Non-JSON line must fail."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         f.write("this is not json\n")
         tmp = f.name
     try:
         result = subprocess.run(
             [sys.executable, str(CHECKER), tmp],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode != 0
     finally:
@@ -344,8 +473,7 @@ def test_invalid_authority_fails():
 
 def test_stale_source_of_truth_fails():
     """source_of_truth doc with status=stale must fail."""
-    entries = [_make_entry(doc_id="stale-sot", doc_type="phase_boundary",
-                           status="stale", authority="source_of_truth")]
+    entries = [_make_entry(doc_id="stale-sot", doc_type="phase_boundary", status="stale", authority="source_of_truth")]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
@@ -359,44 +487,59 @@ def test_archived_high_priority_ai_doc_fails():
 
 def test_ledger_marked_source_of_truth_fails():
     """Ledger doc with authority=source_of_truth must fail."""
-    entries = [_make_entry(doc_id="bad-ledger", doc_type="ledger",
-                           authority="source_of_truth",
-                           path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl")]
+    entries = [
+        _make_entry(
+            doc_id="bad-ledger",
+            doc_type="ledger",
+            authority="source_of_truth",
+            path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl",
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_paper_ledger_execution_authority_fails():
     """Paper dogfood ledger described as execution authority must fail."""
-    entries = [_make_entry(
-        doc_id="paper-dogfood-ledger", doc_type="ledger",
-        authority="supporting_evidence",
-        path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl",
-        notes="This is execution authority for paper trades.",
-    )]
+    entries = [
+        _make_entry(
+            doc_id="paper-dogfood-ledger",
+            doc_type="ledger",
+            authority="supporting_evidence",
+            path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl",
+            notes="This is execution authority for paper trades.",
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_candidate_rule_as_policy_fails():
     """Doc with candidate in title/id and Policy in notes must fail."""
-    entries = [_make_entry(
-        doc_id="cr-001", title="CandidateRule about Policy",
-        doc_type="runtime",
-        authority="current_status",
-        notes="This is a Policy rule.",
-    )]
+    entries = [
+        _make_entry(
+            doc_id="cr-001",
+            title="CandidateRule about Policy",
+            doc_type="runtime",
+            authority="current_status",
+            notes="This is a Policy rule.",
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_phase_8_not_deferred_fails():
     """Phase 8 doc not in deferred status must fail."""
-    entries = [_make_entry(
-        doc_id="phase-8-tracker", title="Phase 8 Readiness Tracker",
-        doc_type="tracker", status="current",
-        authority="current_status",
-    )]
+    entries = [
+        _make_entry(
+            doc_id="phase-8-tracker",
+            title="Phase 8 Readiness Tracker",
+            doc_type="tracker",
+            status="current",
+            authority="current_status",
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
@@ -421,37 +564,52 @@ def test_superseded_by_unknown_doc_id_fails():
 
 def test_root_context_archived_fails():
     """root_context doc archived must fail."""
-    entries = [_make_entry(doc_id="agents-md", doc_type="root_context",
-                           status="archived", authority="archive",
-                           ai_read_priority=4)]
+    entries = [
+        _make_entry(
+            doc_id="agents-md", doc_type="root_context", status="archived", authority="archive", ai_read_priority=4
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_phase_boundary_stale_fails():
     """phase_boundary doc stale must fail."""
-    entries = [_make_entry(doc_id="pb-stale", doc_type="phase_boundary",
-                           status="stale", authority="source_of_truth")]
+    entries = [_make_entry(doc_id="pb-stale", doc_type="phase_boundary", status="stale", authority="source_of_truth")]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_critical_ai_doc_wrong_priority_fails():
     """agents-md with ai_read_priority 3 must fail."""
-    entries = [_make_entry(doc_id="agents-md", doc_type="root_context",
-                           status="current", authority="source_of_truth",
-                           ai_read_priority=3,
-                           last_verified="2026-04-30", stale_after_days=7)]
+    entries = [
+        _make_entry(
+            doc_id="agents-md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=3,
+            last_verified="2026-04-30",
+            stale_after_days=7,
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
 
 def test_phase_boundaries_not_source_of_truth_fails():
     """phase-boundaries without source_of_truth authority must fail."""
-    entries = [_make_entry(doc_id="phase-boundaries", doc_type="phase_boundary",
-                           status="current", authority="current_status",
-                           ai_read_priority=1,
-                           last_verified="2026-04-30", stale_after_days=7)]
+    entries = [
+        _make_entry(
+            doc_id="phase-boundaries",
+            doc_type="phase_boundary",
+            status="current",
+            authority="current_status",
+            ai_read_priority=1,
+            last_verified="2026-04-30",
+            stale_after_days=7,
+        )
+    ]
     exit_code, _ = _run_checker(entries)
     assert exit_code != 0
 
@@ -459,15 +617,38 @@ def test_phase_boundaries_not_source_of_truth_fails():
 def test_checker_summary_counts():
     """Verify summary contains correct counts for a known set of entries."""
     entries = [
-        _make_entry(doc_id="a", path="AGENTS.md", doc_type="root_context", status="current",
-                    authority="source_of_truth", ai_read_priority=0),
-        _make_entry(doc_id="b", path="docs/ai/README.md", doc_type="ai_onboarding", status="current",
-                    authority="current_status", ai_read_priority=1),
-        _make_entry(doc_id="c", path="docs/governance/README.md", doc_type="governance_pack",
-                    status="accepted", authority="current_status", ai_read_priority=2),
-        _make_entry(doc_id="d", path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl",
-                    doc_type="ledger", status="closed", authority="supporting_evidence",
-                    ai_read_priority=3),
+        _make_entry(
+            doc_id="a",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+        ),
+        _make_entry(
+            doc_id="b",
+            path="docs/ai/README.md",
+            doc_type="ai_onboarding",
+            status="current",
+            authority="current_status",
+            ai_read_priority=1,
+        ),
+        _make_entry(
+            doc_id="c",
+            path="docs/governance/README.md",
+            doc_type="governance_pack",
+            status="accepted",
+            authority="current_status",
+            ai_read_priority=2,
+        ),
+        _make_entry(
+            doc_id="d",
+            path="docs/runtime/paper-trades/paper-dogfood-ledger.jsonl",
+            doc_type="ledger",
+            status="closed",
+            authority="supporting_evidence",
+            ai_read_priority=3,
+        ),
     ]
     exit_code, out = _run_checker(entries)
     assert exit_code == 0
