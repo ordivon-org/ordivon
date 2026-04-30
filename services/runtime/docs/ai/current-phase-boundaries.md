@@ -36,7 +36,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **Post-DG-H3** | **CLOSED** | Clean 4 non-DG F401 historical imports from governance tests |
 | **PV-1** | **PROPOSAL** | Ordivon Verify CLI product contract (product brief + CLI contract + user journey) |
 | **PV-2** | **COMPLETE** | Ordivon Verify CLI skeleton |
-| **PV-3** | **ACTIVE** | External fixture dogfood + --root/--config/--mode support |
+| **PV-3** | **COMPLETE** | External fixture dogfood + --root/--config/--mode support |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
