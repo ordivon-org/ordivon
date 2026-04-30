@@ -298,6 +298,33 @@ may be used. Future glossary work should extend this constraint to a
 formal bilingual governance glossary, ensuring precision is maintained
 across Chinese philosophical reasoning and English technical execution.
 
+### 12.7 VD-001: Verification Signal Classification in Practice
+
+The VD-001 debt (AGENTS.md ruff markdown formatting) taught a second-order
+governance lesson: **not all checker failures indicate object defects.**
+
+VD-001 initially appeared as a formatting debt. Investigation proved
+AGENTS.md had zero formatting issues — the failure was ruff's stable-mode
+refusal to process Markdown without `--preview`. The checker was measuring
+a tool feature gate, not a file defect.
+
+This led to a formalization in `verification-debt-policy.md` (§8):
+- Eight failure classes: object_defect, tool_limitation, command_mismatch,
+  environment_mismatch, spec_mismatch, historical_noise, misclassification,
+  expected_negative_control
+- Five closure reasons beyond "fixed": closed_by_reclassification,
+  closed_as_tool_limitation, closed_as_out_of_scope, fixed_by_command_correction,
+  superseded_by_tool_update
+- Core rule: do not mutate authoritative documents to satisfy a
+  misclassified checker
+
+VD-001 was closed by reclassification. This is now a documented,
+repeatable governance pattern — not an exception.
+
+**The meta-lesson**: Ordivon must govern not only what checkers check,
+but how checker results are interpreted. A failed verification command
+is an observation, not a verdict.
+
 ## 13. Closure Predicate
 
 DG Pack foundation stage is formally CLOSED when all of these hold:
@@ -309,8 +336,8 @@ DG Pack foundation stage is formally CLOSED when all of these hold:
 5. Verification debt checker passes — ✅
 6. Receipt integrity checker passes — ✅
 7. Gate manifest checker passes — ✅
-8. All known current-scope debt is registered — ✅ (VD-001, VD-004)
-9. Open debt is visible, bounded, and classified non-blocking — ✅
+8. All registered verification debt is closed with classified closure reasons — ✅ (VD-001 through VD-004, all closed in Post-DG-H1/H2)
+9. Verification debt policy includes signal classification framework — ✅ (policy §8)
 10. Phase 8 remains DEFERRED; all live/auto/Policy NO-GO intact — ✅
 
-**Verdict: DG Pack foundation stage — CLOSED with visible bounded debt.**
+**Verdict: DG Pack foundation stage — CLOSED. Registered verification debt: zero. Signal classification framework active.**
