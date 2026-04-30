@@ -1,15 +1,36 @@
-"""Phase DG-6C: Verification Gate Manifest tests."""
+"""Phase DG-6C: Verification Gate Manifest tests.
+
+Post-DG-H1: Rewrote _run_checker to use direct function calls
+(extract_baseline_gates + check_invariants) instead of subprocess,
+eliminating the xfail/xpass instability tracked as VD-2026-04-30-004.
+
+Root cause of VD-004: test_non_hard_gate_fails, test_noop_command_fails,
+and test_empty_command_fails used shallow dict() copy of VALID_MANIFEST,
+mutating the shared gate dicts in place.  Subsequent tests that expected
+a pristine manifest saw corrupted data.  Fixed by using copy.deepcopy().
+"""
 
 from __future__ import annotations
 
+import copy
+import io
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-import pytest
-
 CHECKER = Path(__file__).resolve().parents[3] / "scripts" / "check_verification_manifest.py"
+
+# Import checker functions directly — avoids subprocess for deterministic tests.
+# The checker module uses sys.exit in load_manifest and main(), but those are
+# never called from _run_checker.
+sys.path.insert(0, str(CHECKER.parent))
+from check_verification_manifest import (  # noqa: E402
+    check_invariants,
+    extract_baseline_gates,
+    print_summary,
+)
 
 VALID_MANIFEST = {
     "manifest_id": "test-v1",
@@ -241,34 +262,42 @@ MOCK_BASELINE = """def run_pr_fast_gates():
 
 
 def _run_checker(manifest: dict) -> tuple[int, str]:
-    import tempfile
+    """Run manifest checks deterministically using direct function calls.
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as mf:
-        json.dump(manifest, mf)
-        tmp_manifest = mf.name
+    Writes MOCK_BASELINE to a temp file, then calls extract_baseline_gates
+    and check_invariants directly — no subprocess.  Eliminates the
+    subprocess state pollution that caused VD-2026-04-30-004.
+    """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as bf:
         bf.write(MOCK_BASELINE)
         tmp_baseline = bf.name
     try:
-        result = subprocess.run(
-            [sys.executable, str(CHECKER), tmp_manifest, "--baseline-path", tmp_baseline],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=str(Path(__file__).resolve().parents[3]),
-        )
-        return result.returncode, result.stdout
+        gates = extract_baseline_gates(Path(tmp_baseline))
+        errors = check_invariants(manifest, gates)
+
+        out = io.StringIO()
+        old = sys.stdout
+        sys.stdout = out
+        try:
+            print_summary(manifest, gates, errors)
+            if errors:
+                print(f"\n❌ {len(errors)} INVARIANT VIOLATION(S):\n")
+                for err in errors:
+                    print(f"  - {err}")
+                print()
+            else:
+                print("\n✅ All verification gate manifest invariants pass.\n")
+        finally:
+            sys.stdout = old
+
+        return (0 if not errors else 1, out.getvalue())
     finally:
-        Path(tmp_manifest).unlink(missing_ok=True)
         Path(tmp_baseline).unlink(missing_ok=True)
 
 
 # ── Positive ──────────────────────────────────────────────────────────
 
 
-@pytest.mark.xfail(
-    reason="Test-ordering flake: passes in isolation, may fail with other governance tests due to subprocess state pollution. Checker itself works correctly (11/11 on real data)."
-)
 def test_valid_manifest_passes():
     exit_code, _ = _run_checker(VALID_MANIFEST)
     assert exit_code == 0
@@ -278,8 +307,7 @@ def test_valid_manifest_passes():
 
 
 def test_invalid_json_fails():
-    import tempfile
-
+    """Tests main() handling of invalid JSON — requires subprocess."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         f.write("not json\n")
         tmp = f.name
@@ -299,7 +327,7 @@ def test_invalid_json_fails():
 
 
 def test_missing_manifest_field_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     del m["status"]
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -309,7 +337,7 @@ def test_missing_manifest_field_fails():
 
 
 def test_duplicate_gate_id_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     m["gates"] = [dict(VALID_MANIFEST["gates"][0]), dict(VALID_MANIFEST["gates"][0])]
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -319,7 +347,7 @@ def test_duplicate_gate_id_fails():
 
 
 def test_gate_count_mismatch_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     m["gate_count"] = 99
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -329,7 +357,7 @@ def test_gate_count_mismatch_fails():
 
 
 def test_non_hard_gate_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     m["gates"][0]["hardness"] = "soft"
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -339,7 +367,7 @@ def test_non_hard_gate_fails():
 
 
 def test_noop_command_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     m["gates"][0]["command"] = "echo done"
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -349,7 +377,7 @@ def test_noop_command_fails():
 
 
 def test_empty_command_fails():
-    m = dict(VALID_MANIFEST)
+    m = copy.deepcopy(VALID_MANIFEST)
     m["gates"][0]["command"] = ""
     exit_code, _ = _run_checker(m)
     assert exit_code != 0
@@ -358,9 +386,6 @@ def test_empty_command_fails():
 # ── Summary counts ────────────────────────────────────────────────────
 
 
-@pytest.mark.xfail(
-    reason="Test-ordering flake: passes in isolation, may fail with other governance tests due to subprocess state pollution. Checker itself works correctly (11/11 on real data)."
-)
 def test_summary_counts_correct():
     exit_code, out = _run_checker(VALID_MANIFEST)
     assert exit_code == 0
@@ -371,8 +396,7 @@ def test_summary_counts_correct():
 
 
 def test_checker_never_mutates():
-    import tempfile
-
+    """Tests that main() never writes to the manifest — requires subprocess."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as mf:
         json.dump(VALID_MANIFEST, mf)
         tmp_manifest = mf.name
@@ -385,6 +409,7 @@ def test_checker_never_mutates():
             capture_output=True,
             text=True,
             timeout=30,
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         with open(tmp_manifest) as f:
             reloaded = json.load(f)
