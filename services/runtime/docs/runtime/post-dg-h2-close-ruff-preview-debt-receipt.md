@@ -39,14 +39,29 @@ VD-001 was never an AGENTS.md problem — it was a tool maturity + command issue
 
 ## 4. Files Changed
 
-| File | Change |
-|------|--------|
-| `docs/governance/verification-debt-policy.md` | Added §8 failure_class + closure_reason framework, §9.3 VD-001 case study (prior commit) |
-| `docs/governance/verification-signal-classification.md` | New document: signal classification rules from VD-001 lesson (prior commit) |
-| `docs/governance/README.md` | Status CLOSING→CLOSED, debt table updated to 0 open, VD-001 removed from Post DG-Z |
-| `docs/product/document-governance-stage-summit-dg-z.md` | §3 evidence matrix (0 open/4 closed), §5a VD-004 (CLOSED), §6 debt table (all closed), §9 AI context check (0 open debt), §10 recommendations (VD-001 removed) |
+| File | Change | Commit |
+|------|--------|--------|
+| `docs/governance/verification-debt-ledger.jsonl` | VD-001 status open→closed, closed_at 2026-04-30, closure_reason closed_by_reclassification, evidence/notes updated | `af294d1` (prior) |
+| `AGENTS.md` | Open debt summary updated to "none registered (VD-001-004 all closed)" | `af294d1` (prior) |
+| `docs/governance/verification-debt-policy.md` | Added §8 failure_class + closure_reason framework, §9.3 VD-001 case study | `459747a` (prior) |
+| `docs/governance/verification-signal-classification.md` | New document: signal classification rules from VD-001 lesson | `459747a` (prior) |
+| `docs/governance/README.md` | Status CLOSING→CLOSED, debt table updated to 0 open, VD-001 removed from Post DG-Z | `0ee159e` |
+| `docs/product/document-governance-stage-summit-dg-z.md` | §3 evidence matrix (0 open/4 closed), §5a VD-004 (CLOSED), §6 debt table (all closed), §9 AI context check (0 open debt), §10 recommendations (VD-001 removed) | `0ee159e` |
+| `docs/runtime/post-dg-h2-close-ruff-preview-debt-receipt.md` | This receipt | `0ee159e` |
 
-**AGENTS.md was not modified.** It already correctly stated "Open debt: none registered (VD-001-004 all closed)."
+**AGENTS.md was not modified for VD-001.** The only AGENTS.md change in `af294d1`
+was updating the open debt summary line to reflect the already-closed ledger state.
+The file content was never a formatting defect — zero diff with `ruff format --diff --preview`.
+
+### Commit Chain
+
+```
+af294d1 chore: close Ruff markdown preview debt       ← ledger + AGENTS.md
+459747a docs: formalize verification signal classification from VD-001 lesson
+4f9be1a docs: add verification signal classification reminder
+bb3c07d docs: add verification signal classification rule to output contract
+0ee159e chore: close Ruff markdown preview debt by reclassification  ← receipt + Stage Summit back-propagation (this commit)
+```
 
 ## 5. Verification Debt Ledger
 
@@ -100,7 +115,7 @@ A fresh AI reading root docs + verification-debt-ledger + this receipt would und
 ## 9. Git Status
 
 Working tree: clean after commit.
-Commit hash: 2e3f2fa
+Commit hash: 6d037d6
 Tag: post-dg-h2-close-ruff-preview-debt
 
 ## 10. Semantic Checks
