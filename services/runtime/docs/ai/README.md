@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase DG-6B (2026-04-30)
-> **Active phase**: Phase 7P — CLOSED | DG-6B — ACTIVE (Verification Debt + Receipt Integrity)
-> **Next**: DG-6C — Stage Summit / DG Pack closure
+> **Last updated**: Phase DG-Z (2026-04-30)
+> **Active phase**: Phase 7P — CLOSED | DG-Z — ACTIVE (Document Governance Pack Stage Summit)
+> **Next**: Knowledge Navigation / Wiki Extension or Tooling Hygiene
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 
@@ -38,7 +38,7 @@ docs/governance/ai-onboarding-doc-policy.md AI read path specification
 docs/runbooks/ordivon-agent-operating-doctrine.md   full doctrine (canonical)
 docs/product/ordivon-stage-summit-phase-4.md        Phase 4 close
 docs/product/policy-platform-stage-summit-phase-5.md Phase 5 close
-docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md Phase 7P close
+docs/product/document-governance-stage-summit-dg-z.md DG Pack close
 ```
 
 ## When to Read What

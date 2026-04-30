@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-6A-S ontology landing)
+Status: **DOCUMENTED** (DG-Z stage summit)
 Date: 2026-04-30
-Phase: DG-6A-S
+Phase: DG-Z
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -26,9 +26,12 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-6** | **COMPLETE** | Wiki Navigation Prototype — registry-derived wiki-index.md |
 | **DG-6A** | **COMPLETE** | Core/Pack/Adapter Ontology Consolidation |
 | **DG-6A-S** | **COMPLETE** | Ontology Registry Landing + Metadata Checker — 29 entries, 40 tests |
-| **DG-6B** | **ACTIVE** | Verification Debt Ledger + Receipt Integrity — 10/10 baseline |
+| **DG-6B** | **COMPLETE** | Verification Debt Ledger + Receipt Integrity — 10/10 baseline |
+| **DG-6C** | **COMPLETE** | Verification Gate Manifest + Baseline Integrity — 11/11 |
+| **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
+| **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
+| **DG-Z** | **ACTIVE** | Document Governance Pack Stage Summit / Closure |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-6C | **NEXT** | Stage Summit / DG Pack closure |
 
 ## 2. Corrected Phase 7 Path
 

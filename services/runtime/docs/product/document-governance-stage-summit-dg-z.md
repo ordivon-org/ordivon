@@ -1,0 +1,213 @@
+# Document Governance Pack — Stage Summit (DG-Z Close)
+
+Status: **PUBLISHED** | Date: 2026-04-30 | Phase: DG-Z
+Tags: `governance`, `dg-pack`, `stage-summit`, `closure`, `meta-verification`
+
+## 1. Executive Summary
+
+The Document Governance Pack (DG-1 through DG-6D-S) is **closed** as a
+foundational governance stage. It created Ordivon's system-memory,
+document-authority, verification-integrity, and anti-self-deception
+governance layer.
+
+**DG Pack was NOT**: documentation cleanup, a wiki project, a knowledge
+management exercise.
+
+**DG Pack WAS**: the systematic hardening of Ordivon's ability to remember,
+verify, challenge, and govern its own knowledge state — documents,
+receipts, ledgers, checkers, baselines, debts, and AI context.
+
+**DG Pack does NOT authorize**: Phase 8, live trading, broker write,
+auto trading, Policy activation, or RiskEngine enforcement.
+
+## 2. Phase Timeline — 18 Sub-Phases
+
+| Phase | Outcome | Key Artifact |
+|-------|---------|-------------|
+| DG-1 | COMPLETE | Document Governance Pack contract, taxonomy, lifecycle, wiki arch, AI onboarding policy, registry schema |
+| DG-1A | COMPLETE | Agent Output Contract — 10-section receipt template |
+| DG-1B | COMPLETE | Acceptance seal — commit + tag |
+| DG-2 | COMPLETE | Document registry (28→29 entries) + checker (40 tests) |
+| DG-3 | COMPLETE | Staleness audit — 55 docs, 1 critical fix (ordivon-root-context.md) |
+| DG-4 | COMPLETE | Freshness checker + semantic phrase checker (33 tests) |
+| DG-5 | COMPLETE | Document checker in pr-fast baseline (7/7 → 8/8) |
+| DG-6 | COMPLETE | Wiki Navigation Prototype — registry-derived wiki-index.md |
+| DG-6A | COMPLETE | Core/Pack/Adapter ontology consolidation |
+| DG-6A-S | COMPLETE | Ontology registry landing + structural metadata checker |
+| DG-6B | COMPLETE | Verification debt ledger + receipt integrity checker (8/8→10/10) |
+| DG-6C | COMPLETE | Verification gate manifest + baseline integrity checker (10/10→11/11) |
+| DG-6D | COMPLETE | Tooling residue triage — VD-002/003 closed |
+| DG-6D-S | COMPLETE | Ruff debt clarification — 4 non-DG F401 classified out-of-scope |
+| **DG-Z** | **CLOSED** | This Stage Summit |
+
+## 3. Evidence Matrix
+
+| Metric | Count |
+|--------|-------|
+| Document registry entries | 29 |
+| Document registry checker tests | 40 |
+| Verification debt checker tests | 16 |
+| Receipt integrity checker tests | 13 |
+| Verification manifest checker tests | 10 |
+| Wiki navigation tests | 15 |
+| **Total governance tests** | **94** |
+| pr-fast baseline gates | 11/11 |
+| Hard gates: L0 ruff check + format | PASS |
+| Hard gates: L4 architecture boundaries | PASS |
+| Hard gates: L5 runtime evidence | PASS |
+| Hard gates: L6 document registry governance | PASS |
+| Hard gates: L7 eval corpus | PASS |
+| Hard gates: L7A verification debt ledger | PASS |
+| Hard gates: L7B receipt integrity | PASS |
+| Hard gates: L8 verification gate manifest | PASS |
+| Hard gates: L10 repo CLI smoke (×2) | PASS |
+| Finance regression tests | 188 passed |
+| Frontend tests | 57 passed |
+| Frontend build | Static prerendered |
+| Paper dogfood ledger | 30 events, 16 invariants, all pass |
+| Verification debt ledger | 3 entries (1 open, 2 closed) |
+| Phase 8 readiness | 3/10 DEFERRED |
+
+## 4. What Was Proved
+
+1. **Documents can be governed as first-class system objects** — type, status,
+   authority, freshness, lifecycle, archive rules all machine-checked.
+
+2. **Current truth vs evidence vs archive can be machine-distinguished** —
+   document-registry.jsonl with authority levels, enforced by checker.
+
+3. **Stale root context can be detected and prevented** — DG-3 found and fixed
+   ordvivon-root-context.md (Phase 6 ACTIVE → Phase 7P CLOSED). DG-4 added
+   freshness/staleness automation with last_verified + stale_after_days.
+
+4. **Dangerous semantic phrases can be blocked** — 6 phrase patterns checked
+   across 20 current markdown files. "Phase 8 active", "live trading active",
+   "CandidateRule is Policy", "ledger authorizes" — zero unsafe occurrences.
+
+5. **Verification debt can be tracked** — 3-entry debt ledger, 16 tests,
+   overdue detection, deterministic date injection.
+
+6. **Receipts can be checked for self-contradiction** — 7 hard-fail patterns:
+   Skipped None + not run, SEALED + pending, clean working tree + untracked,
+   stale baseline count, Ruff clean overclaim, CandidateRule validated.
+
+7. **Baseline hard gates can be protected by manifest** — 11-gate manifest
+   cross-checked against run_verification_baseline.py. Gate removal, downgrade,
+   and no-op detection enforced.
+
+8. **Core/Pack/Adapter/Governance Plane ontology can be registered and
+   checked** — `docs/architecture/ordivon-core-pack-adapter-ontology.md`
+   registered as source_of_truth with structural_layers and governance_planes
+   metadata.
+
+9. **pr-fast can include document/meta-governance gates** — baseline grew from
+   7/7 (pre-DG) to 11/11 (post DG-6C): document registry, verification debt,
+   receipt integrity, gate manifest.
+
+10. **Tooling residue can be triaged** — VD-002 (.coveragerc) and VD-003
+    (.pre-commit-config.yaml) deleted as accidental residue, debts closed.
+
+## 5. What Was NOT Proved
+
+1. **Live trading readiness** — Not tested, not attempted. Phase 8 DEFERRED.
+2. **Phase 8 readiness** — 3/10 criteria met. Insufficient paper round trips.
+3. **Active Policy enforcement** — remains NO-GO per Phase 5 closure.
+4. **Rust kernel extraction** — Core invariants documented but not extracted.
+5. **Full wiki/Obsidian/knowledge harness implementation** — wiki-index.md is
+   a prototype; full surface deferred.
+6. **Whole-repo documentation registration** — 29 critical docs registered;
+   ~30+ docs remain unregistered (design/, runbooks/, ADRs, etc.).
+7. **Full global ruff cleanup** — 4 F401 in Phase 5/H-era tests remain
+   (classified out-of-scope, non-blocking).
+8. **Guarantee against future semantic mistakes** — checkers validate current
+   state; future AI can still write dangerous phrases if checkers aren't
+   maintained.
+
+## 6. Open Debt and Exceptions
+
+| ID | Category | Severity | Status | Notes |
+|----|----------|----------|--------|-------|
+| VD-2026-04-30-001 | pre_existing_tooling_debt | low | open | AGENTS.md ruff markdown preview. Non-blocking. Expires before DG-Z — now overdue but severity is low, no governance impact. |
+| VD-2026-04-30-002 | untracked_residue | medium | **closed** | .coveragerc deleted in DG-6D |
+| VD-2026-04-30-003 | untracked_residue | medium | **closed** | .pre-commit-config.yaml deleted in DG-6D |
+
+**Non-DG observed ruff noise**: 4 F401 unused imports in
+`test_audit_strictification.py`, `test_h5_finance_governance_hard_gate.py`,
+`test_h9c2_escalate_coverage.py`. Phase 5/H-era files, cosmetic only.
+Classified out-of-scope for DG-Z. Not hidden. Not registered as DG debt.
+Not a DG-Z blocker.
+
+**No untracked residue remains** after DG-6D — working tree is clean.
+
+## 7. NO-GO Boundary Confirmation
+
+| Boundary | Status | Since |
+|----------|--------|-------|
+| Phase 8 | **DEFERRED** (3/10) | Phase 7P Stage Summit |
+| Live trading | **NO-GO** | Phase 7P Stage Summit |
+| Broker write | **NO-GO** | Design-time |
+| Auto trading | **NO-GO** | Permanently disabled |
+| Policy activation | **NO-GO** | Phase 5 closure |
+| RiskEngine active enforcement | **NO-GO** | Phase 5 closure |
+| CandidateRules → Policy | **NO-GO** | Governance doctrine §3.6 |
+| JSONL ledgers | **evidence only** | Phase 7P-D1 |
+| Wiki / Knowledge Harness | **navigation only, not source of truth** | DG-6 |
+| Obsidian | **external Knowledge Harness, not Ordivon identity** | DG-6A |
+
+## 8. Governance Philosophy
+
+DG Pack is not "documentation cleanup." It is Ordivon's **system-memory
+and anti-self-deception governance layer.**
+
+Core principles established:
+
+- **Debt may exist, but hidden debt may not become truth.**
+- **Unverified work may exist, but it must not be called sealed.**
+- **Checkers validate consistency/honesty; they do not authorize action.**
+- **A baseline cannot be trusted if its own gates can be silently weakened.**
+- **Receipts must not claim what the evidence does not support.**
+
+These are now enforced by 11 hard gates in pr-fast. Every phase that follows
+DG Pack inherits this meta-verification layer.
+
+## 9. New AI Context Check
+
+A fresh AI reading root docs + this Stage Summit would understand:
+
+- Phase 7P is CLOSED — Alpaca Paper Dogfood proved governance pipeline integrity
+- DG Pack is CLOSED — system memory and meta-verification layer established
+- pr-fast is 11/11 — document governance, debt tracking, receipt integrity,
+  gate manifest are all hard gates
+- Phase 8 remains DEFERRED — 3/10 criteria
+- Live trading, broker write, auto trading, Policy activation remain NO-GO
+- CandidateRules remain advisory — NOT Policy
+- JSONL ledgers are evidence, not execution authority
+- Wiki/Obsidian are navigation/harness layers, not source of truth
+- 1 open debt (VD-001, low severity), 2 closed debts (VD-002/003)
+- 4 non-DG F401 ruff issues are cosmetic, out-of-scope for DG
+
+## 10. Next Recommended Phase
+
+Phase 8 is **NOT** automatically next. The following are recommended:
+
+**Priority 1 — Knowledge Navigation / Wiki Extension (low risk)**:
+Build on DG-6's wiki-index.md prototype. Extend registry-derived navigation.
+Keep "navigation, not source of truth" boundary.
+
+**Priority 2 — Global Tooling Hygiene (low risk)**:
+Fix VD-001 (AGENTS.md markdown) and 4 non-DG F401 ruff issues.
+Standardize ruff configuration across the repo.
+
+**Priority 3 — Rust Kernel Scoping (planning only)**:
+Identify Core invariants for extraction. No implementation until scoped
+and approved.
+
+**Phase 8 remains gated by**: ≥5 paper round trips (currently 3), live
+broker selected, $100 funded, live boundary docs, human Stage Summit.
+
+## 11. Non-Activation Clause
+
+This Stage Summit closes DG Pack. It does not open any new phase, authorize
+any trading action, activate any Policy, or modify any RiskEngine rule.
+All NO-GO boundaries established by Phase 5, Phase 7P Stage Summit, and
+DG Pack governance remain in full effect.
