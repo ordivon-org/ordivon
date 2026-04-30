@@ -16,14 +16,14 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-1: PROPOSAL
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-2: COMPLETE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
 **DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published
 **PV-1: PROPOSAL** — Ordivon Verify CLI product contract (docs only)
-**PV-2: ACTIVE** — Ordivon Verify CLI skeleton (35 tests, 4 checkers wrapped)
+**PV-2: COMPLETE** — Ordivon Verify CLI skeleton (35 tests, 4 checkers wrapped)
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.

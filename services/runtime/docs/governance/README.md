@@ -49,7 +49,7 @@ receipts, ledgers — with the same discipline applied to paper trades.
 - **pr-fast**: 11/11 hard gates
 - **Open debt**: none (VD-001 through VD-004 all closed in Post-DG-H1/H2)
 - **PV-1**: PROPOSAL — Ordivon Verify CLI product contract (docs only)
-- **PV-2**: ACTIVE — Ordivon Verify CLI skeleton wrapping 4 checkers
+- **PV-2**: COMPLETE — Ordivon Verify CLI skeleton wrapping 4 checkers
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P
