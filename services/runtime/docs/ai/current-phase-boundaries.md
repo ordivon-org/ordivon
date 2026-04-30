@@ -31,6 +31,9 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
 | **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
 | **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
+| **Post-DG-H1** | **CLOSED** | Fix VD-004 manifest test instability (shallow copy bug) |
+| **Post-DG-H2-R** | **CLOSED** | Close VD-001 by reclassification (tool_limitation + command_mismatch) |
+| **Post-DG-H3** | **CLOSED** | Clean 4 non-DG F401 historical imports from governance tests |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
@@ -120,7 +123,7 @@ These are **design-time prohibitions**. No agent may violate them.
 |--------|----------|-------|
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
 | Run pr-fast baseline (includes doc checker) | YES | uv run python scripts/run_verification_baseline.py --profile pr-fast |
-| Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (8/8) |
+| Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (11/11) |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |

@@ -206,7 +206,7 @@ Build on DG-6's wiki-index.md prototype. Extend registry-derived navigation.
 Keep "navigation, not source of truth" boundary.
 
 **Priority 2 — Global Tooling Hygiene (low risk)**:
-Fix 4 non-DG F401 ruff issues (VD-001 already closed by reclassification in Post-DG-H2).
+4 non-DG F401 ruff issues cleaned in Post-DG-H3. Zero F401 remaining in governance tests.
 Standardize ruff configuration across the repo.
 
 **Priority 3 — Rust Kernel Scoping (planning only)**:

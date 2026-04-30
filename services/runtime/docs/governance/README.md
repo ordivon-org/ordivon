@@ -59,6 +59,7 @@ evidence, not execution authority.
 ## Post DG-Z
 
 1. Knowledge Navigation / Wiki Extension (low risk)
-2. Global Tooling Hygiene (4 non-DG F401)
+2. Global Tooling Hygiene — COMPLETE (Post-DG-H3: 4 F401 cleaned, 0 F401 remaining in governance tests)
 3. Rust Kernel Scoping (planning only)
-4. Phase 8 remains gated by readiness requirements
+4. CLI / Productization surface
+5. Phase 8 remains gated by readiness requirements
