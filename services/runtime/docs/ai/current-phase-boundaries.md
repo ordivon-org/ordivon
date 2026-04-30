@@ -37,6 +37,8 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **PV-1** | **PROPOSAL** | Ordivon Verify CLI product contract (product brief + CLI contract + user journey) |
 | **PV-2** | **COMPLETE** | Ordivon Verify CLI skeleton |
 | **PV-3** | **COMPLETE** | External fixture dogfood + --root/--config/--mode support |
+| **PV-4** | **COMPLETE** | Trust report polish — rich human + JSON output |
+| **PV-5** | **ACTIVE** | Agent skill + CI adoption pack |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path

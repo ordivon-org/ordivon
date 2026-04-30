@@ -1,7 +1,7 @@
 # Ordivon AI Onboarding
 
 > **Last updated**: PV-1 (2026-05-01)
-> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | Post-DG Hygiene — CLOSED | PV-2 — COMPLETE
+> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | Post-DG Hygiene — CLOSED | PV-5 — ACTIVE
 > **Next**: PV-3 external repo dogfood or CLI hardening
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
