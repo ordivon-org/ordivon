@@ -15,22 +15,23 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-5: ACTIVE
+## Current Status — Phase 7P: CLOSED | DG-6: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG-1-DG-4: COMPLETE** (Document Governance Pack, Registry, Audit, Freshness)
-**DG-5: ACTIVE** — Baseline Integration (document checker in pr-fast)
+**DG-1-DG-5: COMPLETE** (Document Governance Pack through Baseline Integration)
+**DG-6: ACTIVE** — Wiki Navigation Prototype
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
-204 backend tests. 57 frontend tests. 8/8 baseline (DG-5 adds document registry gate).
+204 backend tests. 57 frontend tests. 8/8 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-5 — document registry checker added to pr-fast verification baseline.
-28 entries, 33 tests, semantic scan of 20 markdown files. Gate: L6 hard gate.
-**Next**: DG-6 — Wiki Navigation Prototype.
+**Active work**: DG-6 — registry-derived wiki navigation surface.
+28 entries, wiki-index.md generated from document-registry.jsonl.
+Wiki is navigation, not source of truth. 15 wiki tests.
+**Next**: DG-7 — CI freshness automation.
 
 ## Critical Boundaries
 
