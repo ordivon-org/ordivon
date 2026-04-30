@@ -13,7 +13,7 @@ docs/architecture/ordivon-core-pack-adapter-ontology.md  Canonical Core/Pack/Ada
 docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
-docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
+docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
 ## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED

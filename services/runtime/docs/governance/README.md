@@ -27,8 +27,9 @@ receipts, ledgers — with the same discipline applied to paper trades.
 | [document-registry.jsonl](document-registry.jsonl) | Machine-readable document registry — 30 entries |
 | [../../scripts/check_document_registry.py](../../scripts/check_document_registry.py) | Registry checker — invariants, exit 0 on pass |
 | [verification-debt-policy.md](verification-debt-policy.md) | 8 debt categories, 4 severities, lifecycle rules |
-| [verification-debt-ledger.jsonl](verification-debt-ledger.jsonl) | 3 entries, 1 open (VD-001, low) |
+| [verification-debt-ledger.jsonl](verification-debt-ledger.jsonl) | 4 entries, all closed (VD-001 through VD-004) |
 | [verification-gate-manifest.json](verification-gate-manifest.json) | 11-gate manifest, mirrors pr-fast |
+| [verification-signal-classification.md](verification-signal-classification.md) | Before-you-fix checklist: classify checker failures before acting |
 | [../product/document-governance-stage-summit-dg-z.md](../product/document-governance-stage-summit-dg-z.md) | DG Pack Stage Summit (this closure) |
 
 ## Key Principles at a Glance

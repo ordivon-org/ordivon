@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 30
+**Total registered docs**: 31
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -20,6 +20,7 @@
 | [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
+| [Verification Signal Classification — Classify Before You Fix](../governance/verification-signal-classification.md) | `docs/governance/verification-signal-classification.md` | runbook | current | current_status | L1 | 2026-04-30 |
 | [AI Onboarding Document Policy](../governance/ai-onboarding-doc-policy.md) | `docs/governance/ai-onboarding-doc-policy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack](../governance/README.md) | `docs/governance/README.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack Contract](../governance/document-governance-pack-contract.md) | `docs/governance/document-governance-pack-contract.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
