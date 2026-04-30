@@ -404,6 +404,35 @@ over:
 If a verification is skipped, state the reason, risk, and follow-up.
 Skipping a verification without recording it is an anti-pattern (§8).
 
+### 6.4 Verification Signal Classification
+
+**A failed verification command is an observation, not a verdict.**
+Every verification failure must be classified before remediation.
+
+When a command fails, the receipt must report:
+
+| Field | Description |
+|-------|-------------|
+| Command | The exact command that failed |
+| Exit code | The raw exit code |
+| Failure class | One of: `object_defect`, `tool_limitation`, `command_mismatch`, `environment_mismatch`, `spec_mismatch`, `historical_noise`, `expected_negative_signal` |
+| Affected object | The actual file/check that the signal is about |
+| Remediation target | Object, command, environment, or policy — what actually needs to change |
+| Debt action | Opened, closed, reclassified, or none |
+
+Do NOT assume the checked object is broken. A checker failure may indicate:
+
+- A real defect in the object (`object_defect`) → fix the object
+- A tool feature that requires experimental/preview mode (`tool_limitation`) → fix the command; do NOT fix the object
+- A wrong or incomplete verification command (`command_mismatch`) → fix the command
+- An environment mismatch (`environment_mismatch`) → fix the environment
+- A specification that checks the wrong thing (`spec_mismatch`) → fix the spec
+
+**Core rule**: Do not mutate source-of-truth documents to satisfy a
+misclassified checker. External tool output is evidence, not authority.
+
+Reference: `docs/governance/verification-signal-classification.md`
+
 ---
 
 ## 7. New AI Context Update Rule
@@ -459,6 +488,8 @@ These are **forbidden** patterns. Any receipt exhibiting them is incomplete.
 | Empty seal phase | Wastes context, creates false confidence | Seal only when work was actually done |
 | `git add .` (blind) | Commits untracked residue | Stage only intended files |
 | Committing unrelated residue | Contaminates phase evidence | Separate cleanup tasks if needed |
+| Treating all checker failures as object defects | May mutate source-of-truth for tool limitation | Classify failure first (§6.4); do not fix the wrong thing |
+| Fixing an authoritative doc to quiet a misclassified checker | Violates source-of-truth integrity | Reclassify the debt; fix the command or spec instead |
 
 ---
 
