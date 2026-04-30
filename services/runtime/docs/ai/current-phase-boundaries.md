@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-4 freshness checker)
+Status: **DOCUMENTED** (DG-5 baseline integration)
 Date: 2026-04-30
-Phase: DG-4
+Phase: DG-5
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -21,9 +21,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-1B** | **COMPLETE** | Document Governance Pack Acceptance Seal — commit + tag |
 | **DG-2** | **COMPLETE** | Document Registry Prototype + Doc Consistency Checker — 28 entries |
 | **DG-3** | **COMPLETE** | Document Staleness Audit + Authority Conflict Review |
-| **DG-4** | **ACTIVE** | Staleness Automation + Freshness Checker — 33 tests, semantic scan |
+| **DG-4** | **COMPLETE** | Staleness Automation + Freshness Checker — 33 tests, semantic scan |
+| **DG-5** | **ACTIVE** | Baseline Integration — document checker in pr-fast (8/8 gates) |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-5 | **NEXT** | Wiki surface or CI integration |
+| DG-6 | **NEXT** | Wiki Navigation Prototype |
 
 ## 2. Corrected Phase 7 Path
 
@@ -107,17 +108,17 @@ These are **design-time prohibitions**. No agent may violate them.
 | Enable high-risk actions | NO | Must stay disabled with reason |
 | Add new dependencies | AVOID | Pure CSS + React preference |
 
-### Document Governance (DG-1 through DG-4)
+### Document Governance (DG-1 through DG-5)
 | Action | Allowed? | Notes |
 |--------|----------|-------|
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
-| Automated freshness checks | YES | DG-4 — last_verified + stale_after_days |
-| Semantic phrase scanning | YES | DG-4 — 6 dangerous phrase patterns |
+| Run pr-fast baseline (includes doc checker) | YES | uv run python scripts/run_verification_baseline.py --profile pr-fast |
+| Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (8/8) |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |
 | Enable live trading or broker write | NO | Phase 8 DEFERRED |
-| Build Wiki surface | NO | DG-5+ |
+| Build Wiki surface | NO | DG-6+ |
 
 ## 6. Key Files Reference
 

@@ -28,22 +28,49 @@ REFERENCE_DATE = date.fromisoformat(_REF_DATE) if _REF_DATE else date.today()
 # ── Valid values from governance docs ──────────────────────────────────
 
 VALID_DOC_TYPES = {
-    "root_context", "ai_onboarding", "phase_boundary", "architecture",
-    "design_spec", "runbook", "receipt", "stage_summit", "red_team",
-    "ledger", "tracker", "schema", "template", "adr", "archive_index",
-    "product", "runtime", "governance_pack",
+    "root_context",
+    "ai_onboarding",
+    "phase_boundary",
+    "architecture",
+    "design_spec",
+    "runbook",
+    "receipt",
+    "stage_summit",
+    "red_team",
+    "ledger",
+    "tracker",
+    "schema",
+    "template",
+    "adr",
+    "archive_index",
+    "product",
+    "runtime",
+    "governance_pack",
 }
 
 VALID_STATUSES = {
-    "draft", "proposed", "current", "accepted", "implemented",
-    "closed", "deferred", "superseded", "archived", "stale",
+    "draft",
+    "proposed",
+    "current",
+    "accepted",
+    "implemented",
+    "closed",
+    "deferred",
+    "superseded",
+    "archived",
+    "stale",
 }
 
 ACTIVE_STATUSES = {"current", "accepted", "implemented"}
 
 VALID_AUTHORITIES = {
-    "source_of_truth", "current_status", "supporting_evidence",
-    "historical_record", "proposal", "example", "archive",
+    "source_of_truth",
+    "current_status",
+    "supporting_evidence",
+    "historical_record",
+    "proposal",
+    "example",
+    "archive",
 }
 
 DECISION_AUTHORITIES = {"source_of_truth", "current_status"}
@@ -183,9 +210,7 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
                     ctx_text = "\n".join(lines[ctx_start:ctx_end])
                     if _line_is_safe(ctx_text):
                         continue
-                    errors.append(
-                        f"{did}:{i}: {desc} — '{line.strip()}'"
-                    )
+                    errors.append(f"{did}:{i}: {desc} — '{line.strip()}'")
 
     return errors
 
@@ -196,10 +221,22 @@ def check_invariants(entries: list[dict]) -> list[str]:
     ids: set[str] = set()
 
     REQUIRED_FIELDS = {
-        "doc_id", "path", "title", "doc_type", "status",
-        "authority", "phase", "owner", "freshness", "ai_read_priority",
-        "supersedes", "superseded_by", "related_docs", "related_ledgers",
-        "related_receipts", "notes",
+        "doc_id",
+        "path",
+        "title",
+        "doc_type",
+        "status",
+        "authority",
+        "phase",
+        "owner",
+        "freshness",
+        "ai_read_priority",
+        "supersedes",
+        "superseded_by",
+        "related_docs",
+        "related_ledgers",
+        "related_receipts",
+        "notes",
     }
 
     for e in entries:
@@ -258,8 +295,7 @@ def check_invariants(entries: list[dict]) -> list[str]:
                         age_days = (REFERENCE_DATE - verified_date).days
                         if age_days > stale_days:
                             errors.append(
-                                f"{did}: stale — last_verified={lv} ({age_days}d ago), "
-                                f"stale_after_days={stale_days}"
+                                f"{did}: stale — last_verified={lv} ({age_days}d ago), stale_after_days={stale_days}"
                             )
                     except (ValueError, TypeError):
                         errors.append(f"{did}: invalid last_verified date format '{lv}'")
@@ -354,16 +390,15 @@ def print_summary(entries: list[dict]) -> None:
     archive_count = authority_counter.get("archive", 0)
     stale_count = status_counter.get("stale", 0)
     superseded_count = status_counter.get("superseded", 0)
-    high_priority_count = sum(
-        1 for e in entries if e.get("ai_read_priority") in HIGH_PRIORITY_AI_READ
-    )
+    high_priority_count = sum(1 for e in entries if e.get("ai_read_priority") in HIGH_PRIORITY_AI_READ)
     # Count entries with last_verified
     has_lv = sum(1 for e in entries if e.get("last_verified"))
     has_stale_days = sum(1 for e in entries if e.get("stale_after_days") is not None)
 
     # Count current docs scanned for semantics
     scannable = sum(
-        1 for e in entries
+        1
+        for e in entries
         if e.get("status") in SEMANTIC_SCAN_STATUSES
         and e.get("path", "").endswith(".md")
         and (ROOT / e.get("path", "")).exists()

@@ -36,8 +36,10 @@ receipts, ledgers — with the same discipline applied to paper trades.
 
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
-- **DG-1-DG-3**: COMPLETE — Document Governance Pack, Registry (28 entries), Audit
-- **DG-4**: ACTIVE — Staleness Automation + Freshness Checker (33 tests, semantic scan)
+- **DG-1-DG-4**: COMPLETE — Document Governance Pack, Registry (28 entries), Audit, Freshness (33 tests)
+- **DG-5**: ACTIVE — Baseline Integration (document checker is L6 hard gate, pr-fast 8/8)
+- **Document registry checker is part of verification baseline** — `uv run python scripts/run_verification_baseline.py --profile pr-fast` includes it as a hard gate.
+- **Checker validates consistency, not action authorization.**
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P

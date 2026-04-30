@@ -121,6 +121,7 @@ def run_all_gates() -> BaselineSummary:
     # Only check this Wave's files, not pre-existing debt across the whole project
     wave_files = [
         str(SCRIPTS / "run_verification_baseline.py"),
+        str(SCRIPTS / "check_document_registry.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -353,6 +354,7 @@ def run_pr_fast_gates() -> BaselineSummary:
     # ── Layer 0: Static Analysis ─────────────────────────────
     wave_files = [
         str(SCRIPTS / "run_verification_baseline.py"),
+        str(SCRIPTS / "check_document_registry.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -393,6 +395,16 @@ def run_pr_fast_gates() -> BaselineSummary:
             "hard",
             "L5",
             [python, str(SCRIPTS / "check_runtime_evidence.py")],
+        )
+    )
+
+    # ── Layer 6: Document Registry Governance ────────────────
+    summary.results.append(
+        _run_gate(
+            "Document registry governance",
+            "hard",
+            "L6",
+            [python, str(SCRIPTS / "check_document_registry.py")],
         )
     )
 
