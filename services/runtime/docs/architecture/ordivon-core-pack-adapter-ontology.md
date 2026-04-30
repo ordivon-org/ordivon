@@ -53,7 +53,7 @@ It defines:
 | **Capability Model** | Capability ≠ Authority. Adapter can do X ≠ Ordivon should do X. paper capability ≠ live permission. |
 | **Lifecycle State Machine** | Legal state transitions for every governed object |
 | **Receipt / Outcome / Review Contract** | No receipt = not auditable. No outcome = not closed-loop. No review = not learned. |
-| **Policy Promotion Model** | Lesson → CandidateRule → Policy requires ≥2 weeks observation, ≥3 real interceptions, documented bypass, stakeholder sign-off. CandidateRule ≠ Policy. Shadow ≠ Active. |
+| **Policy Promotion Model** | Lesson → CandidateRule → Policy requires explicit evidence, observation window, documented impact, review, rollback plan, and human/stakeholder approval. Concrete thresholds are defined by the relevant Pack / Policy Platform. CandidateRule ≠ Policy. Shadow ≠ Active. |
 | **Semantic Safety Rules** | "active", "live", "validated", "policy", "authority" — dangerous words with strict usage boundaries |
 | **Verification Contract** | 未验证不能 sealed; skipped verification must be recorded; pre-existing debt ≠ clean |
 

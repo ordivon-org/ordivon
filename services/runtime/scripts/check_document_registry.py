@@ -78,6 +78,32 @@ DECISION_AUTHORITIES = {"source_of_truth", "current_status"}
 HIGH_PRIORITY_AI_READ = {0, 1}
 LOW_PRIORITY_AI_READ = {4}
 
+# Ordivon structural layers (from Core/Pack/Adapter ontology)
+VALID_STRUCTURAL_LAYERS = {
+    "core",
+    "pack",
+    "adapter",
+    "surface",
+    "checker",
+    "ledger",
+    "registry",
+    "governance_plane",
+    "knowledge_harness",
+    "external_harness",
+}
+
+# Ordivon governance planes (from Core/Pack/Adapter ontology)
+VALID_GOVERNANCE_PLANES = {
+    "evidence_state",
+    "authority_policy",
+    "verification_safety",
+    "orchestration_lifecycle",
+    "knowledge_documentation",
+    "risk_side_effect",
+    "actor_trust",
+    "surface_representation",
+}
+
 NEVER_STALE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
 NEVER_ARCHIVE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
 
@@ -348,6 +374,40 @@ def check_invariants(entries: list[dict]) -> list[str]:
         if dt == "tracker" and "phase-8" in did.lower():
             if status != "deferred":
                 errors.append(f"{did}: Phase 8 tracker must be deferred, got '{status}'")
+
+    # --- Structural layers / governance planes validation ---
+    for e in entries:
+        did = e.get("doc_id", "")
+        sl = e.get("structural_layers")
+        gp = e.get("governance_planes")
+
+        if sl is not None:
+            if not isinstance(sl, list):
+                errors.append(f"{did}: structural_layers must be a list, got {type(sl).__name__}")
+            else:
+                for v in sl:
+                    if v not in VALID_STRUCTURAL_LAYERS:
+                        errors.append(f"{did}: invalid structural_layer '{v}'")
+
+        if gp is not None:
+            if not isinstance(gp, list):
+                errors.append(f"{did}: governance_planes must be a list, got {type(gp).__name__}")
+            else:
+                for v in gp:
+                    if v not in VALID_GOVERNANCE_PLANES:
+                        errors.append(f"{did}: invalid governance_plane '{v}'")
+
+        # Architecture source_of_truth docs with ontology in path/title must have
+        # structural_layers and governance_planes
+        dt = e.get("doc_type", "")
+        auth = e.get("authority", "")
+        title = e.get("title", "").lower()
+        path_s = e.get("path", "").lower()
+        if dt == "architecture" and auth == "source_of_truth" and ("ontology" in title or "ontology" in path_s):
+            if not sl:
+                errors.append(f"{did}: ontology source_of_truth doc missing structural_layers")
+            if not gp:
+                errors.append(f"{did}: ontology source_of_truth doc missing governance_planes")
 
     # --- Supersedes / superseded_by references must resolve ---
     for e in entries:

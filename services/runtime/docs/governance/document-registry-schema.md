@@ -67,6 +67,8 @@ Each entry is one JSONL line:
 | `related_ledgers` | [string] | No | Linked JSONL ledger paths |
 | `related_receipts` | [string] | No | Linked receipt paths |
 | `related_tests` | [string] | No | Linked test file paths |
+| `structural_layers` | [string]\|null | No | Ordivon structural layers: core, pack, adapter, surface, checker, ledger, registry, governance_plane, knowledge_harness, external_harness |
+| `governance_planes` | [string]\|null | No | Ordivon governance planes: evidence_state, authority_policy, verification_safety, orchestration_lifecycle, knowledge_documentation, risk_side_effect, actor_trust, surface_representation |
 | `tags` | [string] | No | Search/discovery tags |
 | `notes` | string\|null | No | Any additional context |
 

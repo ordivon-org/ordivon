@@ -403,7 +403,109 @@ def test_checker_summary_includes_freshness_counts():
     assert "Semantic scan targets:" in out
 
 
-# ── Original DG-2 tests retained below ────────────────────────────────
+# ── Structural layers / governance planes tests (DG-6A-S) ─────────────
+
+
+def test_valid_ontology_registry_entry_passes():
+    """Ontology doc with valid structural_layers and governance_planes must pass."""
+    entries = [
+        _make_entry(
+            doc_id="ordivon-core-pack-adapter-ontology",
+            path="docs/architecture/ordivon-core-pack-adapter-ontology.md",
+            doc_type="architecture",
+            status="accepted",
+            authority="source_of_truth",
+            ai_read_priority=1,
+            structural_layers=["core", "pack", "adapter", "governance_plane"],
+            governance_planes=[
+                "evidence_state",
+                "authority_policy",
+                "verification_safety",
+                "orchestration_lifecycle",
+                "knowledge_documentation",
+                "risk_side_effect",
+                "actor_trust",
+                "surface_representation",
+            ],
+        ),
+    ]
+    exit_code, out = _run_checker(entries)
+    assert exit_code == 0, f"Expected pass: {out}"
+
+
+def test_invalid_structural_layer_fails():
+    """Unknown structural_layer value must fail."""
+    entries = [
+        _make_entry(doc_id="bad", structural_layers=["not_a_real_layer"]),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+def test_structural_layers_not_list_fails():
+    """structural_layers as non-list must fail."""
+    entries = [
+        _make_entry(doc_id="bad", structural_layers="not_a_list"),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+def test_invalid_governance_plane_fails():
+    """Unknown governance_plane value must fail."""
+    entries = [
+        _make_entry(doc_id="bad", governance_planes=["not_a_real_plane"]),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+def test_governance_planes_not_list_fails():
+    """governance_planes as non-list must fail."""
+    entries = [
+        _make_entry(doc_id="bad", governance_planes="not_a_list"),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+def test_ontology_missing_structural_layers_fails():
+    """Ontology architecture source_of_truth doc missing structural_layers must fail."""
+    entries = [
+        _make_entry(
+            doc_id="ordivon-core-pack-adapter-ontology",
+            path="docs/architecture/ordivon-core-pack-adapter-ontology.md",
+            doc_type="architecture",
+            status="accepted",
+            authority="source_of_truth",
+            ai_read_priority=1,
+            governance_planes=["evidence_state"],
+            # missing structural_layers
+        ),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+def test_ontology_missing_governance_planes_fails():
+    """Ontology architecture source_of_truth doc missing governance_planes must fail."""
+    entries = [
+        _make_entry(
+            doc_id="ordivon-core-pack-adapter-ontology",
+            path="docs/architecture/ordivon-core-pack-adapter-ontology.md",
+            doc_type="architecture",
+            status="accepted",
+            authority="source_of_truth",
+            ai_read_priority=1,
+            structural_layers=["core", "pack", "adapter"],
+            # missing governance_planes
+        ),
+    ]
+    exit_code, _ = _run_checker(entries)
+    assert exit_code != 0
+
+
+# ── Legacy tests continue ─────────────────────────────────────────────
 
 
 def test_invalid_json_fails():
