@@ -124,6 +124,7 @@ def run_all_gates() -> BaselineSummary:
         str(SCRIPTS / "check_document_registry.py"),
         str(SCRIPTS / "check_verification_debt.py"),
         str(SCRIPTS / "check_receipt_integrity.py"),
+        str(SCRIPTS / "check_verification_manifest.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -359,6 +360,7 @@ def run_pr_fast_gates() -> BaselineSummary:
         str(SCRIPTS / "check_document_registry.py"),
         str(SCRIPTS / "check_verification_debt.py"),
         str(SCRIPTS / "check_receipt_integrity.py"),
+        str(SCRIPTS / "check_verification_manifest.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -429,6 +431,16 @@ def run_pr_fast_gates() -> BaselineSummary:
             "hard",
             "L7B",
             [python, str(SCRIPTS / "check_receipt_integrity.py")],
+        )
+    )
+
+    # ── Layer 8: Verification Gate Manifest ──────────────────
+    summary.results.append(
+        _run_gate(
+            "Verification gate manifest",
+            "hard",
+            "L8",
+            [python, str(SCRIPTS / "check_verification_manifest.py")],
         )
     )
 

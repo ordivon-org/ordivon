@@ -26,12 +26,12 @@ Phase 6: Design + Finance Observation — COMPLETE
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
-204 backend tests. 57 frontend tests. 10/10 baseline (DG-6B adds debt + receipt gates).
+204 backend tests. 57 frontend tests. 11/11 baseline (DG-6C adds gate manifest).
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-6B — meta-verification layer. Debt ledger (3 initial entries).
-Receipt integrity checker (7 hard-fail patterns). 29 new tests. pr-fast 8→10 gates.
-**Next**: DG-6C — Stage Summit / DG Pack closure.
+**Active work**: DG-6C — gate manifest + baseline integrity checker. 11-gate
+manifest, 10 manifest tests. pr-fast 10→11 gates.
+**Next**: DG-6D — Tooling residue triage or DG-Z — DG Pack closure.
 
 ## Critical Boundaries
 
