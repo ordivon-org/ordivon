@@ -1,6 +1,6 @@
 # Document Governance Pack
 
-Phase: **DG-Z** (Stage Summit) | Status: **CLOSING** | Date: 2026-04-30
+Phase: **DG-Z** (Stage Summit) | Status: **CLOSED** | Date: 2026-04-30
 
 The Document Governance Pack (DG-1 through DG-6D-S) is closing as a
 foundational governance stage. See the Stage Summit at:
@@ -45,9 +45,9 @@ receipts, ledgers — with the same discipline applied to paper trades.
 
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
-- **DG Pack**: CLOSING — 18 sub-phases, 94 governance tests, 30 registry entries
+- **DG Pack**: CLOSED — 18 sub-phases, 94 governance tests, 30 registry entries
 - **pr-fast**: 11/11 hard gates
-- **Open debt**: VD-001 (low, AGENTS.md markdown), VD-002/003 closed in DG-6D
+- **Open debt**: none (VD-001 through VD-004 all closed in Post-DG-H1/H2)
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P
@@ -59,6 +59,6 @@ evidence, not execution authority.
 ## Post DG-Z
 
 1. Knowledge Navigation / Wiki Extension (low risk)
-2. Global Tooling Hygiene (VD-001 + 4 non-DG F401)
+2. Global Tooling Hygiene (4 non-DG F401)
 3. Rust Kernel Scoping (planning only)
 4. Phase 8 remains gated by readiness requirements

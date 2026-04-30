@@ -65,7 +65,7 @@ auto trading, Policy activation, or RiskEngine enforcement.
 | Frontend tests | 57 passed |
 | Frontend build | Static prerendered |
 | Paper dogfood ledger | 30 events, 16 invariants, all pass |
-| Verification debt ledger | 4 entries (2 open, 2 closed) |
+| Verification debt ledger | 4 entries (0 open, 4 closed) |
 | Phase 8 readiness | 3/10 DEFERRED |
 
 ## 4. What Was Proved
@@ -123,24 +123,24 @@ auto trading, Policy activation, or RiskEngine enforcement.
    state; future AI can still write dangerous phrases if checkers aren't
    maintained.
 
-## 5a. Known Test Instability — VD-2026-04-30-004
+## 5a. Known Test Instability — VD-2026-04-30-004 (CLOSED)
 
-Two verification manifest tests (`test_valid_manifest_passes`,
-`test_summary_counts_correct`) exhibit genuine test-ordering flakes due to
-subprocess state pollution when co-executed with other governance tests.
-They pass reliably in isolation and the underlying `check_verification_manifest.py`
-checker always produces correct 11/11 results on real data. Marked `xfail`.
-Registered as VD-2026-04-30-004 (medium, open). Fix before further
-meta-verification expansion.
+**Fixed in Post-DG-H1.** The root cause was a shallow `dict()` copy on
+`VALID_MANIFEST` in three negative tests, causing shared gate dict mutation
+between test runs. Fixed by using `copy.deepcopy()`. Subprocess approach
+was also replaced with direct function calls (`extract_baseline_gates` +
+`check_invariants`) for speed and determinism. Tests are now deterministic:
+192 passed, 0 xfail/xpass across 10 consecutive full-governance runs.
+VD-004 closed.
 
 ## 6. Open Debt and Exceptions
 
 | ID | Category | Severity | Status | Notes |
 |----|----------|----------|--------|-------|
-| VD-2026-04-30-001 | pre_existing_tooling_debt | low | open | AGENTS.md ruff markdown preview. Non-blocking. Expires before DG-Z — now overdue but severity is low, no governance impact. |
+| VD-2026-04-30-001 | pre_existing_tooling_debt | low | **closed** | AGENTS.md ruff markdown preview. Closed by reclassification in Post-DG-H2. Failure was tool_limitation + command_mismatch, not file defect. AGENTS.md unchanged. |
 | VD-2026-04-30-002 | untracked_residue | medium | **closed** | .coveragerc deleted in DG-6D |
 | VD-2026-04-30-003 | untracked_residue | medium | **closed** | .pre-commit-config.yaml deleted in DG-6D |
-| VD-2026-04-30-004 | pre_existing_tooling_debt | medium | open | Manifest test xfail/xpass instability. Tests pass in isolation but flake in mixed session. Registered in DG-Z-S2. Fix before further meta-verification expansion. |
+| VD-2026-04-30-004 | pre_existing_tooling_debt | medium | **closed** | Manifest test xfail/xpass instability. Fixed in Post-DG-H1 (shallow copy bug). Tests now deterministic: 192 passed, 0 xfail/xpass. |
 
 **Non-DG observed ruff noise**: 4 F401 unused imports in
 `test_audit_strictification.py`, `test_h5_finance_governance_hard_gate.py`,
@@ -194,7 +194,7 @@ A fresh AI reading root docs + this Stage Summit would understand:
 - CandidateRules remain advisory — NOT Policy
 - JSONL ledgers are evidence, not execution authority
 - Wiki/Obsidian are navigation/harness layers, not source of truth
-- 2 open debts (VD-001 low, VD-004 medium), 2 closed debts (VD-002/003)
+- 0 open debts (VD-001 through VD-004 all closed in Post-DG-H1/H2)
 - 4 non-DG F401 ruff issues are cosmetic, out-of-scope for DG
 
 ## 10. Next Recommended Phase
@@ -206,7 +206,7 @@ Build on DG-6's wiki-index.md prototype. Extend registry-derived navigation.
 Keep "navigation, not source of truth" boundary.
 
 **Priority 2 — Global Tooling Hygiene (low risk)**:
-Fix VD-001 (AGENTS.md markdown) and 4 non-DG F401 ruff issues.
+Fix 4 non-DG F401 ruff issues (VD-001 already closed by reclassification in Post-DG-H2).
 Standardize ruff configuration across the repo.
 
 **Priority 3 — Rust Kernel Scoping (planning only)**:
