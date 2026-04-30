@@ -4,8 +4,6 @@ Verifies that emotional state, rule exceptions, and low confidence
 trigger escalate (not reject, not execute).
 """
 
-import pytest
-
 from domains.decision_intake.models import DecisionIntake
 from governance.risk_engine.engine import RiskEngine
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy

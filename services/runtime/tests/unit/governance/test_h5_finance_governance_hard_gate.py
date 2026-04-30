@@ -4,10 +4,7 @@ Covers all 12 hard-gate rules plus side-effect and priority verification.
 Test names use standard pytest def test_*() convention (NOT pytest-describe).
 """
 
-import pytest
-
 from domains.decision_intake.models import DecisionIntake
-from governance.decision import GovernanceDecision
 from governance.risk_engine.engine import RiskEngine
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
