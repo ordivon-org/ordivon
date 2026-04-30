@@ -1,8 +1,8 @@
 # Ordivon Root Context
 
-Status: **DOCUMENTED** (updated DG-3)
+Status: **DOCUMENTED** (DG-6A ontology consolidation)
 Date: 2026-04-30
-Phase: DG-3
+Phase: DG-6A
 Tags: `ordivon`, `root-context`, `identity`, `governance`, `doctrine`, `ai-onboarding`
 
 ## 1. What Ordivon Is
@@ -81,23 +81,50 @@ A check that fires on every PR and is always ignored is worse than no check. Bef
 
 Place Live Order, Connect Broker API, Enable Auto Trading — permanently disabled with governance reasons. No UI action implies Ordivon placed an order.
 
-## 3. Architecture Layers
+## 3. Architecture — Core / Pack / Adapter
+
+Ordivon's architecture is defined by three vertical layers crossed by eight
+horizontal governance planes. See the canonical ontology document:
 
 ```
-L10 — Product / Frontend        (apps/web, UI consoles)
-L9  — Policy Platform           (domains/policies)
-L8  — Learning Platform         (domains/candidate_rules, journal)
-L7  — Verification / CI         (scripts/, evals/)
-L6  — Intelligence / Runtime    (domains/intelligence_runs)
-L5  — Execution / Receipt       (domains/execution_records)
-L4  — Capability / API Bridge   (capabilities/)
-L3  — Pack Layer                (packs/finance, packs/coding)
-L2  — Domain State              (state/)
-L1  — Governance Core           (governance/)
-L0  — Application Shell         (apps/web layout, runtime)
+docs/architecture/ordivon-core-pack-adapter-ontology.md
 ```
 
-**Guard rule**: Imports flow downward. Core never imports Pack/domain nouns/provider. Upper layers may import lower layers. Lower layers must not import upper layers.
+### Vertical Structure
+
+```
+Core    — domain-neutral governance kernel (constitution, invariants, authority)
+Pack    — domain-specific governance application (Finance, Document Gov, Design)
+Adapter — controlled external interface (Alpaca, wiki generator, future harnesses)
+```
+
+### Governance Planes (Horizontal)
+
+```
+Evidence / State        — what happened, what is the current state
+Authority / Policy      — who or what can guide action
+Verification / Safety   — has this been verified, are gates passing
+Orchestration / Lifecycle — is this action proceeding legally
+Knowledge / Documentation — how does the system remember itself
+Risk / Side-effect      — what is the side-effect level (R0-R5)
+Actor / Trust           — who is speaking, executing, authorizing
+Surface / Representation — is this correctly displayed
+```
+
+### Core Structural Invariants
+
+```text
+Core defines governance planes.
+Pack specializes governance planes.
+Adapter is constrained by governance planes.
+Surface represents governance planes (but cannot create authority).
+Checker verifies governance planes (but cannot authorize action).
+Pack cannot override Core.
+Adapter cannot define Pack authority.
+```
+
+**Guard rule**: Imports flow downward. Core never imports Pack/domain nouns/provider.
+Upper layers may import lower layers. Lower layers must not import upper layers.
 
 ## 4. Tool Truth
 
@@ -114,9 +141,9 @@ Dependabot ecosystem key is an upstream parsing adapter — it does NOT represen
 Phase 1–5: **COMPLETE**
 Phase 6: **COMPLETE** (Design Pack, UI Governance, Finance Observation — 16 sub-phases)
 **Phase 7P: CLOSED** (Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published 2026-04-29)
-**DG-1/DG-1A: ACCEPTED** (Document Governance Pack + AI Output Contract)
-**DG-2: COMPLETE** (Document Registry + Checker)
-**DG-3: ACTIVE** (Document Staleness Audit)
+**DG-1 through DG-5: COMPLETE** (Document Governance Pack through Baseline Integration)
+**DG-6: COMPLETE** (Wiki Navigation Prototype)
+**DG-6A: ACTIVE** (Core/Pack/Adapter Ontology Consolidation)
 Phase 8: **DEFERRED** (Manual Live Micro-Capital — 3/10 readiness criteria)
 
 See `docs/ai/current-phase-boundaries.md` for detailed status and boundary matrix.

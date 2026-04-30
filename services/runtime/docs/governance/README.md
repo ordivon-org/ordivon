@@ -36,8 +36,9 @@ receipts, ledgers — with the same discipline applied to paper trades.
 
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
-- **DG-1-DG-5**: COMPLETE — Document Governance Pack through Baseline Integration
-- **DG-6**: ACTIVE — Wiki Navigation Prototype (15 tests, 28 entries)
+- **DG-1-DG-6**: COMPLETE — Document Governance Pack through Wiki Navigation
+- **DG-6A**: ACTIVE — Core/Pack/Adapter Ontology Consolidation
+- **Architecture ontology**: `docs/architecture/ordivon-core-pack-adapter-ontology.md`
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P

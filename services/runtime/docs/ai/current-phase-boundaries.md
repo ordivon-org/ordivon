@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-6 wiki prototype)
+Status: **DOCUMENTED** (DG-6A ontology consolidation)
 Date: 2026-04-30
-Phase: DG-6
+Phase: DG-6A
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -23,9 +23,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-3** | **COMPLETE** | Document Staleness Audit + Authority Conflict Review |
 | **DG-4** | **COMPLETE** | Staleness Automation + Freshness Checker — 33 tests, semantic scan |
 | **DG-5** | **COMPLETE** | Baseline Integration — document checker in pr-fast (8/8 gates) |
-| **DG-6** | **ACTIVE** | Wiki Navigation Prototype — registry-derived wiki-index.md |
+| **DG-6** | **COMPLETE** | Wiki Navigation Prototype — registry-derived wiki-index.md |
+| **DG-6A** | **ACTIVE** | Core/Pack/Adapter Ontology Consolidation |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-7 | **NEXT** | CI freshness automation |
+| DG-6B | **NEXT** | Verification Debt Ledger + Receipt Integrity Checker |
 
 ## 2. Corrected Phase 7 Path
 
