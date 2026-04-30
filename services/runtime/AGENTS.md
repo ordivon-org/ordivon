@@ -16,21 +16,20 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-Z: ACTIVE (Stage Summit)
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG Pack: CLOSING** — Document Governance Pack Stage Summit (DG-Z)
+**DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
 204 backend tests. 57 frontend tests. 11/11 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-Z — closing Document Governance Pack.
-18 sub-phases. 94 governance tests. 30 registry entries. 11/11 pr-fast.
-1 open debt (VD-001, low). Phase 8 NOT authorized.
+**pr-fast**: 11/11 hard gates. 94 governance tests. 30 registry entries.
+**Open debt**: VD-001 (low, AGENTS.md markdown). 4 non-DG F401 out-of-scope.
 **Next**: Knowledge Navigation / Wiki Extension or Tooling Hygiene.
 
 ## Critical Boundaries

@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-Z stage summit)
+Status: **DOCUMENTED** (DG-Z stage summit closed)
 Date: 2026-04-30
-Phase: DG-Z
+Phase: DG-Z-S
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -30,7 +30,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-6C** | **COMPLETE** | Verification Gate Manifest + Baseline Integrity — 11/11 |
 | **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
 | **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
-| **DG-Z** | **ACTIVE** | Document Governance Pack Stage Summit / Closure |
+| **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
