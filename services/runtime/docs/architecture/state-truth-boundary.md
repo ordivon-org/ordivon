@@ -23,6 +23,7 @@ The canonical schema initialization path is `state/db/bootstrap.py`:
 ```python
 # state/db/bootstrap.py — the ONLY schema authority
 from state.db.base import Base
+
 Base.metadata.create_all(bind=engine)
 ```
 
