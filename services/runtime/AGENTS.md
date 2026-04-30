@@ -15,23 +15,23 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-3: ACTIVE
+## Current Status — Phase 7P: CLOSED | DG-4: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG-1/DG-1A: ACCEPTED** (Document Governance Pack + AI Output Contract)
-**DG-2: COMPLETE** (Document Registry + Checker — 28 entries, 22 tests)
+**DG-1-DG-3: COMPLETE** (Document Governance Pack, Registry, Audit)
+**DG-4: ACTIVE** — Staleness Automation + Freshness Checker
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
 204 backend tests. 57 frontend tests. 7/7 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-3 — Document Staleness Audit + Authority Conflict Review.
-Audited 55 docs. 1 critical staleness found and fixed (ordivon-root-context.md).
-Registry grown to 28 entries. All high-risk phrases safe.
-**Next**: DG-4 — Staleness Automation + Freshness Checker.
+**Active work**: DG-4 — automated freshness checks + semantic phrase scanning.
+33 checker tests. 28 registry entries. Semantic scan of 20 markdown files.
+Zero dangerous phrases found across all current docs.
+**Next**: DG-5 — Wiki surface or CI integration.
 
 ## Critical Boundaries
 

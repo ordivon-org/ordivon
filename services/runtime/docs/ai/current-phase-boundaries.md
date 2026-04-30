@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-3 staleness audit)
+Status: **DOCUMENTED** (DG-4 freshness checker)
 Date: 2026-04-30
-Phase: DG-3
+Phase: DG-4
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -20,9 +20,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-1A** | **COMPLETE** | AI Output Contract Middleware — receipt template + verification discipline |
 | **DG-1B** | **COMPLETE** | Document Governance Pack Acceptance Seal — commit + tag |
 | **DG-2** | **COMPLETE** | Document Registry Prototype + Doc Consistency Checker — 28 entries |
-| **DG-3** | **ACTIVE** | Document Staleness Audit + Authority Conflict Review |
+| **DG-3** | **COMPLETE** | Document Staleness Audit + Authority Conflict Review |
+| **DG-4** | **ACTIVE** | Staleness Automation + Freshness Checker — 33 tests, semantic scan |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-4 | **NEXT** | Staleness Automation + Freshness Checker |
+| DG-5 | **NEXT** | Wiki surface or CI integration |
 
 ## 2. Corrected Phase 7 Path
 
@@ -106,19 +107,17 @@ These are **design-time prohibitions**. No agent may violate them.
 | Enable high-risk actions | NO | Must stay disabled with reason |
 | Add new dependencies | AVOID | Pure CSS + React preference |
 
-### Document Governance (DG-1 through DG-3)
+### Document Governance (DG-1 through DG-4)
 | Action | Allowed? | Notes |
 |--------|----------|-------|
-| Build document registry + checker | YES | DG-2 complete — 28 entries, 22 tests |
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
-| Perform staleness audit | YES | DG-3 — this phase |
-| Fix critical staleness found in audit | YES | DG-3 — ordvivon-root-context.md updated |
-| Add high-risk docs to registry | YES | DG-3 — 11 added, 28 total |
+| Automated freshness checks | YES | DG-4 — last_verified + stale_after_days |
+| Semantic phrase scanning | YES | DG-4 — 6 dangerous phrase patterns |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |
 | Enable live trading or broker write | NO | Phase 8 DEFERRED |
-| Build Wiki surface | NO | DG-4+ — after registry stabilization |
+| Build Wiki surface | NO | DG-5+ |
 
 ## 6. Key Files Reference
 

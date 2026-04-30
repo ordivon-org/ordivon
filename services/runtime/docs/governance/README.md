@@ -36,9 +36,8 @@ receipts, ledgers — with the same discipline applied to paper trades.
 
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
-- **DG-1** (this pack): ACCEPTED — Document Governance Pack, 7 docs
-- **DG-2**: COMPLETE — Registry + Checker (28 entries, 22 tests)
-- **DG-3**: ACTIVE — Staleness Audit + Authority Conflict Review
+- **DG-1-DG-3**: COMPLETE — Document Governance Pack, Registry (28 entries), Audit
+- **DG-4**: ACTIVE — Staleness Automation + Freshness Checker (33 tests, semantic scan)
 - **No live trading, no broker write, no auto-trading, no Policy activation is authorized.**
 
 ## Relationship to Phase 7P

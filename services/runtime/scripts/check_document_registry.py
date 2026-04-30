@@ -1,83 +1,128 @@
 #!/usr/bin/env python3
-"""Phase DG-2: Document Registry Consistency Checker.
+"""Phase DG-4: Document Registry Consistency Checker with Freshness + Semantic Checks.
 
 Reads docs/governance/document-registry.jsonl and verifies core document
-governance invariants. Never calls Alpaca. Never requires API keys.
-Read-only evidence validation.
+governance invariants including freshness windows and semantic phrase checks.
+Never calls Alpaca. Never requires API keys. Read-only evidence validation.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import re
 import sys
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "docs" / "governance" / "document-registry.jsonl"
 
+# ── Deterministic reference date for testing ──────────────────────────
+# Set REFERENCE_DATE env var for deterministic staleness checks.
+# Format: YYYY-MM-DD. Defaults to today if not set.
+_REF_DATE = os.environ.get("REFERENCE_DATE", "")
+REFERENCE_DATE = date.fromisoformat(_REF_DATE) if _REF_DATE else date.today()
+
 # ── Valid values from governance docs ──────────────────────────────────
 
 VALID_DOC_TYPES = {
-    "root_context",
-    "ai_onboarding",
-    "phase_boundary",
-    "architecture",
-    "design_spec",
-    "runbook",
-    "receipt",
-    "stage_summit",
-    "red_team",
-    "ledger",
-    "tracker",
-    "schema",
-    "template",
-    "adr",
-    "archive_index",
-    "product",
-    "runtime",
-    "governance_pack",
+    "root_context", "ai_onboarding", "phase_boundary", "architecture",
+    "design_spec", "runbook", "receipt", "stage_summit", "red_team",
+    "ledger", "tracker", "schema", "template", "adr", "archive_index",
+    "product", "runtime", "governance_pack",
 }
 
-# Valid lifecycle statuses (accepted is alias for current)
 VALID_STATUSES = {
-    "draft",
-    "proposed",
-    "current",
-    "accepted",       # alias for current
-    "implemented",
-    "closed",
-    "deferred",
-    "superseded",
-    "archived",
-    "stale",
+    "draft", "proposed", "current", "accepted", "implemented",
+    "closed", "deferred", "superseded", "archived", "stale",
 }
 
-# Statuses that imply the document is actively authoritative
 ACTIVE_STATUSES = {"current", "accepted", "implemented"}
 
 VALID_AUTHORITIES = {
-    "source_of_truth",
-    "current_status",
-    "supporting_evidence",
-    "historical_record",
-    "proposal",
-    "example",
-    "archive",
+    "source_of_truth", "current_status", "supporting_evidence",
+    "historical_record", "proposal", "example", "archive",
 }
 
-# Authority levels that carry decision-making weight
 DECISION_AUTHORITIES = {"source_of_truth", "current_status"}
 
-# High-priority AI read levels (0, 1)
 HIGH_PRIORITY_AI_READ = {0, 1}
-
-# Low-priority archive/reference levels
 LOW_PRIORITY_AI_READ = {4}
 
-# AI onboarding / root context types that must never be stale/archived
 NEVER_STALE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
 NEVER_ARCHIVE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
+
+# Critical AI doc IDs that must have freshness metadata
+CRITICAL_AI_DOCS = {"agents-md", "ai-readme", "phase-boundaries", "agent-output-contract", "ordivon-root-context"}
+
+# Documents whose content will be scanned for semantic phrase checks
+# Only current/accepted status docs are scanned (archived/closed docs exempt)
+SEMANTIC_SCAN_STATUSES = {"current", "accepted"}
+
+# ── Dangerous phrases that must never appear in current docs ──────────
+
+# Format: (compiled_regex, error_template)
+# Each regex will be checked against line-by-line content.
+# Safe negations (NOT, NO-GO, DEFERRED, BLOCKED) are excluded.
+
+DANGEROUS_PHRASES: list[tuple[re.Pattern, str]] = [
+    (
+        re.compile(
+            r"(?:phase\s*8\s+(?:is\s+)?active|phase\s*8\s+(?:is\s+)?enabled"
+            r"|Phase\s*8\s+ACTIVE)",
+            re.IGNORECASE,
+        ),
+        "Phase 8 described as active/enabled",
+    ),
+    (
+        re.compile(
+            r"live\s+trading\s+(?:is\s+)?(?:\w+\s+)?(?:active|enabled)",
+            re.IGNORECASE,
+        ),
+        "live trading described as active/enabled",
+    ),
+    (
+        re.compile(
+            r"CandidateRule\s+(?:is\s+)?Policy",
+            re.IGNORECASE,
+        ),
+        "CandidateRule described as Policy",
+    ),
+    (
+        re.compile(
+            r"CandidateRule\s+(?:is\s+)?(?:active|enforced|activated)",
+            re.IGNORECASE,
+        ),
+        "CandidateRule described as active/enforced",
+    ),
+    (
+        re.compile(
+            r"ledger\s+(?:authorizes|is\s+execution\s+authority|is\s+an\s+execution\s+authority)",
+            re.IGNORECASE,
+        ),
+        "ledger described as execution authority",
+    ),
+    (
+        re.compile(
+            r"(?:Phase\s*6\s+(?:is\s+)?ACTIVE|Phase\s*6\s+ACTIVE)",
+        ),
+        "Phase 6 described as ACTIVE (should be COMPLETE)",
+    ),
+]
+
+# ── Context-safe negations that override dangerous phrase matches ─────
+SAFE_NEGATIONS: list[re.Pattern] = [
+    re.compile(r"NOT\s+Policy", re.IGNORECASE),
+    re.compile(r"advisory\s+only", re.IGNORECASE),
+    re.compile(r"NO-GO", re.IGNORECASE),
+    re.compile(r"DEFERRED", re.IGNORECASE),
+    re.compile(r"BLOCKED", re.IGNORECASE),
+    re.compile(r"not\s+execution\s+authority", re.IGNORECASE),
+    re.compile(r"evidence,\s+not", re.IGNORECASE),
+    re.compile(r"remain(?:s)?\s+deferred", re.IGNORECASE),
+]
 
 
 def load_registry(path: Path) -> list[dict]:
@@ -94,6 +139,55 @@ def load_registry(path: Path) -> list[dict]:
                 print(f"ERROR line {i}: invalid JSON: {e}")
                 sys.exit(1)
     return entries
+
+
+def _line_is_safe(line: str) -> bool:
+    """Check if a line contains a safe negation context."""
+    for neg in SAFE_NEGATIONS:
+        if neg.search(line):
+            return True
+    return False
+
+
+def check_semantic_phrases(entries: list[dict]) -> list[str]:
+    """Scan file contents of registered current docs for dangerous phrases."""
+    errors: list[str] = []
+    scanned_count = 0
+
+    for e in entries:
+        did = e.get("doc_id", "")
+        status = e.get("status", "")
+        path_str = e.get("path", "")
+
+        if not path_str or status not in SEMANTIC_SCAN_STATUSES:
+            continue
+
+        full_path = ROOT / path_str
+        if not full_path.exists() or full_path.suffix != ".md":
+            continue
+
+        try:
+            content = full_path.read_text()
+        except Exception:
+            continue
+
+        scanned_count += 1
+        lines = content.split("\n")
+
+        for pattern, desc in DANGEROUS_PHRASES:
+            for i, line in enumerate(lines, 1):
+                if pattern.search(line):
+                    # Check for safe negation on same line or adjacent lines
+                    ctx_start = max(0, i - 2)
+                    ctx_end = min(len(lines), i + 2)
+                    ctx_text = "\n".join(lines[ctx_start:ctx_end])
+                    if _line_is_safe(ctx_text):
+                        continue
+                    errors.append(
+                        f"{did}:{i}: {desc} — '{line.strip()}'"
+                    )
+
+    return errors
 
 
 def check_invariants(entries: list[dict]) -> list[str]:
@@ -149,6 +243,26 @@ def check_invariants(entries: list[dict]) -> list[str]:
         priority = e.get("ai_read_priority")
         if priority is not None and (not isinstance(priority, int) or priority not in (0, 1, 2, 3, 4)):
             errors.append(f"{did}: invalid ai_read_priority '{priority}'")
+
+        # --- Freshness metadata: high-priority AI docs must have last_verified ---
+        if did in CRITICAL_AI_DOCS:
+            lv = e.get("last_verified")
+            if not lv:
+                errors.append(f"{did}: critical AI doc missing last_verified field")
+            else:
+                # Staleness window check
+                stale_days = e.get("stale_after_days")
+                if stale_days is not None and isinstance(stale_days, (int, float)):
+                    try:
+                        verified_date = date.fromisoformat(lv)
+                        age_days = (REFERENCE_DATE - verified_date).days
+                        if age_days > stale_days:
+                            errors.append(
+                                f"{did}: stale — last_verified={lv} ({age_days}d ago), "
+                                f"stale_after_days={stale_days}"
+                            )
+                    except (ValueError, TypeError):
+                        errors.append(f"{did}: invalid last_verified date format '{lv}'")
 
         # --- source_of_truth docs cannot be stale/archived ---
         if authority == "source_of_truth" and status in ("stale", "archived"):
@@ -208,10 +322,9 @@ def check_invariants(entries: list[dict]) -> list[str]:
                 errors.append(f"{did}: {ref_field} references unknown doc_id '{ref}'")
 
     # --- Critical AI onboarding docs must be high-priority ---
-    critical_ai_docs = {"agents-md", "ai-readme", "phase-boundaries", "agent-output-contract"}
     for e in entries:
         did = e.get("doc_id", "")
-        if did in critical_ai_docs:
+        if did in CRITICAL_AI_DOCS:
             priority = e.get("ai_read_priority")
             if priority not in (0, 1):
                 errors.append(f"{did}: critical AI onboarding doc has priority {priority}, expected 0 or 1")
@@ -221,6 +334,10 @@ def check_invariants(entries: list[dict]) -> list[str]:
         if e.get("doc_id") == "phase-boundaries":
             if e.get("authority") != "source_of_truth":
                 errors.append("phase-boundaries: must have authority 'source_of_truth'")
+
+    # --- Semantic phrase checks on file contents ---
+    phrase_errors = check_semantic_phrases(entries)
+    errors.extend(phrase_errors)
 
     return errors
 
@@ -240,6 +357,17 @@ def print_summary(entries: list[dict]) -> None:
     high_priority_count = sum(
         1 for e in entries if e.get("ai_read_priority") in HIGH_PRIORITY_AI_READ
     )
+    # Count entries with last_verified
+    has_lv = sum(1 for e in entries if e.get("last_verified"))
+    has_stale_days = sum(1 for e in entries if e.get("stale_after_days") is not None)
+
+    # Count current docs scanned for semantics
+    scannable = sum(
+        1 for e in entries
+        if e.get("status") in SEMANTIC_SCAN_STATUSES
+        and e.get("path", "").endswith(".md")
+        and (ROOT / e.get("path", "")).exists()
+    )
 
     print("=" * 60)
     print("DOCUMENT REGISTRY SUMMARY")
@@ -251,6 +379,9 @@ def print_summary(entries: list[dict]) -> None:
     print(f"  archive:                   {archive_count}")
     print(f"  stale + superseded:        {stale_count + superseded_count}")
     print(f"  High-priority AI read:     {high_priority_count}")
+    print(f"  With last_verified:        {has_lv}")
+    print(f"  With stale_after_days:     {has_stale_days}")
+    print(f"  Semantic scan targets:     {scannable} (current/accepted .md)")
     print(f"  Doc types:                 {len(type_counter)}")
     print(f"  Statuses:                  {len(status_counter)}")
 
@@ -272,7 +403,7 @@ def main() -> int:
         return 1
 
     print_summary(entries)
-    print("\n✅ All document registry invariants pass.\n")
+    print("\n✅ All document registry invariants pass (freshness + semantics).\n")
     return 0
 
 
