@@ -1,6 +1,6 @@
 # Document Governance Pack — Stage Summit (DG-Z Close)
 
-Status: **PUBLISHED** | Date: 2026-04-30 | Phase: DG-Z (sealed by DG-Z-S closure consistency seal)
+Status: **PUBLISHED** | Date: 2026-04-30 | Phase: DG-Z (sealed by DG-Z-S2 closure consistency + final assessment)
 Tags: `governance`, `dg-pack`, `stage-summit`, `closure`, `meta-verification`
 
 ## 1. Executive Summary
@@ -65,7 +65,7 @@ auto trading, Policy activation, or RiskEngine enforcement.
 | Frontend tests | 57 passed |
 | Frontend build | Static prerendered |
 | Paper dogfood ledger | 30 events, 16 invariants, all pass |
-| Verification debt ledger | 3 entries (1 open, 2 closed) |
+| Verification debt ledger | 4 entries (2 open, 2 closed) |
 | Phase 8 readiness | 3/10 DEFERRED |
 
 ## 4. What Was Proved
@@ -123,15 +123,15 @@ auto trading, Policy activation, or RiskEngine enforcement.
    state; future AI can still write dangerous phrases if checkers aren't
    maintained.
 
-## 5a. Known Test Instability (xpass)
+## 5a. Known Test Instability — VD-2026-04-30-004
 
 Two verification manifest tests (`test_valid_manifest_passes`,
 `test_summary_counts_correct`) exhibit genuine test-ordering flakes due to
 subprocess state pollution when co-executed with other governance tests.
 They pass reliably in isolation and the underlying `check_verification_manifest.py`
-checker always produces correct 11/11 results on real data. Marked `xfail` in
-DG-Z-S. This is a pre-existing test infrastructure issue orthogonal to
-DG Pack correctness.
+checker always produces correct 11/11 results on real data. Marked `xfail`.
+Registered as VD-2026-04-30-004 (medium, open). Fix before further
+meta-verification expansion.
 
 ## 6. Open Debt and Exceptions
 
@@ -140,6 +140,7 @@ DG Pack correctness.
 | VD-2026-04-30-001 | pre_existing_tooling_debt | low | open | AGENTS.md ruff markdown preview. Non-blocking. Expires before DG-Z — now overdue but severity is low, no governance impact. |
 | VD-2026-04-30-002 | untracked_residue | medium | **closed** | .coveragerc deleted in DG-6D |
 | VD-2026-04-30-003 | untracked_residue | medium | **closed** | .pre-commit-config.yaml deleted in DG-6D |
+| VD-2026-04-30-004 | pre_existing_tooling_debt | medium | open | Manifest test xfail/xpass instability. Tests pass in isolation but flake in mixed session. Registered in DG-Z-S2. Fix before further meta-verification expansion. |
 
 **Non-DG observed ruff noise**: 4 F401 unused imports in
 `test_audit_strictification.py`, `test_h5_finance_governance_hard_gate.py`,
@@ -193,7 +194,7 @@ A fresh AI reading root docs + this Stage Summit would understand:
 - CandidateRules remain advisory — NOT Policy
 - JSONL ledgers are evidence, not execution authority
 - Wiki/Obsidian are navigation/harness layers, not source of truth
-- 1 open debt (VD-001, low severity), 2 closed debts (VD-002/003)
+- 2 open debts (VD-001 low, VD-004 medium), 2 closed debts (VD-002/003)
 - 4 non-DG F401 ruff issues are cosmetic, out-of-scope for DG
 
 ## 10. Next Recommended Phase
@@ -221,3 +222,95 @@ This Stage Summit closes DG Pack. It does not open any new phase, authorize
 any trading action, activate any Policy, or modify any RiskEngine rule.
 All NO-GO boundaries established by Phase 5, Phase 7P Stage Summit, and
 DG Pack governance remain in full effect.
+
+## 12. Final Assessment — Foundation Closed, Program Continues
+
+### 12.1 What DG Pack Is (and Is Not)
+
+DG Pack is not documentation cleanup. It is Ordivon's **system-memory
+and anti-self-deception infrastructure.**
+
+It upgraded Ordivon from "has documents" to "has verifiable system memory",
+from "has receipts" to "receipts are audited for honesty", from "has a
+baseline" to "the baseline cannot be silently weakened."
+
+### 12.2 Five-Layer Defense Architecture
+
+DG Pack established five defense layers, each with machine-checked controls:
+
+| Layer | Name | Controls |
+|-------|------|----------|
+| L1 | System Memory | AGENTS.md, docs/ai, document-registry.jsonl, Stage Summit |
+| L2 | Semantic Safety | Dangerous phrase checker, ontology registry, CandidateRule≠Policy, Paper≠Live, Ledger≠Authority |
+| L3 | Verification Honesty | Verification debt ledger, receipt integrity checker |
+| L4 | Baseline Integrity | Verification gate manifest, pr-fast 11/11 |
+| L5 | AI Handoff | Agent output contract, New AI Context Check, root context sync |
+
+### 12.3 Foundation Closed, Program Continues
+
+**DG Pack foundation stage is CLOSED.**
+**Document governance as a program continues.**
+
+This stage established the infrastructure. Future program work includes:
+full-repo documentation registration, knowledge graph maturity,
+Wiki/Obsidian harness compatibility, global tooling hygiene, Rust kernel
+extraction, and cross-Pack unified dashboard.
+
+DG-Z closure does NOT mean document governance work is finished forever.
+It means the foundation is stable enough to support the next layer of work.
+
+### 12.4 Residual Risks
+
+Four risks that DG Pack cannot eliminate but must declare:
+
+1. **DG Pack self-expansion**: The pack must not absorb all future
+   knowledge work. Domain semantics belong to Finance/Policy/Design Packs.
+   External tools belong to Adapter/Harness. Display belongs to Surface.
+
+2. **Checker maintenance burden**: 11/11 is strong today. Each new checker
+   adds maintenance cost. Future phases should review checker quality
+   (false positives, form-over-substance responses, baseline slowdown).
+
+3. **Stage Summit as victory narrative**: Stage Summits must remain
+   postmortem-style factual artifacts, not success stories. The receipt
+   integrity checker enforces this mechanically; the culture must enforce
+   it editorially.
+
+4. **Out-of-scope abuse**: "Out-of-scope for current phase" is valid
+   triage. It must never become "not our problem." Rules: (a) out-of-scope
+   does not block current phase, (b) out-of-scope is not hidden,
+   (c) repeated out-of-scope items must enter global tooling hygiene
+   backlog.
+
+### 12.5 Postmortem-Style Commitment
+
+This Stage Summit is written as a factual artifact, not a victory
+declaration. Debts are listed. Instabilities are registered. What was
+not proved is stated at equal weight to what was proved. Future Stage
+Summits must maintain this standard.
+
+### 12.6 Bilingual Semantic Precision
+
+Ordivon's key terms carry governance weight in both Chinese and English.
+The ontology registry (`CandidateRule`, `Policy`, `Paper`, `Live`,
+`Ledger`, `Receipt`, `Authority`, `Evidence`) constrains how these terms
+may be used. Future glossary work should extend this constraint to a
+formal bilingual governance glossary, ensuring precision is maintained
+across Chinese philosophical reasoning and English technical execution.
+
+## 13. Closure Predicate
+
+DG Pack foundation stage is formally CLOSED when all of these hold:
+
+1. DG-Z Stage Summit exists — ✅
+2. Root context says DG Pack CLOSED, not ACTIVE/CLOSING — ✅
+3. pr-fast is 11/11 — ✅
+4. Document registry checker passes — ✅
+5. Verification debt checker passes — ✅
+6. Receipt integrity checker passes — ✅
+7. Gate manifest checker passes — ✅
+8. All known current-scope debt is registered — ✅ (VD-001, VD-004)
+9. Open debt is visible, bounded, and classified non-blocking — ✅
+10. Phase 8 remains DEFERRED; all live/auto/Policy NO-GO intact — ✅
+
+**Verdict: DG Pack foundation stage — CLOSED with visible bounded debt.**
