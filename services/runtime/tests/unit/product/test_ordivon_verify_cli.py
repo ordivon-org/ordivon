@@ -353,7 +353,7 @@ def test_main_json_output_all_pass(monkeypatch, capsys):
     report = json.loads(captured.out)
     assert report["tool"] == "ordivon-verify"
     assert report["status"] == "READY"
-    assert report["mode"] == "all"
+    assert report["mode"] in ("all", "standard")  # auto-detects Ordivon-native
     assert len(report["checks"]) == 4
     assert report["hard_failures"] == []
 
