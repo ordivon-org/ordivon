@@ -37,7 +37,10 @@ proposed" but must not treat them as accepted governance.
 
 ### 2.3 current
 
-**Definition**: Active, authoritative guidance.
+**Definition**: Active, authoritative guidance. Accepted governance documents
+are `current`.
+
+**Aliases**: `accepted` (from `proposed` with stakeholder acceptance; maps to `current`).
 
 **Authority**: Depends on type. `source_of_truth` or `current_status` typically.
 

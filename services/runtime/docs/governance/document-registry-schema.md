@@ -8,11 +8,13 @@ Tags: `governance`, `document`, `registry`, `schema`, `manifest`
 The Document Registry is a future manifest that links every governed document
 to its metadata: type, status, authority, freshness, relationships.
 
-This schema defines the manifest format. Implementation is deferred to a future
-Document Governance sub-phase.
+This schema defines the manifest format. **Implemented** in DG-2:
+`docs/governance/document-registry.jsonl` (17 entries) with checker at
+`scripts/check_document_registry.py`.
 
-DG-1 provides a schema-only deliverable — a JSONL manifest with a few
-sample entries to validate the format.
+**Status note**: The status `accepted` is a valid alias for `current` — a document
+that has passed stakeholder acceptance is `accepted` (maps to `current`). Both
+are recognized by the checker.
 
 ## 2. Registry Entry Schema
 

@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-1B acceptance seal)
+Status: **DOCUMENTED** (DG-2 registry checker)
 Date: 2026-04-30
-Phase: DG-1B
+Phase: DG-2
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -18,9 +18,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **Phase 7P** | **CLOSED** | Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published |
 | **DG-1** | **COMPLETE** | Document Governance Pack — 7 doc files, taxonomy + lifecycle + wiki |
 | **DG-1A** | **COMPLETE** | AI Output Contract Middleware — receipt template + verification discipline |
-| **DG-1B** | **ACTIVE** | Document Governance Pack Acceptance Seal — commit + tag |
+| **DG-1B** | **COMPLETE** | Document Governance Pack Acceptance Seal — commit + tag |
+| **DG-2** | **ACTIVE** | Document Registry Prototype + Doc Consistency Checker |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-2 | **NEXT** | Document Registry Prototype + Doc Consistency Checker |
+| DG-3/DG-4 | **NEXT** | Wiki surface / Freshness checker |
 
 ## 2. Corrected Phase 7 Path
 
@@ -104,20 +105,21 @@ These are **design-time prohibitions**. No agent may violate them.
 | Enable high-risk actions | NO | Must stay disabled with reason |
 | Add new dependencies | AVOID | Pure CSS + React preference |
 
-### Document Governance (DG-1/DG-1A/DG-1B)
+### Document Governance (DG-1 through DG-2)
 | Action | Allowed? | Notes |
 |--------|----------|-------|
 | Add docs/governance/ markdown | YES | Design-only, no code |
 | Add docs/ai/ onboarding docs | YES | AI context updates allowed |
 | Define document types, lifecycle, authority | YES | DG-1 accepted |
 | Define AI output contract | YES | DG-1A accepted |
-| Commit + tag accepted docs | YES | DG-1B — this phase |
+| Commit + tag accepted docs | YES | DG-1B complete |
+| Build document registry + checker | YES | DG-2 — this phase |
+| Run registry checker | YES | uv run python scripts/check_document_registry.py |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |
 | Enable live trading or broker write | NO | Phase 8 DEFERRED |
-| Implement document checker | NO | DG-2 territory |
-| Start DG-2 implementation | NO | DG-2 NEXT — not started |
+| Start DG-3 wiki implementation | NO | DG-3/DG-4 NEXT — not started |
 
 ## 6. Key Files Reference
 
@@ -132,4 +134,5 @@ These are **design-time prohibitions**. No agent may violate them.
 | `apps/web/src/components/governance/index.tsx` | All governance UI components |
 | `docs/runtime/finance-observation-provider-plan.md` | Provider selection + China operator notes |
 | `docs/ai/agent-output-contract.md` | Required output contract for every AI task — receipt template + verification discipline |
-| `docs/governance/README.md` | Document Governance Pack index — 7 core files |
+| `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
+| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 17 entries, DG-2 |

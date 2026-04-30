@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase DG-1B (2026-04-30)
-> **Active phase**: Phase 7P — CLOSED | DG-1B — ACCEPTANCE SEAL
-> **Next**: DG-2 — Document Registry Prototype + Doc Consistency Checker
+> **Last updated**: Phase DG-2 (2026-04-30)
+> **Active phase**: Phase 7P — CLOSED | DG-2 — ACTIVE (Document Registry + Checker)
+> **Next**: DG-3 — Wiki surface or DG-4 — freshness checker
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 

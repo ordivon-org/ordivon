@@ -15,12 +15,12 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-1B: ACCEPTANCE SEAL
+## Current Status — Phase 7P: CLOSED | DG-2: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG-1: Document Governance Pack — ACCEPTED** (7 files, committed)
+**DG-1: Document Governance Pack — ACCEPTED** (7 files)
 **DG-1A: AI Output Contract — ACCEPTED** (docs/ai/agent-output-contract.md)
 
 Paper dogfood proved governance pipeline integrity, not profitability.
@@ -28,9 +28,10 @@ Paper dogfood proved governance pipeline integrity, not profitability.
 204 backend tests. 57 frontend tests. 7/7 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-1B — Acceptance Seal (commit + tag DG-1/DG-1A).
-No new governance concepts. No code changes.
-**Next**: DG-2 — Document Registry Prototype + Doc Consistency Checker.
+**Active work**: DG-2 — Document Registry Prototype + Doc Consistency Checker.
+17 doc registry entries, 22 checker tests, all invariants pass.
+No new governance concepts. No code changes outside docs/scripts/tests.
+**Next**: DG-3 — Wiki surface or DG-4 — freshness checker.
 
 ## Critical Boundaries
 
