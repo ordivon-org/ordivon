@@ -87,14 +87,19 @@ def test_external_fixture_not_native():
 def test_scan_valid_receipt_passes():
     failures, scanned = scan_receipt_files(["receipts"], FIXTURE)
     # valid-receipt.md should have no failures — it has no contradictory language
-    valid_fails = [f for f in failures if "valid-receipt" in f]
+    valid_fails = [f for f in failures if "valid-receipt" in f.get("file", "")]
     assert valid_fails == []
 
 
 def test_scan_bad_receipt_detected():
     failures, scanned = scan_receipt_files(["receipts"], FIXTURE)
-    bad_fails = [f for f in failures if "bad-receipt" in f]
+    # failures are now dicts with "file" key
+    bad_fails = [f for f in failures if "bad-receipt" in f.get("file", "")]
     assert len(bad_fails) >= 1
+    assert "file" in bad_fails[0]
+    assert "reason" in bad_fails[0]
+    assert "why_it_matters" in bad_fails[0]
+    assert "next_action" in bad_fails[0]
 
 
 def test_scan_receipt_files_counts_scanned():
@@ -110,7 +115,9 @@ def test_run_external_receipts_returns_fail_for_bad():
     assert result["id"] == "receipts"
     assert result["status"] == "FAIL"
     assert result["exit_code"] == 1
-    assert "bad-receipt" in result["stderr"]
+    assert "failures" in result
+    assert len(result["failures"]) >= 1
+    assert "bad-receipt" in result["failures"][0]["file"]
 
 
 def test_run_external_receipts_on_valid_only():
@@ -187,13 +194,28 @@ def test_determine_status_fail_overrides_warn():
 
 def test_build_report_includes_warnings():
     results = [
-        {"id": "receipts", "status": "PASS", "exit_code": 0, "stdout": "ok", "stderr": ""},
-        {"id": "debt", "status": "WARN", "exit_code": -1, "stdout": "", "stderr": "Not configured"},
+        {
+            "id": "receipts",
+            "label": "Receipt Integrity",
+            "status": "PASS",
+            "exit_code": 0,
+            "stdout": "ok",
+            "stderr": "",
+        },
+        {
+            "id": "debt",
+            "label": "Verification Debt",
+            "status": "WARN",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "Not configured",
+            "next_action": "Add debt ledger.",
+        },
     ]
-    report = build_report(results, "advisory")
+    report = build_report(results, "advisory", "/root/test", None)
     assert report["status"] == "DEGRADED"
     assert len(report["warnings"]) == 1
-    assert report["warnings"][0]["id"] == "debt"
+    assert report["warnings"][0]["check"] == "debt"
 
 
 # ── main() external fixture ───────────────────────────────────────────
@@ -280,6 +302,94 @@ def test_main_bad_config():
         assert exit_code in (0, 1, 2, 3)  # config load doesn't crash
     finally:
         os.unlink(bad_path)
+
+
+# ── Rich report assertions ─────────────────────────────────────────────
+
+
+def test_human_output_includes_disclaimer(monkeypatch, capsys):
+    """Human output includes the READY disclaimer."""
+    main(["all"])
+    captured = capsys.readouterr()
+    assert "does not authorize execution" in captured.out
+
+
+def test_json_includes_disclaimer(monkeypatch, capsys):
+    """JSON report includes disclaimer field."""
+    main(["all", "--json"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert "disclaimer" in report
+    assert "does not authorize execution" in report["disclaimer"]
+
+
+def test_external_human_output_shows_hard_failures(monkeypatch, capsys):
+    """External fixture human output includes 'Hard failures' section."""
+    main(["all", "--root", str(FIXTURE)])
+    captured = capsys.readouterr()
+    assert "Hard failures" in captured.out
+    assert "receipt_contradiction" in captured.out or "bad-receipt" in captured.out
+
+
+def test_external_human_output_shows_warnings(monkeypatch, capsys):
+    """External fixture human output includes 'Warnings' section."""
+    main(["all", "--root", str(FIXTURE)])
+    captured = capsys.readouterr()
+    assert "Warnings" in captured.out
+
+
+def test_external_human_output_shows_next_action(monkeypatch, capsys):
+    """External fixture human output includes 'Next suggested action' section."""
+    main(["all", "--root", str(FIXTURE)])
+    captured = capsys.readouterr()
+    assert "Next suggested action" in captured.out
+
+
+def test_json_hard_failure_has_file_field(monkeypatch, capsys):
+    """JSON hard_failures include file/reason/why_it_matters/next_action."""
+    main(["all", "--root", str(FIXTURE), "--json"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert len(report["hard_failures"]) >= 1
+    hf = report["hard_failures"][0]
+    assert "file" in hf
+    assert "reason" in hf
+    assert "why_it_matters" in hf
+    assert "next_action" in hf
+
+
+def test_json_warning_has_next_action(monkeypatch, capsys):
+    """JSON warnings include next_action field."""
+    main(["all", "--root", str(FIXTURE), "--json"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert len(report["warnings"]) >= 1
+    w = report["warnings"][0]
+    assert "next_action" in w
+
+
+def test_strict_mode_debt_is_hard_failure(monkeypatch, capsys):
+    """Strict mode missing debt/gates/docs are FAIL not WARN."""
+    main(["debt", "--root", str(FIXTURE), "--mode", "strict"])
+    captured = capsys.readouterr()
+    assert "BLOCKED" in captured.out
+    assert "FAIL" in captured.out
+
+
+def test_advisory_mode_debt_is_warning(monkeypatch, capsys):
+    """Advisory mode missing debt is WARN not FAIL."""
+    main(["debt", "--root", str(FIXTURE), "--mode", "advisory"])
+    captured = capsys.readouterr()
+    assert "WARN" in captured.out
+
+
+def test_external_blocked_remains_expected(monkeypatch, capsys):
+    """External fixture BLOCKED is expected governance success."""
+    exit_code = main(["all", "--root", str(FIXTURE)])
+    assert exit_code == 1  # BLOCKED — bad receipt
+    captured = capsys.readouterr()
+    assert "BLOCKED" in captured.out
+    assert "bad-receipt" in captured.out.lower()
 
 
 # ── No file writes ─────────────────────────────────────────────────────

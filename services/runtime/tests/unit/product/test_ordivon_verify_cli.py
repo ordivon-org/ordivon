@@ -87,17 +87,18 @@ def test_build_report_json_fields():
             "stderr": "",
         },
     ]
-    report = build_report(results, "all")
+    report = build_report(results, "all", "/root/test", None)
     assert report["tool"] == "ordivon-verify"
     assert report["schema_version"] == "0.1"
     assert report["status"] == "READY"
     assert report["mode"] == "all"
+    assert report["root"] == "/root/test"
     assert len(report["checks"]) == 1
     assert report["checks"][0]["id"] == "receipts"
     assert report["checks"][0]["status"] == "PASS"
-    assert report["checks"][0]["exit_code"] == 0
     assert "hard_failures" in report
     assert "warnings" in report
+    assert "disclaimer" in report
 
 
 def test_build_report_with_failures():
@@ -119,10 +120,10 @@ def test_build_report_with_failures():
             "stderr": "overdue debt",
         },
     ]
-    report = build_report(results, "all")
+    report = build_report(results, "all", "/root/test", None)
     assert report["status"] == "BLOCKED"
     assert len(report["hard_failures"]) == 1
-    assert report["hard_failures"][0]["id"] == "debt"
+    assert report["hard_failures"][0]["check"] == "debt"
 
 
 # ── Unit: parse_args ─────────────────────────────────────────────────────
@@ -256,7 +257,7 @@ def test_main_all_passes(monkeypatch, capsys):
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "ORDIVON VERIFY" in captured.out
-    assert "Status: READY" in captured.out
+    assert "READY" in captured.out
 
 
 def test_main_all_one_fail(monkeypatch, capsys):
@@ -271,7 +272,7 @@ def test_main_all_one_fail(monkeypatch, capsys):
     exit_code = main(["all"])
     assert exit_code == 1
     captured = capsys.readouterr()
-    assert "Status: BLOCKED" in captured.out
+    assert "BLOCKED" in captured.out
 
 
 def test_main_receipts_command(monkeypatch, capsys):

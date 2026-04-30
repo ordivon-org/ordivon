@@ -54,16 +54,30 @@ CHECKER_LABELS = {
 
 ALL_CHECKS = ["receipts", "debt", "gates", "docs"]
 
-# ── Config defaults ─────────────────────────────────────────────────────
+DISCLAIMER = "READY means selected checks passed; it does not authorize execution."
 
-DEFAULT_CONFIG: dict = {
-    "schema_version": "0.1",
-    "mode": "advisory",
-    "receipt_paths": [],
-    "output": "human",
+_FAILURE_ADVICE = {
+    "SEALED": (
+        "Unverified work was called 'sealed'. Fix the receipt to reflect actual "
+        "verification state, or complete the missing verification."
+    ),
+    "Skipped: None": (
+        "Receipt claims no verification was skipped, but evidence shows gate(s) "
+        "were not run. Correct the receipt or run the missing checks."
+    ),
+    "clean working tree": (
+        "Receipt claims 'clean working tree' without acknowledging untracked "
+        "residue. Either remove residue or qualify as 'Tracked working tree clean'."
+    ),
 }
 
-# ── Receipt scan patterns (external mode) ──────────────────────────────
+_WARN_ADVICE = {
+    "debt": "Add verification-debt-ledger.jsonl when moving from advisory to standard mode.",
+    "gates": "Add verification-gate-manifest.json before strict CI use.",
+    "docs": "Add document-registry.jsonl for document governance.",
+}
+
+# ── Receipt scan patterns ──────────────────────────────────────────────
 
 _SKIP_CONTEXT_WORDS = [
     "not run",
@@ -83,7 +97,6 @@ _CLEAN_TREE_PATTERN = re.compile(r"clean working tree", re.IGNORECASE)
 
 
 def load_config(config_path: Path | None, root: Path) -> dict | None:
-    """Load ordivon.verify.json, falling back to defaults."""
     if config_path:
         if not config_path.exists():
             return None
@@ -92,7 +105,6 @@ def load_config(config_path: Path | None, root: Path) -> dict | None:
                 return json.load(f)
         except (json.JSONDecodeError, OSError):
             return None
-    # Auto-detect
     auto = root / "ordivon.verify.json"
     if auto.exists():
         try:
@@ -104,7 +116,6 @@ def load_config(config_path: Path | None, root: Path) -> dict | None:
 
 
 def validate_config(cfg: dict) -> list[str]:
-    """Validate config, return list of errors."""
     errors = []
     if not isinstance(cfg, dict):
         return ["config must be a JSON object"]
@@ -118,7 +129,6 @@ def validate_config(cfg: dict) -> list[str]:
 
 
 def is_ordivon_native(root: Path) -> bool:
-    """Check if root looks like an Ordivon-native repo."""
     return (root / "docs" / "governance" / "verification-debt-ledger.jsonl").exists() and (
         root / "docs" / "governance" / "verification-gate-manifest.json"
     ).exists()
@@ -127,24 +137,47 @@ def is_ordivon_native(root: Path) -> bool:
 # ── External receipt scanner ────────────────────────────────────────────
 
 
-def _has_skip_context(text_window: str) -> bool:
-    lower = text_window.lower()
-    return any(w in lower for w in _SKIP_CONTEXT_WORDS)
-
-
 def _has_skip_context_excluding_match(lines: list[str], match_line_idx: int) -> bool:
-    """Check context excluding the matched line itself."""
     ctx_start = max(0, match_line_idx - 5)
     ctx_end = min(len(lines), match_line_idx + 5)
     lines_before = lines[ctx_start:match_line_idx]
     lines_after = lines[match_line_idx + 1 : ctx_end]
     context = "\n".join(lines_before + lines_after)
-    return _has_skip_context(context)
+    lower = context.lower()
+    return any(w in lower for w in _SKIP_CONTEXT_WORDS)
 
 
-def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[str], int]:
-    """Scan receipt files for contradictions. Returns (failures, count)."""
-    failures: list[str] = []
+def _classify_failure(reason: str) -> str:
+    """Return a human-readable classification for a receipt failure."""
+    if "SEALED" in reason:
+        return "receipt_contradiction"
+    if "Skipped: None" in reason:
+        return "skipped_verification_claim"
+    if "clean working tree" in reason:
+        return "clean_tree_overclaim"
+    return "receipt_contradiction"
+
+
+def _why_it_matters(reason: str) -> str:
+    if "SEALED" in reason:
+        return "Unverified work must not be called sealed."
+    if "Skipped: None" in reason:
+        return "Skipped verification must be registered, not claimed as 'None'."
+    if "clean working tree" in reason:
+        return "Untracked residue contradicts 'clean working tree' claim."
+    return "Receipt language contradicts evidence."
+
+
+def _next_action(reason: str) -> str:
+    for key, advice in _FAILURE_ADVICE.items():
+        if key in reason:
+            return advice
+    return "Review the receipt and correct contradictory claims."
+
+
+def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict], int]:
+    """Scan receipt files. Returns (structured_failures, scanned_count)."""
+    failures: list[dict] = []
     scanned = 0
     for rp in receipt_paths:
         scan_dir = root / rp
@@ -159,22 +192,42 @@ def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[str],
             lines = content.split("\n")
             rel = str(md_file.relative_to(root))
             for i, line in enumerate(lines, 1):
-                idx = i - 1  # 0-indexed
-
+                idx = i - 1
                 if _SEALED_PATTERN.search(line) and _has_skip_context_excluding_match(lines, idx):
-                    failures.append(f"{rel}:{i}: claims SEALED but nearby text suggests incomplete verification")
+                    reason = "Status SEALED but nearby text suggests incomplete verification"
+                    failures.append({
+                        "id": _classify_failure(reason),
+                        "file": rel,
+                        "line": i,
+                        "reason": reason,
+                        "why_it_matters": _why_it_matters(reason),
+                        "next_action": _next_action(reason),
+                    })
                 elif _SKIP_NONE_PATTERN.search(line) and _has_skip_context_excluding_match(lines, idx):
-                    failures.append(f"{rel}:{i}: claims 'Skipped: None' but nearby text suggests gate was not run")
+                    reason = "Claims 'Skipped: None' but nearby text suggests gate was not run"
+                    failures.append({
+                        "id": _classify_failure(reason),
+                        "file": rel,
+                        "line": i,
+                        "reason": reason,
+                        "why_it_matters": _why_it_matters(reason),
+                        "next_action": _next_action(reason),
+                    })
                 elif _CLEAN_TREE_PATTERN.search(line):
                     ctx_start = max(0, idx - 5)
                     ctx_end = min(len(lines), idx + 5)
                     ctx_text = "\n".join(lines[ctx_start:ctx_end])
                     safe = re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE)
                     if not safe.search(ctx_text):
-                        failures.append(
-                            f"{rel}:{i}: claims 'clean working tree' — should say 'Tracked working tree clean' if untracked residue exists"
-                        )
-
+                        reason = "Claims 'clean working tree' without acknowledging untracked residue"
+                        failures.append({
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        })
     return failures, scanned
 
 
@@ -182,18 +235,11 @@ def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[str],
 
 
 def run_check(check_id: str, root: Path | None = None) -> dict:
-    """Run a single checker script and return its result dict."""
     script = CHECKER_SCRIPTS[check_id]
     cmd = [sys.executable, str(script)]
     cwd = str(root) if root else str(_BUILTIN_ROOT)
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=cwd,
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=cwd)
         return {
             "id": check_id,
             "label": CHECKER_LABELS[check_id],
@@ -223,7 +269,6 @@ def run_check(check_id: str, root: Path | None = None) -> dict:
 
 
 def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
-    """Run receipt scan on external repo using built-in scanner."""
     failures, scanned = scan_receipt_files(receipt_paths, root)
     if failures:
         return {
@@ -232,7 +277,8 @@ def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
             "status": "FAIL",
             "exit_code": 1,
             "stdout": "",
-            "stderr": "\n".join(failures),
+            "stderr": f"{len(failures)} contradiction(s) in {scanned} receipt(s)",
+            "failures": failures,
         }
     return {
         "id": "receipts",
@@ -244,16 +290,7 @@ def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
     }
 
 
-def run_external_checker(
-    check_id: str,
-    root: Path,
-    mode: str,
-) -> dict:
-    """Run a checker against an external repo.
-
-    For debt/gates/docs: if the expected metadata files exist at the target
-    root, run the checker. Otherwise, return WARN (advisory) or FAIL (strict).
-    """
+def run_external_checker(check_id: str, root: Path, mode: str) -> dict:
     meta_files = {
         "debt": root / "docs" / "governance" / "verification-debt-ledger.jsonl",
         "gates": root / "docs" / "governance" / "verification-gate-manifest.json",
@@ -264,6 +301,8 @@ def run_external_checker(
         return run_check(check_id, root=root)
 
     label = CHECKER_LABELS[check_id]
+    msg = f"Not configured: {need} not found"
+    advice = _WARN_ADVICE.get(check_id, f"Configure {check_id} when ready.")
     if mode == "strict":
         return {
             "id": check_id,
@@ -273,14 +312,14 @@ def run_external_checker(
             "stdout": "",
             "stderr": f"Missing required file: {need}",
         }
-    # advisory / standard → warning, not failure
     return {
         "id": check_id,
         "label": label,
         "status": "WARN",
         "exit_code": -1,
         "stdout": "",
-        "stderr": f"Not configured: {need} not found",
+        "stderr": msg,
+        "next_action": advice,
     }
 
 
@@ -288,7 +327,6 @@ def run_external_checker(
 
 
 def determine_status(results: list[dict]) -> str:
-    """Determine overall status from check results."""
     has_fail = any(r["status"] == "FAIL" for r in results)
     has_warn = any(r["status"] == "WARN" for r in results)
     if has_fail:
@@ -298,76 +336,146 @@ def determine_status(results: list[dict]) -> str:
     return "READY"
 
 
-def build_report(results: list[dict], mode: str, warnings: list[str] | None = None) -> dict:
-    """Build the full report dict (for JSON output)."""
+def build_report(results: list[dict], mode: str, root: str, config_path: str | None) -> dict:
     status = determine_status(results)
-    hard_failures = [
-        {"id": r["id"], "label": r["label"], "stderr": r["stderr"]} for r in results if r["status"] == "FAIL"
-    ]
-    warn_entries = [
-        {"id": r["id"], "label": r.get("label", r["id"]), "message": r.get("stderr", "")}
-        for r in results
-        if r["status"] == "WARN"
-    ]
-    if warnings:
-        for w in warnings:
-            warn_entries.append({"id": "config", "label": "Config", "message": w})
+    hard_failures = []
+    warn_entries = []
+
+    for r in results:
+        if r["status"] == "FAIL":
+            sub_failures = r.get("failures", [])
+            if sub_failures:
+                for sf in sub_failures:
+                    hard_failures.append({
+                        "id": sf["id"],
+                        "check": r["id"],
+                        "file": sf["file"],
+                        "line": sf.get("line", 0),
+                        "reason": sf["reason"],
+                        "why_it_matters": sf["why_it_matters"],
+                        "next_action": sf["next_action"],
+                    })
+            else:
+                hard_failures.append({
+                    "id": r["id"],
+                    "check": r["id"],
+                    "reason": r.get("stderr", "Checker failed"),
+                    "why_it_matters": "A hard verification gate failed.",
+                    "next_action": f"Review {r['label'].lower()} checker output.",
+                })
+        elif r["status"] == "WARN":
+            warn_entries.append({
+                "id": r["id"],
+                "check": r["id"],
+                "reason": r.get("stderr", "Warning"),
+                "next_action": r.get("next_action", f"Configure {r['label'].lower()} when ready."),
+            })
+
     return {
         "tool": "ordivon-verify",
         "schema_version": "0.1",
         "status": status,
         "mode": mode,
+        "root": root,
+        "config": config_path,
         "checks": [
             {
                 "id": r["id"],
                 "status": r["status"],
+                "severity": _severity(r["status"]),
+                "summary": (r["stdout"].split("\n")[-1] if r["stdout"] else (r.get("stderr", "") or "no output")),
                 "exit_code": r["exit_code"],
-                "summary": (r["stdout"].split("\n")[-1] if r["stdout"] else (r["stderr"] or "no output")),
             }
             for r in results
         ],
         "hard_failures": hard_failures,
         "warnings": warn_entries,
+        "disclaimer": DISCLAIMER,
     }
 
 
-def print_human(results: list[dict], warnings: list[str] | None = None) -> None:
-    """Print human-readable report."""
+def _severity(status: str) -> str:
+    if status == "FAIL":
+        return "hard"
+    if status == "WARN":
+        return "warning"
+    return "info"
+
+
+def print_human(results: list[dict], mode: str, root: str, config_path: str | None) -> None:
     status = determine_status(results)
     print("ORDIVON VERIFY")
-    print(f"Status: {status}")
+    print(f"Status:  {status}")
+    print(f"Mode:    {mode}")
+    print(f"Root:    {root}")
+    if config_path:
+        print(f"Config:  {config_path}")
+    print()
+
     print("Checks:")
     for r in results:
         if r["status"] == "PASS":
-            icon = "\u2713"
+            icon, label_status = "\u2713", ""
         elif r["status"] == "WARN":
-            icon = "\u26a0"
+            icon, label_status = "\u26a0", " (not configured)"
         else:
-            icon = "\u2717"
-        print(f"  - {r['label'].lower()}: {icon} {r['status']}")
-    if warnings:
-        print("\nConfig warnings:")
-        for w in warnings:
-            print(f"  - {w}")
+            icon, label_status = "\u2717", ""
+        print(f"  {r['label'].lower()}: {icon} {r['status']}{label_status}")
+
+    # Hard failures
+    failures = [r for r in results if r["status"] == "FAIL"]
+    if failures:
+        print("\nHard failures:")
+        for f in failures:
+            sub = f.get("failures", [])
+            if sub:
+                for sf in sub:
+                    print(f"  {sf['id']}")
+                    print(f"    File:    {sf['file']}")
+                    print(f"    Line:    {sf.get('line', '?')}")
+                    print(f"    Reason:  {sf['reason']}")
+                    print(f"    Why:     {sf['why_it_matters']}")
+                    print(f"    Action:  {sf['next_action']}")
+                    print()
+            else:
+                print(f"  {f['id']}")
+                reason = f.get("stderr", "Checker failed")
+                print(f"    Reason:  {reason}")
+                print()
+
+    # Warnings
+    warns = [r for r in results if r["status"] == "WARN"]
+    if warns:
+        print("Warnings:")
+        for w in warns:
+            print(f"  {w['id']}")
+            print(f"    Reason:  {w.get('stderr', 'Warning')}")
+            na = w.get("next_action", "")
+            if na:
+                print(f"    Action:  {na}")
+            print()
+
+    # Next suggested actions
+    if failures or warns:
+        print("Next suggested action:")
+        if failures:
+            print("  - Fix hard failures above. They block CI / trust.")
+        if warns:
+            print("  - Address warnings before moving to a stricter mode.")
+        print()
+
+    print(DISCLAIMER)
     print()
 
 
 def status_to_exit_code(status: str) -> int:
-    """Map status string to exit code."""
-    if status == "READY":
-        return 0
-    if status == "BLOCKED":
-        return 1
-    if status in ("DEGRADED", "NEEDS_REVIEW"):
-        return 2
-    return 1
+    return {"READY": 0, "BLOCKED": 1, "DEGRADED": 2, "NEEDS_REVIEW": 2}.get(status, 1)
 
 
 # ── CLI argument parsing ────────────────────────────────────────────────
 
 
 def _parse_unknown(parser, unknown: list[str], ns) -> None:
-    """Handle unknown args: --json, --root, --config, --mode."""
     i = 0
     while i < len(unknown):
         u = unknown[i]
@@ -394,13 +502,11 @@ def _parse_unknown(parser, unknown: list[str], ns) -> None:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
         prog="ordivon-verify",
         description="Ordivon Verify — local read-only verification CLI",
     )
     sub = parser.add_subparsers(dest="command", title="commands")
-
     sub.add_parser("all", help="Run all checks (receipts + debt + gates + docs)")
     sub.add_parser("receipts", help="Scan receipts for contradictions")
     sub.add_parser("debt", help="Check debt ledger invariants")
@@ -415,7 +521,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     known, unknown = parser.parse_known_args(argv)
     if unknown:
         _parse_unknown(parser, unknown, known)
-
     return known
 
 
@@ -423,15 +528,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Entry point. Returns exit code 0-4."""
     try:
         args = parse_args(argv)
     except SystemExit:
         return 3
 
     command = args.command or "all"
-
-    # Determine root and mode
     root = Path(args.root).resolve() if args.root else _BUILTIN_ROOT
     if not root.is_dir():
         print(f"Root directory not found: {root}", file=sys.stderr)
@@ -442,25 +544,19 @@ def main(argv: list[str] | None = None) -> int:
 
     mode = args.mode or (config.get("mode", "") if config else "")
     if not mode:
-        # Auto-detect: Ordivon-native = standard, external = advisory
         mode = "standard" if is_ordivon_native(root) else "advisory"
-
     if mode not in ("advisory", "standard", "strict"):
         print(f"Invalid mode: {mode}", file=sys.stderr)
         return 3
 
-    # Validate config if provided
-    config_warnings: list[str] = []
     if config:
         config_errors = validate_config(config)
         if config_errors:
             print(f"Config error: {'; '.join(config_errors)}", file=sys.stderr)
             return 3
     else:
-        # No config loaded — use empty defaults
         config = {}
 
-    # Determine which checks to run
     if command == "all":
         check_ids = list(ALL_CHECKS)
     elif command in CHECKER_SCRIPTS:
@@ -470,15 +566,10 @@ def main(argv: list[str] | None = None) -> int:
         return 3
 
     try:
-        # Check if this is an external repo (not Ordivon-native)
         native = is_ordivon_native(root)
-
         if native and not args.root:
-            # Native Ordivon mode — use existing checkers as before
             results = [run_check(cid) for cid in check_ids]
         else:
-            # External mode — use built-in scanner for receipts,
-            # conditional checker for debt/gates/docs
             results = []
             for cid in check_ids:
                 if cid == "receipts":
@@ -494,20 +585,18 @@ def main(argv: list[str] | None = None) -> int:
                             "stdout": "",
                             "stderr": "No receipt_paths configured",
                         })
-                elif cid == "debt":
-                    results.append(run_external_checker("debt", root, mode))
-                elif cid == "gates":
-                    results.append(run_external_checker("gates", root, mode))
-                elif cid == "docs":
-                    results.append(run_external_checker("docs", root, mode))
+                else:
+                    results.append(run_external_checker(cid, root, mode))
 
         status = determine_status(results)
+        root_str = str(root)
+        cfg_str = str(config_path) if config_path else None
 
         if args.json:
-            report = build_report(results, mode, warnings=config_warnings or None)
+            report = build_report(results, mode, root_str, cfg_str)
             print(json.dumps(report, indent=2))
         else:
-            print_human(results, warnings=config_warnings or None)
+            print_human(results, mode, root_str, cfg_str)
 
         return status_to_exit_code(status)
     except Exception as exc:
