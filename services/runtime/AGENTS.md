@@ -23,6 +23,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
 **DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published
 **PV-1: PROPOSAL** — Ordivon Verify CLI product contract (docs only)
+**PV-2: ACTIVE** — Ordivon Verify CLI skeleton (35 tests, 4 checkers wrapped)
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
@@ -31,7 +32,7 @@ CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
 **pr-fast**: 11/11 hard gates. 94 governance tests. 30 registry entries.
 **Open debt**: none registered (VD-001-004 all closed). Post-DG hygiene CLOSED.
-**Next**: PV-2 CLI Skeleton or Knowledge Navigation / Wiki Extension.
+**Next**: PV-3 external repo dogfood or CLI hardening.
 
 ## Critical Boundaries
 
