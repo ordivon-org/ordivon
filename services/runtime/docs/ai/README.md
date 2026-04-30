@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: Phase DG-6 (2026-04-30)
-> **Active phase**: Phase 7P — CLOSED | DG-6 — ACTIVE (Wiki Navigation Prototype)
-> **Next**: DG-7 — CI freshness automation
+> **Last updated**: Phase DG-6B (2026-04-30)
+> **Active phase**: Phase 7P — CLOSED | DG-6B — ACTIVE (Verification Debt + Receipt Integrity)
+> **Next**: DG-6C — Stage Summit / DG Pack closure
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 

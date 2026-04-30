@@ -122,6 +122,8 @@ def run_all_gates() -> BaselineSummary:
     wave_files = [
         str(SCRIPTS / "run_verification_baseline.py"),
         str(SCRIPTS / "check_document_registry.py"),
+        str(SCRIPTS / "check_verification_debt.py"),
+        str(SCRIPTS / "check_receipt_integrity.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -355,6 +357,8 @@ def run_pr_fast_gates() -> BaselineSummary:
     wave_files = [
         str(SCRIPTS / "run_verification_baseline.py"),
         str(SCRIPTS / "check_document_registry.py"),
+        str(SCRIPTS / "check_verification_debt.py"),
+        str(SCRIPTS / "check_receipt_integrity.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
@@ -405,6 +409,26 @@ def run_pr_fast_gates() -> BaselineSummary:
             "hard",
             "L6",
             [python, str(SCRIPTS / "check_document_registry.py")],
+        )
+    )
+
+    # ── Layer 7: Verification Debt Ledger ────────────────────
+    summary.results.append(
+        _run_gate(
+            "Verification debt ledger",
+            "hard",
+            "L7A",
+            [python, str(SCRIPTS / "check_verification_debt.py")],
+        )
+    )
+
+    # ── Layer 7: Receipt Integrity ───────────────────────────
+    summary.results.append(
+        _run_gate(
+            "Receipt integrity",
+            "hard",
+            "L7B",
+            [python, str(SCRIPTS / "check_receipt_integrity.py")],
         )
     )
 

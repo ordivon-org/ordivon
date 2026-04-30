@@ -16,23 +16,22 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md  Phase 7P closure
 ```
 
-## Current Status — Phase 7P: CLOSED | DG-6A-S: ACTIVE
+## Current Status — Phase 7P: CLOSED | DG-6B: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG-1-DG-6A: COMPLETE** (Document Governance Pack through Ontology Consolidation)
-**DG-6A-S: ACTIVE** — Ontology Registry Landing + Metadata Checker
+**DG-1-DG-6A-S: COMPLETE** (Document Governance Pack through Ontology Landing)
+**DG-6B: ACTIVE** — Verification Debt Ledger + Receipt Integrity Checker
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
-204 backend tests. 57 frontend tests. 8/8 baseline.
+204 backend tests. 57 frontend tests. 10/10 baseline (DG-6B adds debt + receipt gates).
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**Active work**: DG-6A-S — landing ontology into registry with structural metadata.
-29 registry entries (ontology added). structural_layers + governance_planes fields.
-40 checker tests. Ontology is machine-checkable source_of_truth.
-**Next**: DG-6B — Verification Debt Ledger + Receipt Integrity.
+**Active work**: DG-6B — meta-verification layer. Debt ledger (3 initial entries).
+Receipt integrity checker (7 hard-fail patterns). 29 new tests. pr-fast 8→10 gates.
+**Next**: DG-6C — Stage Summit / DG Pack closure.
 
 ## Critical Boundaries
 

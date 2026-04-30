@@ -25,9 +25,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-5** | **COMPLETE** | Baseline Integration — document checker in pr-fast (8/8 gates) |
 | **DG-6** | **COMPLETE** | Wiki Navigation Prototype — registry-derived wiki-index.md |
 | **DG-6A** | **COMPLETE** | Core/Pack/Adapter Ontology Consolidation |
-| **DG-6A-S** | **ACTIVE** | Ontology Registry Landing + Metadata Checker — 29 entries, 40 tests |
+| **DG-6A-S** | **COMPLETE** | Ontology Registry Landing + Metadata Checker — 29 entries, 40 tests |
+| **DG-6B** | **ACTIVE** | Verification Debt Ledger + Receipt Integrity — 10/10 baseline |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
-| DG-6B | **NEXT** | Verification Debt Ledger + Receipt Integrity Checker |
+| DG-6C | **NEXT** | Stage Summit / DG Pack closure |
 
 ## 2. Corrected Phase 7 Path
 
