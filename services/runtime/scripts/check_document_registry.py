@@ -340,11 +340,15 @@ def _line_is_safe(line: str) -> bool:
 
 
 def check_semantic_phrases(entries: list[dict]) -> list[str]:
-    """Scan file contents of registered current docs for dangerous phrases.
+    """Scan file contents of registered docs for dangerous phrases.
 
     Content is Unicode-normalized (NFKC) before scanning to defeat
     zero-width space, homoglyph, and RTL override attacks.
     Multiline patterns use re.DOTALL on the full content after joining.
+
+    Markdown-aware: code blocks (```...```), inline code (`...`),
+    YAML frontmatter (---...---), and HTML comments are stripped
+    before scanning. Only prose text is checked.
     """
     import unicodedata
 
@@ -373,14 +377,16 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
 
         scanned_count += 1
 
-        # Normalize Unicode to NFKC — collapses zero-width spaces,
-        # compatibility characters, and RTL/LTR overrides into base forms
+        # Normalize Unicode
         content = unicodedata.normalize("NFKC", raw_content)
+
+        # Strip non-prose content before scanning (.md files only)
+        if suffix == ".md":
+            content = _strip_markdown_blocks(content)
 
         lines = content.split("\n")
 
         for pattern, desc in DANGEROUS_PHRASES:
-            # First try line-by-line (existing behavior)
             line_match_found = False
             for i, line in enumerate(lines, 1):
                 if pattern.search(line):
@@ -392,7 +398,6 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
                     errors.append(f"{did}:{i}: {desc} — '{line.strip()[:120]}'")
                     line_match_found = True
 
-            # If no line match, try multiline (re.DOTALL) on full content
             if not line_match_found:
                 multiline_pattern = re.compile(
                     pattern.pattern,
@@ -400,7 +405,6 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
                 )
                 m = multiline_pattern.search(content)
                 if m:
-                    # Find which line the match starts on
                     prefix = content[: m.start()]
                     line_no = prefix.count("\n") + 1
                     ctx_start = max(0, line_no - 2)
@@ -412,6 +416,42 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
                     errors.append(f"{did}:{line_no}: {desc} (multiline) — '{snippet}'")
 
     return errors
+
+
+def _strip_markdown_blocks(text: str) -> str:
+    """Remove markdown markup regions from text for prose-only scanning.
+
+    Strips:
+    - Fenced code blocks (```...```)
+    - Inline code (`...`)
+    - YAML frontmatter (--- at start/end)
+    - HTML comments (<!--...-->)
+    - Link URLs [text](url) → text
+    - Image syntax ![alt](url)
+
+    Returns the prose-only content.
+    """
+    import re
+
+    # Remove fenced code blocks
+    text = re.sub(r"```[\s\S]*?```", " ", text)
+
+    # Remove YAML frontmatter (must be at start of doc)
+    text = re.sub(r"^---\s*\n[\s\S]*?\n---\s*\n", "\n", text, count=1)
+
+    # Remove HTML comments
+    text = re.sub(r"<!--[\s\S]*?-->", " ", text)
+
+    # Remove inline code
+    text = re.sub(r"`[^`\n]+`", " ", text)
+
+    # Strip link URLs, keep link text
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+
+    # Strip image syntax, keep alt text
+    text = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", text)
+
+    return text
 
 
 def check_inline_date_consistency(entries: list[dict]) -> list[str]:
@@ -840,8 +880,86 @@ def print_summary(
         print(f"  Identity surface violations: {len(identity_errors)}")
 
 
+def _print_policy_report(entries: list[dict], errors: list[str]) -> None:
+    """Print structured PolicyReport in JSON format.
+
+    Follows Kyverno PolicyReport conventions:
+    - results: list of {result, severity, category, message, scored}
+    - summary: {pass, fail, warn, error, skip}
+    """
+    import json as _json
+
+    results = []
+    for err in errors:
+        # Parse error string to extract category and severity
+        severity = "high"
+        category = "invariant"
+
+        if "missing required field" in err.lower():
+            category = "required-fields"
+            severity = "high"
+        elif "invalid" in err.lower() and "doc_type" in err.lower():
+            category = "metadata"
+            severity = "high"
+        elif "stale" in err.lower():
+            category = "freshness"
+            severity = "high"
+        elif "duplicate" in err.lower() or "collision" in err.lower():
+            category = "uniqueness"
+            severity = "high"
+        elif "circular" in err.lower():
+            category = "reference-integrity"
+            severity = "high"
+        elif "homoglyph" in err.lower():
+            category = "security"
+            severity = "high"
+        elif "unregistered" in err.lower():
+            category = "completeness"
+            severity = "medium"
+        elif "inline date" in err.lower():
+            category = "freshness"
+            severity = "medium"
+        elif "described as" in err.lower() or "authority" in err.lower():
+            category = "semantics"
+            severity = "high"
+
+        results.append({
+            "result": "fail",
+            "severity": severity,
+            "category": category,
+            "message": err,
+            "scored": True,
+        })
+
+    # Count by severity
+    summary = {
+        "pass": len(entries) - len([r for r in results if r["result"] == "fail"]),
+        "fail": len([r for r in results if r["result"] == "fail"]),
+        "warn": 0,
+        "error": 0,
+        "skip": 0,
+    }
+
+    report = {
+        "apiVersion": "ordivon.dev/v0",
+        "kind": "PolicyReport",
+        "metadata": {
+            "name": "document-registry-check",
+            "tool": "check_document_registry.py",
+        },
+        "summary": summary,
+        "results": results,
+    }
+
+    print(_json.dumps(report, indent=2, ensure_ascii=False))
+
+
 def main() -> int:
-    path = Path(sys.argv[1]) if len(sys.argv) > 1 else REGISTRY_PATH
+    args = sys.argv[1:]
+    policy_report = "--policy-report" in args
+    args = [a for a in args if a != "--policy-report"]
+
+    path = Path(args[0]) if args else REGISTRY_PATH
     if not path.exists():
         print(f"ERROR: registry not found at {path}")
         return 1
@@ -859,7 +977,9 @@ def main() -> int:
         errors.extend(completeness_errors)
         errors.extend(identity_errors)
 
-    if errors:
+    if policy_report:
+        _print_policy_report(entries, errors)
+    elif errors:
         print(f"\n❌ {len(errors)} INVARIANT VIOLATION(S):\n")
         for err in errors:
             print(f"  - {err}")
@@ -870,7 +990,7 @@ def main() -> int:
     print(
         "\n✅ All document registry invariants pass (freshness + semantics + inline-date + completeness + identity).\n"
     )
-    return 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

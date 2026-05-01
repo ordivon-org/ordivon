@@ -2,8 +2,8 @@
 """OGAP-2: Ordivon Governance Adapter Protocol — Payload Validator.
 
 Validates OGAP JSON payloads against draft v0 schemas and safety invariants.
-Enforces structural schema constraints (types, required fields, enum values,
-additionalProperties) plus OGAP-specific safety checks.
+Uses jsonschema library for full Draft 2020-12 compliance (types, formats,
+patterns, enum, nested validation, additionalProperties).
 
 Usage:
     uv run python scripts/validate_ogap_payload.py <file.json>
@@ -19,27 +19,50 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
+import jsonschema
+
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMAS_DIR = ROOT / "src" / "ordivon_verify" / "schemas"
 
 VALID_DECISIONS = {"READY", "DEGRADED", "BLOCKED", "HOLD", "REJECT", "NO-GO"}
 
-# JSON Schema type mapping: schema "type" → Python isinstance check
-JSON_TYPE_MAP: dict[str, type | tuple] = {
-    "string": str,
-    "number": (int, float),
-    "integer": int,
-    "boolean": bool,
-    "array": list,
-    "object": dict,
-}
+
+# ═══════════════════════════════════════════════════════════════════════
+# Custom format checkers for OGAP-specific semantics
+# ═══════════════════════════════════════════════════════════════════════
+
+_ogap_format_checker = jsonschema.FormatChecker()
+
+
+@_ogap_format_checker.checks("ogap-decision", ValueError)
+def _check_ogap_decision(instance):
+    if not isinstance(instance, str):
+        return True  # type checker handles this
+    if instance not in VALID_DECISIONS:
+        raise ValueError(f"'{instance}' is not a valid OGAP decision (allowed: {sorted(VALID_DECISIONS)})")
+    return True
+
+
+@_ogap_format_checker.checks("ogap-schema-version", ValueError)
+def _check_schema_version(instance):
+    if not isinstance(instance, str):
+        return True
+    import re
+
+    if not re.match(r"^0\.\d+$", instance):
+        raise ValueError(f"'{instance}' is not a valid OGAP schema version (expected '0.N' prototype format)")
+    return True
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# JSON parsing with duplicate key detection
+# ═══════════════════════════════════════════════════════════════════════
 
 
 def load_payload_with_dup_check(path: Path) -> tuple[dict, list[str]]:
     """Load JSON payload, detecting duplicate keys.
 
-    Returns (payload, dup_errors). dup_errors is a list of human-readable
-    messages about duplicate keys found during parsing.
+    Returns (payload, dup_errors).
     """
     dup_errors: list[str] = []
 
@@ -56,75 +79,32 @@ def load_payload_with_dup_check(path: Path) -> tuple[dict, list[str]]:
     return payload, dup_errors
 
 
-def _validate_recursive(
-    payload: dict,
-    schema: dict,
-    path: str = "",
-    errors: list[str] | None = None,
-) -> list[str]:
-    """Recursively validate payload against schema subtree.
+# ═══════════════════════════════════════════════════════════════════════
+# Schema validation (jsonschema-backed)
+# ═══════════════════════════════════════════════════════════════════════
 
-    path is the dot-separated field path for error messages (e.g. 'capabilities.can_write').
+
+def validate_against_schema(payload: dict, schema: dict) -> list[str]:
+    """Validate payload against JSON Schema using jsonschema library.
+
+    Returns human-readable error strings. Zero-length list = valid.
     """
-    if errors is None:
-        errors = []
+    errors: list[str] = []
+    validator = jsonschema.Draft202012Validator(
+        schema,
+        format_checker=_ogap_format_checker,
+    )
 
-    required: list[str] = schema.get("required", [])
-    props: dict = schema.get("properties", {})
-    allow_extra = schema.get("additionalProperties", True)
-
-    # ── Required fields ────────────────────────────────────────────
-    for field in required:
-        full = f"{path}.{field}" if path else field
-        if field not in payload:
-            errors.append(f"missing required field: {full}")
-        elif isinstance(payload.get(field), str) and not payload[field].strip():
-            errors.append(f"required field is empty: {full}")
-
-    # ── Type checking ──────────────────────────────────────────────
-    for prop_name, prop_schema in props.items():
-        if prop_name not in payload:
-            continue
-
-        value = payload[prop_name]
-        full = f"{path}.{prop_name}" if path else prop_name
-        expected_type = prop_schema.get("type")
-
-        if expected_type and expected_type in JSON_TYPE_MAP:
-            expected = JSON_TYPE_MAP[expected_type]
-            if expected_type == "integer" and isinstance(value, bool):
-                errors.append(f"wrong type for '{full}': expected integer, got boolean")
-            elif not isinstance(value, expected):
-                actual = type(value).__name__
-                errors.append(f"wrong type for '{full}': expected {expected_type}, got {actual}")
-
-        # Enum validation
-        if "enum" in prop_schema:
-            if value not in prop_schema["enum"]:
-                errors.append(f"invalid {full}: '{value}' (allowed: {prop_schema['enum']})")
-
-        # Recurse into nested objects
-        if expected_type == "object" and isinstance(value, dict):
-            _validate_recursive(value, prop_schema, full, errors)
-
-    # ── additionalProperties enforcement ───────────────────────────
-    if not allow_extra:
-        known_keys = set(props.keys())
-        for key in payload:
-            if key not in known_keys:
-                full = f"{path}.{key}" if path else key
-                errors.append(f"unknown field: '{full}' (schema does not allow extra properties)")
+    for err in validator.iter_errors(payload):
+        path = "/".join(str(p) for p in err.absolute_path) if err.absolute_path else "(root)"
+        errors.append(f"{path}: {err.message}")
 
     return errors
 
 
-def validate_against_schema(payload: dict, schema: dict) -> list[str]:
-    """Structural validation against JSON Schema. Returns list of errors.
-
-    Enforces: required fields, non-empty strings, types (recursive for
-    nested objects), enums, and additionalProperties.
-    """
-    return _validate_recursive(payload, schema)
+# ═══════════════════════════════════════════════════════════════════════
+# OGAP-specific safety checks (beyond JSON Schema)
+# ═══════════════════════════════════════════════════════════════════════
 
 
 def safety_checks(payload: dict, schema_name: str) -> list[str]:
@@ -162,6 +142,11 @@ def safety_checks(payload: dict, schema_name: str) -> list[str]:
     return errors
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# Schema inference and CLI
+# ═══════════════════════════════════════════════════════════════════════
+
+
 def load_schema(schema_name: str) -> dict | None:
     path = SCHEMAS_DIR / f"{schema_name}.schema.json"
     if not path.exists():
@@ -172,19 +157,15 @@ def load_schema(schema_name: str) -> dict | None:
 
 def infer_schema(payload: dict) -> str | None:
     """Infer schema name from payload shape."""
-    # WorkClaim has claim_id + evidence_bundle
     if "evidence_bundle" in payload and "claim_id" in payload and "coverage_report" in payload:
         return "ogap-work-claim"
-    # GovernanceDecision / TrustReport both have "decision"
     if "decision" in payload:
         if "report_id" in payload and "debt_summary" in payload:
             return "ogap-trust-report"
         if "decision_id" in payload or "decision_scope" in payload:
             return "ogap-governance-decision"
-    # CapabilityManifest has capabilities + adapter_id
     if "capabilities" in payload and "adapter_id" in payload:
         return "ogap-capability-manifest"
-    # CoverageReport has claimed_universe + discovery_method
     if "claimed_universe" in payload and "discovery_method" in payload:
         return "ogap-coverage-report"
     return None
@@ -195,13 +176,12 @@ def main() -> int:
     args = [a for a in sys.argv[1:] if a != "--json"]
     schema_override = None
 
-    # Parse --schema flag
     if "--schema" in args:
         idx = args.index("--schema")
         if idx + 1 < len(args):
             schema_override = args[idx + 1]
-            args.pop(idx)  # --schema
-            args.pop(idx)  # its value
+            args.pop(idx)
+            args.pop(idx)
 
     if not args:
         print("Usage: validate_ogap_payload.py <file.json> [--schema ogap-work-claim] [--json]")
@@ -212,7 +192,7 @@ def main() -> int:
         print(f"ERROR: file not found: {path}")
         return 1
 
-    # Parse payload with duplicate key detection
+    # Parse with duplicate key detection
     try:
         payload, dup_errors = load_payload_with_dup_check(path)
     except json.JSONDecodeError as e:

@@ -185,7 +185,7 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"Duplicate keys should fail: {r.stdout}"
-        assert "duplicate key" in r.stdout.lower()
+        assert "duplicate key" in r.stdout.lower() or "duplicate" in r.stdout.lower()
 
     def test_extra_properties_rejected(self):
         """Payload with unknown fields must be rejected (additionalProperties: false)."""
@@ -202,7 +202,7 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"Extra field should fail: {r.stdout}"
-        assert "unknown field" in r.stdout.lower()
+        assert "additional" in r.stdout.lower() or "unknown" in r.stdout.lower()
 
     def test_wrong_type_rejected(self):
         """Field with wrong JSON type must be rejected."""
@@ -219,7 +219,7 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"Wrong type should fail: {r.stdout}"
-        assert "wrong type" in r.stdout.lower()
+        assert "not of type" in r.stdout.lower() or "wrong type" in r.stdout.lower()
 
     def test_null_for_required_string_rejected(self):
         """null for a required string field must be rejected."""
@@ -236,7 +236,7 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"null should fail: {r.stdout}"
-        assert "wrong type" in r.stdout.lower()
+        assert "not of type" in r.stdout.lower() or "wrong type" in r.stdout.lower()
 
     def test_boolean_as_string_rejected(self):
         """String 'true' for a boolean field must be rejected."""
@@ -253,7 +253,7 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"String bool should fail: {r.stdout}"
-        assert "wrong type" in r.stdout.lower()
+        assert "not of type" in r.stdout.lower() or "wrong type" in r.stdout.lower()
 
     def test_array_for_object_rejected(self):
         """Array where object expected must be rejected."""
@@ -270,4 +270,4 @@ class TestValidatorSecurity:
             cwd=str(ROOT),
         )
         assert r.returncode != 0, f"Array should fail: {r.stdout}"
-        assert "wrong type" in r.stdout.lower()
+        assert "not of type" in r.stdout.lower() or "wrong type" in r.stdout.lower()

@@ -26,7 +26,8 @@ dependencies = [
   "opentelemetry-sdk>=1.38.0",
   "python-dotenv>=1.0.1",
   "sentry-sdk[fastapi]>=2.58.0",
-  "pytz"
+  "pytz",
+  "jsonschema>=4.26.0",
 ]
 
 [project.optional-dependencies]
