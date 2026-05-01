@@ -1,0 +1,257 @@
+{
+  "schema_version": "0.1",
+  "description": "File manifest for Ordivon Verify public-wedge package context.",
+  "package_name": "ordivon-verify",
+  "package_version": "0.1.0",
+  "maturity": "prototype",
+  "entries": [
+    {
+      "source": "src/ordivon_verify",
+      "target": "src/ordivon_verify",
+      "include": true,
+      "classification": "package_code",
+      "required": true,
+      "reason": "Core package source — required for package to function"
+    },
+    {
+      "source": "src/ordivon_verify/schemas",
+      "target": "schemas",
+      "include": true,
+      "classification": "schema",
+      "required": true,
+      "reason": "Prototype schemas — public package needs at top level"
+    },
+    {
+      "source": "scripts/ordivon_verify.py",
+      "target": "ordivon_verify.py",
+      "include": true,
+      "classification": "package_code",
+      "required": true,
+      "reason": "CLI wrapper entrypoint"
+    },
+    {
+      "source": "examples/ordivon-verify/quickstart",
+      "target": "examples/quickstart",
+      "include": true,
+      "classification": "example",
+      "required": true,
+      "reason": "Quickstart fixture for new users"
+    },
+    {
+      "source": "examples/ordivon-verify/github-action.yml.example",
+      "target": "examples/github-action.yml.example",
+      "include": true,
+      "classification": "example",
+      "required": false,
+      "reason": "CI integration example"
+    },
+    {
+      "source": "tests/unit/product/test_ordivon_verify_schemas.py",
+      "target": "tests/unit/test_schemas.py",
+      "include": true,
+      "classification": "test",
+      "required": false,
+      "reason": "Schema tests for local confidence"
+    },
+    {
+      "source": "tests/unit/product/test_ordivon_verify_quickstart_example.py",
+      "target": "tests/unit/test_quickstart.py",
+      "include": true,
+      "classification": "test",
+      "required": false,
+      "reason": "Quickstart fixture tests"
+    },
+    {
+      "source": "tests/fixtures",
+      "target": "tests/fixtures",
+      "include": true,
+      "classification": "test",
+      "required": true,
+      "reason": "External repo test fixtures — core verification survival kit"
+    },
+    {
+      "source": "docs/product/ordivon-verify-public-quickstart-v0.md",
+      "target": "docs/quickstart.md",
+      "include": true,
+      "classification": "public_doc",
+      "required": true,
+      "reason": "Public quickstart guide"
+    },
+    {
+      "source": "docs/product/ordivon-verify-release-readiness-checklist.md",
+      "target": "docs/release-readiness.md",
+      "include": true,
+      "classification": "public_doc",
+      "required": false,
+      "reason": "Release readiness notes — informational for early adopters"
+    },
+    {
+      "source": "docs/ai/agent-output-contract.md",
+      "target": "docs/agent-output-contract.md",
+      "include": true,
+      "classification": "public_doc",
+      "required": false,
+      "reason": "Agent output contract — shows governance methodology"
+    },
+    {
+      "source": "skills/ordivon-verify/SKILL.md",
+      "target": "skills/SKILL.md",
+      "include": true,
+      "classification": "public_doc",
+      "required": false,
+      "reason": "Skill definition for Hermes Agent integration"
+    },
+    {
+      "source": "README.md",
+      "target": "",
+      "include": false,
+      "classification": "excluded_private_core",
+      "required": false,
+      "reason": "Private Ordivon README — public wedge gets generated README"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "",
+      "include": false,
+      "classification": "excluded_private_core",
+      "required": false,
+      "reason": "Private agent context — public repo gets minimal version"
+    },
+    {
+      "source": "pyproject.toml",
+      "target": "",
+      "include": false,
+      "classification": "excluded_private_core",
+      "required": false,
+      "reason": "Private root pyproject — includes all dependencies; public wedge gets minimal"
+    },
+    {
+      "source": "docs/governance",
+      "target": "",
+      "include": false,
+      "classification": "excluded_internal_receipt",
+      "required": false,
+      "reason": "Governance pack history — not public wedge"
+    },
+    {
+      "source": "docs/runtime",
+      "target": "",
+      "include": false,
+      "classification": "excluded_internal_receipt",
+      "required": false,
+      "reason": "Runtime receipts and paper trade history"
+    },
+    {
+      "source": "docs/ai",
+      "target": "",
+      "include": false,
+      "classification": "excluded_internal_receipt",
+      "required": false,
+      "reason": "AI onboarding docs — internal governance"
+    },
+    {
+      "source": "docs/architecture",
+      "target": "",
+      "include": false,
+      "classification": "excluded_internal_receipt",
+      "required": false,
+      "reason": "Architecture docs — private core design"
+    },
+    {
+      "source": "docs/product/ordivon-verify-public-repo-file-manifest.json",
+      "target": "",
+      "include": false,
+      "classification": "excluded_internal_receipt",
+      "required": false,
+      "reason": "Repo manifest — internal tooling, not package content"
+    },
+    {
+      "source": "adapters",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Adapter layer — private core infrastructure"
+    },
+    {
+      "source": "domains",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Domain models — private core"
+    },
+    {
+      "source": "orchestrator",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Orchestrator — private core"
+    },
+    {
+      "source": "capabilities",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Capabilities layer — private core"
+    },
+    {
+      "source": "intelligence",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Intelligence layer — private core"
+    },
+    {
+      "source": "apps",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Web apps — private core"
+    },
+    {
+      "source": "policies",
+      "target": "",
+      "include": false,
+      "classification": "excluded_legacy_runtime",
+      "required": false,
+      "reason": "Policies — private core"
+    },
+    {
+      "source": "adapters/finance",
+      "target": "",
+      "include": false,
+      "classification": "excluded_finance_broker",
+      "required": false,
+      "reason": "Finance adapters — not Ordivon Verify"
+    },
+    {
+      "source": "tests/unit/finance",
+      "target": "",
+      "include": false,
+      "classification": "excluded_finance_broker",
+      "required": false,
+      "reason": "Finance tests — not Ordivon Verify"
+    },
+    {
+      "source": "tests/integration",
+      "target": "",
+      "include": false,
+      "classification": "excluded_finance_broker",
+      "required": false,
+      "reason": "Integration tests — not Ordivon Verify"
+    },
+    {
+      "source": "tests/contracts",
+      "target": "",
+      "include": false,
+      "classification": "excluded_finance_broker",
+      "required": false,
+      "reason": "Contract tests — not Ordivon Verify"
+    }
+  ]
+}
