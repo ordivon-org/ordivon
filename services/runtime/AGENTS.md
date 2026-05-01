@@ -10,6 +10,7 @@ docs/ai/ordivon-root-context.md          Identity + governance doctrine
 docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries
 docs/ai/agent-output-contract.md         Required output shape for every AI task
 docs/architecture/ordivon-core-pack-adapter-ontology.md  Canonical Core/Pack/Adapter ontology
+docs/architecture/ordivon-moat-and-product-identity.md  What is inalienable, what is not, where the moat is
 docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
