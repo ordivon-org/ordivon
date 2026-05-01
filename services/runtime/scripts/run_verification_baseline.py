@@ -157,6 +157,16 @@ def run_all_gates() -> BaselineSummary:
         )
     )
 
+    # ── Layer 4A: Coverage Governance ──────────────────────
+    summary.results.append(
+        _run_gate(
+            "Coverage governance",
+            "hard",
+            "L4",
+            [python, str(SCRIPTS / "check_coverage_governance.py")],
+        )
+    )
+
     # ── Layer 5: Runtime Evidence (Static) ──────────────────
     summary.results.append(
         _run_gate(
@@ -389,6 +399,16 @@ def run_pr_fast_gates() -> BaselineSummary:
             "hard",
             "L4",
             [python, str(SCRIPTS / "check_architecture.py")],
+        )
+    )
+
+    # ── Layer 4A: Coverage Governance ──────────────────────
+    summary.results.append(
+        _run_gate(
+            "Coverage governance",
+            "hard",
+            "L4",
+            [python, str(SCRIPTS / "check_coverage_governance.py")],
         )
     )
 

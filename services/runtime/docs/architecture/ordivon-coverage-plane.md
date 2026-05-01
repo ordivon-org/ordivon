@@ -51,6 +51,35 @@ Governance maturity = migrating objects leftward and downward through this matri
    project identity (package metadata, README, config headers) are governance
    objects, not raw configuration.
 
+## COV-1 Generalization
+
+The coverage plane graduated from a DG-specific check to a cross-Ordivon
+governance contract in COV-1:
+
+- `docs/governance/coverage-governance-contract.md` — 6 invariants, checker
+  responsibility model, known/unknown quadrant model
+- `docs/governance/checker-coverage-manifest.json` — 10 checkers, each declaring
+  universe, discovery method, exclusion policy, known gaps
+- `scripts/check_coverage_governance.py` — validates the manifest; 12th hard gate
+- 15 tests in `tests/unit/governance/test_coverage_governance.py`
+
+Every checker must now declare:
+- What universe it claims to cover
+- How it discovers objects in that universe
+- What its exclusion policy is
+- What known gaps remain
+- What its PASS scope statement is
+
+## Core Candidate Principles
+
+These have been promoted from DG-specific to Core governance principles:
+
+1. **Coverage precedes confidence.**
+2. **PASS is scoped.**
+3. **Silent omission is not governance.**
+4. **A checker is only as trustworthy as its discovery model.**
+5. **Registry must reconcile with repository reality.**
+
 ## Future: Cross-Pack Coverage
 
 The coverage plane is currently implemented inside the Document Governance checker.

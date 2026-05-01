@@ -1106,6 +1106,27 @@
       "classification": "pending_registration",
       "owner": "PV-N8",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/coverage-governance-contract.md",
+      "reason": "COV-1 artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "COV-1",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/checker-coverage-manifest.json",
+      "reason": "COV-1 artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "COV-1",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/coverage-aware-governance-cov-1.md",
+      "reason": "COV-1 artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "COV-1",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }

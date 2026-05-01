@@ -85,11 +85,7 @@ same problem in a different checker — unfixed.
 
 ```python
 # Current (rots):
-wave_files = [
-    "run_verification_baseline.py",
-    "check_document_registry.py",
-    ...
-]
+wave_files = ["run_verification_baseline.py", "check_document_registry.py", ...]
 
 # Should be:
 wave_files = discover_python_files([

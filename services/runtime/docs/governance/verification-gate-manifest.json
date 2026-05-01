@@ -4,8 +4,8 @@
   "version": "1.1",
   "status": "current",
   "authority": "source_of_truth",
-  "last_verified": "2026-04-30",
-  "gate_count": 11,
+  "last_verified": "2026-05-01",
+  "gate_count": 12,
   "gates": [
     {
       "gate_id": "ruff_check",
@@ -41,6 +41,17 @@
       "protects_against": "Core/Pack/Adapter import violations"
     },
     {
+      "gate_id": "coverage_governance",
+      "display_name": "Coverage governance",
+      "layer": "L4",
+      "hardness": "hard",
+      "command": "python scripts/check_coverage_governance.py",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate checker coverage manifest",
+      "protects_against": "silent scope decay, enumeration drift, coverage gaps"
+    },
+    {
       "gate_id": "runtime_evidence",
       "display_name": "Runtime evidence integrity",
       "layer": "L5",
@@ -64,7 +75,7 @@
     },
     {
       "gate_id": "repo_cli_valid_execute",
-      "display_name": "Repo CLI smoke (valid\u2192execute)",
+      "display_name": "Repo CLI smoke (valid→execute)",
       "layer": "L10",
       "hardness": "hard",
       "command": "python scripts/repo_governance_cli.py --task-description 'Fix unit test naming' --file-path tests/unit/test_example.py --estimated-impact low --reasoning 'Small test-only cleanup' --test-plan 'uv run pytest tests/unit/test_example.py' --json",
@@ -75,7 +86,7 @@
     },
     {
       "gate_id": "repo_cli_forbidden_reject",
-      "display_name": "Repo CLI smoke (forbidden\u2192reject)",
+      "display_name": "Repo CLI smoke (forbidden→reject)",
       "layer": "L10",
       "hardness": "hard",
       "command": "python scripts/repo_governance_cli.py --task-description 'Update environment secret' --file-path .env --estimated-impact low --reasoning 'Dangerous secret change' --test-plan 'manual review' --json",
