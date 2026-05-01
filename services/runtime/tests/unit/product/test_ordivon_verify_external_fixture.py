@@ -9,19 +9,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.ordivon_verify import (
+from ordivon_verify import (
     load_config,
     validate_config,
-    is_ordivon_native,
     scan_receipt_files,
     run_external_receipts,
     run_external_checker,
     determine_status,
     build_report,
     main,
-    _BUILTIN_ROOT,
 )
 
+from ordivon_verify.config import is_ordivon_native
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_external_repo"
 
@@ -74,7 +73,10 @@ def test_validate_config_not_dict():
 
 
 def test_ordivon_native_returns_true():
-    assert is_ordivon_native(_BUILTIN_ROOT) is True
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    assert is_ordivon_native(root) is True
 
 
 def test_external_fixture_not_native():

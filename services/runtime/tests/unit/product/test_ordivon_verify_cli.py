@@ -11,16 +11,15 @@ import subprocess
 import sys
 from unittest.mock import MagicMock
 
-from scripts.ordivon_verify import (
+from ordivon_verify import (
     run_check,
     determine_status,
     build_report,
     status_to_exit_code,
     parse_args,
     main,
-    CHECKER_SCRIPTS,
-    ALL_CHECKS,
 )
+from ordivon_verify.runner import CHECKER_SCRIPTS, ALL_CHECKS
 
 
 # ── Unit: status_to_exit_code ────────────────────────────────────────────
@@ -252,7 +251,7 @@ def _mock_run_fail(check_id: str) -> dict:
 
 def test_main_all_passes(monkeypatch, capsys):
     """main(['all']) with all checks passing -> exit 0, status READY."""
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", _mock_run_pass)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", _mock_run_pass)
     exit_code = main(["all"])
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -268,7 +267,7 @@ def test_main_all_one_fail(monkeypatch, capsys):
             return _mock_run_fail(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", mixed_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", mixed_run)
     exit_code = main(["all"])
     assert exit_code == 1
     captured = capsys.readouterr()
@@ -283,7 +282,7 @@ def test_main_receipts_command(monkeypatch, capsys):
         calls.append(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", track_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main(["receipts"])
     assert exit_code == 0
     assert calls == ["receipts"]
@@ -297,7 +296,7 @@ def test_main_debt_command(monkeypatch):
         calls.append(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", track_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main(["debt"])
     assert exit_code == 0
     assert calls == ["debt"]
@@ -311,7 +310,7 @@ def test_main_gates_command(monkeypatch):
         calls.append(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", track_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main(["gates"])
     assert exit_code == 0
     assert calls == ["gates"]
@@ -325,7 +324,7 @@ def test_main_docs_command(monkeypatch):
         calls.append(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", track_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main(["docs"])
     assert exit_code == 0
     assert calls == ["docs"]
@@ -339,7 +338,7 @@ def test_main_default_maps_to_all(monkeypatch):
         calls.append(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", track_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main([])
     assert exit_code == 0
     assert calls == ALL_CHECKS
@@ -347,7 +346,7 @@ def test_main_default_maps_to_all(monkeypatch):
 
 def test_main_json_output_all_pass(monkeypatch, capsys):
     """main(['all', '--json']) emits valid JSON with required fields."""
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", _mock_run_pass)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", _mock_run_pass)
     exit_code = main(["all", "--json"])
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -367,7 +366,7 @@ def test_main_json_output_one_fail(monkeypatch, capsys):
             return _mock_run_fail(check_id)
         return _mock_run_pass(check_id)
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", mixed_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", mixed_run)
     exit_code = main(["all", "--json"])
     assert exit_code == 1
     captured = capsys.readouterr()
@@ -395,13 +394,13 @@ def test_main_runtime_exception(monkeypatch):
             "stderr": "",
         }
 
-    monkeypatch.setattr("scripts.ordivon_verify.run_check", mock_run)
+    monkeypatch.setattr("ordivon_verify.runner.run_check", mock_run)
 
     # Force an unexpected exception in build_report (called with --json)
     def boom_build(*args, **kwargs):
         raise RuntimeError("simulated crash in report builder")
 
-    monkeypatch.setattr("scripts.ordivon_verify.build_report", boom_build)
+    monkeypatch.setattr("ordivon_verify.cli.build_report", boom_build)
     exit_code = main(["all", "--json"])
     assert exit_code == 4
 

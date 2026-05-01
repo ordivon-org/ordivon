@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.ordivon_verify import (
+from ordivon_verify import (
     load_config,
     run_external_checker,
     main,
@@ -39,23 +39,23 @@ def test_standard_fixture_config_loads():
 
 
 def test_standard_debt_ledger_passes():
-    result = run_external_checker("debt", STD_FIXTURE, "standard", {
-        "debt_ledger": "governance/verification-debt-ledger.jsonl"
-    })
+    result = run_external_checker(
+        "debt", STD_FIXTURE, "standard", {"debt_ledger": "governance/verification-debt-ledger.jsonl"}
+    )
     assert result["status"] == "PASS"
 
 
 def test_standard_gate_manifest_passes():
-    result = run_external_checker("gates", STD_FIXTURE, "standard", {
-        "gate_manifest": "governance/verification-gate-manifest.json"
-    })
+    result = run_external_checker(
+        "gates", STD_FIXTURE, "standard", {"gate_manifest": "governance/verification-gate-manifest.json"}
+    )
     assert result["status"] == "PASS"
 
 
 def test_standard_document_registry_passes():
-    result = run_external_checker("docs", STD_FIXTURE, "standard", {
-        "document_registry": "governance/document-registry.jsonl"
-    })
+    result = run_external_checker(
+        "docs", STD_FIXTURE, "standard", {"document_registry": "governance/document-registry.jsonl"}
+    )
     assert result["status"] == "PASS"
 
 
@@ -63,17 +63,13 @@ def test_standard_document_registry_passes():
 
 
 def test_standard_missing_configured_debt_is_fail():
-    result = run_external_checker("debt", STD_FIXTURE, "standard", {
-        "debt_ledger": "governance/nonexistent.jsonl"
-    })
+    result = run_external_checker("debt", STD_FIXTURE, "standard", {"debt_ledger": "governance/nonexistent.jsonl"})
     assert result["status"] == "FAIL"
     assert "not found" in result["stderr"].lower()
 
 
 def test_standard_missing_configured_gates_is_fail():
-    result = run_external_checker("gates", STD_FIXTURE, "standard", {
-        "gate_manifest": "governance/nonexistent.json"
-    })
+    result = run_external_checker("gates", STD_FIXTURE, "standard", {"gate_manifest": "governance/nonexistent.json"})
     assert result["status"] == "FAIL"
 
 
@@ -81,18 +77,14 @@ def test_standard_missing_configured_gates_is_fail():
 
 
 def test_standard_fixture_all_ready(monkeypatch, capsys):
-    exit_code = main(
-        ["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG)]
-    )
+    exit_code = main(["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG)])
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "READY" in captured.out
 
 
 def test_standard_fixture_json_ready(monkeypatch, capsys):
-    main(
-        ["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG), "--json"]
-    )
+    main(["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG), "--json"])
     captured = capsys.readouterr()
     report = json.loads(captured.out)
     assert report["status"] == "READY"
@@ -105,10 +97,7 @@ def test_standard_fixture_json_ready(monkeypatch, capsys):
 
 
 def test_bad_fixture_still_blocked(monkeypatch, capsys):
-    exit_code = main(
-        ["all", "--root", str(BAD_FIXTURE),
-         "--config", str(BAD_FIXTURE / "ordivon.verify.json")]
-    )
+    exit_code = main(["all", "--root", str(BAD_FIXTURE), "--config", str(BAD_FIXTURE / "ordivon.verify.json")])
     assert exit_code == 1
     captured = capsys.readouterr()
     assert "BLOCKED" in captured.out
@@ -118,10 +107,7 @@ def test_bad_fixture_still_blocked(monkeypatch, capsys):
 
 
 def test_clean_fixture_still_degraded(monkeypatch, capsys):
-    exit_code = main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")]
-    )
+    exit_code = main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")])
     assert exit_code == 2
     captured = capsys.readouterr()
     assert "DEGRADED" in captured.out
@@ -146,9 +132,7 @@ def test_no_file_writes_in_standard_fixture(monkeypatch):
         if p.is_file():
             orig_mtimes[p] = p.stat().st_mtime
 
-    main(
-        ["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG)]
-    )
+    main(["all", "--root", str(STD_FIXTURE), "--config", str(STD_CONFIG)])
 
     for p, mtime in orig_mtimes.items():
         assert p.stat().st_mtime == mtime, f"File modified: {p}"

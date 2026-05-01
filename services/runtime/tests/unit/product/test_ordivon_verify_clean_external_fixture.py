@@ -9,14 +9,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.ordivon_verify import (
+from ordivon_verify import (
     load_config,
     scan_receipt_files,
     run_external_receipts,
     run_external_checker,
     determine_status,
     main,
-    _BUILTIN_ROOT,
 )
 
 
@@ -75,10 +74,7 @@ def test_clean_docs_advisory_warning():
 
 def test_clean_fixture_is_degraded_not_blocked(monkeypatch, capsys):
     """Clean fixture: receipt PASS, debt/gates/docs WARN → DEGRADED."""
-    exit_code = main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")]
-    )
+    exit_code = main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")])
     assert exit_code == 2  # DEGRADED
     captured = capsys.readouterr()
     assert "DEGRADED" in captured.out
@@ -87,10 +83,7 @@ def test_clean_fixture_is_degraded_not_blocked(monkeypatch, capsys):
 
 def test_clean_fixture_json_no_hard_failures(monkeypatch, capsys):
     """JSON output for clean fixture has zero hard_failures."""
-    main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json"), "--json"]
-    )
+    main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json"), "--json"])
     captured = capsys.readouterr()
     report = json.loads(captured.out)
     assert report["status"] == "DEGRADED"
@@ -112,19 +105,13 @@ def test_clean_fixture_determine_status():
 
 
 def test_clean_fixture_human_includes_disclaimer(monkeypatch, capsys):
-    main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")]
-    )
+    main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")])
     captured = capsys.readouterr()
     assert "does not authorize execution" in captured.out
 
 
 def test_clean_fixture_human_includes_warnings(monkeypatch, capsys):
-    main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")]
-    )
+    main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")])
     captured = capsys.readouterr()
     assert "Warnings" in captured.out
 
@@ -134,10 +121,7 @@ def test_clean_fixture_human_includes_warnings(monkeypatch, capsys):
 
 def test_bad_fixture_still_blocked(monkeypatch, capsys):
     """Existing bad fixture must still produce BLOCKED."""
-    exit_code = main(
-        ["all", "--root", str(BAD_FIXTURE),
-         "--config", str(BAD_FIXTURE / "ordivon.verify.json")]
-    )
+    exit_code = main(["all", "--root", str(BAD_FIXTURE), "--config", str(BAD_FIXTURE / "ordivon.verify.json")])
     assert exit_code == 1
     captured = capsys.readouterr()
     assert "BLOCKED" in captured.out
@@ -162,10 +146,7 @@ def test_no_file_writes_in_clean_fixture(monkeypatch):
         if p.is_file():
             orig_mtimes[p] = p.stat().st_mtime
 
-    main(
-        ["all", "--root", str(CLEAN_FIXTURE),
-         "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")]
-    )
+    main(["all", "--root", str(CLEAN_FIXTURE), "--config", str(CLEAN_FIXTURE / "ordivon.verify.json")])
 
     for p, mtime in orig_mtimes.items():
         assert p.stat().st_mtime == mtime, f"File modified: {p}"
