@@ -14,6 +14,7 @@ This complements the CI git diff --exit-code check by distinguishing
 This is a CandidateRule (advisory) — it does NOT block CI by default.
 Exit 0 = clean; Exit 1 = violations found.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,16 +35,16 @@ MAX_SCHEMA_DROP_RATIO = 0.25
 
 # ── Critical API paths (must exist with expected methods) ───────
 CRITICAL_PATHS: dict[str, list[str]] = {
-    "/api/v1/finance-decisions/intake":                         ["post"],
-    "/api/v1/finance-decisions/intake/{intake_id}":             ["get"],
-    "/api/v1/finance-decisions/intake/{intake_id}/govern":      ["post"],
-    "/api/v1/finance-decisions/intake/{intake_id}/plan":        ["post"],
-    "/api/v1/finance-decisions/intake/{intake_id}/outcome":     ["post"],
-    "/api/v1/reviews/submit":                                    ["post"],
-    "/api/v1/reviews/{review_id}":                               ["get"],
-    "/api/v1/reviews/{review_id}/complete":                      ["post"],
-    "/api/v1/health":                                            ["get"],
-    "/api/v1/version":                                           ["get"],
+    "/api/v1/finance-decisions/intake": ["post"],
+    "/api/v1/finance-decisions/intake/{intake_id}": ["get"],
+    "/api/v1/finance-decisions/intake/{intake_id}/govern": ["post"],
+    "/api/v1/finance-decisions/intake/{intake_id}/plan": ["post"],
+    "/api/v1/finance-decisions/intake/{intake_id}/outcome": ["post"],
+    "/api/v1/reviews/submit": ["post"],
+    "/api/v1/reviews/{review_id}": ["get"],
+    "/api/v1/reviews/{review_id}/complete": ["post"],
+    "/api/v1/health": ["get"],
+    "/api/v1/version": ["get"],
 }
 
 REQUIRED_TOP_KEYS = {"openapi", "info", "paths", "components"}
@@ -71,9 +72,7 @@ def check_top_level_keys(data: dict) -> list[str]:
     violations: list[str] = []
     missing = REQUIRED_TOP_KEYS - set(data.keys())
     if missing:
-        violations.append(
-            f"Missing top-level keys: {sorted(missing)}"
-        )
+        violations.append(f"Missing top-level keys: {sorted(missing)}")
     return violations
 
 
@@ -85,9 +84,7 @@ def check_paths(data: dict, baseline: dict | None) -> list[str]:
     # Minimum threshold
     path_count = len(paths)
     if path_count < MIN_PATHS:
-        violations.append(
-            f"Path count {path_count} below minimum {MIN_PATHS} — possible generator drift"
-        )
+        violations.append(f"Path count {path_count} below minimum {MIN_PATHS} — possible generator drift")
 
     # Baseline comparison
     if baseline and "path_count" in baseline:
@@ -108,9 +105,7 @@ def check_paths(data: dict, baseline: dict | None) -> list[str]:
         actual_methods = set(m.lower() for m in paths[path].keys())
         for method in expected_methods:
             if method.lower() not in actual_methods:
-                violations.append(
-                    f"Critical path {path}: missing {method.upper()} method"
-                )
+                violations.append(f"Critical path {path}: missing {method.upper()} method")
 
     return violations
 
@@ -122,9 +117,7 @@ def check_schemas(data: dict, baseline: dict | None) -> list[str]:
 
     schema_count = len(schemas)
     if schema_count < MIN_SCHEMAS:
-        violations.append(
-            f"Schema count {schema_count} below minimum {MIN_SCHEMAS} — possible generator drift"
-        )
+        violations.append(f"Schema count {schema_count} below minimum {MIN_SCHEMAS} — possible generator drift")
 
     if baseline and "schema_count" in baseline:
         baseline_count = baseline["schema_count"]

@@ -77,14 +77,12 @@ def main() -> None:
     finally:
         db.close()
 
-    print(
-        {
-            "db_url": settings.db_url,
-            "seed_recommendation_id": SEED_RECOMMENDATION_ID,
-            "seed_review_id": SEED_REVIEW_ID,
-            "env": os.getenv("PFIOS_ENV", settings.env),
-        }
-    )
+    print({
+        "db_url": settings.db_url,
+        "seed_recommendation_id": SEED_RECOMMENDATION_ID,
+        "seed_review_id": SEED_REVIEW_ID,
+        "env": os.getenv("PFIOS_ENV", settings.env),
+    })
 
 
 if __name__ == "__main__":

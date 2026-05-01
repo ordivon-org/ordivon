@@ -62,7 +62,8 @@ def test_validation_issue_report_response_audit_request_receipt_and_row_are_cons
         receipt_row = db.get(ExecutionReceiptORM, receipt_id)
         issue_row = db.get(IssueORM, issue_id)
         audit_row = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type == "validation_issue_reported", AuditEventORM.entity_id == issue_id)
             .one()
         )

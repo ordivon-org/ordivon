@@ -40,8 +40,10 @@ After:
 class RejectReason:
     message: str
 
+
 class EscalateReason:
     message: str
+
 
 class PackIntakePolicy(Protocol):
     def validate_fields(self, payload: dict) -> list[RejectReason | EscalateReason]: ...
@@ -59,6 +61,7 @@ decision = RiskEngine().validate_intake(intake)
 
 # After:
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
+
 decision = RiskEngine().validate_intake(intake, pack_policy=TradingDisciplinePolicy())
 ```
 

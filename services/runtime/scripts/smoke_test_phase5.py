@@ -1,6 +1,7 @@
 """
 Phase 5 Smoke Test: Recommendation → Review → Observability 全闭环验证
 """
+
 import sys
 from pathlib import Path
 
@@ -39,7 +40,7 @@ def main():
     db = SessionLocal()
     reco_repo = RecommendationRepository(db)
     reco_service = RecommendationService(reco_repo)
-    
+
     reco_row = reco_service.create(
         Recommendation(
             analysis_id="rpt_test_001",
@@ -113,14 +114,17 @@ def main():
     print(f"  Skeleton generated for {reco_id2}")
 
     # Submit review
-    review_res = rev_cap.submit_review(rev_service, {
-        "linked_recommendation_id": reco_id2,
-        "actual_outcome": "Price dropped",
-        "deviation": "Timing off",
-        "mistake_tags": "timing",
-        "lessons": [{"lesson_text": "Better entry needed"}],
-        "new_rule_candidate": "Wait for close"
-    })
+    review_res = rev_cap.submit_review(
+        rev_service,
+        {
+            "linked_recommendation_id": reco_id2,
+            "actual_outcome": "Price dropped",
+            "deviation": "Timing off",
+            "mistake_tags": "timing",
+            "lessons": [{"lesson_text": "Better entry needed"}],
+            "new_rule_candidate": "Wait for close",
+        },
+    )
     print(f"  Review submitted: {review_res.id}")
 
     # Verify recommendation status
@@ -133,7 +137,7 @@ def main():
         "No deviation",
         ["timing"],
         ["Study more"],
-        ["Update params"]
+        ["Update params"],
     )
     print(f"  Review completed and lessons persisted")
     print("[PASS] Test 3")

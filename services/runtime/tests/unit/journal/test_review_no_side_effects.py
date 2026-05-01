@@ -88,7 +88,8 @@ def test_complete_review_does_not_create_policy_audit_events(db: Session):
     db.flush()
 
     policy_events = (
-        db.query(AuditEventORM)
+        db
+        .query(AuditEventORM)
         .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
         .count()
     )

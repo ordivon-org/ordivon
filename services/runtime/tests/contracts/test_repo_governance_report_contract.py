@@ -32,22 +32,30 @@ REQUIRED_JSON_FIELDS = [
 ]
 
 
-def _generate_report(task_desc="Fix test", file_path="tests/test_x.py", impact="low",
-                     reasoning="test", test_plan="run tests") -> dict:
+def _generate_report(
+    task_desc="Fix test", file_path="tests/test_x.py", impact="low", reasoning="test", test_plan="run tests"
+) -> dict:
     """Run CLI adapter → render report → return JSON report dict."""
     import tempfile
+
     with tempfile.TemporaryDirectory() as tmpdir:
         gov_json = Path(tmpdir) / "gov.json"
         out_dir = Path(tmpdir) / "reports"
 
         # Generate governance output
         cmd = [
-            sys.executable, CLI_PATH,
-            "--task-description", task_desc,
-            "--file-path", file_path,
-            "--estimated-impact", impact,
-            "--reasoning", reasoning,
-            "--test-plan", test_plan,
+            sys.executable,
+            CLI_PATH,
+            "--task-description",
+            task_desc,
+            "--file-path",
+            file_path,
+            "--estimated-impact",
+            impact,
+            "--reasoning",
+            reasoning,
+            "--test-plan",
+            test_plan,
             "--json",
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(ROOT))
@@ -81,7 +89,9 @@ def test_report_preserves_execute_decision():
 
 def test_report_preserves_reject_decision():
     report = _generate_report(
-        task_desc="Add env var", file_path=".env", reasoning="Need env var",
+        task_desc="Add env var",
+        file_path=".env",
+        reasoning="Need env var",
     )
     assert report["decision"] == "reject"
     assert report["ci_behavior"] == "fail"
@@ -89,8 +99,11 @@ def test_report_preserves_reject_decision():
 
 def test_report_preserves_escalate_decision():
     report = _generate_report(
-        task_desc="Optimize query", file_path="domains/service.py",
-        impact="high", reasoning="refactor", test_plan="run tests",
+        task_desc="Optimize query",
+        file_path="domains/service.py",
+        impact="high",
+        reasoning="refactor",
+        test_plan="run tests",
     )
     assert report["decision"] == "escalate"
     assert report["ci_behavior"] == "warning"
@@ -111,17 +124,24 @@ def test_report_side_effects_are_false():
 
 def test_markdown_report_says_evidence_only():
     import tempfile
+
     with tempfile.TemporaryDirectory() as tmpdir:
         gov_json = Path(tmpdir) / "gov.json"
         out_dir = Path(tmpdir) / "reports"
 
         cmd = [
-            sys.executable, CLI_PATH,
-            "--task-description", "Fix test",
-            "--file-path", "tests/test_x.py",
-            "--estimated-impact", "low",
-            "--reasoning", "test",
-            "--test-plan", "run tests",
+            sys.executable,
+            CLI_PATH,
+            "--task-description",
+            "Fix test",
+            "--file-path",
+            "tests/test_x.py",
+            "--estimated-impact",
+            "low",
+            "--reasoning",
+            "test",
+            "--test-plan",
+            "run tests",
             "--json",
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(ROOT))

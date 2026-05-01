@@ -75,7 +75,8 @@ def test_recommendation_status_update_api_keeps_response_audit_execution_and_sta
         receipt_row = db.query(ExecutionReceiptORM).one()
         recommendation_row = db.query(RecommendationORM).one()
         audit_row = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type == "recommendation_status_update")
             .order_by(AuditEventORM.created_at.desc())
             .first()
@@ -162,7 +163,8 @@ def test_recommendation_status_update_api_failure_persists_failed_refs_without_s
         receipt_row = db.query(ExecutionReceiptORM).one()
         recommendation_row = db.query(RecommendationORM).one()
         audit_row = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type == "recommendation_status_update_failed")
             .order_by(AuditEventORM.created_at.desc())
             .first()

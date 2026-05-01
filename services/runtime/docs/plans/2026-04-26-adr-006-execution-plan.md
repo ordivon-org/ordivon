@@ -43,82 +43,119 @@
 # tests/unit/finance/test_trading_discipline_policy.py
 import pytest
 from packs.finance.trading_discipline_policy import (
-    TradingDisciplinePolicy, RejectReason, EscalateReason,
+    TradingDisciplinePolicy,
+    RejectReason,
+    EscalateReason,
 )
+
 
 @pytest.fixture
 def policy():
     return TradingDisciplinePolicy()
 
+
 # Gate 1: Field existence
 def test_reject_missing_thesis(policy):
-    reasons = policy.validate_fields({"stop_loss":"2%","emotional_state":"calm"})
+    reasons = policy.validate_fields({"stop_loss": "2%", "emotional_state": "calm"})
     assert any("thesis" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
 
+
 def test_reject_missing_stop_loss(policy):
-    reasons = policy.validate_fields({"thesis":"valid thesis with invalidation condition","emotional_state":"calm"})
+    reasons = policy.validate_fields({"thesis": "valid thesis with invalidation condition", "emotional_state": "calm"})
     assert any("stop_loss" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
 
+
 def test_reject_missing_emotional_state(policy):
-    reasons = policy.validate_fields({"thesis":"valid thesis with invalidation condition","stop_loss":"2%"})
+    reasons = policy.validate_fields({"thesis": "valid thesis with invalidation condition", "stop_loss": "2%"})
     assert any("emotional_state" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
+
 
 # Gate 1: Thesis quality (from H-9C3)
 def test_reject_banned_thesis(policy):
-    reasons = policy.validate_fields({"thesis":"no specific thesis, just feels right","stop_loss":"2%","emotional_state":"calm"})
+    reasons = policy.validate_fields({
+        "thesis": "no specific thesis, just feels right",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
+    })
     assert any("banned" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
 
+
 def test_escalate_short_thesis(policy):
-    reasons = policy.validate_fields({"thesis":"Short","stop_loss":"2%","emotional_state":"calm"})
+    reasons = policy.validate_fields({"thesis": "Short", "stop_loss": "2%", "emotional_state": "calm"})
     assert any("too short" in r.message.lower() for r in reasons if isinstance(r, EscalateReason))
 
+
 def test_escalate_no_verifiability(policy):
-    reasons = policy.validate_fields({"thesis":"BTC is going up because trend is strong","stop_loss":"2%","emotional_state":"calm"})
+    reasons = policy.validate_fields({
+        "thesis": "BTC is going up because trend is strong",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
+    })
     assert any("verifiability" in r.message.lower() for r in reasons if isinstance(r, EscalateReason))
 
+
 def test_valid_thesis_passes(policy):
-    payload = {"thesis":"BTC breaking resistance with volume; invalidated if closes below 200 EMA.","stop_loss":"2%","emotional_state":"calm"}
+    payload = {
+        "thesis": "BTC breaking resistance with volume; invalidated if closes below 200 EMA.",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
+    }
     reasons = policy.validate_fields(payload)
     assert not any(isinstance(r, RejectReason) for r in reasons)
     assert not any(isinstance(r, EscalateReason) for r in reasons)
 
+
 # Gate 2: Numeric fields
 def test_reject_missing_max_loss(policy):
-    reasons = policy.validate_numeric({"position_size_usdt":100,"risk_unit_usdt":10})
+    reasons = policy.validate_numeric({"position_size_usdt": 100, "risk_unit_usdt": 10})
     assert any("max_loss_usdt" in r.message for r in reasons)
 
+
 def test_reject_missing_position_size(policy):
-    reasons = policy.validate_numeric({"max_loss_usdt":20,"risk_unit_usdt":10})
+    reasons = policy.validate_numeric({"max_loss_usdt": 20, "risk_unit_usdt": 10})
     assert any("position_size_usdt" in r.message for r in reasons)
 
+
 def test_reject_missing_risk_unit(policy):
-    reasons = policy.validate_numeric({"max_loss_usdt":20,"position_size_usdt":100})
+    reasons = policy.validate_numeric({"max_loss_usdt": 20, "position_size_usdt": 100})
     assert any("risk_unit_usdt" in r.message for r in reasons)
+
 
 # Gate 3: Risk limits
 def test_reject_max_loss_exceeds_ratio(policy):
-    reasons = policy.validate_limits({"max_loss_usdt":500,"position_size_usdt":100,"risk_unit_usdt":100})
+    reasons = policy.validate_limits({"max_loss_usdt": 500, "position_size_usdt": 100, "risk_unit_usdt": 100})
     assert any("exceeds" in r.message for r in reasons)
+
 
 def test_reject_position_size_exceeds_ratio(policy):
-    reasons = policy.validate_limits({"max_loss_usdt":100,"position_size_usdt":5000,"risk_unit_usdt":100})
+    reasons = policy.validate_limits({"max_loss_usdt": 100, "position_size_usdt": 5000, "risk_unit_usdt": 100})
     assert any("exceeds" in r.message for r in reasons)
 
+
 def test_valid_limits_pass(policy):
-    reasons = policy.validate_limits({"max_loss_usdt":200,"position_size_usdt":1000,"risk_unit_usdt":100})
+    reasons = policy.validate_limits({"max_loss_usdt": 200, "position_size_usdt": 1000, "risk_unit_usdt": 100})
     assert len(reasons) == 0
+
 
 # Gate 4: Behavioral
 def test_escalate_revenge_trade(policy):
-    reasons = policy.validate_behavioral({"is_revenge_trade":True})
+    reasons = policy.validate_behavioral({"is_revenge_trade": True})
     assert any("is_revenge_trade" in r.message for r in reasons)
 
+
 def test_escalate_chasing(policy):
-    reasons = policy.validate_behavioral({"is_chasing":True})
+    reasons = policy.validate_behavioral({"is_chasing": True})
     assert any("is_chasing" in r.message for r in reasons)
 
+
 def test_calm_no_flags_passes(policy):
-    reasons = policy.validate_behavioral({"is_revenge_trade":False,"is_chasing":False,"emotional_state":"calm","confidence":0.7,"rule_exceptions":[]})
+    reasons = policy.validate_behavioral({
+        "is_revenge_trade": False,
+        "is_chasing": False,
+        "emotional_state": "calm",
+        "confidence": 0.7,
+        "rule_exceptions": [],
+    })
     assert len(reasons) == 0
 ```
 
@@ -137,30 +174,39 @@ uv run pytest tests/unit/finance/test_trading_discipline_policy.py -v
 # packs/finance/trading_discipline_policy.py
 from __future__ import annotations
 
+
 class RejectReason:
-    def __init__(self, message: str): self.message = message
+    def __init__(self, message: str):
+        self.message = message
+
 
 class EscalateReason:
-    def __init__(self, message: str): self.message = message
+    def __init__(self, message: str):
+        self.message = message
+
 
 _MAX_LOSS_TO_RISK_UNIT_RATIO = 2.0
 _MAX_POSITION_TO_RISK_UNIT_RATIO = 10.0
 
 _EMOTIONAL_RISK_KEYWORDS = frozenset({...})  # 从 RiskEngine 复制
-_BANNED_THESIS_PATTERNS = frozenset({...})   # 从 thesis_quality 复制
+_BANNED_THESIS_PATTERNS = frozenset({...})  # 从 thesis_quality 复制
+
 
 class TradingDisciplinePolicy:
-    def validate_fields(self, payload: dict) -> list[RejectReason | EscalateReason]:
-        ...  # Gate 1: thesis + thesis_quality + stop_loss + emotional_state
+    def validate_fields(
+        self, payload: dict
+    ) -> list[RejectReason | EscalateReason]: ...  # Gate 1: thesis + thesis_quality + stop_loss + emotional_state
 
-    def validate_numeric(self, payload: dict) -> list[RejectReason]:
-        ...  # Gate 2: max_loss_usdt / position_size_usdt / risk_unit_usdt
+    def validate_numeric(
+        self, payload: dict
+    ) -> list[RejectReason]: ...  # Gate 2: max_loss_usdt / position_size_usdt / risk_unit_usdt
 
-    def validate_limits(self, payload: dict) -> list[RejectReason]:
-        ...  # Gate 3: 比率限制
+    def validate_limits(self, payload: dict) -> list[RejectReason]: ...  # Gate 3: 比率限制
 
-    def validate_behavioral(self, payload: dict) -> list[EscalateReason]:
-        ...  # Gate 4: is_revenge_trade / is_chasing / emotions / confidence / rule_exceptions
+    def validate_behavioral(
+        self, payload: dict
+    ) -> list[EscalateReason]: ...  # Gate 4: is_revenge_trade / is_chasing / emotions / confidence / rule_exceptions
+
 
 # Private helpers: _as_str, _as_positive_float, _contains_emotional_risk, _has_verifiability
 ```
@@ -299,6 +345,7 @@ decision = RiskEngine().validate_intake(intake)
 
 # After:
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
+
 decision = RiskEngine().validate_intake(intake, pack_policy=TradingDisciplinePolicy())
 ```
 

@@ -13,9 +13,10 @@ import httpx
 from app.main import app
 from services.risk_engine.models import RiskDecision
 
+
 async def smoke_test_api_v1():
     print("Starting Step 7 Smoke Test: API v1 Verification\n")
-    
+
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         # --- 1. Health Check ---
         print("--- 1. Testing GET /health ---")
@@ -43,11 +44,7 @@ async def smoke_test_api_v1():
 
         # --- 4. Analyze & Suggest: ALLOW Case ---
         print("--- 4. Testing POST /api/v1/analyze-and-suggest [ALLOW] ---")
-        payload = {
-            "query": "Analysis for BTC",
-            "symbols": ["BTC/USDT"],
-            "timeframe": "4h"
-        }
+        payload = {"query": "Analysis for BTC", "symbols": ["BTC/USDT"], "timeframe": "4h"}
         # Note: orchestrator has mock reasoning that returns 7.5 confidence and 3x leverage (ALLOW)
         resp = await client.post("/api/v1/analyze-and-suggest", json=payload)
         if resp.status_code != 200:
@@ -61,11 +58,12 @@ async def smoke_test_api_v1():
 
         # --- 5. Analyze & Suggest: BLOCK Case (Confidence) ---
         # We need to manually override the mock in orchestrator or handle it.
-        # For simplicity in this smoke test, I'll rely on the existing orchestrator's behavior 
+        # For simplicity in this smoke test, I'll rely on the existing orchestrator's behavior
         # but I will add another test case by manually calling the engine with bad data if needed.
         # Actually, let's just use the orchestrator as is.
-        
+
     print("Step 7 API v1 Smoke Test Completed Successfully!")
+
 
 if __name__ == "__main__":
     asyncio.run(smoke_test_api_v1())

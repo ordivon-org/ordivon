@@ -10,6 +10,7 @@ Checks:
 This is a CandidateRule (advisory) — it does NOT block CI by default.
 Exit 0 = clean; Exit 1 = violations found.
 """
+
 from __future__ import annotations
 
 import ast
@@ -24,13 +25,13 @@ CORE_DIRS = ["domains", "governance", "capabilities", "execution"]
 
 # ── Whitelisted files ───────────────────────────────────────────
 DUCKDB_WHITELIST = {
-    "state/db/schema.py",          # Legacy analytics DDL, clearly marked NOT DOMAIN TRUTH
-    "shared/config/settings.py",   # Configuration path declaration only
+    "state/db/schema.py",  # Legacy analytics DDL, clearly marked NOT DOMAIN TRUTH
+    "shared/config/settings.py",  # Configuration path declaration only
 }
 
 DDL_WHITELIST = {
     "state/db/migrations/runner.py",  # Idempotent migration runner
-    "state/db/schema.py",             # Legacy DuckDB analytics DDL (NOT domain truth)
+    "state/db/schema.py",  # Legacy DuckDB analytics DDL (NOT domain truth)
 }
 
 ORM_WHITELIST_DIRS = {"tests", "alembic", "__pycache__", ".venv", "build"}
@@ -83,12 +84,16 @@ def check_duckdb_contamination() -> list[str]:
 # Check 2: All ORM Base subclasses registered in bootstrap
 # ═══════════════════════════════════════════════════════════════════
 
+
 def find_orm_classes() -> dict[str, Path]:
     """Find all class XxxORM(Base) definitions. Returns {class_name: file_path}."""
     orm_classes: dict[str, Path] = {}
     search_roots = [
-        ROOT / "domains", ROOT / "governance", ROOT / "infra",
-        ROOT / "state", ROOT / "packs",
+        ROOT / "domains",
+        ROOT / "governance",
+        ROOT / "infra",
+        ROOT / "state",
+        ROOT / "packs",
     ]
     for root in search_roots:
         if not root.is_dir():
@@ -118,9 +123,7 @@ def check_orm_registration() -> list[str]:
     for class_name, file_path in sorted(orm_classes.items()):
         rel = str(file_path.relative_to(ROOT))
         if class_name not in bootstrap_text:
-            violations.append(
-                f"{class_name} ({rel}): not imported in state/db/bootstrap.py"
-            )
+            violations.append(f"{class_name} ({rel}): not imported in state/db/bootstrap.py")
 
     return violations
 
@@ -128,6 +131,7 @@ def check_orm_registration() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Check 3: FinanceManualOutcomeORM specifically registered
 # ═══════════════════════════════════════════════════════════════════
+
 
 def check_finance_outcome_orm() -> list[str]:
     violations: list[str] = []
@@ -137,8 +141,7 @@ def check_finance_outcome_orm() -> list[str]:
     bootstrap_text = bootstrap_path.read_text(encoding="utf-8")
     if "FinanceManualOutcomeORM" not in bootstrap_text:
         violations.append(
-            "FinanceManualOutcomeORM: not registered in state/db/bootstrap.py "
-            "(Finance Pack domain truth gate)"
+            "FinanceManualOutcomeORM: not registered in state/db/bootstrap.py (Finance Pack domain truth gate)"
         )
     return violations
 
@@ -151,8 +154,7 @@ DDL_PATTERNS = [
     (r"ALTER\s+TABLE\s+\w+", "ALTER TABLE (raw DDL)"),
     (r"CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\w+\s*\(", "CREATE TABLE (raw DDL)"),
     (r"DROP\s+TABLE\s+(IF\s+EXISTS\s+)?\w+", "DROP TABLE (raw DDL)"),
-    (r"\.execute\s*\(\s*text\s*\(\s*[\"'](ALTER|CREATE|DROP|INSERT|UPDATE|DELETE)\b",
-     "text(DDL) via .execute()"),
+    (r"\.execute\s*\(\s*text\s*\(\s*[\"'](ALTER|CREATE|DROP|INSERT|UPDATE|DELETE)\b", "text(DDL) via .execute()"),
 ]
 
 
@@ -179,6 +181,7 @@ def check_raw_ddl() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════
+
 
 def main() -> int:
     all_violations: list[str] = []

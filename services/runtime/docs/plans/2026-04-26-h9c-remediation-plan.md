@@ -79,13 +79,16 @@ _MIGRATIONS: list[tuple[str, object]] = []
 
 def migration(migration_id: str):
     """Decorator: register an idempotent migration function."""
+
     def decorator(fn):
         _MIGRATIONS.append((migration_id, fn))
         return fn
+
     return decorator
 
 
 # ── H9C1-001: Add outcome_ref columns to reviews table ──────────────────
+
 
 @migration("h9c1_001_add_outcome_ref_columns")
 def add_outcome_ref_columns(conn: Connection) -> None:
@@ -94,18 +97,13 @@ def add_outcome_ref_columns(conn: Connection) -> None:
     These columns exist in ReviewORM but may be missing from existing
     PostgreSQL databases that were created before the ORM change.
     """
-    conn.execute(text(
-        "ALTER TABLE reviews "
-        "ADD COLUMN IF NOT EXISTS outcome_ref_type VARCHAR(64)"
-    ))
-    conn.execute(text(
-        "ALTER TABLE reviews "
-        "ADD COLUMN IF NOT EXISTS outcome_ref_id VARCHAR(64)"
-    ))
+    conn.execute(text("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS outcome_ref_type VARCHAR(64)"))
+    conn.execute(text("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS outcome_ref_id VARCHAR(64)"))
     conn.commit()
 
 
 # ── Runner ─────────────────────────────────────────────────────────────
+
 
 def run_migrations(conn: Connection) -> int:
     """Execute all registered migrations in order.
@@ -184,6 +182,7 @@ def init_db() -> None:
     # Run idempotent migrations for schema drift on existing databases.
     # Each migration checks IF NOT EXISTS before adding columns.
     from state.db.migrations.runner import run_migrations
+
     with engine.connect() as conn:
         run_migrations(conn)
 ```
@@ -414,6 +413,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
 
 # ── H-9C2 Rule 1: emotional_state stress → escalate ─────────────────────
 
+
 def test_h9c2_emotional_stress_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"emotional_state": "stressed"})
@@ -460,6 +460,7 @@ def test_h9c2_emotional_neutral_not_escalated():
 
 # ── H-9C2 Rule 2: rule_exceptions not empty → escalate ────────────────
 
+
 def test_h9c2_rule_exceptions_not_empty_escalated():
     engine = RiskEngine()
     intake = _make_intake(payload={"rule_exceptions": ["override position limit"]})
@@ -484,6 +485,7 @@ def test_h9c2_rule_exceptions_none_not_escalated():
 
 
 # ── H-9C2 Rule 3: confidence < 0.3 → escalate ─────────────────────────
+
 
 def test_h9c2_confidence_too_low_escalated():
     engine = RiskEngine()
@@ -516,13 +518,16 @@ def test_h9c2_confidence_high_not_escalated():
 
 # ── Priority: reject still beats escalate ──────────────────────────────
 
+
 def test_h9c2_priority_reject_over_escalate_emotion():
     """missing stop_loss + stressed → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "stop_loss": None,
-        "emotional_state": "stressed",
-    })
+    intake = _make_intake(
+        payload={
+            "stop_loss": None,
+            "emotional_state": "stressed",
+        }
+    )
     decision = engine.validate_intake(intake)
     assert decision.decision == "reject"
 
@@ -530,15 +535,18 @@ def test_h9c2_priority_reject_over_escalate_emotion():
 def test_h9c2_priority_reject_over_escalate_low_confidence():
     """missing thesis + low confidence → reject (not escalate)."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "thesis": None,
-        "confidence": 0.2,
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": None,
+            "confidence": 0.2,
+        }
+    )
     decision = engine.validate_intake(intake)
     assert decision.decision == "reject"
 
 
 # ── Existing triggers still work ───────────────────────────────────────
+
 
 def test_h9c2_existing_revenge_trade_still_escalates():
     engine = RiskEngine()
@@ -594,36 +602,27 @@ The Gate 4 section (lines 142-147) currently is:
 
 Replace with:
 ```python
-        # ── Gate 4: Behavioural red flags (escalate, not reject) ─────
-        if payload.get("is_revenge_trade") is True:
-            escalate_reasons.append("is_revenge_trade=true — requires human review.")
+# ── Gate 4: Behavioural red flags (escalate, not reject) ─────
+if payload.get("is_revenge_trade") is True:
+    escalate_reasons.append("is_revenge_trade=true — requires human review.")
 
-        if payload.get("is_chasing") is True:
-            escalate_reasons.append("is_chasing=true — requires human review.")
+if payload.get("is_chasing") is True:
+    escalate_reasons.append("is_chasing=true — requires human review.")
 
-        # H-9C2: Emotional state risk indicators → escalate
-        emotional = _as_str(payload.get("emotional_state"))
-        if emotional and _contains_emotional_risk(emotional):
-            escalate_reasons.append(
-                f"emotional_state='{emotional}' indicates elevated risk — "
-                f"requires human review."
-            )
+# H-9C2: Emotional state risk indicators → escalate
+emotional = _as_str(payload.get("emotional_state"))
+if emotional and _contains_emotional_risk(emotional):
+    escalate_reasons.append(f"emotional_state='{emotional}' indicates elevated risk — requires human review.")
 
-        # H-9C2: Rule exceptions present → escalate (any exception needs review)
-        rule_exceptions = payload.get("rule_exceptions")
-        if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
-            escalate_reasons.append(
-                f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — "
-                f"requires human review."
-            )
+# H-9C2: Rule exceptions present → escalate (any exception needs review)
+rule_exceptions = payload.get("rule_exceptions")
+if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
+    escalate_reasons.append(f"rule_exceptions not empty ({len(rule_exceptions)} item(s)) — requires human review.")
 
-        # H-9C2: Confidence too low → escalate (but not missing, which is not checked here)
-        confidence = payload.get("confidence")
-        if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
-            escalate_reasons.append(
-                f"confidence={confidence} is below 0.3 threshold — "
-                f"requires human review."
-            )
+# H-9C2: Confidence too low → escalate (but not missing, which is not checked here)
+confidence = payload.get("confidence")
+if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
+    escalate_reasons.append(f"confidence={confidence} is below 0.3 threshold — requires human review.")
 ```
 
 **Step 2: Add the `_contains_emotional_risk()` helper**
@@ -634,11 +633,25 @@ After the existing `_as_positive_float()` function (line 200), add:
 # ── Emotional risk keyword detection ────────────────────────────────────────
 
 _EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
-    "stress", "stressed", "stressful",
-    "fear", "fearful", "scared", "terrified", "panicked", "panic",
-    "anger", "angry", "furious", "frustrated",
-    "fomo", "greedy", "desperate", "reckless",
-    "revenge", "impulsive",
+    "stress",
+    "stressed",
+    "stressful",
+    "fear",
+    "fearful",
+    "scared",
+    "terrified",
+    "panicked",
+    "panic",
+    "anger",
+    "angry",
+    "furious",
+    "frustrated",
+    "fomo",
+    "greedy",
+    "desperate",
+    "reckless",
+    "revenge",
+    "impulsive",
 })
 
 
@@ -743,7 +756,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
         "timeframe": "1h",
         "direction": "long",
         "thesis": "BTC is breaking out above the 4h resistance with volume confirmation "
-                 "and the 200 EMA is sloping upward, targeting the range high of 72k.",
+        "and the 200 EMA is sloping upward, targeting the range high of 72k.",
         "entry_condition": "Breakout confirmed.",
         "invalidation_condition": "Range reclaim.",
         "stop_loss": "Below support",
@@ -769,6 +782,7 @@ def _make_intake(*, status="validated", payload=None) -> DecisionIntake:
 
 
 # ── Thesis too short (< 50 chars) → escalate ──────────────────────────
+
 
 def test_h9c3_thesis_too_short_escalated():
     engine = RiskEngine()
@@ -798,24 +812,27 @@ def test_h9c3_thesis_boundary_ok_not_escalated():
 
 # ── Banned patterns → reject ──────────────────────────────────────────
 
-@pytest.mark.parametrize("bad_thesis", [
-    "No specific thesis, just feels right",
-    "It just feels right to buy here",
-    "Looks good, should pump",
-    "No specific thesis provided",
-    "Vibes are good, trust me",
-    "YOLO all in",
-    "Because I said so",
-    "I think so, let's see what happens",
-])
+
+@pytest.mark.parametrize(
+    "bad_thesis",
+    [
+        "No specific thesis, just feels right",
+        "It just feels right to buy here",
+        "Looks good, should pump",
+        "No specific thesis provided",
+        "Vibes are good, trust me",
+        "YOLO all in",
+        "Because I said so",
+        "I think so, let's see what happens",
+    ],
+)
 def test_h9c3_banned_pattern_rejected(bad_thesis):
     engine = RiskEngine()
     intake = _make_intake(payload={"thesis": bad_thesis})
     decision = engine.validate_intake(intake)
     assert decision.decision == "reject"
     assert any("thesis" in r.lower() for r in decision.reasons)
-    assert any(("quality" in r.lower() or "pattern" in r.lower() or "generic" in r.lower())
-               for r in decision.reasons)
+    assert any(("quality" in r.lower() or "pattern" in r.lower() or "generic" in r.lower()) for r in decision.reasons)
 
 
 def test_h9c3_banned_pattern_case_insensitive():
@@ -827,29 +844,32 @@ def test_h9c3_banned_pattern_case_insensitive():
 
 # ── Missing invalidation/confirmation wording → escalate ──────────────
 
+
 def test_h9c3_no_invalidation_wording_escalated():
     """Thesis has no invalidation or confirmation language → escalate."""
     engine = RiskEngine()
     # Long enough but purely directional, no "if"/"unless"/"invalid"/"confirm"
-    intake = _make_intake(payload={
-        "thesis": "BTC is going up because the trend is strong and volume is high "
-                  "and the market sentiment is bullish across all timeframes."
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": "BTC is going up because the trend is strong and volume is high "
+            "and the market sentiment is bullish across all timeframes."
+        }
+    )
     decision = engine.validate_intake(intake)
     assert decision.decision == "escalate"
     assert any(
-        w in str(decision.reasons).lower()
-        for w in ("invalidation", "verifiable", "confirmation", "falsifiable")
+        w in str(decision.reasons).lower() for w in ("invalidation", "verifiable", "confirmation", "falsifiable")
     )
 
 
 def test_h9c3_has_invalidation_wording_not_escalated():
     """Thesis with 'unless' or 'if not' — acceptable."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "thesis": "BTC is going up because the trend is strong, "
-                  "invalidated if price closes below the 200 EMA."
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": "BTC is going up because the trend is strong, invalidated if price closes below the 200 EMA."
+        }
+    )
     decision = engine.validate_intake(intake)
     # Should NOT escalate for invalidation wording
     if decision.decision == "escalate":
@@ -859,10 +879,12 @@ def test_h9c3_has_invalidation_wording_not_escalated():
 def test_h9c3_has_confirmation_wording_not_escalated():
     """Thesis with 'confirmed when' — acceptable."""
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "thesis": "ETH breakout target is 2500, confirmed when 4h candle "
-                  "closes above resistance with volume > 2x average."
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": "ETH breakout target is 2500, confirmed when 4h candle "
+            "closes above resistance with volume > 2x average."
+        }
+    )
     decision = engine.validate_intake(intake)
     if decision.decision == "escalate":
         assert not any("invalidation" in r.lower() for r in decision.reasons)
@@ -870,16 +892,19 @@ def test_h9c3_has_confirmation_wording_not_escalated():
 
 def test_h9c3_has_unless_not_escalated():
     engine = RiskEngine()
-    intake = _make_intake(payload={
-        "thesis": "SOL will continue its uptrend unless it loses the 100 level "
-                  "on daily close, which would invalidate the momentum thesis."
-    })
+    intake = _make_intake(
+        payload={
+            "thesis": "SOL will continue its uptrend unless it loses the 100 level "
+            "on daily close, which would invalidate the momentum thesis."
+        }
+    )
     decision = engine.validate_intake(intake)
     if decision.decision == "escalate":
         assert not any("invalidation" in r.lower() for r in decision.reasons)
 
 
 # ── Valid thesis still passes ──────────────────────────────────────────
+
 
 def test_h9c3_valid_thesis_executed():
     engine = RiskEngine()
@@ -1006,9 +1031,7 @@ def check_thesis_quality(thesis: str) -> ThesisQualityResult:
         if pattern in lowered:
             result.is_banned = True
             result.banned_match = pattern
-            result.reasons.append(
-                f"Thesis matches banned generic pattern: '{pattern}'."
-            )
+            result.reasons.append(f"Thesis matches banned generic pattern: '{pattern}'.")
             break
 
     # Check 2: Minimum length
@@ -1025,10 +1048,7 @@ def check_thesis_quality(thesis: str) -> ThesisQualityResult:
 
     if not has_invalidation and not has_confirmation:
         result.lacks_verifiability = True
-        result.reasons.append(
-            "Thesis lacks invalidation or confirmation criteria — "
-            "not verifiable."
-        )
+        result.reasons.append("Thesis lacks invalidation or confirmation criteria — not verifiable.")
 
     return result
 ```
@@ -1073,23 +1093,19 @@ In `validate_intake()`, after the existing thesis check (lines 101-103):
 
 Add:
 ```python
-        # H-9C3: Thesis quality checks (only if thesis is present)
-        if thesis:
-            quality = check_thesis_quality(thesis)
-            if quality.is_banned:
-                reject_reasons.append(
-                    f"Thesis quality rejected: {quality.banned_match or 'generic pattern'}."
-                )
-            if quality.is_too_short:
-                escalate_reasons.append(
-                    f"Thesis is too short ({len(thesis.strip())} chars, "
-                    f"minimum {50}) — requires human review."
-                )
-            if quality.lacks_verifiability:
-                escalate_reasons.append(
-                    "Thesis lacks verifiability criteria (no invalidation "
-                    "or confirmation conditions) — requires human review."
-                )
+# H-9C3: Thesis quality checks (only if thesis is present)
+if thesis:
+    quality = check_thesis_quality(thesis)
+    if quality.is_banned:
+        reject_reasons.append(f"Thesis quality rejected: {quality.banned_match or 'generic pattern'}.")
+    if quality.is_too_short:
+        escalate_reasons.append(
+            f"Thesis is too short ({len(thesis.strip())} chars, minimum {50}) — requires human review."
+        )
+    if quality.lacks_verifiability:
+        escalate_reasons.append(
+            "Thesis lacks verifiability criteria (no invalidation or confirmation conditions) — requires human review."
+        )
 ```
 
 **Step 3: Run new tests to verify PASS**

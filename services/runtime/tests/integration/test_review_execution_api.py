@@ -99,7 +99,8 @@ def test_review_complete_response_audit_request_receipt_and_row_are_consistent()
         receipt_row = db.get(ExecutionReceiptORM, receipt_id)
         review_row = db.get(ReviewORM, review_id)
         audit_row = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type == "review_completed", AuditEventORM.review_id == review_id)
             .one()
         )
@@ -167,7 +168,8 @@ def test_review_complete_failure_returns_failed_refs_and_preserves_review_state(
         receipt_row = db.get(ExecutionReceiptORM, receipt_id)
         review_row = db.get(ReviewORM, "review_already_completed")
         failed_audit = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(
                 AuditEventORM.event_type == "review_completed_failed",
                 AuditEventORM.review_id == "review_already_completed",
@@ -186,7 +188,8 @@ def test_review_complete_failure_returns_failed_refs_and_preserves_review_state(
         assert failed_payload["execution_request_id"] == request_id
         assert failed_payload["execution_receipt_id"] == receipt_id
         assert (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(
                 AuditEventORM.event_type == "review_completed",
                 AuditEventORM.review_id == "review_already_completed",

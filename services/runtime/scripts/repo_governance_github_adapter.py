@@ -72,17 +72,15 @@ DEPENDABOT_SYNTHETIC_TEST_PLAN = (
 # RiskEngine forbidden-file checks for Dependabot PRs only, because the
 # CodingDisciplinePolicy treats them as AI-agent-forbidden but Dependabot
 # legitimately modifies them as part of dependency updates.
-DEPENDABOT_EXPECTED_FILES = frozenset(
-    {
-        "pyproject.toml",
-        "uv.lock",
-        "package.json",
-        "pnpm-lock.yaml",
-        # Also common in Dependabot grouped updates
-        "apps/web/package.json",
-        ".github/dependabot.yml",
-    }
-)
+DEPENDABOT_EXPECTED_FILES = frozenset({
+    "pyproject.toml",
+    "uv.lock",
+    "package.json",
+    "pnpm-lock.yaml",
+    # Also common in Dependabot grouped updates
+    "apps/web/package.json",
+    ".github/dependabot.yml",
+})
 
 
 def _is_dependabot_pr(event: dict, pr: dict, pr_title: str, pr_labels: list[str]) -> bool:
@@ -278,12 +276,10 @@ def classify_from_github_event(event_path: str, changed_files_path: str) -> dict
 
     # Add adapter-specific metadata
     result["changed_files_count"] = len(changed_files)
-    result["side_effects"].update(
-        {
-            "pr_comments": False,
-            "push": False,
-        }
-    )
+    result["side_effects"].update({
+        "pr_comments": False,
+        "push": False,
+    })
 
     # Tag Dependabot PRs in the result for downstream consumption
     if is_dependabot:
@@ -334,12 +330,10 @@ def classify_from_cli(args: argparse.Namespace) -> dict:
         source="github_actions_adapter",
     )
     result["changed_files_count"] = len(args.file_paths)
-    result["side_effects"].update(
-        {
-            "pr_comments": False,
-            "push": False,
-        }
-    )
+    result["side_effects"].update({
+        "pr_comments": False,
+        "push": False,
+    })
     return result
 
 

@@ -57,13 +57,11 @@ def extract_baseline_gates(path: Path) -> list[dict]:
         re.DOTALL,
     )
     for m in pattern.finditer(body):
-        gates.append(
-            {
-                "display_name": m.group(1),
-                "hardness": m.group(2),
-                "layer": m.group(3),
-            }
-        )
+        gates.append({
+            "display_name": m.group(1),
+            "hardness": m.group(2),
+            "layer": m.group(3),
+        })
 
     return gates
 

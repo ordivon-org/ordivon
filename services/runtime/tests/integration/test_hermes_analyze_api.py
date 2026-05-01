@@ -128,7 +128,8 @@ def test_analyze_api_persists_agent_action_with_hermes(monkeypatch):
         recommendation_payload = from_json_text(recommendation_event.payload_json, {})
         assert recommendation_payload["decision"] == "execute"
         progress_rows = (
-            db.query(ExecutionProgressRecordORM)
+            db
+            .query(ExecutionProgressRecordORM)
             .filter(ExecutionProgressRecordORM.request_id == analysis_meta["recommendation_generate_request_id"])
             .order_by(ExecutionProgressRecordORM.created_at.asc())
             .all()
@@ -476,7 +477,8 @@ def test_analyze_api_consumes_governance_feedback_hints_from_prior_review(monkey
     db = TestingSessionLocal()
     try:
         event = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type == "analysis_completed")
             .order_by(AuditEventORM.created_at.desc())
             .first()
@@ -486,7 +488,8 @@ def test_analyze_api_consumes_governance_feedback_hints_from_prior_review(monkey
         assert len(event_payload["governance_advisory_hints"]) == 1
         assert event_payload["governance_advisory_hints"][0]["summary"] == "Wait for confirmation before entry"
         feedback_rows = (
-            db.query(FeedbackRecordORM)
+            db
+            .query(FeedbackRecordORM)
             .filter(
                 FeedbackRecordORM.recommendation_id == "reco_prior_hint",
                 FeedbackRecordORM.consumer_type == "governance",
@@ -629,7 +632,8 @@ def test_analyze_api_consumes_intelligence_feedback_hints_into_task_payload(monk
         assert analysis_meta["intelligence_memory_lesson_count"] == 1
         assert analysis_meta["intelligence_related_review_count"] == 1
         feedback_rows = (
-            db.query(FeedbackRecordORM)
+            db
+            .query(FeedbackRecordORM)
             .filter(
                 FeedbackRecordORM.recommendation_id == "reco_prior_intel_hint",
                 FeedbackRecordORM.consumer_type == "intelligence",

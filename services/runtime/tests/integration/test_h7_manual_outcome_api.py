@@ -430,7 +430,8 @@ def test_h7_outcome_does_not_create_broker_order_trade():
         db = testing_session_local()
         try:
             broker_reqs = (
-                db.query(ExecutionRequestORM)
+                db
+                .query(ExecutionRequestORM)
                 .filter(
                     ExecutionRequestORM.action_id.like("%order%")
                     | ExecutionRequestORM.action_id.like("%trade%")
@@ -488,7 +489,8 @@ def test_h7_outcome_does_not_promote_policy():
         db = testing_session_local()
         try:
             policy_events = (
-                db.query(AuditEventORM)
+                db
+                .query(AuditEventORM)
                 .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
                 .count()
             )

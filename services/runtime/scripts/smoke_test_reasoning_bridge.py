@@ -10,9 +10,10 @@ from apps.api.app.core.config import settings
 from services.orchestrator.engine import PFIOSOrchestrator
 from services.reasoning import ReasoningResult, ReasoningInvocationError, ReasoningParseError
 
+
 async def run_smoke_test():
     print("=== PFIOS Step 8.2 Reasoning Bridge Smoke Test ===\n")
-    
+
     orchestrator = PFIOSOrchestrator()
     symbol = "BTC/USDT"
     query = "分析当前 BTC 的价格走势并给出操作建议。"
@@ -57,6 +58,7 @@ async def run_smoke_test():
         print(f"X Wrong error type for timeout: {type(e).__name__}: {e}\n")
 
     print("=== Smoke Test Finished ===")
+
 
 if __name__ == "__main__":
     asyncio.run(run_smoke_test())

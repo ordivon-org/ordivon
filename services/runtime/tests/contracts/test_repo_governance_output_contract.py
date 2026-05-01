@@ -102,9 +102,12 @@ def _run_adapter_github(pr_title: str, pr_body: str, files: list[str], labels: l
 
     try:
         cmd = [
-            sys.executable, ADAPTER_PATH,
-            "--github-event-path", event_path,
-            "--changed-files-file", changed_path,
+            sys.executable,
+            ADAPTER_PATH,
+            "--github-event-path",
+            event_path,
+            "--changed-files-file",
+            changed_path,
             "--json",
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(ROOT))
@@ -119,11 +122,16 @@ def _run_adapter_github(pr_title: str, pr_body: str, files: list[str], labels: l
 
 def test_cli_execute_matches_contract():
     data = _run_cli(
-        "--task-description", "Fix unit test naming",
-        "--file-path", "tests/unit/test_example.py",
-        "--estimated-impact", "low",
-        "--reasoning", "Small test-only cleanup",
-        "--test-plan", "uv run pytest tests/unit/test_example.py",
+        "--task-description",
+        "Fix unit test naming",
+        "--file-path",
+        "tests/unit/test_example.py",
+        "--estimated-impact",
+        "low",
+        "--reasoning",
+        "Small test-only cleanup",
+        "--test-plan",
+        "uv run pytest tests/unit/test_example.py",
         "--json",
     )
     errors = _validate_against_schema(data)
@@ -137,11 +145,16 @@ def test_cli_execute_matches_contract():
 
 def test_cli_reject_matches_contract():
     data = _run_cli(
-        "--task-description", "Add env var",
-        "--file-path", ".env",
-        "--estimated-impact", "medium",
-        "--reasoning", "Need new env var",
-        "--test-plan", "Check startup",
+        "--task-description",
+        "Add env var",
+        "--file-path",
+        ".env",
+        "--estimated-impact",
+        "medium",
+        "--reasoning",
+        "Need new env var",
+        "--test-plan",
+        "Check startup",
         "--json",
     )
     errors = _validate_against_schema(data)
@@ -200,11 +213,16 @@ def test_github_adapter_reject_matches_contract():
 
 def test_all_side_effects_are_false():
     data = _run_cli(
-        "--task-description", "Fix test",
-        "--file-path", "tests/test_x.py",
-        "--estimated-impact", "low",
-        "--reasoning", "Test fix",
-        "--test-plan", "Run tests",
+        "--task-description",
+        "Fix test",
+        "--file-path",
+        "tests/test_x.py",
+        "--estimated-impact",
+        "low",
+        "--reasoning",
+        "Test fix",
+        "--test-plan",
+        "Run tests",
         "--json",
     )
     se = data["side_effects"]
@@ -212,7 +230,8 @@ def test_all_side_effects_are_false():
         assert se[field] is False, f"side_effects.{field} must be False"
     # GitHub adapter extra fields
     data2 = _run_adapter_github(
-        pr_title="Fix", pr_body="## Test Plan\nRun tests.",
+        pr_title="Fix",
+        pr_body="## Test Plan\nRun tests.",
         files=["a.py"],
     )
     se2 = data2["side_effects"]

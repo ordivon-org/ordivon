@@ -276,6 +276,7 @@ uv run pytest tests/unit/journal/test_h10_lesson_repository.py -v
 ```python
 # 在 domains/journal/lesson_repository.py 中添加（仿照现有 list_for_recommendation 模式）
 
+
 def list_for_review(self, review_id: str) -> list[LessonORM]:
     """Return all lessons linked to a specific review_id.
 
@@ -283,12 +284,7 @@ def list_for_review(self, review_id: str) -> list[LessonORM]:
     recommendation_id — it queries directly by review_id.
     Used by H-10 KF generalization for finance DecisionIntake reviews.
     """
-    return (
-        self.db.query(LessonORM)
-        .filter(LessonORM.review_id == review_id)
-        .order_by(LessonORM.created_at.asc())
-        .all()
-    )
+    return self.db.query(LessonORM).filter(LessonORM.review_id == review_id).order_by(LessonORM.created_at.asc()).all()
 ```
 
 **Step 4: 运行测试，确认通过**
@@ -436,6 +432,7 @@ uv run pytest tests/unit/knowledge/test_h10_extraction.py -v
 # 在 knowledge/extraction.py 的 LessonExtractionService 类中，
 # 在 extract_for_review() 方法之后添加：
 
+
 def extract_for_review_by_id(self, review_id: str) -> list[KnowledgeEntry]:
     """Derive KnowledgeEntries from lessons linked to a review.
 
@@ -460,14 +457,12 @@ def extract_for_review_by_id(self, review_id: str) -> list[KnowledgeEntry]:
 
     # Try to find the linked outcome via outcome_ref
     latest_outcome = None
-    if (
-        review_row.outcome_ref_id
-        and review_row.outcome_ref_type == "finance_manual_outcome"
-    ):
+    if review_row.outcome_ref_id and review_row.outcome_ref_type == "finance_manual_outcome":
         outcome_repo = FinanceManualOutcomeRepository(self.db)
         outcome_row = outcome_repo.get(review_row.outcome_ref_id)
         if outcome_row:
             from domains.finance_outcome.models import FinanceManualOutcome
+
             created_str = (
                 outcome_row.created_at.isoformat()
                 if hasattr(outcome_row.created_at, "isoformat")
@@ -490,11 +485,7 @@ def extract_for_review_by_id(self, review_id: str) -> list[KnowledgeEntry]:
         if latest_outcome is None:
             entries.append(KnowledgeEntryBuilder.from_lesson(lesson))
         else:
-            entries.append(
-                KnowledgeEntryBuilder.from_lesson_with_outcome(
-                    lesson, latest_outcome
-                )
-            )
+            entries.append(KnowledgeEntryBuilder.from_lesson_with_outcome(lesson, latest_outcome))
     return entries
 ```
 
@@ -815,6 +806,7 @@ uv run pytest tests/unit/capabilities/test_h8r_review_result.py -v
 ```python
 # capabilities/contracts/domain.py
 
+
 @dataclass(slots=True)
 class ReviewResult:
     id: str
@@ -822,8 +814,8 @@ class ReviewResult:
     created_at: str
     recommendation_id: str | None
     lessons_created: int
-    outcome_ref_type: str | None = None      # ← H-8R 新增
-    outcome_ref_id: str | None = None         # ← H-8R 新增
+    outcome_ref_type: str | None = None  # ← H-8R 新增
+    outcome_ref_id: str | None = None  # ← H-8R 新增
     metadata: dict[str, Any] = field(default_factory=dict)
 ```
 
@@ -838,8 +830,8 @@ return ReviewResult(
     created_at=row.created_at.isoformat() if hasattr(row, "created_at") else utc_now().isoformat(),
     recommendation_id=row.recommendation_id,
     lessons_created=0,
-    outcome_ref_type=row.outcome_ref_type,    # ← H-8R 新增
-    outcome_ref_id=row.outcome_ref_id,        # ← H-8R 新增
+    outcome_ref_type=row.outcome_ref_type,  # ← H-8R 新增
+    outcome_ref_id=row.outcome_ref_id,  # ← H-8R 新增
     metadata={"action_context": asdict(context)},
 )
 ```
@@ -1108,9 +1100,11 @@ from typing import Protocol
 
 # ── Protocol (defined here; eventually moves to governance/protocols.py) ──
 
+
 class RejectReason:
     def __init__(self, message: str):
         self.message = message
+
 
 class EscalateReason:
     def __init__(self, message: str):
@@ -1143,21 +1137,50 @@ _MAX_LOSS_TO_RISK_UNIT_RATIO = 2.0
 _MAX_POSITION_TO_RISK_UNIT_RATIO = 10.0
 
 _EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
-    "stress", "stressed", "stressful",
-    "fear", "fearful", "scared", "terrified", "panicked", "panic",
-    "anger", "angry", "furious", "frustrated",
-    "fomo", "greedy", "desperate", "reckless",
-    "revenge", "impulsive",
+    "stress",
+    "stressed",
+    "stressful",
+    "fear",
+    "fearful",
+    "scared",
+    "terrified",
+    "panicked",
+    "panic",
+    "anger",
+    "angry",
+    "furious",
+    "frustrated",
+    "fomo",
+    "greedy",
+    "desperate",
+    "reckless",
+    "revenge",
+    "impulsive",
 })
 
 _BANNED_THESIS_PATTERNS: frozenset[str] = frozenset({
-    "just feels right", "no specific thesis", "trust me",
-    "yolo", "vibes", "gut feeling", "intuition",
-    "going to the moon", "to the moon", "moon shot",
-    "full port", "all in", "yolo all in",
-    "pumping", "fomo is real", "i need in",
-    "no idea", "whatever", "because why not",
-    "feeling lucky", "hope this works", "pray for me",
+    "just feels right",
+    "no specific thesis",
+    "trust me",
+    "yolo",
+    "vibes",
+    "gut feeling",
+    "intuition",
+    "going to the moon",
+    "to the moon",
+    "moon shot",
+    "full port",
+    "all in",
+    "yolo all in",
+    "pumping",
+    "fomo is real",
+    "i need in",
+    "no idea",
+    "whatever",
+    "because why not",
+    "feeling lucky",
+    "hope this works",
+    "pray for me",
 })
 
 
@@ -1179,18 +1202,12 @@ class TradingDisciplinePolicy:
             lowered = thesis.lower()
             for banned in _BANNED_THESIS_PATTERNS:
                 if banned in lowered:
-                    reasons.append(RejectReason(
-                        f"Thesis quality rejected: banned pattern '{banned}'."
-                    ))
+                    reasons.append(RejectReason(f"Thesis quality rejected: banned pattern '{banned}'."))
                     break
             if len(thesis.strip()) < 50:
-                reasons.append(EscalateReason(
-                    f"Thesis too short ({len(thesis.strip())} chars, min 50)."
-                ))
+                reasons.append(EscalateReason(f"Thesis too short ({len(thesis.strip())} chars, min 50)."))
             if not _has_verifiability(thesis):
-                reasons.append(EscalateReason(
-                    "Thesis lacks verifiability criteria."
-                ))
+                reasons.append(EscalateReason("Thesis lacks verifiability criteria."))
 
         # ── stop_loss: required ──
         if not _as_str(payload.get("stop_loss")):
@@ -1227,17 +1244,21 @@ class TradingDisciplinePolicy:
 
         if max_loss and risk_unit and risk_unit > 0:
             if max_loss > _MAX_LOSS_TO_RISK_UNIT_RATIO * risk_unit:
-                reasons.append(RejectReason(
-                    f"max_loss_usdt ({max_loss}) exceeds "
-                    f"{_MAX_LOSS_TO_RISK_UNIT_RATIO}× risk_unit_usdt ({risk_unit})."
-                ))
+                reasons.append(
+                    RejectReason(
+                        f"max_loss_usdt ({max_loss}) exceeds "
+                        f"{_MAX_LOSS_TO_RISK_UNIT_RATIO}× risk_unit_usdt ({risk_unit})."
+                    )
+                )
 
         if position_size and risk_unit and risk_unit > 0:
             if position_size > _MAX_POSITION_TO_RISK_UNIT_RATIO * risk_unit:
-                reasons.append(RejectReason(
-                    f"position_size_usdt ({position_size}) exceeds "
-                    f"{_MAX_POSITION_TO_RISK_UNIT_RATIO}× risk_unit_usdt ({risk_unit})."
-                ))
+                reasons.append(
+                    RejectReason(
+                        f"position_size_usdt ({position_size}) exceeds "
+                        f"{_MAX_POSITION_TO_RISK_UNIT_RATIO}× risk_unit_usdt ({risk_unit})."
+                    )
+                )
 
         return reasons
 
@@ -1252,26 +1273,21 @@ class TradingDisciplinePolicy:
 
         emotional = _as_str(payload.get("emotional_state"))
         if emotional and _contains_emotional_risk(emotional):
-            reasons.append(EscalateReason(
-                f"emotional_state='{emotional}' indicates risk."
-            ))
+            reasons.append(EscalateReason(f"emotional_state='{emotional}' indicates risk."))
 
         rule_exceptions = payload.get("rule_exceptions")
         if isinstance(rule_exceptions, list) and len(rule_exceptions) > 0:
-            reasons.append(EscalateReason(
-                f"rule_exceptions not empty ({len(rule_exceptions)} item(s))."
-            ))
+            reasons.append(EscalateReason(f"rule_exceptions not empty ({len(rule_exceptions)} item(s))."))
 
         confidence = payload.get("confidence")
         if isinstance(confidence, (int, float)) and 0 <= confidence < 0.3:
-            reasons.append(EscalateReason(
-                f"confidence={confidence} below 0.3 threshold."
-            ))
+            reasons.append(EscalateReason(f"confidence={confidence} below 0.3 threshold."))
 
         return reasons
 
 
 # ── Private helpers (copied from RiskEngine) ──────────────────────
+
 
 def _as_str(value: object) -> str | None:
     if isinstance(value, str) and value.strip():
@@ -1298,10 +1314,19 @@ def _has_verifiability(thesis: str) -> bool:
     """Check if thesis contains invalidation or confirmation language."""
     lowered = thesis.lower()
     verifiability_markers = [
-        "unless", "invalidated if", "invalid if",
-        "confirmed by", "confirmation", "confirm",
-        "if price", "if the", "stop if", "exit if",
-        "target at", "target is", "entry at",
+        "unless",
+        "invalidated if",
+        "invalid if",
+        "confirmed by",
+        "confirmation",
+        "confirm",
+        "if price",
+        "if the",
+        "stop if",
+        "exit if",
+        "target at",
+        "target is",
+        "entry at",
     ]
     return any(marker in lowered for marker in verifiability_markers)
 ```
@@ -1330,6 +1355,7 @@ def policy():
 
 # ── Gate 1: Field existence + Thesis quality ──
 
+
 def test_reject_missing_thesis(policy):
     reasons = policy.validate_fields({"stop_loss": "2%", "emotional_state": "calm"})
     assert any("thesis" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
@@ -1348,7 +1374,8 @@ def test_reject_missing_emotional_state(policy):
 def test_reject_banned_thesis(policy):
     reasons = policy.validate_fields({
         "thesis": "No specific thesis, just feels right",
-        "stop_loss": "2%", "emotional_state": "calm",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
     })
     reject_msgs = [r.message for r in reasons if isinstance(r, RejectReason)]
     assert any("banned pattern" in m for m in reject_msgs)
@@ -1357,7 +1384,8 @@ def test_reject_banned_thesis(policy):
 def test_escalate_short_thesis(policy):
     reasons = policy.validate_fields({
         "thesis": "Short thesis",
-        "stop_loss": "2%", "emotional_state": "calm",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
     })
     escalate_msgs = [r.message for r in reasons if isinstance(r, EscalateReason)]
     assert any("too short" in m for m in escalate_msgs)
@@ -1366,7 +1394,8 @@ def test_escalate_short_thesis(policy):
 def test_escalate_no_verifiability(policy):
     reasons = policy.validate_fields({
         "thesis": "BTC is going up because trend is strong and volume is high",
-        "stop_loss": "2%", "emotional_state": "calm",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
     })
     escalate_msgs = [r.message for r in reasons if isinstance(r, EscalateReason)]
     assert any("verifiability" in m.lower() for m in escalate_msgs)
@@ -1374,9 +1403,9 @@ def test_escalate_no_verifiability(policy):
 
 def test_valid_thesis_passes(policy):
     reasons = policy.validate_fields({
-        "thesis": "BTC breaking above resistance with volume confirmation; "
-                 "invalidated if price closes below 200 EMA.",
-        "stop_loss": "2%", "emotional_state": "calm",
+        "thesis": "BTC breaking above resistance with volume confirmation; invalidated if price closes below 200 EMA.",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
     })
     reject_msgs = [r.message for r in reasons if isinstance(r, RejectReason)]
     escalate_msgs = [r.message for r in reasons if isinstance(r, EscalateReason)]
@@ -1385,6 +1414,7 @@ def test_valid_thesis_passes(policy):
 
 
 # ── Gate 2: Numeric fields ──
+
 
 def test_reject_missing_max_loss(policy):
     reasons = policy.validate_numeric({"position_size_usdt": 100.0, "risk_unit_usdt": 10.0})
@@ -1403,28 +1433,36 @@ def test_reject_missing_risk_unit(policy):
 
 # ── Gate 3: Risk limits ──
 
+
 def test_reject_max_loss_exceeds_ratio(policy):
     reasons = policy.validate_limits({
-        "max_loss_usdt": 500.0, "position_size_usdt": 100.0, "risk_unit_usdt": 100.0,
+        "max_loss_usdt": 500.0,
+        "position_size_usdt": 100.0,
+        "risk_unit_usdt": 100.0,
     })
     assert any("max_loss_usdt" in r.message and "exceeds" in r.message for r in reasons)
 
 
 def test_reject_position_size_exceeds_ratio(policy):
     reasons = policy.validate_limits({
-        "max_loss_usdt": 100.0, "position_size_usdt": 5000.0, "risk_unit_usdt": 100.0,
+        "max_loss_usdt": 100.0,
+        "position_size_usdt": 5000.0,
+        "risk_unit_usdt": 100.0,
     })
     assert any("position_size_usdt" in r.message and "exceeds" in r.message for r in reasons)
 
 
 def test_valid_limits_pass(policy):
     reasons = policy.validate_limits({
-        "max_loss_usdt": 200.0, "position_size_usdt": 1000.0, "risk_unit_usdt": 100.0,
+        "max_loss_usdt": 200.0,
+        "position_size_usdt": 1000.0,
+        "risk_unit_usdt": 100.0,
     })
     assert len([r for r in reasons if isinstance(r, RejectReason)]) == 0
 
 
 # ── Gate 4: Behavioral ──
+
 
 def test_escalate_revenge_trade(policy):
     reasons = policy.validate_behavioral({"is_revenge_trade": True, "is_chasing": False})
@@ -1453,8 +1491,10 @@ def test_escalate_low_confidence(policy):
 
 def test_calm_no_flags_passes(policy):
     reasons = policy.validate_behavioral({
-        "is_revenge_trade": False, "is_chasing": False,
-        "emotional_state": "calm", "confidence": 0.7,
+        "is_revenge_trade": False,
+        "is_chasing": False,
+        "emotional_state": "calm",
+        "confidence": 0.7,
         "rule_exceptions": [],
     })
     assert len(reasons) == 0
@@ -1491,6 +1531,7 @@ git commit -m "feat(pack): extract finance TradingDisciplinePolicy from Core Ris
 ```python
 # governance/risk_engine/engine.py — 简化后的 validate_intake
 
+
 def validate_intake(
     self,
     intake: DecisionIntake,
@@ -1516,9 +1557,7 @@ def validate_intake(
 
     # ── Gate 0: intake must be validated (generic) ──
     if intake.status != "validated":
-        reject_reasons.append(
-            f"Intake status is '{intake.status}' — only validated intakes can be governed."
-        )
+        reject_reasons.append(f"Intake status is '{intake.status}' — only validated intakes can be governed.")
 
     # ── Pack policy gates (ADR-006) ──
     if pack_policy is not None and intake.payload:
@@ -1709,15 +1748,19 @@ git commit -m "docs: update naming status post-P4 closure"
 # --- Run 11: SOLUSDT moderate position, borderline risk ratio ---
 print("\n=== RUN 11: SOL moderate, borderline risk ===")
 r11 = intake({
-    "symbol": "SOLUSDT", "timeframe": "4h", "direction": "long",
+    "symbol": "SOLUSDT",
+    "timeframe": "4h",
+    "direction": "long",
     "thesis": "SOL reclaiming range low with volume spike confirming accumulation; "
-             "invalidated if price closes back below range low.",
+    "invalidated if price closes back below range low.",
     "stop_loss": "4%",
     "max_loss_usdt": 200,
     "position_size_usdt": 1000,
     "risk_unit_usdt": 100,
-    "is_revenge_trade": False, "is_chasing": False,
-    "emotional_state": "neutral", "confidence": 0.65,
+    "is_revenge_trade": False,
+    "is_chasing": False,
+    "emotional_state": "neutral",
+    "confidence": 0.65,
 })
 r11_gov = govern(r11["id"]) if "id" in r11 else {}
 # max_loss=200, risk_unit=100 → ratio=2.0 → just at boundary → should pass
@@ -1727,15 +1770,18 @@ print(f"  intake_id={r11.get('id')} → governance={r11_gov.get('governance_deci
 # --- Run 12: BTCUSDT anxious emotional state → escalate ---
 print("\n=== RUN 12: BTC anxious → escalate ===")
 r12 = intake({
-    "symbol": "BTCUSDT", "timeframe": "1h", "direction": "short",
-    "thesis": "BTC rejected at range high with bearish engulfing candle; "
-             "invalidated if price closes above range high.",
+    "symbol": "BTCUSDT",
+    "timeframe": "1h",
+    "direction": "short",
+    "thesis": "BTC rejected at range high with bearish engulfing candle; invalidated if price closes above range high.",
     "stop_loss": "1.5%",
     "max_loss_usdt": 300,
     "position_size_usdt": 2000,
     "risk_unit_usdt": 200,
-    "is_revenge_trade": False, "is_chasing": False,
-    "emotional_state": "anxious", "confidence": 0.5,
+    "is_revenge_trade": False,
+    "is_chasing": False,
+    "emotional_state": "anxious",
+    "confidence": 0.5,
 })
 r12_gov = govern(r12["id"]) if "id" in r12 else {}
 runs.append({"tag": "Run 12", "intake": r12, "governance": r12_gov})

@@ -32,9 +32,11 @@ def test_reject_missing_emotional_state(policy):
 
 
 def test_reject_banned_thesis(policy):
-    reasons = policy.validate_fields(
-        {"thesis": "no specific thesis, just feels right", "stop_loss": "2%", "emotional_state": "calm"}
-    )
+    reasons = policy.validate_fields({
+        "thesis": "no specific thesis, just feels right",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
+    })
     assert any("rejected" in r.message.lower() for r in reasons if isinstance(r, RejectReason))
 
 
@@ -44,13 +46,11 @@ def test_escalate_short_thesis(policy):
 
 
 def test_escalate_no_verifiability(policy):
-    reasons = policy.validate_fields(
-        {
-            "thesis": "BTC is going up because trend is strong and volume is high",
-            "stop_loss": "2%",
-            "emotional_state": "calm",
-        }
-    )
+    reasons = policy.validate_fields({
+        "thesis": "BTC is going up because trend is strong and volume is high",
+        "stop_loss": "2%",
+        "emotional_state": "calm",
+    })
     assert any("verifiability" in r.message.lower() for r in reasons if isinstance(r, EscalateReason))
 
 
@@ -115,13 +115,11 @@ def test_escalate_chasing(policy):
 
 
 def test_calm_no_flags_passes(policy):
-    reasons = policy.validate_behavioral(
-        {
-            "is_revenge_trade": False,
-            "is_chasing": False,
-            "emotional_state": "calm",
-            "confidence": 0.7,
-            "rule_exceptions": [],
-        }
-    )
+    reasons = policy.validate_behavioral({
+        "is_revenge_trade": False,
+        "is_chasing": False,
+        "emotional_state": "calm",
+        "confidence": 0.7,
+        "rule_exceptions": [],
+    })
     assert len(reasons) == 0

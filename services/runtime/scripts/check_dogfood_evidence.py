@@ -12,10 +12,10 @@ Checks:
 This is a CandidateRule (advisory) — it does NOT block CI by default.
 Exit 0 = clean; Exit 1 = violations found.
 """
+
 from __future__ import annotations
 
 import ast
-import json
 import re
 import sys
 from pathlib import Path
@@ -70,6 +70,7 @@ def find_all_violations() -> list[str]:
 # Check 1: Scripts exist
 # ═══════════════════════════════════════════════════════════════════
 
+
 def check_scripts_exist() -> list[str]:
     violations: list[str] = []
     for rel_path in DOGFOOD_SCRIPTS:
@@ -90,6 +91,7 @@ def check_scripts_exist() -> list[str]:
 # Check 2: Run count consistency
 # ═══════════════════════════════════════════════════════════════════
 
+
 def check_run_counts() -> list[str]:
     violations: list[str] = []
 
@@ -106,9 +108,9 @@ def check_run_counts() -> list[str]:
                 expected = int(expected_match.group(1))
                 # Count primary run record() calls (R1-R31 intake, excluding complete_review sub-records)
                 primary_records = len([
-                    m for m in re.finditer(
-                        r"""record\s*\(\s*["']R\d+\b""", text
-                    ) if "complete_review" not in text[m.start():m.start() + 40]
+                    m
+                    for m in re.finditer(r"""record\s*\(\s*["']R\d+\b""", text)
+                    if "complete_review" not in text[m.start() : m.start() + 40]
                 ])
                 if primary_records > 0 and primary_records != expected:
                     violations.append(
@@ -120,9 +122,7 @@ def check_run_counts() -> list[str]:
             run_appends = len(re.findall(r"runs\.append\(", text))
             run_tags = len(re.findall(r'"tag"\s*:', text))
             if run_tags > 0 and run_appends > 0 and run_tags != run_appends:
-                violations.append(
-                    f"{rel_path}: {run_tags} run tags but {run_appends} runs.append() — mismatch"
-                )
+                violations.append(f"{rel_path}: {run_tags} run tags but {run_appends} runs.append() — mismatch")
 
         # For h9c_verification.py: check check() call count
         if "h9c_verification" in rel_path:
@@ -130,22 +130,12 @@ def check_run_counts() -> list[str]:
             check_calls = len(re.findall(r"^\s+check\s*\(", text, re.MULTILINE))
             if check_calls > 0:
                 # verify the pass/fail increments exist inside the check function
-                has_pass_inc = bool(re.search(
-                    r"def\s+check\b.*:.*pass_count\s*\+=\s*1",
-                    text, re.DOTALL
-                ))
-                has_fail_inc = bool(re.search(
-                    r"def\s+check\b.*:.*fail_count\s*\+=\s*1",
-                    text, re.DOTALL
-                ))
+                has_pass_inc = bool(re.search(r"def\s+check\b.*:.*pass_count\s*\+=\s*1", text, re.DOTALL))
+                has_fail_inc = bool(re.search(r"def\s+check\b.*:.*fail_count\s*\+=\s*1", text, re.DOTALL))
                 if not has_pass_inc:
-                    violations.append(
-                        f"{rel_path}: {check_calls} check() calls but no pass_count increment in check()"
-                    )
+                    violations.append(f"{rel_path}: {check_calls} check() calls but no pass_count increment in check()")
                 if not has_fail_inc:
-                    violations.append(
-                        f"{rel_path}: {check_calls} check() calls but no fail_count increment in check()"
-                    )
+                    violations.append(f"{rel_path}: {check_calls} check() calls but no fail_count increment in check()")
 
     return violations
 
@@ -153,6 +143,7 @@ def check_run_counts() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Check 3: Verdict vocabulary
 # ═══════════════════════════════════════════════════════════════════
+
 
 def check_verdict_vocabulary() -> list[str]:
     violations: list[str] = []
@@ -173,19 +164,14 @@ def check_verdict_vocabulary() -> list[str]:
                 for m in matches:
                     # Check context — is it near "verdict", "decision", "governance"?
                     idx = text.find(m)
-                    context = text[max(0, idx - 80):idx + 80]
+                    context = text[max(0, idx - 80) : idx + 80]
                     if any(kw in context.lower() for kw in ("verdict", "governance", "decision", "outcome_type")):
-                        violations.append(
-                            f"{rel_path}: forbidden verdict '{m}' near governance context"
-                        )
+                        violations.append(f"{rel_path}: forbidden verdict '{m}' near governance context")
                         break  # one per file
 
         # Check that all expected verdicts are from the valid set
         # Look for governance_decision assignments
-        gov_decisions = re.findall(
-            r"""governance_decision["']\s*[=:]\s*["'](\w+)["']""",
-            text
-        )
+        gov_decisions = re.findall(r"""governance_decision["']\s*[=:]\s*["'](\w+)["']""", text)
         for dec in gov_decisions:
             if dec not in VALID_VERDICTS:
                 violations.append(
@@ -194,15 +180,10 @@ def check_verdict_vocabulary() -> list[str]:
                 )
 
         # Also check verdict strings in outcome/complete_review calls
-        verdict_vals = re.findall(
-            r"""["']verdict["']\s*:\s*["'](\w+)["']""",
-            text
-        )
+        verdict_vals = re.findall(r"""["']verdict["']\s*:\s*["'](\w+)["']""", text)
         for v in verdict_vals:
             if v in FORBIDDEN_VERDICTS:
-                violations.append(
-                    f"{rel_path}: forbidden outcome verdict '{v}'"
-                )
+                violations.append(f"{rel_path}: forbidden outcome verdict '{v}'")
 
     return violations
 
@@ -210,6 +191,7 @@ def check_verdict_vocabulary() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Check 4: Error handling
 # ═══════════════════════════════════════════════════════════════════
+
 
 def check_error_handling() -> list[str]:
     violations: list[str] = []
@@ -225,9 +207,7 @@ def check_error_handling() -> list[str]:
         has_error_handler = bool(re.search(r"HTTPError|URLError|except\s+Exception", text))
 
         if has_api_calls and not has_error_handler:
-            violations.append(
-                f"{rel_path}: makes API calls but has no HTTPError/Exception handler"
-            )
+            violations.append(f"{rel_path}: makes API calls but has no HTTPError/Exception handler")
 
     return violations
 
@@ -235,6 +215,7 @@ def check_error_handling() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Check 5: Evidence report integrity
 # ═══════════════════════════════════════════════════════════════════
+
 
 def check_evidence_reports() -> list[str]:
     violations: list[str] = []
@@ -251,10 +232,7 @@ def check_evidence_reports() -> list[str]:
         fail_lines = len(re.findall(r"^\s*❌", text, re.MULTILINE))
 
         # Parse summary line: "N pass, M fail"
-        summary_match = re.search(
-            r"(\d+)\s+pass\s*[,/]\s*(\d+)\s+fail",
-            text, re.IGNORECASE
-        )
+        summary_match = re.search(r"(\d+)\s+pass\s*[,/]\s*(\d+)\s+fail", text, re.IGNORECASE)
         if summary_match:
             declared_pass = int(summary_match.group(1))
             declared_fail = int(summary_match.group(2))
@@ -273,9 +251,7 @@ def check_evidence_reports() -> list[str]:
         for forbidden in FORBIDDEN_VERDICTS:
             pattern = rf"""["']verdict["']\s*:\s*["']{forbidden}["']"""
             if re.search(pattern, text, re.IGNORECASE):
-                violations.append(
-                    f"{rel_path}: forbidden verdict '{forbidden}' in evidence report"
-                )
+                violations.append(f"{rel_path}: forbidden verdict '{forbidden}' in evidence report")
 
     return violations
 
@@ -283,6 +259,7 @@ def check_evidence_reports() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Check 6: No DB contamination in dogfood code
 # ═══════════════════════════════════════════════════════════════════
+
 
 def check_no_db_contamination() -> list[str]:
     violations: list[str] = []
@@ -306,6 +283,7 @@ def check_no_db_contamination() -> list[str]:
 # ═══════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════
+
 
 def main() -> int:
     violations = find_all_violations()

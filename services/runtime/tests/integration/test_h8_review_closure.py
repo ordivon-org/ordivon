@@ -568,7 +568,8 @@ def test_h8_review_completion_does_not_promote_policy():
 
             # Check no policy-related audit events
             policy_events = (
-                db.query(AuditEventORM)
+                db
+                .query(AuditEventORM)
                 .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
                 .count()
             )
@@ -623,7 +624,8 @@ def test_h8_review_completion_does_not_trigger_broker():
 
             # Verify no new broker/order/trade execution requests
             broker_reqs = (
-                db.query(ExecutionRequestORM)
+                db
+                .query(ExecutionRequestORM)
                 .filter(
                     ExecutionRequestORM.action_id.like("%order%")
                     | ExecutionRequestORM.action_id.like("%trade%")

@@ -90,12 +90,7 @@ Follow the existing `list_for_recommendation` pattern:
 ```python
 def list_for_review(self, review_id: str) -> list[LessonORM]:
     """Return all lessons linked to a specific review."""
-    return (
-        self.db.query(LessonORM)
-        .filter(LessonORM.review_id == review_id)
-        .order_by(LessonORM.created_at.asc())
-        .all()
-    )
+    return self.db.query(LessonORM).filter(LessonORM.review_id == review_id).order_by(LessonORM.created_at.asc()).all()
 ```
 
 **Step 2: Verify syntax**
@@ -152,6 +147,7 @@ def extract_for_review_by_id(self, review_id: str) -> list[KnowledgeEntry]:
         outcome_row = outcome_repo.get(review_row.outcome_ref_id)
         if outcome_row:
             from domains.finance_outcome.models import FinanceManualOutcome
+
             latest_outcome = FinanceManualOutcome(
                 id=outcome_row.id,
                 decision_intake_id=outcome_row.decision_intake_id,
@@ -161,7 +157,9 @@ def extract_for_review_by_id(self, review_id: str) -> list[KnowledgeEntry]:
                 verdict=outcome_row.verdict,
                 variance_summary=outcome_row.variance_summary,
                 plan_followed=outcome_row.plan_followed,
-                created_at=outcome_row.created_at.isoformat() if hasattr(outcome_row.created_at, "isoformat") else str(outcome_row.created_at),
+                created_at=outcome_row.created_at.isoformat()
+                if hasattr(outcome_row.created_at, "isoformat")
+                else str(outcome_row.created_at),
             )
 
     entries: list[KnowledgeEntry] = []
@@ -303,6 +301,7 @@ def test_h10_kf_extraction_without_recommendation_id(db):
 
     # Extraction should produce entries
     from knowledge.extraction import LessonExtractionService
+
     service = LessonExtractionService(db)
     entries = service.extract_for_review_by_id(review_id)
     assert len(entries) >= 1

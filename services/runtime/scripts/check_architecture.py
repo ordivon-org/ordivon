@@ -4,9 +4,9 @@
 ADR-006 allows: Core → pack_policy (RejectReason, EscalateReason types only).
 Everything else (tool_refs, policy overlays, pack-specific fields) is forbidden.
 """
+
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
@@ -17,7 +17,7 @@ CORE_MODULES = ["governance", "state", "domains", "capabilities", "execution", "
 # Files allowed to reference broker/tool namespace metadata (ADR-006 interface)
 ALLOWED_FILES = {
     "governance/policy_source.py",  # ADR-006: tool namespace refs (metadata only)
-    "state/db/schema.py",           # Legacy DuckDB analytics schema (DDL only, not domain logic)
+    "state/db/schema.py",  # Legacy DuckDB analytics schema (DDL only, not domain logic)
     "domains/finance/read_only_adapter.py",  # Phase 6G: read-only capability contract (declares what is NOT allowed)
 }
 
@@ -45,9 +45,7 @@ def check_file(path: Path) -> list[str]:
 
     for pattern, description in FORBIDDEN:
         if pattern in text:
-            violations.append(
-                f"{rel}: {description} (pattern: '{pattern}')"
-            )
+            violations.append(f"{rel}: {description} (pattern: '{pattern}')")
     return violations
 
 

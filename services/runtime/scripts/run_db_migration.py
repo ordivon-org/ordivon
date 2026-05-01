@@ -8,8 +8,10 @@ sys.path.append(str(project_root))
 
 from state.db.session import get_db_connection
 
+
 def run_migration():
     from shared.config.settings import settings
+
     print(f"DEBUG: Using database at {settings.db_abs_path}")
     sql_path = project_root / "scripts" / "migrations" / "20240417_core_completion.sql"
     if not sql_path.exists():
@@ -17,18 +19,18 @@ def run_migration():
         return
 
     sql_content = sql_path.read_text(encoding="utf-8")
-    
+
     conn = get_db_connection(read_only=False)
     try:
         # Split by ';' and clean up
-        statements = [s.strip() for s in sql_content.split(';') if s.strip()]
+        statements = [s.strip() for s in sql_content.split(";") if s.strip()]
         for stmt in statements:
             try:
                 print(f"Executing: {stmt[:50]}...")
                 conn.execute(stmt)
             except Exception as e:
-                # If column already exists, duckdb might throw an error. 
-                # For this specific migration, we'll log and continue for ALTER TABLE 
+                # If column already exists, duckdb might throw an error.
+                # For this specific migration, we'll log and continue for ALTER TABLE
                 if "already exists" in str(e).lower():
                     print(f"Skipping (already exists): {e}")
                 else:
@@ -39,6 +41,7 @@ def run_migration():
         print(f"Migration runner failed: {e}")
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     run_migration()

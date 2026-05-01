@@ -14,10 +14,12 @@ except ImportError as e:
     print(f"FAILED: Import error - {e}")
     sys.exit(1)
 
+
 def test_config():
     print(f"Checking Config: DB_PATH={settings.db_abs_path}")
     assert "financial-ai-os" in str(settings.db_abs_path)
     print("SUCCESS: Config validated.")
+
 
 def test_db_init():
     print("Initializing Database...")
@@ -29,27 +31,26 @@ def test_db_init():
     finally:
         conn.close()
 
+
 def test_wiki_object():
     print("Testing Wiki Object persistence...")
     test_content = "This is a smoke test strategy."
     test_fm = {"test_id": make_id("smoke"), "status": "verified"}
-    
+
     path = ObjectService.save_wiki_object(
-        category="research",
-        name="smoke_test_report",
-        content=test_content,
-        frontmatter=test_fm
+        category="research", name="smoke_test_report", content=test_content, frontmatter=test_fm
     )
-    
+
     abs_path = Path(path)
     assert abs_path.exists()
     print(f"SUCCESS: Wiki object created at {abs_path}")
-    
+
     # Verify content
     content = abs_path.read_text(encoding="utf-8")
     assert "status: verified" in content
     assert test_content in content
     print("SUCCESS: Wiki content verified.")
+
 
 if __name__ == "__main__":
     print("=== PFIOS Data Layer Smoke Test ===")
@@ -61,5 +62,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

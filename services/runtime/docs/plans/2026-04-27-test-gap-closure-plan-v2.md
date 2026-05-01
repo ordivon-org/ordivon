@@ -333,6 +333,7 @@ git commit -m "chore: add import-linter cycle detection (non-blocking)"
 ADR-006 allows: Core → pack_policy (RejectReason, EscalateReason types only).
 Everything else (tool_refs, policy overlays, pack-specific fields) is forbidden.
 """
+
 from __future__ import annotations
 
 import sys
@@ -364,9 +365,7 @@ def check_file(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     for pattern, description in FORBIDDEN:
         if pattern in text:
-            violations.append(
-                f"{path.relative_to(ROOT)}: {description} (pattern: '{pattern}')"
-            )
+            violations.append(f"{path.relative_to(ROOT)}: {description} (pattern: '{pattern}')")
     return violations
 
 
@@ -939,22 +938,26 @@ def test_create_duplicate_outcome_raises(db: Session):
     """Creating two outcomes with the same execution_receipt_id must raise."""
     repo = FinanceManualOutcomeRepository(db)
 
-    outcome1 = repo.create(FinanceManualOutcome(
-        decision_intake_id="intake_dup",
-        execution_receipt_id="receipt_dup",
-        observed_outcome="First outcome",
-        verdict="validated",
-    ))
+    outcome1 = repo.create(
+        FinanceManualOutcome(
+            decision_intake_id="intake_dup",
+            execution_receipt_id="receipt_dup",
+            observed_outcome="First outcome",
+            verdict="validated",
+        )
+    )
 
     # Second create with the same receipt should fail
     with pytest.raises((IntegrityError, ValueError, Exception)):
-        repo.create(FinanceManualOutcome(
-            id=f"dup_outcome_{outcome1.id}",  # Different ID
-            decision_intake_id="intake_dup",
-            execution_receipt_id="receipt_dup",  # Same receipt → should conflict
-            observed_outcome="Second outcome",
-            verdict="validated",
-        ))
+        repo.create(
+            FinanceManualOutcome(
+                id=f"dup_outcome_{outcome1.id}",  # Different ID
+                decision_intake_id="intake_dup",
+                execution_receipt_id="receipt_dup",  # Same receipt → should conflict
+                observed_outcome="Second outcome",
+                verdict="validated",
+            )
+        )
 ```
 
 **Step 2: Run → expect FAIL (duplicate detection may not exist at ORM level)**
@@ -1073,9 +1076,7 @@ from sqlalchemy.pool import StaticPool
 from state.db.base import Base
 from domains.decision_intake.service import DecisionIntakeService
 from domains.decision_intake.repository import DecisionIntakeRepository
-from capabilities.domain.finance_decisions import (
-    FinanceDecisionCapability, PlanReceiptNotAllowed
-)
+from capabilities.domain.finance_decisions import FinanceDecisionCapability, PlanReceiptNotAllowed
 
 
 @pytest.fixture
@@ -1213,6 +1214,7 @@ def test_plan_intake_rejects_duplicate(db: Session):
 
     # Second plan → must raise PlanReceiptConflict
     from capabilities.domain.finance_decisions import PlanReceiptConflict
+
     with pytest.raises(PlanReceiptConflict) as exc:
         cap.plan_intake(updated.id, db)
 
@@ -1241,9 +1243,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from state.db.base import Base
-from capabilities.domain.finance_decisions import (
-    FinanceDecisionCapability, PlanReceiptNotAllowed
-)
+from capabilities.domain.finance_decisions import FinanceDecisionCapability, PlanReceiptNotAllowed
 
 
 @pytest.fixture
@@ -1369,6 +1369,7 @@ def test_capture_outcome_succeeds_with_valid_receipt(db: Session):
     """Outcome with valid receipt must succeed."""
     # First create intake + plan via capability chain
     from capabilities.domain.finance_decisions import FinanceDecisionCapability
+
     fcap = FinanceDecisionCapability()
     intake = fcap.create_intake(
         payload={
@@ -1487,9 +1488,7 @@ def test_candidate_rule_creation_does_not_change_governance_snapshot(db: Session
     repo.create(rule)
 
     after = set(source.get_active_snapshot().active_policy_ids)
-    assert after == before, (
-        f"CandidateRule creation changed active policy IDs: {before} → {after}"
-    )
+    assert after == before, f"CandidateRule creation changed active policy IDs: {before} → {after}"
 
 
 def test_candidate_rule_cannot_be_created_with_active_status():
@@ -1524,6 +1523,7 @@ git commit -m "test: add CandidateRule≠Policy structural invariant"
 """Prove KnowledgeFeedback is advisory — never auto-enforces."""
 
 from knowledge.feedback import KnowledgeFeedbackPacket, KnowledgeEntry
+
 
 # Use a minimal mock KnowledgeEntry for the test
 class FakeKnowledgeEntry:
@@ -1717,8 +1717,7 @@ def test_complete_review_does_not_create_candidate_rule(db: Session):
 
     after_count = db.query(CandidateRuleORM).count()
     assert after_count == before_count, (
-        f"complete_review auto-created CandidateRule: "
-        f"before={before_count}, after={after_count}"
+        f"complete_review auto-created CandidateRule: before={before_count}, after={after_count}"
     )
 
 
@@ -1748,14 +1747,14 @@ def test_complete_review_does_not_create_policy_audit_events(db: Session):
     )
     db.flush()
 
-    policy_events = db.query(AuditEventORM).filter(
-        AuditEventORM.event_type.like("%policy%")
-        | AuditEventORM.event_type.like("%promote%")
-    ).count()
-
-    assert policy_events == 0, (
-        f"complete_review generated policy-related audit events: {policy_events}"
+    policy_events = (
+        db
+        .query(AuditEventORM)
+        .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
+        .count()
     )
+
+    assert policy_events == 0, f"complete_review generated policy-related audit events: {policy_events}"
 ```
 
 **Step 2: Run → expect PASS (already tested in H-8 integration, this is unit-level redundancy)**
@@ -1806,6 +1805,7 @@ def test_feedback_packet_to_payload_has_no_db_references():
 
     # All values must be JSON-serializable
     import json
+
     serialized = json.dumps(payload)
     assert "sqlalchemy" not in serialized.lower()
     assert "Session" not in serialized
@@ -1854,14 +1854,9 @@ def test_no_broker_references_in_core():
             text = fp.read_text(encoding="utf-8").lower()
             for pat in FORBIDDEN:
                 if pat in text:
-                    violations.append(
-                        f"{fp.relative_to(ROOT)}: found '{pat}'"
-                    )
+                    violations.append(f"{fp.relative_to(ROOT)}: found '{pat}'")
 
-    assert violations == [], (
-        f"Broker/trade/order references found in Core:\n"
-        + "\n".join(violations)
-    )
+    assert violations == [], f"Broker/trade/order references found in Core:\n" + "\n".join(violations)
 ```
 
 **Step 2: Run → expect PASS (current codebase is clean per ADR design)**
@@ -1906,6 +1901,7 @@ git commit -m "test: add no-broker-in-Core architecture invariant"
 """Prove API errors use enumerated codes, not ad-hoc strings."""
 
 import os
+
 os.environ.setdefault("PFIOS_ENV", "test")
 os.environ.setdefault("PFIOS_DEBUG", "false")
 os.environ.setdefault("PFIOS_REASONING_PROVIDER", "mock")
@@ -1917,20 +1913,28 @@ from apps.api.app.main import app
 
 
 KNOWN_ERROR_CODES = {
-    "not_found", "validation_error", "conflict",
-    "governance_rejected", "governance_escalated",
-    "receipt_not_found", "plan_not_allowed",
-    "internal_error", "bad_request",
+    "not_found",
+    "validation_error",
+    "conflict",
+    "governance_rejected",
+    "governance_escalated",
+    "receipt_not_found",
+    "plan_not_allowed",
+    "internal_error",
+    "bad_request",
 }
 
 
 def test_reject_path_returns_governance_error():
     """Rejected intake plan attempt must return governance_rejected."""
     with TestClient(app) as client:
-        resp = client.post("/api/v1/finance-decisions/intake", json={
-            "thesis": "YOLO all in",
-            "stop_loss": "Below support",
-        })
+        resp = client.post(
+            "/api/v1/finance-decisions/intake",
+            json={
+                "thesis": "YOLO all in",
+                "stop_loss": "Below support",
+            },
+        )
         intake_id = resp.json()["id"]
 
         client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
@@ -1971,6 +1975,7 @@ git commit -m "test: add API error code enumeration contract"
 """Prove POST /reviews/submit contract accepts outcome_ref fields."""
 
 import os
+
 os.environ.setdefault("PFIOS_ENV", "test")
 os.environ.setdefault("PFIOS_DEBUG", "false")
 os.environ.setdefault("PFIOS_REASONING_PROVIDER", "mock")
@@ -1984,18 +1989,21 @@ def test_submit_review_accepts_outcome_ref_fields():
     """Review submission with outcome_ref_type/outcome_ref_id must succeed."""
     with TestClient(app) as client:
         # First create intake → govern → plan → outcome
-        resp = client.post("/api/v1/finance-decisions/intake", json={
-            "symbol": "BTC/USDT",
-            "thesis": "BTC breakout with volume confirmation and 200 EMA invalidation.",
-            "stop_loss": "Below support",
-            "position_size_usdt": 100.0,
-            "max_loss_usdt": 20.0,
-            "risk_unit_usdt": 10.0,
-            "is_chasing": False,
-            "is_revenge_trade": False,
-            "emotional_state": "calm",
-            "confidence": 0.7,
-        })
+        resp = client.post(
+            "/api/v1/finance-decisions/intake",
+            json={
+                "symbol": "BTC/USDT",
+                "thesis": "BTC breakout with volume confirmation and 200 EMA invalidation.",
+                "stop_loss": "Below support",
+                "position_size_usdt": 100.0,
+                "max_loss_usdt": 20.0,
+                "risk_unit_usdt": 10.0,
+                "is_chasing": False,
+                "is_revenge_trade": False,
+                "emotional_state": "calm",
+                "confidence": 0.7,
+            },
+        )
         intake_id = resp.json()["id"]
 
         gov = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
@@ -2016,18 +2024,21 @@ def test_submit_review_accepts_outcome_ref_fields():
         outcome_id = outcome.json()["outcome_id"]
 
         # Submit review with outcome_ref
-        review_resp = client.post("/api/v1/reviews/submit", json={
-            "recommendation_id": None,
-            "review_type": "recommendation_postmortem",
-            "expected_outcome": "Price target",
-            "actual_outcome": "Price reached target",
-            "deviation": "None",
-            "mistake_tags": "plan_execution",
-            "lessons": [{"lesson_text": "Follow plan"}],
-            "new_rule_candidate": None,
-            "outcome_ref_type": "finance_manual_outcome",
-            "outcome_ref_id": outcome_id,
-        })
+        review_resp = client.post(
+            "/api/v1/reviews/submit",
+            json={
+                "recommendation_id": None,
+                "review_type": "recommendation_postmortem",
+                "expected_outcome": "Price target",
+                "actual_outcome": "Price reached target",
+                "deviation": "None",
+                "mistake_tags": "plan_execution",
+                "lessons": [{"lesson_text": "Follow plan"}],
+                "new_rule_candidate": None,
+                "outcome_ref_type": "finance_manual_outcome",
+                "outcome_ref_id": outcome_id,
+            },
+        )
 
         assert review_resp.status_code in (200, 201), (
             f"Review submit failed: {review_resp.status_code} {review_resp.text}"
@@ -2037,20 +2048,21 @@ def test_submit_review_accepts_outcome_ref_fields():
 def test_submit_review_without_outcome_ref_still_succeeds():
     """Review submission without outcome_ref must still succeed (optional fields)."""
     with TestClient(app) as client:
-        resp = client.post("/api/v1/reviews/submit", json={
-            "recommendation_id": None,
-            "review_type": "recommendation_postmortem",
-            "expected_outcome": "Test",
-            "actual_outcome": "Test",
-            "deviation": "None",
-            "mistake_tags": "test",
-            "lessons": [{"lesson_text": "Test"}],
-            "new_rule_candidate": None,
-        })
-
-        assert resp.status_code in (200, 201), (
-            f"Review submit without outcome_ref failed: {resp.status_code}"
+        resp = client.post(
+            "/api/v1/reviews/submit",
+            json={
+                "recommendation_id": None,
+                "review_type": "recommendation_postmortem",
+                "expected_outcome": "Test",
+                "actual_outcome": "Test",
+                "deviation": "None",
+                "mistake_tags": "test",
+                "lessons": [{"lesson_text": "Test"}],
+                "new_rule_candidate": None,
+            },
         )
+
+        assert resp.status_code in (200, 201), f"Review submit without outcome_ref failed: {resp.status_code}"
 ```
 
 **Step 2: Run → expect PASS (or expose contract gaps)**

@@ -414,7 +414,8 @@ def test_outcome_creation_does_not_create_broker_order_trade():
 
         # No broker/order/trade execution requests
         broker_requests = (
-            db.query(ExecutionRequestORM)
+            db
+            .query(ExecutionRequestORM)
             .filter(
                 ExecutionRequestORM.action_id.like("%order%")
                 | ExecutionRequestORM.action_id.like("%trade%")
@@ -481,7 +482,8 @@ def test_outcome_creation_does_not_promote_policy():
 
         # No policy-related audit events
         policy_events = (
-            db.query(AuditEventORM)
+            db
+            .query(AuditEventORM)
             .filter(AuditEventORM.event_type.like("%policy%") | AuditEventORM.event_type.like("%promote%"))
             .count()
         )

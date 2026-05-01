@@ -11,7 +11,6 @@ import json
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "docs" / "runtime" / "paper-trades" / "paper-dogfood-ledger.jsonl"
@@ -157,7 +156,7 @@ def print_summary(events: list[dict]) -> None:
     print(f"  Boundary violations:   {sum(1 for e in events if e.get('boundary_violation'))}")
     if total_simulated_pnl != 0:
         print(f"  Cumulative paper PnL:  ${total_simulated_pnl:+.2f} (simulated)")
-    print(f"  Phase 8 readiness:     3/10 DEFERRED")
+    print("  Phase 8 readiness:     3/10 DEFERRED")
     print()
     if pending:
         print(f"  ⚠ PT-005 BLOCKED: {pending} pending trade(s) unresolved")

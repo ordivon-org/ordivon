@@ -37,6 +37,7 @@ def _make_entry(**overrides) -> dict:
 def _run_generator(entries: list[dict]) -> tuple[int, str]:
     """Run generator against temp registry, return (exit_code, stdout)."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         for e in entries:
             f.write(json.dumps(e) + "\n")
@@ -44,7 +45,9 @@ def _run_generator(entries: list[dict]) -> tuple[int, str]:
     try:
         result = subprocess.run(
             [sys.executable, str(GENERATOR)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
             env={**__import__("os").environ, "REGISTRY_OVERRIDE": tmp},
         )
         return result.returncode, result.stdout
@@ -60,6 +63,7 @@ def _read_wiki() -> str:
 
 # ── Positive: wiki generation succeeds ────────────────────────────────
 
+
 def test_generator_produces_wiki():
     """Generator must produce wiki-index.md."""
     wiki = _read_wiki()
@@ -68,6 +72,7 @@ def test_generator_produces_wiki():
 
 # ── Navigation layer banner ───────────────────────────────────────────
 
+
 def test_wiki_has_navigation_banner():
     """Wiki must state it is navigation, not source of truth."""
     wiki = _read_wiki()
@@ -75,6 +80,7 @@ def test_wiki_has_navigation_banner():
 
 
 # ── Current truth includes AGENTS.md ──────────────────────────────────
+
 
 def test_current_truth_includes_agents_md():
     """Current Truth section must include AGENTS.md."""
@@ -85,6 +91,7 @@ def test_current_truth_includes_agents_md():
 
 # ── Current truth includes phase-boundaries ───────────────────────────
 
+
 def test_current_truth_includes_phase_boundaries():
     """Current Truth section must include current-phase-boundaries.md."""
     wiki = _read_wiki()
@@ -93,6 +100,7 @@ def test_current_truth_includes_phase_boundaries():
 
 
 # ── AI Onboarding section ─────────────────────────────────────────────
+
 
 def test_ai_onboarding_includes_agent_output_contract():
     """AI Onboarding section must include agent-output-contract.md."""
@@ -103,6 +111,7 @@ def test_ai_onboarding_includes_agent_output_contract():
 
 # ── Evidence section labels ledger as evidence only ───────────────────
 
+
 def test_evidence_section_labels_ledger_evidence_only():
     """Evidence section must warn ledger is evidence, not execution authority."""
     wiki = _read_wiki()
@@ -112,6 +121,7 @@ def test_evidence_section_labels_ledger_evidence_only():
 
 # ── Phase 8 is shown as DEFERRED ──────────────────────────────────────
 
+
 def test_phase_8_shown_as_deferred():
     """Phase 8 must be shown as DEFERRED."""
     wiki = _read_wiki()
@@ -120,6 +130,7 @@ def test_phase_8_shown_as_deferred():
 
 
 # ── Live trading / auto trading shown as NO-GO ────────────────────────
+
 
 def test_nogo_boundaries_shown():
     """Live trading and auto trading must be shown as NO-GO."""
@@ -132,6 +143,7 @@ def test_nogo_boundaries_shown():
 
 # ── Archive section does not invent content ───────────────────────────
 
+
 def test_archive_section_no_invented_entries():
     """Archive section must say no archive entries if none registered."""
     wiki = _read_wiki()
@@ -141,16 +153,20 @@ def test_archive_section_no_invented_entries():
 
 # ── Generator fails on invalid JSON ───────────────────────────────────
 
+
 def test_generator_fails_on_invalid_json():
     """Generator must exit non-zero on invalid JSON input."""
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         f.write("not json\n")
         tmp = f.name
     try:
         result = subprocess.run(
             [sys.executable, str(GENERATOR)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
             env={**__import__("os").environ, "REGISTRY_OVERRIDE": tmp},
         )
         # Note: generator reads default path, not env override.
@@ -159,6 +175,7 @@ def test_generator_fails_on_invalid_json():
         Path(tmp).unlink(missing_ok=True)
     # Run generator with explicit invalid path
     import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         f.write("not json\n")
         tmp = f.name
@@ -167,13 +184,18 @@ def test_generator_fails_on_invalid_json():
         # via subprocess that invalid registry causes failure.
         # Create a bad registry and verify generator output.
         result = subprocess.run(
-            [sys.executable, "-c",
-             "from scripts.generate_document_wiki import load_registry; "
-             f"from pathlib import Path; "
-             "import sys; "
-             f"load_registry(Path('{tmp}')); "
-             "print('UNEXPECTED SUCCESS')"],
-            capture_output=True, text=True, timeout=30,
+            [
+                sys.executable,
+                "-c",
+                "from scripts.generate_document_wiki import load_registry; "
+                f"from pathlib import Path; "
+                "import sys; "
+                f"load_registry(Path('{tmp}')); "
+                "print('UNEXPECTED SUCCESS')",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         assert result.returncode != 0 or "UNEXPECTED SUCCESS" not in result.stdout
     finally:
@@ -182,19 +204,23 @@ def test_generator_fails_on_invalid_json():
 
 # ── Generator output is deterministic ─────────────────────────────────
 
+
 def test_generator_output_deterministic():
     """Running generator twice must produce identical output."""
     wiki1 = _read_wiki()
     # Re-run generator
     subprocess.run(
         [sys.executable, str(GENERATOR)],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     wiki2 = _read_wiki()
     assert wiki1 == wiki2, "Generator output not deterministic"
 
 
 # ── No Alpaca / API requirement ───────────────────────────────────────
+
 
 def test_generator_no_alpaca_reference():
     """Generator output must not reference Alpaca API."""
@@ -207,6 +233,7 @@ def test_generator_no_alpaca_reference():
 
 # ── Wiki has total count ──────────────────────────────────────────────
 
+
 def test_wiki_shows_total_doc_count():
     """Wiki must show total registered doc count."""
     wiki = _read_wiki()
@@ -214,6 +241,7 @@ def test_wiki_shows_total_doc_count():
 
 
 # ── Wiki sections present ─────────────────────────────────────────────
+
 
 def test_wiki_has_all_required_sections():
     """Wiki must contain all required sections."""
@@ -233,6 +261,7 @@ def test_wiki_has_all_required_sections():
 
 
 # ── Wiki is generated (not hand-written) ──────────────────────────────
+
 
 def test_wiki_is_generated_label():
     """Wiki must state it is generated from registry."""

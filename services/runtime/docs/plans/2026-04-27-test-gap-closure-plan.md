@@ -232,6 +232,7 @@ git commit -m "chore: add gitleaks secret scanning to CI"
 ```python
 #!/usr/bin/env python3
 """Architecture boundary checker — prevents domain pollution into Core."""
+
 from __future__ import annotations
 
 import sys
@@ -244,7 +245,7 @@ CORE_MODULES = ["governance", "state", "domains", "capabilities", "execution", "
 
 # Allowed: pack_policy interface (ADR-006 compliant)
 ALLOWED_FINANCE_IMPORTS = [
-    "RejectReason",    # ADR-006: typing-only import by risk_engine
+    "RejectReason",  # ADR-006: typing-only import by risk_engine
     "EscalateReason",  # ADR-006: typing-only import by risk_engine
 ]
 
@@ -253,6 +254,7 @@ FORBIDDEN_FINANCE_IMPORTS = [
     "from packs.finance.tool_refs import",
 ]
 
+
 def check_file(path: Path) -> list[str]:
     violations = []
     text = path.read_text(encoding="utf-8")
@@ -260,6 +262,7 @@ def check_file(path: Path) -> list[str]:
         if forbidden in text:
             violations.append(f"{path.relative_to(ROOT)}: forbidden import: {forbidden}")
     return violations
+
 
 def main() -> int:
     violations = []
@@ -280,6 +283,7 @@ def main() -> int:
 
     print("✅ Architecture boundaries clean")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
@@ -584,6 +588,7 @@ git commit -m "chore: add PostgreSQL test scripts to package.json"
 ```python
 """Prove CandidateRule cannot auto-promote to Policy."""
 
+
 def test_candidate_rule_creation_does_not_affect_active_policies():
     """When a CandidateRule is created, active policies must not change."""
     from governance.policy_source import GovernancePolicySource
@@ -600,10 +605,7 @@ def test_candidate_rule_creation_does_not_affect_active_policies():
     )
 
     after = set(source.get_active_snapshot().active_policy_ids)
-    assert after == before, (
-        f"CandidateRule creation changed active policies: "
-        f"before={before}, after={after}"
-    )
+    assert after == before, f"CandidateRule creation changed active policies: before={before}, after={after}"
 
 
 def test_candidate_rule_is_not_in_active_policy_list():
@@ -653,6 +655,7 @@ git commit -m "test: add CandidateRule≠Policy invariant guard"
 ```python
 """Prove KnowledgeFeedback is advisory — no auto side effects."""
 
+
 def test_kf_creation_does_not_create_candidate_rule():
     """KnowledgeFeedback must not auto-create CandidateRules."""
     from knowledge.extraction import KnowledgeExtractionService
@@ -670,8 +673,7 @@ def test_kf_creation_does_not_create_candidate_rule():
 
     after_rules = len(list(source.list_candidate_rules()))
     assert after_rules == before_rules, (
-        f"KnowledgeFeedback auto-created a CandidateRule: "
-        f"before={before_rules}, after={after_rules}"
+        f"KnowledgeFeedback auto-created a CandidateRule: before={before_rules}, after={after_rules}"
     )
 
 
@@ -718,6 +720,7 @@ git commit -m "test: add KnowledgeFeedback advisory invariant guard"
 
 ```python
 """Prove Lesson derivation requires a completed review."""
+
 
 def test_create_lesson_from_pending_review_fails():
     """Lessons must not be creatable from reviews that are not completed."""
@@ -770,6 +773,7 @@ git commit -m "test: add Lesson-requires-completed-review invariant guard"
 ```python
 """Prove Review verdict is set by review service, not by model output."""
 
+
 def test_complete_review_sets_status_explicitly():
     """review_service.complete_review must explicitly set status, not infer from model."""
     from apps.api.app.services.review_service import ReviewService
@@ -778,7 +782,7 @@ def test_complete_review_sets_status_explicitly():
     result = service.complete_review(
         review_id="test_review",
         observed_outcome="Target reached",
-        verdict="validated",       # EXPLICIT verdict
+        verdict="validated",  # EXPLICIT verdict
         lessons=["Follow plan"],
     )
 
@@ -801,9 +805,7 @@ def test_model_output_cannot_set_review_status():
     )
 
     # Model output alone must not change persisted status
-    assert result.status != "completed", (
-        "Model output should not auto-set review status"
-    )
+    assert result.status != "completed", "Model output should not auto-set review status"
 ```
 
 **Step 2: Run → expect FAIL or pass (depending on implementation)**
@@ -826,6 +828,7 @@ git commit -m "test: add review-verdict-independence invariant guard"
 
 ```python
 """Prove chasing / revenge trade trigger escalation."""
+
 
 def test_is_chasing_true_escalates():
     """DecisionIntake with is_chasing=True must trigger escalate."""
@@ -898,9 +901,7 @@ def test_neither_chasing_nor_revenge_executes():
     }
 
     behavioral_reasons = list(policy.validate_behavioral(payload))
-    assert len(behavioral_reasons) == 0, (
-        f"Normal intake should not trigger behavioral escalation: {behavioral_reasons}"
-    )
+    assert len(behavioral_reasons) == 0, f"Normal intake should not trigger behavioral escalation: {behavioral_reasons}"
 ```
 
 **Step 2: Run → expect FAIL**
@@ -926,6 +927,7 @@ git commit -m "test: add chasing/revenge_trade escalation domain invariant"
 ```python
 """Architecture invariant: finance decision loop must not execute real trades."""
 
+
 def test_plan_receipt_has_no_broker_execution_flag():
     """Every plan receipt must have broker_execution=False."""
     # This is tested in test_h6_plan_only_receipt.py — verify it exists
@@ -937,10 +939,7 @@ def test_execution_catalog_has_no_order_action():
     from execution.catalog import get_action
 
     result = get_action("place_order", default=None)
-    assert result is None, (
-        "Action catalog must not contain 'place_order' — "
-        "this is a broker action not allowed in P4"
-    )
+    assert result is None, "Action catalog must not contain 'place_order' — this is a broker action not allowed in P4"
 
 
 def test_finance_outcome_is_manual_not_broker():
@@ -1015,6 +1014,7 @@ git commit -m "test: add architecture guard — no broker side effects in Core"
 """Integration: reject path must produce no plan, no outcome, no broker side effects."""
 
 import os
+
 os.environ.setdefault("PFIOS_ENV", "test")
 os.environ.setdefault("PFIOS_DEBUG", "false")
 os.environ.setdefault("PFIOS_REASONING_PROVIDER", "mock")
@@ -1028,34 +1028,33 @@ def test_rejected_intake_cannot_create_plan_receipt():
     """After governance reject, POST /plan must return 4xx."""
     with TestClient(app) as client:
         # 1. Create intake with low-quality thesis
-        intake_resp = client.post("/api/v1/finance-decisions/intake", json={
-            "symbol": "BTC/USDT",
-            "timeframe": "1h",
-            "direction": "long",
-            "thesis": "YOLO all in",
-            "stop_loss": "Below support",
-            "position_size_usdt": 100.0,
-            "max_loss_usdt": 20.0,
-            "risk_unit_usdt": 10.0,
-            "is_chasing": False,
-            "is_revenge_trade": False,
-            "emotional_state": "calm",
-            "confidence": 0.7,
-        })
+        intake_resp = client.post(
+            "/api/v1/finance-decisions/intake",
+            json={
+                "symbol": "BTC/USDT",
+                "timeframe": "1h",
+                "direction": "long",
+                "thesis": "YOLO all in",
+                "stop_loss": "Below support",
+                "position_size_usdt": 100.0,
+                "max_loss_usdt": 20.0,
+                "risk_unit_usdt": 10.0,
+                "is_chasing": False,
+                "is_revenge_trade": False,
+                "emotional_state": "calm",
+                "confidence": 0.7,
+            },
+        )
         assert intake_resp.status_code == 201
         intake_id = intake_resp.json()["id"]
 
         # 2. Govern → expect reject
-        govern_resp = client.post(
-            f"/api/v1/finance-decisions/intake/{intake_id}/govern"
-        )
+        govern_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/govern")
         assert govern_resp.status_code == 200
         assert govern_resp.json()["governance_decision"] == "reject"
 
         # 3. Plan → must be rejected
-        plan_resp = client.post(
-            f"/api/v1/finance-decisions/intake/{intake_id}/plan"
-        )
+        plan_resp = client.post(f"/api/v1/finance-decisions/intake/{intake_id}/plan")
         assert plan_resp.status_code in (400, 403, 409), (
             f"Plan on rejected intake should return 4xx, got {plan_resp.status_code}"
         )
@@ -1067,7 +1066,7 @@ def test_rejected_intake_cannot_create_plan_receipt():
                 "observed_outcome": "Price moved",
                 "verdict": "validated",
                 "plan_followed": True,
-            }
+            },
         )
         assert outcome_resp.status_code in (400, 403, 409)
 ```

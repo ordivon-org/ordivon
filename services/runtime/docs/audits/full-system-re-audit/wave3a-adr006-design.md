@@ -57,6 +57,7 @@ Replace `isinstance` checks with a `.severity` string attribute:
 ```python
 # BEFORE (engine.py:7,88,90)
 from packs.finance.trading_discipline_policy import RejectReason, EscalateReason
+
 ...
 if isinstance(reason, RejectReason):
     reject_reasons.append(reason.message)
@@ -81,10 +82,12 @@ Add `.severity` to reason classes:
 ```python
 # packs/finance/trading_discipline_policy.py
 
+
 class RejectReason:
     def __init__(self, message: str) -> None:
         self.message = message
-        self.severity: str = "reject"    # ← ADD
+        self.severity: str = "reject"  # ← ADD
+
 
 class EscalateReason:
     def __init__(self, message: str) -> None:

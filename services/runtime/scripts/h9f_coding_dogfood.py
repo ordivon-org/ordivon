@@ -8,6 +8,7 @@ Only validates: CodingDisciplinePolicy → RiskEngine.validate_intake().
 Usage:
     uv run python scripts/h9f_coding_dogfood.py
 """
+
 from __future__ import annotations
 
 import json
@@ -49,98 +50,178 @@ def main():
     runs = []
 
     # ── Run 1: Normal test file fix + test_plan → execute ──────────
-    runs.append(_run(engine, policy, "R01: test fix + plan", {
-        "task_description": "Fix flaky assertion in test_user_auth.py",
-        "file_paths": ["tests/unit/test_user_auth.py"],
-        "estimated_impact": "low",
-        "reasoning": "The assertion compares timestamps without tolerance.",
-        "test_plan": "Run pytest tests/unit/test_user_auth.py -x 10 times.",
-    }, "execute"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R01: test fix + plan",
+            {
+                "task_description": "Fix flaky assertion in test_user_auth.py",
+                "file_paths": ["tests/unit/test_user_auth.py"],
+                "estimated_impact": "low",
+                "reasoning": "The assertion compares timestamps without tolerance.",
+                "test_plan": "Run pytest tests/unit/test_user_auth.py -x 10 times.",
+            },
+            "execute",
+        )
+    )
 
     # ── Run 2: Doc change + test_plan → execute ────────────────────
-    runs.append(_run(engine, policy, "R02: doc change + plan", {
-        "task_description": "Update README with new setup instructions",
-        "file_paths": ["README.md", "docs/setup.md"],
-        "estimated_impact": "low",
-        "reasoning": "Outdated instructions since uv migration.",
-        "test_plan": "Manual review of rendered markdown.",
-    }, "execute"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R02: doc change + plan",
+            {
+                "task_description": "Update README with new setup instructions",
+                "file_paths": ["README.md", "docs/setup.md"],
+                "estimated_impact": "low",
+                "reasoning": "Outdated instructions since uv migration.",
+                "test_plan": "Manual review of rendered markdown.",
+            },
+            "execute",
+        )
+    )
 
     # ── Run 3: Missing task_description → reject ───────────────────
-    runs.append(_run(engine, policy, "R03: missing task", {
-        "task_description": "",
-        "file_paths": ["apps/api/app/main.py"],
-        "estimated_impact": "low",
-        "reasoning": "Need to refactor.",
-        "test_plan": "Run unit tests.",
-    }, "reject"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R03: missing task",
+            {
+                "task_description": "",
+                "file_paths": ["apps/api/app/main.py"],
+                "estimated_impact": "low",
+                "reasoning": "Need to refactor.",
+                "test_plan": "Run unit tests.",
+            },
+            "reject",
+        )
+    )
 
     # ── Run 4: Missing file_paths → reject ─────────────────────────
-    runs.append(_run(engine, policy, "R04: missing files", {
-        "task_description": "Refactor the authentication middleware",
-        "file_paths": [],
-        "estimated_impact": "medium",
-        "reasoning": "Extract duplicate logic.",
-        "test_plan": "Run auth test suite.",
-    }, "reject"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R04: missing files",
+            {
+                "task_description": "Refactor the authentication middleware",
+                "file_paths": [],
+                "estimated_impact": "medium",
+                "reasoning": "Extract duplicate logic.",
+                "test_plan": "Run auth test suite.",
+            },
+            "reject",
+        )
+    )
 
     # ── Run 5: Modify .env → reject ────────────────────────────────
-    runs.append(_run(engine, policy, "R05: touch .env", {
-        "task_description": "Add new environment variable",
-        "file_paths": [".env"],
-        "estimated_impact": "medium",
-        "reasoning": "Need DB_REPLICA_URL for read replica.",
-        "test_plan": "Verify app starts with new env var.",
-    }, "reject"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R05: touch .env",
+            {
+                "task_description": "Add new environment variable",
+                "file_paths": [".env"],
+                "estimated_impact": "medium",
+                "reasoning": "Need DB_REPLICA_URL for read replica.",
+                "test_plan": "Verify app starts with new env var.",
+            },
+            "reject",
+        )
+    )
 
     # ── Run 6: Modify uv.lock → reject ─────────────────────────────
-    runs.append(_run(engine, policy, "R06: touch uv.lock", {
-        "task_description": "Update dependency version",
-        "file_paths": ["uv.lock"],
-        "estimated_impact": "low",
-        "reasoning": "Patch version bump for security fix.",
-        "test_plan": "Run pip-audit after update.",
-    }, "reject"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R06: touch uv.lock",
+            {
+                "task_description": "Update dependency version",
+                "file_paths": ["uv.lock"],
+                "estimated_impact": "low",
+                "reasoning": "Patch version bump for security fix.",
+                "test_plan": "Run pip-audit after update.",
+            },
+            "reject",
+        )
+    )
 
     # ── Run 7: Modify migration runner → reject ────────────────────
-    runs.append(_run(engine, policy, "R07: touch migration runner", {
-        "task_description": "Add idempotent migration for new column",
-        "file_paths": ["state/db/migrations/runner.py"],
-        "estimated_impact": "high",
-        "reasoning": "New ORM column needs migration.",
-        "test_plan": "Run schema drift check + PG regression.",
-    }, "reject"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R07: touch migration runner",
+            {
+                "task_description": "Add idempotent migration for new column",
+                "file_paths": ["state/db/migrations/runner.py"],
+                "estimated_impact": "high",
+                "reasoning": "New ORM column needs migration.",
+                "test_plan": "Run schema drift check + PG regression.",
+            },
+            "reject",
+        )
+    )
 
     # ── Run 8: High impact → escalate ──────────────────────────────
-    runs.append(_run(engine, policy, "R08: high impact", {
-        "task_description": "Rewrite the risk engine validation logic",
-        "file_paths": ["governance/risk_engine/engine.py"],
-        "estimated_impact": "high",
-        "reasoning": "Need to support streaming validation.",
-        "test_plan": "Run full governance test suite.",
-    }, "escalate"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R08: high impact",
+            {
+                "task_description": "Rewrite the risk engine validation logic",
+                "file_paths": ["governance/risk_engine/engine.py"],
+                "estimated_impact": "high",
+                "reasoning": "Need to support streaming validation.",
+                "test_plan": "Run full governance test suite.",
+            },
+            "escalate",
+        )
+    )
 
     # ── Run 9: Missing test_plan → escalate ────────────────────────
-    runs.append(_run(engine, policy, "R09: missing test plan", {
-        "task_description": "Optimize database query in recommendation service",
-        "file_paths": ["domains/strategy/service.py"],
-        "estimated_impact": "medium",
-        "reasoning": "N+1 query detected in list_recent.",
-        "test_plan": None,
-    }, "escalate"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R09: missing test plan",
+            {
+                "task_description": "Optimize database query in recommendation service",
+                "file_paths": ["domains/strategy/service.py"],
+                "estimated_impact": "medium",
+                "reasoning": "N+1 query detected in list_recent.",
+                "test_plan": None,
+            },
+            "escalate",
+        )
+    )
 
     # ── Run 10: Multi-file medium change + test_plan → execute ─────
-    runs.append(_run(engine, policy, "R10: multi-file + plan", {
-        "task_description": "Extract shared validation helpers into shared/validation.py",
-        "file_paths": [
-            "shared/validation.py",
-            "capabilities/domain/finance_decisions.py",
-            "capabilities/domain/finance_outcome.py",
-        ],
-        "estimated_impact": "medium",
-        "reasoning": "Duplicate validation logic across 3 capability files.",
-        "test_plan": "Run pytest tests/unit/capabilities/ tests/unit/shared/ -v.",
-    }, "execute"))
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R10: multi-file + plan",
+            {
+                "task_description": "Extract shared validation helpers into shared/validation.py",
+                "file_paths": [
+                    "shared/validation.py",
+                    "capabilities/domain/finance_decisions.py",
+                    "capabilities/domain/finance_outcome.py",
+                ],
+                "estimated_impact": "medium",
+                "reasoning": "Duplicate validation logic across 3 capability files.",
+                "test_plan": "Run pytest tests/unit/capabilities/ tests/unit/shared/ -v.",
+            },
+            "execute",
+        )
+    )
 
     # ═══════════════════════════════════════════════════════════════════
     # Summary
