@@ -1050,6 +1050,27 @@
       "classification": "pending_registration",
       "owner": "PV-N5",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-wedge-audit-scope.md",
+      "reason": "PV-N6 audit dry run artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N6",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-secret-private-reference-audit-pv-n6.md",
+      "reason": "PV-N6 audit dry run artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N6",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "scripts/audit_ordivon_verify_public_wedge.py",
+      "reason": "PV-N6 audit dry run artifacts \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N6",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
