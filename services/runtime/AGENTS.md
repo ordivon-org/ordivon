@@ -17,7 +17,7 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: CLOSED | PV-N3: CLOSED | PV-N4: CLOSED | PV-N5: CLOSED | PV-N6: CLOSED | PV-N7: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: CLOSED | PV-N3: CLOSED | PV-N4: CLOSED | PV-N5: CLOSED | PV-N6: CLOSED | PV-N7: CLOSED | PV-N8: CLOSED
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
@@ -44,6 +44,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-N5: CLOSED** — Release readiness audit (17 blockers across 4 tiers)
 **PV-N6: CLOSED** — Secret + Private Reference Audit Dry Run (0 blocking findings)
 **PV-N7: CLOSED** — Local public repo dry-run (16 copied, 0 missing required)
+**PV-N8: CLOSED** — Local build artifact smoke (wheel built, 244 private paths — BLOCKED for public publish)
 <!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
 
 Paper dogfood proved governance pipeline integrity, not profitability.
