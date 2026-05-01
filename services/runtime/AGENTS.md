@@ -17,7 +17,7 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: ACTIVE
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: CLOSED
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
@@ -38,7 +38,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-Z: CLOSED** — Ordivon Verify productization Stage Summit
 **PV-N1: CLOSED** — Private package prototype (src/ordivon_verify/ created, script wrapper preserved)
 **PV-N2: CLOSED** — Schema extraction (5 JSON schemas + 29 tests, no private references)
-**PV-N2H: ACTIVE** — Legacy identity hygiene (PFIOS/AegisOS → Ordivon surfaces)
+**PV-N2H: CLOSED** — Legacy identity hygiene (PFIOS/AegisOS → Ordivon surfaces)
 <!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
 
 Paper dogfood proved governance pipeline integrity, not profitability.
