@@ -162,3 +162,112 @@ class TestValidator:
             content = f.read_text()
             for secret in ["API_KEY", "SECRET", "TOKEN", "PASSWORD", "PRIVATE_KEY"]:
                 assert secret not in content, f"{f.name} contains {secret}"
+
+
+class TestValidatorSecurity:
+    """Security hardening tests from red team audit (OGAP-Z hardening)."""
+
+    def test_duplicate_keys_rejected(self):
+        """Payload with duplicate keys must be rejected."""
+        temp = ROOT / ".tmp" / "dup-keys.json"
+        temp.parent.mkdir(exist_ok=True)
+        temp.write_text(
+            '{"schema_version":"0.1","decision":"NO-GO","decision":"READY",'
+            '"decision_scope":"test","evidence_summary":"test",'
+            '"coverage_summary":"test","authority_statement":"test"}',
+            encoding="utf-8",
+        )
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"Duplicate keys should fail: {r.stdout}"
+        assert "duplicate key" in r.stdout.lower()
+
+    def test_extra_properties_rejected(self):
+        """Payload with unknown fields must be rejected (additionalProperties: false)."""
+        temp = ROOT / ".tmp" / "extra-field.json"
+        temp.parent.mkdir(exist_ok=True)
+        payload = json.loads((EXAMPLES_DIR / "governance-decision-ready.json").read_text())
+        payload["approved"] = True
+        temp.write_text(json.dumps(payload), encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"Extra field should fail: {r.stdout}"
+        assert "unknown field" in r.stdout.lower()
+
+    def test_wrong_type_rejected(self):
+        """Field with wrong JSON type must be rejected."""
+        temp = ROOT / ".tmp" / "wrong-type.json"
+        temp.parent.mkdir(exist_ok=True)
+        payload = json.loads((EXAMPLES_DIR / "governance-decision-ready.json").read_text())
+        payload["decision"] = 42  # should be string
+        temp.write_text(json.dumps(payload), encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"Wrong type should fail: {r.stdout}"
+        assert "wrong type" in r.stdout.lower()
+
+    def test_null_for_required_string_rejected(self):
+        """null for a required string field must be rejected."""
+        temp = ROOT / ".tmp" / "null-field.json"
+        temp.parent.mkdir(exist_ok=True)
+        payload = json.loads((EXAMPLES_DIR / "work-claim-basic.json").read_text())
+        payload["claim_id"] = None
+        temp.write_text(json.dumps(payload), encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"null should fail: {r.stdout}"
+        assert "wrong type" in r.stdout.lower()
+
+    def test_boolean_as_string_rejected(self):
+        """String 'true' for a boolean field must be rejected."""
+        temp = ROOT / ".tmp" / "bool-str.json"
+        temp.parent.mkdir(exist_ok=True)
+        payload = json.loads((EXAMPLES_DIR / "capability-manifest-basic.json").read_text())
+        payload["capabilities"]["can_write"] = "true"
+        temp.write_text(json.dumps(payload), encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"String bool should fail: {r.stdout}"
+        assert "wrong type" in r.stdout.lower()
+
+    def test_array_for_object_rejected(self):
+        """Array where object expected must be rejected."""
+        temp = ROOT / ".tmp" / "arr-obj.json"
+        temp.parent.mkdir(exist_ok=True)
+        payload = json.loads((EXAMPLES_DIR / "work-claim-basic.json").read_text())
+        payload["evidence_bundle"] = ["malicious", "array"]
+        temp.write_text(json.dumps(payload), encoding="utf-8")
+        r = subprocess.run(
+            [sys.executable, str(VALIDATOR), str(temp)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT),
+        )
+        assert r.returncode != 0, f"Array should fail: {r.stdout}"
+        assert "wrong type" in r.stdout.lower()

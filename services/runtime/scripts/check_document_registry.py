@@ -337,7 +337,14 @@ def _line_is_safe(line: str) -> bool:
 
 
 def check_semantic_phrases(entries: list[dict]) -> list[str]:
-    """Scan file contents of registered current docs for dangerous phrases."""
+    """Scan file contents of registered current docs for dangerous phrases.
+
+    Content is Unicode-normalized (NFKC) before scanning to defeat
+    zero-width space, homoglyph, and RTL override attacks.
+    Multiline patterns use re.DOTALL on the full content after joining.
+    """
+    import unicodedata
+
     errors: list[str] = []
     scanned_count = 0
 
@@ -354,23 +361,49 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
             continue
 
         try:
-            content = full_path.read_text()
+            raw_content = full_path.read_text()
         except Exception:
             continue
 
         scanned_count += 1
+
+        # Normalize Unicode to NFKC — collapses zero-width spaces,
+        # compatibility characters, and RTL/LTR overrides into base forms
+        content = unicodedata.normalize("NFKC", raw_content)
+
         lines = content.split("\n")
 
         for pattern, desc in DANGEROUS_PHRASES:
+            # First try line-by-line (existing behavior)
+            line_match_found = False
             for i, line in enumerate(lines, 1):
                 if pattern.search(line):
-                    # Check for safe negation on same line or adjacent lines
                     ctx_start = max(0, i - 2)
                     ctx_end = min(len(lines), i + 2)
                     ctx_text = "\n".join(lines[ctx_start:ctx_end])
                     if _line_is_safe(ctx_text):
                         continue
-                    errors.append(f"{did}:{i}: {desc} — '{line.strip()}'")
+                    errors.append(f"{did}:{i}: {desc} — '{line.strip()[:120]}'")
+                    line_match_found = True
+
+            # If no line match, try multiline (re.DOTALL) on full content
+            if not line_match_found:
+                multiline_pattern = re.compile(
+                    pattern.pattern,
+                    pattern.flags | re.DOTALL,
+                )
+                m = multiline_pattern.search(content)
+                if m:
+                    # Find which line the match starts on
+                    prefix = content[: m.start()]
+                    line_no = prefix.count("\n") + 1
+                    ctx_start = max(0, line_no - 2)
+                    ctx_end = min(len(lines), line_no + 2)
+                    ctx_text = "\n".join(lines[ctx_start:ctx_end])
+                    if _line_is_safe(ctx_text):
+                        continue
+                    snippet = m.group(0).replace("\n", " ")[:120]
+                    errors.append(f"{did}:{line_no}: {desc} (multiline) — '{snippet}'")
 
     return errors
 
@@ -389,8 +422,8 @@ def check_inline_date_consistency(entries: list[dict]) -> list[str]:
     errors: list[str] = []
     # Patterns for inline dates in document bodies
     INLINE_DATE_PATTERNS: list[re.Pattern] = [
-        re.compile(r"Date:\s*(\d{4}-\d{2}-\d{2})"),
-        re.compile(r"date:\s*(\d{4}-\d{2}-\d{2})"),
+        re.compile(r"\*{0,2}Date\*{0,2}:\s*(\d{4}-\d{2}-\d{2})"),
+        re.compile(r"date:\s*(\d{4}-\d{2}-\d{2})", re.IGNORECASE),
         re.compile(r"Last\s+updated.*?(\d{4}-\d{2}-\d{2})", re.IGNORECASE),
     ]
 
@@ -518,15 +551,23 @@ def check_invariants(entries: list[dict]) -> list[str]:
                 # Staleness window check
                 stale_days = e.get("stale_after_days")
                 if stale_days is not None and isinstance(stale_days, (int, float)):
-                    try:
-                        verified_date = date.fromisoformat(lv)
-                        age_days = (REFERENCE_DATE - verified_date).days
-                        if age_days > stale_days:
-                            errors.append(
-                                f"{did}: stale — last_verified={lv} ({age_days}d ago), stale_after_days={stale_days}"
-                            )
-                    except (ValueError, TypeError):
-                        errors.append(f"{did}: invalid last_verified date format '{lv}'")
+                    # Boundary validation: must be positive integer >= 1
+                    if not isinstance(stale_days, int) or isinstance(stale_days, bool):
+                        errors.append(
+                            f"{did}: stale_after_days must be an integer (got {type(stale_days).__name__} {stale_days})"
+                        )
+                    elif stale_days < 1:
+                        errors.append(f"{did}: stale_after_days must be >= 1 (got {stale_days})")
+                    else:
+                        try:
+                            verified_date = date.fromisoformat(lv)
+                            age_days = (REFERENCE_DATE - verified_date).days
+                            if age_days > stale_days:
+                                errors.append(
+                                    f"{did}: stale — last_verified={lv} ({age_days}d ago), stale_after_days={stale_days}"
+                                )
+                        except (ValueError, TypeError):
+                            errors.append(f"{did}: invalid last_verified date format '{lv}'")
 
         # --- source_of_truth docs cannot be stale/archived ---
         if authority == "source_of_truth" and status in ("stale", "archived"):
@@ -618,6 +659,17 @@ def check_invariants(entries: list[dict]) -> list[str]:
             ref = e.get(ref_field)
             if ref and ref not in ids:
                 errors.append(f"{did}: {ref_field} references unknown doc_id '{ref}'")
+
+    # --- Path uniqueness: each path must have at most one doc_id ---
+    path_to_docs: dict[str, list[str]] = {}
+    for e in entries:
+        p = e.get("path", "")
+        did = e.get("doc_id", "")
+        if p and did:
+            path_to_docs.setdefault(p, []).append(did)
+    for p, doc_ids in path_to_docs.items():
+        if len(doc_ids) > 1:
+            errors.append(f"path collision: '{p}' is registered under multiple doc_ids: {doc_ids}")
 
     # --- Critical AI onboarding docs must be high-priority ---
     for e in entries:

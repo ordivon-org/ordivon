@@ -2,6 +2,8 @@
 """OGAP-2: Ordivon Governance Adapter Protocol — Payload Validator.
 
 Validates OGAP JSON payloads against draft v0 schemas and safety invariants.
+Enforces structural schema constraints (types, required fields, enum values,
+additionalProperties) plus OGAP-specific safety checks.
 
 Usage:
     uv run python scripts/validate_ogap_payload.py <file.json>
@@ -14,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import OrderedDict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,45 +24,119 @@ SCHEMAS_DIR = ROOT / "src" / "ordivon_verify" / "schemas"
 
 VALID_DECISIONS = {"READY", "DEGRADED", "BLOCKED", "HOLD", "REJECT", "NO-GO"}
 
+# JSON Schema type mapping: schema "type" → Python isinstance check
+JSON_TYPE_MAP: dict[str, type | tuple] = {
+    "string": str,
+    "number": (int, float),
+    "integer": int,
+    "boolean": bool,
+    "array": list,
+    "object": dict,
+}
 
-def load_schema(schema_name: str) -> dict | None:
-    path = SCHEMAS_DIR / f"{schema_name}.schema.json"
-    if not path.exists():
-        return None
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+
+def load_payload_with_dup_check(path: Path) -> tuple[dict, list[str]]:
+    """Load JSON payload, detecting duplicate keys.
+
+    Returns (payload, dup_errors). dup_errors is a list of human-readable
+    messages about duplicate keys found during parsing.
+    """
+    dup_errors: list[str] = []
+
+    def _dup_hook(pairs):
+        result = OrderedDict()
+        for key, value in pairs:
+            if key in result:
+                dup_errors.append(f"duplicate key: '{key}' (overwrites previous value)")
+            result[key] = value
+        return result
+
+    raw_text = path.read_text(encoding="utf-8")
+    payload = json.loads(raw_text, object_pairs_hook=_dup_hook)
+    return payload, dup_errors
+
+
+def _validate_recursive(
+    payload: dict,
+    schema: dict,
+    path: str = "",
+    errors: list[str] | None = None,
+) -> list[str]:
+    """Recursively validate payload against schema subtree.
+
+    path is the dot-separated field path for error messages (e.g. 'capabilities.can_write').
+    """
+    if errors is None:
+        errors = []
+
+    required: list[str] = schema.get("required", [])
+    props: dict = schema.get("properties", {})
+    allow_extra = schema.get("additionalProperties", True)
+
+    # ── Required fields ────────────────────────────────────────────
+    for field in required:
+        full = f"{path}.{field}" if path else field
+        if field not in payload:
+            errors.append(f"missing required field: {full}")
+        elif isinstance(payload.get(field), str) and not payload[field].strip():
+            errors.append(f"required field is empty: {full}")
+
+    # ── Type checking ──────────────────────────────────────────────
+    for prop_name, prop_schema in props.items():
+        if prop_name not in payload:
+            continue
+
+        value = payload[prop_name]
+        full = f"{path}.{prop_name}" if path else prop_name
+        expected_type = prop_schema.get("type")
+
+        if expected_type and expected_type in JSON_TYPE_MAP:
+            expected = JSON_TYPE_MAP[expected_type]
+            if expected_type == "integer" and isinstance(value, bool):
+                errors.append(f"wrong type for '{full}': expected integer, got boolean")
+            elif not isinstance(value, expected):
+                actual = type(value).__name__
+                errors.append(f"wrong type for '{full}': expected {expected_type}, got {actual}")
+
+        # Enum validation
+        if "enum" in prop_schema:
+            if value not in prop_schema["enum"]:
+                errors.append(f"invalid {full}: '{value}' (allowed: {prop_schema['enum']})")
+
+        # Recurse into nested objects
+        if expected_type == "object" and isinstance(value, dict):
+            _validate_recursive(value, prop_schema, full, errors)
+
+    # ── additionalProperties enforcement ───────────────────────────
+    if not allow_extra:
+        known_keys = set(props.keys())
+        for key in payload:
+            if key not in known_keys:
+                full = f"{path}.{key}" if path else key
+                errors.append(f"unknown field: '{full}' (schema does not allow extra properties)")
+
+    return errors
 
 
 def validate_against_schema(payload: dict, schema: dict) -> list[str]:
-    """Structural validation against JSON Schema. Returns list of errors."""
-    errors = []
-    required = schema.get("required", [])
+    """Structural validation against JSON Schema. Returns list of errors.
 
-    for field in required:
-        if field not in payload:
-            errors.append(f"missing required field: {field}")
-        elif isinstance(payload.get(field), str) and not payload[field].strip():
-            errors.append(f"required field is empty: {field}")
-
-    # Enum validation for decision
-    props = schema.get("properties", {})
-    for prop_name, prop_schema in props.items():
-        if "enum" in prop_schema and prop_name in payload:
-            value = payload[prop_name]
-            if value not in prop_schema["enum"]:
-                errors.append(f"invalid {prop_name}: '{value}' (allowed: {prop_schema['enum']})")
-
-    return errors
+    Enforces: required fields, non-empty strings, types (recursive for
+    nested objects), enums, and additionalProperties.
+    """
+    return _validate_recursive(payload, schema)
 
 
 def safety_checks(payload: dict, schema_name: str) -> list[str]:
     """Safety invariants beyond structural validation."""
     errors = []
 
-    # GovernanceDecision: authority_statement must not claim READY authorizes execution
+    # GovernanceDecision / TrustReport: authority_statement must not claim
+    # READY authorizes execution
     if schema_name in ("ogap-governance-decision", "ogap-trust-report"):
-        decision = payload.get("decision", "").upper()
-        authority = payload.get("authority_statement", "").lower()
+        decision = payload.get("decision", "")
+        decision = str(decision).upper() if not isinstance(decision, str) else decision.upper()
+        authority = str(payload.get("authority_statement", "")).lower()
 
         if decision == "READY":
             dangerous = [
@@ -73,7 +150,8 @@ def safety_checks(payload: dict, schema_name: str) -> list[str]:
             for phrase in dangerous:
                 if phrase in authority:
                     errors.append(
-                        f"READY-authorizes-execution: authority_statement contains '{phrase}' — READY is evidence, not authorization"
+                        f"READY-authorizes-execution: authority_statement "
+                        f"contains '{phrase}' — READY is evidence, not authorization"
                     )
 
     # CapabilityManifest: must have authority_note
@@ -82,6 +160,14 @@ def safety_checks(payload: dict, schema_name: str) -> list[str]:
             errors.append("CapabilityManifest missing authority_note — must state can_X != may_X")
 
     return errors
+
+
+def load_schema(schema_name: str) -> dict | None:
+    path = SCHEMAS_DIR / f"{schema_name}.schema.json"
+    if not path.exists():
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def infer_schema(payload: dict) -> str | None:
@@ -126,9 +212,9 @@ def main() -> int:
         print(f"ERROR: file not found: {path}")
         return 1
 
-    # Parse payload
+    # Parse payload with duplicate key detection
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload, dup_errors = load_payload_with_dup_check(path)
     except json.JSONDecodeError as e:
         if json_output:
             print(json.dumps({"valid": False, "errors": [f"invalid JSON: {e}"]}))
@@ -158,7 +244,7 @@ def main() -> int:
     # Validate
     errors = validate_against_schema(payload, schema)
     safety_errors = safety_checks(payload, schema_name)
-    all_errors = errors + safety_errors
+    all_errors = dup_errors + errors + safety_errors
 
     if json_output:
         print(
@@ -177,8 +263,11 @@ def main() -> int:
     else:
         print(f"📋 Schema:  {schema_name}")
         print(f"📄 File:    {path.name}")
+        for de in dup_errors:
+            print(f"  🔑 {de}")
         if not errors:
-            print(f"✅ Schema:  PASS ({len(schema.get('required', []))} required fields)")
+            req_count = len(schema.get("required", []))
+            print(f"✅ Schema:  PASS ({req_count} required fields)")
         else:
             for e in errors:
                 print(f"  ❌ {e}")
