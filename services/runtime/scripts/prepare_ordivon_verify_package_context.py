@@ -53,7 +53,7 @@ Ordivon Verify checks what AI claims against repository reality.
 ## Quick Start
 
 ```bash
-pip install ordivon-verify        # when published
+pip install ordivon-verify        # when available via PyPI
 uv run ordivon-verify all         # validate current repo
 ```
 
