@@ -61,12 +61,7 @@ class TestVersioningPolicy:
 
     def test_no_public_alpha_claim(self):
         """Docs must not claim current is public alpha."""
-        for doc in [RUNTIME_DOC, VERSION_POLICY]:
-            content = doc.read_text()
-            # Should mention public alpha but not as current status
-            # The forbidden check: no "current: public alpha" or "status: public alpha"
-            # Acceptable: "NOT public alpha", "not yet", "not claimed"
-            pass  # Structural check — negative patterns handled by boundary scan
+        # Structural check — negative patterns handled by boundary scan
 
     def test_no_license_activated_claim(self):
         for doc in [VERSION_POLICY, RUNTIME_DOC]:

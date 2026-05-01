@@ -54,7 +54,7 @@ class TestWheelInstall:
         assert "blocked" in data
 
     def test_script_does_not_mutate_source(self):
-        r = subprocess.run(
+        subprocess.run(
             [sys.executable, str(INSTALL_SCRIPT)],
             capture_output=True, text=True, timeout=300, cwd=str(ROOT),
         )
