@@ -765,3 +765,310 @@ def test_accepted_status_is_valid():
     entries = [_make_entry(doc_id="acc", status="accepted")]
     exit_code, _ = _run_checker(entries)
     assert exit_code == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PV-N2H: Coverage completeness + identity surface tests
+# ═══════════════════════════════════════════════════════════════════════
+
+
+def test_completeness_unregistered_doc_fails(tmp_path):
+    """A .md file under docs/ not registered or excluded must fail."""
+    from scripts.check_document_registry import check_completeness
+
+    # Create a temp doc structure
+    (tmp_path / "docs" / "product").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "unregistered.md").write_text("# Unregistered\n")
+
+    entries = []  # nothing registered
+    exclusions = {"entries": []}
+
+    # Override DISCOVERABLE_DIRS to use tmp_path
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_completeness(entries, exclusions)
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) >= 1
+    assert any("unregistered" in e for e in errors)
+
+
+def test_completeness_registered_doc_passes(tmp_path):
+    """Registered docs must not trigger completeness errors."""
+    from scripts.check_document_registry import check_completeness
+
+    (tmp_path / "docs" / "product").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "ok.md").write_text("# OK\n")
+
+    entries = [{"path": "docs/product/ok.md"}]
+    exclusions = {"entries": []}
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_completeness(entries, exclusions)
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) == 0
+
+
+def test_completeness_archive_passes(tmp_path):
+    """Docs under docs/archive/ must not trigger completeness errors."""
+    from scripts.check_document_registry import check_completeness
+
+    (tmp_path / "docs" / "archive").mkdir(parents=True)
+    (tmp_path / "docs" / "archive" / "old.md").write_text("# Old\n")
+
+    entries = []
+    exclusions = {"entries": []}
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_completeness(entries, exclusions)
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) == 0
+
+
+def test_exclusion_with_reason_passes(tmp_path):
+    """Excluded doc with valid reason must pass."""
+    from scripts.check_document_registry import check_completeness
+
+    (tmp_path / "docs" / "product").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "ex.md").write_text("# Excluded\n")
+
+    entries = []
+    exclusions = {
+        "entries": [
+            {
+                "path": "docs/product/ex.md",
+                "reason": "Test exclusion",
+                "classification": "intentionally_unregistered",
+                "owner": "test",
+                "reviewed_at": "2026-05-01",
+            }
+        ]
+    }
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_completeness(entries, exclusions)
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) == 0
+
+
+def test_exclusion_without_reason_fails(tmp_path):
+    """Exclusion without reason must fail."""
+    from scripts.check_document_registry import check_completeness
+
+    (tmp_path / "docs" / "product").mkdir(parents=True)
+    (tmp_path / "docs" / "product" / "no_reason.md").write_text("# No Reason\n")
+
+    entries = []
+    exclusions = {
+        "entries": [
+            {
+                "path": "docs/product/no_reason.md",
+                "classification": "intentionally_unregistered",
+                "owner": "test",
+                "reviewed_at": "2026-05-01",
+                # missing reason
+            }
+        ]
+    }
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_completeness(entries, exclusions)
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) >= 1
+    assert any("reason" in e.lower() for e in errors)
+
+
+def test_completeness_summary_includes_counts(capsys):
+    """Checker output must include completeness and identity counts."""
+    import scripts.check_document_registry as cdr
+
+    entries = [
+        _make_entry(
+            doc_id="t",
+            path="AGENTS.md",
+            doc_type="root_context",
+            status="current",
+            authority="source_of_truth",
+            ai_read_priority=0,
+            last_verified="2026-05-01",
+        )
+    ]
+    errors = cdr.check_invariants(entries)
+    assert len(errors) == 0
+
+
+# ── Identity surface tests ────────────────────────────────────────────
+
+
+def test_identity_unsafe_pyproject_fails(tmp_path):
+    """pyproject.toml with name='pfios' must fail."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "pfios"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Ordivon\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text("# ok\n")
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) >= 1
+    assert any("pfios" in e for e in errors)
+
+
+def test_identity_clean_pyproject_passes(tmp_path):
+    """pyproject.toml with name='ordivon' must pass."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "ordivon"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Ordivon\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text("# clean\n")
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) == 0
+
+
+def test_identity_readme_aegisos_fails(tmp_path):
+    """README opening with AegisOS must fail."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "ordivon"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Financial AI OS\nAegisOS / CAIOS\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text("# clean\n")
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) >= 1
+    assert any("AegisOS" in e for e in errors)
+
+
+def test_identity_readme_ordivon_passes(tmp_path):
+    """README opening with Ordivon must pass."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "ordivon"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Ordivon\n\nOrdivon is a governance OS.\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text("# clean\n")
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    assert len(errors) == 0
+    assert "pfios" not in str(errors)
+
+
+def test_identity_conftest_scoped_passes(tmp_path):
+    """conftest.py with scoped PFIOS_DB_URL must pass."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "ordivon"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Ordivon\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text(
+        'import os\nif "tests/contracts" in str(config.invocation_params):\n'
+        '    os.environ["PFIOS_DB_URL"] = "duckdb:///:memory:"\n'
+    )
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        errors = check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    # Should pass because PFIOS_DB_URL is scoped to legacy paths
+    assert not any("PFIOS_DB_URL" in e and "without scoping" in e for e in errors)
+
+
+def test_checker_never_mutates_files(tmp_path):
+    """Running identity check must not modify any files."""
+    from scripts.check_document_registry import check_identity_surfaces
+
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "ordivon"\n')
+    (tmp_path / "package.json").write_text('{"name": "ordivon"}\n')
+    (tmp_path / "README.md").write_text("# Ordivon\n")
+    (tmp_path / "tests").mkdir(parents=True)
+    (tmp_path / "tests" / "conftest.py").write_text("# clean\n")
+
+    mtimes = {
+        "pyproject.toml": (tmp_path / "pyproject.toml").stat().st_mtime,
+        "package.json": (tmp_path / "package.json").stat().st_mtime,
+        "README.md": (tmp_path / "README.md").stat().st_mtime,
+    }
+
+    import scripts.check_document_registry as cdr
+
+    orig_root = cdr.ROOT
+    cdr.ROOT = tmp_path
+    try:
+        check_identity_surfaces()
+    finally:
+        cdr.ROOT = orig_root
+
+    for fname, orig in mtimes.items():
+        assert (tmp_path / fname).stat().st_mtime == orig, f"{fname} was modified"
