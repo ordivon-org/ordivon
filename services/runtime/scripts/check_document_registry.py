@@ -129,8 +129,9 @@ NEVER_ARCHIVE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
 CRITICAL_AI_DOCS = {"agents-md", "ai-readme", "phase-boundaries", "agent-output-contract", "ordivon-root-context"}
 
 # Documents whose content will be scanned for semantic phrase checks
-# Only current/accepted status docs are scanned (archived/closed docs exempt)
-SEMANTIC_SCAN_STATUSES = {"current", "accepted"}
+# current/accepted/closed status docs are scanned.
+# staged/archived/superseded/draft docs are exempt (may contain historical context).
+SEMANTIC_SCAN_STATUSES = {"current", "accepted", "closed"}
 
 # ── Dangerous phrases that must never appear in current docs ──────────
 
@@ -193,6 +194,8 @@ SAFE_NEGATIONS: list[re.Pattern] = [
     re.compile(r"not\s+execution\s+authority", re.IGNORECASE),
     re.compile(r"evidence,\s+not", re.IGNORECASE),
     re.compile(r"remain(?:s)?\s+deferred", re.IGNORECASE),
+    re.compile(r"zero\s+unsafe", re.IGNORECASE),
+    re.compile(r"→\s+", re.IGNORECASE),  # Transition arrow
 ]
 
 
@@ -357,7 +360,10 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
             continue
 
         full_path = ROOT / path_str
-        if not full_path.exists() or full_path.suffix != ".md":
+        if not full_path.exists():
+            continue
+        suffix = full_path.suffix
+        if suffix not in (".md", ".json", ".jsonl"):
             continue
 
         try:
@@ -476,6 +482,51 @@ def check_inline_date_consistency(entries: list[dict]) -> list[str]:
     return errors
 
 
+def _confusable_normalize(text: str) -> str:
+    """Normalize text to defeat homoglyph attacks across scripts.
+
+    Maps known confusable Unicode characters to their ASCII/Latin equivalents.
+    Covers Cyrillic-Latin and Greek-Latin confusables commonly used in
+    homoglyph attacks (CVE-2021-42574 class).
+
+    This targets the specific subset relevant to doc_id uniqueness.
+    """
+    import unicodedata
+
+    # First apply NFKC to handle compatibility characters (e.g. fullwidth)
+    text = unicodedata.normalize("NFKC", text)
+
+    # Cross-script confusable mappings (source → target)
+    _CONFUSABLES = str.maketrans({
+        # Cyrillic → Latin
+        "\u0430": "a",
+        "\u0435": "e",
+        "\u043e": "o",
+        "\u0441": "c",
+        "\u0440": "p",
+        "\u0445": "x",
+        "\u0455": "s",
+        "\u0456": "i",
+        "\u0410": "A",
+        "\u0415": "E",
+        "\u041e": "O",
+        "\u0421": "C",
+        "\u0420": "P",
+        "\u0425": "X",
+        "\u0405": "S",
+        "\u0406": "I",
+        # Greek → Latin
+        "\u03bf": "o",
+        "\u039f": "O",
+        "\u03b1": "a",
+        "\u0391": "A",
+        "\u03b5": "e",
+        "\u0395": "E",
+    })
+
+    return text.translate(_CONFUSABLES)
+
+
 def check_invariants(entries: list[dict]) -> list[str]:
     """Return list of invariant violations."""
     errors: list[str] = []
@@ -508,9 +559,17 @@ def check_invariants(entries: list[dict]) -> list[str]:
         if missing:
             errors.append(f"{did}: missing required fields: {missing}")
 
-        # --- Unique doc_id ---
+        # --- Unique doc_id (confusable-normalized for homoglyph detection) ---
         if did in ids:
             errors.append(f"{did}: duplicate doc_id")
+        else:
+            normalized = _confusable_normalize(did)
+            for existing in ids:
+                if _confusable_normalize(existing) == normalized and existing != did:
+                    errors.append(
+                        f"{did}: homoglyph collision with '{existing}' (confusable-normalized forms are identical)"
+                    )
+                    break
         ids.add(did)
 
         # --- doc_type ---
@@ -671,6 +730,42 @@ def check_invariants(entries: list[dict]) -> list[str]:
         if len(doc_ids) > 1:
             errors.append(f"path collision: '{p}' is registered under multiple doc_ids: {doc_ids}")
 
+    # --- Circular supersedes / superseded_by chains ---
+    supersedes_graph: dict[str, list[str]] = {}
+    for e in entries:
+        did = e.get("doc_id", "")
+        target = e.get("supersedes")
+        if did and target and target in ids:
+            supersedes_graph.setdefault(did, []).append(target)
+
+    def _find_cycle(start: str, graph: dict[str, list[str]]) -> list[str] | None:
+        """DFS cycle detection. Returns the cycle path or None."""
+        visited: set[str] = set()
+        stack: list[str] = []
+
+        def _dfs(node: str) -> list[str] | None:
+            if node in stack:
+                idx = stack.index(node)
+                return stack[idx:] + [node]
+            if node in visited:
+                return None
+            visited.add(node)
+            stack.append(node)
+            for neighbor in graph.get(node, []):
+                result = _dfs(neighbor)
+                if result:
+                    return result
+            stack.pop()
+            return None
+
+        return _dfs(start)
+
+    for start_id in supersedes_graph:
+        cycle = _find_cycle(start_id, supersedes_graph)
+        if cycle:
+            cycle_str = " → ".join(cycle)
+            errors.append(f"circular supersedes chain: {cycle_str}")
+
     # --- Critical AI onboarding docs must be high-priority ---
     for e in entries:
         did = e.get("doc_id", "")
@@ -715,12 +810,12 @@ def print_summary(
     has_lv = sum(1 for e in entries if e.get("last_verified"))
     has_stale_days = sum(1 for e in entries if e.get("stale_after_days") is not None)
 
-    # Count current docs scanned for semantics
+    # Count docs scanned for semantics (.md, .json, .jsonl)
     scannable = sum(
         1
         for e in entries
         if e.get("status") in SEMANTIC_SCAN_STATUSES
-        and e.get("path", "").endswith(".md")
+        and e.get("path", "").rsplit(".", 1)[-1] in ("md", "json", "jsonl")
         and (ROOT / e.get("path", "")).exists()
     )
 
@@ -736,7 +831,7 @@ def print_summary(
     print(f"  High-priority AI read:     {high_priority_count}")
     print(f"  With last_verified:        {has_lv}")
     print(f"  With stale_after_days:     {has_stale_days}")
-    print(f"  Semantic scan targets:     {scannable} (current/accepted .md)")
+    print(f"  Semantic scan targets:     {scannable} (current/accepted/closed .md/.json/.jsonl)")
     print(f"  Doc types:                 {len(type_counter)}")
     print(f"  Statuses:                  {len(status_counter)}")
     if completeness_errors is not None:
