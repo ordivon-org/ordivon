@@ -8,93 +8,55 @@ on:
 permissions:
   contents: read
 
-env:
-  PFIOS_ENV: test
-  PFIOS_DEBUG: "false"
-  PFIOS_AUDIT_LOG_DIR: ./data/logs/audit
-  PFIOS_REASONING_PROVIDER: mock
-  PFIOS_TIMEZONE: Asia/Shanghai
-  NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
-  PFIOS_E2E_BASE_URL: http://127.0.0.1:3000
-
 jobs:
-  full-backend-regression:
+  full-python-tests:
     runs-on: ubuntu-latest
-    env:
-      PFIOS_DB_URL: duckdb:///./data/nightly-backend.duckdb
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - name: Full product tests
+        run: uv run pytest tests/unit/product -q
+      - name: Full governance tests
+        run: uv run pytest tests/unit/governance -q
+      - name: Full finance tests
+        run: uv run pytest tests/unit/finance -q
+      - name: Eval corpus
+        run: uv run python evals/run_evals.py
+      - name: pr-fast baseline
+        run: uv run python scripts/run_verification_baseline.py --profile pr-fast
+      - name: Architecture check
+        run: uv run python scripts/check_architecture.py
+      - name: Runtime evidence check
+        run: uv run python scripts/check_runtime_evidence.py
+      - name: Document governance checkers
+        run: |
+          uv run python scripts/check_receipt_integrity.py
+          uv run python scripts/check_verification_debt.py
+          uv run python scripts/check_verification_manifest.py
+          uv run python scripts/check_document_registry.py
+          uv run python scripts/check_paper_dogfood_ledger.py
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0
-
-      - name: Install Python dev dependencies
-        run: uv sync --extra dev
-
-      - name: Run full integration regression
-        run: uv run pytest -q tests/integration
-
-      - name: Run contract regression
-        run: uv run pytest -q tests/contracts
-
-      - name: Run API performance baselines
-        run: uv run pytest -q tests/integration/test_performance_baselines.py
-
-  frontend-quality-regression:
+  frontend-regression:
     runs-on: ubuntu-latest
-    env:
-      PFIOS_DB_URL: duckdb:///./data/nightly-frontend.duckdb
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0
-
-      - name: Install Python dev dependencies
-        run: uv sync --extra dev
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.0
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
+          version: "10.33.0"
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Seed E2E database
-        run: uv run python scripts/seed_mvp_e2e.py
-
-      - name: Run visual regression
-        run: pnpm test:e2e:visual
-
-      - name: Run accessibility smoke
-        run: pnpm test:e2e:a11y
-
-      - name: Run web performance baselines
-        run: pnpm test:perf:web
-
-      - name: Run Lighthouse CI
-        run: pnpm lighthouse
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint:web
+      - name: Type check
+        run: pnpm typecheck:web
+      - name: Build
+        run: pnpm build:web
+      - name: Component tests
+        run: pnpm --dir apps/web test

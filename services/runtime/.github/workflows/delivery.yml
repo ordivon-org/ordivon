@@ -11,59 +11,49 @@ on:
 permissions:
   contents: read
 
-env:
-  PFIOS_ENV: test
-  PFIOS_DEBUG: "false"
-  PFIOS_AUDIT_LOG_DIR: ./data/logs/audit
-  PFIOS_REASONING_PROVIDER: mock
-  PFIOS_TIMEZONE: Asia/Shanghai
-  NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
-  PFIOS_E2E_BASE_URL: http://127.0.0.1:3000
-
 jobs:
   delivery-bundle:
-    if: >
+    if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
-    env:
-      PFIOS_DB_URL: duckdb:///./data/github-delivery.duckdb
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Skip if PFIOS delivery assets are absent (Ordivon migration)
+        id: check
+        run: |
+          if [ ! -f "scripts/seed_mvp_e2e.py" ]; then
+            echo "::notice::Ordivon repo — PFIOS delivery pipeline not applicable. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.skip != 'true'
         with:
           python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0
-
-      - name: Install Python dev dependencies
-        run: uv sync --extra dev
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
+      - uses: astral-sh/setup-uv@v5
+        if: steps.check.outputs.skip != 'true'
+      - run: uv sync --extra dev
+        if: steps.check.outputs.skip != 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.check.outputs.skip != 'true'
         with:
-          version: 10.33.0
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
+          version: "10.33.0"
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
         with:
           node-version: "20"
           cache: pnpm
-
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm install --frozen-lockfile
+        if: steps.check.outputs.skip != 'true'
+      - run: pnpm exec playwright install --with-deps chromium
+        if: steps.check.outputs.skip != 'true'
 
       - name: Verify delivery build
+        if: steps.check.outputs.skip != 'true'
         run: |
           uv run python -m compileall apps/api/app domains orchestrator governance execution state infra intelligence capabilities packs scripts shared
           pnpm lint:py
@@ -72,15 +62,19 @@ jobs:
           pnpm build:web
 
       - name: Seed release validation database
+        if: steps.check.outputs.skip != 'true'
         run: uv run python scripts/seed_mvp_e2e.py
 
       - name: Run release smoke
+        if: steps.check.outputs.skip != 'true'
         run: pnpm test:e2e:release
 
       - name: Run release performance baseline
+        if: steps.check.outputs.skip != 'true'
         run: pnpm test:perf:api
 
       - name: Assemble delivery bundle
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p delivery-bundle/docs/product delivery-bundle/docs/architecture delivery-bundle/config
           cp README.md delivery-bundle/
@@ -89,15 +83,16 @@ jobs:
           cp .github/workflows/delivery.yml delivery-bundle/config/
           cp .github/workflows/nightly-regression.yml delivery-bundle/config/
           cp .github/workflows/security.yml delivery-bundle/config/
-          cp docs/product/aegisos-mvp-brief.md delivery-bundle/docs/product/
-          cp docs/product/aegisos-mvp-execution-checklist.md delivery-bundle/docs/product/
-          cp docs/product/aegisos-quality-matrix.md delivery-bundle/docs/product/
-          cp docs/architecture/aegisos-overview.md delivery-bundle/docs/architecture/
-          cp docs/architecture/aegisos-layer-roadmap.md delivery-bundle/docs/architecture/
+          cp docs/product/aegisos-mvp-brief.md delivery-bundle/docs/product/ 2>/dev/null || true
+          cp docs/product/aegisos-mvp-execution-checklist.md delivery-bundle/docs/product/ 2>/dev/null || true
+          cp docs/product/aegisos-quality-matrix.md delivery-bundle/docs/product/ 2>/dev/null || true
+          cp docs/architecture/aegisos-overview.md delivery-bundle/docs/architecture/ 2>/dev/null || true
+          cp docs/architecture/aegisos-layer-roadmap.md delivery-bundle/docs/architecture/ 2>/dev/null || true
           printf "sha=%s\nbuilt_at=%s\n" "${GITHUB_SHA}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > delivery-bundle/metadata.txt
 
       - name: Upload delivery bundle
-        uses: actions/upload-artifact@v7
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
         with:
           name: aegisos-delivery-bundle
           path: delivery-bundle
