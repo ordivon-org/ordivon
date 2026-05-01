@@ -43,6 +43,9 @@ ordivon-verify = "ordivon_verify.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+schemas = ["schemas/*.json"]
 """
 
 # Generated README
