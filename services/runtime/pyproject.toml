@@ -42,6 +42,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
+where = [".", "src"]
 include = [
   "pfios*",
   "apps*",
@@ -52,10 +53,16 @@ include = [
   "infra*",
   "intelligence*",
   "orchestrator*",
+  "ordivon_verify*",
   "packs*",
   "shared*",
   "state*",
 ]
+
+# ── Private prototype: console entrypoint for ordivon-verify ──────────
+# Not a public package. For local editable install smoke testing only.
+[project.scripts]
+ordivon-verify = "ordivon_verify.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]

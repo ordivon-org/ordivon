@@ -1029,6 +1029,13 @@
       "classification": "archive_historical",
       "owner": "PV-N3",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-private-package-install-smoke-pv-n4.md",
+      "reason": "PV-N4 receipt \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N4",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
