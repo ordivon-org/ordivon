@@ -44,13 +44,28 @@ INCLUDE_PATHS = [
 
 CATEGORIES = {
     "secret_markers": {
-        "patterns": [r"API_KEY", r"SECRET[_\s]*(?:KEY)?", r"TOKEN", r"PASSWORD",
-                     r"PRIVATE_KEY", r"ACCESS_KEY", r"BEARER", r"AUTHORIZATION"],
+        "patterns": [
+            r"API_KEY",
+            r"SECRET[_\s]*(?:KEY)?",
+            r"TOKEN",
+            r"PASSWORD",
+            r"PRIVATE_KEY",
+            r"ACCESS_KEY",
+            r"BEARER",
+            r"AUTHORIZATION",
+        ],
         "blocking": True,
     },
     "broker_trading": {
-        "patterns": [r"Alpaca", r"broker", r"live.trading", r"paper.trading",
-                     r"order.submit", r"account.id", r"trading.key"],
+        "patterns": [
+            r"Alpaca",
+            r"broker",
+            r"live.trading",
+            r"paper.trading",
+            r"order.submit",
+            r"account.id",
+            r"trading.key",
+        ],
         "blocking": True,
     },
     "private_paths": {
@@ -62,16 +77,29 @@ CATEGORIES = {
         "blocking": True,
     },
     "unsafe_maturity": {
-        "patterns": [r"production-ready", r"stable.release", r"public.alpha",
-                     r"published\b(?!.*not\b)", r"open.source.now",
-                     r"enterprise-ready", r"customer.validated",
-                     r"auto.merge(?!.*no\b)", r"authorizes.execution",
-                     r"approved.by.Verify"],
+        "patterns": [
+            r"production-ready",
+            r"stable.release",
+            r"public.alpha",
+            r"published\b(?!.*not\b)",
+            r"open.source.now",
+            r"enterprise-ready",
+            r"customer.validated",
+            r"auto.merge(?!.*no\b)",
+            r"authorizes.execution",
+            r"approved.by.Verify",
+        ],
         "blocking": True,
     },
     "license_release": {
-        "patterns": [r"Apache-2.0.activated", r"MIT.activated", r"LICENSE.final",
-                     r"package.published", r"PyPI.published", r"npm.published"],
+        "patterns": [
+            r"Apache-2.0.activated",
+            r"MIT.activated",
+            r"LICENSE.final",
+            r"package.published",
+            r"PyPI.published",
+            r"npm.published",
+        ],
         "blocking": True,
     },
 }
@@ -195,21 +223,26 @@ def main(json_output: bool = False) -> int:
     review = [f for f in all_findings if f["classification"] == "review_needed"]
 
     if json_output:
-        print(json.dumps({
-            "audit": "ordivon-verify-public-wedge-secret",
-            "phase": "PV-N6",
-            "dry_run": True,
-            "scanned_files": len(files),
-            "findings_total": len(all_findings),
-            "blocking_findings": len(blocking),
-            "allowed_context_findings": len(allowed),
-            "review_needed_findings": len(review),
-            "categories_checked": list(CATEGORIES.keys()),
-            "blocking": blocking,
-            "allowed_context": allowed,
-            "review_needed": review,
-            "disclaimer": "Audit dry run. Not a legal/security guarantee.",
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "audit": "ordivon-verify-public-wedge-secret",
+                    "phase": "PV-N6",
+                    "dry_run": True,
+                    "scanned_files": len(files),
+                    "findings_total": len(all_findings),
+                    "blocking_findings": len(blocking),
+                    "allowed_context_findings": len(allowed),
+                    "review_needed_findings": len(review),
+                    "categories_checked": list(CATEGORIES.keys()),
+                    "blocking": blocking,
+                    "allowed_context": allowed,
+                    "review_needed": review,
+                    "disclaimer": "Audit dry run. Not a legal/security guarantee.",
+                },
+                indent=2,
+            )
+        )
     else:
         print("=" * 60)
         print("ORDIVON VERIFY — PUBLIC WEDGE SECRET/PRIVATE AUDIT")
