@@ -107,7 +107,7 @@ A CapabilityManifest declares what an external system **can** do:
 | can_call_tools | Invoke external tools |
 | can_modify_repo | Modify repository state |
 | can_create_pr | Create pull requests |
-| can_access_secrets | Access secrets/credentials |
+| can_read_credentials | Access secrets/credentials |
 | can_call_external_api | Call external APIs |
 | can_trigger_ci | Trigger CI/CD pipelines |
 | can_request_human_review | Request human review |

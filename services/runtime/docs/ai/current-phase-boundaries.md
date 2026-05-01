@@ -39,6 +39,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **PV-3** | **COMPLETE** | External fixture dogfood + --root/--config/--mode support |
 | **PV-4** | **COMPLETE** | Trust report polish — rich human + JSON output |
 | **PV-5** | **ACTIVE** | Agent skill + CI adoption pack |
+| **OGAP-1** | **CLOSED** | Protocol semantics + object model |
+| **OGAP-2** | **CLOSED** | Schemas + local validator |
+| **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
+| **OGAP-Z** | **CLOSED** | Protocol foundation Stage Summit |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
@@ -86,6 +90,12 @@ These are **design-time prohibitions**. No agent may violate them.
 | PR #7 (React) merge | HOLD | Frontend compatibility not verified |
 | Finance real trading | NO-GO | Phase 7 required |
 | CandidateRule → Policy without 4 criteria | NO-GO | Doctrine §3.6 |
+| OGAP API/SDK/MCP server creation | NO-GO | Protocol foundation only — no implementation opened |
+| OGAP public standard claim | NO-GO | v0/prototype, no external adoption |
+| OGAP package publishing | NO-GO | No release program opened |
+| OGAP public repo creation | NO-GO | Private core, public wedge model |
+| OGAP action authorization | NO-GO | Valid payloads do not authorize execution |
+| Financial/broker/live action via OGAP | NO-GO | NO-GO at schema level |
 
 ## 4. Finance Observation Status
 

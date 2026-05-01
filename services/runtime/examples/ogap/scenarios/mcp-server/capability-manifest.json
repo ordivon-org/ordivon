@@ -10,7 +10,7 @@
     "can_call_tools": true,
     "can_modify_repo": false,
     "can_create_pr": false,
-    "can_access_secrets": false,
+    "can_read_credentials": false,
     "can_call_external_api": false,
     "can_trigger_ci": false,
     "can_request_human_review": false

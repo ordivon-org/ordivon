@@ -33,7 +33,9 @@ class TestVersioningPolicy:
         assert "public alpha" in content
         # But not claim it as current
         lines = content.split("\n")
-        status_lines = [l for l in lines if "private beta candidate" in l.lower() and "current" in l.lower() or "**current**" in l]
+        status_lines = [
+            l for l in lines if "private beta candidate" in l.lower() and "current" in l.lower() or "**current**" in l
+        ]
         assert len(status_lines) >= 1 or "private beta candidate" in content
 
     def test_forbids_production_ready(self):
@@ -83,7 +85,10 @@ class TestVersioningPolicy:
         """Regenerated context must have prototype-safe version."""
         r = subprocess.run(
             [sys.executable, str(PREPARE_SCRIPT)],
-            capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT),
         )
         assert r.returncode == 0
         pp = ROOT / ".tmp" / "ordivon-verify-package-context" / "pyproject.toml"

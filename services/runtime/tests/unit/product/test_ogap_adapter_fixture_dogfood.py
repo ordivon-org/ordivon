@@ -22,7 +22,10 @@ class TestScenarioFixtures:
         for f in sorted(SCENARIOS_DIR.rglob("*.json")):
             r = subprocess.run(
                 [sys.executable, str(VALIDATOR), str(f)],
-                capture_output=True, text=True, timeout=10, cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                timeout=10,
+                cwd=str(ROOT),
             )
             assert r.returncode == 0, f"{f.relative_to(SCENARIOS_DIR)} failed:\n{r.stdout[:300]}"
 

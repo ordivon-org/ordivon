@@ -40,19 +40,13 @@ class TestPackageManifest:
 
     def test_manifest_excludes_private_core(self):
         data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        private_entries = [
-            e for e in data["entries"]
-            if e["classification"] == "excluded_private_core"
-        ]
+        private_entries = [e for e in data["entries"] if e["classification"] == "excluded_private_core"]
         for e in private_entries:
             assert e["include"] is False
 
     def test_manifest_excludes_legacy_runtime(self):
         data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        legacy = [
-            e for e in data["entries"]
-            if e["classification"] == "excluded_legacy_runtime"
-        ]
+        legacy = [e for e in data["entries"] if e["classification"] == "excluded_legacy_runtime"]
         for e in legacy:
             assert e["include"] is False
 
@@ -86,7 +80,10 @@ class TestPrepareScript:
         """Running the script generates context output."""
         r = subprocess.run(
             [sys.executable, str(PREPARE_SCRIPT)],
-            capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT),
         )
         assert r.returncode == 0
         assert "Package context generated cleanly" in r.stdout
@@ -95,14 +92,20 @@ class TestPrepareScript:
         """Script does not modify any source files."""
         r = subprocess.run(
             [sys.executable, str(PREPARE_SCRIPT)],
-            capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT),
         )
         assert r.returncode == 0
 
     def test_json_output(self):
         r = subprocess.run(
             [sys.executable, str(PREPARE_SCRIPT), "--json"],
-            capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT),
         )
         assert r.returncode == 0
         data = json.loads(r.stdout)

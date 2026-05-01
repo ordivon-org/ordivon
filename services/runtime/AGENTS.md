@@ -15,9 +15,11 @@ docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
+docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md  OGAP protocol foundation Stage Summit
+docs/runtime/ogap-foundation-closure-ogap-z.md  OGAP closure evidence
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-3: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED
 
 pr-fast: 12/12 PASS | 0 open debt | Coverage: 8+2 | Phase 8: DEFERRED
 Phase 6: Design + Finance Observation — COMPLETE
@@ -45,6 +47,10 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-N6: CLOSED** — Secret + Private Reference Audit Dry Run (0 blocking findings)
 **PV-N7: CLOSED** — Local public repo dry-run (16 copied, 0 missing required)
 **PV-N8: CLOSED** — Local build artifact smoke (wheel built, 244 private paths — BLOCKED for public publish)
+**OGAP-1: CLOSED** — Protocol semantics + object model
+**OGAP-2: CLOSED** — Schemas + local validator
+**OGAP-3: CLOSED** — Adapter fixture dogfood
+**OGAP-Z: CLOSED** — Protocol foundation Stage Summit
 <!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
 
 Paper dogfood proved governance pipeline integrity, not profitability.
@@ -52,9 +58,9 @@ Paper dogfood proved governance pipeline integrity, not profitability.
 204 backend tests. 57 frontend tests. 11/11 baseline.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
-**pr-fast**: 11/11 hard gates. 94 governance tests. 30 registry entries.
+**pr-fast**: 12/12 hard gates. 94 governance tests. 30 registry entries.
 **Open debt**: 0 (all 5 closed — VD-001 through VD-005).
-**Next**: PV-N6 — Secret + Private Reference Audit Dry Run
+**Next**: ADP-1 or HAP-1 — Agentic Pattern Governance / Harness Adapter Protocol
 
 ## Critical Boundaries
 
@@ -64,3 +70,6 @@ CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 - Auto-trading: NO-GO
 - CandidateRule to Policy: NO-GO
 - Document Governance Pack: design-only, no code enforcement
+- OGAP: protocol foundation only — no API, no SDK, no MCP server, no public standard
+- Financial/broker/live action: NO-GO
+- READY ≠ approval: valid OGAP payloads do not authorize execution

@@ -47,9 +47,7 @@ def validate_against_schema(payload: dict, schema: dict) -> list[str]:
         if "enum" in prop_schema and prop_name in payload:
             value = payload[prop_name]
             if value not in prop_schema["enum"]:
-                errors.append(
-                    f"invalid {prop_name}: '{value}' (allowed: {prop_schema['enum']})"
-                )
+                errors.append(f"invalid {prop_name}: '{value}' (allowed: {prop_schema['enum']})")
 
     return errors
 
@@ -64,7 +62,14 @@ def safety_checks(payload: dict, schema_name: str) -> list[str]:
         authority = payload.get("authority_statement", "").lower()
 
         if decision == "READY":
-            dangerous = ["authorizes execution", "authorizes deployment", "approves deployment", "approves release", "approves merge", "approved to"]
+            dangerous = [
+                "authorizes execution",
+                "authorizes deployment",
+                "approves deployment",
+                "approves release",
+                "approves merge",
+                "approved to",
+            ]
             for phrase in dangerous:
                 if phrase in authority:
                     errors.append(
@@ -156,13 +161,19 @@ def main() -> int:
     all_errors = errors + safety_errors
 
     if json_output:
-        print(json.dumps({
-            "valid": len(all_errors) == 0,
-            "schema": schema_name,
-            "file": str(path),
-            "errors": all_errors,
-            "warnings": [],
-        }, indent=2, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "valid": len(all_errors) == 0,
+                    "schema": schema_name,
+                    "file": str(path),
+                    "errors": all_errors,
+                    "warnings": [],
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
     else:
         print(f"📋 Schema:  {schema_name}")
         print(f"📄 File:    {path.name}")

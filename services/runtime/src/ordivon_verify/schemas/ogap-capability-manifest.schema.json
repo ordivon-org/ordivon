@@ -50,7 +50,7 @@
         "can_create_pr": {
           "type": "boolean"
         },
-        "can_access_secrets": {
+        "can_read_credentials": {
           "type": "boolean"
         },
         "can_call_external_api": {

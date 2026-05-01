@@ -213,14 +213,26 @@ def prepare_context(manifest: dict, output_dir: Path) -> dict:
                         if pattern in line:
                             lower = line.lower()
                             # Skip if in negative/boundary context
-                            if any(nc in lower for nc in [
-                                "not ", "no ", "does not", "do not",
-                                "blocked", "deferred", "no-go",
-                                "not-activated", "not activated",
-                                "placeholder", "proposal",
-                                "test description", "test assert",
-                                "example", "≠",
-                            ]):
+                            if any(
+                                nc in lower
+                                for nc in [
+                                    "not ",
+                                    "no ",
+                                    "does not",
+                                    "do not",
+                                    "blocked",
+                                    "deferred",
+                                    "no-go",
+                                    "not-activated",
+                                    "not activated",
+                                    "placeholder",
+                                    "proposal",
+                                    "test description",
+                                    "test assert",
+                                    "example",
+                                    "≠",
+                                ]
+                            ):
                                 continue
                             # Skip if inside a quoted string literal (test data, schema desc)
                             stripped = line.strip()

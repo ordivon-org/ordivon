@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 44
+**Total registered docs**: 53
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -12,11 +12,14 @@
 
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
+| [OGAP Architecture](../architecture/ordivon-governance-adapter-protocol-ogap-1.md) | `docs/architecture/ordivon-governance-adapter-protocol-ogap-1.md` | architecture | current | source_of_truth | L1 | 2026-05-01 |
 | [Ordivon System Ontology — Core / Pack / Adapter](../architecture/ordivon-core-pack-adapter-ontology.md) | `docs/architecture/ordivon-core-pack-adapter-ontology.md` | architecture | accepted | source_of_truth | L1 | 2026-04-30 |
 | [Coverage Governance Contract](../governance/coverage-governance-contract.md) | `docs/governance/coverage-governance-contract.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
+| [OGAP Object Model](../governance/ogap-object-model-v0.md) | `docs/governance/ogap-object-model-v0.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
 | [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-04-30 |
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
+| [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
@@ -24,6 +27,7 @@
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
 | [Verification Signal Classification — Classify Before You Fix](../governance/verification-signal-classification.md) | `docs/governance/verification-signal-classification.md` | runbook | current | current_status | L1 | 2026-04-30 |
+| [OGAP Integration Levels](../product/ordivon-external-adapter-integration-levels.md) | `docs/product/ordivon-external-adapter-integration-levels.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Changelog Policy](../product/ordivon-verify-changelog-policy.md) | `docs/product/ordivon-verify-changelog-policy.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Versioning Policy](../product/ordivon-verify-versioning-policy-pv-n12.md) | `docs/product/ordivon-verify-versioning-policy-pv-n12.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
@@ -78,11 +82,16 @@
 |----------|------|------|--------|-----------|---------|-----------|
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
+| [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
 | [COV-1 Coverage-Aware Governance Receipt](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [OGAP-1 Closure](../runtime/ogap-1-governance-adapter-protocol-v0.md) | `docs/runtime/ogap-1-governance-adapter-protocol-v0.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [OGAP-2 Protocol Schemas + Validator](../runtime/ogap-2-protocol-schemas-validator.md) | `docs/runtime/ogap-2-protocol-schemas-validator.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [OGAP-3 Adapter Fixture Dogfood](../runtime/ogap-3-adapter-fixture-dogfood.md) | `docs/runtime/ogap-3-adapter-fixture-dogfood.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-N10 Separated Package Build Smoke Receipt](../runtime/ordivon-verify-separated-package-build-smoke-pv-n10.md) | `docs/runtime/ordivon-verify-separated-package-build-smoke-pv-n10.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-N11 Wheel Install Smoke](../runtime/ordivon-verify-wheel-install-smoke-pv-n11.md) | `docs/runtime/ordivon-verify-wheel-install-smoke-pv-n11.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-N12 Release Channel Policy Receipt](../runtime/ordivon-verify-versioning-release-channel-pv-n12.md) | `docs/runtime/ordivon-verify-versioning-release-channel-pv-n12.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |

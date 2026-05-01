@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: PV-N2H (2026-05-01)
-> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | PV-Z — CLOSED | PV-N1 — CLOSED | PV-N2 — CLOSED | PV-N2H — ACTIVE
-> **Next**: PV-N3 — Public Quickstart
+> **Last updated**: OGAP-Z (2026-05-01)
+> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | PV-Z — CLOSED | COV-1R — CLOSED | COV-2 — CLOSED | OGAP-Z — CLOSED
+> **Next**: ADP-1 or HAP-1
 > **Identity**: Ordivon. PFIOS/AegisOS are historical.
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
@@ -39,7 +39,8 @@ docs/governance/ai-onboarding-doc-policy.md AI read path specification
 docs/runbooks/ordivon-agent-operating-doctrine.md   full doctrine (canonical)
 docs/product/ordivon-stage-summit-phase-4.md        Phase 4 close
 docs/product/policy-platform-stage-summit-phase-5.md Phase 5 close
-docs/product/document-governance-stage-summit-dg-z.md DG Pack close
+docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md  OGAP-Z Stage Summit
+docs/runtime/ogap-foundation-closure-ogap-z.md    OGAP-Z closure evidence
 ```
 
 ## When to Read What
