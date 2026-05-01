@@ -15,7 +15,10 @@ DRYRUN_SCRIPT = ROOT / "scripts" / "dryrun_ordivon_verify_public_repo.py"
 def _run_dryrun(args: list[str] = None) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(DRYRUN_SCRIPT)] + (args or []),
-        capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=60,
+        cwd=str(ROOT),
     )
 
 
@@ -57,8 +60,7 @@ def test_manifest_excludes_private_core():
     data = json.loads(MANIFEST.read_text())
     excludes = [e for e in data["entries"] if not e.get("include")]
     sources = [e["source"] for e in excludes]
-    for excluded in ["adapters", "domains", "orchestrator", "capabilities",
-                     "intelligence", "apps", "policies"]:
+    for excluded in ["adapters", "domains", "orchestrator", "capabilities", "intelligence", "apps", "policies"]:
         assert excluded in sources, f"Manifest should exclude '{excluded}'"
 
 
@@ -78,10 +80,14 @@ def test_dryrun_script_no_publish():
 
 def test_dryrun_creates_output():
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         result = subprocess.run(
             [sys.executable, str(DRYRUN_SCRIPT), "--output", td, "--keep"],
-            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(ROOT),
         )
         assert result.returncode == 0
         assert (Path(td) / "README.md").exists()
@@ -91,10 +97,14 @@ def test_dryrun_creates_output():
 
 def test_dryrun_has_required_files():
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         subprocess.run(
             [sys.executable, str(DRYRUN_SCRIPT), "--output", td],
-            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(ROOT),
         )
         assert (Path(td) / "README.md").exists()
         assert (Path(td) / "pyproject.toml").exists()
@@ -106,42 +116,50 @@ def test_dryrun_has_required_files():
 
 def test_dryrun_excludes_private_core():
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         subprocess.run(
             [sys.executable, str(DRYRUN_SCRIPT), "--output", td],
-            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(ROOT),
         )
-        for excluded in ["adapters", "domains", "orchestrator", "capabilities",
-                         "intelligence", "apps", "policies"]:
+        for excluded in ["adapters", "domains", "orchestrator", "capabilities", "intelligence", "apps", "policies"]:
             assert not (Path(td) / excluded).exists(), f"'{excluded}' should be excluded"
 
 
 def test_dryrun_excludes_finance():
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         subprocess.run(
             [sys.executable, str(DRYRUN_SCRIPT), "--output", td],
-            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(ROOT),
         )
         # No Alpaca/broker code in generated repo
         for f in Path(td).rglob("*.py"):
             content = f.read_text()
-            assert "Alpaca" not in content or "adapters" not in str(f), \
-                f"{f.relative_to(td)}: contains Alpaca import"
+            assert "Alpaca" not in content or "adapters" not in str(f), f"{f.relative_to(td)}: contains Alpaca import"
 
 
 def test_dryrun_does_not_mutate_source():
     """Dry-run must not modify any source files in ROOT."""
     mtimes = {}
-    for f in [ROOT / "src" / "ordivon_verify" / "__init__.py",
-              ROOT / "scripts" / "ordivon_verify.py"]:
+    for f in [ROOT / "src" / "ordivon_verify" / "__init__.py", ROOT / "scripts" / "ordivon_verify.py"]:
         mtimes[str(f)] = f.stat().st_mtime
 
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         subprocess.run(
             [sys.executable, str(DRYRUN_SCRIPT), "--output", td],
-            capture_output=True, timeout=60, cwd=str(ROOT),
+            capture_output=True,
+            timeout=60,
+            cwd=str(ROOT),
         )
     for p_str, orig in mtimes.items():
         assert Path(p_str).stat().st_mtime == orig
