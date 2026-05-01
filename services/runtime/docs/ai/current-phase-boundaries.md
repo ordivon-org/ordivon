@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
 Status: **DOCUMENTED** (DG-Z stage summit closed)
-Date: 2026-04-30
-Phase: DG-Z-S
+Date: 2026-05-01
+Phase: OGAP-Z
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
