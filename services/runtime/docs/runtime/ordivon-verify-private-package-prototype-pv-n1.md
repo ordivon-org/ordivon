@@ -28,6 +28,7 @@ src/ordivon_verify/
 ```python
 from ordivon_verify.cli import main
 import sys
+
 sys.exit(main())
 ```
 
