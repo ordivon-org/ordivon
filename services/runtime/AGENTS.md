@@ -17,9 +17,9 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z through PV-N8: CLOSED | COV-1: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z through PV-N8: CLOSED | COV-1R: CLOSED / CORE SEALED
 
-pr-fast: 12/12 PASS | 0 open debt | 615+ tests | Phase 8: DEFERRED
+pr-fast: 12/12 PASS | 0 open debt | Coverage governance: implemented | Artifact integrity repair: implemented | Next governance priority: COV-2 partial checker discovery remediation
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
 **DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published

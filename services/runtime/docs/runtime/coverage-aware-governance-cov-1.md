@@ -69,13 +69,20 @@ pr-fast: 11/11 → 12/12 PASS. New gate: `coverage_governance` (L4, hard).
 During COV-1, governance JSON artifacts were corrupted by formatter/tooling scope misuse:
 
 - `checker-coverage-manifest.json` and `verification-gate-manifest.json` received
-  invalid trailing commas from Ruff's preview formatting applied to .json files.
+  invalid trailing commas when a formatter whose supported extensions (python,
+  pyi, ipynb, markdown — not json) was applied to .json governance artifact files.
 - `document-registry.jsonl` was temporarily zeroed by a repair script that
   discarded all entries when parsing failed after the JSON corruption.
 
-Root cause classification: Ruff is a Python/Markdown formatter whose supported
-extensions (python, pyi, ipynb, markdown) do not include json. The corruption
-was caused by formatter scope overextension, not by a Ruff JSON bug.
+Root cause classification: **JSON/JSONL governance artifacts were exposed to an
+unsafe formatting/repair path.** The formatter's extension scope (Python +
+Markdown) was overextended onto data artifact files. Whether the triggering
+mechanism was Ruff wrapper, preview scope, editor integration, or script
+misprocessing is secondary — the governance invariant is that JSON/JSONL
+artifacts must never travel through a non-JSON formatting pipeline.
+
+Governance conclusion: **Governance artifacts are executable data, not prose.**
+Their authoritative validator is the parser + schema/checker, never a formatter.
 
 Resolution:
 - Restored `document-registry.jsonl` from git HEAD
@@ -109,5 +116,37 @@ must also cover governance artifacts themselves.
 
 ---
 
+## COV-1-S — Full Verification Accounting Addendum
+
+The COV-1 core governance verification was sealed with 12/12 pr-fast + 67 governance
+tests. This addendum provides the complete cross-Ordivon verification that the
+original COV-1 prompt required, so coverage governance does not itself leave a
+verification blind spot.
+
+| Verification | Result |
+|---|---|
+| Product tests (206) | PASS |
+| Finance regression (188) | PASS |
+| Frontend tests (57) + build | PASS + static OK |
+| Eval corpus (24 cases) | PASS |
+| Architecture boundaries | PASS |
+| Runtime evidence integrity | PASS |
+| Public wedge audit | PASS (0 blocking) |
+| Public repo dry-run | PASS (16 copied, 13 excluded) |
+| Private install smoke | PASS (7/7) |
+| Build artifact smoke | BLOCKED (honest — 244 private paths) |
+| Coverage governance check | PASS |
+| Document registry (34 entries) | PASS |
+| Verification debt ledger | PASS |
+| Receipt integrity | PASS |
+| Verification gate manifest | PASS |
+| Paper dogfood ledger | PASS |
+| Ordivon Verify (3 entrypoints) | READY |
+| pr-fast | 12/12 PASS |
+
+Build artifact BLOCKED is a known PV-N8 gap — a productization blocker, not a
+COV-1 governance gap. It is honestly reported in checker-coverage-manifest.json.
+
 *Closed: 2026-05-01*
+*COV-1-S addendum: 2026-05-01*
 *Phase: COV-1*
