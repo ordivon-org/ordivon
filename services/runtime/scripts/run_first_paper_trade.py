@@ -93,14 +93,16 @@ def main() -> None:
 
     api_key = os.getenv("ALPACA_API_KEY", "")
     if not api_key.startswith("PK"):
-        die(f"Key prefix not PK: {api_key[:6]}...")
-    print(f"✅ 3. Key prefix: {api_key[:6]}... (paper)")
+        die("ALPACA_API_KEY is not a paper-trading key.")
+    print("✅ 3. ALPACA_API_KEY is configured for paper trading.")
 
     cap = PaperExecutionCapability()
     assert cap.can_place_paper_order is True
     assert cap.can_place_live_order is False
     assert cap.can_auto_trade is False
-    print(f"✅ 4. Capability: paper_order={cap.can_place_paper_order}, live={cap.can_place_live_order}, auto={cap.can_auto_trade}")
+    print(
+        f"✅ 4. Capability: paper_order={cap.can_place_paper_order}, live={cap.can_place_live_order}, auto={cap.can_auto_trade}"
+    )
 
     print("✅ 5. ReadOnlyAdapterCapability unchanged (separate module)")
     print("✅ 6. Health endpoint available (GET /health/finance-observation)")
