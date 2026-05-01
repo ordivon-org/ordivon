@@ -1,0 +1,89 @@
+# EXAMPLE ONLY — NOT ACTIVE CI
+# Copy this file to .github/workflows/ordivon-verify.yml in your repo.
+# Customize before activating.
+
+name: Ordivon Verify
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "ordivon.verify.json"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run Ordivon Verify
+        id: verify
+        run: |
+          uv run python scripts/ordivon_verify.py all --json > verify-report.json
+          cat verify-report.json
+
+      - name: Check result
+        run: |
+          STATUS=$(python3 -c "import json; print(json.load(open('verify-report.json'))['status'])")
+          echo "Ordivon Verify status: $STATUS"
+
+          if [ "$STATUS" = "BLOCKED" ]; then
+            echo "::error::Ordivon Verify BLOCKED — receipt contradiction or missing required governance files."
+            exit 1
+          elif [ "$STATUS" = "DEGRADED" ]; then
+            echo "::warning::Ordivon Verify DEGRADED — warnings present. Human review required."
+          elif [ "$STATUS" = "READY" ]; then
+            echo "Ordivon Verify READY — selected checks passed."
+          fi
+
+      - name: Post Verify report as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('verify-report.json')) return;
+            const report = JSON.parse(fs.readFileSync('verify-report.json', 'utf8'));
+
+            const icons = { PASS: '✅', FAIL: '❌', WARN: '⚠️' };
+            let body = '## Ordivon Verify\n\n';
+            body += `**Status**: ${report.status} | **Mode**: ${report.mode}\n\n`;
+            body += '| Check | Status |\n|-------|--------|\n';
+            for (const c of report.checks) {
+              body += `| ${c.id} | ${icons[c.status] || '❓'} ${c.status} |\n`;
+            }
+
+            if (report.hard_failures.length > 0) {
+              body += '\n### Hard Failures\n';
+              for (const f of report.hard_failures) {
+                body += `- **${f.file || f.id}**: ${f.reason}\n`;
+                body += `  → ${f.next_action || 'Fix before merging.'}\n`;
+              }
+            }
+
+            if (report.warnings.length > 0) {
+              body += '\n### Warnings\n';
+              for (const w of report.warnings) {
+                body += `- ${w.reason}\n`;
+              }
+            }
+
+            body += `\n> ${report.disclaimer || 'READY means selected checks passed; it does not authorize execution.'}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

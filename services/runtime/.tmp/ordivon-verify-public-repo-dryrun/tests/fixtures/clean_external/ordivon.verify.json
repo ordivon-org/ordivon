@@ -1,0 +1,7 @@
+{
+  "schema_version": "0.1",
+  "project_name": "clean-external-fixture",
+  "mode": "advisory",
+  "receipt_paths": ["receipts"],
+  "output": "human"
+}

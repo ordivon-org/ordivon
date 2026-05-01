@@ -1,0 +1,66 @@
+{
+  "description": "File manifest for Ordivon Verify public repo extraction dry-run. Maps private repo paths to public repo target paths.",
+  "entries": [
+    {"source": "README.md", "target": "README.md", "include": false,
+     "reason": "Private Ordivon README — public wedge needs its own README", "classification": "excluded_private_core", "required": false},
+    {"source": "AGENTS.md", "target": "AGENTS.md", "include": false,
+     "reason": "Private agent context — public repo gets minimal version", "classification": "excluded_private_core", "required": false},
+
+    {"source": "src/ordivon_verify", "target": "src/ordivon_verify", "include": true,
+     "reason": "Core package source", "classification": "runtime_code", "required": true},
+    {"source": "src/ordivon_verify/schemas", "target": "schemas", "include": true,
+     "reason": "Prototype schemas — public package needs these at top level", "classification": "schema", "required": true},
+
+    {"source": "scripts/ordivon_verify.py", "target": "ordivon_verify.py", "include": true,
+     "reason": "CLI wrapper — public entrypoint", "classification": "runtime_code", "required": true},
+
+    {"source": "examples/ordivon-verify/quickstart", "target": "examples/quickstart", "include": true,
+     "reason": "Quickstart fixture for new users", "classification": "example", "required": true},
+    {"source": "examples/ordivon-verify/github-action.yml.example", "target": "examples/github-action.yml.example", "include": true,
+     "reason": "CI integration example", "classification": "example", "required": false},
+
+    {"source": "skills/ordivon-verify/SKILL.md", "target": "skills/ordivon-verify/SKILL.md", "include": true,
+     "reason": "Agent skill for AI-assisted verification", "classification": "skill", "required": false},
+
+    {"source": "docs/product/ordivon-verify-public-quickstart-v0.md", "target": "docs/quickstart.md", "include": true,
+     "reason": "Public quickstart doc", "classification": "public_doc", "required": true},
+    {"source": "docs/product/ordivon-verify-adoption-guide.md", "target": "docs/adoption.md", "include": true,
+     "reason": "Adoption guide for external users", "classification": "public_doc", "required": false},
+    {"source": "docs/product/ordivon-verify-ci-example.md", "target": "docs/ci.md", "include": true,
+     "reason": "CI integration docs", "classification": "public_doc", "required": false},
+    {"source": "docs/product/ordivon-verify-pr-comment-example.md", "target": "docs/pr-comments.md", "include": true,
+     "reason": "PR comment template docs", "classification": "public_doc", "required": false},
+
+    {"source": "tests/unit/product/test_ordivon_verify_quickstart_example.py", "target": "tests/unit/test_quickstart_example.py", "include": true,
+     "reason": "Quickstart test — public package needs tests", "classification": "test", "required": false},
+    {"source": "tests/fixtures/ordivon_verify_standard_external_repo", "target": "tests/fixtures/standard_external", "include": true,
+     "reason": "Standard external fixture", "classification": "test", "required": false},
+    {"source": "tests/fixtures/ordivon_verify_clean_external_repo", "target": "tests/fixtures/clean_external", "include": true,
+     "reason": "Clean advisory fixture", "classification": "test", "required": false},
+    {"source": "tests/fixtures/ordivon_verify_external_repo", "target": "tests/fixtures/external_repo", "include": true,
+     "reason": "Bad external fixture", "classification": "test", "required": false},
+
+    {"source": "adapters", "target": null, "include": false,
+     "reason": "Finance adapters — private Core, not public wedge", "classification": "excluded_private_core", "required": false},
+    {"source": "domains", "target": null, "include": false,
+     "reason": "Domain models — private Core", "classification": "excluded_private_core", "required": false},
+    {"source": "orchestrator", "target": null, "include": false,
+     "reason": "PFIOS workflow engine — legacy runtime", "classification": "excluded_legacy_runtime", "required": false},
+    {"source": "capabilities", "target": null, "include": false,
+     "reason": "PFIOS capability layer — legacy runtime", "classification": "excluded_legacy_runtime", "required": false},
+    {"source": "intelligence", "target": null, "include": false,
+     "reason": "PFIOS reasoning bridge — legacy runtime", "classification": "excluded_legacy_runtime", "required": false},
+    {"source": "apps", "target": null, "include": false,
+     "reason": "Web/API apps — private Core, not public wedge", "classification": "excluded_private_core", "required": false},
+    {"source": "policies", "target": null, "include": false,
+     "reason": "Policy configs — private Core", "classification": "excluded_private_core", "required": false},
+    {"source": "docs/archive", "target": null, "include": false,
+     "reason": "Historical archives — not public", "classification": "excluded_internal_receipt", "required": false},
+    {"source": "docs/governance", "target": null, "include": false,
+     "reason": "DG Pack internals — private governance, not public wedge", "classification": "excluded_internal_receipt", "required": false},
+    {"source": "docs/runtime/paper-trades", "target": null, "include": false,
+     "reason": "Finance dogfood internals — private evidence", "classification": "excluded_internal_receipt", "required": false},
+    {"source": "docs/ai", "target": null, "include": false,
+     "reason": "AI onboarding — private agent context", "classification": "excluded_internal_receipt", "required": false}
+  ]
+}
