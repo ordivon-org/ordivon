@@ -1036,6 +1036,20 @@
       "classification": "pending_registration",
       "owner": "PV-N4",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-release-readiness-audit-pv-n5.md",
+      "reason": "PV-N5 release readiness audit docs \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N5",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-release-readiness-audit-pv-n5.md",
+      "reason": "PV-N5 release readiness audit docs \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N5",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
