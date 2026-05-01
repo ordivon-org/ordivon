@@ -68,6 +68,7 @@ extend-exclude = [
   "node_modules",
   ".next",
   "delivery-bundle",
+  "*.jsonl",
 ]
 
 [tool.ruff.lint]
