@@ -375,6 +375,74 @@ def check_semantic_phrases(entries: list[dict]) -> list[str]:
     return errors
 
 
+def check_inline_date_consistency(entries: list[dict]) -> list[str]:
+    """Cross-check document body inline dates against registry last_verified.
+
+    If a document has both a registry last_verified AND a body inline date
+    (e.g. 'Date: 2026-04-30'), the inline date must not be older than
+    last_verified. An older inline date means the document body carries a
+    stale timestamp — it was modified but the inline date was not updated.
+
+    Only checks .md files. Docs without inline dates are skipped (no false
+    positives on unannotated documents).
+    """
+    errors: list[str] = []
+    # Patterns for inline dates in document bodies
+    INLINE_DATE_PATTERNS: list[re.Pattern] = [
+        re.compile(r"Date:\s*(\d{4}-\d{2}-\d{2})"),
+        re.compile(r"date:\s*(\d{4}-\d{2}-\d{2})"),
+        re.compile(r"Last\s+updated.*?(\d{4}-\d{2}-\d{2})", re.IGNORECASE),
+    ]
+
+    for e in entries:
+        did = e.get("doc_id", "")
+        lv = e.get("last_verified")
+        if not lv:
+            continue
+
+        path_str = e.get("path", "")
+        if not path_str:
+            continue
+
+        full_path = ROOT / path_str
+        if not full_path.exists() or full_path.suffix != ".md":
+            continue
+
+        try:
+            content = full_path.read_text()
+        except Exception:
+            continue
+
+        # Extract inline date from document body
+        inline_date: date | None = None
+        for pattern in INLINE_DATE_PATTERNS:
+            m = pattern.search(content)
+            if m:
+                try:
+                    inline_date = date.fromisoformat(m.group(1))
+                except (ValueError, TypeError):
+                    pass
+                break
+
+        if inline_date is None:
+            continue  # No inline date to cross-check
+
+        try:
+            verified_date = date.fromisoformat(lv)
+        except (ValueError, TypeError):
+            continue
+
+        # Core invariant: body inline date >= registry last_verified
+        if inline_date < verified_date:
+            errors.append(
+                f"{did}: inline date {inline_date} is older than "
+                f"registry last_verified {verified_date} — "
+                f"document body date is stale (was the doc modified without updating the inline date?)"
+            )
+
+    return errors
+
+
 def check_invariants(entries: list[dict]) -> list[str]:
     """Return list of invariant violations."""
     errors: list[str] = []
@@ -569,6 +637,10 @@ def check_invariants(entries: list[dict]) -> list[str]:
     phrase_errors = check_semantic_phrases(entries)
     errors.extend(phrase_errors)
 
+    # --- Inline date / registry freshness consistency ---
+    date_errors = check_inline_date_consistency(entries)
+    errors.extend(date_errors)
+
     return errors
 
 
@@ -648,7 +720,9 @@ def main() -> int:
         return 1
 
     print_summary(entries, completeness_errors, identity_errors)
-    print("\n✅ All document registry invariants pass (freshness + semantics + completeness + identity).\n")
+    print(
+        "\n✅ All document registry invariants pass (freshness + semantics + inline-date + completeness + identity).\n"
+    )
     return 0
 
 

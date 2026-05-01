@@ -1072,3 +1072,131 @@ def test_checker_never_mutates_files(tmp_path):
 
     for fname, orig in mtimes.items():
         assert (tmp_path / fname).stat().st_mtime == orig, f"{fname} was modified"
+
+
+# ── Inline-date consistency checks ────────────────────────────────────
+
+
+def test_inline_date_stale_fails():
+    """Doc with inline Date older than last_verified must fail."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write("# Test Doc\n\nDate: 2026-04-20\n\nSome content.\n")
+        tmp = f.name
+    try:
+        entries = [
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+                last_verified="2026-05-01",
+            ),
+        ]
+        exit_code, out = _run_checker(entries)
+        assert exit_code != 0, f"Expected fail for stale inline date: {out}"
+        assert "inline date" in out.lower()
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+def test_inline_date_fresh_passes():
+    """Doc with inline Date matching last_verified must pass."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write("# Test Doc\n\nDate: 2026-05-01\n\nSome content.\n")
+        tmp = f.name
+    try:
+        entries = [
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+                last_verified="2026-05-01",
+            ),
+        ]
+        exit_code, out = _run_checker(entries)
+        assert exit_code == 0, f"Expected pass: {out}"
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+def test_inline_date_future_passes():
+    """Doc with inline Date newer than last_verified must pass (body was updated)."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write("# Test Doc\n\nDate: 2026-05-05\n\nSome content.\n")
+        tmp = f.name
+    try:
+        entries = [
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+                last_verified="2026-05-01",
+            ),
+        ]
+        exit_code, out = _run_checker(entries)
+        assert exit_code == 0, f"Expected pass: {out}"
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+def test_inline_date_no_last_verified_passes():
+    """Doc with inline date but no last_verified must pass (no cross-check)."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write("# Test Doc\n\nDate: 2026-04-01\n\nSome content.\n")
+        tmp = f.name
+    try:
+        entries = [
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+            ),
+        ]
+        exit_code, out = _run_checker(entries)
+        assert exit_code == 0, f"Expected pass: {out}"
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+def test_inline_date_no_inline_date_passes():
+    """Doc with last_verified but no inline date must pass (no false positives)."""
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write("# Test Doc\n\nNo date field here.\n")
+        tmp = f.name
+    try:
+        entries = [
+            _make_entry(
+                doc_id="test",
+                path=tmp,
+                doc_type="runtime",
+                status="current",
+                authority="current_status",
+                ai_read_priority=3,
+                last_verified="2026-05-01",
+            ),
+        ]
+        exit_code, out = _run_checker(entries)
+        assert exit_code == 0, f"Expected pass: {out}"
+    finally:
+        Path(tmp).unlink(missing_ok=True)

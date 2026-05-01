@@ -17,8 +17,7 @@
             "unknown_object_test_required": true,
             "pass_scope_statement_required": true,
             "known_gaps": [
-                "118 docs classified as pending_registration",
-                "Inline-date/registry-freshness consistency: Document body inline dates (e.g. 'Date: 2026-04-30') are not cross-checked against registry last_verified. Discovery method only reads the registry JSONL — never extracts inline dates from document body content. Docs modified in a phase may have stale inline dates that the checker silently passes because the registry freshness window is computed from JSONL metadata, not from document body. Discovered in OGAP-Z: docs/ai/current-phase-boundaries.md had inline Date: 2026-04-30 despite being modified on 2026-05-01. Registry freshness passed (1 day < 7 day window) but document body date was wrong."
+                "118 docs classified as pending_registration"
             ],
             "owner": "DG",
             "reviewed_at": "2026-05-01",
