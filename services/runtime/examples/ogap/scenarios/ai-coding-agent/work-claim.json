@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "claim_id": "scenario-ai-agent-001",
+  "actor": "claude-code-agent",
+  "task_type": "refactoring",
+  "claim": "Extracted validation logic into separate module with full test coverage.",
+  "changed_objects": [
+    "src/validators.py",
+    "tests/test_validators.py"
+  ],
+  "evidence_bundle": {
+    "bundle_id": "ev-001",
+    "diffs": [
+      "commit/abc123.patch"
+    ],
+    "test_results": [
+      "pytest: 28/28 passed",
+      "ruff: no errors"
+    ]
+  },
+  "coverage_report": {
+    "report_id": "cov-001",
+    "claimed_universe": "src/validators.py + 3 callers",
+    "discovery_method": "git diff scan",
+    "pass_scope_statement": "PASS covers src/validators.py and 3 caller files. 0 excluded."
+  },
+  "debt_declaration": {
+    "declaration_id": "dd-001",
+    "known_gaps": [
+      "No performance regression test"
+    ]
+  },
+  "authority_statement": "Evidence is self-reported and machine-verified. READY does not authorize deployment or merge.",
+  "requested_decision": "READY"
+}

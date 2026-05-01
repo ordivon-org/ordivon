@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "report_id": "tr-enterprise-001",
+  "work_claim_id": "scenario-enterprise-001",
+  "decision": "READY",
+  "decision_scope": "Enterprise agent governance review — evidence and coverage assessment.",
+  "evidence_summary": "Agent task: refactor validation. 28/28 tests pass. Ruff clean. Diff consistent with claim.",
+  "coverage_summary": "Coverage declared over 4 files. 0 excluded. Coverage confidence: high.",
+  "debt_summary": "1 known gap: no performance regression test. Accepted for this iteration.",
+  "warnings": [
+    "Performance regression test deferred to next sprint."
+  ],
+  "authority_statement": "READY is evidence, not authorization. Agent does not have automatic deployment authority. Human review required for merge.",
+  "next_action": "Human reviewer approves merge. Agent logs task in platform ledger.",
+  "human_review_required": true
+}

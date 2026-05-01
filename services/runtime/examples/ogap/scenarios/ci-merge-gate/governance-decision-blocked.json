@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-ci-001",
+  "work_claim_id": "scenario-ci-001",
+  "decision": "BLOCKED",
+  "decision_scope": "CI merge gate validation.",
+  "hard_failures": [
+    "Claim states 'all tests pass' but evidence shows 1 test failure (44/45).",
+    "Ruff check found 1 error."
+  ],
+  "reason": "Claim contradicts evidence. Gate cannot pass with unresolved failures.",
+  "why_it_matters": "Contradictory claims erode trust. Merge cannot proceed.",
+  "required_fix": "Fix failing test and ruff error. Update claim to match evidence.",
+  "prohibited_claims": [
+    "Do not claim 'all tests pass' when evidence shows failures.",
+    "Do not bypass gate without fixing root cause."
+  ],
+  "evidence_summary": "1 test failed. 1 ruff error.",
+  "coverage_summary": "PR diff covers 2 files. Not assessed until evidence is consistent.",
+  "authority_statement": "BLOCKED is a hard-stop signal. No auto-merge. No bypass.",
+  "next_action": "Fix failures, rerun tests/lint, resubmit."
+}

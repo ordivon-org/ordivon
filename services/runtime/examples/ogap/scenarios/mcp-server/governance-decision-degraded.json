@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-mcp-001",
+  "work_claim_id": "scenario-mcp-001",
+  "decision": "DEGRADED",
+  "decision_scope": "Capability registration review.",
+  "evidence_summary": "Capability manifest declares 11 capabilities. Side-effect classes: 3. No tool-call ledger submitted.",
+  "coverage_summary": "Manifest covers capability declaration. No runtime coverage submitted.",
+  "warnings": [
+    "Tool-call ledger not provided — cannot verify actual tool usage matches declared capabilities.",
+    "No evidence bundle — self-reported only."
+  ],
+  "authority_statement": "DEGRADED means governance is incomplete, not that the adapter is unsafe. Further evidence required for trust upgrade.",
+  "next_action": "Submit tool-call ledger from a representative session. Provide evidence bundle.",
+  "human_review_required": true
+}

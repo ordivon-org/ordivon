@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1",
+  "claim_id": "scenario-ide-001",
+  "actor": "vscode-copilot-agent",
+  "task_type": "code generation",
+  "claim": "Implemented new feature with unit tests. Ran ruff and pytest.",
+  "changed_objects": [
+    "src/feature.py",
+    "tests/test_feature.py",
+    "pyproject.toml"
+  ],
+  "evidence_bundle": {
+    "bundle_id": "ev-ide-001",
+    "diffs": [
+      "diff/feature.patch"
+    ],
+    "test_results": [
+      "pytest: 15/15 passed"
+    ],
+    "command_outputs": [
+      "ruff: clean"
+    ]
+  },
+  "coverage_report": {
+    "report_id": "cov-ide-001",
+    "claimed_universe": "src/feature.py + test_feature.py",
+    "discovery_method": "file system check of changed files",
+    "pass_scope_statement": "PASS covers 2 new files. pyproject.toml change not in test scope."
+  },
+  "debt_declaration": {
+    "declaration_id": "dd-ide-001",
+    "known_gaps": [
+      "pyproject.toml dependency change not tested — manual review needed.",
+      "No integration test with existing module."
+    ]
+  },
+  "authority_statement": "Evidence is self-reported. READY would mean evidence supports claim, not that code is approved.",
+  "requested_decision": "READY"
+}

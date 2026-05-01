@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "claim_id": "scenario-ci-001",
+  "actor": "github-actions-ci",
+  "task_type": "PR validation",
+  "claim": "All tests pass. PR ready to merge.",
+  "changed_objects": [
+    "src/core.py",
+    "tests/test_core.py"
+  ],
+  "evidence_bundle": {
+    "bundle_id": "ev-ci-001",
+    "test_results": [
+      "pytest: 44/45 passed, 1 failed"
+    ],
+    "command_outputs": [
+      "ruff: 1 error"
+    ]
+  },
+  "coverage_report": {
+    "report_id": "cov-ci-001",
+    "claimed_universe": "PR diff files",
+    "discovery_method": "git diff origin/main",
+    "pass_scope_statement": "PASS would cover PR diff but evidence shows 1 test failure and 1 lint error."
+  },
+  "debt_declaration": {
+    "declaration_id": "dd-ci-001",
+    "known_gaps": [
+      "Claim says 'all tests pass' but evidence shows 44/45"
+    ]
+  },
+  "authority_statement": "Claim contradicts evidence. Cannot assess until evidence matches claim.",
+  "requested_decision": "READY"
+}

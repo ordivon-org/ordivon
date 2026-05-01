@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "mcp-file-server-v1",
+  "adapter_type": "MCP",
+  "capabilities": {
+    "can_read": true,
+    "can_write": true,
+    "can_run_shell": false,
+    "can_call_network": false,
+    "can_call_tools": true,
+    "can_modify_repo": false,
+    "can_create_pr": false,
+    "can_access_secrets": false,
+    "can_call_external_api": false,
+    "can_trigger_ci": false,
+    "can_request_human_review": false
+  },
+  "side_effect_classes": [
+    "read_only",
+    "workspace_write",
+    "repo_write"
+  ],
+  "no_go_actions": [
+    "financial_action",
+    "production_action",
+    "policy_activation",
+    "irreversible_action",
+    "secret_access"
+  ],
+  "authority_required_for": [
+    "repo_write"
+  ],
+  "receipt_required": true,
+  "trust_level": "evidence-backed",
+  "authority_note": "can_X does not imply may_X. Capabilities listed do not authorize action. repo_write requires explicit authority request."
+}

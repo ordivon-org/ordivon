@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-ai-agent-001",
+  "work_claim_id": "scenario-ai-agent-001",
+  "decision": "READY",
+  "decision_scope": "Evidence check on claimed diff and test results.",
+  "evidence_summary": "Diff matches claim. 28/28 tests pass. Ruff clean.",
+  "coverage_summary": "Coverage declared over src/validators.py + 3 callers. 0 excluded. 1 known gap (perf test).",
+  "warnings": [
+    "Known gap: no performance regression test."
+  ],
+  "authority_statement": "READY is evidence, not authorization. This decision does not authorize deployment, merge, or release.",
+  "next_action": "Human review before merge. Add perf test in next iteration.",
+  "human_review_required": true
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "claim_id": "scenario-fin-001",
+  "actor": "trading-agent-v2",
+  "task_type": "trade execution",
+  "claim": "Requested buy order for AAPL based on signal analysis.",
+  "changed_objects": [
+    "N/A — no files changed"
+  ],
+  "evidence_bundle": {
+    "bundle_id": "ev-fin-001",
+    "diffs": [],
+    "test_results": [
+      "backtest: strategy shows positive PnL over 30 days"
+    ]
+  },
+  "coverage_report": {
+    "report_id": "cov-fin-001",
+    "claimed_universe": "Trading signal analysis only — no execution",
+    "discovery_method": "Manual declaration",
+    "pass_scope_statement": "PASS covers signal analysis, not execution authorization."
+  },
+  "debt_declaration": {
+    "declaration_id": "dd-fin-001",
+    "known_gaps": [
+      "Live trading not authorized under current Ordivon boundaries.",
+      "No broker integration — paper trades only."
+    ]
+  },
+  "authority_statement": "Signal analysis is advisory. Execution requires explicit Stage Summit authorization. Current project boundaries: NO-GO for live trading.",
+  "requested_decision": "READY"
+}

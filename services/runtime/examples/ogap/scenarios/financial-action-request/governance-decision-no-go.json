@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-fin-001",
+  "work_claim_id": "scenario-fin-001",
+  "decision": "NO-GO",
+  "decision_scope": "Financial action authorization under Ordivon boundaries.",
+  "hard_failures": [
+    "Requested action class: financial_action — explicitly NO-GO under current Phase 8 DEFERRED policy."
+  ],
+  "reason": "Live trading, broker integration, financial execution, and RiskEngine enforcement are NO-GO under current project boundaries.",
+  "why_it_matters": "Ordivon is a governance OS, not a trading platform. Phase 8 is DEFERRED. No live trading until Stage Summit authorization.",
+  "required_fix": "Do not request live trading. Use paper trades only. Await Phase 8 authorization.",
+  "prohibited_claims": [
+    "Do not claim trading signal implies execution approval.",
+    "Do not claim backtest results authorize live trading."
+  ],
+  "evidence_summary": "Evidence: backtest PnL signal analysis. Not a live execution authorization.",
+  "coverage_summary": "Coverage: signal analysis only. No broker/API coverage.",
+  "authority_statement": "NO-GO means this action class is explicitly prohibited. Override requires Stage Summit, not programmatic request.",
+  "next_action": "Replace live-trade request with paper-trade request. Await Phase 8."
+}
