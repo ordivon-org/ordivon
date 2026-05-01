@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-2026-05-01-001",
+  "work_claim_id": "claim-2026-05-01-001",
+  "decision": "READY",
+  "decision_scope": "Evidence check on claimed diff and test results.",
+  "evidence_summary": "Diff consistent with claim. 45/45 tests pass. No unexpected changes.",
+  "coverage_summary": "Coverage declared over src/validator.py + 3 callers. 1 known gap (integration tests).",
+  "warnings": ["Known gap: no integration tests for new module."],
+  "authority_statement": "READY is evidence, not authorization. This decision does not authorize deployment, merge, or release.",
+  "next_action": "Review known gap before integration test phase.",
+  "human_review_required": false
+}

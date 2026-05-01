@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "claim_id": "claim-2026-05-01-001",
+  "actor": "ai-coding-agent-v1",
+  "task_type": "refactoring",
+  "claim": "Extracted validation logic into separate module. No behavior change.",
+  "changed_objects": ["src/validator.py", "src/__init__.py"],
+  "evidence_bundle": {
+    "bundle_id": "ev-2026-05-01-001",
+    "diffs": ["diff-001.patch"],
+    "test_results": ["pytest: 45/45 pass"]
+  },
+  "coverage_report": {
+    "report_id": "cov-001",
+    "claimed_universe": "src/validator.py + callers",
+    "discovery_method": "filesystem diff scan",
+    "pass_scope_statement": "PASS covers src/validator.py and its 3 callers"
+  },
+  "debt_declaration": {
+    "declaration_id": "dd-001",
+    "known_gaps": ["No integration tests for new module"]
+  },
+  "authority_statement": "Evidence provided is self-reported. Verification not yet performed by governance layer.",
+  "requested_decision": "READY"
+}

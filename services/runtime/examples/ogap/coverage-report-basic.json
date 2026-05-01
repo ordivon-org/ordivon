@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "report_id": "cov-2026-05-01-001",
+  "work_claim_id": "claim-2026-05-01-001",
+  "claimed_universe": "All Python files in src/ directory",
+  "discovery_method": "Filesystem glob: src/**/*.py",
+  "included_objects": ["src/validator.py", "src/helpers.py", "src/__init__.py"],
+  "excluded_objects": [
+    {
+      "path": "src/legacy.py",
+      "reason": "Legacy module — not in scope",
+      "classification": "excluded_legacy",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "src/generated/",
+      "reason": "Auto-generated code — not hand-reviewed",
+      "classification": "excluded_generated",
+      "reviewed_at": "2026-05-01"
+    }
+  ],
+  "unknown_objects": [],
+  "pass_scope_statement": "PASS covers 3 of 5 Python files in src/. 2 excluded with reason. 0 unknown.",
+  "coverage_percentage": 60,
+  "confidence": "medium"
+}

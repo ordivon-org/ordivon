@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "ai-coding-agent-v1",
+  "adapter_type": "agent",
+  "capabilities": {
+    "can_read": true,
+    "can_write": true,
+    "can_run_shell": true,
+    "can_call_network": false,
+    "can_call_tools": true,
+    "can_modify_repo": true,
+    "can_create_pr": true,
+    "can_access_secrets": false,
+    "can_call_external_api": false,
+    "can_trigger_ci": false,
+    "can_request_human_review": true
+  },
+  "side_effect_classes": ["read_only", "workspace_write", "repo_write", "shell_execution"],
+  "no_go_actions": ["financial_action", "production_action", "policy_activation", "irreversible_action"],
+  "authority_required_for": ["repo_write", "shell_execution"],
+  "receipt_required": true,
+  "trust_level": "evidence-backed",
+  "authority_note": "can_X does not imply may_X. Capabilities listed do not authorize action."
+}

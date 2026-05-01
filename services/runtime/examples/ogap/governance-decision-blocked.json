@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "decision_id": "dec-2026-05-01-002",
+  "work_claim_id": "claim-2026-05-01-002",
+  "decision": "BLOCKED",
+  "decision_scope": "Full governance check on repo-modifying task.",
+  "hard_failures": [
+    "Changed file .env detected — matches protected pattern",
+    "Claim states 'all tests pass' but 1 test failure found in evidence"
+  ],
+  "reason": "Protected file modified. Claim contradicts evidence.",
+  "why_it_matters": "Modifying .env may expose secrets. Contradictory claims erode trust.",
+  "required_fix": "Remove .env from diff. Correct test status in claim.",
+  "prohibited_claims": [
+    "Do not claim completion until both issues are fixed.",
+    "Do not claim 'verified' until evidence is consistent."
+  ],
+  "authority_statement": "BLOCKED is a hard-stop signal, not a partial approval.",
+  "evidence_summary": "Diff includes .env. Test output shows 44/45 pass, not 45/45.",
+  "coverage_summary": "Not assessed — blocked before coverage evaluation.",
+  "next_action": "Fix blocked issues and resubmit."
+}
