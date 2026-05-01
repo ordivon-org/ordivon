@@ -1,5 +1,8 @@
 # Workflow Capabilities
 
+> **Legacy PFIOS module — deferred, not part of Ordivon Verify public wedge.**
+> See `docs/runtime/legacy-identity-hygiene-pv-n2h.md`.
+
 `capabilities/workflow/` exposes user-visible actions that coordinate multiple layers but still return product-facing contracts.
 
 ## Current Modules

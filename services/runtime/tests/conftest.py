@@ -1,18 +1,17 @@
-"""pytest configuration — auto-detect test database.
+"""pytest configuration.
 
-Sets PFIOS_DB_URL to duckdb:///:memory: as the default for all tests,
-so unit tests can run without PostgreSQL via Docker Compose.
-
-To run with PostgreSQL, set PFIOS_DB_URL explicitly:
-    PFIOS_DB_URL=postgresql://pfios:pfios@127.0.0.1:5432/pfios_test uv run pytest
-
-The explicit env var always takes precedence over this default.
+Ordivon tests (product/governance/finance) do not require a database.
+Legacy PFIOS tests (contracts/integration/e2e) require PFIOS_DB_URL
+and set it in their own conftest or via explicit env var.
 """
 
 import os
 
 
 def pytest_configure(config):
-    """Set test database default before any test runs."""
-    if "PFIOS_DB_URL" not in os.environ:
-        os.environ["PFIOS_DB_URL"] = "duckdb:///:memory:"
+    """Legacy PFIOS test infrastructure — scoped to PFIOS test paths only."""
+    test_path = config.invocation_params.args if hasattr(config, "invocation_params") else []
+    path_str = " ".join(str(p) for p in test_path)
+    if any(kw in path_str for kw in ("tests/contracts", "tests/integration", "tests/e2e")):
+        if "PFIOS_DB_URL" not in os.environ:
+            os.environ["PFIOS_DB_URL"] = "duckdb:///:memory:"

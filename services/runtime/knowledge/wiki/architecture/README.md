@@ -1,5 +1,8 @@
 # Knowledge Wiki Architecture
 
+> **Legacy PFIOS/AegisOS knowledge layer — deferred.**
+> See `docs/runtime/legacy-identity-hygiene-pv-n2h.md`.
+
 `knowledge/wiki/architecture/` stores architecture-facing knowledge assets.
 
 ## Current Focus

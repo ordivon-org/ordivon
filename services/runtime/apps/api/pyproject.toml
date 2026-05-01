@@ -1,7 +1,7 @@
 [project]
-name = "pfios-api"
+name = "ordivon-api"
 version = "0.1.0"
-description = "Financial-AI-OS API Service"
+description = "Ordivon API Service (legacy PFIOS, deferred maintenance)"
 authors = [{ name = "User" }]
 dependencies = [
     "fastapi>=0.100.0",

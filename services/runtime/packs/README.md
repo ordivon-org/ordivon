@@ -1,6 +1,7 @@
 # Packs
 
-`packs/` is the future home for domain-specific implementations that should not define AegisOS / CAIOS core meaning.
+`packs/` is the home for domain-specific governance Packs.
+(AegisOS/CAIOS are historical identities — current system is Ordivon.)
 
 Current status:
 

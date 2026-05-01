@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pfios"
+name = "ordivon"
 version = "0.1.0"
-description = "Personal Financial Intelligence Operating System"
+description = "Ordivon — governance operating system for agent-native work"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

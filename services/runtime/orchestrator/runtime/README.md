@@ -1,5 +1,8 @@
 # Orchestrator Runtime
 
+> **Legacy PFIOS module — deferred, not part of Ordivon Verify public wedge.**
+> See `docs/runtime/legacy-identity-hygiene-pv-n2h.md`.
+
 `orchestrator/runtime/` contains workflow execution mechanics.
 
 ## Current Focus

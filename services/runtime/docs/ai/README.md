@@ -1,8 +1,9 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: PV-1 (2026-05-01)
-> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | Post-DG Hygiene — CLOSED | PV-5 — ACTIVE
-> **Next**: PV-3 external repo dogfood or CLI hardening
+> **Last updated**: PV-N2H (2026-05-01)
+> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | PV-Z — CLOSED | PV-N1 — CLOSED | PV-N2 — CLOSED | PV-N2H — ACTIVE
+> **Next**: PV-N3 — Public Quickstart
+> **Identity**: Ordivon. PFIOS/AegisOS are historical.
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.
 
