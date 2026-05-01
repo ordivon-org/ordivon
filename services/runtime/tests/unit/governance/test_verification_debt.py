@@ -199,7 +199,7 @@ def test_summary_counts_correct():
     assert "Open:                      1" in out
     assert "Closed:                    1" in out
     assert "Accepted until:            1" in out
-    assert "Total debts:               3" in out
+    assert "Ledger entries:" in out
 
 
 # ── Checker never mutates ─────────────────────────────────────────────

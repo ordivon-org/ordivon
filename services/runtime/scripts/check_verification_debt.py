@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Phase DG-6B: Verification Debt Ledger Checker.
+"""Phase COV-2: Verification Debt Ledger Checker with Candidate Discovery.
 
 Reads docs/governance/verification-debt-ledger.jsonl and verifies debt invariants.
+COV-2 adds conservative debt-candidate discovery across runtime/product/governance
+docs to detect likely unregistered debt.
+
 Never calls Alpaca. Never requires API keys. Read-only evidence validation.
 """
 
@@ -9,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from collections import Counter
 from datetime import date
@@ -16,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "docs" / "governance" / "verification-debt-ledger.jsonl"
+EXCLUSIONS_PATH = ROOT / "docs" / "governance" / "verification-debt-discovery-exclusions.json"
 
 _REF_DATE = os.environ.get("REFERENCE_DATE", "")
 REFERENCE_DATE = date.fromisoformat(_REF_DATE) if _REF_DATE else date.today()
@@ -53,6 +58,60 @@ REQUIRED_FIELDS = {
     "evidence",
     "notes",
 }
+
+# ── Debt Candidate Discovery ─────────────────────────────────────────
+
+DISCOVERY_DIRS = [
+    "docs/runtime",
+    "docs/product",
+    "docs/governance",
+    "docs/architecture",
+]
+
+DISCOVERY_ROOT_FILES = [
+    "AGENTS.md",
+    "README.md",
+]
+
+# Patterns that suggest unresolved debt when found in a non-historical context
+DEBT_SIGNAL_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\bBLOCKED\b", re.IGNORECASE), "BLOCKED"),
+    (re.compile(r"\bunresolved\b", re.IGNORECASE), "unresolved"),
+    (re.compile(r"\bopen\s+blocker\b", re.IGNORECASE), "open blocker"),
+    (re.compile(r"\bskipped\s+verification\b", re.IGNORECASE), "skipped verification"),
+    (re.compile(r"\bnot\s+run\b", re.IGNORECASE), "not run"),
+    (re.compile(r"\bworkaround\b", re.IGNORECASE), "workaround"),
+    (re.compile(r"\bpending verification\b", re.IGNORECASE), "pending verification"),
+    (re.compile(r"\bknown\s+gap\b", re.IGNORECASE), "known gap"),
+    (re.compile(r"\bdegraded\b", re.IGNORECASE), "degraded"),
+]
+
+# Headers that signal a debt/issue section
+DEBT_SECTION_HEADERS = [
+    re.compile(r"^#+\s*(?:Blocked|Remaining\s+Work|Open\s+Issues|Known\s+Gaps|Debt|Outstanding)", re.IGNORECASE),
+]
+
+# Patterns that mark a context as historical/closed
+CLOSED_CONTEXT_PATTERNS = [
+    re.compile(r"\bCLOSED\b"),
+    re.compile(r"\bSEALED\b"),
+    re.compile(r"\bclosed_by\b"),
+    re.compile(r"\bresolved\b", re.IGNORECASE),
+    re.compile(r"\bfixed\b", re.IGNORECASE),
+    re.compile(r"VD-\d{4}-\d{2}-\d{2}-\d{3}"),  # References a registered VD-ID
+    re.compile(r"\bDependabot\b"),  # Dependabot issues are externally tracked
+    re.compile(r"\bpre-existing\b", re.IGNORECASE),
+    re.compile(r"\bhistorical\b", re.IGNORECASE),
+    re.compile(r"\bdeferred\b", re.IGNORECASE),
+]
+
+# Files/dirs to skip in discovery
+DISCOVERY_SKIP = [
+    "docs/archive",
+    "docs/runtime/paper-trades/PT-0",
+    ".tmp",
+    "audit",
+]
 
 
 def load_ledger(path: Path) -> list[dict]:
@@ -97,28 +156,148 @@ def check_invariants(entries: list[dict]) -> list[str]:
         if status not in VALID_STATUSES:
             errors.append(f"{did}: invalid status '{status}'")
 
-        # Open/accepted_until debt must have owner, follow_up, expiry, evidence
         if status in ("open", "accepted_until"):
             for field in ("owner", "follow_up", "expires_before_phase", "evidence"):
                 if not e.get(field):
                     errors.append(f"{did}: {status} debt missing '{field}'")
 
-        # Expiry check: if expires_before_phase is an ISO date, check it
         expiry = e.get("expires_before_phase", "")
         if status in ("open", "accepted_until") and expiry:
             try:
                 expiry_date = date.fromisoformat(expiry)
             except (ValueError, TypeError):
-                pass  # phase name, not date — skip date check
+                pass
             else:
                 if REFERENCE_DATE > expiry_date:
                     errors.append(f"{did}: overdue — expires_before_phase={expiry}, reference date={REFERENCE_DATE}")
 
-        # Closed debt must have closed_at
         if status == "closed" and not e.get("closed_at"):
             errors.append(f"{did}: closed debt missing closed_at")
 
     return errors
+
+
+def _is_overdue(expiry: str) -> bool:
+    try:
+        return REFERENCE_DATE > date.fromisoformat(expiry)
+    except (ValueError, TypeError):
+        return False
+
+
+def _should_skip_discovery_path(rel: str) -> bool:
+    return any(p in rel for p in DISCOVERY_SKIP)
+
+
+def _has_closed_context(text_window: str) -> bool:
+    return any(p.search(text_window) for p in CLOSED_CONTEXT_PATTERNS)
+
+
+def load_discovery_exclusions() -> dict[str, dict]:
+    """Load explicit exclusion entries keyed by file:lineno."""
+    if not EXCLUSIONS_PATH.exists():
+        return {}
+    with open(EXCLUSIONS_PATH) as f:
+        data = json.load(f)
+    result = {}
+    for entry in data.get("exclusions", []):
+        key = f"{entry['file']}:{entry.get('line', '*')}"
+        result[key] = entry
+    return result
+
+
+def discover_debt_candidates(
+    ledger_entries: list[dict],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Scan docs for likely unregistered debt.
+
+    Returns (candidates, excluded, unmanaged).
+    """
+    registered_ids = {e.get("debt_id", "") for e in ledger_entries}
+    exclusions = load_discovery_exclusions()
+    candidates: list[dict] = []
+    excluded: list[dict] = []
+    unmanaged: list[dict] = []
+
+    # Collect files
+    files: list[Path] = []
+    for d in DISCOVERY_DIRS:
+        dp = ROOT / d
+        if dp.is_dir():
+            files.extend(sorted(dp.rglob("*.md")))
+    for rf in DISCOVERY_ROOT_FILES:
+        fp = ROOT / rf
+        if fp.is_file():
+            files.append(fp)
+
+    for fp in files:
+        try:
+            rel = str(fp.relative_to(ROOT))
+        except ValueError:
+            rel = str(fp)
+        if _should_skip_discovery_path(rel):
+            continue
+
+        try:
+            content = fp.read_text()
+        except Exception:
+            continue
+        lines = content.split("\n")
+
+        for i, line in enumerate(lines, 1):
+            # Check if we're in a debt section
+            is_debt_section = any(h.search(line) for h in DEBT_SECTION_HEADERS)
+
+            for pattern, label in DEBT_SIGNAL_PATTERNS:
+                if not pattern.search(line):
+                    continue
+
+                # Check if context is clearly closed/historical
+                ctx_start = max(0, i - 3)
+                ctx_end = min(len(lines), i + 3)
+                ctx_text = "\n".join(lines[ctx_start:ctx_end])
+
+                if _has_closed_context(ctx_text):
+                    continue
+
+                # Check if references a registered VD-ID
+                vd_ref = re.search(r"VD-\d{4}-\d{2}-\d{2}-\d{3}", ctx_text)
+                if vd_ref and vd_ref.group() in registered_ids:
+                    continue
+
+                # Check explicit exclusion
+                excl_key = f"{rel}:{i}"
+                excl_wild = f"{rel}:*"
+                if excl_key in exclusions:
+                    excluded.append({
+                        "file": rel,
+                        "line": i,
+                        "signal": label,
+                        "exclusion": exclusions[excl_key].get("reason", "unknown"),
+                    })
+                    continue
+                if excl_wild in exclusions:
+                    excluded.append({
+                        "file": rel,
+                        "line": i,
+                        "signal": label,
+                        "exclusion": exclusions[excl_wild].get("reason", "unknown"),
+                    })
+                    continue
+
+                # Flag as candidate
+                # But only if in a debt section, or the signal is specific enough
+                if is_debt_section or label in ("BLOCKED", "skipped verification", "known gap", "pending verification"):
+                    candidates.append({
+                        "file": rel,
+                        "line": i,
+                        "signal": label,
+                        "context": ctx_text[:200],
+                    })
+
+    # Classify: candidates without VD reference are unmanaged
+    unmanaged = [c for c in candidates]
+
+    return candidates, excluded, unmanaged
 
 
 def print_summary(entries: list[dict]) -> None:
@@ -128,7 +307,7 @@ def print_summary(entries: list[dict]) -> None:
     print("=" * 60)
     print("VERIFICATION DEBT LEDGER SUMMARY")
     print("=" * 60)
-    print(f"  Total debts:               {len(entries)}")
+    print(f"  Ledger entries:            {len(entries)}")
     print(f"  Open:                      {status_counter.get('open', 0)}")
     print(f"  Closed:                    {status_counter.get('closed', 0)}")
     print(f"  Accepted until:            {status_counter.get('accepted_until', 0)}")
@@ -145,15 +324,35 @@ def print_summary(entries: list[dict]) -> None:
     print(f"  High + blocking:           {high_block}")
 
 
-def _is_overdue(expiry: str) -> bool:
-    try:
-        return REFERENCE_DATE > date.fromisoformat(expiry)
-    except (ValueError, TypeError):
-        return False
+def print_discovery_summary(
+    candidates: list[dict],
+    excluded: list[dict],
+    unmanaged: list[dict],
+) -> None:
+    print()
+    print("=" * 60)
+    print("DEBT CANDIDATE DISCOVERY")
+    print("=" * 60)
+    print(f"  Discovered candidates:     {len(candidates)}")
+    print(f"  Excluded candidates:       {len(excluded)}")
+    print(f"  Unmanaged candidates:      {len(unmanaged)}")
+    if unmanaged:
+        print("\n  Unmanaged debt-like signals found (warning):\n")
+        for c in unmanaged:
+            print(f"    {c['file']}:{c['line']}  [{c['signal']}]")
+            print(f"      {c['context'][:120]}")
+        print("\n  NOTE: These are conservative signals — may be false positives.")
+        print("  Register as verification debt if they represent unresolved issues.")
+        print("  Add explicit exclusions if they are benign.")
+    if excluded:
+        print(f"\n  {len(excluded)} excluded with reason.")
 
 
 def main() -> int:
-    path = Path(sys.argv[1]) if len(sys.argv) > 1 else LEDGER_PATH
+    args = [a for a in sys.argv[1:] if a != "--warn-only"]
+    path = Path(args[0]) if args else LEDGER_PATH
+    warn_only = "--warn-only" in sys.argv[1:]
+
     if not path.exists():
         print(f"ERROR: ledger not found at {path}")
         return 1
@@ -169,6 +368,15 @@ def main() -> int:
         return 1
 
     print_summary(entries)
+
+    # Debt candidate discovery (COV-2)
+    candidates, excluded, unmanaged = discover_debt_candidates(entries)
+    print_discovery_summary(candidates, excluded, unmanaged)
+
+    if unmanaged and not warn_only:
+        print("\n❌ Unmanaged debt candidates found (warning).\n")
+        return 0  # Warning only — does not block
+
     print("\n✅ All verification debt invariants pass.\n")
     return 0
 

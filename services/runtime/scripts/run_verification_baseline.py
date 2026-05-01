@@ -125,9 +125,12 @@ def run_all_gates() -> BaselineSummary:
         str(SCRIPTS / "check_verification_debt.py"),
         str(SCRIPTS / "check_receipt_integrity.py"),
         str(SCRIPTS / "check_verification_manifest.py"),
+        str(SCRIPTS / "check_coverage_governance.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
+        str(ROOT / "tests" / "unit" / "governance" / "test_coverage_governance.py"),
+        str(ROOT / "tests" / "unit" / "governance" / "test_partial_checker_discovery.py"),
         str(SCRIPTS / "repo_governance_cli.py"),
     ]
     summary.results.append(
@@ -370,9 +373,12 @@ def run_pr_fast_gates() -> BaselineSummary:
         str(SCRIPTS / "check_verification_debt.py"),
         str(SCRIPTS / "check_receipt_integrity.py"),
         str(SCRIPTS / "check_verification_manifest.py"),
+        str(SCRIPTS / "check_coverage_governance.py"),
         str(SCRIPTS / "audit_runtime_evidence_db.py"),
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
+        str(ROOT / "tests" / "unit" / "governance" / "test_coverage_governance.py"),
+        str(ROOT / "tests" / "unit" / "governance" / "test_partial_checker_discovery.py"),
         str(SCRIPTS / "repo_governance_cli.py"),
     ]
     summary.results.append(

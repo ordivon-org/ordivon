@@ -158,7 +158,7 @@ def test_historical_files_excluded():
     import tempfile
 
     archive_dir = Path(tempfile.mkdtemp())
-    archive_file = archive_dir / "archive" / "old-receipt.md"
+    archive_file = archive_dir / "docs" / "archive" / "old-receipt.md"
     archive_file.parent.mkdir(parents=True, exist_ok=True)
     archive_file.write_text("Skipped Verification: None\nnot run\n")
     try:
