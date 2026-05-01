@@ -1008,6 +1008,27 @@
       "classification": "pending_registration",
       "owner": "PV-N2H",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-quickstart-v0.md",
+      "reason": "PV-N3 public quickstart doc \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N3",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-public-quickstart-dogfood-pv-n3.md",
+      "reason": "PV-N3 quickstart dogfood receipt \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N3",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "examples/ordivon-verify/quickstart/README.md",
+      "reason": "PV-N3 quickstart example fixture README \u2014 external example, not governed Ordivon doc",
+      "classification": "archive_historical",
+      "owner": "PV-N3",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }

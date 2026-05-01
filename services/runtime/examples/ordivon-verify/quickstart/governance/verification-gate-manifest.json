@@ -1,0 +1,22 @@
+{
+  "manifest_id": "quickstart-v1",
+  "profile": "quickstart",
+  "version": "0.1",
+  "gate_count": 2,
+  "gates": [
+    {
+      "gate_id": "receipt_check",
+      "display_name": "Receipt integrity check",
+      "hardness": "hard",
+      "command": "python -m ruff check",
+      "purpose": "Ensure receipts are not self-contradicting"
+    },
+    {
+      "gate_id": "format_check",
+      "display_name": "Format consistency check",
+      "hardness": "hard",
+      "command": "python -m ruff format --check",
+      "purpose": "Ensure code formatting consistency"
+    }
+  ]
+}
