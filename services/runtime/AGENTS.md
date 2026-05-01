@@ -17,7 +17,7 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-1: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-2: CLOSED
 
 pr-fast: 12/12 PASS | 0 open debt | Coverage: 8+2 | Phase 8: DEFERRED
 Phase 6: Design + Finance Observation — COMPLETE

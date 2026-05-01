@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/ogap/capability-manifest-v0",
+  "title": "OGAP CapabilityManifest v0",
+  "description": "What the external adapter can technically do. can_X does not imply may_X.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "OGAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "adapter_id",
+    "adapter_type",
+    "capabilities",
+    "side_effect_classes",
+    "no_go_actions",
+    "authority_required_for",
+    "receipt_required"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "adapter_id": {
+      "type": "string"
+    },
+    "adapter_type": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "can_read": {
+          "type": "boolean"
+        },
+        "can_write": {
+          "type": "boolean"
+        },
+        "can_run_shell": {
+          "type": "boolean"
+        },
+        "can_call_network": {
+          "type": "boolean"
+        },
+        "can_call_tools": {
+          "type": "boolean"
+        },
+        "can_modify_repo": {
+          "type": "boolean"
+        },
+        "can_create_pr": {
+          "type": "boolean"
+        },
+        "can_access_secrets": {
+          "type": "boolean"
+        },
+        "can_call_external_api": {
+          "type": "boolean"
+        },
+        "can_trigger_ci": {
+          "type": "boolean"
+        },
+        "can_request_human_review": {
+          "type": "boolean"
+        }
+      }
+    },
+    "side_effect_classes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "no_go_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authority_required_for": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "receipt_required": {
+      "type": "boolean"
+    },
+    "trust_level": {
+      "type": "string"
+    },
+    "authority_note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

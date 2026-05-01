@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/ogap/governance-decision-v0",
+  "title": "OGAP GovernanceDecision v0",
+  "description": "READY / DEGRADED / BLOCKED / HOLD / REJECT / NO-GO.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "OGAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "decision",
+    "decision_scope",
+    "evidence_summary",
+    "coverage_summary",
+    "authority_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "work_claim_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "READY",
+        "DEGRADED",
+        "BLOCKED",
+        "HOLD",
+        "REJECT",
+        "NO-GO"
+      ]
+    },
+    "decision_scope": {
+      "type": "string"
+    },
+    "evidence_summary": {
+      "type": "string"
+    },
+    "coverage_summary": {
+      "type": "string"
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": "string"
+    },
+    "why_it_matters": {
+      "type": "string"
+    },
+    "required_fix": {
+      "type": "string"
+    },
+    "prohibited_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authority_statement": {
+      "type": "string"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "human_review_required": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

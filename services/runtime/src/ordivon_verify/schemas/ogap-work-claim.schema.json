@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/ogap/work-claim-v0",
+  "title": "OGAP WorkClaim v0",
+  "description": "What an external system claims it did or proposes to do.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "OGAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "claim_id",
+    "actor",
+    "task_type",
+    "claim",
+    "evidence_bundle",
+    "coverage_report",
+    "debt_declaration",
+    "authority_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "claim_id": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "task_type": {
+      "type": "string"
+    },
+    "claim": {
+      "type": "string"
+    },
+    "changed_objects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_bundle": {
+      "type": "object",
+      "required": [
+        "bundle_id"
+      ],
+      "properties": {
+        "bundle_id": {
+          "type": "string"
+        },
+        "diffs": {
+          "type": "array"
+        },
+        "test_results": {
+          "type": "array"
+        },
+        "command_outputs": {
+          "type": "array"
+        }
+      }
+    },
+    "coverage_report": {
+      "type": "object",
+      "required": [
+        "report_id",
+        "claimed_universe",
+        "discovery_method",
+        "pass_scope_statement"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string"
+        },
+        "claimed_universe": {
+          "type": "string"
+        },
+        "discovery_method": {
+          "type": "string"
+        },
+        "pass_scope_statement": {
+          "type": "string"
+        }
+      }
+    },
+    "debt_declaration": {
+      "type": "object",
+      "required": [
+        "declaration_id",
+        "known_gaps"
+      ],
+      "properties": {
+        "declaration_id": {
+          "type": "string"
+        },
+        "known_gaps": {
+          "type": "array"
+        }
+      }
+    },
+    "authority_statement": {
+      "type": "string"
+    },
+    "requested_decision": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

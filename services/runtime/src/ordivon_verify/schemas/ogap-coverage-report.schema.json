@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/ogap/coverage-report-v0",
+  "title": "OGAP CoverageReport v0",
+  "description": "What universe was covered, excluded, and unknown.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "OGAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "claimed_universe",
+    "discovery_method",
+    "included_objects",
+    "excluded_objects",
+    "unknown_objects",
+    "pass_scope_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "work_claim_id": {
+      "type": "string"
+    },
+    "claimed_universe": {
+      "type": "string"
+    },
+    "discovery_method": {
+      "type": "string"
+    },
+    "included_objects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded_objects": {
+      "type": "array"
+    },
+    "unknown_objects": {
+      "type": "array"
+    },
+    "pass_scope_statement": {
+      "type": "string"
+    },
+    "coverage_percentage": {
+      "type": "number"
+    },
+    "confidence": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

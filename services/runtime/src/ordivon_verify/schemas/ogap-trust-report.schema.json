@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/ogap/trust-report-v0",
+  "title": "OGAP TrustReport v0",
+  "description": "Human/agent/CI readable summary of evidence, coverage, debt, and decision.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "OGAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "report_id",
+    "decision",
+    "evidence_summary",
+    "coverage_summary",
+    "debt_summary",
+    "authority_statement",
+    "warnings",
+    "next_action"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "work_claim_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "READY",
+        "DEGRADED",
+        "BLOCKED",
+        "HOLD",
+        "REJECT",
+        "NO-GO"
+      ]
+    },
+    "decision_scope": {
+      "type": "string"
+    },
+    "evidence_summary": {
+      "type": "string"
+    },
+    "coverage_summary": {
+      "type": "string"
+    },
+    "debt_summary": {
+      "type": "string"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authority_statement": {
+      "type": "string"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "human_review_required": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}
