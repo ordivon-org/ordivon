@@ -56,17 +56,17 @@ def test_clean_external_receipts_passes():
 
 
 def test_clean_debt_advisory_warning():
-    result = run_external_checker("debt", CLEAN_FIXTURE, "advisory")
+    result = run_external_checker("debt", CLEAN_FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
 
 
 def test_clean_gates_advisory_warning():
-    result = run_external_checker("gates", CLEAN_FIXTURE, "advisory")
+    result = run_external_checker("gates", CLEAN_FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
 
 
 def test_clean_docs_advisory_warning():
-    result = run_external_checker("docs", CLEAN_FIXTURE, "advisory")
+    result = run_external_checker("docs", CLEAN_FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
 
 

@@ -149,24 +149,24 @@ def test_run_external_receipts_on_valid_only():
 
 
 def test_external_checker_debt_missing_advisory():
-    result = run_external_checker("debt", FIXTURE, "advisory")
+    result = run_external_checker("debt", FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
     assert "not found" in result["stderr"]
 
 
 def test_external_checker_debt_missing_strict():
-    result = run_external_checker("debt", FIXTURE, "strict")
+    result = run_external_checker("debt", FIXTURE, "strict", {})
     assert result["status"] == "FAIL"
     assert "Missing required file" in result["stderr"]
 
 
 def test_external_checker_gates_missing_advisory():
-    result = run_external_checker("gates", FIXTURE, "advisory")
+    result = run_external_checker("gates", FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
 
 
 def test_external_checker_docs_missing_advisory():
-    result = run_external_checker("docs", FIXTURE, "advisory")
+    result = run_external_checker("docs", FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
 
 

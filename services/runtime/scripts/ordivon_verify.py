@@ -290,37 +290,140 @@ def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
     }
 
 
-def run_external_checker(check_id: str, root: Path, mode: str) -> dict:
-    meta_files = {
-        "debt": root / "docs" / "governance" / "verification-debt-ledger.jsonl",
-        "gates": root / "docs" / "governance" / "verification-gate-manifest.json",
-        "docs": root / "docs" / "governance" / "document-registry.jsonl",
-    }
-    need = meta_files.get(check_id)
-    if need and need.exists():
-        return run_check(check_id, root=root)
+def run_external_checker(check_id: str, root: Path, mode: str, config: dict) -> dict:
+    """Run a checker against an external repo using config paths.
 
+    For debt/gates/docs: if the configured file exists, run lightweight
+    inline validation. Otherwise, return WARN (advisory/standard) or FAIL (strict).
+    """
+    config_keys = {
+        "debt": "debt_ledger",
+        "gates": "gate_manifest",
+        "docs": "document_registry",
+    }
+    key = config_keys.get(check_id, "")
+    cfg_path = config.get(key, "") if config else ""
+    target = root / cfg_path if cfg_path else None
     label = CHECKER_LABELS[check_id]
-    msg = f"Not configured: {need} not found"
-    advice = _WARN_ADVICE.get(check_id, f"Configure {check_id} when ready.")
+
+    if target and target.exists() and cfg_path:
+        # Lightweight inline validation
+        result = _validate_governance_file(check_id, target)
+        result["id"] = check_id
+        result["label"] = label
+        return result
+
+    # File missing or not configured
     if mode == "strict":
         return {
-            "id": check_id,
-            "label": label,
-            "status": "FAIL",
-            "exit_code": -1,
-            "stdout": "",
-            "stderr": f"Missing required file: {need}",
+            "id": check_id, "label": label, "status": "FAIL",
+            "exit_code": -1, "stdout": "",
+            "stderr": f"Missing required file: {target or cfg_path}",
         }
+    # standard mode: configured but missing → FAIL
+    if mode == "standard" and cfg_path:
+        return {
+            "id": check_id, "label": label, "status": "FAIL",
+            "exit_code": -1, "stdout": "",
+            "stderr": f"Configured file not found: {target or cfg_path}",
+        }
+    # advisory or standard without config → WARN
     return {
-        "id": check_id,
-        "label": label,
-        "status": "WARN",
-        "exit_code": -1,
-        "stdout": "",
-        "stderr": msg,
-        "next_action": advice,
+        "id": check_id, "label": label, "status": "WARN",
+        "exit_code": -1, "stdout": "",
+        "stderr": f"Not configured: {target or cfg_path} not found",
+        "next_action": _WARN_ADVICE.get(check_id, f"Configure {check_id} when ready."),
     }
+
+
+def _validate_governance_file(check_id: str, path: Path) -> dict:
+    """Lightweight inline validation for external governance files."""
+    try:
+        if check_id == "debt":
+            return _validate_debt_ledger(path)
+        elif check_id == "gates":
+            return _validate_gate_manifest(path)
+        elif check_id == "docs":
+            return _validate_document_registry(path)
+    except Exception as exc:
+        return {"status": "FAIL", "exit_code": -1, "stdout": "", "stderr": f"Validation error: {exc}"}
+    return {"status": "FAIL", "exit_code": -1, "stdout": "", "stderr": f"Unknown check: {check_id}"}
+
+
+def _validate_debt_ledger(path: Path) -> dict:
+    with open(path) as f:
+        entries = []
+        for i, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                return {"status": "FAIL", "exit_code": 1, "stdout": "", "stderr": f"Line {i}: invalid JSON: {e}"}
+    open_count = sum(1 for e in entries if e.get("status") == "open")
+    closed_count = sum(1 for e in entries if e.get("status") == "closed")
+    if open_count > 0:
+        return {"status": "FAIL", "exit_code": 1, "stdout": "", "stderr": f"{open_count} open debt(s) found"}
+    return {"status": "PASS", "exit_code": 0, "stdout": f"Debt ledger: {len(entries)} entries, {closed_count} closed, 0 open", "stderr": ""}
+
+
+def _validate_gate_manifest(path: Path) -> dict:
+    with open(path) as f:
+        manifest = json.load(f)
+    gates = manifest.get("gates", [])
+    gate_count = manifest.get("gate_count", len(gates))
+    errors = []
+    for g in gates:
+        gid = g.get("gate_id", "?")
+        if not g.get("gate_id"):
+            errors.append(f"gate missing gate_id")
+        if not g.get("display_name"):
+            errors.append(f"{gid}: missing display_name")
+        cmd = g.get("command", "")
+        if not cmd:
+            errors.append(f"{gid}: missing command")
+        elif _is_noop_cmd(cmd):
+            errors.append(f"{gid}: command appears to be a no-op: '{cmd}'")
+    if len(gates) != gate_count:
+        errors.append(f"gate_count ({gate_count}) != actual gates ({len(gates)})")
+    if errors:
+        return {"status": "FAIL", "exit_code": 1, "stdout": "", "stderr": "; ".join(errors)}
+    return {"status": "PASS", "exit_code": 0, "stdout": f"Gate manifest: {len(gates)} gates, 0 violations", "stderr": ""}
+
+
+def _is_noop_cmd(cmd: str) -> bool:
+    cmd_s = cmd.strip()
+    if not cmd_s:
+        return False
+    if cmd_s in ("echo ok", "true", "exit 0", ": pass", "echo pass"):
+        return True
+    return False
+
+
+def _validate_document_registry(path: Path) -> dict:
+    with open(path) as f:
+        entries = []
+        for i, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                return {"status": "FAIL", "exit_code": 1, "stdout": "", "stderr": f"Line {i}: invalid JSON: {e}"}
+    errors = []
+    for e in entries:
+        did = e.get("doc_id", "?")
+        for field in ("doc_id", "path", "type", "status", "authority"):
+            if field not in e:
+                errors.append(f"{did}: missing '{field}'")
+        status = e.get("status", "")
+        if status == "stale":
+            errors.append(f"{did}: document is stale")
+    if errors:
+        return {"status": "FAIL", "exit_code": 1, "stdout": "", "stderr": "; ".join(errors)}
+    return {"status": "PASS", "exit_code": 0, "stdout": f"Document registry: {len(entries)} entries, 0 violations", "stderr": ""}
 
 
 # ── Report building ─────────────────────────────────────────────────────
@@ -586,7 +689,7 @@ def main(argv: list[str] | None = None) -> int:
                             "stderr": "No receipt_paths configured",
                         })
                 else:
-                    results.append(run_external_checker(cid, root, mode))
+                    results.append(run_external_checker(cid, root, mode, config))
 
         status = determine_status(results)
         root_str = str(root)
