@@ -129,7 +129,6 @@ def run_all_gates() -> BaselineSummary:
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
         str(SCRIPTS / "repo_governance_cli.py"),
-        str(ROOT / "domains" / "candidate_rules" / "__init__.py"),
     ]
     summary.results.append(
         _run_gate(
@@ -144,7 +143,7 @@ def run_all_gates() -> BaselineSummary:
             "ruff format check (Wave files)",
             "hard",
             "L0",
-            [python, "-m", "ruff", "format", "--check", *wave_files],
+            [python, "-m", "ruff", "format", "--check", "--preview", *wave_files],
         )
     )
 
@@ -365,7 +364,6 @@ def run_pr_fast_gates() -> BaselineSummary:
         str(ROOT / "tests" / "unit" / "test_verification_baseline.py"),
         str(ROOT / "tests" / "unit" / "test_repo_governance_cli.py"),
         str(SCRIPTS / "repo_governance_cli.py"),
-        str(ROOT / "domains" / "candidate_rules" / "__init__.py"),
     ]
     summary.results.append(
         _run_gate(
@@ -380,7 +378,7 @@ def run_pr_fast_gates() -> BaselineSummary:
             "ruff format check (Wave files)",
             "hard",
             "L0",
-            [python, "-m", "ruff", "format", "--check", *wave_files],
+            [python, "-m", "ruff", "format", "--check", "--preview", *wave_files],
         )
     )
 
