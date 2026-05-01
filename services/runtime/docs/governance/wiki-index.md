@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 34
+**Total registered docs**: 37
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -23,6 +23,7 @@
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
 | [Verification Signal Classification — Classify Before You Fix](../governance/verification-signal-classification.md) | `docs/governance/verification-signal-classification.md` | runbook | current | current_status | L1 | 2026-04-30 |
+| [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [AI Onboarding Document Policy](../governance/ai-onboarding-doc-policy.md) | `docs/governance/ai-onboarding-doc-policy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack](../governance/README.md) | `docs/governance/README.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack Contract](../governance/document-governance-pack-contract.md) | `docs/governance/document-governance-pack-contract.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
@@ -74,8 +75,11 @@
 |----------|------|------|--------|-----------|---------|-----------|
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
+| [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
 | [COV-1 Coverage-Aware Governance Receipt](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [PV-N9 Public Wedge Packaging Separation Receipt](../runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md) | `docs/runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |
 | [Alpaca Paper Trade Ledger](../runtime/paper-trades/paper-trade-ledger.md) | `docs/runtime/paper-trades/paper-trade-ledger.md` | runtime | current | current_status | L3 | 2026-04-29 |

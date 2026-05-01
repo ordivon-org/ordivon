@@ -115,3 +115,33 @@ A fresh AI reading root docs sees:
 
 *Closed: 2026-05-01*
 *Phase: PV-N9*
+*Seal level: packaging boundary sealed (full PV-N9-S addendum below)*
+
+---
+
+## PV-N9-S — Full Verification Accounting Addendum
+
+| Verification | Result |
+|---|---|
+| Product tests (228) | PASS |
+| Governance tests (237) | PASS |
+| Finance regression (188) | PASS |
+| Eval corpus (24 cases) | PASS |
+| Architecture boundaries | PASS |
+| Runtime evidence integrity | PASS |
+| Public wedge audit | PASS (0 blocking) |
+| Public repo dry-run | PASS |
+| Private install smoke | PASS (7/7) |
+| Build artifact smoke | BLOCKED (PV-N8 — 244 private paths) |
+| pr-fast | 12/12 PASS |
+| Document registry | PASS (37 entries) |
+| Coverage governance checker | PASS |
+| Verification debt / receipt / manifest / dogfood | PASS |
+| Ordivon Verify (3 entrypoints) | READY |
+| Ruff check + format (Python) | PASS |
+| Artifact integrity (JSON/JSONL) | PASS |
+
+PV-N9 packaging boundary is sealed. Build artifact blocker remains;
+full sealed deferred to PV-N10.
+
+*PV-N9-S addendum: 2026-05-01*
