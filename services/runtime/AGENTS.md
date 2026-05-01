@@ -16,7 +16,7 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-5: COMPLETE
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-6: ACTIVE
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
@@ -27,6 +27,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-3: COMPLETE** — External fixture dogfood + minimal config mode
 **PV-4: COMPLETE** — Trust report polish (76 tests, rich output)
 **PV-5: COMPLETE** — Agent skill + CI adoption pack
+**PV-6: ACTIVE** — Agent skill dogfood (scenarios A-D validated)
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
