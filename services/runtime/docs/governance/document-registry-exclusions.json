@@ -994,6 +994,13 @@
       "classification": "pending_registration",
       "owner": "PV-N2H",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/vd-005-post-mortem-known-unknown-quadrant.md",
+      "reason": "VD-005 case law analysis \u2014 reference document capturing governance invariants that emerged from the incident",
+      "classification": "pending_registration",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
