@@ -1,9 +1,7 @@
 name: CodeQL
 
 # Phase 4.3: workflow-health hard gate on main branch.
-# Init/analyze/upload failure will fail CI.
-# Finding severity is NOT a hard gate — findings are security evidence
-# requiring human triage. Zero-alert baseline recorded Phase 4.2.
+# Finding severity is NOT a hard gate. Zero-alert baseline Phase 4.2.
 
 on:
   push:
@@ -16,6 +14,9 @@ on:
 permissions:
   contents: read
   security-events: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   analyze:
@@ -44,24 +45,6 @@ jobs:
       - name: Install Python dependencies
         if: matrix.language == 'python'
         run: uv sync --extra dev
-
-      - name: Set up Node.js
-        if: matrix.language == 'javascript-typescript'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install pnpm
-        if: matrix.language == 'javascript-typescript'
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install Node dependencies
-        if: matrix.language == 'javascript-typescript'
-        run: |
-          cd apps/web
-          pnpm install --frozen-lockfile
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
