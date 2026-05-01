@@ -1001,6 +1001,13 @@
       "classification": "pending_registration",
       "owner": "PV-N2H",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-coverage-plane.md",
+      "reason": "Coverage plane design doc \u2014 PV-N2H implementation reference",
+      "classification": "pending_registration",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
