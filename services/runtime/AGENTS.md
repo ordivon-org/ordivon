@@ -47,7 +47,7 @@ Paper dogfood proved governance pipeline integrity, not profitability.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
 **pr-fast**: 11/11 hard gates. 94 governance tests. 30 registry entries.
-**Open debt**: 1 (VD-005 — DG coverage gap, high, blocks PV-N3). 4 closed (VD-001-004).
+**Open debt**: 0 (all 5 closed — VD-001 through VD-005).
 **Next**: PV-N3 — Public Quickstart
 
 ## Critical Boundaries

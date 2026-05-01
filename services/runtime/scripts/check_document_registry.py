@@ -18,6 +18,24 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "docs" / "governance" / "document-registry.jsonl"
+EXCLUSIONS_PATH = ROOT / "docs" / "governance" / "document-registry-exclusions.json"
+
+# ── Discoverable paths for completeness check ─────────────────────────
+DISCOVERABLE_DIRS = [
+    "docs/ai",
+    "docs/governance",
+    "docs/product",
+    "docs/architecture",
+    "docs/runtime",
+]
+
+# ── Identity-bearing surfaces ─────────────────────────────────────────
+IDENTITY_SURFACES = {
+    "pyproject.toml": {"field": "project.name", "must_not_contain": ["pfios"]},
+    "package.json": {"field": "name", "must_not_contain": ["pfios"]},
+    "apps/web/package.json": {"field": "name", "must_not_contain": ["pfios"]},
+    "apps/api/pyproject.toml": {"field": "project.name", "must_not_contain": ["pfios"]},
+}
 
 # ── Deterministic reference date for testing ──────────────────────────
 # Set REFERENCE_DATE env var for deterministic staleness checks.
@@ -192,6 +210,122 @@ def load_registry(path: Path) -> list[dict]:
                 print(f"ERROR line {i}: invalid JSON: {e}")
                 sys.exit(1)
     return entries
+
+
+def load_exclusions(path: Path) -> dict:
+    """Load exclusion entries. Returns dict with 'entries' key or empty list."""
+    if not path.exists():
+        return {"entries": []}
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"WARNING: could not load exclusions: {e}")
+        return {"entries": []}
+
+
+def check_completeness(entries: list[dict], exclusions: dict) -> list[str]:
+    """Discover .md files under DOCS_PATH, check each is registered or excluded."""
+    errors: list[str] = []
+    registered_paths = {e.get("path", "") for e in entries}
+    registered_paths.discard("")
+    excluded_entries = exclusions.get("entries", [])
+    excluded_paths = {x.get("path", "") for x in excluded_entries}
+    excluded_paths.discard("")
+
+    discovered = 0
+    registered_count = 0
+    excluded_count = 0
+
+    for d in DISCOVERABLE_DIRS:
+        dir_path = ROOT / d
+        if not dir_path.is_dir():
+            continue
+        for md_file in sorted(dir_path.rglob("*.md")):
+            # Skip archive directory
+            if "docs/archive" in str(md_file.relative_to(ROOT)):
+                continue
+            rel = str(md_file.relative_to(ROOT))
+            discovered += 1
+
+            if rel in registered_paths:
+                registered_count += 1
+                continue
+            if rel in excluded_paths:
+                # Verify exclusion has required fields
+                excl = next(x for x in excluded_entries if x.get("path") == rel)
+                if not excl.get("reason"):
+                    errors.append(f"{rel}: excluded but missing 'reason'")
+                if not excl.get("classification"):
+                    errors.append(f"{rel}: excluded but missing 'classification'")
+                excluded_count += 1
+                continue
+
+            errors.append(
+                f"{rel}: unregistered current-scope doc — must be registered in "
+                "document-registry.jsonl, moved to docs/archive/, or listed in "
+                "document-registry-exclusions.json with a valid reason"
+            )
+
+    return errors
+
+
+def check_identity_surfaces() -> list[str]:
+    """Validate identity-bearing config files do not carry legacy PFIOS identity."""
+    errors: list[str] = []
+
+    # pyproject.toml
+    ppt = ROOT / "pyproject.toml"
+    if ppt.exists():
+        try:
+            content = ppt.read_text()
+            if 'name = "pfios"' in content or "name = 'pfios'" in content:
+                errors.append("pyproject.toml: project name is 'pfios' — must be 'ordivon'")
+        except Exception:
+            pass
+
+    # package.json (root)
+    pj = ROOT / "package.json"
+    if pj.exists():
+        try:
+            data = json.loads(pj.read_text())
+            name = data.get("name", "")
+            if "pfios" in name.lower():
+                errors.append(f"package.json: name '{name}' contains 'pfios' — must be 'ordivon'")
+        except Exception:
+            pass
+
+    # README.md current identity
+    readme = ROOT / "README.md"
+    if readme.exists():
+        try:
+            first_lines = readme.read_text().split("\n")[:5]
+            header = "\n".join(first_lines)
+            if "# Financial AI OS" in header or "AegisOS / CAIOS" in header:
+                errors.append(
+                    "README.md: opening identifies as 'Financial AI OS' or 'AegisOS' — "
+                    "current project identity is Ordivon"
+                )
+        except Exception:
+            pass
+
+    # tests/conftest.py — must not globally set PFIOS_DB_URL unconditionally
+    conftest = ROOT / "tests" / "conftest.py"
+    if conftest.exists():
+        try:
+            text = conftest.read_text()
+            # Check for unconditional global PFIOS_DB_URL=duckdb
+            if "PFIOS_DB_URL" in text:
+                if 'os.environ["PFIOS_DB_URL"]' in text:
+                    if "tests/contracts" not in text and "tests/integration" not in text:
+                        errors.append(
+                            "tests/conftest.py: globally sets PFIOS_DB_URL without scoping "
+                            "to legacy test paths — must be scoped or removed"
+                        )
+        except Exception:
+            pass
+
+    return errors
 
 
 def _line_is_safe(line: str) -> bool:
@@ -438,7 +572,9 @@ def check_invariants(entries: list[dict]) -> list[str]:
     return errors
 
 
-def print_summary(entries: list[dict]) -> None:
+def print_summary(
+    entries: list[dict], completeness_errors: list[str] = None, identity_errors: list[str] = None
+) -> None:
     """Print compact registry summary."""
     type_counter = Counter(e.get("doc_type", "unknown") for e in entries)
     authority_counter = Counter(e.get("authority", "unknown") for e in entries)
@@ -479,6 +615,10 @@ def print_summary(entries: list[dict]) -> None:
     print(f"  Semantic scan targets:     {scannable} (current/accepted .md)")
     print(f"  Doc types:                 {len(type_counter)}")
     print(f"  Statuses:                  {len(status_counter)}")
+    if completeness_errors is not None:
+        print(f"  Completeness violations:   {len(completeness_errors)}")
+    if identity_errors is not None:
+        print(f"  Identity surface violations: {len(identity_errors)}")
 
 
 def main() -> int:
@@ -490,6 +630,16 @@ def main() -> int:
     entries = load_registry(path)
     errors = check_invariants(entries)
 
+    # Completeness check — only on real registry (not temp test files)
+    completeness_errors: list[str] = []
+    identity_errors: list[str] = []
+    if path == REGISTRY_PATH:
+        exclusions = load_exclusions(EXCLUSIONS_PATH)
+        completeness_errors = check_completeness(entries, exclusions)
+        identity_errors = check_identity_surfaces()
+        errors.extend(completeness_errors)
+        errors.extend(identity_errors)
+
     if errors:
         print(f"\n❌ {len(errors)} INVARIANT VIOLATION(S):\n")
         for err in errors:
@@ -497,8 +647,8 @@ def main() -> int:
         print()
         return 1
 
-    print_summary(entries)
-    print("\n✅ All document registry invariants pass (freshness + semantics).\n")
+    print_summary(entries, completeness_errors, identity_errors)
+    print("\n✅ All document registry invariants pass (freshness + semantics + completeness + identity).\n")
     return 0
 
 

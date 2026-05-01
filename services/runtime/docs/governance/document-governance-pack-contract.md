@@ -19,20 +19,31 @@ This pack establishes the rules by which Ordivon governs its own knowledge.
 ## 2. Scope
 
 The Document Governance Pack governs all project documentation under `docs/`,
-root-level context files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`), and any
-future wiki or knowledge base.
+root-level context files (`AGENTS.md`), and identity-bearing surfaces that
+can mislead humans, AI agents, package consumers, or future public extraction.
 
 | In Scope | Out of Scope |
 |----------|-------------|
 | `docs/` markdown files | Source code comments |
-| Root AI context files | README files in dependency repos |
+| Root AI context files (AGENTS.md, README.md) | README files in dependency repos |
 | JSONL ledgers (evidence schema) | Lint/formatter config files |
-| ADRs in docs/ | CI workflow YAML |
+| ADRs in docs/ | CI workflow YAML (except identity-bearing conf) |
 | Stage Summit receipts | Lockfiles |
-| Runtime evidence docs | `.env`, config files |
-| Product/architecture docs | Test data fixtures |
-| AI onboarding docs | App runtime state |
-| Future wiki pages | Database migration files |
+| Runtime evidence docs | Test data fixtures |
+| Product/architecture docs | App runtime state |
+| AI onboarding docs | Database migration files |
+| Future wiki pages | Generated files |
+| **Identity-bearing surfaces:** | **Excluded from identity check:** |
+| `pyproject.toml` (project name) | Runtime config values |
+| `package.json` (package name) | API keys, secrets, tokens |
+| `apps/*/package.json` (sub-package names) | Duplicate metadata in lockfiles |
+| `apps/*/pyproject.toml` (sub-project names) | |
+| `README.md` (opening identity header) | |
+| `tests/conftest.py` (legacy env pollution) | |
+
+Identity surface governance is about current-truth identity — preventing
+stale brand/name references from misrepresenting the project. It does not
+govern runtime configuration semantics.
 
 ## 3. Non-Goals
 

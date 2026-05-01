@@ -1,0 +1,999 @@
+{
+  "description": "Documents intentionally excluded from document-registry.jsonl governance. Every entry must carry a reason, classification, and owner. Silent exclusions are not allowed.",
+  "entries": [
+    {
+      "path": "docs/architecture/aegisos-design-doctrine.md",
+      "reason": "Legacy AegisOS design doctrine \u2014 historical reference only, not current Ordivon truth",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/aegisos-layer-roadmap.md",
+      "reason": "Legacy AegisOS layer roadmap \u2014 historical, Ordivon has its own architecture docs",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/aegisos-next-round-execution-plan.md",
+      "reason": "Legacy AegisOS execution plan \u2014 historical, superseded by Ordivon phase line",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/aegisos-overview.md",
+      "reason": "Legacy AegisOS overview \u2014 historical, Ordivon README + architecture docs are current truth",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/aegisos-post-mvp-refinement-execution-plan.md",
+      "reason": "Legacy AegisOS post-MVP plan \u2014 historical, PV line is current productization",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/aegisos-working-identity.md",
+      "reason": "Legacy AegisOS working identity doc \u2014 Ordivon is current identity, see docs/architecture/ordivon-moat-and-product-identity.md",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/pfios-behavioral-baseline.md",
+      "reason": "Legacy PFIOS behavioral baseline \u2014 historical reference",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/pfios-organizational-baseline.md",
+      "reason": "Legacy PFIOS organizational baseline \u2014 historical reference",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/aegisos-mvp-brief.md",
+      "reason": "Legacy Aegisos MVP brief \u2014 historical, Ordivon Verify is current product wedge",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/aegisos-mvp-execution-checklist.md",
+      "reason": "Legacy Aegisos MVP checklist \u2014 historical, PV checklists are current",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/aegisos-quality-matrix.md",
+      "reason": "Legacy Aegisos quality matrix \u2014 historical, pr-fast baseline is current quality gate",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ai-financial-assistant-roadmap.md",
+      "reason": "Legacy PFIOS financial assistant roadmap \u2014 historical, Ordivon is governance OS not financial assistant",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/task-template-system.md",
+      "reason": "Legacy PFIOS task template system \u2014 historical, superseded by agent-output-contract.md",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/dependabot-first-pr-observation.md",
+      "reason": "Historical dependabot observation \u2014 archived operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/dependabot-pr3-artifact-validation.md",
+      "reason": "Historical dependabot PR artifact validation \u2014 archived operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/dependabot-strategy.md",
+      "reason": "Historical dependabot strategy \u2014 archived, current CI uses standard GitHub dependabot",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/codeql-onboarding-plan.md",
+      "reason": "Historical CodeQL onboarding plan \u2014 archived, CodeQL is deployed and fixed",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/codeql-findings-triage.md",
+      "reason": "Historical CodeQL findings triage \u2014 archived operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/h1-real-model-under-control.md",
+      "reason": "Historical H-1 phase doc \u2014 archived PFIOS operational record with legacy PFIOS_* env references",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/h2-to-h5-closure-summary.md",
+      "reason": "Historical H-2 to H-5 closure summary \u2014 archived PFIOS operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/h9-dogfood-protocol.md",
+      "reason": "Historical H-9 dogfood protocol \u2014 archived PFIOS operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/p4-closure-readiness-review.md",
+      "reason": "Historical P4 closure review \u2014 archived PFIOS operational record",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/verification-ci-gate-plan.md",
+      "reason": "Historical CI gate plan \u2014 archived, current CI is in .github/workflows/ci.yml",
+      "classification": "archive_historical",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/document-staleness-audit-dg-3.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/verification-debt-policy.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/wiki-index.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/README.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/experience-state-spec.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/module-definition-template-v2.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-adoption-guide.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-ci-example.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-cli-contract.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-landing-copy-v0.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-license-and-release-options.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-package-extraction-plan-pv-12.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-package-structure-proposal.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-pr-comment-example.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-private-core-boundary.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-product-brief.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-productization-stage-summit-pv-z.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-packaging-boundary-pv-11.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-positioning-notes.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-readme-draft.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-public-repo-blueprint.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-quickstart.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-release-readiness-checklist.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-schema-extraction-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-secret-and-private-reference-audit.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/ordivon-verify-user-journey.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/personal-control-loop-v0.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/policy-platform-stage-summit-phase-5.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/product-closure-todo.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/product/repo-governance-pack.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/LANGUAGE.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/README.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/adapter-boundary-spec-v1.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/api-bypass-inventory.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/architecture-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/architecture-diagram.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/boundary-map.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/capability-boundary-spec.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/capability-inventory.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/capability-migration-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/core-pack-adapter-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/core-pack-adapter-boundary.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/core-primitives-spec-v1.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/current-code-classification-map-v1.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/current-state-report-2026-04-24.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/domain-map.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/execution-action-catalog.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/execution-request-receipt-spec.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/finance-pack-extraction-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/finance-pack-phase2-ownership-map.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/finance-pack-v1-definition.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/github-tooling-landscape.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/governance-receipt-review-loop.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/harness-adapter-boundary.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/hermes-model-layer-integration.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/layer-definition.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/layer-module-inventory.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/migration-map.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-current-architecture.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-moat-and-product-identity.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-platform-map.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-system-definition.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/ordivon-work-grammar.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/policy-platform-design.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/repo-governance-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/repo-governance-pack-architecture.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/review-workflow-gap.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/runtime-flow.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/security-platform-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/side-effect-boundary-inventory.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/state-transition-spec.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/state-truth-boundary.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/state-truth-inventory.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/system-overview.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/systems-engineering-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/verification-platform.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/architecture/workflow-run-lineage-spec.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/README.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/candidate-rule-review-path.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/coding-pack-dogfood-evidence.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/cross-pack-dogfood-evidence.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/db-backed-runtime-evidence-audit.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/eval-corpus-v1-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/finance-live-dogfood-operating-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/finance-live-micro-capital-constitution.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/finance-observation-provider-plan.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/finance-observation-red-team-closure.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/forward-hardening-sprint-declaration.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/h9-evidence-report.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/legacy-identity-hygiene-pv-n2h.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-agent-skill-dogfood-pv-6.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-clean-external-ready-pv-7.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-github-action-dogfood-pv-9.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-private-package-prototype-pv-n1-s-addendum.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-private-package-prototype-pv-n1.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-productization-closure-pv-z.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-schema-extraction-pv-n2.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-standard-external-ready-pv-8.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/PT-001.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/PT-002.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/PT-003.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/PT-004.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/README.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/paper-trade-template.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/phase-7p-b1-boundary-test-receipt.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/phase-7p-b1-hold-reject-cases.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/phase-7p-cr-pt004-cancel-review.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/phase-7p-h1-hold-stale-observation.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/paper-trades/phase-7p-n1-nogo-live-auto.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/policy-platform-closure-review.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/policy-platform-red-team-closure.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/policy-proposal-path.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/post-dg-h2-close-ruff-preview-debt-receipt.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/post-dg-hygiene-closure.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/repo-governance-cli.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/repo-governance-failure-semantics.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/runtime-evidence-baseline.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/security-external-tooling-closure.md",
+      "reason": "Created during Ordivon phase (DG/PV) but not yet registered in document-registry.jsonl. Registration deferred to DG-H completeness pass.",
+      "classification": "pending_registration",
+      "owner": "DG / PV-N2H",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/legacy-identity-governance-coverage-pv-n2h.md",
+      "reason": "PV-N2H closure receipt \u2014 this document. Self-referential: the checker is the subject of this doc.",
+      "classification": "pending_registration",
+      "owner": "PV-N2H",
+      "reviewed_at": "2026-05-01"
+    }
+  ]
+}
