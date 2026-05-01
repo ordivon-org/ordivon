@@ -38,7 +38,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-Z: CLOSED** — Ordivon Verify productization Stage Summit
 **PV-N1: CLOSED** — Private package prototype (src/ordivon_verify/ created, script wrapper preserved)
 **PV-N2: CLOSED** — Schema extraction (5 JSON schemas + 29 tests, no private references)
-**PV-N2H: CLOSED** — Legacy identity hygiene (PFIOS/AegisOS → Ordivon surfaces)
+**PV-N2H: CLOSED** — DG coverage hardening + legacy identity hygiene (VD-005 closed, coverage plane implemented)
 <!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
 
 Paper dogfood proved governance pipeline integrity, not profitability.
