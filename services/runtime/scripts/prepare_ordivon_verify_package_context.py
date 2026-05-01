@@ -30,7 +30,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ordivon-verify"
-version = "0.1.0"
+version = "0.0.1.dev0"
 description = "Ordivon Verify — AI work receipt validator. Check what AI claims against repository reality."
 readme = "README.md"
 requires-python = ">=3.11"
