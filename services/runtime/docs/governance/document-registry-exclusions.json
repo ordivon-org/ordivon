@@ -1092,6 +1092,20 @@
       "classification": "pending_registration",
       "owner": "PV-N7",
       "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/governance/scope-drift-governance-rot-pattern.md",
+      "reason": "Scope drift analysis doc \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N8",
+      "reviewed_at": "2026-05-01"
+    },
+    {
+      "path": "docs/runtime/ordivon-verify-local-build-artifacts-pv-n8.md",
+      "reason": "PV-N8 runtime receipt \u2014 pending registration",
+      "classification": "pending_registration",
+      "owner": "PV-N8",
+      "reviewed_at": "2026-05-01"
     }
   ]
 }
