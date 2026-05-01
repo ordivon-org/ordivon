@@ -17,7 +17,7 @@ docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: CLOSED | PV-N3: CLOSED | PV-N4: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-Z: CLOSED | PV-N1: CLOSED | PV-N2: CLOSED | PV-N2H: CLOSED | PV-N3: CLOSED | PV-N4: CLOSED | PV-N5: CLOSED
 
 Phase 1–5: Core Governance, Repo, Security, Policy — COMPLETE
 Phase 6: Design + Finance Observation — COMPLETE
@@ -41,6 +41,7 @@ Phase 6: Design + Finance Observation — COMPLETE
 **PV-N2H: CLOSED** — DG coverage hardening + legacy identity hygiene (VD-005 closed, coverage plane implemented)
 **PV-N3: CLOSED** — Public quickstart dogfood (example fixture READY, 14 tests)
 **PV-N4: CLOSED** — Private package install smoke (console entrypoint, 16 tests)
+**PV-N5: CLOSED** — Release readiness audit (17 blockers, next: secret audit)
 <!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
 
 Paper dogfood proved governance pipeline integrity, not profitability.
@@ -50,7 +51,7 @@ CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
 **pr-fast**: 11/11 hard gates. 94 governance tests. 30 registry entries.
 **Open debt**: 0 (all 5 closed — VD-001 through VD-005).
-**Next**: PV-N4 — Private Package Install Smoke
+**Next**: PV-N6 — Secret + Private Reference Audit Dry Run
 
 ## Critical Boundaries
 
