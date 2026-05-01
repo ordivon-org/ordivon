@@ -29,7 +29,39 @@ jobs:
           - javascript-typescript
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        if: matrix.language == 'python'
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install Python dependencies
+        if: matrix.language == 'python'
+        run: uv sync --extra dev
+
+      - name: Set up Node.js
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        if: matrix.language == 'javascript-typescript'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Node dependencies
+        if: matrix.language == 'javascript-typescript'
+        run: |
+          cd apps/web
+          pnpm install --frozen-lockfile
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
