@@ -60,7 +60,7 @@ class PaperExecutionCapability:
     can_read_account: bool = True
     can_read_positions: bool = True
     can_read_fills: bool = True
-    can_place_paper_order: bool = True       # NEW — paper only
+    can_place_paper_order: bool = True  # NEW — paper only
     # All live write = False
     can_place_live_order: bool = False
     can_cancel_order: bool = False
