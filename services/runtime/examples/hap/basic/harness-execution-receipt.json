@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "hap-rec-2026-05-02-001",
+  "request_id": "hap-req-2026-05-02-001",
+  "plan_id": "hap-plan-2026-05-02-001",
+  "commands_run": [
+    "read_files: src/governance.py",
+    "read_files: scripts/check_architecture.py"
+  ],
+  "files_changed": [],
+  "passed_checks": [
+    "architecture_boundaries_check",
+    "governance_review_complete"
+  ],
+  "failed_checks": [],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "hap-ev-2026-05-02-001",
+    "receipt_id": "hap-rec-2026-05-02-001",
+    "file_evidence": [
+      "src/governance.py: no forbidden patterns detected",
+      "scripts/check_architecture.py: PASS"
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "hap-res-2026-05-02-001",
+    "receipt_id": "hap-rec-2026-05-02-001",
+    "status": "READY",
+    "status_reason": "All checks passed. No boundary violations. Read-only only.",
+    "warnings": [],
+    "authority_statement": "READY means evidence adequate for review. It does not authorize execution."
+  },
+  "authority_statement": "This receipt records what was executed. It does not authorize future action."
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "scenario-shell-risk",
+  "harness_family": "gemini-cli",
+  "adapter_type": "agent",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": true,
+    "can_apply_patch": true,
+    "can_run_shell": true,
+    "can_use_browser": false,
+    "can_use_mcp": false,
+    "can_read_credentials": false,
+    "can_call_external_api": false,
+    "authority_statement": "can_X does not imply may_X. Capabilities listed do not authorize action."
+  },
+  "risk_profile": {
+    "risk_level": "shell",
+    "risk_reason": "Shell execution capability present. Requires boundary enforcement.",
+    "mitigations": [
+      "Shell commands require explicit allowlisting.",
+      "No credential or external API capability."
+    ],
+    "boundary_enforcement": "Shell blocked at task boundary unless explicitly reviewed."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files",
+      "write_files",
+      "apply_patch"
+    ],
+    "forbidden_actions": [
+      "run_shell",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "This manifest describes capability only. It does not execute.",
+  "authority_statement": "Capability declaration is not authorization."
+}

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/hap/task-request-v0",
+  "title": "HAP HarnessTaskRequest v0",
+  "description": "Describes a requested task shape. Task request is not approval.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "HAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "request_id",
+    "adapter_id",
+    "task_type",
+    "description",
+    "requested_capabilities",
+    "boundary_declaration",
+    "authority_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Must be '0.1'"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Unique request identifier"
+    },
+    "adapter_id": {
+      "type": "string",
+      "description": "Linked adapter"
+    },
+    "task_type": {
+      "type": "string",
+      "description": "Category of task"
+    },
+    "description": {
+      "type": "string",
+      "description": "What is being asked"
+    },
+    "requested_capabilities": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Capabilities the task needs"
+    },
+    "boundary_declaration": {
+      "type": "object",
+      "required": [
+        "allowed_actions",
+        "forbidden_actions",
+        "requires_review_for",
+        "credential_access_blocked",
+        "external_api_blocked",
+        "shell_blocked"
+      ],
+      "properties": {
+        "allowed_actions": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "requires_review_for": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "credential_access_blocked": {"type": "boolean"},
+        "external_api_blocked": {"type": "boolean"},
+        "shell_blocked": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "authority_statement": {
+      "type": "string",
+      "description": "Must state this task request describes intent only and does not authorize execution."
+    }
+  },
+  "additionalProperties": false
+}

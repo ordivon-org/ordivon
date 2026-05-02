@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "scenario-read-only-review",
+  "harness_family": "claude-code",
+  "adapter_type": "agent",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": false,
+    "can_apply_patch": false,
+    "can_run_shell": false,
+    "can_use_browser": false,
+    "can_use_mcp": false,
+    "can_read_credentials": false,
+    "can_call_external_api": false,
+    "authority_statement": "can_X does not imply may_X. Capabilities listed do not authorize action."
+  },
+  "risk_profile": {
+    "risk_level": "read_only",
+    "risk_reason": "No destructive or external capabilities. Read-only file access only.",
+    "mitigations": [
+      "Capability frozen at init.",
+      "Write/shell/credential fields all False."
+    ],
+    "boundary_enforcement": "All capability booleans enforced at manifest validation."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files",
+      "run_shell",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "This manifest describes capability only. It does not execute.",
+  "authority_statement": "Capability declaration is not authorization."
+}

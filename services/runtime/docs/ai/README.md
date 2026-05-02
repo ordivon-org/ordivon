@@ -1,7 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: OGAP-Z (2026-05-01)
-> **Active phase**: Phase 7P — CLOSED | DG Pack — CLOSED | PV-Z — CLOSED | COV-1R — CLOSED | COV-2 — CLOSED | OGAP-Z — CLOSED
+> **Last updated**: HAP-1 (2026-05-02)
+> **Active phase**: HAP-1 — Harness Adapter Protocol v0 |
+> Phase 7P — CLOSED | DG Pack — CLOSED | PV-Z — CLOSED | COV-1R — CLOSED | COV-2 — CLOSED | OGAP-Z — CLOSED
 > **Next**: ADP-1 or HAP-1
 > **Identity**: Ordivon. PFIOS/AegisOS are historical.
 
@@ -41,6 +42,9 @@ docs/product/ordivon-stage-summit-phase-4.md        Phase 4 close
 docs/product/policy-platform-stage-summit-phase-5.md Phase 5 close
 docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md  OGAP-Z Stage Summit
 docs/runtime/ogap-foundation-closure-ogap-z.md    OGAP-Z closure evidence
+docs/architecture/harness-adapter-protocol-hap-1.md   HAP v0 protocol
+docs/runtime/hap-foundation-hap-1.md                HAP foundation evidence
+docs/product/harness-adapter-protocol-stage-notes-hap-1.md  HAP-1 stage notes
 ```
 
 ## When to Read What

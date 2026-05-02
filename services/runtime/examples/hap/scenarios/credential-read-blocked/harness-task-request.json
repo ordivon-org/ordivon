@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "request_id": "scenario-cr-001",
+  "adapter_id": "scenario-credential-read",
+  "task_type": "config_audit",
+  "description": "Audit project configuration. Credential access blocked at boundary.",
+  "requested_capabilities": [
+    "can_read_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "access_credentials",
+      "run_shell",
+      "call_external_api",
+      "write_files"
+    ],
+    "requires_review_for": [
+      "access_credentials"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. Credential access is blocked. It does not authorize credential access or execution."
+}

@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/hap/adapter-manifest-v0",
+  "title": "HAP HarnessAdapterManifest v0",
+  "description": "Declares adapter identity, supported harness family, declared boundaries, local schema version, and non-execution status.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "HAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "adapter_id",
+    "harness_family",
+    "adapter_type",
+    "capabilities",
+    "risk_profile",
+    "non_execution_statement",
+    "authority_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Must be '0.1'"
+    },
+    "adapter_id": {
+      "type": "string",
+      "description": "Unique adapter identifier"
+    },
+    "harness_family": {
+      "type": "string",
+      "description": "e.g., 'hermes', 'codex', 'claude-code', 'gemini-cli', 'cursor', 'mcp-server', 'custom-worker'"
+    },
+    "adapter_type": {
+      "type": "string",
+      "enum": ["agent", "mcp_server", "ide", "ci", "worker", "custom"]
+    },
+    "capabilities": {
+      "type": "object",
+      "required": [
+        "can_read_files",
+        "can_write_files",
+        "can_apply_patch",
+        "can_run_shell",
+        "can_use_browser",
+        "can_use_mcp",
+        "can_read_credentials",
+        "can_call_external_api",
+        "authority_statement"
+      ],
+      "properties": {
+        "can_read_files": {"type": "boolean"},
+        "can_write_files": {"type": "boolean"},
+        "can_apply_patch": {"type": "boolean"},
+        "can_run_shell": {"type": "boolean"},
+        "can_use_browser": {"type": "boolean"},
+        "can_use_mcp": {"type": "boolean"},
+        "can_read_credentials": {"type": "boolean"},
+        "can_call_external_api": {"type": "boolean"},
+        "supports_streaming_events": {"type": "boolean"},
+        "supports_resume": {"type": "boolean"},
+        "supports_structured_output": {"type": "boolean"},
+        "supports_cost_reporting": {"type": "boolean"},
+        "supports_worktree_isolation": {"type": "boolean"},
+        "max_context_tokens": {"type": "integer", "minimum": 0},
+        "default_timeout_seconds": {"type": "integer", "minimum": 0},
+        "authority_statement": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "risk_profile": {
+      "type": "object",
+      "required": ["risk_level", "risk_reason", "mitigations", "boundary_enforcement"],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["read_only", "workspace_write", "shell", "external_side_effect"]
+        },
+        "risk_reason": {"type": "string"},
+        "mitigations": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "boundary_enforcement": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "declared_boundaries": {
+      "type": "object",
+      "required": [
+        "allowed_actions",
+        "forbidden_actions",
+        "requires_review_for",
+        "credential_access_blocked",
+        "external_api_blocked",
+        "shell_blocked"
+      ],
+      "properties": {
+        "allowed_actions": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_actions": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "requires_review_for": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "credential_access_blocked": {"type": "boolean"},
+        "external_api_blocked": {"type": "boolean"},
+        "shell_blocked": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "non_execution_statement": {
+      "type": "string",
+      "description": "Must state this manifest describes capability only and does not execute."
+    },
+    "authority_statement": {
+      "type": "string",
+      "description": "Capability declaration is not authorization."
+    }
+  },
+  "additionalProperties": false
+}

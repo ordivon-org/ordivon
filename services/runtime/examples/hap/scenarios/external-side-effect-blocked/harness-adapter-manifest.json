@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "scenario-external-api",
+  "harness_family": "custom-worker",
+  "adapter_type": "worker",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": true,
+    "can_apply_patch": false,
+    "can_run_shell": true,
+    "can_use_browser": false,
+    "can_use_mcp": false,
+    "can_read_credentials": false,
+    "can_call_external_api": true,
+    "authority_statement": "can_X does not imply may_X. can_call_external_api describes technical capability only. It does not authorize external calls."
+  },
+  "risk_profile": {
+    "risk_level": "external_side_effect",
+    "risk_reason": "can_call_external_api declared. External calls blocked at boundary.",
+    "mitigations": [
+      "External API calls blocked at task boundary.",
+      "Shell execution blocked at boundary."
+    ],
+    "boundary_enforcement": "can_call_external_api is a capability declaration, not authorization. External calls blocked."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files",
+      "write_files"
+    ],
+    "forbidden_actions": [
+      "call_external_api",
+      "access_credentials",
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "call_external_api"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "This manifest describes capability only. can_call_external_api is a declaration, not authorization.",
+  "authority_statement": "Capability declaration is not authorization. can_call_external_api does not authorize external calls."
+}

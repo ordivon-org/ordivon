@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "request_id": "scenario-ex-001",
+  "adapter_id": "scenario-external-api",
+  "task_type": "data_collection",
+  "description": "Collect project metrics. External API calls blocked at boundary.",
+  "requested_capabilities": [
+    "can_read_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "call_external_api",
+      "access_credentials",
+      "run_shell",
+      "write_files"
+    ],
+    "requires_review_for": [
+      "call_external_api"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. External API calls are blocked. It does not authorize external calls or execution."
+}

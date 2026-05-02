@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/hap/execution-receipt-v0",
+  "title": "HAP HarnessExecutionReceipt v0",
+  "description": "Records claimed or simulated execution evidence. Receipt is not approval.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "HAP v0 prototype schema. Not a public stable contract. No backward compatibility guarantee before public alpha.",
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "request_id",
+    "plan_id",
+    "commands_run",
+    "files_changed",
+    "passed_checks",
+    "failed_checks",
+    "evidence_bundle",
+    "authority_statement"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Must be '0.1'"
+    },
+    "receipt_id": {
+      "type": "string",
+      "description": "Unique receipt identifier"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Linked task request"
+    },
+    "plan_id": {
+      "type": "string",
+      "description": "Linked task plan"
+    },
+    "commands_run": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Commands actually executed"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Files modified"
+    },
+    "passed_checks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Checks that passed"
+    },
+    "failed_checks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Checks that failed"
+    },
+    "skipped_checks": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Checks not run"
+    },
+    "evidence_bundle": {
+      "type": "object",
+      "required": ["bundle_id", "receipt_id"],
+      "properties": {
+        "bundle_id": {"type": "string"},
+        "receipt_id": {"type": "string"},
+        "log_refs": {"type": "array", "items": {"type": "string"}},
+        "command_outputs": {"type": "array", "items": {"type": "string"}},
+        "file_evidence": {"type": "array", "items": {"type": "string"}},
+        "test_results": {"type": "array", "items": {"type": "string"}},
+        "gaps": {"type": "array", "items": {"type": "string"}},
+        "evidence_quality": {
+          "type": "string",
+          "enum": ["self_reported", "machine_verified", "human_reviewed"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "result_summary": {
+      "type": "object",
+      "required": ["result_id", "receipt_id", "status", "status_reason", "authority_statement"],
+      "properties": {
+        "result_id": {"type": "string"},
+        "receipt_id": {"type": "string"},
+        "status": {
+          "type": "string",
+          "enum": ["READY", "DEGRADED", "BLOCKED", "FAILED", "REVIEW_REQUIRED"]
+        },
+        "status_reason": {"type": "string"},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "authority_statement": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "authority_statement": {
+      "type": "string",
+      "description": "Must state this receipt records what was executed and does not authorize future action."
+    }
+  },
+  "additionalProperties": false
+}

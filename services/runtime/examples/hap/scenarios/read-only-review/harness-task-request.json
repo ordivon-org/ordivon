@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "request_id": "scenario-ro-001",
+  "adapter_id": "scenario-read-only-review",
+  "task_type": "code_review",
+  "description": "Review PR #99 for architecture boundary violations. Read-only.",
+  "requested_capabilities": [
+    "can_read_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files",
+      "run_shell",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. It does not authorize execution."
+}

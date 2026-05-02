@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "scenario-credential-read",
+  "harness_family": "hermes",
+  "adapter_type": "agent",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": true,
+    "can_apply_patch": true,
+    "can_run_shell": true,
+    "can_use_browser": false,
+    "can_use_mcp": false,
+    "can_read_credentials": true,
+    "can_call_external_api": false,
+    "authority_statement": "can_X does not imply may_X. can_read_credentials describes technical capability only. It does not grant credential access."
+  },
+  "risk_profile": {
+    "risk_level": "shell",
+    "risk_reason": "Shell execution capability present. can_read_credentials declared but blocked at boundary.",
+    "mitigations": [
+      "Credential access blocked at task boundary.",
+      "No external API capability."
+    ],
+    "boundary_enforcement": "can_read_credentials is a capability declaration, not authorization. Credential access blocked."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files",
+      "write_files"
+    ],
+    "forbidden_actions": [
+      "access_credentials",
+      "call_external_api",
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "access_credentials"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "This manifest describes capability only. can_read_credentials is a declaration, not authorization.",
+  "authority_statement": "Capability declaration is not authorization. can_read_credentials does not grant credential access."
+}

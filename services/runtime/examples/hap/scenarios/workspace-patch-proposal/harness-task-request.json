@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "request_id": "scenario-wp-001",
+  "adapter_id": "scenario-workspace-patch",
+  "task_type": "refactoring",
+  "description": "Propose patch to extract validation logic. Do not execute \u2014 proposal only.",
+  "requested_capabilities": [
+    "can_read_files",
+    "can_apply_patch"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files",
+      "run_shell",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [
+      "apply_patch"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. Patch is proposed, not applied. It does not authorize execution."
+}

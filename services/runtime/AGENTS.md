@@ -15,11 +15,12 @@ docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
-docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md  OGAP protocol foundation Stage Summit
-docs/runtime/ogap-foundation-closure-ogap-z.md  OGAP closure evidence
+docs/architecture/harness-adapter-protocol-hap-1.md   HAP v0 protocol architecture
+docs/runtime/hap-foundation-hap-1.md                HAP foundation evidence
+docs/product/harness-adapter-protocol-stage-notes-hap-1.md  HAP-1 stage notes
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: OPEN
 
 pr-fast: 12/12 PASS | 0 open debt | Coverage: 8+2 | Phase 8: DEFERRED
 Phase 6: Design + Finance Observation — COMPLETE
@@ -59,8 +60,8 @@ Paper dogfood proved governance pipeline integrity, not profitability.
 CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
 **pr-fast**: 12/12 hard gates. 94 governance tests. 30 registry entries.
-**Open debt**: 0 (all 5 closed — VD-001 through VD-005).
-**Next**: ADP-1 or HAP-1 — Agentic Pattern Governance / Harness Adapter Protocol
+**Open debt**: 1 (DOC-WIKI-FLAKY-001 — wiki flaky test).
+**Next**: HAP-1 → ADP-1 — Harness Adapter Protocol, then Agentic Pattern Governance
 
 ## Critical Boundaries
 

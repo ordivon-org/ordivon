@@ -135,6 +135,8 @@ SAFE_CONTEXTS = [
     r"separate\s+from",
     r"-\s+Finance\s+pack",
     r"-\s+Broker\s+API",
+    r"context_tokens",  # LLM context window size — not a secret token
+    r"max_context_tokens",  # HAP schema field — not a secret token
 ]
 
 

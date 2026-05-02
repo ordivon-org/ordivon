@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "request_id": "scenario-sh-001",
+  "adapter_id": "scenario-shell-risk",
+  "task_type": "build_verification",
+  "description": "Run test suite. Shell execution requested but BLOCKED at boundary.",
+  "requested_capabilities": [
+    "can_read_files",
+    "can_run_shell"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "run_shell",
+      "write_files",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. Shell execution is blocked at boundary. It does not authorize execution."
+}

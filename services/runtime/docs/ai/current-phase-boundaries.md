@@ -42,7 +42,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **OGAP-1** | **CLOSED** | Protocol semantics + object model |
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
-| **OGAP-Z** | **CLOSED** | Protocol foundation Stage Summit |
+| **HAP-1** | **ACTIVE** | Harness Adapter Protocol v0 foundation |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
@@ -95,6 +95,9 @@ These are **design-time prohibitions**. No agent may violate them.
 | OGAP package publishing | NO-GO | No release program opened |
 | OGAP public repo creation | NO-GO | Private core, public wedge model |
 | OGAP action authorization | NO-GO | Valid payloads do not authorize execution |
+| HAP API/SDK/MCP/live adapter creation | NO-GO | HAP-1 is local design/prototype only |
+| HAP action authorization | NO-GO | Harness capability ≠ authorization |
+| HAP credential access | NO-GO | can_read_credentials is a declaration, not access |
 | Financial/broker/live action via OGAP | NO-GO | NO-GO at schema level |
 
 ## 4. Finance Observation Status
@@ -158,5 +161,11 @@ These are **design-time prohibitions**. No agent may violate them.
 | `apps/web/src/components/governance/index.tsx` | All governance UI components |
 | `docs/runtime/finance-observation-provider-plan.md` | Provider selection + China operator notes |
 | `docs/ai/agent-output-contract.md` | Required output contract for every AI task — receipt template + verification discipline |
+| `docs/architecture/harness-adapter-protocol-hap-1.md` | HAP v0 protocol architecture |
+| `docs/runtime/hap-foundation-hap-1.md` | HAP object model + closure predicate |
+| `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | HAP-1 stage notes |
+| `src/ordivon_verify/schemas/hap-*.schema.json` | HAP JSON schemas (3 total) |
+| `examples/hap/` | HAP example fixtures (basic + 5 scenarios) |
+| `scripts/validate_hap_payload.py` | HAP payload validator |
 | `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
 | `docs/governance/document-registry.jsonl` | Machine-readable document registry — 17 entries, DG-2 |

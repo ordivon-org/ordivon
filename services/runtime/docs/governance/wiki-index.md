@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 53
+**Total registered docs**: 56
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -12,24 +12,26 @@
 
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
+| [Harness Adapter Protocol v0 (HAP-1)](../architecture/harness-adapter-protocol-hap-1.md) | `docs/architecture/harness-adapter-protocol-hap-1.md` | architecture | current | source_of_truth | L1 | 2026-05-02 |
 | [OGAP Architecture](../architecture/ordivon-governance-adapter-protocol-ogap-1.md) | `docs/architecture/ordivon-governance-adapter-protocol-ogap-1.md` | architecture | current | source_of_truth | L1 | 2026-05-01 |
 | [Ordivon System Ontology — Core / Pack / Adapter](../architecture/ordivon-core-pack-adapter-ontology.md) | `docs/architecture/ordivon-core-pack-adapter-ontology.md` | architecture | accepted | source_of_truth | L1 | 2026-04-30 |
 | [Coverage Governance Contract](../governance/coverage-governance-contract.md) | `docs/governance/coverage-governance-contract.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
 | [OGAP Object Model](../governance/ogap-object-model-v0.md) | `docs/governance/ogap-object-model-v0.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
-| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-04-30 |
+| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
-| [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
+| [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-05-01 |
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
 | [Verification Signal Classification — Classify Before You Fix](../governance/verification-signal-classification.md) | `docs/governance/verification-signal-classification.md` | runbook | current | current_status | L1 | 2026-04-30 |
 | [OGAP Integration Levels](../product/ordivon-external-adapter-integration-levels.md) | `docs/product/ordivon-external-adapter-integration-levels.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Changelog Policy](../product/ordivon-verify-changelog-policy.md) | `docs/product/ordivon-verify-changelog-policy.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Versioning Policy](../product/ordivon-verify-versioning-policy-pv-n12.md) | `docs/product/ordivon-verify-versioning-policy-pv-n12.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
+| [Harness Adapter Protocol — Stage Notes (HAP-1)](../product/harness-adapter-protocol-stage-notes-hap-1.md) | `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [AI Onboarding Document Policy](../governance/ai-onboarding-doc-policy.md) | `docs/governance/ai-onboarding-doc-policy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack](../governance/README.md) | `docs/governance/README.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
@@ -46,19 +48,19 @@
 | [Ordivon Stage Summit — Phase 4 Close](../product/ordivon-stage-summit-phase-4.md) | `docs/product/ordivon-stage-summit-phase-4.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Ordivon Stage Summit — Phase 6 Close](../product/ordivon-stage-summit-phase-6.md) | `docs/product/ordivon-stage-summit-phase-6.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Phase 8 Readiness Tracker](../runtime/paper-trades/phase-7p-readiness-tracker.md) | `docs/runtime/paper-trades/phase-7p-readiness-tracker.md` | tracker | deferred | current_status | L3 | 2026-04-29 |
-| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-04-30 |
+| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-01 |
 
 
 ## 2. AI Onboarding
 
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
-| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-04-30 |
+| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
-| [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
+| [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-05-01 |
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
-| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-04-30 |
+| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-01 |
 
 **AI read path**: AGENTS.md (L0) → docs/ai/ (L1) → governance pack (L2) → evidence (L3) → archive (L4)
 
@@ -97,6 +99,7 @@
 | [PV-N12 Release Channel Policy Receipt](../runtime/ordivon-verify-versioning-release-channel-pv-n12.md) | `docs/runtime/ordivon-verify-versioning-release-channel-pv-n12.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-N9 Public Wedge Packaging Separation Receipt](../runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md) | `docs/runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [HAP Foundation — Runtime Evidence (HAP-1)](../runtime/hap-foundation-hap-1.md) | `docs/runtime/hap-foundation-hap-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |
 | [Alpaca Paper Trade Ledger](../runtime/paper-trades/paper-trade-ledger.md) | `docs/runtime/paper-trades/paper-trade-ledger.md` | runtime | current | current_status | L3 | 2026-04-29 |

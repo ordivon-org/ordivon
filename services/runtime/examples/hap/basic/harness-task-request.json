@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "request_id": "hap-req-2026-05-02-001",
+  "adapter_id": "read-only-review-harness-v1",
+  "task_type": "code_review",
+  "description": "Review changed files in PR #42 for governance boundary violations.",
+  "requested_capabilities": [
+    "can_read_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files",
+      "run_shell",
+      "call_external_api",
+      "access_credentials"
+    ],
+    "requires_review_for": [],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. It does not authorize execution."
+}
