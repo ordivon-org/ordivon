@@ -12,7 +12,8 @@ For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in thi
 
 Read these in order on first visit:
 
-1. **ordivon-root-context.md** — what Ordivon is (and is not)
+1. **new-ai-collaborator-guide.md** — practical guide: how the project works, how to work in it
+2. **ordivon-root-context.md** — what Ordivon is (and is not)
 2. **architecture-file-map.md** — where things live
 3. **current-phase-boundaries.md** — what's active, what's deferred, what's NO-GO
 4. **agent-output-contract.md** — required output shape for every AI task receipt
@@ -54,7 +55,7 @@ docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
 
 | Situation | Read |
 |-----------|------|
-| First time in this repo | root-context + architecture-file-map |
+| First time in this repo | new-ai-collaborator-guide + root-context + architecture-file-map |
 | Starting a new phase | current-phase-boundaries + task-prompt-template |
 | Before committing | agent-working-rules §self-check |
 | Writing a task output/receipt | agent-output-contract |

@@ -5,6 +5,7 @@ Ordivon is a **governance operating system**, not a trading bot, AI wrapper, or 
 ## Quick Navigation
 
 ```
+docs/ai/new-ai-collaborator-guide.md          New AI collaborator practical guide
 docs/ai/README.md                        AI onboarding start
 docs/ai/ordivon-root-context.md          Identity + governance doctrine
 docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries

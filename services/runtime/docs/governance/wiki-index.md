@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 74
+**Total registered docs**: 75
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -27,6 +27,7 @@
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
+| [New AI Collaborator Guide](../ai/new-ai-collaborator-guide.md) | `docs/ai/new-ai-collaborator-guide.md` | ai_onboarding | current | current_status | L1 | 2026-05-02 |
 | [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-05-01 |
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
@@ -67,6 +68,7 @@
 | [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
+| [New AI Collaborator Guide](../ai/new-ai-collaborator-guide.md) | `docs/ai/new-ai-collaborator-guide.md` | ai_onboarding | current | current_status | L1 | 2026-05-02 |
 | [Ordivon AI Onboarding](../ai/README.md) | `docs/ai/README.md` | ai_onboarding | current | current_status | L1 | 2026-05-01 |
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
