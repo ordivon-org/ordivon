@@ -20,7 +20,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1066,7 +1066,7 @@ def main() -> int:
         output = {"findings": [f.to_dict() for f in findings], "stats": stats}
         print(json.dumps(output, indent=2))
     else:
-        print(f"ADP-3 Agentic Pattern Detector")
+        print("ADP-3 Agentic Pattern Detector")
         print(f"  Scanned: {stats['total_files_scanned']} files")
         print(f"  Findings: {stats['total_findings']}")
         print(f"    blocking: {stats['blocking']}")
@@ -1077,8 +1077,8 @@ def main() -> int:
             print(f"\n  Findings ({len(findings)}):")
             for f in findings:
                 print(f"    [{f.severity.upper()}] {f.pattern_id} {f.file}:{f.line}: {f.explanation}")
-        print(f"\n  ADP-2 is local static detection only. Detector PASS is not authorization.")
-        print(f"  Absence of findings is not safety proof.")
+        print("\n  ADP-2 is local static detection only. Detector PASS is not authorization.")
+        print("  Absence of findings is not safety proof.")
 
     if args.fail_on_blocking and stats["blocking"] > 0:
         return 1

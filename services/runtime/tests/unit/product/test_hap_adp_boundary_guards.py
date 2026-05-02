@@ -37,16 +37,21 @@ class TestCapabilityNotAuthorization:
         for s in _all_scenarios():
             m = _load_json(s / "harness-adapter-manifest.json")
             auth = m.get("authority_statement", "").lower()
-            assert "not authorization" in auth or "does not authorize" in auth or "does not imply" in auth, \
+            assert "not authorization" in auth or "does not authorize" in auth or "does not imply" in auth, (
                 f"{s.name}: manifest authority_statement must deny authorization"
+            )
 
     def test_all_capability_blocks_have_authority_disclaimer(self):
         for s in _all_scenarios():
             m = _load_json(s / "harness-adapter-manifest.json")
             caps = m.get("capabilities", {})
             auth = caps.get("authority_statement", "").lower()
-            assert "can_x does not imply may_x" in auth or "not authorization" in auth or "does not authorize" in auth or "does not imply" in auth, \
-                f"{s.name}: capabilities missing authority disclaimer"
+            assert (
+                "can_x does not imply may_x" in auth
+                or "not authorization" in auth
+                or "does not authorize" in auth
+                or "does not imply" in auth
+            ), f"{s.name}: capabilities missing authority disclaimer"
 
     def test_no_manifest_claims_authorization(self):
         for s in _all_scenarios():
@@ -61,8 +66,9 @@ class TestCredentialCapabilitySeparation:
     def test_no_fixture_uses_can_access_secrets(self):
         for f in ADP_DIR.glob("**/*.json"):
             content = f.read_text()
-            assert "can_access_secrets" not in content, \
+            assert "can_access_secrets" not in content, (
                 f"{f.relative_to(ROOT)}: forbidden can_access_secrets — use can_read_credentials"
+            )
 
     def test_credential_read_blocked_scenario_blocks_access(self):
         s = ADP_DIR / "credential-capability-confusion"
@@ -129,8 +135,10 @@ class TestREADYWithoutAuthorization:
             r = _load_json(s / "harness-execution-receipt.json")
             status = r["result_summary"]["status"]
             if "READY" in status:
-                assert "WITHOUT_AUTHORIZATION" in status or "does not authorize" in r["result_summary"].get("authority_statement", "").lower(), \
-                    f"{s.name}: READY must be qualified as READY_WITHOUT_AUTHORIZATION"
+                assert (
+                    "WITHOUT_AUTHORIZATION" in status
+                    or "does not authorize" in r["result_summary"].get("authority_statement", "").lower()
+                ), f"{s.name}: READY must be qualified as READY_WITHOUT_AUTHORIZATION"
 
 
 class TestCandidateRuleNonBinding:
@@ -139,16 +147,16 @@ class TestCandidateRuleNonBinding:
     def test_all_summaries_declare_candidate_rule_non_binding(self):
         for s in _all_scenarios():
             summary = (s / "scenario-summary.md").read_text()
-            assert "NON-BINDING" in summary or "non-binding" in summary.lower(), \
+            assert "NON-BINDING" in summary or "non-binding" in summary.lower(), (
                 f"{s.name}: scenario summary must declare CandidateRule as NON-BINDING"
+            )
 
 
 class TestNoExternalCompliance:
     """No compliance/certification/endorsement/equivalence claims."""
 
     def test_no_unsafe_external_claims(self):
-        unsafe = ["compliant", "certified", "endorsed", "partnered", "equivalent to",
-                  "official alignment"]
+        unsafe = ["compliant", "certified", "endorsed", "partnered", "equivalent to", "official alignment"]
         for s in _all_scenarios():
             content = (s / "scenario-summary.md").read_text().lower()
             for word in unsafe:
@@ -161,8 +169,9 @@ class TestNoExternalCompliance:
     def test_no_mcp_auth_equals_ordivon_approval(self):
         s = ADP_DIR / "mcp-tool-injection-confused-deputy"
         summary = (s / "scenario-summary.md").read_text()
-        assert "transport security" in summary or "not governance" in summary.lower(), \
+        assert "transport security" in summary or "not governance" in summary.lower(), (
             "MCP auth must be clarified as transport security, not Ordivon approval"
+        )
 
 
 class TestProtectedPathBoundary:
@@ -172,7 +181,10 @@ class TestProtectedPathBoundary:
         s = ADP_DIR / "protected-path-violation"
         r = _load_json(s / "harness-execution-receipt.json")
         assert r["result_summary"]["status"] == "BLOCKED"
-        assert "protected" in r["result_summary"]["status_reason"].lower() or "governance" in r["result_summary"]["status_reason"].lower()
+        assert (
+            "protected" in r["result_summary"]["status_reason"].lower()
+            or "governance" in r["result_summary"]["status_reason"].lower()
+        )
 
 
 class TestBaselineDebtMasking:
@@ -182,7 +194,10 @@ class TestBaselineDebtMasking:
         s = ADP_DIR / "baseline-debt-masking"
         r = _load_json(s / "harness-execution-receipt.json")
         assert r["result_summary"]["status"] == "BLOCKED"
-        assert "baseline" in r["result_summary"]["status_reason"].lower() or "classification" in r["result_summary"]["status_reason"].lower()
+        assert (
+            "baseline" in r["result_summary"]["status_reason"].lower()
+            or "classification" in r["result_summary"]["status_reason"].lower()
+        )
 
 
 class TestAllScenariosComplete:
@@ -190,15 +205,20 @@ class TestAllScenariosComplete:
 
     def test_each_scenario_has_four_files(self):
         for s in _all_scenarios():
-            for fname in ["harness-adapter-manifest.json", "harness-task-request.json",
-                          "harness-execution-receipt.json", "scenario-summary.md"]:
+            for fname in [
+                "harness-adapter-manifest.json",
+                "harness-task-request.json",
+                "harness-execution-receipt.json",
+                "scenario-summary.md",
+            ]:
                 assert (s / fname).exists(), f"{s.name}: missing {fname}"
 
     def test_all_summaries_have_no_action_authorization(self):
         for s in _all_scenarios():
             summary = (s / "scenario-summary.md").read_text()
-            assert "No-action-authorization" in summary or "does not authorize" in summary.lower(), \
+            assert "No-action-authorization" in summary or "does not authorize" in summary.lower(), (
                 f"{s.name}: missing no-action-authorization statement"
+            )
 
     def test_all_summaries_have_adp_pattern_id(self):
         for s in _all_scenarios():
@@ -209,8 +229,9 @@ class TestAllScenariosComplete:
         for s in _all_scenarios():
             m = _load_json(s / "harness-adapter-manifest.json")
             ns = m.get("non_execution_statement", "").lower()
-            assert "does not execute" in ns or "capability only" in ns, \
+            assert "does not execute" in ns or "capability only" in ns, (
                 f"{s.name}: manifest missing non_execution_statement"
+            )
 
     def test_all_task_requests_have_boundary(self):
         for s in _all_scenarios():
@@ -223,13 +244,20 @@ class TestAllScenariosComplete:
     def test_14_scenarios_exist(self):
         names = [d.name for d in _all_scenarios()]
         expected = [
-            "approval-fatigue-sandbox-drift", "baseline-debt-masking",
-            "candidate-rule-premature-promotion", "capability-authorization-collapse",
-            "credential-capability-confusion", "evidence-laundering",
-            "external-benchmark-overclaim", "external-side-effect-drift",
-            "mcp-tool-injection-confused-deputy", "permission-rule-drift",
-            "protected-path-violation", "ready-overclaim",
-            "review-bypass", "shell-risk-escalation",
+            "approval-fatigue-sandbox-drift",
+            "baseline-debt-masking",
+            "candidate-rule-premature-promotion",
+            "capability-authorization-collapse",
+            "credential-capability-confusion",
+            "evidence-laundering",
+            "external-benchmark-overclaim",
+            "external-side-effect-drift",
+            "mcp-tool-injection-confused-deputy",
+            "permission-rule-drift",
+            "protected-path-violation",
+            "ready-overclaim",
+            "review-bypass",
+            "shell-risk-escalation",
         ]
         for e in expected:
             assert e in names, f"Missing scenario: {e}"

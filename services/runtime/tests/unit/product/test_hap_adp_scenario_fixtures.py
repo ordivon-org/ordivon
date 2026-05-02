@@ -19,7 +19,10 @@ ADP_DIR = ROOT / "examples" / "hap" / "adp-scenarios"
 def _validate(path: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(VALIDATOR), str(path)],
-        capture_output=True, text=True, timeout=10, cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=10,
+        cwd=str(ROOT),
     )
 
 
@@ -82,5 +85,6 @@ class TestADPScenarioFixtures:
             if status in ("DEGRADED", "READY_WITHOUT_AUTHORIZATION"):
                 reason = r["result_summary"].get("status_reason", "").lower()
                 auth = r["result_summary"].get("authority_statement", "").lower()
-                assert "does not authorize" in reason + auth or "not" in reason + auth, \
+                assert "does not authorize" in reason + auth or "not" in reason + auth, (
                     f"{s.name}: {status} status missing authorization disclaimer"
+                )

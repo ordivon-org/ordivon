@@ -50,8 +50,7 @@ class TestAuthorityImpact:
 class TestGateMatrix:
     def test_gate_responses_defined(self):
         content = _read("authority-impact-gate-matrix-gov-x.md")
-        for resp in ["READY_WITHOUT_AUTHORIZATION", "REVIEW_REQUIRED", "DEGRADED",
-                      "BLOCKED", "NO-GO"]:
+        for resp in ["READY_WITHOUT_AUTHORIZATION", "REVIEW_REQUIRED", "DEGRADED", "BLOCKED", "NO-GO"]:
             assert resp in content, f"Missing gate response {resp}"
 
     def test_hap2_fixtures_all_match(self):
@@ -61,11 +60,21 @@ class TestGateMatrix:
 
 class TestNoOverclaim:
     def test_no_compliance_claims(self):
-        for doc in ["capability-scaled-governance-gov-x.md", "risk-ladder-gov-x.md",
-                     "authority-impact-gate-matrix-gov-x.md"]:
+        for doc in [
+            "capability-scaled-governance-gov-x.md",
+            "risk-ladder-gov-x.md",
+            "authority-impact-gate-matrix-gov-x.md",
+        ]:
             content = _read(doc).lower()
-            unsafe = ["compliant", "certified", "endorsed", "partnered", "equivalent to",
-                      "production-ready", "public standard"]
+            unsafe = [
+                "compliant",
+                "certified",
+                "endorsed",
+                "partnered",
+                "equivalent to",
+                "production-ready",
+                "public standard",
+            ]
             for word in unsafe:
                 if word in content and f"not {word}" not in content and f"no {word}" not in content:
                     # Allow in safe-language clause or NO-GO triggers
@@ -79,19 +88,25 @@ class TestNoOverclaim:
                     assert False, f"{doc}: unsafe claim '{word}'"
 
     def test_no_can_access_secrets(self):
-        for doc in ["capability-scaled-governance-gov-x.md", "risk-ladder-gov-x.md",
-                     "authority-impact-gate-matrix-gov-x.md"]:
+        for doc in [
+            "capability-scaled-governance-gov-x.md",
+            "risk-ladder-gov-x.md",
+            "authority-impact-gate-matrix-gov-x.md",
+        ]:
             content = _read(doc)
             if "can_access_secrets" not in content:
                 continue
             # Allow only in NO-GO trigger context (explicit prohibition with correction)
-            assert "NO-GO" in content and "use can_read_credentials" in content, \
+            assert "NO-GO" in content and "use can_read_credentials" in content, (
                 f"{doc}: can_access_secrets appears outside NO-GO trigger context"
+            )
 
     def test_ready_is_never_execution_authorization(self):
         content = _read("capability-scaled-governance-gov-x.md")
-        assert "READY_WITHOUT_AUTHORIZATION is never execution authorization" in content or \
-               "never execution authorization" in content.lower()
+        assert (
+            "READY_WITHOUT_AUTHORIZATION is never execution authorization" in content
+            or "never execution authorization" in content.lower()
+        )
 
     def test_candidate_rule_non_binding(self):
         content = _read("capability-scaled-governance-gov-x.md")
@@ -105,6 +120,9 @@ class TestNoOverclaim:
 
 class TestDocsExist:
     def test_all_gov_x_docs_exist(self):
-        for name in ["capability-scaled-governance-gov-x.md", "risk-ladder-gov-x.md",
-                      "authority-impact-gate-matrix-gov-x.md"]:
+        for name in [
+            "capability-scaled-governance-gov-x.md",
+            "risk-ladder-gov-x.md",
+            "authority-impact-gate-matrix-gov-x.md",
+        ]:
             assert (GOV_DIR / name).exists(), f"Missing doc: {name}"

@@ -13,8 +13,9 @@ RR_DIR = ROOT / "examples" / "hap" / "review-record"
 
 
 def _validate(path: Path) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(VALIDATOR), str(path)],
-                          capture_output=True, text=True, timeout=10, cwd=str(ROOT))
+    return subprocess.run(
+        [sys.executable, str(VALIDATOR), str(path)], capture_output=True, text=True, timeout=10, cwd=str(ROOT)
+    )
 
 
 class TestReviewRecordSchema:
@@ -86,5 +87,6 @@ class TestReviewRecordBoundaries:
         rec = json.loads((RR_DIR / "unsafe-comment-detector-approval.json").read_text())
         assert rec["reviewer_type"] == "detector"
         stmt = rec["no_action_authorization_statement"].lower()
-        assert "approved" in stmt or "authorized" in stmt, \
+        assert "approved" in stmt or "authorized" in stmt, (
             "Unsafe fixture should contain approval/authorization claim for testing"
+        )

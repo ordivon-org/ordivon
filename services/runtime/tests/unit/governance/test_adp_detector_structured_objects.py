@@ -8,10 +8,13 @@ ROOT = Path(__file__).resolve().parents[3]
 DETECTOR = ROOT / "scripts" / "detect_agentic_patterns.py"
 SFX = ROOT / "tests" / "fixtures" / "adp_detector" / "structured"
 
+
 def _findings(path: str) -> list[dict]:
-    r = subprocess.run([sys.executable, str(DETECTOR), path, "--json"],
-                       capture_output=True, text=True, timeout=10, cwd=str(ROOT))
+    r = subprocess.run(
+        [sys.executable, str(DETECTOR), path, "--json"], capture_output=True, text=True, timeout=10, cwd=str(ROOT)
+    )
     return json.loads(r.stdout).get("findings", [])
+
 
 class TestTaskPlanDetection:
     def test_safe_c0_not_flagged(self):
@@ -26,6 +29,7 @@ class TestTaskPlanDetection:
         f = _findings(str(SFX / "unsafe-taskplan-c4.json"))
         patterns = {x["pattern_id"] for x in f}
         assert "ADP3-PLAN-C4" in patterns, f"C4 not flagged: {f}"
+
 
 class TestReviewRecordDetection:
     def test_safe_comment_not_flagged(self):

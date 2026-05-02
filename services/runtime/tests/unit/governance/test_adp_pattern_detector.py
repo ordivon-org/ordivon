@@ -16,14 +16,16 @@ UNSAFE_DIR = ROOT / "tests" / "fixtures" / "adp_detector" / "unsafe"
 def _run(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(DETECTOR)] + list(args),
-        capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=30,
+        cwd=str(ROOT),
     )
 
 
 def _findings(r: subprocess.CompletedProcess) -> list[dict]:
     if r.returncode == 0 and "findings" not in r.stdout:
-        r2 = _run(str(SAFE_DIR), "--json")
-        # just parse the JSON output
+        _run(str(SAFE_DIR), "--json")
     return []
 
 
@@ -149,16 +151,14 @@ class TestDetectorDeterminism:
         assert "findings" in data
         assert "stats" in data
         for f in data["findings"]:
-            for key in ["finding_id", "pattern_id", "severity", "file", "line",
-                         "explanation", "blocks_closure"]:
+            for key in ["finding_id", "pattern_id", "severity", "file", "line", "explanation", "blocks_closure"]:
                 assert key in f, f"Missing key {key} in finding"
 
 
 class TestDetectorNoCanAccessSecrets:
     def test_detector_source_has_no_can_access_secrets(self):
         content = DETECTOR.read_text()
-        assert "can_access_secrets" not in content, \
-            "Detector source contains forbidden can_access_secrets"
+        assert "can_access_secrets" not in content, "Detector source contains forbidden can_access_secrets"
 
 
 class TestDetectorCLI:
@@ -189,9 +189,12 @@ class TestRedTeamP01SafeNegationSuppressor:
         f = _json_findings(str(REDTEAM_DIR / "p0-1-safe-negation-suppressor.md"))
         # The exploit line: capability + blocked + authorized to proceed
         blocking = [x for x in f if x["severity"] == "blocking"]
-        assert len(blocking) >= 2, f"Expected >=2 blocking findings for P0-1 exploit, got {len(blocking)}: {[x['pattern_id'] for x in blocking]}"
-        assert any(x["pattern_id"] == "AP-COL" and x["line"] == 6 for x in f), \
+        assert len(blocking) >= 2, (
+            f"Expected >=2 blocking findings for P0-1 exploit, got {len(blocking)}: {[x['pattern_id'] for x in blocking]}"
+        )
+        assert any(x["pattern_id"] == "AP-COL" and x["line"] == 6 for x in f), (
             "P0-1 exploit line 6 not flagged as AP-COL"
+        )
 
     def test_safe_lines_still_safe(self):
         f = _json_findings(str(REDTEAM_DIR / "p0-1-safe-negation-suppressor.md"))
@@ -229,4 +232,3 @@ class TestRedTeamP11LowercaseReady:
         # Lines 9-10 are safe variants
         safe_blocking = [x for x in f if x["severity"] == "blocking" and x["line"] in (9, 10)]
         assert len(safe_blocking) == 0, f"Safe ready lines flagged: {safe_blocking}"
-

@@ -13,8 +13,9 @@ TP_DIR = ROOT / "examples" / "hap" / "task-plan"
 
 
 def _validate(path: Path) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(VALIDATOR), str(path)],
-                          capture_output=True, text=True, timeout=10, cwd=str(ROOT))
+    return subprocess.run(
+        [sys.executable, str(VALIDATOR), str(path)], capture_output=True, text=True, timeout=10, cwd=str(ROOT)
+    )
 
 
 class TestTaskPlanSchema:
@@ -68,14 +69,14 @@ class TestTaskPlanBoundaries:
                 continue
             if "unsafe" in f.name:
                 continue  # Intentionally unsafe fixtures tested separately
-            assert "does not authorize" in stmt or "not authorization" in stmt or "not execution" in stmt, \
+            assert "does not authorize" in stmt or "not authorization" in stmt or "not execution" in stmt, (
                 f"{f.name}: plan missing authorization denial"
+            )
 
     def test_credential_access_planned_is_false(self):
         for f in TP_DIR.glob("*.json"):
             plan = json.loads(f.read_text())
-            assert plan.get("credential_access_planned") is False, \
-                f"{f.name}: credential_access_planned must be false"
+            assert plan.get("credential_access_planned") is False, f"{f.name}: credential_access_planned must be false"
 
     def test_no_can_access_secrets(self):
         for f in TP_DIR.glob("*.json"):
@@ -85,5 +86,6 @@ class TestTaskPlanBoundaries:
     def test_unsafe_plan_claims_execution(self):
         plan = json.loads((TP_DIR / "unsafe-plan-claims-execution.json").read_text())
         stmt = plan["no_action_authorization_statement"].lower()
-        assert "execution authorized" in stmt or "approved" in stmt, \
+        assert "execution authorized" in stmt or "approved" in stmt, (
             "Unsafe fixture should contain execution claim for testing"
+        )
