@@ -101,6 +101,19 @@ HARD_FAILS: list[tuple[re.Pattern, str, re.Pattern | None]] = [
         "claims 'CandidateRule validated' — should say 'advisory' or 'supported by evidence'",
         re.compile(r"advisory|not\s+Policy|supported\s+by\s+evidence|observed\s+effective", re.IGNORECASE),
     ),
+    # 7. P0-3 fix: Boundary claim mismatch — work describes capability/order/execution/live
+    # but boundary confirmation claims generic "No live trading [OK]" without evidence.
+    # Only fires in files that ALSO contain boundary confirmation markers.
+    (
+        re.compile(r"(?:can_place_order|order\s+placement|order\s+status|order\s+capability)", re.IGNORECASE),
+        "work summary describes order/execution capability but boundary claim may lack paper-only evidence — verify invariant tests cited",
+        re.compile(
+            r"paper.only|paper\s+environment|no\s+live|not\s+live|NO-GO|BLOCKED"
+            r"|invariant\s+test|explicit\s+evidence|declaration\s+only"
+            r"|not\s+execution\s+authorization|does\s+not\s+authorize",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 # Context words that make the surrounding text look like a skip/not-run

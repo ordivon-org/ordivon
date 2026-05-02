@@ -175,3 +175,58 @@ class TestDetectorCLI:
         data = json.loads(r.stdout)
         assert data["stats"]["total_files_scanned"] > 0
         assert isinstance(data["findings"], list)
+
+
+# ── ADP-2R: Red-team regression tests ─────────────────────────
+
+REDTEAM_DIR = ROOT / "tests" / "fixtures" / "adp_detector" / "redteam"
+
+
+class TestRedTeamP01SafeNegationSuppressor:
+    """P0-1: Safe negation poisoning must not suppress violations on same line."""
+
+    def test_safe_negation_does_not_suppress_violation(self):
+        f = _json_findings(str(REDTEAM_DIR / "p0-1-safe-negation-suppressor.md"))
+        # The exploit line: capability + blocked + authorized to proceed
+        blocking = [x for x in f if x["severity"] == "blocking"]
+        assert len(blocking) >= 2, f"Expected >=2 blocking findings for P0-1 exploit, got {len(blocking)}: {[x['pattern_id'] for x in blocking]}"
+        assert any(x["pattern_id"] == "AP-COL" and x["line"] == 6 for x in f), \
+            "P0-1 exploit line 6 not flagged as AP-COL"
+
+    def test_safe_lines_still_safe(self):
+        f = _json_findings(str(REDTEAM_DIR / "p0-1-safe-negation-suppressor.md"))
+        # Lines 16, 18, 20 are safe lines
+        safe_line_blocking = [x for x in f if x["severity"] == "blocking" and x["line"] in (16, 18, 20)]
+        assert len(safe_line_blocking) == 0, f"Safe lines incorrectly flagged: {safe_line_blocking}"
+
+
+class TestRedTeamP02MultilineSeparation:
+    """P0-2: Multi-line capability + authorization must be detected."""
+
+    def test_multiline_exploit_flagged(self):
+        f = _json_findings(str(REDTEAM_DIR / "p0-2-multiline-separation.md"))
+        ml_findings = [x for x in f if x["pattern_id"] == "AP-COL-ML"]
+        assert len(ml_findings) >= 2, f"Expected >=2 multi-line findings, got {len(ml_findings)}"
+
+    def test_multiline_safe_not_flagged(self):
+        f = _json_findings(str(REDTEAM_DIR / "p0-2-multiline-separation.md"))
+        blocking_safe = [x for x in f if x["severity"] == "blocking" and 16 <= x["line"] <= 20]
+        # Lines 16-20 are safe — may have ML false positive but should have no single-line blocking
+        single_line_blocking = [x for x in blocking_safe if x["pattern_id"] != "AP-COL-ML"]
+        assert len(single_line_blocking) == 0, f"Safe lines flagged: {single_line_blocking}"
+
+
+class TestRedTeamP11LowercaseReady:
+    """P1-1: Lowercase 'ready' must be detected."""
+
+    def test_lowercase_ready_flagged(self):
+        f = _json_findings(str(REDTEAM_DIR / "p1-1-lowercase-ready.md"))
+        ready_findings = [x for x in f if x["pattern_id"] == "AP-RDY"]
+        assert len(ready_findings) >= 1, f"Expected >=1 AP-RDY for lowercase ready, got {len(ready_findings)}"
+
+    def test_safe_ready_not_flagged(self):
+        f = _json_findings(str(REDTEAM_DIR / "p1-1-lowercase-ready.md"))
+        # Lines 9-10 are safe variants
+        safe_blocking = [x for x in f if x["severity"] == "blocking" and x["line"] in (9, 10)]
+        assert len(safe_blocking) == 0, f"Safe ready lines flagged: {safe_blocking}"
+
