@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 91
+**Total registered docs**: 92
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -133,6 +133,7 @@
 | [ADP-2R Red-Team Remediation — Runtime Evidence](../runtime/adp-2r-redteam-remediation.md) | `docs/runtime/adp-2r-redteam-remediation.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [ADP-3 Closure — Structure-Aware + Registry-Aware + PV-Aware Detector Seal](../runtime/adp-3-closure-seal.md) | `docs/runtime/adp-3-closure-seal.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [CPR-1 Closure Seal — Core/Pack Governance Loop Restoration](../runtime/cpr-1-closure-seal.md) | `docs/runtime/cpr-1-closure-seal.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-1 Closure](../runtime/ogap-1-governance-adapter-protocol-v0.md) | `docs/runtime/ogap-1-governance-adapter-protocol-v0.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-2 Protocol Schemas + Validator](../runtime/ogap-2-protocol-schemas-validator.md) | `docs/runtime/ogap-2-protocol-schemas-validator.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |

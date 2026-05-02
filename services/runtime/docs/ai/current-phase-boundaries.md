@@ -45,6 +45,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **HAP-1** | **CLOSED** | Harness Adapter Protocol v0 foundation |
 | **ADP-3** | **CLOSED** | Structure-aware + registry-aware + PV-aware + red-team-debt-aware — sealed |
 | **ADP-2R** | **CLOSED** | Red-team remediation — 5/13 findings fixed, 8 debt items registered |
+| **CPR-1** | **CLOSED** | Core/Pack governance loop restoration — sealed |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
