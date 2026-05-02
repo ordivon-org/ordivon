@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "unsafe-c4",
+  "capability_class": "C4",
+  "risk_level": "AP-R4",
+  "authority_impact": "AI-5",
+  "planned_status": "READY_WITHOUT_AUTHORIZATION",
+  "allowed_files": [
+    "*"
+  ],
+  "forbidden_files": [],
+  "protected_paths": [],
+  "credential_access_planned": true,
+  "mcp_or_browser_use_planned": true,
+  "no_action_authorization_statement": "Ready to proceed.",
+  "next_review_required": false
+}

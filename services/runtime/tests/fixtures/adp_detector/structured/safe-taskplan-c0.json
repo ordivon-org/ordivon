@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "safe-c0",
+  "capability_class": "C0",
+  "risk_level": "AP-R0",
+  "authority_impact": "AI-0",
+  "planned_status": "PLAN_ONLY",
+  "allowed_files": [
+    "docs/"
+  ],
+  "forbidden_files": [],
+  "protected_paths": [],
+  "credential_access_planned": false,
+  "mcp_or_browser_use_planned": false,
+  "no_action_authorization_statement": "TaskPlan describes intent only. It does not authorize execution.",
+  "next_review_required": true
+}

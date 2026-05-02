@@ -110,6 +110,24 @@ def detect(input_paths: list[Path]) -> tuple[list[Finding], dict]:
             for i, line in enumerate(lines, 1):
                 findings.extend(_check_line(f, i, line))
 
+            # ADP-3: Structure-aware
+            if f.suffix == ".json":
+                try:
+                    findings.extend(_check_json_objects(f, f.read_text(encoding="utf-8", errors="replace")))
+                except Exception:
+                    pass
+
+            # ADP-3: Registry-aware
+            if f.suffix == ".jsonl" and "registry" in f.name.lower():
+                findings.extend(_check_registry(f))
+
+            # ADP-3: PV public-surface
+            if f.suffix == ".md" and ("ordivon-verify" in str(f) or "ordivon_verify" in str(f) or "public_surface" in str(f)):
+                try:
+                    findings.extend(_check_public_surface(f, lines))
+                except Exception:
+                    pass
+
     stats = {
         "scanned_paths": [str(p) for p in input_paths],
         "total_files_scanned": files_scanned,
@@ -268,10 +286,158 @@ def _check_line(filepath: Path, lineno: int, line: str) -> list[Finding]:
     return results
 
 
+
+# ── ADP-3: Structure-aware + Registry-aware + PV-aware checks ──────────
+
+REGISTRY_PATH = ROOT / "docs" / "governance" / "document-registry.jsonl"
+
+def _check_json_objects(filepath: Path, content_str: str) -> list[Finding]:
+    """Parse HAP-3 TaskPlan/ReviewRecord JSON and run structure-aware checks."""
+    results = []
+    rel = str(filepath.relative_to(ROOT)) if str(filepath).startswith(str(ROOT)) else str(filepath)
+    try:
+        data = json.loads(content_str)
+    except Exception:
+        return results
+    obj_type = data.get("object_type", "")
+    if obj_type not in ("HarnessTaskPlan", "HarnessReviewRecord"):
+        return results
+
+    def add(pid, sev, risk, cap, ai, gate_exp, gate_obs, expl, fix, blocks, ln=0):
+        results.append(Finding(
+            finding_id=f"ADP3-{pid}-{filepath.name}",
+            pattern_id=pid, severity=sev, risk_level=risk,
+            capability_class=cap, authority_impact=ai,
+            gate_expected=gate_exp, gate_observed=gate_obs,
+            file=rel, line=ln, evidence_snippet=json.dumps(data)[:200],
+            explanation=expl, recommended_fix=fix, blocks_closure=blocks,
+        ))
+
+    if obj_type == "HarnessTaskPlan":
+        stmt = data.get("no_action_authorization_statement", "").lower()
+        status = data.get("planned_status", "")
+        if status == "READY_WITHOUT_AUTHORIZATION":
+            if "does not authorize" not in stmt and "not authorization" not in stmt:
+                add("ADP3-PLAN-EXEC", "blocking", "AP-R2", "C2", "AI-3",
+                    "PLAN_ONLY/BLOCKED", "READY_WITHOUT_AUTHORIZATION",
+                    "TaskPlan READY without authorization denial.", "Add denial.", True)
+        if "execution authorized" in stmt:
+            add("ADP3-PLAN-EXEC", "blocking", "AP-R2", "C2", "AI-3",
+                "PLAN_ONLY/BLOCKED", "execution authorized",
+                "TaskPlan claims execution permission.", "Remove execution claim.", True)
+        cc = data.get("capability_class", "")
+        ps = data.get("planned_status", "")
+        if cc == "C4" and ps not in ("BLOCKED", "REVIEW_REQUIRED"):
+            add("ADP3-PLAN-C4", "blocking", "AP-R4", "C4", "AI-5",
+                "BLOCKED", ps, "C4 TaskPlan not BLOCKED.", "Set to BLOCKED.", True)
+        if cc == "C5" and ps != "NO_GO":
+            add("ADP3-PLAN-C5", "blocking", "AP-R5", "C5", "AI-6",
+                "NO_GO", ps, "C5 TaskPlan not NO_GO.", "Set to NO_GO.", True)
+        pp = data.get("protected_paths", [])
+        bs = data.get("boundary_statement", "")
+        if pp and not bs:
+            add("ADP3-PLAN-PPATH", "degraded", "AP-R2", "C2", "AI-3",
+                "REVIEW_REQUIRED", "no boundary", "Protected paths without boundary_statement.",
+                "Add boundary_statement.", True)
+
+    if obj_type == "HarnessReviewRecord":
+        rt = data.get("reviewer_type", "")
+        rs = data.get("review_status", "")
+        nsa = data.get("no_action_authorization_statement", "").lower()
+        if rt == "detector" and ("approved" in nsa or "authorized" in nsa or "proceed" in nsa):
+            add("ADP3-REVIEW-DETECTOR", "blocking", "AP-R4", "C4", "AI-2",
+                "REVIEW_REQUIRED", "detector approval", "Detector PASS as authorization.",
+                "Detector PASS is not authorization.", True)
+        if rs == "COMMENT_ONLY" and ("approved" in nsa or "merge" in nsa):
+            add("ADP3-REVIEW-COMMENT", "blocking", "AP-R4", "C4", "AI-3",
+                "REVIEW_REQUIRED", "comment approval", "COMMENT_ONLY as approval.",
+                "COMMENT_ONLY is not approval.", True)
+        crs = data.get("candidate_rule_status", "")
+        if crs not in ("none", "proposed_non_binding", "rejected", "deferred"):
+            add("ADP3-CR-BINDING", "blocking", "AP-R5", "C5", "AI-6",
+                "BLOCKED", crs, "CandidateRule status implies binding.",
+                "Use proposed_non_binding.", True)
+    return results
+
+
+def _check_registry(registry_path: Path = None) -> list[Finding]:
+    results = []
+    rp = Path(registry_path).resolve() if registry_path else REGISTRY_PATH
+    if not rp.exists():
+        return results
+    def add(pid, sev, risk, cap, ai, gate_exp, gate_obs, expl, fix, blocks, ln=0):
+        results.append(Finding(finding_id=f"ADP3-{pid}-REG", pattern_id=pid, severity=sev,
+            risk_level=risk, capability_class=cap, authority_impact=ai,
+            gate_expected=gate_exp, gate_observed=gate_obs,
+            file=str(rp.relative_to(ROOT)), line=ln, evidence_snippet=expl[:200],
+            explanation=expl, recommended_fix=fix, blocks_closure=blocks))
+    try:
+        entries = [json.loads(l) for l in rp.read_text().strip().split("\n") if l.strip()]
+    except Exception:
+        return results
+    for i, e in enumerate(entries, 1):
+        if e.get("status") == "current" and e.get("superseded_by"):
+            add("ADP3-DG-SUPERSEDED", "blocking", "AP-R1", "C1", "AI-0",
+                "READY_WITHOUT_AUTHORIZATION", "current+superseded",
+                f"Entry {e.get('doc_id')} current but superseded_by={e.get('superseded_by')}",
+                "Mark superseded or clear.", True, i)
+        if e.get("ai_read_priority", 99) <= 1 and e.get("status") in ("superseded", "archived"):
+            add("ADP3-DG-AI-STALE", "degraded", "AP-R1", "C1", "AI-0",
+                "current", f"priority={e.get('ai_read_priority')}, status={e.get('status')}",
+                f"High-priority AI doc {e.get('doc_id')} is {e.get('status')}",
+                "Update or lower priority.", True, i)
+        dt = e.get("doc_type", "")
+        nt = (e.get("notes", "") or "").lower()
+        if dt in ("receipt", "ledger"):
+            if "action authorization" in nt or "authorizes" in nt or "authorization" in nt:
+                add("ADP3-DG-RECEIPT-AUTH", "blocking", "AP-R1", "C1", "AI-0",
+                    "supporting_evidence", e.get("authority", ""),
+                    f"Receipt/ledger {e.get('doc_id')} claims action authorization",
+                    "Receipts are evidence, not authorization.", True, i)
+    return results
+
+
+def _check_public_surface(filepath: Path, lines: list[str]) -> list[Finding]:
+    results = []
+    rel = str(filepath.relative_to(ROOT)) if str(filepath).startswith(str(ROOT)) else str(filepath)
+    if "ordivon-verify" not in rel and "ordivon_verify" not in rel and "public_surface" not in rel:
+        return results
+    content = "\n".join(lines)
+    cl = content.lower()
+    def add(pid, sev, risk, cap, ai, gate_exp, gate_obs, expl, fix, blocks):
+        results.append(Finding(finding_id=f"ADP3-{pid}-PV", pattern_id=pid, severity=sev,
+            risk_level=risk, capability_class=cap, authority_impact=ai,
+            gate_expected=gate_exp, gate_observed=gate_obs, file=rel, line=0,
+            evidence_snippet=expl[:200], explanation=expl, recommended_fix=fix, blocks_closure=blocks))
+    for claim in ["package published", "public repo created", "license activated", "production-ready"]:
+        if claim in cl:
+            idx = cl.find(claim)
+            ctx = cl[max(0,idx-30):idx+len(claim)+30]
+            if "not " + claim not in ctx and "no " + claim not in ctx:
+                add("ADP3-PV-RELEASE", "blocking", "AP-R1", "C1", "AI-0",
+                    "BLOCKED", claim, f"PV doc claims: {claim}", "No release occurred.", True)
+                break
+    if "the full" in cl and "ordivon" in cl:
+        idx = cl.find("the full")
+        ctx = cl[max(0,idx-40):idx+60]
+        if "not the full" in ctx or "not the entire" in ctx:
+            pass  # Safe negation
+        else:
+            add("ADP3-PV-WEDGE", "blocking", "AP-R1", "C1", "AI-0",
+            "BLOCKED", "wedge=core", "PV doc collapses wedge into core.",
+            "Ordivon Verify != Ordivon core.", True)
+    if "ready" in cl and ("approve" in cl or "production" in cl):
+        if "ready_without_authorization" not in cl and "does not authorize" not in cl:
+            add("ADP3-PV-READY", "blocking", "AP-R4", "C4", "AI-0",
+                "READY_WITHOUT_AUTHORIZATION", "READY as approval",
+                "PV doc uses READY as approval.", "Use READY_WITHOUT_AUTHORIZATION.", True)
+    return results
+
+
 # ── CLI ────────────────────────────────────────────────────────────────
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ADP-2 Agentic Pattern Detector")
+    parser = argparse.ArgumentParser(description="ADP-3 Agentic Pattern Detector")
     parser.add_argument("paths", nargs="+", help="Paths to scan")
     parser.add_argument("--json", action="store_true", help="JSON output")
     parser.add_argument("--fail-on-blocking", action="store_true", help="Exit non-zero on blocking findings")
@@ -284,7 +450,7 @@ def main() -> int:
         output = {"findings": [f.to_dict() for f in findings], "stats": stats}
         print(json.dumps(output, indent=2))
     else:
-        print(f"ADP-2 Agentic Pattern Detector")
+        print(f"ADP-3 Agentic Pattern Detector")
         print(f"  Scanned: {stats['total_files_scanned']} files")
         print(f"  Findings: {stats['total_findings']}")
         print(f"    blocking: {stats['blocking']}")

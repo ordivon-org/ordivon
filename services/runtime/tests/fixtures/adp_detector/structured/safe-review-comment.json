@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "safe-comment",
+  "reviewer_type": "human",
+  "review_status": "COMMENT_ONLY",
+  "approval_scope": "none",
+  "evidence_sufficiency": "not_applicable",
+  "candidate_rule_status": "none",
+  "gate_response": "REVIEW_REQUIRED",
+  "no_action_authorization_statement": "COMMENT_ONLY is not approval. This review does not authorize action.",
+  "next_step_recommendation": "Full review required."
+}

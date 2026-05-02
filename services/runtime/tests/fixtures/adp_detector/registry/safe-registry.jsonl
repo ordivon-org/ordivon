@@ -1,0 +1,1 @@
+{"doc_id": "safe-test", "path": "docs/test.md", "title": "Test Doc", "doc_type": "runtime", "status": "current", "authority": "supporting_evidence", "phase": "TEST", "freshness": "2026-05-02", "ai_read_priority": 3, "supersedes": null, "superseded_by": null, "related_docs": [], "related_ledgers": [], "related_receipts": [], "notes": "Safe test entry."}

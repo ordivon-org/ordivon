@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 75
+**Total registered docs**: 76
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -126,6 +126,7 @@
 | [PV-N9 Public Wedge Packaging Separation Receipt](../runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md) | `docs/runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [ADP-3 Structure-Aware + Registry-Aware + PV-Aware Detection](../runtime/adp-3-structure-registry-public-surface-detection.md) | `docs/runtime/adp-3-structure-registry-public-surface-detection.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP Foundation — Runtime Evidence (HAP-1)](../runtime/hap-foundation-hap-1.md) | `docs/runtime/hap-foundation-hap-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |

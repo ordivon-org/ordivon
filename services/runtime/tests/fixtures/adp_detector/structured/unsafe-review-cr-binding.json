@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "unsafe-cr",
+  "reviewer_type": "human",
+  "review_status": "APPROVED_FOR_CLOSURE",
+  "approval_scope": "closure_only",
+  "evidence_sufficiency": "sufficient",
+  "candidate_rule_status": "binding_policy",
+  "gate_response": "READY_WITHOUT_AUTHORIZATION",
+  "no_action_authorization_statement": "CR is now binding policy.",
+  "next_step_recommendation": "Enforce CR as active policy."
+}
