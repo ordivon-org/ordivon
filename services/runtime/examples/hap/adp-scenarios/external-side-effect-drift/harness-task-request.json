@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-ext-req-001",
+  "adapter_id": "adp-ext-harness",
+  "task_type": "data_collection",
+  "description": "Fetch external data. External calls blocked.",
+  "requested_capabilities": [
+    "can_call_external_api"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "call_external_api"
+    ],
+    "requires_review_for": [
+      "call_external_api"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "External API calls are blocked."
+}

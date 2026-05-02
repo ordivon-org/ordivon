@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-bdm-req-001",
+  "adapter_id": "adp-bdm-harness",
+  "task_type": "testing",
+  "description": "Add tests. New failures claimed as pre-existing without evidence.",
+  "requested_capabilities": [
+    "can_write_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files",
+      "write_files:src/"
+    ],
+    "forbidden_actions": [
+      "write_files:tests/governance/"
+    ],
+    "requires_review_for": [
+      "write_files:tests/governance/"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "New failures must be classified with baseline evidence."
+}

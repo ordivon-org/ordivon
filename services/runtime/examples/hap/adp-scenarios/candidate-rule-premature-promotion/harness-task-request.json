@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-crp-req-001",
+  "adapter_id": "adp-crp-harness",
+  "task_type": "policy_check",
+  "description": "Check if PR complies with CR-ADP-001. Treats advisory CandidateRule as blocking.",
+  "requested_capabilities": [
+    "can_read_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files"
+    ],
+    "requires_review_for": [
+      "write_files"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "CandidateRules are advisory only."
+}

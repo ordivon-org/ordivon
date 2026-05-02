@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-ppv-rec-001",
+  "request_id": "adp-ppv-req-001",
+  "plan_id": "adp-ppv-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "protected_path_violation"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-ppv-rec-001-ev",
+    "receipt_id": "adp-ppv-rec-001",
+    "gaps": [
+      "Governance file modified without scope authorization."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-ppv-rec-001-res",
+    "receipt_id": "adp-ppv-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "Governance file modified without scope authorization.",
+    "warnings": [
+      "Protected path: docs/governance/ modified outside scope."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

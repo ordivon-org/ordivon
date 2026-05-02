@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-crp-rec-001",
+  "request_id": "adp-crp-req-001",
+  "plan_id": "adp-crp-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "candidate_rule_misapplied_as_policy"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-crp-rec-001-ev",
+    "receipt_id": "adp-crp-rec-001",
+    "gaps": [
+      "CR-ADP-001 cited as blocking gate without Policy activation. CandidateRule is advisory only."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-crp-rec-001-res",
+    "receipt_id": "adp-crp-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "CR-ADP-001 cited as blocking gate without Policy activation. CandidateRule is advisory only.",
+    "warnings": [
+      "CR-ADP-001 is NON-BINDING. Promotion requires 4 criteria."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

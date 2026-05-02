@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-she-rec-001",
+  "request_id": "adp-she-req-001",
+  "plan_id": "adp-she-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "shell_escalation_blocked"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-she-rec-001-ev",
+    "receipt_id": "adp-she-rec-001",
+    "gaps": [
+      "Task started at AP-R1. Shell requires AP-R3 escalation."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-she-rec-001-res",
+    "receipt_id": "adp-she-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "Task started at AP-R1. Shell requires AP-R3 escalation.",
+    "warnings": [
+      "Risk level mismatch: AP-R1 task requested AP-R3 capability."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-cred-rec-001",
+  "request_id": "adp-cred-req-001",
+  "plan_id": "adp-cred-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "credential_access_blocked"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-cred-rec-001-ev",
+    "receipt_id": "adp-cred-rec-001",
+    "gaps": [
+      "can_read_credentials is capability, not access. Credential access blocked."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-cred-rec-001-res",
+    "receipt_id": "adp-cred-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "can_read_credentials is capability, not access. Credential access blocked.",
+    "warnings": [
+      "Agent confused capability with access."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

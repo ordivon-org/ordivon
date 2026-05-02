@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "adp-ppv-harness",
+  "harness_family": "claude-code",
+  "adapter_type": "agent",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": true,
+    "can_apply_patch": true,
+    "can_run_shell": false,
+    "can_use_browser": false,
+    "can_use_mcp": false,
+    "can_read_credentials": false,
+    "can_call_external_api": false,
+    "authority_statement": "can_X does not imply may_X."
+  },
+  "risk_profile": {
+    "risk_level": "workspace_write",
+    "risk_reason": "Write capability. Governance files protected.",
+    "mitigations": [
+      "Blocked at boundary."
+    ],
+    "boundary_enforcement": "Boundary enforced."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files",
+      "write_files"
+    ],
+    "forbidden_actions": [
+      "modify_governance",
+      "modify_ci",
+      "modify_credentials"
+    ],
+    "requires_review_for": [
+      "modify_governance",
+      "modify_ci",
+      "modify_credentials"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "Manifest describes capability only. Does not execute.",
+  "authority_statement": "Capability declaration is not authorization."
+}

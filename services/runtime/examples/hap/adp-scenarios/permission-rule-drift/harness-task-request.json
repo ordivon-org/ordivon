@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-drf-req-001",
+  "adapter_id": "adp-drf-harness",
+  "task_type": "deployment",
+  "description": "Deploy to staging. Permission conflict: allowed_actions includes write but forbidden_actions also blocks write.",
+  "requested_capabilities": [
+    "can_write_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "write_files",
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "write_files",
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "Conflicting permission rules. Task cannot proceed."
+}

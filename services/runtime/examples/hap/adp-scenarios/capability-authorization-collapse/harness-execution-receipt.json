@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-col-rec-001",
+  "request_id": "adp-col-req-001",
+  "plan_id": "adp-col-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "shell_execution_blocked"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-col-ev-001",
+    "receipt_id": "adp-col-rec-001",
+    "gaps": [
+      "Shell blocked at boundary."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-col-res-001",
+    "receipt_id": "adp-col-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "can_run_shell=True is capability, not authorization. Shell blocked.",
+    "warnings": [
+      "Agent treated capability as authorization."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

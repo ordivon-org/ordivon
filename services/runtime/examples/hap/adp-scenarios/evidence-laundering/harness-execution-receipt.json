@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-evl-rec-001",
+  "request_id": "adp-evl-req-001",
+  "plan_id": "adp-evl-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-evl-rec-001-ev",
+    "receipt_id": "adp-evl-rec-001",
+    "gaps": [
+      "Evidence quality insufficient: self_reported. Machine verification required."
+    ],
+    "evidence_quality": "self_reported"
+  },
+  "result_summary": {
+    "result_id": "adp-evl-rec-001-res",
+    "receipt_id": "adp-evl-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "Evidence quality insufficient: self_reported. Machine verification required.",
+    "warnings": [
+      "Evidence self_reported. No machine verification."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

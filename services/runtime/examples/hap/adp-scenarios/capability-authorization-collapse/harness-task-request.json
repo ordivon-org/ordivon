@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-col-req-001",
+  "adapter_id": "adp-col-harness",
+  "task_type": "build_and_deploy",
+  "description": "Run build. Agent requests shell because 'it can run shell.'",
+  "requested_capabilities": [
+    "can_run_shell"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "run_shell",
+      "write_files"
+    ],
+    "requires_review_for": [
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "This task request describes intent only. Capability does not authorize execution."
+}

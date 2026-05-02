@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-cred-req-001",
+  "adapter_id": "adp-cred-harness",
+  "task_type": "config_audit",
+  "description": "Audit config. Credential access blocked.",
+  "requested_capabilities": [
+    "can_read_credentials"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "access_credentials"
+    ],
+    "requires_review_for": [
+      "access_credentials"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "can_read_credentials is a declaration, not access."
+}

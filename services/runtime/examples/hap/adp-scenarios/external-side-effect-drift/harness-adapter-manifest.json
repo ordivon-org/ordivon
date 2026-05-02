@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "adapter_id": "adp-ext-harness",
+  "harness_family": "custom-worker",
+  "adapter_type": "worker",
+  "capabilities": {
+    "can_read_files": true,
+    "can_write_files": true,
+    "can_apply_patch": false,
+    "can_run_shell": true,
+    "can_use_browser": false,
+    "can_use_mcp": true,
+    "can_read_credentials": false,
+    "can_call_external_api": true,
+    "authority_statement": "can_X does not imply may_X."
+  },
+  "risk_profile": {
+    "risk_level": "external_side_effect",
+    "risk_reason": "External API+MCP capability.",
+    "mitigations": [
+      "Blocked at boundary."
+    ],
+    "boundary_enforcement": "Boundary enforced."
+  },
+  "declared_boundaries": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "call_external_api",
+      "use_mcp",
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "call_external_api",
+      "use_mcp",
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "non_execution_statement": "Manifest describes capability only. Does not execute.",
+  "authority_statement": "Capability declaration is not authorization."
+}

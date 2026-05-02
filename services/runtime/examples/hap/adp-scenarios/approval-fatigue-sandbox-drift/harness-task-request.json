@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-fat-req-001",
+  "adapter_id": "adp-fat-harness",
+  "task_type": "refactoring",
+  "description": "Refactor module. Approval scope expanded without escalation: requires_review_for shrunk from 3 to 0.",
+  "requested_capabilities": [
+    "can_apply_patch"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files",
+      "write_files",
+      "apply_patch"
+    ],
+    "forbidden_actions": [
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "Scope expansion without Stage Gate escalation is not authorized."
+}

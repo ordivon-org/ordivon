@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-rdy-rec-001",
+  "request_id": "adp-rdy-req-001",
+  "plan_id": "adp-rdy-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-rdy-rec-001-ev",
+    "receipt_id": "adp-rdy-rec-001",
+    "gaps": [
+      "READY_WITHOUT_AUTHORIZATION: selected checks passed. Does not authorize execution."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-rdy-rec-001-res",
+    "receipt_id": "adp-rdy-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "READY_WITHOUT_AUTHORIZATION: selected checks passed. Does not authorize execution.",
+    "warnings": [
+      "READY does not authorize merge, deploy, or production."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

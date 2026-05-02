@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-rev-rec-001",
+  "request_id": "adp-rev-req-001",
+  "plan_id": "adp-rev-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "review_incomplete"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-rev-rec-001-ev",
+    "receipt_id": "adp-rev-rec-001",
+    "gaps": [
+      "requires_review_for contains apply_patch but no review record exists."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-rev-rec-001-res",
+    "receipt_id": "adp-rev-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "requires_review_for contains apply_patch but no review record exists.",
+    "warnings": [
+      "Review required before READY."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

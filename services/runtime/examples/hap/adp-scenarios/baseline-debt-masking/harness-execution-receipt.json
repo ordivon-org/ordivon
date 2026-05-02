@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-bdm-rec-001",
+  "request_id": "adp-bdm-req-001",
+  "plan_id": "adp-bdm-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "baseline_classification_required"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-bdm-rec-001-ev",
+    "receipt_id": "adp-bdm-rec-001",
+    "gaps": [
+      "3 new test failures claimed as pre-existing without baseline comparison evidence."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-bdm-rec-001-res",
+    "receipt_id": "adp-bdm-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "3 new test failures claimed as pre-existing without baseline comparison evidence.",
+    "warnings": [
+      "Failure classification requires baseline diff."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-ebo-rec-001",
+  "request_id": "adp-ebo-req-001",
+  "plan_id": "adp-ebo-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "external_benchmark_overclaim"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-ebo-rec-001-ev",
+    "receipt_id": "adp-ebo-rec-001",
+    "gaps": [
+      "External framework referenced without safe-language disclaimer. Compliance not claimed."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-ebo-rec-001-res",
+    "receipt_id": "adp-ebo-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "External framework referenced without safe-language disclaimer. Compliance not claimed.",
+    "warnings": [
+      "External references require safe-language disclaimer."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-ebo-req-001",
+  "adapter_id": "adp-ebo-harness",
+  "task_type": "documentation",
+  "description": "Write governance docs. Claims 'based on OpenAI PF and NIST RMF' without safe-language.",
+  "requested_capabilities": [
+    "can_write_files"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files",
+      "write_files:src/"
+    ],
+    "forbidden_actions": [
+      "write_files:docs/governance/"
+    ],
+    "requires_review_for": [
+      "write_files:docs/governance/"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "External frameworks are benchmarks only. No compliance claimed."
+}

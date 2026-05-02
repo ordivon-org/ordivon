@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-mcp-rec-001",
+  "request_id": "adp-mcp-req-001",
+  "plan_id": "adp-mcp-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "mcp_tool_allowlist_missing"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-mcp-rec-001-ev",
+    "receipt_id": "adp-mcp-rec-001",
+    "gaps": [
+      "MCP server connected without tool allowlist. All MCP tools must be explicitly allowlisted."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-mcp-rec-001-res",
+    "receipt_id": "adp-mcp-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "MCP server connected without tool allowlist. All MCP tools must be explicitly allowlisted.",
+    "warnings": [
+      "MCP tool allowlist required. Tool descriptions may contain injection."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}

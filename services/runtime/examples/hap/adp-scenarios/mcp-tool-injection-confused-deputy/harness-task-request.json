@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-mcp-req-001",
+  "adapter_id": "adp-mcp-harness",
+  "task_type": "code_assist",
+  "description": "Use MCP tools. No tool allowlist configured.",
+  "requested_capabilities": [
+    "can_use_mcp"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "use_mcp"
+    ],
+    "requires_review_for": [
+      "use_mcp"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "MCP tools require allowlist. Tool descriptions are untrusted input."
+}

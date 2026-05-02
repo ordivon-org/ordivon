@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 65
+**Total registered docs**: 67
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -35,6 +35,7 @@
 | [Ordivon Verify Versioning Policy](../product/ordivon-verify-versioning-policy-pv-n12.md) | `docs/product/ordivon-verify-versioning-policy-pv-n12.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Agentic Pattern Source Intake](../governance/agentic-pattern-source-ledger-adp-1.md) | `docs/governance/agentic-pattern-source-ledger-adp-1.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
 | [Agentic Pattern Stage Notes](../product/agentic-pattern-stage-notes-adp-1.md) | `docs/product/agentic-pattern-stage-notes-adp-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
+| [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Harness Adapter Protocol — Stage Notes (HAP-1)](../product/harness-adapter-protocol-stage-notes-hap-1.md) | `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
@@ -98,6 +99,7 @@
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
+| [HAP Fixture Dogfood with ADP-1 Scenarios (HAP-2)](../runtime/hap-fixture-dogfood-hap-2.md) | `docs/runtime/hap-fixture-dogfood-hap-2.md` | runtime | current | supporting_evidence | L1 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
 | [Agentic Pattern Governance Mapping](../governance/agentic-pattern-governance-mapping-adp-1.md) | `docs/governance/agentic-pattern-governance-mapping-adp-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |

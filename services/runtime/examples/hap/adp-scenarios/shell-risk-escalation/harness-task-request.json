@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-she-req-001",
+  "adapter_id": "adp-she-harness",
+  "task_type": "code_review",
+  "description": "Review PR. Agent requests shell to run tests.",
+  "requested_capabilities": [
+    "can_run_shell"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "run_shell"
+    ],
+    "requires_review_for": [
+      "run_shell"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "Shell escalation from AP-R1 requires AP-R3 classification."
+}

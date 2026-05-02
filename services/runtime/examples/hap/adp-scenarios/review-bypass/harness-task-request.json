@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "request_id": "adp-rev-req-001",
+  "adapter_id": "adp-rev-harness",
+  "task_type": "refactoring",
+  "description": "Refactor with review required.",
+  "requested_capabilities": [
+    "can_apply_patch"
+  ],
+  "boundary_declaration": {
+    "allowed_actions": [
+      "read_files"
+    ],
+    "forbidden_actions": [
+      "apply_patch",
+      "write_files"
+    ],
+    "requires_review_for": [
+      "apply_patch",
+      "write_files"
+    ],
+    "credential_access_blocked": true,
+    "external_api_blocked": true,
+    "shell_blocked": true
+  },
+  "authority_statement": "Patch requires review before application."
+}

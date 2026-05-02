@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "adp-ext-rec-001",
+  "request_id": "adp-ext-req-001",
+  "plan_id": "adp-ext-plan-001",
+  "commands_run": [],
+  "files_changed": [],
+  "passed_checks": [],
+  "failed_checks": [
+    "external_api_blocked"
+  ],
+  "skipped_checks": [],
+  "evidence_bundle": {
+    "bundle_id": "adp-ext-rec-001-ev",
+    "receipt_id": "adp-ext-rec-001",
+    "gaps": [
+      "can_call_external_api is capability, not permission."
+    ],
+    "evidence_quality": "machine_verified"
+  },
+  "result_summary": {
+    "result_id": "adp-ext-rec-001-res",
+    "receipt_id": "adp-ext-rec-001",
+    "status": "BLOCKED",
+    "status_reason": "can_call_external_api is capability, not permission.",
+    "warnings": [
+      "External side-effect blocked."
+    ],
+    "authority_statement": "BLOCKED means boundary enforced. Does not authorize future action."
+  },
+  "authority_statement": "Receipt records boundary enforcement. Does not authorize future action."
+}
