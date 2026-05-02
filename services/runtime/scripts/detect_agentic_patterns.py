@@ -511,6 +511,36 @@ def _check_line(filepath: Path, lineno: int, line: str, all_lines: list[str] | N
                     True,
                 )
 
+    # ── Rule 13: ADP3-RT-CONFIG-GUARD — config guard as insufficient proof (ADP2R-DEBT) ──
+    cg_m = re.search(
+        r"(?:blocked\s+by\s+config(?:uration)?\s+guard|config\s+guard\s+(?:prevents?|blocks?))",
+        line,
+        re.IGNORECASE,
+    )
+    if cg_m:
+        # Safe: if invariant tests or explicit evidence are cited nearby
+        has_evidence = re.search(
+            r"(?:invariant\s+test|boundary\s+evidence|explicit\s+test|checked\s+by|verified\s+by)",
+            line,
+            re.IGNORECASE,
+        )
+        # NOTE: Don't use _proximate_ok here — "blocked" is part of the pattern itself
+        # and would self-suppress via SAFE_NEGATIONS
+        if not has_evidence:
+            add(
+                "AP-RT-CONFIG-GUARD",
+                "degraded",
+                "AP-R2",
+                "C2",
+                "AI-3",
+                "REVIEW_REQUIRED",
+                "config guard only",
+                line.strip(),
+                "Config guard cited as safety proof without invariant tests or boundary evidence.",
+                "Cite invariant tests and boundary evidence alongside config guard references.",
+                False,
+            )
+
     return results
 
 
@@ -719,6 +749,52 @@ def _check_json_objects(filepath: Path, content_str: str) -> list[Finding]:
                 "Use proposed_non_binding.",
                 True,
             )
+
+        # ── ADP3-REVIEW-CLOSURE-SCOPE: Flag APPROVED_FOR_CLOSURE with dangerous scope ──
+        if rs == "APPROVED_FOR_CLOSURE":
+            scope = (data.get("approval_scope", "") or "").lower()
+            notes = str(data.get("review_notes", "")).lower()
+            dangerous = [
+                "action authorization",
+                "execution authorization",
+                "deployment",
+                "live execution",
+                "external side effect",
+                "broker",
+                "trading",
+                "credential access",
+            ]
+            for ds in dangerous:
+                if ds in scope:
+                    add(
+                        "REVIEW-CLOSURE-SCOPE",
+                        "blocking",
+                        "AP-R4",
+                        "C4",
+                        "AI-3",
+                        "BLOCKED",
+                        f"closure scope={ds}",
+                        f"APPROVED_FOR_CLOSURE with dangerous scope: {ds}",
+                        "Closure approval must not authorize execution/deployment/external action.",
+                        True,
+                    )
+                    break
+            if not any(ds in scope for ds in dangerous):
+                for ds in dangerous:
+                    if ds in notes and ("authorized" in notes or "approved" in notes or "proceed" in notes):
+                        add(
+                            "REVIEW-CLOSURE-SCOPE",
+                            "blocking",
+                            "AP-R4",
+                            "C4",
+                            "AI-3",
+                            "BLOCKED",
+                            f"notes claim {ds}",
+                            f"Closure review notes claim dangerous scope: {ds}",
+                            "Closure notes must not authorize execution/deployment.",
+                            True,
+                        )
+                        break
     return results
 
 
@@ -798,13 +874,54 @@ def _check_registry(registry_path: Path = None) -> list[Finding]:
                     True,
                     i,
                 )
+        # ── ADP3-DG-STALENESS: High-priority AI docs missing freshness metadata ──
+        if e.get("ai_read_priority", 99) <= 1 and e.get("status") in ("current", "accepted"):
+            if not e.get("last_verified") and not e.get("stale_after_days"):
+                add(
+                    "ADP3-DG-STALENESS",
+                    "degraded",
+                    "AP-R1",
+                    "C1",
+                    "AI-0",
+                    "current+stale",
+                    f"no freshness (prio={e.get('ai_read_priority')}, status={e.get('status')})",
+                    f"High-priority AI doc {e.get('doc_id')} missing last_verified/stale_after_days",
+                    "Add freshness metadata: last_verified date and stale_after_days.",
+                    True,
+                    i,
+                )
+        # ── ADP3-DG-DEGRADED-LIFECYCLE: DEGRADED entries without lifecycle fields ──
+        if e.get("authority") == "degraded" or e.get("status") == "degraded":
+            missing = []
+            if not e.get("owner"):
+                missing.append("owner")
+            if not e.get("stale_after_days") and not e.get("due_stage"):
+                missing.append("stale_after_days/due_stage")
+            if missing:
+                add(
+                    "ADP3-DG-DEGRADED-LIFECYCLE",
+                    "degraded",
+                    "AP-R1",
+                    "C1",
+                    "AI-0",
+                    "DEGRADED+lifecycle",
+                    f"missing {', '.join(missing)}",
+                    f"DEGRADED entry {e.get('doc_id')} missing lifecycle fields: {', '.join(missing)}",
+                    "DEGRADED entries require owner, stale_after_days/due_stage, escalation condition.",
+                    True,
+                    i,
+                )
     return results
 
 
 def _check_public_surface(filepath: Path, lines: list[str]) -> list[Finding]:
     results = []
     rel = str(filepath.relative_to(ROOT)) if str(filepath).startswith(str(ROOT)) else str(filepath)
-    if "ordivon-verify" not in rel and "ordivon_verify" not in rel and "public_surface" not in rel:
+    # Broader PV detection (ADP2R-DEBT-PATH-BRITTLENESS):
+    # Detect PV docs by path OR by content patterns (package manifest, public docs)
+    is_pv_path = "ordivon-verify" in rel or "ordivon_verify" in rel or "public_surface" in rel
+    is_pv_content = "ordivon verify" in "\n".join(lines[:20]).lower() or "ordivon_verify" in "\n".join(lines[:20])
+    if not is_pv_path and not is_pv_content:
         return results
     content = "\n".join(lines)
     cl = content.lower()
@@ -877,6 +994,56 @@ def _check_public_surface(filepath: Path, lines: list[str]) -> list[Finding]:
                 "READY as approval",
                 "PV doc uses READY as approval.",
                 "Use READY_WITHOUT_AUTHORIZATION.",
+                True,
+            )
+    # ── ADP3-PV-PACKAGE-SAFETY: Missing private-core boundary disclaimer ──
+    boundary_terms = [
+        "private core",
+        "public wedge",
+        "not the full",
+        "no broker",
+        "no finance",
+        "no live",
+        "no credential",
+        "release disclaimer",
+        "not a release",
+    ]
+    has_boundary = any(t in cl for t in boundary_terms)
+    package_indicators = [
+        "pip install",
+        "uv add",
+        "package",
+        "pyproject.toml",
+        "quickstart",
+        "getting started",
+    ]
+    is_package_doc = any(t in cl for t in package_indicators)
+    if is_package_doc and not has_boundary:
+        add(
+            "ADP3-PV-PACKAGE-SAFETY",
+            "degraded",
+            "AP-R1",
+            "C1",
+            "AI-0",
+            "BLOCKED",
+            "no boundary disclaimer",
+            "PV package doc missing private-core boundary or release disclaimer.",
+            "Add boundary: Ordivon Verify != full core. No broker/finance/live. Not a release.",
+            True,
+        )
+    # ── ADP3-PV-CHANGELOG-RECEIPT-CONFUSION: Release notes conflated with receipts ──
+    if ("changelog" in cl or "release notes" in cl) and ("receipt" in cl or "phase" in cl):
+        if "not a release" not in cl and "internal only" not in cl and "not public" not in cl:
+            add(
+                "ADP3-PV-CHANGELOG-CONFUSION",
+                "degraded",
+                "AP-R1",
+                "C1",
+                "AI-0",
+                "BLOCKED",
+                "changelog=receipt",
+                "PV changelog/release notes conflates internal receipt with public release.",
+                "Separate internal receipts from public release notes. Add release disclaimer.",
                 True,
             )
     return results

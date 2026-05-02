@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 76
+**Total registered docs**: 77
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -114,6 +114,7 @@
 | [Authority Impact Gate Matrix v0 (GOV-X)](../governance/authority-impact-gate-matrix-gov-x.md) | `docs/governance/authority-impact-gate-matrix-gov-x.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [External AI Governance Benchmark Matrix (EGB-1)](../governance/external-ai-governance-benchmark-matrix-egb-1.md) | `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [External AI Governance Gap Analysis (EGB-1)](../governance/external-ai-governance-gap-analysis-egb-1.md) | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
+| [ADP-2R Red-Team Remediation — Runtime Evidence](../runtime/adp-2r-redteam-remediation.md) | `docs/runtime/adp-2r-redteam-remediation.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [COV-1 Coverage-Aware Governance Receipt](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
