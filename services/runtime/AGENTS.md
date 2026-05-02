@@ -18,9 +18,11 @@ docs/governance/verification-signal-classification.md  Classify checker failures
 docs/architecture/harness-adapter-protocol-hap-1.md   HAP v0 protocol architecture
 docs/runtime/hap-foundation-hap-1.md                HAP foundation evidence
 docs/product/harness-adapter-protocol-stage-notes-hap-1.md  HAP-1 stage notes
+docs/governance/external-ai-governance-benchmark-pack-egb-1.md  External governance benchmarks
+docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: OPEN
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: OPEN
 
 pr-fast: 12/12 PASS | 0 open debt | Coverage: 8+2 | Phase 8: DEFERRED
 Phase 6: Design + Finance Observation — COMPLETE
@@ -61,7 +63,7 @@ CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
 
 **pr-fast**: 12/12 hard gates. 94 governance tests. 30 registry entries.
 **Open debt**: 1 (DOC-WIKI-FLAKY-001 — wiki flaky test).
-**Next**: HAP-1 → ADP-1 — Harness Adapter Protocol, then Agentic Pattern Governance
+**Next**: EGB-1 → ADP-1 — External Governance Benchmark, then Agentic Pattern Governance
 
 ## Critical Boundaries
 

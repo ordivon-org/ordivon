@@ -42,7 +42,8 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **OGAP-1** | **CLOSED** | Protocol semantics + object model |
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
-| **HAP-1** | **ACTIVE** | Harness Adapter Protocol v0 foundation |
+| **HAP-1** | **CLOSED** | Harness Adapter Protocol v0 foundation |
+| **EGB-1** | **ACTIVE** | External Governance Benchmark Pack |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
@@ -98,6 +99,8 @@ These are **design-time prohibitions**. No agent may violate them.
 | HAP API/SDK/MCP/live adapter creation | NO-GO | HAP-1 is local design/prototype only |
 | HAP action authorization | NO-GO | Harness capability ≠ authorization |
 | HAP credential access | NO-GO | can_read_credentials is a declaration, not access |
+| EGB-1 compliance claim | NO-GO | External benchmarks are reference-only, no certification |
+| EGB-1 endorsement claim | NO-GO | No endorsement, partnership, or equivalence claimed |
 | Financial/broker/live action via OGAP | NO-GO | NO-GO at schema level |
 
 ## 4. Finance Observation Status
@@ -167,5 +170,9 @@ These are **design-time prohibitions**. No agent may violate them.
 | `src/ordivon_verify/schemas/hap-*.schema.json` | HAP JSON schemas (3 total) |
 | `examples/hap/` | HAP example fixtures (basic + 5 scenarios) |
 | `scripts/validate_hap_payload.py` | HAP payload validator |
+| `docs/governance/external-ai-governance-benchmark-pack-egb-1.md` | External governance benchmark pack |
+| `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | External-to-Ordivon concept mapping matrix |
+| `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
+| `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 | `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
 | `docs/governance/document-registry.jsonl` | Machine-readable document registry — 17 entries, DG-2 |
