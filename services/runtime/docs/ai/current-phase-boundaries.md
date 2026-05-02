@@ -43,7 +43,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
 | **HAP-1** | **CLOSED** | Harness Adapter Protocol v0 foundation |
-| **ADP-3** | **ACTIVE** | Structure-aware + registry-aware + PV-aware + red-team-debt-aware |
+| **ADP-3** | **CLOSED** | Structure-aware + registry-aware + PV-aware + red-team-debt-aware — sealed |
 | **ADP-2R** | **CLOSED** | Red-team remediation — 5/13 findings fixed, 8 debt items registered |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 

@@ -1,9 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: HAP-2 (2026-05-02)
-> **Active phase**: HAP-2 — HAP fixture dogfood with ADP-1 scenarios |
-> Phase 7P — CLOSED | HAP-1 — CLOSED | EGB-1 — CLOSED | ADP-1 — CLOSED | OGAP-Z — CLOSED
-> **Next**: GOV-X or ADP-2
+> **Last updated**: ADP-3 seal (2026-05-02)
+> **Active phase**: ADP-3 — CLOSED | Phase 7P — CLOSED | OGAP-Z — CLOSED | HAP-1/2/3 — CLOSED | EGB-1 — CLOSED | ADP-1/2/2R/3 — CLOSED | GOV-X — CLOSED | PV-NZ — CLOSED
+> **Next**: DG-1 / DGP-1 (Document Governance Pack hardening)
 > **Identity**: Ordivon. PFIOS/AegisOS are historical.
 
 For any AI agent (ChatGPT, Claude, Codex, Copilot, IDE assistant) working in this repository.

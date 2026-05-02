@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 77
+**Total registered docs**: 79
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -37,6 +37,7 @@
 | [Ordivon Verify Versioning Policy](../product/ordivon-verify-versioning-policy-pv-n12.md) | `docs/product/ordivon-verify-versioning-policy-pv-n12.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Agentic Pattern Source Intake](../governance/agentic-pattern-source-ledger-adp-1.md) | `docs/governance/agentic-pattern-source-ledger-adp-1.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
 | [Risk Ladder v0 (GOV-X)](../governance/risk-ladder-gov-x.md) | `docs/governance/risk-ladder-gov-x.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
+| [ADP-3 Stage Notes — Detector Hardening](../product/adp-3-stage-notes.md) | `docs/product/adp-3-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Agentic Pattern Stage Notes](../product/agentic-pattern-stage-notes-adp-1.md) | `docs/product/agentic-pattern-stage-notes-adp-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [GOV-X Stage Notes](../product/gov-x-stage-notes.md) | `docs/product/gov-x-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
@@ -115,6 +116,7 @@
 | [External AI Governance Benchmark Matrix (EGB-1)](../governance/external-ai-governance-benchmark-matrix-egb-1.md) | `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [External AI Governance Gap Analysis (EGB-1)](../governance/external-ai-governance-gap-analysis-egb-1.md) | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [ADP-2R Red-Team Remediation — Runtime Evidence](../runtime/adp-2r-redteam-remediation.md) | `docs/runtime/adp-2r-redteam-remediation.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
+| [ADP-3 Closure — Structure-Aware + Registry-Aware + PV-Aware Detector Seal](../runtime/adp-3-closure-seal.md) | `docs/runtime/adp-3-closure-seal.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [COV-1 Coverage-Aware Governance Receipt](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
@@ -127,11 +129,11 @@
 | [PV-N9 Public Wedge Packaging Separation Receipt](../runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md) | `docs/runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
-| [ADP-3 Structure-Aware + Registry-Aware + PV-Aware Detection](../runtime/adp-3-structure-registry-public-surface-detection.md) | `docs/runtime/adp-3-structure-registry-public-surface-detection.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP Foundation — Runtime Evidence (HAP-1)](../runtime/hap-foundation-hap-1.md) | `docs/runtime/hap-foundation-hap-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP-3 TaskPlan + ReviewRecord Strengthening](../runtime/hap-taskplan-reviewrecord-hap-3.md) | `docs/runtime/hap-taskplan-reviewrecord-hap-3.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [ADP-3 Structure-Aware + Registry-Aware + PV-Aware Detection](../runtime/adp-3-structure-registry-public-surface-detection.md) | `docs/runtime/adp-3-structure-registry-public-surface-detection.md` | runtime | superseded | historical_record | L2 | 2026-05-02 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |
 | [Alpaca Paper Trade Ledger](../runtime/paper-trades/paper-trade-ledger.md) | `docs/runtime/paper-trades/paper-trade-ledger.md` | runtime | current | current_status | L3 | 2026-04-29 |
