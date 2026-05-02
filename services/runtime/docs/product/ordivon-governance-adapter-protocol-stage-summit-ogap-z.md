@@ -205,24 +205,30 @@ transport decision would be premature.
 
 ## 12. Next Recommended Phase
 
-Recommended next phase (choose one):
+**HAP-1 (Harness Adapter Protocol v0)** is the recommended next phase.
+Reasoning: OGAP-Z's top remaining blocker is "Adapter transport decision
+needed before API/SDK/MCP" — HAP-1 directly addresses this. See closure
+doc §Next Recommended Phase for full rationale.
 
-1. **ADP-1 — Agentic Pattern Governance Mapping** — Map governance semantics
+Recommended sequence (updated 2026-05-02): HAP-1 → ADP-1 → HAP-2.
+
+1. **HAP-1 — Harness Adapter Protocol v0** — Define the protocol for
+   governance harnesses that wrap external agents/tools and enforce
+   OGAP boundaries at runtime. **Preferred next.**
+
+2. **ADP-1 — Agentic Pattern Governance Mapping** — Map governance semantics
    onto specific AI agent patterns (code generation, autonomous iteration,
-   multi-agent delegation). Preferred next.
+   multi-agent delegation). Positioned after HAP-1 so it can operate on
+   the harness adapter surface defined by HAP.
 
-2. **OGAP-4 — Local Adapter Evaluation CLI** — Build a CLI that consumes
+3. **OGAP-4 — Local Adapter Evaluation CLI** — Build a CLI that consumes
    OGAP payloads from external adapters and emits trust reports. Only if
    staying local-only. Do NOT start as API/SDK/MCP.
 
-3. **HAP-1 — Harness Adapter Protocol v0** — Define the protocol for
-   governance harnesses that wrap external agents/tools and enforce
-   OGAP boundaries at runtime. Preferred next alongside ADP-1.
-
 4. **REL-1 — Release Program Preparation** — Prepare release infrastructure
-   only if ADP-1/HAP-1/OGAP-4 would benefit from external feedback.
+   only if HAP-1/ADP-1/OGAP-4 would benefit from external feedback.
 
-**Preferred next: ADP-1 or HAP-1.**
+**Preferred next: HAP-1.**
 
 No action is authorized until the next phase is explicitly opened by a phase
 prompt with Allowed/Forbidden sections.

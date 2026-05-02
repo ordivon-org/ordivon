@@ -219,11 +219,19 @@ must understand:
 | Financial/broker/live action remains NO-GO | ✓ — Stage Summit §7 |
 | Phase 8 remains DEFERRED | ✓ — AGENTS.md, boundaries |
 | No live/broker/auto/Policy/RiskEngine action authorized | ✓ — Boundaries §3 |
-| Recommended next phase is ADP-1 or HAP-1 | ✓ — Stage Summit §12 |
+| Recommended next phase is HAP-1, then ADP-1 | ✓ — Stage Summit §12, Closure §Next Recommended Phase |
 
 ## Closure Predicate Result
 
-**20/20 conditions satisfied. OGAP-Z is CLOSED.**
+**20/20 closure predicate conditions satisfied. OGAP-Z is CLOSED.**
+
+Closure predicate accounting: 20/20 means the 20 required closure conditions
+(see Boundary Confirmation table rows). The Verification Results section above
+contains 22 verification rows (executed commands + auxiliary scans). These are
+distinct concepts — the closure predicate is a binary checklist of what must
+hold before closure; the verification table is the full set of commands executed
+to prove those conditions. Future AIs should not misread 20 vs 22 as a counting
+inconsistency.
 
 ## Current OGAP Maturity
 
@@ -252,7 +260,16 @@ must understand:
 
 ## Next Recommended Phase
 
-ADP-1 (Agentic Pattern Governance Mapping) or HAP-1 (Harness Adapter Protocol
-v0). See Stage Summit §12 for full recommendation.
+**HAP-1 (Harness Adapter Protocol v0)** is the recommended next phase, followed
+by **ADP-1 (Agentic Pattern Governance Mapping)**.
+
+Rationale: OGAP-Z's top remaining blocker is "Adapter transport decision
+needed before API/SDK/MCP." HAP-1 directly addresses this by defining the
+Harness/Adapter/Runtime/Capability/Task/Receipt/Evidence interface boundary
+while remaining local, dry-run, no-side-effect. ADP-1 is better positioned
+after HAP-1, so it can map agentic failure patterns onto the harness adapter
+surface defined by HAP rather than operating at the taxonomy level.
+
+Recommended sequence: HAP-1 → ADP-1 → HAP-2/OGAP-HAP fixture dogfood.
 
 No action is authorized until the next phase is explicitly opened.
