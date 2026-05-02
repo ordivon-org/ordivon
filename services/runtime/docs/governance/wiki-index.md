@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 88
+**Total registered docs**: 91
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -44,6 +44,7 @@
 | [Risk Ladder v0 (GOV-X)](../governance/risk-ladder-gov-x.md) | `docs/governance/risk-ladder-gov-x.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
 | [ADP-3 Stage Notes — Detector Hardening](../product/adp-3-stage-notes.md) | `docs/product/adp-3-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Agentic Pattern Stage Notes](../product/agentic-pattern-stage-notes-adp-1.md) | `docs/product/agentic-pattern-stage-notes-adp-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
+| [CPR-1 Stage Notes](../product/cpr-1-stage-notes.md) | `docs/product/cpr-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [DG-1 Stage Notes — Document Governance Pack Hardening](../product/dg-1-stage-notes.md) | `docs/product/dg-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [GOV-X Stage Notes](../product/gov-x-stage-notes.md) | `docs/product/gov-x-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
@@ -123,6 +124,7 @@
 | [HAP Fixture Dogfood with ADP-1 Scenarios (HAP-2)](../runtime/hap-fixture-dogfood-hap-2.md) | `docs/runtime/hap-fixture-dogfood-hap-2.md` | runtime | current | supporting_evidence | L1 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
+| [Core/Pack Loop Restoration Map — CPR-1](../architecture/core-pack-loop-restoration-map-cpr-1.md) | `docs/architecture/core-pack-loop-restoration-map-cpr-1.md` | architecture | current | supporting_evidence | L2 | 2026-05-02 |
 | [Ordivon System Classification Audit — OSS-1](../architecture/ordivon-system-classification-audit-oss-1.md) | `docs/architecture/ordivon-system-classification-audit-oss-1.md` | architecture | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Governance Mapping](../governance/agentic-pattern-governance-mapping-adp-1.md) | `docs/governance/agentic-pattern-governance-mapping-adp-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [Authority Impact Gate Matrix v0 (GOV-X)](../governance/authority-impact-gate-matrix-gov-x.md) | `docs/governance/authority-impact-gate-matrix-gov-x.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
@@ -142,6 +144,7 @@
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [CPR-1 Core/Pack Governance Loop Restoration](../runtime/core-pack-governance-loop-restoration-cpr-1.md) | `docs/runtime/core-pack-governance-loop-restoration-cpr-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Core/Pack Governance Loop Gap Analysis — OSS-1](../runtime/core-pack-governance-loop-gap-analysis-oss-1.md) | `docs/runtime/core-pack-governance-loop-gap-analysis-oss-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [DG-1 Truth Substrate Hardening — Runtime Evidence](../runtime/dg-1-truth-substrate-hardening.md) | `docs/runtime/dg-1-truth-substrate-hardening.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
