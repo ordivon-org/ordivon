@@ -1,8 +1,8 @@
 # Ordivon AI Onboarding
 
-> **Last updated**: EGB-1 (2026-05-02)
-> **Active phase**: EGB-1 — External Governance Benchmark |
-> Phase 7P — CLOSED | HAP-1 — CLOSED | OGAP-Z — CLOSED
+> **Last updated**: ADP-1 (2026-05-02)
+> **Active phase**: ADP-1 — Agentic Pattern Governance Mapping |
+> Phase 7P — CLOSED | HAP-1 — CLOSED | EGB-1 — CLOSED | OGAP-Z — CLOSED
 > **Next**: ADP-1 or HAP-1
 > **Identity**: Ordivon. PFIOS/AegisOS are historical.
 
