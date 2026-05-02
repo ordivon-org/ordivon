@@ -180,6 +180,34 @@ Ordivon does not claim:
 - Public standard status
 - Production readiness based on these benchmarks
 
+## Source Freshness
+
+EGB-1 treats external governance frameworks as versioned benchmarks.
+Because frontier-AI governance frameworks evolve quickly, future EGB
+extensions must check for newer versions before making benchmark claims.
+
+Initial historical source anchors:
+- OpenAI Preparedness Framework (initial beta, Dec 2023)
+- Anthropic Responsible Scaling Policy (initial RSP, Sep 2023)
+- Google DeepMind Frontier Safety Framework (initial release, May 2024)
+- NIST AI RMF 1.0 (Jan 2023) + Generative AI Profile (Jul 2024)
+- ISO/IEC 42001:2023 (Dec 2023)
+
+Known newer source anchors after initial historical versions include:
+- OpenAI Preparedness Framework v2, last updated 2025-04-15
+- Anthropic Responsible Scaling Policy v3.x, released/updated 2026
+- Google DeepMind Frontier Safety Framework updates after initial May 2024 release
+- NIST AI RMF 1.0 and Generative AI Profile, with AI RMF revision to monitor
+- ISO/IEC 42001:2023 as the current AI management system standard anchor
+
+This source freshness note does not imply compliance, certification,
+endorsement, partnership, equivalence, production readiness, or
+public-standard status.
+
+EGB-SOURCE-FRESHNESS-001: External benchmark sources must be treated as
+versioned references. Status: open. Severity: low. Future EGB phases
+must check current official versions before making benchmark claims.
+
 ## Next Phase
 
 EGB-2 (Benchmark Update Cadence + Source Registry) or ADP-1 (Agentic
