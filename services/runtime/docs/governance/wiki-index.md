@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 84
+**Total registered docs**: 88
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -25,6 +25,7 @@
 | [Document Freshness & Supersession Model (DG-1)](../governance/document-freshness-supersession-dg-1.md) | `docs/governance/document-freshness-supersession-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [External AI Governance Benchmark Pack v0 (EGB-1)](../governance/external-ai-governance-benchmark-pack-egb-1.md) | `docs/governance/external-ai-governance-benchmark-pack-egb-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
+| [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
@@ -47,6 +48,7 @@
 | [GOV-X Stage Notes](../product/gov-x-stage-notes.md) | `docs/product/gov-x-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Harness Adapter Protocol — Stage Notes (HAP-1)](../product/harness-adapter-protocol-stage-notes-hap-1.md) | `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
+| [OSS-1 Stage Notes — Ordivon System Summit](../product/oss-1-stage-notes.md) | `docs/product/oss-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
 | [AI Onboarding Document Policy](../governance/ai-onboarding-doc-policy.md) | `docs/governance/ai-onboarding-doc-policy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
@@ -113,6 +115,7 @@
 
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
+| [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
@@ -120,6 +123,7 @@
 | [HAP Fixture Dogfood with ADP-1 Scenarios (HAP-2)](../runtime/hap-fixture-dogfood-hap-2.md) | `docs/runtime/hap-fixture-dogfood-hap-2.md` | runtime | current | supporting_evidence | L1 | 2026-05-02 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
+| [Ordivon System Classification Audit — OSS-1](../architecture/ordivon-system-classification-audit-oss-1.md) | `docs/architecture/ordivon-system-classification-audit-oss-1.md` | architecture | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Governance Mapping](../governance/agentic-pattern-governance-mapping-adp-1.md) | `docs/governance/agentic-pattern-governance-mapping-adp-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [Authority Impact Gate Matrix v0 (GOV-X)](../governance/authority-impact-gate-matrix-gov-x.md) | `docs/governance/authority-impact-gate-matrix-gov-x.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [External AI Governance Benchmark Matrix (EGB-1)](../governance/external-ai-governance-benchmark-matrix-egb-1.md) | `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
@@ -138,6 +142,7 @@
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [Core/Pack Governance Loop Gap Analysis — OSS-1](../runtime/core-pack-governance-loop-gap-analysis-oss-1.md) | `docs/runtime/core-pack-governance-loop-gap-analysis-oss-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [DG-1 Truth Substrate Hardening — Runtime Evidence](../runtime/dg-1-truth-substrate-hardening.md) | `docs/runtime/dg-1-truth-substrate-hardening.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP Foundation — Runtime Evidence (HAP-1)](../runtime/hap-foundation-hap-1.md) | `docs/runtime/hap-foundation-hap-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
