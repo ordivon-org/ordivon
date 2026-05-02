@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 92
+**Total registered docs**: 94
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -45,6 +45,7 @@
 | [ADP-3 Stage Notes — Detector Hardening](../product/adp-3-stage-notes.md) | `docs/product/adp-3-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Agentic Pattern Stage Notes](../product/agentic-pattern-stage-notes-adp-1.md) | `docs/product/agentic-pattern-stage-notes-adp-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [CPR-1 Stage Notes](../product/cpr-1-stage-notes.md) | `docs/product/cpr-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
+| [CPR-2 Stage Notes](../product/cpr-2-stage-notes.md) | `docs/product/cpr-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [DG-1 Stage Notes — Document Governance Pack Hardening](../product/dg-1-stage-notes.md) | `docs/product/dg-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [GOV-X Stage Notes](../product/gov-x-stage-notes.md) | `docs/product/gov-x-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
@@ -146,6 +147,7 @@
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [CPR-1 Core/Pack Governance Loop Restoration](../runtime/core-pack-governance-loop-restoration-cpr-1.md) | `docs/runtime/core-pack-governance-loop-restoration-cpr-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [CPR-2 Realistic Coding Governance Dogfood](../runtime/core-pack-realistic-coding-dogfood-cpr-2.md) | `docs/runtime/core-pack-realistic-coding-dogfood-cpr-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Core/Pack Governance Loop Gap Analysis — OSS-1](../runtime/core-pack-governance-loop-gap-analysis-oss-1.md) | `docs/runtime/core-pack-governance-loop-gap-analysis-oss-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [DG-1 Truth Substrate Hardening — Runtime Evidence](../runtime/dg-1-truth-substrate-hardening.md) | `docs/runtime/dg-1-truth-substrate-hardening.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |

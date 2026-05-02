@@ -223,6 +223,25 @@ def main():
         )
     )
 
+    # ── Run 11: Medium impact single file + test_plan → execute ────
+    # CPR-2: Added to prove medium-impact changes with a test plan
+    # correctly pass all 5 gates and receive execute.
+    runs.append(
+        _run(
+            engine,
+            policy,
+            "R11: medium + plan",
+            {
+                "task_description": "Refactor validation logic in capabilities/domain/finance_decisions.py",
+                "file_paths": ["capabilities/domain/finance_decisions.py"],
+                "estimated_impact": "medium",
+                "reasoning": "Extract duplicate validation into shared helper function.",
+                "test_plan": "Run pytest tests/unit/capabilities/ -v.",
+            },
+            "execute",
+        )
+    )
+
     # ═══════════════════════════════════════════════════════════════════
     # Summary
     # ═══════════════════════════════════════════════════════════════════
