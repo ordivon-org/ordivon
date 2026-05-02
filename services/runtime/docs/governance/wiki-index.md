@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 79
+**Total registered docs**: 84
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -17,8 +17,12 @@
 | [Ordivon System Ontology — Core / Pack / Adapter](../architecture/ordivon-core-pack-adapter-ontology.md) | `docs/architecture/ordivon-core-pack-adapter-ontology.md` | architecture | accepted | source_of_truth | L1 | 2026-04-30 |
 | [Coverage Governance Contract](../governance/coverage-governance-contract.md) | `docs/governance/coverage-governance-contract.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
 | [OGAP Object Model](../governance/ogap-object-model-v0.md) | `docs/governance/ogap-object-model-v0.md` | design_spec | current | source_of_truth | L1 | 2026-05-01 |
+| [AI Read Path Invariants (DG-1)](../governance/document-ai-read-path-invariants-dg-1.md) | `docs/governance/document-ai-read-path-invariants-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Agentic Pattern Taxonomy v0](../governance/agentic-pattern-taxonomy-adp-1.md) | `docs/governance/agentic-pattern-taxonomy-adp-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Capability-Scaled Governance v0 (GOV-X)](../governance/capability-scaled-governance-gov-x.md) | `docs/governance/capability-scaled-governance-gov-x.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Authority Model (DG-1)](../governance/document-authority-model-dg-1.md) | `docs/governance/document-authority-model-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Classification Index (DG-1)](../governance/document-classification-index-dg-1.md) | `docs/governance/document-classification-index-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Freshness & Supersession Model (DG-1)](../governance/document-freshness-supersession-dg-1.md) | `docs/governance/document-freshness-supersession-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [External AI Governance Benchmark Pack v0 (EGB-1)](../governance/external-ai-governance-benchmark-pack-egb-1.md) | `docs/governance/external-ai-governance-benchmark-pack-egb-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
 | [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
@@ -39,6 +43,7 @@
 | [Risk Ladder v0 (GOV-X)](../governance/risk-ladder-gov-x.md) | `docs/governance/risk-ladder-gov-x.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
 | [ADP-3 Stage Notes — Detector Hardening](../product/adp-3-stage-notes.md) | `docs/product/adp-3-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Agentic Pattern Stage Notes](../product/agentic-pattern-stage-notes-adp-1.md) | `docs/product/agentic-pattern-stage-notes-adp-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
+| [DG-1 Stage Notes — Document Governance Pack Hardening](../product/dg-1-stage-notes.md) | `docs/product/dg-1-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [GOV-X Stage Notes](../product/gov-x-stage-notes.md) | `docs/product/gov-x-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [HAP-2 Stage Notes](../product/hap-2-stage-notes.md) | `docs/product/hap-2-stage-notes.md` | product | current | source_of_truth | L2 | 2026-05-02 |
 | [Harness Adapter Protocol — Stage Notes (HAP-1)](../product/harness-adapter-protocol-stage-notes-hap-1.md) | `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | product | current | source_of_truth | L2 | 2026-05-02 |
@@ -82,8 +87,12 @@
 
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
+| [AI Read Path Invariants (DG-1)](../governance/document-ai-read-path-invariants-dg-1.md) | `docs/governance/document-ai-read-path-invariants-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Agentic Pattern Taxonomy v0](../governance/agentic-pattern-taxonomy-adp-1.md) | `docs/governance/agentic-pattern-taxonomy-adp-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Capability-Scaled Governance v0 (GOV-X)](../governance/capability-scaled-governance-gov-x.md) | `docs/governance/capability-scaled-governance-gov-x.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Authority Model (DG-1)](../governance/document-authority-model-dg-1.md) | `docs/governance/document-authority-model-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Classification Index (DG-1)](../governance/document-classification-index-dg-1.md) | `docs/governance/document-classification-index-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
+| [Document Freshness & Supersession Model (DG-1)](../governance/document-freshness-supersession-dg-1.md) | `docs/governance/document-freshness-supersession-dg-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [External AI Governance Benchmark Pack v0 (EGB-1)](../governance/external-ai-governance-benchmark-pack-egb-1.md) | `docs/governance/external-ai-governance-benchmark-pack-egb-1.md` | governance_pack | current | source_of_truth | L1 | 2026-05-02 |
 | [Agentic Pattern Source Intake](../governance/agentic-pattern-source-ledger-adp-1.md) | `docs/governance/agentic-pattern-source-ledger-adp-1.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
 | [Risk Ladder v0 (GOV-X)](../governance/risk-ladder-gov-x.md) | `docs/governance/risk-ladder-gov-x.md` | governance_pack | current | source_of_truth | L2 | 2026-05-02 |
@@ -117,7 +126,6 @@
 | [External AI Governance Gap Analysis (EGB-1)](../governance/external-ai-governance-gap-analysis-egb-1.md) | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [ADP-2R Red-Team Remediation — Runtime Evidence](../runtime/adp-2r-redteam-remediation.md) | `docs/runtime/adp-2r-redteam-remediation.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [ADP-3 Closure — Structure-Aware + Registry-Aware + PV-Aware Detector Seal](../runtime/adp-3-closure-seal.md) | `docs/runtime/adp-3-closure-seal.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
-| [COV-1 Coverage-Aware Governance Receipt](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [COV-2 Partial Checker Discovery Remediation Receipt](../runtime/partial-checker-discovery-remediation-cov-2.md) | `docs/runtime/partial-checker-discovery-remediation-cov-2.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-1 Closure](../runtime/ogap-1-governance-adapter-protocol-v0.md) | `docs/runtime/ogap-1-governance-adapter-protocol-v0.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
@@ -130,6 +138,7 @@
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
+| [DG-1 Truth Substrate Hardening — Runtime Evidence](../runtime/dg-1-truth-substrate-hardening.md) | `docs/runtime/dg-1-truth-substrate-hardening.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [GOV-X Runtime Boundaries](../runtime/gov-x-runtime-boundaries.md) | `docs/runtime/gov-x-runtime-boundaries.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP Foundation — Runtime Evidence (HAP-1)](../runtime/hap-foundation-hap-1.md) | `docs/runtime/hap-foundation-hap-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [HAP-3 TaskPlan + ReviewRecord Strengthening](../runtime/hap-taskplan-reviewrecord-hap-3.md) | `docs/runtime/hap-taskplan-reviewrecord-hap-3.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
