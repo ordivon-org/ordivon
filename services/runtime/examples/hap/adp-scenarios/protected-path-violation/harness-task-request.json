@@ -24,5 +24,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "Protected paths require explicit scope authorization."
+  "authority_statement": "Protected paths require explicit scope authorization. This task request does not authorize governance file modification."
 }

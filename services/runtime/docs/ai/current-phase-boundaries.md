@@ -43,7 +43,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
 | **HAP-1** | **CLOSED** | Harness Adapter Protocol v0 foundation |
-| **ADP-2** | **ACTIVE** | Agentic pattern detection implementation |
+| **HAP-3** | **ACTIVE** | TaskPlan + ReviewRecord structural strengthening |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path

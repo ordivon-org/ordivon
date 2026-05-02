@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "hap3-rr-002",
+  "reviewer_type": "detector",
+  "review_status": "DEGRADED",
+  "approval_scope": "none",
+  "detector_findings": [
+    {
+      "finding_id": "ADP2-AP-RDY-0042",
+      "severity": "warning"
+    }
+  ],
+  "evidence_sufficiency": "partial",
+  "candidate_rule_status": "none",
+  "gate_response": "DEGRADED",
+  "boundary_findings": [
+    "CAPABILITY_COLLAPSE_WARNING"
+  ],
+  "no_action_authorization_statement": "Detector PASS is not authorization. Absence of findings is not proof of safety. Findings are review evidence, not approval.",
+  "reviewer_notes": "Detector found 1 warning. Human review required.",
+  "next_step_recommendation": "Human reviewer must assess detector findings before closure."
+}

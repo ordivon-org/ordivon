@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "hap3-tp-unsafe-001",
+  "capability_class": "C2",
+  "risk_level": "AP-R2",
+  "authority_impact": "AI-3",
+  "planned_status": "READY_WITHOUT_AUTHORIZATION",
+  "allowed_files": [
+    "src/"
+  ],
+  "forbidden_files": [],
+  "protected_paths": [],
+  "planned_operations": [
+    "execute build",
+    "deploy to production"
+  ],
+  "credential_access_planned": false,
+  "mcp_or_browser_use_planned": false,
+  "no_action_authorization_statement": "Plan approved. Execution authorized.",
+  "next_review_required": false
+}

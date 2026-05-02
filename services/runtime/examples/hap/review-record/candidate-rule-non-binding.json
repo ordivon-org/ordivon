@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "hap3-rr-005",
+  "reviewer_type": "human",
+  "review_status": "APPROVED_FOR_CLOSURE",
+  "approval_scope": "closure_only",
+  "evidence_sufficiency": "sufficient",
+  "candidate_rule_status": "proposed_non_binding",
+  "gate_response": "READY_WITHOUT_AUTHORIZATION",
+  "boundary_findings": [],
+  "no_action_authorization_statement": "APPROVED_FOR_CLOSURE is not action authorization. CandidateRule CR-ADP-014 is NON-BINDING. Closure scope only.",
+  "reviewer_notes": "CR-ADP-014 suggested for test omission pattern. Advisory only.",
+  "next_step_recommendation": "Close phase. CandidateRule observation period started."
+}

@@ -22,5 +22,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "New failures must be classified with baseline evidence."
+  "authority_statement": "New failures must be classified with baseline evidence. This task request does not authorize reclassification without evidence."
 }

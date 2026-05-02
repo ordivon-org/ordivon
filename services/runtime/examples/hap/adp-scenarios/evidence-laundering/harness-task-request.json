@@ -22,5 +22,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "Task request describes intent only."
+  "authority_statement": "Task request describes intent only. It does not authorize execution."
 }

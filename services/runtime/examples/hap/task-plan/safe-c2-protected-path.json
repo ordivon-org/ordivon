@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "hap3-tp-c2-001",
+  "capability_class": "C2",
+  "risk_level": "AP-R2",
+  "authority_impact": "AI-3",
+  "planned_status": "REVIEW_REQUIRED",
+  "allowed_files": [
+    "src/feature.py",
+    "tests/test_feature.py"
+  ],
+  "forbidden_files": [
+    "docs/governance/",
+    ".github/",
+    ".env"
+  ],
+  "protected_paths": [
+    "docs/governance/",
+    ".github/workflows/",
+    "pyproject.toml"
+  ],
+  "planned_operations": [
+    "file edit",
+    "patch generation"
+  ],
+  "credential_access_planned": false,
+  "mcp_or_browser_use_planned": false,
+  "boundary_statement": "Protected paths require explicit boundary declaration. Task scope limited to src/ and tests/.",
+  "no_action_authorization_statement": "TaskPlan does not authorize execution. REVIEW_REQUIRED before changes.",
+  "next_review_required": true
+}

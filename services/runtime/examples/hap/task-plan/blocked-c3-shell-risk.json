@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "hap3-tp-c3-001",
+  "capability_class": "C3",
+  "risk_level": "AP-R3",
+  "authority_impact": "AI-4",
+  "planned_status": "BLOCKED",
+  "allowed_files": [
+    "src/"
+  ],
+  "forbidden_files": [
+    "docs/governance/"
+  ],
+  "protected_paths": [
+    "docs/governance/",
+    "scripts/check_*.py"
+  ],
+  "shell_commands_planned": [
+    "pytest tests/",
+    "ruff check ."
+  ],
+  "credential_access_planned": false,
+  "mcp_or_browser_use_planned": false,
+  "evidence_plan": [
+    "command output",
+    "exit codes",
+    "failure classification"
+  ],
+  "verification_plan": [
+    "pr-fast baseline",
+    "ruff check"
+  ],
+  "rollback_plan": "git checkout -- .",
+  "boundary_statement": "Shell commands blocked at boundary pending review.",
+  "no_action_authorization_statement": "BLOCKED means boundary enforced. Shell execution requires escalation review.",
+  "next_review_required": true
+}

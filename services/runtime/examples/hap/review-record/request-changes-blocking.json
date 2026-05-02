@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "hap3-rr-004",
+  "reviewer_type": "human",
+  "review_status": "BLOCKING_FINDING",
+  "approval_scope": "none",
+  "evidence_sufficiency": "sufficient",
+  "candidate_rule_status": "none",
+  "gate_response": "BLOCKED",
+  "boundary_findings": [
+    "PROTECTED_PATH_VIOLATION",
+    "SCOPE_EXPANSION"
+  ],
+  "no_action_authorization_statement": "BLOCKING_FINDING means changes required. Does not authorize action.",
+  "reviewer_notes": "Protected path docs/governance/ modified without scope. Scope expanded beyond task request.",
+  "next_step_recommendation": "Revert protected path changes. Limit scope to task request."
+}

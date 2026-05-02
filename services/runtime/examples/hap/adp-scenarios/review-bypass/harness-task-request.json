@@ -23,5 +23,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "Patch requires review before application."
+  "authority_statement": "Patch requires review before application. This task request does not authorize merge."
 }

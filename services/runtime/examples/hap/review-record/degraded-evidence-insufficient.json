@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "hap3-rr-003",
+  "reviewer_type": "governance",
+  "review_status": "DEGRADED",
+  "approval_scope": "none",
+  "evidence_sufficiency": "insufficient",
+  "candidate_rule_status": "none",
+  "gate_response": "DEGRADED",
+  "boundary_findings": [
+    "EVIDENCE_GAP: self_reported only"
+  ],
+  "no_action_authorization_statement": "Evidence sufficiency insufficient does not imply approval. Additional evidence required.",
+  "reviewer_notes": "Evidence is self_reported. Machine verification required for READY.",
+  "next_step_recommendation": "Upgrade evidence quality to machine_verified."
+}

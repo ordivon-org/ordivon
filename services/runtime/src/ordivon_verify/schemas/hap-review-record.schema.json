@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/schemas/hap/review-record-v0",
+  "title": "HAP HarnessReviewRecord v0",
+  "description": "Post-action review object. ReviewRecord is not automatic approval.",
+  "type": "object",
+  "_maturity": "prototype",
+  "_disclaimer": "HAP v0 prototype schema. ReviewRecord records epistemic validation only. It does not authorize action.",
+  "required": [
+    "schema_version", "object_type", "review_id",
+    "reviewer_type", "review_status", "approval_scope",
+    "evidence_sufficiency", "candidate_rule_status",
+    "gate_response", "no_action_authorization_statement"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "object_type": {"type": "string", "const": "HarnessReviewRecord"},
+    "review_id": {"type": "string"},
+    "related_task_plan_id": {"type": "string"},
+    "related_execution_receipt_id": {"type": "string"},
+    "reviewer_type": {"type": "string", "enum": ["self","human","ai","detector","governance","external_tool"]},
+    "review_status": {"type": "string", "enum": ["COMMENT_ONLY","REVIEW_REQUIRED","APPROVED_FOR_CLOSURE","REQUEST_CHANGES","DEGRADED","BLOCKING_FINDING","NO_GO"]},
+    "approval_scope": {"type": "string", "enum": ["none","closure_only","docs_only","local_validation_only","future_phase_required"]},
+    "detector_findings": {"type": "array", "items": {"type": "object"}},
+    "boundary_findings": {"type": "array", "items": {"type": "string"}},
+    "evidence_sufficiency": {"type": "string", "enum": ["sufficient","insufficient","partial","not_applicable"]},
+    "verification_summary": {"type": "string"},
+    "known_debt_references": {"type": "array", "items": {"type": "string"}},
+    "candidate_rule_status": {"type": "string", "enum": ["none","proposed_non_binding","rejected","deferred"]},
+    "current_truth_impact": {"type": "string", "enum": ["no_change","updates_current_truth","requires_followup"]},
+    "gate_response": {"type": "string", "enum": ["READY_WITHOUT_AUTHORIZATION","REVIEW_REQUIRED","DEGRADED","BLOCKED","NO_GO"]},
+    "no_action_authorization_statement": {"type": "string"},
+    "reviewer_notes": {"type": "string"},
+    "next_step_recommendation": {"type": "string"}
+  },
+  "additionalProperties": false
+}

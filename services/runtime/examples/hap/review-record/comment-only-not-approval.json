@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessReviewRecord",
+  "review_id": "hap3-rr-001",
+  "reviewer_type": "human",
+  "review_status": "COMMENT_ONLY",
+  "approval_scope": "none",
+  "evidence_sufficiency": "not_applicable",
+  "candidate_rule_status": "none",
+  "gate_response": "REVIEW_REQUIRED",
+  "boundary_findings": [],
+  "no_action_authorization_statement": "COMMENT_ONLY is not approval. This review does not authorize action.",
+  "reviewer_notes": "Left comments for consideration. Full review still required.",
+  "next_step_recommendation": "Complete full review before READY."
+}

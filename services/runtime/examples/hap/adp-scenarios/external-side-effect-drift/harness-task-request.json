@@ -21,5 +21,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "External API calls are blocked."
+  "authority_statement": "External API calls are blocked. This task request does not authorize external calls."
 }

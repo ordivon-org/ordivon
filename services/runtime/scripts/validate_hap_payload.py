@@ -35,6 +35,10 @@ def _load_schema(schema_name: str) -> dict:
 
 def _detect_schema_name(payload: dict) -> str | None:
     """Detect which HAP schema a payload likely belongs to."""
+    if payload.get("object_type") == "HarnessTaskPlan":
+        return "hap-task-plan"
+    if payload.get("object_type") == "HarnessReviewRecord":
+        return "hap-review-record"
     if "adapter_id" in payload and "harness_family" in payload and "capabilities" in payload:
         return "hap-adapter-manifest"
     if "request_id" in payload and "requested_capabilities" in payload and "task_type" in payload:

@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "object_type": "HarnessTaskPlan",
+  "plan_id": "hap3-tp-c5-001",
+  "capability_class": "C5",
+  "risk_level": "AP-R5",
+  "authority_impact": "AI-6",
+  "planned_status": "NO_GO",
+  "allowed_files": [],
+  "forbidden_files": [
+    "*"
+  ],
+  "protected_paths": [
+    "*"
+  ],
+  "planned_operations": [],
+  "credential_access_planned": false,
+  "mcp_or_browser_use_planned": false,
+  "boundary_statement": "C5 defaults to NO-GO under current project state.",
+  "no_action_authorization_statement": "C5 capability is NO-GO. Cannot proceed under current project state.",
+  "next_review_required": false
+}

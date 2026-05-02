@@ -22,5 +22,5 @@
     "external_api_blocked": true,
     "shell_blocked": true
   },
-  "authority_statement": "External frameworks are benchmarks only. No compliance claimed."
+  "authority_statement": "External frameworks are benchmarks only. No compliance claimed. This task request does not authorize execution."
 }
