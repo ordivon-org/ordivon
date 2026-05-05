@@ -15,7 +15,7 @@ relationships:
                     │                         │
            ┌────────▼────────┐    ┌───────────▼──────────┐
            │  GOVERNED LAYER  │    │   APPLICATION LAYER   │
-           │  (892 objects)   │    │   (726 files)         │
+           │  (903 objects)   │    │   (726 files)         │
            │                  │    │                       │
            │  Each file has:  │    │  No registration      │
            │  - registry entry│    │  No classification    │
@@ -28,23 +28,23 @@ relationships:
                                    └───────────────────────┘
 ```
 
-## Governed Layer (892 registry objects)
+## Governed Layer (903 registry objects)
 
 These are Ordivon Verify's **own infrastructure** — the files that make Ordivon
 Verify work. They are self-governed through the dogfood loop.
 
 | Registry | Objects | What it governs |
 |----------|---------|-----------------|
-| `document-registry.jsonl` | 213 docs | Markdown/JSON/JSONL docs with `doc_layer` × `doc_authority` |
-| `artifact-registry.jsonl` | 643 entries | Code files (tests, scripts, domains, src) with `artifact_class` × `criticality` × `layer` |
+| `document-registry.jsonl` | 222 docs | Markdown/JSON/JSONL docs with `doc_layer` × `doc_authority` |
+| `artifact-registry.jsonl` | 645 entries | Code files (tests, scripts, domains, src) with `artifact_class` × `criticality` × `layer` |
 | `checker_registry.py` | 36 checkers | Checker maturity with `hardness` × `profiles` × `maturity` |
 
 ### Governed directories
 
 ```
-docs/             213 files  →  document-registry.jsonl  (L0-L5 docs)
-tests/            405 files  →  artifact-registry.jsonl  (test files)
-scripts/           90 files  →  artifact-registry.jsonl  (build/CI scripts)
+docs/             222 files  →  document-registry.jsonl  (L0-L5 docs)
+tests/            406 files  →  artifact-registry.jsonl  (test files)
+scripts/           91 files  →  artifact-registry.jsonl  (build/CI scripts)
 domains/          107 files  →  artifact-registry.jsonl  (domain models)
 src/ordivon_verify/ 41 files →  artifact-registry.jsonl  (source code)
 checkers/          36 pkgs   →  checker_registry.py      (verification checkers)

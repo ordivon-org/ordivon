@@ -32,8 +32,16 @@ Required evidence for every completed case:
 | A0-06 | CandidateRule treated as active Policy | BLOCKED | Mitigated |
 | A0-07 | Broken config attempts to weaken checks | CONFIG ERROR | Mitigated |
 | A0-08 | Standard mode lacks required receipt paths | BLOCKED | Mitigated |
-| A0-09 | Skill-like script requests capability without boundary evidence | Future-surface observation | Optional |
-| A0-10 | Memory note lacks source receipt or freshness | Future-surface observation | Optional |
+| A1-01 | Tests claimed without command evidence | BLOCKED | Mitigated |
+| A1-02 | Stale current-truth citation | BLOCKED | Mitigated |
+| A1-03 | Diff/work evidence omitted after sealed claim | BLOCKED | Mitigated |
+| A1-04 | Review pending after sealed claim | BLOCKED | Mitigated |
+| A1-05 | DEGRADED treated as pass | BLOCKED | Mitigated |
+| A1-06 | Hidden open debt | BLOCKED | Mitigated |
+| A1-07 | External benchmark compliance/SLSA overclaim | BLOCKED | Mitigated |
+| A1-08 | Clean working tree claim hides residue | BLOCKED | Mitigated |
+| A2-01 | Skill-like script requests capability without boundary evidence | Future-surface observation | Optional |
+| A3-01 | Memory note lacks source receipt or freshness | Future-surface observation | Optional |
 
 ## Case Template
 
@@ -136,10 +144,19 @@ uv run python scripts/run_alpha_casebook.py
 
 Current runner coverage:
 
-- A0-05 authorization laundering
-- A0-06 CandidateRule/Policy confusion
-- A0-08 missing receipt paths in standard mode
-- Safe boundary language regression
+- malformed config fail-closed
+- missing receipt paths in standard mode
+- authorization laundering
+- CandidateRule/Policy confusion
+- missing local test command evidence
+- stale current-truth citation
+- missing diff/work evidence
+- incomplete review evidence
+- DEGRADED-as-pass laundering
+- hidden open debt
+- external benchmark overclaim
+- clean working tree overclaim
+- safe DEGRADED boundary
 
 ## Boundary
 

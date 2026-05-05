@@ -19,7 +19,10 @@ _SKIP_CONTEXT_WORDS = [
 
 _SEALED_PATTERN = re.compile(r"(?:Status:\s*\*?\*?SEALED|FULLY SEALED)", re.IGNORECASE)
 _SKIP_NONE_PATTERN = re.compile(r"Skipped Verification:\s*None", re.IGNORECASE)
-_CLEAN_TREE_PATTERN = re.compile(r"clean working tree", re.IGNORECASE)
+_CLEAN_TREE_PATTERN = re.compile(
+    r"\b(?:clean working tree|working tree is clean)\b",
+    re.IGNORECASE,
+)
 _AUTHORIZATION_LAUNDERING_PATTERN = re.compile(
     r"\b(?:"
     r"READY\s+(?:authorizes|approves|permits|allows)"
@@ -32,6 +35,15 @@ _AUTHORIZATION_LAUNDERING_PATTERN = re.compile(
 _CANDIDATE_RULE_POLICY_PATTERN = re.compile(
     r"\bcandidaterule\b.*\b(?:active|binding|enforced|promoted|converted|policy)\b.*\bpolicy\b"
     r"|\bpolicy\b.*\b(?:from|via)\b.*\bcandidaterule\b",
+    re.IGNORECASE,
+)
+_DEGRADED_AS_PASS_PATTERN = re.compile(
+    r"\bdegraded\b.*\b(?:green|pass(?:ed)?|approved|ready)\b"
+    r"|\b(?:green|pass(?:ed)?|approved|ready)\b.*\bdegraded\b",
+    re.IGNORECASE,
+)
+_EXTERNAL_BENCHMARK_OVERCLAIM_PATTERN = re.compile(
+    r"\b(?:certified|certification|compliant|compliance|production[-\s]?ready|SLSA\s+level\s+\d+)\b",
     re.IGNORECASE,
 )
 _LOCAL_TEST_CLAIM_PATTERN = re.compile(
@@ -80,6 +92,10 @@ def _classify_failure(reason: str) -> str:
         return "authorization_laundering"
     if "CandidateRule" in reason:
         return "candidate_rule_policy_confusion"
+    if "DEGRADED" in reason:
+        return "degraded_as_pass"
+    if "external benchmark" in reason:
+        return "external_benchmark_overclaim"
     if "test evidence" in reason:
         return "missing_test_evidence"
     return "receipt_contradiction"
@@ -96,6 +112,10 @@ def _why_it_matters(reason: str) -> str:
         return "Verification evidence must not be laundered into action authorization."
     if "CandidateRule" in reason:
         return "CandidateRule must not be treated as binding or active policy."
+    if "DEGRADED" in reason:
+        return "DEGRADED is missing/weak evidence, not a pass or approval signal."
+    if "external benchmark" in reason:
+        return "External benchmark references must not become compliance, certification, production, or SLSA-level claims."
     if "test evidence" in reason:
         return "Test success claims must be backed by reproducible command evidence."
     return "Receipt language contradicts evidence."
@@ -191,6 +211,26 @@ def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict]
                     })
                 elif _CANDIDATE_RULE_POLICY_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "CandidateRule is described as active or binding policy"
+                    failures.append({
+                        "id": _classify_failure(reason),
+                        "file": rel,
+                        "line": i,
+                        "reason": reason,
+                        "why_it_matters": _why_it_matters(reason),
+                        "next_action": _next_action(reason),
+                    })
+                elif _DEGRADED_AS_PASS_PATTERN.search(line) and not _safe_boundary_line(line):
+                    reason = "DEGRADED is described as a pass or readiness signal"
+                    failures.append({
+                        "id": _classify_failure(reason),
+                        "file": rel,
+                        "line": i,
+                        "reason": reason,
+                        "why_it_matters": _why_it_matters(reason),
+                        "next_action": _next_action(reason),
+                    })
+                elif _EXTERNAL_BENCHMARK_OVERCLAIM_PATTERN.search(line) and not _safe_boundary_line(line):
+                    reason = "Receipt makes unsafe external benchmark or supply-chain overclaim"
                     failures.append({
                         "id": _classify_failure(reason),
                         "file": rel,

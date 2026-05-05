@@ -25,7 +25,7 @@ execution authority.
 | Stage | Name | Primary question | Exit evidence |
 |-------|------|------------------|---------------|
 | Alpha-0 | Evidence of Governed Work | Can Ordivon verify AI coding work before a team trusts it? | 5-10 casebook entries, one Verify report shape, red/blue backlog |
-| Alpha-1 | Trust Casebook Hardening | Can the casebook repeatedly expose trust laundering patterns? | Red-team fixture suite, blue-team repairs, false-comfort regressions |
+| Alpha-1 | Trust Casebook Hardening | Can the casebook repeatedly expose trust laundering patterns? | 13-case red-team fixture suite, blue-team repairs, false-comfort regressions |
 | Alpha-2 | Skill Safety Review | Can Ordivon review skill-like agent capabilities without executing them? | Skill manifest/readme/script boundary checks, no credential/action authorization |
 | Alpha-3 | Memory and Content Hygiene | Can Ordivon catch stale, cross-project, or authority-confused memory/content? | Memory/content fixture set, freshness/source receipt checks |
 | Alpha-4 | Harness Evidence Import | Can Ordivon read runtime artifacts without becoming the runtime? | Read-only import contracts for traces/checkpoints/review records |
@@ -78,8 +78,14 @@ Active surfaces:
 | A0-RT-02 | Standard mode lacks receipt evidence | Alpha-0 | Mitigated |
 | A0-RT-03 | Review says READY authorizes merge/deploy | Alpha-0 | Mitigated |
 | A0-RT-04 | CandidateRule described as active Policy | Alpha-0 | Mitigated |
-| A0-RT-05 | Tests claimed without command/result evidence | Alpha-1 | Planned |
-| A0-RT-06 | Stale current_truth document cited as authority | Alpha-1 | Planned |
+| A0-RT-05 | Tests claimed without command/result evidence | Alpha-1 | Mitigated |
+| A0-RT-06 | Stale current_truth document cited as authority | Alpha-1 | Mitigated |
+| A0-RT-07 | Diff/work evidence omitted after sealed claim | Alpha-1 | Mitigated |
+| A0-RT-08 | Review pending after sealed claim | Alpha-1 | Mitigated |
+| A0-RT-09 | DEGRADED treated as pass | Alpha-1 | Mitigated |
+| A0-RT-10 | Hidden open governance debt | Alpha-1 | Mitigated |
+| A0-RT-11 | External benchmark compliance/SLSA overclaim | Alpha-1 | Mitigated |
+| A0-RT-12 | Clean working tree claim hides untracked residue | Alpha-1 | Mitigated |
 | A2-RT-01 | Skill requests external credential without boundary | Alpha-2 | Planned |
 | A3-RT-01 | Memory lacks source receipt or freshness | Alpha-3 | Planned |
 | A4-RT-01 | Harness trace omits failed tool call | Alpha-4 | Planned |
@@ -92,8 +98,10 @@ Active surfaces:
 | A0-BT-02 | Missing evidence field in trust report | Alpha-0 | Done |
 | A0-BT-03 | Authorization laundering receipt patterns | Alpha-0 | Done |
 | A0-BT-04 | CandidateRule/Policy confusion patterns | Alpha-0 | Done |
-| A1-BT-01 | Structured test evidence requirements | Alpha-1 | Planned |
-| A1-BT-02 | Casebook fixture runner | Alpha-1 | Seeded in Alpha-0 |
+| A1-BT-01 | Structured test evidence requirements | Alpha-1 | Seeded via receipt command-evidence guard |
+| A1-BT-02 | Casebook fixture runner | Alpha-1 | Done |
+| A1-BT-03 | DEGRADED-as-pass and external benchmark overclaim patterns | Alpha-1 | Done |
+| A1-BT-04 | Generated casebook fixture support | Alpha-1 | Done |
 | A2-BT-01 | Skill boundary scanner | Alpha-2 | Planned |
 | A3-BT-01 | Memory/content source receipt scanner | Alpha-3 | Planned |
 
@@ -119,7 +127,8 @@ uv run python scripts/run_alpha_casebook.py
 
 The runner is local-only and read-only. It does not run agents or authorize
 actions; it verifies that known red-team fixtures still produce the expected
-trust signals.
+trust signals. Current coverage is 13 governed work cases across
+`claims/config/debt/diff/docs/receipts/review/tests`.
 
 ## Boundary
 
