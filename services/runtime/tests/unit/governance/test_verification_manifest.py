@@ -26,11 +26,14 @@ CHECKER = Path(__file__).resolve().parents[3] / "scripts" / "check_verification_
 # The checker module uses sys.exit in load_manifest and main(), but those are
 # never called from _run_checker.
 sys.path.insert(0, str(CHECKER.parent))
-from check_verification_manifest import (  # noqa: E402
-    check_invariants,
-    extract_baseline_gates,
-    print_summary,
-)
+try:
+    from check_verification_manifest import (  # noqa: E402
+        check_invariants,
+        extract_baseline_gates,
+        print_summary,
+    )
+finally:
+    sys.path.pop(0)
 
 VALID_MANIFEST = {
     "manifest_id": "test-v1",

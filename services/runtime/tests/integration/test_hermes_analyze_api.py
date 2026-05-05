@@ -696,7 +696,7 @@ def test_analyze_api_honestly_falls_back_when_governance_feedback_reader_fails(m
         },
     )
     monkeypatch.setattr(
-        "governance.feedback.GovernanceFeedbackReader.list_hints_for_symbol",
+        "governance_engine.feedback.GovernanceFeedbackReader.list_hints_for_symbol",
         lambda self, symbol, limit=3: (_ for _ in ()).throw(RuntimeError("feedback store unavailable")),
     )
 

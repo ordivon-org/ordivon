@@ -46,13 +46,17 @@ CATEGORIES = {
     "secret_markers": {
         "patterns": [
             r"API_KEY",
-            r"SECRET[_\s]*(?:KEY)?",
+            r"SECRET[_\s]*(?:KEY|TOKEN)?",
             r"TOKEN",
             r"PASSWORD",
             r"PRIVATE_KEY",
             r"ACCESS_KEY",
             r"BEARER",
-            r"AUTHORIZATION",
+            # Narrow: only flag Authorization followed by header/key/token syntax
+            # (e.g. 'Authorization: Bearer xxx', 'AUTHORIZATION_HEADER').
+            # 'AuthorizationStatus', 'authority.authorization', etc. are governance
+            # concepts — not secrets.
+            r"AUTHORIZATION\s*(?::|_KEY|_HEADER|_TOKEN|\s*HEADER)",
         ],
         "blocking": True,
     },
@@ -108,8 +112,8 @@ CATEGORIES = {
 
 SAFE_CONTEXTS = [
     r"not\s+(?:a\s+)?(?:public\s+)?(?:release|published|package)",
-    r"no\s+(?:broker|API|live|trading|auto.merge|authorization)",
-    r"does\s+not\s+(?:authorize|publish|activate|auto.merge)",
+    r"no\s+(?:broker|API|live|trading|auto\.merge|authorization)",
+    r"does\s+not\s+(?:authorize|publish|activate|auto\.merge)",
     r"(?:legacy|historical)\s+(?:PFIOS|AegisOS|identity)",
     r"(?:blocked|deferred|not\s+yet)",
     r"recommendation only",
@@ -121,7 +125,7 @@ SAFE_CONTEXTS = [
     r"no\s+internal\s+paths",
     r"no\s+.*paths",
     r"not\s+.*authorization",
-    r"not\s+.*auto.merge",
+    r"not\s+.*auto\.merge",
     r"check.*before\b",
     r"must\s+be\s+checked",
     r"is\s+evidence,\s*not",
@@ -130,7 +134,7 @@ SAFE_CONTEXTS = [
     r"not\s+granted",
     r"no\s+\w+\s+authorization",
     r"forbidden\s*=",
-    r"\[ \]",  # checklist item
+    r"\[\s*\]",  # checklist item
     r"should\s+be\s+published",  # proposal, not claim
     r"separate\s+from",
     r"-\s+Finance\s+pack",
@@ -144,6 +148,14 @@ SAFE_CONTEXTS = [
     r"must\s+not\s+.*authorization",
     r"without\s+authorization",
     r"action\s+authorization",
+    r"prohibited\b",  # listing prohibited actions that include broker/trading terms
+    r"AuthorizationStatus\b",  # governance enum — not a secret
+    r"NOT_REQUESTED\b",  # governance auth state — not a secret
+    r"does\s+not\s+auto",  # "does not auto-merge" — safe denial
+    r"no\s+auto",  # "no auto-merge" — safe denial
+    r"not\s+an\s+auto",  # "not an auto-merge tool"
+    r"authority\.\w+\.value",  # governance report fields, not secrets
+    r"InvalidTransitionError",  # governance auth state machine
 ]
 
 

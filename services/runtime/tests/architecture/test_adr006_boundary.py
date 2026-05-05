@@ -10,7 +10,7 @@ After ADR-006 completion (Wave 3B):
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-GOVERNANCE = ROOT / "governance"
+GOVERNANCE = ROOT / "governance_engine"
 
 
 def test_thesis_quality_py_does_not_exist():

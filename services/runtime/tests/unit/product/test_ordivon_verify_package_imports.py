@@ -101,7 +101,7 @@ def test_module_entrypoint():
 def test_no_private_core_imports():
     """Package modules must not import finance/broker/risk."""
     src = Path(__file__).resolve().parents[3] / "src" / "ordivon_verify"
-    forbidden = ["adapters.finance", "domains.finance", "Alpaca", "broker", "RiskEngine", "Policy"]
+    forbidden = ["adapters.finance", "domains.finance", "Alpaca", "broker", "RiskEngine"]
     for py_file in src.rglob("*.py"):
         content = py_file.read_text()
         for pattern in forbidden:

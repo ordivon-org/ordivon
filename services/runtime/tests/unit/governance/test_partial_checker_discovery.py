@@ -262,14 +262,22 @@ class TestManifestBaseline:
         assert manifest["gate_count"] == len(manifest["gates"])
 
     def test_all_manifest_gates_hard(self):
-        """All gates in manifest are hard."""
+        """All gates in manifest are hard — except escalation gates in full profile."""
         import json
 
         manifest = json.loads(
             (ROOT / "docs" / "governance" / "verification-gate-manifest.json").read_text(encoding="utf-8")
         )
-        for g in manifest["gates"]:
-            assert g["hardness"] == "hard", f"{g['gate_id']} is not hard"
+        gates = manifest["gates"]
+        hard = [g for g in gates if g.get("hardness") == "hard"]
+        esc = [g for g in gates if g.get("hardness") == "escalation"]
+        assert manifest.get("hard_count", 0) == len(hard), (
+            f"hard_count mismatch: {manifest.get('hard_count')} != {len(hard)}"
+        )
+        assert manifest.get("escalation_count", 0) == len(esc), "escalation_count mismatch"
+        assert len(hard) + len(esc) == len(gates), "unexpected hardness values"
+        # PGI escalation gates are legitimate — they are escalation by design
+        assert len(esc) > 0, "escalation gates should exist for full profile"
 
     def test_baseline_gate_missing_from_manifest_fails(self, tmp_path):
         """A gate in baseline but missing from manifest should be detected."""
