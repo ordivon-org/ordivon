@@ -1,9 +1,12 @@
 {
   "manifest_id": "auto-generated-v1",
   "profile": "auto",
+  "version": "1.0",
   "status": "current",
   "authority": "derived_from_registry",
   "gate_count": 36,
+  "hard_count": 26,
+  "escalation_count": 10,
   "gates": [
     {
       "gate_id": "external_source_registry",

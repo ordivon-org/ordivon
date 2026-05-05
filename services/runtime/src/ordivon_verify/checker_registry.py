@@ -550,12 +550,17 @@ def generate_manifest() -> dict:
             "purpose": entry.purpose,
             "protects_against": entry.protects_against,
         })
+    hard_count = sum(1 for e in entries.values() if e.hardness == "hard")
+    escalation_count = sum(1 for e in entries.values() if e.hardness == "escalation")
     return {
         "manifest_id": "auto-generated-v1",
         "profile": "auto",
+        "version": "1.0",
         "status": "current",
         "authority": "derived_from_registry",
         "gate_count": len(gates),
+        "hard_count": hard_count,
+        "escalation_count": escalation_count,
         "gates": gates,
         "_note": "Auto-generated from checkers/ directory. Do not edit manually.",
     }
