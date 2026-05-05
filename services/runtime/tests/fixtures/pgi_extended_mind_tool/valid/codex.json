@@ -1,0 +1,17 @@
+{
+  "object_type": "PGIExtendedMindTool",
+  "schema_version": "0.1",
+  "tool_id": "codex-local-agent",
+  "tool_class": "ai_assistant",
+  "cognitive_role": "Helps inspect files, propose patches, run validators, and preserve receipts.",
+  "data_boundary": "Local workspace context with privacy review; no private-to-public promotion.",
+  "failure_modes": [
+    "hallucinated context",
+    "authority overreach",
+    "over-broad edits"
+  ],
+  "governance_surface": "review",
+  "human_retains": "The human retains judgment and decision responsibility.",
+  "replacement_claim_present": false,
+  "authority_boundary": "This tool map does not authorize action and tool is not authority."
+}

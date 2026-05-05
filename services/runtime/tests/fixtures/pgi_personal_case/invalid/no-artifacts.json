@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIPersonalCaseEntry",
+  "schema_version": "0.1",
+  "case_id": "PGI-CASE-BAD-002",
+  "domain": "learning",
+  "case_type": "success",
+  "privacy_level": "public_safe",
+  "summary": "A claimed learning success.",
+  "artifact_refs": [],
+  "review_refs": [],
+  "lesson_summary": "Learned a lot.",
+  "self_model_refs": [
+    "none"
+  ],
+  "public_safe_summary": "Public-safe summary exists.",
+  "raw_private_data_recorded": false,
+  "externalization_allowed": true,
+  "authority_boundary": "This case does not authorize action and is not publication approval."
+}

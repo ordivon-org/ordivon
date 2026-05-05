@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIFinanceDecisionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-FIN-BAD-001",
+  "decision_type": "buy",
+  "decision_posture": "ready_without_authorization",
+  "thesis": "Everyone is moving fast and this must go up.",
+  "evidence_summary": "Social pressure and recent price movement.",
+  "base_rate_note": "Unknown.",
+  "max_loss": "unknown",
+  "time_horizon": "Soon.",
+  "review_date": "2026-05-04",
+  "fomo_or_gambling_risk": "block",
+  "self_proof_risk": "watch",
+  "freedom_fragility_assessment": "This increases urgency and fragility.",
+  "live_trading_no_go": true,
+  "broker_write_boundary": "No broker write, no live trading, no execution path.",
+  "authority_boundary": "This review does not authorize action and is not financial advice."
+}

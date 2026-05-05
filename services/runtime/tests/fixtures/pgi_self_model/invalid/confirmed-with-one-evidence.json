@@ -1,0 +1,16 @@
+{
+  "object_type": "PGISelfModelEntry",
+  "schema_version": "0.1",
+  "entry_id": "PGI-SELF-BAD-002",
+  "domain": "learning",
+  "update_type": "bias",
+  "observation": "One learning session had a consumption-loop risk.",
+  "evidence_refs": [
+    "docs/runtime/pgi-2-07-learning-pack-seed.md"
+  ],
+  "pattern_status": "confirmed_pattern",
+  "self_language": "There may be a learning intake bias, but more evidence is needed.",
+  "verdict_language_present": false,
+  "next_review": "After two more learning reviews.",
+  "authority_boundary": "This entry does not authorize action and is not a verdict."
+}

@@ -4,7 +4,7 @@
   "title": "Ordivon Verify Trust Report",
   "description": "JSON trust report output from Ordivon Verify. Produced by --json flag. Status const is evidence, NOT execution authority. Prototype artifact — not a public release contract.",
   "type": "object",
-  "required": ["tool", "schema_version", "status", "checks", "disclaimer"],
+  "required": ["tool", "schema_version", "status", "trust_signal", "checks", "surfaces", "disclaimer"],
   "properties": {
     "tool": {
       "type": "string",
@@ -20,6 +20,11 @@
       "type": "string",
       "enum": ["READY", "BLOCKED", "DEGRADED", "NEEDS_REVIEW"],
       "description": "Overall trust status. READY: selected checks passed (not authorization). BLOCKED: hard failure detected. DEGRADED: no hard failures but governance incomplete. NEEDS_REVIEW: advisory concerns require human review."
+    },
+    "trust_signal": {
+      "type": "string",
+      "enum": ["READY_WITHOUT_AUTHORIZATION", "BLOCKED", "DEGRADED", "NEEDS_REVIEW"],
+      "description": "External-facing trust signal. READY is rendered as READY_WITHOUT_AUTHORIZATION."
     },
     "mode": {
       "type": "string",
@@ -48,7 +53,7 @@
           },
           "severity": {
             "type": "string",
-            "enum": ["info", "warning", "error"]
+            "enum": ["info", "warning", "hard"]
           },
           "summary": { "type": "string" },
           "exit_code": { "type": "integer" }
@@ -62,6 +67,7 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
+          "check": { "type": "string" },
           "file": { "type": "string" },
           "line": { "type": "integer" },
           "reason": { "type": "string" },
@@ -77,14 +83,50 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
+          "check": { "type": "string" },
           "reason": { "type": "string" },
-          "action": { "type": "string" }
+          "next_action": { "type": "string" }
+        }
+      }
+    },
+    "missing_evidence": {
+      "type": "array",
+      "description": "Evidence gaps that keep DEGRADED from looking like a soft pass.",
+      "items": {
+        "type": "object",
+        "required": ["check", "surfaces", "reason", "next_action"],
+        "properties": {
+          "check": { "type": "string" },
+          "surfaces": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "reason": { "type": "string" },
+          "next_action": { "type": "string" }
+        }
+      }
+    },
+    "surfaces": {
+      "type": "object",
+      "description": "Alpha-0 surface summary for AI coding agent trust audit.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "checks"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "WARN", "MISSING_EVIDENCE", "NOT_APPLICABLE"]
+          },
+          "checks": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       }
     },
     "disclaimer": {
       "type": "string",
-      "const": "READY means selected checks passed; it does not authorize execution.",
+      "const": "READY means selected checks passed; it does not authorize execution, does not authorize merge, does not authorize deployment, and does not authorize external action.",
       "description": "Immutable disclaimer. Must appear in every trust report."
     }
   },

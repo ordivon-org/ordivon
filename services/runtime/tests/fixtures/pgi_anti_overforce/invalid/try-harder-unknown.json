@@ -1,0 +1,18 @@
+{
+  "object_type": "PGIAntiOverforceIntake",
+  "schema_version": "0.1",
+  "intake_id": "PGI-AOF-BAD-001",
+  "domain": "project",
+  "stalled_work": "The roadmap feels unclear.",
+  "constraint_classes": [
+    "unknown"
+  ],
+  "body_energy_signal": "Normal.",
+  "emotion_signal": "Restless.",
+  "strategic_signal": "No constraint classification yet.",
+  "current_impulse": "Try harder and push through.",
+  "chosen_response": "continue_with_smaller_step",
+  "next_safe_step": "Do another large batch.",
+  "review_time": "Later.",
+  "authority_boundary": "This intake does not authorize action."
+}

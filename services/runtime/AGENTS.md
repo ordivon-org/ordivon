@@ -12,22 +12,49 @@ docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries
 docs/ai/agent-output-contract.md         Required output shape for every AI task
 docs/architecture/ordivon-core-pack-adapter-ontology.md  Canonical Core/Pack/Adapter ontology
 docs/architecture/ordivon-moat-and-product-identity.md  What is inalienable, what is not, where the moat is
+docs/architecture/ordivon-companion-governance-constitution.md  Companion governance origin and highest constitution
+docs/governance/philosophical-governance-layer.md  Philosophical operating layer for truth, value, action, pain, and self-evolution
+docs/product/philosophical-governance-implementation-roadmap.md  PGI 3x10 implementation roadmap for philosophical governance
 docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
+
+── Extension & Governance Systems (NEW) ──
+docs/governance/extension-processes.md        How to extend Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired
+docs/governance/entropy-governance-design.md   Anti-entropy system design (Lehman's Laws applied)
+docs/governance/entropy-telemetry.jsonl        Entropy metrics ledger (timestamped snapshots)
+docs/governance/checker-maturity-ledger.jsonl  Checker maturity state transitions
+docs/governance/policy-activation-ledger.jsonl Policy activation owner signoffs
+docs/governance/candidate-rule-drafts.jsonl    Extracted CandidateRules from lessons (2 drafts)
+docs/governance/shadow-evaluation-log.jsonl    Policy Shadow Runner evaluation results
+docs/governance/lesson-ledger.jsonl            Lessons from checker findings (5 lessons)
+
+── Governance Pipeline (CATLASS) ──
+stage-templates/doc-governance.yaml            Stage template: doc-governance pipeline
+scripts/run_stage.py                           Stage runner — governance pipeline executor
+docs/runtime/waves-a-e-dogfood-receipt.md      Dogfood receipt — first CATLASS stage run
+
+── Architecture ──
 docs/architecture/harness-adapter-protocol-hap-1.md   HAP v0 protocol architecture
 docs/runtime/hap-foundation-hap-1.md                HAP foundation evidence
 docs/product/harness-adapter-protocol-stage-notes-hap-1.md  HAP-1 stage notes
 docs/governance/external-ai-governance-benchmark-pack-egb-1.md  External governance benchmarks
 docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
 docs/governance/agentic-pattern-taxonomy-adp-1.md   Agentic pattern taxonomy (18 patterns)
+docs/runtime/ordivon-system-summit-oss-1.md        OSS-1 system summit and re-centering audit
+docs/runtime/core-pack-governance-loop-gap-analysis-oss-1.md  Core/Pack loop node-level gap analysis
+docs/architecture/ordivon-system-classification-audit-oss-1.md  OSS-1 L0-L10 asset map
+docs/ai/codebase-deep-analysis-2026-05-02.md       Source-doc consistency audit + red-team repair map
+docs/product/alpha-roadmap.md                      Full Alpha roadmap and trust flywheel
+docs/product/alpha-0-evidence-of-governed-work.md  Alpha-0 product direction: agent work trust audit
+docs/runtime/alpha-0-casebook.md                   Governed AI coding work casebook
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED
-Next: Full Core/Pack loop proven end-to-end; next phase depends on priority
+## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED | EG-1: ACTIVE | Alpha-0: ACTIVE
+Next: Alpha-0 Evidence of Governed Work — AI coding agent trust audit
 
-pr-fast: 12/12 PASS | 0 open debt | Coverage: 8+2 | Phase 8: DEFERRED
+pr-fast: 12/12 PASS | full: 36/36 ALL PASS (26 hard + 10 escalation) | 3 open debt | Phase 8: DEFERRED
 Phase 6: Design + Finance Observation — COMPLETE
 **Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
 **DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published
@@ -61,12 +88,19 @@ Phase 6: Design + Finance Observation — COMPLETE
 
 Paper dogfood proved governance pipeline integrity, not profitability.
 3 completed round trips. 4 refusals. 0 boundary violations.
-204 backend tests. 57 frontend tests. 11/11 baseline.
-CandidateRules: 3 advisory. Phase 8: 3/10 DEFERRED.
+204 backend tests. 57 frontend tests. 36/36 baseline (26 hard + 10 escalation).
 
-**pr-fast**: 12/12 hard gates. 94 governance tests. 30 registry entries.
-**Open debt**: 1 (DOC-WIKI-FLAKY-001 — wiki flaky test).
-**Next**: ADP-1 → ADP-2 or HAP-2 — Agentic Pattern Governance, then implementation
+Checker ecosystem: 36 checkers (26 hard, 10 escalation) across L3-L10.
+Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed.
+Entropy governance: telemetry + gates, Lehman's Laws applied.
+Extension processes: Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired.
+Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion.
+Owner veto: Policy activation requires named owner + explicit signoff.
+CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
+
+**pr-fast**: 12/12 hard gates. **full**: 36/36 ALL PASS (26 hard + 10 escalation). 3 open debt.
+**Current center**: Alpha-0 Evidence of Governed Work + EG-1 CATLASS MVP (stage templates + runner).
+**Next**: expand stage template library, integrate with Ordivon Verify.
 
 ## Critical Boundaries
 

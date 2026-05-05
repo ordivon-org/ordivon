@@ -1,0 +1,23 @@
+{
+  "object_type": "PGIControlBoundaryReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-CB-BAD-001",
+  "domain": "finance",
+  "decision_or_event": "A high-risk trade made money.",
+  "controllable_factors": [
+    "position size",
+    "entry checklist"
+  ],
+  "uncontrollable_factors": [
+    "market movement"
+  ],
+  "mixed_factors": [
+    "news timing"
+  ],
+  "process_quality": "poor",
+  "outcome_quality": "good",
+  "process_outcome_quadrant": "bad_process_good_outcome",
+  "outcome_interpretation": "Profit proves good decision and no review is needed.",
+  "review_posture": "maintain",
+  "authority_boundary": "This review does not authorize action."
+}

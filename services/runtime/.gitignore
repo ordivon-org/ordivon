@@ -1,9 +1,13 @@
 __pycache__/
 *.pyc
+*.bak
 .venv/
 node_modules/
 .next/
 .tmp/
+docs/ai/onboarding-snapshot.json
+checkers/.usage.json
+src/checkers/.bundled_manifest
 dist/
 build/
 .env

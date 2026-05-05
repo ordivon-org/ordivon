@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIConfidenceAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-CONF-BAD-001",
+  "claim": "This will succeed.",
+  "claim_type": "forecast",
+  "confidence": 0.88,
+  "confidence_band": "HIGH",
+  "evidence_refs": [
+    "docs/product/philosophical-governance-implementation-roadmap.md"
+  ],
+  "base_rate": null,
+  "uncertainty": [
+    "Unknown."
+  ],
+  "calibration_status": "uncalibrated",
+  "review_trigger": "Never.",
+  "authority_boundary": "This confidence does not authorize action."
+}

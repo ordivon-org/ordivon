@@ -68,7 +68,7 @@ seeds extracted, and overclaim warnings.
 
 #### SRC-006: OpenAI Preparedness Framework v2
 - **Source type:** external AI governance benchmark
-- **Version/date:** v2, last updated 2025-04-15
+- **Version/date:** v2, external source update date 2025-04-15
 - **Freshness:** verified-current (source freshness checked during ADP-1)
 - **Key concepts:** Capability threshold evaluation, risk categories (low/medium/high/critical), safeguards per level, deployment gate, safety scorecard, post-deployment monitoring
 - **Pattern seeds:** Capability-to-Authorization Collapse, Shell Risk Escalation, Approval Fatigue

@@ -1,0 +1,24 @@
+{
+  "object_type": "PGIDecisionGate",
+  "schema_version": "0.1",
+  "decision_id": "PGI-DG-001",
+  "action_or_claim": "Use PGI-2.01 DecisionGate as a seed review object.",
+  "risk_level": "medium",
+  "claim_ref": "docs/governance/claim-argument-model-pgi-1.md",
+  "evidence_refs": [
+    "docs/runtime/pgi-1-closure-seal.md"
+  ],
+  "confidence_assessment_ref": "tests/fixtures/pgi_confidence_assessment/valid/high-confidence.json",
+  "failure_predicate_ref": "tests/fixtures/pgi_failure_predicate/valid/roadmap-claim.json",
+  "constitution_checks": [
+    {"rule_id": "PGI-CONST-001", "result": "pass"},
+    {"rule_id": "PGI-CONST-006", "result": "pass"}
+  ],
+  "ethical_triad_review_ref": "tests/fixtures/pgi_ethical_triad/valid/review.json",
+  "reversibility": "reversible",
+  "downside": "Adds process overhead if used too broadly.",
+  "decision_posture": "READY_WITHOUT_AUTHORIZATION",
+  "missing_evidence": [],
+  "review_trigger": "Any edit to PGI-2.01 validator or DecisionGate object model.",
+  "authority_boundary": "This DecisionGate does not authorize execution, merge, deployment, trading, or external action."
+}

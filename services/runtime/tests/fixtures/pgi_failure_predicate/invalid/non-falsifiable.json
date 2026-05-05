@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIFailurePredicate",
+  "schema_version": "0.1",
+  "predicate_id": "PGI-FP-BAD-001",
+  "claim": "The philosophy is always true.",
+  "claim_type": "value",
+  "would_disconfirm": [
+    "Nothing could disconfirm it."
+  ],
+  "measurement": "Not applicable.",
+  "review_window": "Never.",
+  "action_if_disconfirmed": "None.",
+  "authority_boundary": "This predicate does not authorize action."
+}

@@ -1,0 +1,13 @@
+{
+  "object_type": "PGIReversibilityAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-REV-BAD-001",
+  "action_or_claim": "Make a financial move.",
+  "side_effect_class": "financial",
+  "reversibility": "partially_reversible",
+  "blast_radius": "Capital and emotional risk.",
+  "rollback_path": "Sell later.",
+  "irreversible_loss": "Fees, slippage, and behavioral reinforcement.",
+  "review_required": false,
+  "authority_boundary": "This assessment does not authorize action."
+}

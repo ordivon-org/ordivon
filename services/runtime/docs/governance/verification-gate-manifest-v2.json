@@ -1,0 +1,100 @@
+{
+  "manifest_id": "pr-fast-v2",
+  "profile": "pr-fast",
+  "status": "current",
+  "authority": "derived_from_registry",
+  "gate_count": 8,
+  "gates": [
+    {
+      "gate_id": "coverage_governance",
+      "display_name": "Coverage Governance",
+      "layer": "L4",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run coverage_governance",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate checker coverage manifest completeness",
+      "protects_against": "Silent scope decay, enumeration drift, coverage gaps, missing critical checkers"
+    },
+    {
+      "gate_id": "architecture_boundaries",
+      "display_name": "Architecture Boundaries",
+      "layer": "L4A",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run architecture_boundaries",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Enforce Core/Pack/Adapter import direction invariants",
+      "protects_against": "Core importing Pack business logic, finance fields leaking into Core, trade execution refs in governance"
+    },
+    {
+      "gate_id": "runtime_evidence",
+      "display_name": "Runtime Evidence Integrity",
+      "layer": "L5",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run runtime_evidence",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Verify receipt/schema/checker integrity across evidence artifacts",
+      "protects_against": "Receipt corruption, schema drift, checker output tampering, stale evidence references"
+    },
+    {
+      "gate_id": "document_registry",
+      "display_name": "Document Registry Governance",
+      "layer": "L6",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run document_registry",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Document registry consistency and semantic safety validation",
+      "protects_against": "Stale docs, dangerous phrases, ontology metadata gaps, missing required fields"
+    },
+    {
+      "gate_id": "document_freshness",
+      "display_name": "Document Freshness Audit",
+      "layer": "L6A",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run document_freshness",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Detect stale documents in the document registry based on freshness windows",
+      "protects_against": "Stale source_of_truth docs, expired freshness windows, untracked last_verified gaps"
+    },
+    {
+      "gate_id": "verification_debt",
+      "display_name": "Verification Debt Ledger",
+      "layer": "L7A",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run verification_debt",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Verification debt tracking and expiry enforcement",
+      "protects_against": "Hidden debt, overdue debt, unregistered skipped verification, debt candidate discovery gaps"
+    },
+    {
+      "gate_id": "receipt_integrity",
+      "display_name": "Receipt Integrity",
+      "layer": "L7B",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run receipt_integrity",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Receipt honesty and contradiction detection",
+      "protects_against": "Skipped None+not run, SEALED+pending, clean working tree+untracked, stale baseline count, overclaim language, CandidateRule validated claim, boundary claim mismatch"
+    },
+    {
+      "gate_id": "gate_manifest",
+      "display_name": "Verification Gate Manifest",
+      "layer": "L8",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run gate_manifest",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Gate manifest consistency and baseline integrity",
+      "protects_against": "Silent gate removal, downgrade, no-op replacement, manifest/baseline mismatch"
+    }
+  ],
+  "_note": "Auto-generated from checkers/ directory. Do not edit manually.",
+  "version": "2.0",
+  "_migration_note": "Auto-generated from checker ecosystem. Replaces pr-fast-v1."
+}

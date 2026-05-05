@@ -1,0 +1,13 @@
+{
+  "object_type": "PGIPublicPhilosophyStatement",
+  "schema_version": "0.1",
+  "statement_id": "PGI-PUB-001",
+  "surface": "about",
+  "statement": "Ordivon began as a companion governance system for making decisions traceable, actions evidenced, outcomes reviewable, and learning cumulative.",
+  "personal_origin_disclosed": true,
+  "evidence_boundary": "Public claims should be grounded in casebook evidence and receipts.",
+  "not_advice_boundary": "This is not therapy, not financial advice, and not life advice.",
+  "commercialization_boundary": "Commercialization is externalization, not origin.",
+  "anti_cult_boundary": "This is not a belief system or cult; it is a governed work practice.",
+  "authority_boundary": "This statement does not authorize action and is not a universal doctrine."
+}

@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIBuilderChangeReview",
+  "schema_version": "0.1",
+  "change_id": "PGI-BUILD-BAD-002",
+  "change_surface": "schema",
+  "intent": "Add a vision schema.",
+  "files_touched": [
+    "src/ordivon_verify/schemas/vision.schema.json"
+  ],
+  "truth_impact": "Vision.",
+  "value_impact": "Vision.",
+  "action_impact": "Vision.",
+  "complexity_delta": "unknown",
+  "debt_declared": false,
+  "anti_overforce_checked": true,
+  "improves_decision_maker": "Adds vision.",
+  "tests_or_receipts": [],
+  "authority_boundary": "Ready."
+}

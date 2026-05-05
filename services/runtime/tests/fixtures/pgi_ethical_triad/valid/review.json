@@ -1,0 +1,15 @@
+{
+  "object_type": "PGIEthicalTriadReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-001",
+  "action_or_claim": "Use PGI-1.08 as a review template for future DecisionGate work.",
+  "consequence_review": "The likely consequence is better review discipline with some added process cost.",
+  "rule_review": "The action respects READY-not-authorization and CandidateRule-not-Policy boundaries.",
+  "character_review": "The action trains honesty and patience because it requires explicit tradeoffs.",
+  "tradeoffs": [
+    "More fields can slow lightweight work.",
+    "Omitting the triad can hide value conflicts."
+  ],
+  "decision_posture": "READY_WITHOUT_AUTHORIZATION",
+  "authority_boundary": "This review does not authorize action."
+}

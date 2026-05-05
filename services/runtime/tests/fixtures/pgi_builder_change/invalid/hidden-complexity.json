@@ -1,0 +1,21 @@
+{
+  "object_type": "PGIBuilderChangeReview",
+  "schema_version": "0.1",
+  "change_id": "PGI-BUILD-BAD-001",
+  "change_surface": "architecture",
+  "intent": "Expand the whole flywheel vision into everything.",
+  "files_touched": [
+    "docs/architecture/new-big-system.md"
+  ],
+  "truth_impact": "Unclear.",
+  "value_impact": "Large civilization vision.",
+  "action_impact": "Unknown.",
+  "complexity_delta": "increases",
+  "debt_declared": false,
+  "anti_overforce_checked": false,
+  "improves_decision_maker": "unclear",
+  "tests_or_receipts": [
+    "docs/runtime/some-receipt.md"
+  ],
+  "authority_boundary": "This review does not authorize action."
+}

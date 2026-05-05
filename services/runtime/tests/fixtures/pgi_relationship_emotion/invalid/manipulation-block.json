@@ -1,0 +1,18 @@
+{
+  "object_type": "PGIRelationshipEmotionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-REL-BAD-002",
+  "surface": "relationship",
+  "event_summary": "A conversation goal is framed around getting a reaction.",
+  "pattern_or_commitment": "Win the exchange.",
+  "emotion_class": "noise",
+  "emotion_intensity": "high",
+  "decision_risk_level": "medium",
+  "decision_delay_required": true,
+  "manipulation_risk": "block",
+  "next_repair_or_boundary_step": "Make them agree.",
+  "raw_private_data_recorded": false,
+  "do_not_record_acknowledged": true,
+  "privacy_boundary": "Record patterns only; no intimate raw data is recorded.",
+  "authority_boundary": "This review does not authorize action and is not therapy."
+}

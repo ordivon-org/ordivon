@@ -1,0 +1,21 @@
+{
+  "object_type": "PGIReviewToRuleCandidate",
+  "schema_version": "0.1",
+  "candidate_id": "PGI-RTR-001",
+  "source_reviews": [
+    "docs/runtime/pgi-2-04-anti-overforce-constraint-intake.md",
+    "docs/runtime/pgi-2-08-builder-pack-hardening.md"
+  ],
+  "pattern_basis": "multiple_examples",
+  "evidence_count": 2,
+  "severity": "medium",
+  "emotional_intensity": "low",
+  "cool_down_review_completed": true,
+  "proposed_rule": "Complexity-increasing builder work should include an anti-overforce check and explicit evidence.",
+  "rule_scope": "Builder Pack reviews only.",
+  "candidate_status": "candidate",
+  "retirement_path": "Retire or narrow if two future builder reviews show excessive false positives.",
+  "next_review": "After two more BuilderChangeReview entries.",
+  "policy_boundary": "Candidate only; no policy activation.",
+  "authority_boundary": "This candidate does not authorize action."
+}

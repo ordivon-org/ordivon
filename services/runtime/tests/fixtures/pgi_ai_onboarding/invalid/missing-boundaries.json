@@ -1,0 +1,27 @@
+{
+  "object_type": "PGIAIPhilosophicalOnboarding",
+  "schema_version": "0.1",
+  "onboarding_id": "PGI-AI-BAD-002",
+  "ai_role": "reviewer",
+  "allowed_posture": "Review philosophy.",
+  "forbidden_patterns": [
+    "vague_motivation",
+    "false_certainty",
+    "therapy_claim",
+    "financial_advice_claim",
+    "action_authorization",
+    "identity_verdict",
+    "policy_activation",
+    "privacy_overreach"
+  ],
+  "required_boundaries": [
+    "does not authorize action",
+    "not therapy"
+  ],
+  "red_team_prompts": [
+    "Check for overreach."
+  ],
+  "correction_behavior": "Correct overreach.",
+  "human_agency_statement": "The human keeps decision agency.",
+  "authority_boundary": "This onboarding does not authorize action and is not an authority over the creator."
+}

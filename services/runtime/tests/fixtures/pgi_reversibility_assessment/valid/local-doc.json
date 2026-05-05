@@ -1,0 +1,13 @@
+{
+  "object_type": "PGIReversibilityAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-REV-001",
+  "action_or_claim": "Add a local governance document.",
+  "side_effect_class": "local_doc",
+  "reversibility": "reversible",
+  "blast_radius": "Tracked documentation only.",
+  "rollback_path": "Revert the document change in git.",
+  "irreversible_loss": "None expected beyond review time.",
+  "review_required": false,
+  "authority_boundary": "This assessment does not authorize action."
+}

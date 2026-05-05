@@ -1,0 +1,20 @@
+{
+  "object_type": "PGIReviewToRuleCandidate",
+  "schema_version": "0.1",
+  "candidate_id": "PGI-RTR-BAD-001",
+  "source_reviews": [
+    "docs/runtime/pgi-3-01-self-model-ledger.md"
+  ],
+  "pattern_basis": "single_anecdote",
+  "evidence_count": 1,
+  "severity": "medium",
+  "emotional_intensity": "moderate",
+  "cool_down_review_completed": true,
+  "proposed_rule": "Never again allow long sessions.",
+  "rule_scope": "All work.",
+  "candidate_status": "candidate",
+  "retirement_path": "None.",
+  "next_review": "Never.",
+  "policy_boundary": "Candidate only; no policy activation.",
+  "authority_boundary": "This candidate does not authorize action."
+}

@@ -1,0 +1,15 @@
+{
+  "object_type": "PGIExtendedMindTool",
+  "schema_version": "0.1",
+  "tool_id": "notes",
+  "tool_class": "notebook",
+  "cognitive_role": "Stores thoughts.",
+  "data_boundary": "Everything goes in.",
+  "failure_modes": [
+    "stale notes"
+  ],
+  "governance_surface": "memory",
+  "human_retains": "Human retains judgment and decision responsibility.",
+  "replacement_claim_present": false,
+  "authority_boundary": "This tool map does not authorize action and tool is not authority."
+}

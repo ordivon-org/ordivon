@@ -1,0 +1,18 @@
+{
+  "object_type": "PGIRelationshipEmotionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-REL-BAD-001",
+  "surface": "relationship",
+  "event_summary": "Detailed private transcript.",
+  "pattern_or_commitment": "Analyze everything.",
+  "emotion_class": "mixed",
+  "emotion_intensity": "high",
+  "decision_risk_level": "high",
+  "decision_delay_required": false,
+  "manipulation_risk": "watch",
+  "next_repair_or_boundary_step": "Send now.",
+  "raw_private_data_recorded": true,
+  "do_not_record_acknowledged": false,
+  "privacy_boundary": "Record details.",
+  "authority_boundary": "Ready."
+}

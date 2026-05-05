@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIFailurePredicate",
+  "schema_version": "0.1",
+  "predicate_id": "PGI-FP-BAD-002",
+  "claim": "A failure predicate exists.",
+  "claim_type": "factual",
+  "would_disconfirm": [
+    "The predicate file is missing."
+  ],
+  "measurement": "Read the fixture file.",
+  "review_window": "After fixture edits.",
+  "action_if_disconfirmed": "Repair the fixture.",
+  "authority_boundary": "Ready."
+}

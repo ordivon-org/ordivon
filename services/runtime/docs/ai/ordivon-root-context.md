@@ -1,13 +1,18 @@
 # Ordivon Root Context
 
-Status: **DOCUMENTED** (DG-6A ontology consolidation)
-Date: 2026-04-30
-Phase: DG-6A
-Tags: `ordivon`, `root-context`, `identity`, `governance`, `doctrine`, `ai-onboarding`
+Status: **CURRENT** (Alpha-0 active; companion governance constitution added)
+Date: 2026-05-03
+Phase: Alpha-0
+Tags: `ordivon`, `root-context`, `identity`, `governance`, `doctrine`, `companion-governance`, `ai-onboarding`
 
 ## 1. What Ordivon Is
 
 Ordivon is a **governance operating system**.
+
+It exists first as a **companion governance system for its creator**:
+to make decisions traceable, actions accountable, outcomes reviewable,
+knowledge accumulative, and the self progressively more coherent under
+uncertainty.
 
 It is NOT:
 - A trading bot
@@ -15,17 +20,54 @@ It is NOT:
 - A generic dashboard or admin panel
 - A CI pipeline
 - A GitHub bot
+- A commercialization plan whose meaning depends on external adoption
 
 It IS:
 - A system that governs decisions across multiple domains through evidence, policy, shadow evaluation, and human review
 - A platform where governance rules are modeled as Policies that progress through a lifecycle: CandidateRule → PolicyProposal → Evidence Gate → Shadow Evaluation → Approval → Activation (deferred)
 - An architecture that separates Core (domain-agnostic governance) from Packs (domain-specific business logic), Adapters (external system interfaces), and Evidence (verifiable observation)
+- A personal-to-external governance loop where Alpha/product/company/community are possible externalization paths, not the origin of meaning
 
 ### First-Principles Identity
 
 From the Phase 4 Stage Summit:
 
 > Ordivon does not produce financial outcomes. It governs the process by which financial outcomes are pursued. It does not run models. It arranges the evidence, rules, and review loops that surround model behavior. A financial loss that follows governance is acceptable. A financial loss without governance is not.
+
+### Companion Governance Origin
+
+Canonical document:
+
+```
+docs/architecture/ordivon-companion-governance-constitution.md
+```
+
+Philosophical operating layer:
+
+```
+docs/governance/philosophical-governance-layer.md
+```
+
+Implementation roadmap:
+
+```
+docs/product/philosophical-governance-implementation-roadmap.md
+```
+
+Core loop:
+
+```text
+Intent -> Constraint -> Decision -> Action -> Evidence -> Outcome
+-> Review -> Rule Update -> Identity / System Evolution
+```
+
+This origin expands Ordivon beyond a software product while preserving the
+same governance semantics. Finance, body, learning, builder work, emotions,
+relationships, values, and agent-native work can all be treated as Packs over
+the same loop. The goal is not to mechanize life; the goal is to make important
+decisions and actions observable, explainable, reviewable, and learnable
+without turning rest, curiosity, friendship, love, or unmeasured experience into
+KPI surfaces.
 
 ## 2. Governance Doctrine (Compressed)
 
@@ -141,9 +183,13 @@ Dependabot ecosystem key is an upstream parsing adapter — it does NOT represen
 Phase 1–5: **COMPLETE**
 Phase 6: **COMPLETE** (Design Pack, UI Governance, Finance Observation — 16 sub-phases)
 **Phase 7P: CLOSED** (Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published 2026-04-29)
-**DG-1 through DG-5: COMPLETE** (Document Governance Pack through Baseline Integration)
-**DG-6: COMPLETE** (Wiki Navigation Prototype)
-**DG-6A: ACTIVE** (Core/Pack/Adapter Ontology Consolidation)
+**DG-1 through DG-Z: CLOSED** (Document Governance Pack through closure)
+**PV-2 through PV-5: COMPLETE** (Ordivon Verify wedge through agent/CI adoption pack)
+**OGAP-1 through OGAP-3: CLOSED** (protocol semantics, schemas, adapter fixture dogfood)
+**HAP-1: CLOSED** (Harness Adapter Protocol v0 foundation)
+**ADP-2R through ADP-3: CLOSED** (red-team remediation and detector seal)
+**CPR-1 through CPR-3: CLOSED** (Core/Pack loop and Coding Pack dogfood)
+**Alpha-0: ACTIVE** (Evidence of Governed Work — AI coding agent trust audit)
 Phase 8: **DEFERRED** (Manual Live Micro-Capital — 3/10 readiness criteria)
 
 See `docs/ai/current-phase-boundaries.md` for detailed status and boundary matrix.

@@ -1,0 +1,114 @@
+# Stage Template: Checker Development Stage
+# =============================================================================
+# For creating or modifying a checker. Touches checkers/<name>/, domains/ if
+# adding domain models, and docs/governance/ for ledger updates. Must NOT
+# touch test infrastructure, application code, or ORM models.
+# =============================================================================
+
+template_id: checker-development
+template_version: 1
+description: "Create or modify a governance checker — CHECKER.md + run.py, domain models, tests, fixtures, DG registration"
+
+freeze_protocol:
+  state: open_scope
+  allowed_states:
+    - open_scope
+    - enhancement_freeze
+    - verification_freeze
+    - closure_freeze
+    - closed
+  enforcement: record_only
+
+pre_flight:
+  - id: working-tree-check
+    command: "git status --porcelain"
+    description: "Working tree clean or only expected paths modified"
+  - id: current-truth-pre
+    command: "uv run python checkers/current-truth/run.py"
+    description: "No pre-existing drift"
+    on_failure: BLOCKED
+
+allowed_paths:
+  - checkers/**
+  - checkers/*/CHECKER.md
+  - checkers/*/run.py
+  - checkers/*/fixtures/**
+  - domains/*/__init__.py
+  - domains/*/models.py
+  - tests/**
+  - tests/unit/**
+  - tests/fixtures/**
+  - docs/governance/document-registry.jsonl
+  - docs/governance/verification-gate-manifest.json
+  - docs/governance/checker-maturity-ledger.jsonl
+  - docs/ai/systems-reference.md
+  - AGENTS.md
+  - src/ordivon_verify/checker_registry.py
+
+forbidden_boundaries:
+  - src/ordivon_verify/checks/**
+  - src/ordivon_verify/schemas/**
+  - apps/**
+  - evals/**
+  - scripts/audit_*.py
+  - scripts/smoke_*.py
+  - environments/**
+  - .github/workflows/ci.yml
+
+verification:
+  - id: pr-fast
+    command: "uv run python scripts/run_baseline.py --pr-fast"
+    description: "PR-fast hard gates"
+    on_failure: BLOCKED
+    timeout: 180
+
+  - id: unit-tests
+    command: "uv run --with pytest python -m pytest tests/unit -q --no-header"
+    description: "All unit tests must pass"
+    on_failure: BLOCKED
+    timeout: 300
+
+  - id: document-registry
+    command: "uv run python scripts/check_document_registry.py"
+    description: "DG registry integrity"
+    on_failure: BLOCKED
+    timeout: 60
+
+  - id: current-truth
+    command: "uv run python checkers/current-truth/run.py"
+    description: "Cross-doc consistency"
+    on_failure: BLOCKED
+    timeout: 60
+
+  - id: git-diff-check
+    command: "git diff --check"
+    description: "No whitespace errors"
+    on_failure: BLOCKED
+    timeout: 30
+
+receipt:
+  output_dir: docs/runtime
+  filename_pattern: "{stage_id}-receipt.md"
+
+registry:
+  - action: register_new_docs
+    description: "Register new checker CHECKER.md + domain models + test files in document-registry.jsonl"
+  - action: update_freshness
+    description: "Update last_verified on modified docs"
+  - action: update_manifest
+    description: "If checker is hard/escalation and should be in pr-fast, update verification-gate-manifest.json"
+
+ai_onboarding:
+  - file: AGENTS.md
+    update_condition: "new checker added or pr-fast profile changed"
+  - file: docs/ai/systems-reference.md
+    update_condition: "commands, counts, or system descriptions changed"
+  - file: docs/ai/current-phase-boundaries.md
+    update_condition: "new checker changes phase status"
+
+closure:
+  all_verification_passed: true
+  no_boundary_violations: true
+  receipt_written: true
+  registry_updated: true
+  tests_pass: true

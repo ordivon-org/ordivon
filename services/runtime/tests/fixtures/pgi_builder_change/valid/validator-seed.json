@@ -1,0 +1,23 @@
+{
+  "object_type": "PGIBuilderChangeReview",
+  "schema_version": "0.1",
+  "change_id": "PGI-BUILD-001",
+  "change_surface": "checker",
+  "intent": "Add a local validator for learning review payloads.",
+  "files_touched": [
+    "scripts/validate_pgi_learning_review.py",
+    "tests/unit/governance/test_pgi_learning_review.py"
+  ],
+  "truth_impact": "Makes consumption-loop claims testable by fixture.",
+  "value_impact": "Supports learning as capability rather than intake volume.",
+  "action_impact": "Review-only; no external side effects.",
+  "complexity_delta": "neutral",
+  "debt_declared": false,
+  "anti_overforce_checked": true,
+  "improves_decision_maker": "Improves ability to decide when more learning is useful versus evasive.",
+  "tests_or_receipts": [
+    "tests/unit/governance/test_pgi_learning_review.py",
+    "docs/runtime/pgi-2-07-learning-pack-seed.md"
+  ],
+  "authority_boundary": "This review does not authorize action."
+}

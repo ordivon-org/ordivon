@@ -46,7 +46,7 @@ receipts, ledgers — with the same discipline applied to paper trades.
 - **Phase 7P**: CLOSED (Alpaca Paper Dogfood — Stage Summit published)
 - **Phase 8**: DEFERRED (Live Micro-Capital — 3/10 readiness criteria)
 - **DG Pack**: CLOSED — 18 sub-phases, 94 governance tests, 30 registry entries
-- **pr-fast**: 11/11 hard gates
+- **pr-fast**: 12/12 hard gates
 - **Open debt**: none (VD-001 through VD-004 all closed in Post-DG-H1/H2)
 - **PV-1**: PROPOSAL — Ordivon Verify CLI product contract (docs only)
 - **PV-2**: COMPLETE — Ordivon Verify CLI skeleton wrapping 4 checkers

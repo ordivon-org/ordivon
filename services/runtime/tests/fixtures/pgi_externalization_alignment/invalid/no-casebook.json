@@ -1,0 +1,15 @@
+{
+  "object_type": "PGIExternalizationAlignment",
+  "schema_version": "0.1",
+  "alignment_id": "PGI-EXT-BAD-002",
+  "external_wedge": "casebook_demo",
+  "internal_root_preserved": true,
+  "external_claim": "A nice demo.",
+  "casebook_refs": [],
+  "schema_public_claim": false,
+  "adapter_public_claim": false,
+  "release_claim": false,
+  "trust_boundary": "Evidence only.",
+  "companion_boundary": "Companion governance remains the root; commercialization is externalization.",
+  "authority_boundary": "This alignment does not authorize action and is not release approval."
+}

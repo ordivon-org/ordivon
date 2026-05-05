@@ -1,0 +1,24 @@
+{
+  "object_type": "PGIEvidenceRecord",
+  "schema_version": "0.1",
+  "evidence_id": "PGI-EV-BAD-002",
+  "evidence_kind": "command_output",
+  "source": {
+    "command": "echo ok"
+  },
+  "observed_at": "2026-05-03T00:00:00+08:00",
+  "actor": "codex",
+  "scope": "bad fixture",
+  "reproducibility": "reproducible",
+  "freshness": {
+    "status": "CURRENT",
+    "last_verified": "2026-05-03",
+    "stale_after_days": 90
+  },
+  "confidence": 1.2,
+  "supports_claims": [
+    "Command output exists."
+  ],
+  "limitations": [],
+  "authority_boundary": "This evidence does not authorize action."
+}

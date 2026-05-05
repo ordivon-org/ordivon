@@ -137,6 +137,13 @@ SAFE_CONTEXTS = [
     r"-\s+Broker\s+API",
     r"context_tokens",  # LLM context window size — not a secret token
     r"max_context_tokens",  # HAP schema field — not a secret token
+    r"READY_WITHOUT_AUTHORIZATION",
+    r"no_action_authorization_statement",
+    r"authorization_laundering",
+    r"AUTHORIZATION_LAUNDERING_PATTERN",
+    r"must\s+not\s+.*authorization",
+    r"without\s+authorization",
+    r"action\s+authorization",
 ]
 
 

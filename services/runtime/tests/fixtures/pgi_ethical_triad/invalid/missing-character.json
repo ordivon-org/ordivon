@@ -1,0 +1,12 @@
+{
+  "object_type": "PGIEthicalTriadReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-BAD-002",
+  "action_or_claim": "Skip character review.",
+  "consequence_review": "Faster.",
+  "rule_review": "Maybe allowed.",
+  "character_review": "",
+  "tradeoffs": [],
+  "decision_posture": "READY_WITHOUT_AUTHORIZATION",
+  "authority_boundary": "Ready."
+}

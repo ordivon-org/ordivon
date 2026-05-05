@@ -194,7 +194,7 @@ Initial historical source anchors:
 - ISO/IEC 42001:2023 (Dec 2023)
 
 Known newer source anchors after initial historical versions include:
-- OpenAI Preparedness Framework v2, last updated 2025-04-15
+- OpenAI Preparedness Framework v2, external source update date 2025-04-15
 - Anthropic Responsible Scaling Policy v3.x, released/updated 2026
 - Google DeepMind Frontier Safety Framework updates after initial May 2024 release
 - NIST AI RMF 1.0 and Generative AI Profile, with AI RMF revision to monitor

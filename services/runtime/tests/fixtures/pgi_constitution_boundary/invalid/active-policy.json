@@ -1,0 +1,16 @@
+{
+  "object_type": "PGIConstitutionBoundaryMatrix",
+  "schema_version": "0.1",
+  "status": "current",
+  "authority_boundary": "This matrix authorizes action and activates Policy.",
+  "rules": [
+    {
+      "rule_id": "BAD-001",
+      "statement": "AI is authority.",
+      "classification": "policy",
+      "activation_status": "active_policy",
+      "reason": "Bad fixture.",
+      "closure_or_review_condition": "None."
+    }
+  ]
+}

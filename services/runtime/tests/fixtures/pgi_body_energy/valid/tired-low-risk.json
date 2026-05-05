@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIBodyEnergyReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-BODY-001",
+  "energy_state": "tired",
+  "fatigue_level": "moderate",
+  "decision_risk_level": "low",
+  "major_decision_allowed": true,
+  "body_signal_summary": "Tired but able to do local documentation review.",
+  "minimum_next_step": "Work on a low-risk doc pass and re-check energy before any high-risk decision.",
+  "raw_private_data_recorded": false,
+  "privacy_boundary": "Non-invasive summary only; no intimate raw data is recorded.",
+  "authority_boundary": "This review does not authorize action and is not medical advice."
+}

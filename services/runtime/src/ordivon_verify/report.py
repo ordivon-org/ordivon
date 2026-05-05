@@ -5,7 +5,17 @@ Status model, human output, JSON output.
 
 from __future__ import annotations
 
-DISCLAIMER = "READY means selected checks passed; it does not authorize execution."
+DISCLAIMER = (
+    "READY means selected checks passed; it does not authorize execution, "
+    "does not authorize merge, does not authorize deployment, and does not authorize external action."
+)
+
+_CHECK_SURFACES = {
+    "receipts": ["claims", "receipts", "tests", "diff", "review"],
+    "debt": ["debt"],
+    "gates": ["gates"],
+    "docs": ["docs"],
+}
 
 
 def determine_status(results: list[dict]) -> str:
@@ -25,6 +35,43 @@ def _severity(status: str) -> str:
     if status == "WARN":
         return "warning"
     return "info"
+
+
+def _surfaces_for(check_id: str) -> list[str]:
+    return list(_CHECK_SURFACES.get(check_id, [check_id]))
+
+
+def _missing_evidence(results: list[dict]) -> list[dict]:
+    missing = []
+    for r in results:
+        if not r.get("missing_evidence"):
+            continue
+        missing.append({
+            "check": r["id"],
+            "surfaces": _surfaces_for(r["id"]),
+            "reason": r.get("stderr", "Evidence missing or not configured."),
+            "next_action": r.get("next_action", f"Configure {r['label'].lower()} evidence."),
+        })
+    return missing
+
+
+def _surface_summary(results: list[dict]) -> dict:
+    surfaces: dict[str, dict] = {
+        name: {"status": "NOT_APPLICABLE", "checks": []}
+        for name in ("claims", "receipts", "tests", "diff", "debt", "docs", "gates", "review")
+    }
+    for r in results:
+        for surface in _surfaces_for(r["id"]):
+            entry = surfaces.setdefault(surface, {"status": "NOT_APPLICABLE", "checks": []})
+            entry["checks"].append(r["id"])
+            status = r["status"]
+            if status == "FAIL":
+                entry["status"] = "FAIL"
+            elif status == "WARN" and entry["status"] != "FAIL":
+                entry["status"] = "MISSING_EVIDENCE" if r.get("missing_evidence") else "WARN"
+            elif status == "PASS" and entry["status"] == "NOT_APPLICABLE":
+                entry["status"] = "PASS"
+    return surfaces
 
 
 def build_report(results: list[dict], mode: str, root: str, config_path: str | None) -> dict:
@@ -67,6 +114,7 @@ def build_report(results: list[dict], mode: str, root: str, config_path: str | N
         "tool": "ordivon-verify",
         "schema_version": "0.1",
         "status": status,
+        "trust_signal": "READY_WITHOUT_AUTHORIZATION" if status == "READY" else status,
         "mode": mode,
         "root": root,
         "config": config_path,
@@ -80,8 +128,10 @@ def build_report(results: list[dict], mode: str, root: str, config_path: str | N
             }
             for r in results
         ],
+        "surfaces": _surface_summary(results),
         "hard_failures": hard_failures,
         "warnings": warn_entries,
+        "missing_evidence": _missing_evidence(results),
         "disclaimer": DISCLAIMER,
     }
 
@@ -91,6 +141,8 @@ def print_human(results: list[dict], mode: str, root: str, config_path: str | No
     status = determine_status(results)
     print("ORDIVON VERIFY")
     print(f"Status:  {status}")
+    if status == "READY":
+        print("Signal:  READY_WITHOUT_AUTHORIZATION")
     print(f"Mode:    {mode}")
     print(f"Root:    {root}")
     if config_path:
@@ -106,6 +158,12 @@ def print_human(results: list[dict], mode: str, root: str, config_path: str | No
         else:
             icon, label_status = "\u2717", ""
         print(f"  {r['label'].lower()}: {icon} {r['status']}{label_status}")
+
+    surfaces = _surface_summary(results)
+    print("\nSurfaces:")
+    for surface in ("claims", "receipts", "tests", "diff", "debt", "docs", "gates", "review"):
+        entry = surfaces.get(surface, {"status": "NOT_APPLICABLE"})
+        print(f"  {surface}: {entry['status']}")
 
     failures = [r for r in results if r["status"] == "FAIL"]
     if failures:
@@ -137,6 +195,15 @@ def print_human(results: list[dict], mode: str, root: str, config_path: str | No
             if na:
                 print(f"    Action:  {na}")
             print()
+
+    missing = _missing_evidence(results)
+    if missing:
+        print("Missing evidence:")
+        for item in missing:
+            print(f"  {item['check']}: {', '.join(item['surfaces'])}")
+            print(f"    Reason:  {item['reason']}")
+            print(f"    Action:  {item['next_action']}")
+        print()
 
     if failures or warns:
         print("Next suggested action:")

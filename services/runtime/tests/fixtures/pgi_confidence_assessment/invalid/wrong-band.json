@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIConfidenceAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-CONF-BAD-002",
+  "claim": "A low-evidence claim is certain.",
+  "claim_type": "forecast",
+  "confidence": 0.95,
+  "confidence_band": "MEDIUM",
+  "evidence_refs": [
+    "docs/product/philosophical-governance-implementation-roadmap.md"
+  ],
+  "base_rate": 0.5,
+  "uncertainty": [
+    "Unknown."
+  ],
+  "calibration_status": "uncalibrated",
+  "review_trigger": "Any contradictory evidence.",
+  "authority_boundary": "This confidence does not authorize action."
+}

@@ -1,0 +1,167 @@
+# Stage Template: Document Governance Stage
+# =============================================================================
+# Ordivon-CATLASS: Governance Pipeline Template
+#
+# This template encodes a complete governance pipeline for documentation
+# changes — the most common stage type. It bundles pre-flight checks,
+# boundary enforcement, verification gates, receipt generation, registry
+# updates, and AI onboarding into one executable definition.
+#
+# Usage:
+#   python scripts/run_stage.py --template stage-templates/doc-governance.yaml --stage-id <id>
+#
+# Adding a new stage type: copy this file, adjust allowed_paths and
+# forbidden_boundaries to match the new stage's scope. Register the
+# new template in document-registry.jsonl.
+# =============================================================================
+
+template_id: doc-governance
+template_version: 1
+description: >
+  Create or modify governance documentation — markdown docs, JSONL ledgers,
+  YAML templates, CHECKER.md metadata. Includes verification, receipt,
+  registry update, and AI onboarding handoff.
+
+# ── Freeze protocol ────────────────────────────────────────────────
+# EGB-2 first version is record-only: the runner records and displays
+# freeze state but does not block based on it.
+freeze_protocol:
+  state: open_scope
+  allowed_states:
+    - open_scope
+    - enhancement_freeze
+    - verification_freeze
+    - closure_freeze
+    - closed
+  enforcement: record_only
+
+# ── Pre-flight conditions ──────────────────────────────────────────
+# These must pass before execution begins. Failure = BLOCKED.
+pre_flight:
+  - id: working-tree-check
+    command: "git status --porcelain"
+    description: "Working tree must be clean or only contain expected paths"
+    check_type: output_must_not_contain
+    forbidden_patterns: []
+
+  - id: current-truth-pre
+    command: "uv run python checkers/current-truth/run.py"
+    description: "No pre-existing cross-doc drift before we start"
+    on_failure: BLOCKED
+
+# ── Scope: what this stage is allowed to touch ─────────────────────
+allowed_paths:
+  - docs/**
+  - docs/ai/**
+  - docs/governance/**
+  - docs/architecture/**
+  - docs/runtime/**
+  - docs/product/**
+  - docs/runbooks/**
+  - AGENTS.md
+  - README.md
+  - stage-templates/**
+  - checkers/*/CHECKER.md         # checker metadata updates
+  - checkers/*/run.py              # checker logic — doc-governance may tune checkers
+  - domains/*/__init__.py          # domain model metadata fields
+  - scripts/run_baseline.py        # baseline runner configuration
+  - src/ordivon_verify/checker_registry.py  # registry metadata
+  - src/ordivon_verify/registry.py          # legacy registry docs
+  - docs/governance/document-registry.jsonl
+  - docs/governance/verification-gate-manifest.json
+  - docs/governance/checker-maturity-ledger.jsonl
+  - docs/governance/verification-debt-ledger.jsonl
+  - .github/pull_request_template.md
+  - .github/workflows/ci.yml
+
+# ── Hard boundaries: must NEVER be touched by this stage ───────────
+# Violation = BLOCKED. No exceptions without template version bump.
+forbidden_boundaries:
+  - src/ordivon_verify/checks/**       # receipt checker logic
+  - src/ordivon_verify/schemas/**      # trust-report schema
+  - tests/**                            # no test changes in doc stage
+  - domains/*/models.py                 # no ORM model changes
+  - domains/*/shadow.py                 # no policy shadow engine
+  - apps/**                             # no application code
+  - evals/**                            # no evaluation corpus
+  - scripts/audit_*.py                  # no audit script changes
+  - scripts/smoke_*.py                  # no smoke test changes
+  - environments/**                     # no runtime environments
+
+# ── Verification gates ─────────────────────────────────────────────
+# Run after execution. Order matters — pr-fast first (fast feedback).
+verification:
+  - id: pr-fast
+    command: "uv run python scripts/run_baseline.py --pr-fast"
+    description: "PR-fast hard gates — blocks merge on failure"
+    on_failure: BLOCKED
+    timeout: 180
+
+  - id: document-registry
+    command: "uv run python scripts/check_document_registry.py"
+    description: "DG registry integrity — freshness, semantics, completeness"
+    on_failure: BLOCKED
+    timeout: 60
+
+  - id: current-truth
+    command: "uv run python checkers/current-truth/run.py"
+    description: "Cross-doc numerical consistency — catches drift"
+    on_failure: BLOCKED
+    timeout: 60
+
+  - id: full-read-only
+    command: "uv run python scripts/run_baseline.py --read-only"
+    description: "Full baseline without JSONL writes — comprehensive check"
+    on_failure: DEGRADED
+    timeout: 300
+
+  - id: git-diff-check
+    command: "git diff --check"
+    description: "No whitespace errors in staged changes"
+    on_failure: BLOCKED
+    timeout: 30
+
+# ── Receipt template ───────────────────────────────────────────────
+receipt:
+  output_dir: docs/runtime
+  filename_pattern: "{stage_id}-receipt.md"
+  required_sections:
+    - stage_id
+    - stage_type
+    - timestamp
+    - files_changed
+    - verification_summary
+    - boundary_statement
+    - registry_updates
+    - ai_onboarding_updates
+    - next_handoff
+
+# ── Registry update requirements ───────────────────────────────────
+registry:
+  - action: register_new_docs
+    description: "Add any new docs to document-registry.jsonl"
+  - action: update_freshness
+    description: "Update last_verified timestamp on modified docs"
+  - action: update_related_ledgers
+    description: "Ensure related_ledgers fields reference any new JSONL files"
+
+# ── AI onboarding handoff ──────────────────────────────────────────
+# These must be checked and updated if phase state changed.
+ai_onboarding:
+  - file: AGENTS.md
+    update_condition: "current status line changed"
+  - file: docs/ai/current-phase-boundaries.md
+    update_condition: "phase timeline changed"
+  - file: docs/ai/systems-reference.md
+    update_condition: "commands, counts, or system descriptions changed"
+  - file: docs/ai/new-ai-collaborator-guide.md
+    update_condition: "current systems status block changed"
+
+# ── Closure criteria ───────────────────────────────────────────────
+closure:
+  all_verification_passed: true
+  no_boundary_violations: true
+  receipt_written: true
+  registry_updated: true
+  ai_onboarding_checked: true
+  current_truth_pass: true

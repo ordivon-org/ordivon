@@ -1,0 +1,15 @@
+{
+  "object_type": "PGIFailurePredicate",
+  "schema_version": "0.1",
+  "predicate_id": "PGI-FP-001",
+  "claim": "The PGI claim checker catches seed false-comfort patterns.",
+  "claim_type": "factual",
+  "would_disconfirm": [
+    "The false_comfort fixture returns zero blocking findings.",
+    "The clean fixture produces blocking findings without unsafe language."
+  ],
+  "measurement": "Run uv test for test_pgi_claim_checker.py and run the checker on both fixtures.",
+  "review_window": "Re-check after any edit to scripts/check_philosophical_claims.py or PGI claim fixtures.",
+  "action_if_disconfirmed": "Mark PGI-1.02 DEGRADED and repair the checker or fixture.",
+  "authority_boundary": "This predicate does not authorize action."
+}

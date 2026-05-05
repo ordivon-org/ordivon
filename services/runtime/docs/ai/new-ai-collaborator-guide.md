@@ -1,6 +1,7 @@
 # New AI Collaborator Guide — Ordivon Project
 
 > For AI agents working in this repository. Read before writing.
+> **Full system details**: `docs/ai/systems-reference.md`
 
 ## What Ordivon Is
 
@@ -9,24 +10,19 @@ collaboration through evidence, policy, shadow evaluation, and review.
 
 We are not a trading bot, an AI wrapper, a dashboard, or a CI pipeline.
 
-## What We've Built (Phase Chain)
+## Quick Start
 
-We've built a governance stack in 9 phases, from protocol foundation to
-detector implementation. Every phase added one layer:
+```bash
+# 1. Read context
+cat AGENTS.md
+cat docs/ai/current-phase-boundaries.md
 
+# 2. Run verification (must pass before commit)
+uv run python scripts/run_baseline.py --pr-fast
+
+# 3. Run tests
+scripts/run_tests.sh
 ```
-Layer 1 — OGAP-Z     Adapter protocol: how external systems make work governable
-Layer 2 — HAP-1      Harness object model: what agents/tools can do (8 schemas)
-Layer 3 — EGB-1      External benchmarks: how we compare to OpenAI/Anthropic/NIST
-Layer 4 — ADP-1      Pattern taxonomy: 18 ways AI agents fail, mapped to controls
-Layer 5 — HAP-2      Fixture dogfood: proving patterns with 14 BLOCKED scenarios
-Layer 6 — GOV-X      Capability-scaled governance: C0-C5, AP-R0-R5, gate matrix
-Layer 7 — ADP-2      Pattern detector: 12 static rules that find problems in text
-Layer 8 — HAP-3      TaskPlan + ReviewRecord: completing all 10 HAP objects
-Layer 9 — (next)     ADP-3: structure-aware detection + CI integration
-```
-
-Every phase produces: docs + schemas/fixtures + tests + receipt + commit.
 
 ## How to Work Here
 
@@ -34,8 +30,10 @@ Every phase produces: docs + schemas/fixtures + tests + receipt + commit.
 
 Before doing anything, read:
 - `AGENTS.md` — root entry point, current status
+- `docs/ai/systems-reference.md` — ALL systems, commands, substance ← NEW
 - `docs/ai/current-phase-boundaries.md` — what's active, what's NO-GO
 - `docs/ai/agent-output-contract.md` — required output shape
+- `docs/governance/extension-processes.md` — how to extend any layer ← NEW
 
 ### 2. Understand the Governance Vocabulary
 
@@ -44,9 +42,9 @@ These are not optional. They're the grammar of the system:
 | Term | What It Means |
 |------|--------------|
 | **Capability ≠ Authorization** | can_X describes technical ability. It does not grant permission. |
-| **READY ≠ Approval** | READY_WITHOUT_AUTHORIZATION means checks passed. It does not authorize execution. |
+| **READY ≠ Approval** | READY means checks passed. It does not authorize execution. |
 | **Evidence ≠ Approval** | Evidence supports review. Evidence does not approve. |
-| **CandidateRule ≠ Policy** | Advisory observation. Promotion requires 4 criteria. |
+| **CandidateRule ≠ Policy** | Advisory observation. Promotion requires: shadow→redteam→owner. |
 | **Receipt ≠ Approval** | Records what happened. Does not authorize future action. |
 | **BLOCKED** | Hard boundary violation. Cannot proceed without fix. |
 | **NO-GO** | Permanently out of scope in current state. |
@@ -55,13 +53,13 @@ These are not optional. They're the grammar of the system:
 ### 3. Know the Hard Boundaries
 
 These are NEVER allowed:
-- Live financial / broker / trading action — NO-GO
+- Live financial / broker / trading action — NO-GO (Phase 8 DEFERRED)
 - Credential access — BLOCKED by default
-- External API / MCP / browser side effects — BLOCKED by default
-- Claiming compliance/certification with external frameworks
-- Promoting CandidateRule to Policy without 4 criteria
-- Using `can_access_secrets` — use `can_read_credentials`
+- Promoting CandidateRule to Policy without: shadow eval + red-team review + owner signoff
+- Self-promoting a checker from draft to active
+- Activating a Policy without named Owner + explicit signoff
 - Treating READY as authorization
+- Claiming "Ruff clean" without qualifying scope
 
 ### 4. Follow the Phase Discipline
 
@@ -77,30 +75,41 @@ When you receive a phase prompt:
 ### 5. Use the Tools
 
 ```bash
-# Primary verification gate — must pass before commit
-uv run python scripts/run_verification_baseline.py --profile pr-fast
+# ── Primary verification ──────────────────────────
+uv run python scripts/run_baseline.py --pr-fast     # PR gate (12 checkers)
+uv run python scripts/run_baseline.py               # Full baseline (36 checkers)
+uv run python -m ordivon_verify run <gate_id>        # Single gate
 
-# Run tests (use the script, not raw pytest)
-scripts/run_tests.sh
+# ── Run tests ─────────────────────────────────────
+scripts/run_tests.sh                                 # Full suite (hermetic, CI-parity)
+uv run python -m pytest tests/unit/<domain>/ -v      # Specific domain
 
-# Format before push
+# ── Format before push ────────────────────────────
 uv run ruff format --preview .
 
-# HAP payload validation
-uv run python scripts/validate_hap_payload.py <file.json>
+# ── Checker ecosystem ─────────────────────────────
+uv run python checkers/<name>/run.py                 # Run any checker
+uv run python scripts/run_baseline.py --sync         # Sync manifest
+uv run python scripts/run_baseline.py --manifest     # Show manifest
 
-# ADP pattern detection (local static only)
-uv run python scripts/detect_agentic_patterns.py <path> [--json] [--fail-on-blocking]
+# ── Document governance ───────────────────────────
+uv run python checkers/document-registry/run.py      # Registry check
+uv run python checkers/document-freshness/run.py     # Freshness check
 
-# Document registry check
-uv run python scripts/check_document_registry.py
+# ── Entropy governance ────────────────────────────
+uv run python checkers/entropy-telemetry/run.py      # Measure metrics
+uv run python checkers/entropy-gate/run.py           # Check gates
+
+# ── Governance learning loop ──────────────────────
+uv run python checkers/lesson-extraction/run.py      # Extract CandidateRules
+uv run python checkers/policy-shadow/run.py          # Shadow evaluation
 ```
 
 ### 6. Register Your Work
 
 After every phase:
 - Add new docs to `docs/governance/document-registry.jsonl`
-- Regenerate wiki: `uv run python scripts/generate_document_wiki.py`
+- Run document-registry checker
 - Update `AGENTS.md` current status line
 - Update `docs/ai/current-phase-boundaries.md` phase timeline
 - If you discover debt, register it in `docs/governance/verification-debt-ledger.jsonl`
@@ -123,37 +132,40 @@ Every receipt must answer:
 - What debt existed before and after?
 - Would a new AI reading this understand the current state?
 
-## Current Open Debt (What You Don't Need to Fix)
+## Current Systems (2026-05-05)
 
-- DOC-WIKI-FLAKY-001 — wiki generator output non-deterministic (skip in verification)
-- EGB-SOURCE-FRESHNESS-001 — external benchmark versions need checking before next use
-- PV-N8 build artifact — pre-existing, not yours to fix
+```
+Checker ecosystem: 36 checkers, L3-L10, pr-fast 12/12, full 36/36 ALL PASS (26 hard + 10 escalation)
+Document governance: 213 registered docs, 0 stale, 0 missing freshness
+Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
+Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed
+Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion
+Owner veto: Policy activation requires named Owner + explicit signoff
+Extension processes: Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired
 
-## How to Add a New Phase
-
-1. Write a phase prompt with: phase ID, status OPEN, allowed scope, forbidden scope, verification checklist, closure predicate
-2. Create artifacts (docs, schemas, fixtures, tests)
-3. Run verification
-4. Produce receipt
-5. Update AI onboarding
-6. Commit
+Phase 8 (live trading): DEFERRED
+Open debt: 3 entries (all classified, tracked)
+```
 
 ## Key Files Map
 
 ```
-AGENTS.md                          ← Start here
-docs/ai/README.md                  ← AI onboarding index
-docs/ai/current-phase-boundaries.md ← What's live/deferred/NO-GO
-docs/ai/agent-output-contract.md   ← Required receipt format
-docs/governance/                   ← All governance docs
-docs/runtime/                      ← Phase closure evidence
-docs/product/                      ← Stage summits + stage notes
-src/ordivon_verify/schemas/        ← JSON schemas (OGAP + HAP)
-examples/hap/                      ← HAP fixtures (basic + ADP scenarios + task-plan + review-record)
-scripts/                           ← Checkers, validator, detector
-tests/                             ← Test suite
-docs/governance/document-registry.jsonl        ← Canonical doc index
-docs/governance/verification-debt-ledger.jsonl  ← Debt tracking
+AGENTS.md                                    ← Start here
+docs/ai/systems-reference.md                ← ALL systems: commands + substance
+docs/ai/current-phase-boundaries.md          ← Phase timeline + boundaries
+docs/ai/agent-output-contract.md             ← Required output format
+docs/governance/extension-processes.md       ← How to extend any layer
+docs/governance/entropy-governance-design.md  ← Anti-entropy system
+docs/governance/document-registry.jsonl      ← 197 registered documents
+docs/governance/entropy-telemetry.jsonl      ← Entropy metrics
+docs/governance/candidate-rule-drafts.jsonl  ← CandidateRule proposals
+docs/governance/shadow-evaluation-log.jsonl  ← Shadow evaluation results
+docs/governance/lesson-ledger.jsonl          ← Lessons from findings
+docs/governance/verification-debt-ledger.jsonl ← Known debt
+checkers/                                    ← 36 checker packages
+src/ordivon_verify/                          ← Registry + runner
+domains/                                     ← Domain models
+scripts/run_baseline.py                      ← Primary verification entry
 ```
 
 ## Remember
@@ -164,6 +176,6 @@ phase adds to that evidence. Every shortcut erodes it.
 
 When in doubt: document, test, verify, register. Don't overclaim. Don't hide
 debt. Don't treat READY as authorization. Don't confuse capability with
-permission.
+permission. Don't self-promote — independent review is required.
 
 You're part of the governance loop now. Welcome.

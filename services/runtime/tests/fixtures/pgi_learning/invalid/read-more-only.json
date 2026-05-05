@@ -1,0 +1,16 @@
+{
+  "object_type": "PGILearningReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-LEARN-BAD-001",
+  "learning_track": "ai_systems",
+  "intent": "Understand agent memory.",
+  "input_materials": [
+    "Several blog posts"
+  ],
+  "output_artifact": "none",
+  "skill_transfer": "Not yet.",
+  "application_context": "Maybe later.",
+  "consumption_loop_risk": "watch",
+  "next_application": "Read more.",
+  "authority_boundary": "This review does not authorize action."
+}

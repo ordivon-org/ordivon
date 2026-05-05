@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIEthicalTriadReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-BAD-001",
+  "action_or_claim": "Take the shortcut.",
+  "consequence_review": "Good outcome proves good process.",
+  "rule_review": "Rules can be ignored.",
+  "character_review": "Profit proves right.",
+  "tradeoffs": [
+    "Hidden."
+  ],
+  "decision_posture": "READY_WITHOUT_AUTHORIZATION",
+  "authority_boundary": "This review does not authorize action."
+}

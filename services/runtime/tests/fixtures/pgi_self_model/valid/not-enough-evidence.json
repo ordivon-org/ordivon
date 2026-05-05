@@ -1,0 +1,16 @@
+{
+  "object_type": "PGISelfModelEntry",
+  "schema_version": "0.1",
+  "entry_id": "PGI-SELF-001",
+  "domain": "builder",
+  "update_type": "constraint",
+  "observation": "Not enough evidence to call this a recurring pattern; one long PGI session suggests large-stage work needs periodic verification checkpoints.",
+  "evidence_refs": [
+    "docs/runtime/pgi-2-dogfood-summit.md"
+  ],
+  "pattern_status": "not_enough_evidence",
+  "self_language": "A candidate constraint may exist around large-batch work; review more examples before naming a stable pattern.",
+  "verdict_language_present": false,
+  "next_review": "After the next long multi-stage implementation session.",
+  "authority_boundary": "This entry does not authorize action and is not a verdict."
+}

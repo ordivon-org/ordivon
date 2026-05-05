@@ -1,0 +1,18 @@
+{
+  "object_type": "PGILearningReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-LEARN-001",
+  "learning_track": "philosophy",
+  "intent": "Convert control-boundary philosophy into an Ordivon review object.",
+  "input_materials": [
+    "Philosophical Governance Layer",
+    "PGI roadmap",
+    "Control Boundary Model"
+  ],
+  "output_artifact": "docs/governance/control-boundary-model-pgi-2.md",
+  "skill_transfer": "Can separate process quality from outcome quality in future Pack reviews.",
+  "application_context": "Used in coding, finance, emotion, and body review cases.",
+  "consumption_loop_risk": "none",
+  "next_application": "Apply the review object to one real PGI dogfood case.",
+  "authority_boundary": "This review does not authorize action."
+}

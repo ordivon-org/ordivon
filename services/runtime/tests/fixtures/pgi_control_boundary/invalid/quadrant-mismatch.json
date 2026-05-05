@@ -1,0 +1,22 @@
+{
+  "object_type": "PGIControlBoundaryReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-CB-BAD-002",
+  "domain": "emotion",
+  "decision_or_event": "An emotional response was paused before a major reply.",
+  "controllable_factors": [
+    "pause before response"
+  ],
+  "uncontrollable_factors": [
+    "other person's reaction"
+  ],
+  "mixed_factors": [
+    "conversation timing"
+  ],
+  "process_quality": "good",
+  "outcome_quality": "bad",
+  "process_outcome_quadrant": "bad_process_good_outcome",
+  "outcome_interpretation": "The result was painful but does not by itself settle process quality.",
+  "review_posture": "learn",
+  "authority_boundary": "This review does not authorize action."
+}

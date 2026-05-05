@@ -1,0 +1,16 @@
+{
+  "object_type": "PGISelfModelEntry",
+  "schema_version": "0.1",
+  "entry_id": "PGI-SELF-BAD-001",
+  "domain": "emotion",
+  "update_type": "recurring_failure",
+  "observation": "A stressful moment happened.",
+  "evidence_refs": [
+    "docs/runtime/pgi-2-09-relationship-emotion-boundary.md"
+  ],
+  "pattern_status": "candidate_pattern",
+  "self_language": "I am always broken and this proves who I am.",
+  "verdict_language_present": true,
+  "next_review": "Never.",
+  "authority_boundary": "Ready."
+}

@@ -1,0 +1,96 @@
+[
+  {
+    "case_id": "RT-001",
+    "description": "Dependabot dependency-only PR with fresh CI and evidence",
+    "actor_type": "dependabot",
+    "changed_files": ["pyproject.toml", "uv.lock"],
+    "has_ci_failure": false,
+    "has_evidence_artifact": true,
+    "evidence_freshness": "current",
+    "policy_scope": null,
+    "expected_verdict": "would_recommend_merge",
+    "comment": "Clean dep update → should get merge recommendation"
+  },
+  {
+    "case_id": "RT-002",
+    "description": "Dependabot React update with frontend CI failure",
+    "actor_type": "dependabot",
+    "changed_files": ["apps/web/package.json", "pnpm-lock.yaml"],
+    "has_ci_failure": true,
+    "is_react_update": true,
+    "policy_scope": null,
+    "expected_verdict": "would_hold",
+    "comment": "Runtime dep + CI fail → must hold, never auto-merge"
+  },
+  {
+    "case_id": "RT-003",
+    "description": "Dependabot PR with stale governance evidence",
+    "actor_type": "dependabot",
+    "has_ci_failure": false,
+    "has_evidence_artifact": true,
+    "evidence_freshness": "stale",
+    "policy_scope": null,
+    "expected_verdict": "would_hold",
+    "comment": "Stale evidence → cannot recommend action"
+  },
+  {
+    "case_id": "RT-004",
+    "description": "Human PR with 'deps:' title but no trusted bot metadata",
+    "actor_type": "human",
+    "has_test_plan": false,
+    "policy_scope": null,
+    "expected_verdict": "would_escalate",
+    "comment": "Title does not confer bot treatment (doctrine §3.3)"
+  },
+  {
+    "case_id": "RT-005",
+    "description": "Policy based solely on CodeQL finding — solo CI artifact evidence",
+    "actor_type": "dependabot",
+    "policy_scope": null,
+    "expected_verdict": "would_escalate",
+    "comment": "Single weak evidence type → escalation, not merge"
+  },
+  {
+    "case_id": "RT-008",
+    "description": "Finance case against security-scoped policy — scope mismatch",
+    "actor_type": "human",
+    "policy_scope": "pack",
+    "expected_verdict": "no_match",
+    "comment": "Scope mismatch → no_match with confidence 1.0"
+  },
+  {
+    "case_id": "RT-009",
+    "description": "Dependabot PR with CI failure on non-react dependency",
+    "actor_type": "dependabot",
+    "has_ci_failure": true,
+    "is_react_update": false,
+    "policy_scope": null,
+    "expected_verdict": "would_hold",
+    "comment": "Any CI failure on dep update → hold"
+  },
+  {
+    "case_id": "RT-010",
+    "description": "Unknown actor_type — should trigger conservative escalation",
+    "actor_type": "unknown",
+    "policy_scope": null,
+    "expected_verdict": "would_escalate",
+    "comment": "Unknown actor → conservative default: escalate"
+  },
+  {
+    "case_id": "RT-011",
+    "description": "AI agent PR — requires human review (doctrine §4.3)",
+    "actor_type": "ai_agent",
+    "policy_scope": null,
+    "expected_verdict": "would_escalate",
+    "comment": "Internal actor → always human review"
+  },
+  {
+    "case_id": "GT-012",
+    "description": "Human PR with test plan — governance pass",
+    "actor_type": "human",
+    "has_test_plan": true,
+    "policy_scope": null,
+    "expected_verdict": "would_execute",
+    "comment": "Human PR with test plan → governance green"
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "object_type": "PGIPersonalCaseEntry",
+  "schema_version": "0.1",
+  "case_id": "PGI-CASE-BAD-001",
+  "domain": "relationship",
+  "case_type": "review",
+  "privacy_level": "private",
+  "summary": "A private relationship situation.",
+  "artifact_refs": [
+    "private-note.md"
+  ],
+  "review_refs": [
+    "docs/runtime/pgi-2-09-relationship-emotion-boundary.md"
+  ],
+  "lesson_summary": "Keep boundaries.",
+  "self_model_refs": [
+    "none"
+  ],
+  "public_safe_summary": "Detailed private story.",
+  "raw_private_data_recorded": true,
+  "externalization_allowed": true,
+  "authority_boundary": "Ready."
+}

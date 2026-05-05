@@ -1,0 +1,6 @@
+{
+  "schema_version": "0.1",
+  "project_name": "alpha0-safe-boundaries",
+  "mode": "standard",
+  "receipt_paths": ["receipts"]
+}

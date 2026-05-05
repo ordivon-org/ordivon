@@ -1,0 +1,15 @@
+{
+  "object_type": "PGIExtendedMindTool",
+  "schema_version": "0.1",
+  "tool_id": "magic-agent",
+  "tool_class": "ai_assistant",
+  "cognitive_role": "Replaces judgment and decides for the human.",
+  "data_boundary": "No boundary.",
+  "failure_modes": [
+    "source of truth by itself"
+  ],
+  "governance_surface": "decision",
+  "human_retains": "Human watches.",
+  "replacement_claim_present": true,
+  "authority_boundary": "Ready."
+}

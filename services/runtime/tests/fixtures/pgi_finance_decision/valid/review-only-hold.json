@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIFinanceDecisionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-FIN-001",
+  "decision_type": "hold",
+  "decision_posture": "review_only",
+  "thesis": "Review whether a hypothetical position thesis has evidence and downside before any future action.",
+  "evidence_summary": "Evidence is incomplete; this is a governance review only.",
+  "base_rate_note": "No base-rate conclusion yet; compare against long-term broad market alternatives before action.",
+  "max_loss": "No action is being taken; future action must define max loss first.",
+  "time_horizon": "Not applicable for action; review window only.",
+  "review_date": "2026-05-04",
+  "fomo_or_gambling_risk": "watch",
+  "self_proof_risk": "none",
+  "freedom_fragility_assessment": "The review preserves freedom by delaying action until evidence, downside, and risk budget are clear.",
+  "live_trading_no_go": true,
+  "broker_write_boundary": "No broker write, no live trading, no execution path.",
+  "authority_boundary": "This review does not authorize action and is not financial advice."
+}

@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIBodyEnergyReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-BODY-BAD-002",
+  "energy_state": "stable",
+  "fatigue_level": "low",
+  "decision_risk_level": "medium",
+  "major_decision_allowed": true,
+  "body_signal_summary": "Stable enough for normal work.",
+  "minimum_next_step": "Continue normal task.",
+  "raw_private_data_recorded": true,
+  "privacy_boundary": "Record everything.",
+  "authority_boundary": "Ready."
+}

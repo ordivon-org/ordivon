@@ -1,0 +1,26 @@
+{
+  "object_type": "PGIEvidenceRecord",
+  "schema_version": "0.1",
+  "evidence_id": "PGI-EV-001",
+  "evidence_kind": "file_read",
+  "source": {
+    "path": "docs/governance/philosophical-governance-layer.md"
+  },
+  "observed_at": "2026-05-03T00:00:00+08:00",
+  "actor": "codex",
+  "scope": "PGI-1.03 evidence model fixture",
+  "reproducibility": "reproducible",
+  "freshness": {
+    "status": "CURRENT",
+    "last_verified": "2026-05-03",
+    "stale_after_days": 90
+  },
+  "confidence": 0.92,
+  "supports_claims": [
+    "The philosophical governance layer exists as a local file."
+  ],
+  "limitations": [
+    "File existence does not prove the method is complete."
+  ],
+  "authority_boundary": "This evidence does not authorize action."
+}

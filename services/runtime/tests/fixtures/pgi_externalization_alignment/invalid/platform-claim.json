@@ -1,0 +1,17 @@
+{
+  "object_type": "PGIExternalizationAlignment",
+  "schema_version": "0.1",
+  "alignment_id": "PGI-EXT-BAD-001",
+  "external_wedge": "verify_cli",
+  "internal_root_preserved": false,
+  "external_claim": "Platform launched with public standard, SDK available, and MCP server.",
+  "casebook_refs": [
+    "docs/runtime/alpha-0-casebook.md"
+  ],
+  "schema_public_claim": true,
+  "adapter_public_claim": true,
+  "release_claim": true,
+  "trust_boundary": "Trust means approved.",
+  "companion_boundary": "Product replaces companion governance.",
+  "authority_boundary": "Ready."
+}

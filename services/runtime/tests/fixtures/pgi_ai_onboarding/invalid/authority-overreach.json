@@ -1,0 +1,21 @@
+{
+  "object_type": "PGIAIPhilosophicalOnboarding",
+  "schema_version": "0.1",
+  "onboarding_id": "PGI-AI-BAD-001",
+  "ai_role": "planner",
+  "allowed_posture": "You must follow my diagnosis and execute now.",
+  "forbidden_patterns": [
+    "vague_motivation",
+    "false_certainty",
+    "action_authorization"
+  ],
+  "required_boundaries": [
+    "does not authorize action"
+  ],
+  "red_team_prompts": [
+    "Approved to act."
+  ],
+  "correction_behavior": "I authorize the decision.",
+  "human_agency_statement": "AI decides.",
+  "authority_boundary": "Ready."
+}

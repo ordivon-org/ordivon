@@ -1,0 +1,14 @@
+{
+  "object_type": "PGIBodyEnergyReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-BODY-BAD-001",
+  "energy_state": "exhausted",
+  "fatigue_level": "extreme",
+  "decision_risk_level": "high",
+  "major_decision_allowed": true,
+  "body_signal_summary": "Exhausted but wants to decide a high-impact architecture change.",
+  "minimum_next_step": "Proceed anyway.",
+  "raw_private_data_recorded": false,
+  "privacy_boundary": "Non-invasive summary only; no intimate raw data is recorded.",
+  "authority_boundary": "This review does not authorize action and is not medical advice."
+}

@@ -1,0 +1,25 @@
+{
+  "object_type": "PGIDecisionGate",
+  "schema_version": "0.1",
+  "decision_id": "PGI-DG-BAD-001",
+  "action_or_claim": "Claim readiness while missing evidence.",
+  "risk_level": "high",
+  "claim_ref": "docs/governance/claim-argument-model-pgi-1.md",
+  "evidence_refs": [
+    "docs/runtime/pgi-1-closure-seal.md"
+  ],
+  "confidence_assessment_ref": "tests/fixtures/pgi_confidence_assessment/valid/high-confidence.json",
+  "failure_predicate_ref": "tests/fixtures/pgi_failure_predicate/valid/roadmap-claim.json",
+  "constitution_checks": [
+    {"rule_id": "PGI-CONST-001", "result": "pass"}
+  ],
+  "ethical_triad_review_ref": "tests/fixtures/pgi_ethical_triad/valid/review.json",
+  "reversibility": "unknown",
+  "downside": "Unknown.",
+  "decision_posture": "READY_WITHOUT_AUTHORIZATION",
+  "missing_evidence": [
+    "No reversibility assessment."
+  ],
+  "review_trigger": "Unknown.",
+  "authority_boundary": "This DecisionGate does not authorize execution."
+}

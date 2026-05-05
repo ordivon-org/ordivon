@@ -1,0 +1,6 @@
+{
+  "schema_version": "0.1",
+  "project_name": "alpha0-candidate-policy-confusion",
+  "mode": "standard",
+  "receipt_paths": ["receipts"]
+}

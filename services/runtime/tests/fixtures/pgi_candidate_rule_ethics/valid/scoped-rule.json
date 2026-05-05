@@ -1,0 +1,18 @@
+{
+  "object_type": "PGICandidateRuleEthicsReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-001",
+  "candidate_rule_id": "PGI-CR-017",
+  "rule_text": "Complexity-increasing Ordivon changes require declared debt, anti-overforce review, and tests or receipts.",
+  "consequence_check": "Reduces hidden complexity risk while preserving scoped work.",
+  "rule_boundary_check": "Applies only to complexity-increasing Ordivon changes.",
+  "virtue_check": "Supports honesty, restraint, and maintainability.",
+  "false_positive_cost": "May slow legitimate exploratory architecture work.",
+  "human_cost": "Low if exception review is available.",
+  "exception_path": "Exception review can narrow scope when exploration is intentionally time-boxed.",
+  "expiry_or_review_date": "Review after three builder changes.",
+  "over_control_risk": "watch",
+  "candidate_status": "candidate",
+  "policy_activation_no_go": true,
+  "authority_boundary": "This ethics review does not authorize action and is candidate only."
+}

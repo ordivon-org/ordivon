@@ -1,0 +1,24 @@
+{
+  "object_type": "PGIControlBoundaryReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-CB-001",
+  "domain": "coding",
+  "decision_or_event": "A local refactor followed the planned test gate but uncovered an unrelated flaky test.",
+  "controllable_factors": [
+    "scope stayed local",
+    "tests were run",
+    "receipt recorded the failure"
+  ],
+  "uncontrollable_factors": [
+    "pre-existing flaky fixture timing"
+  ],
+  "mixed_factors": [
+    "test suite runtime variance"
+  ],
+  "process_quality": "good",
+  "outcome_quality": "bad",
+  "process_outcome_quadrant": "good_process_bad_outcome",
+  "outcome_interpretation": "The bad outcome is evidence for investigation, not proof that the process was bad.",
+  "review_posture": "investigate",
+  "authority_boundary": "This review does not authorize action."
+}

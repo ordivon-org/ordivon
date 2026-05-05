@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Ordivon Coverage Governance Checker (COV-1).
 
 Validates the checker-coverage-manifest.json — verifies every governed

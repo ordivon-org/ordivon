@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Runtime Evidence Integrity Checker — validates structural invariants of runtime objects.
 
 Checks (static analysis — no database connection required):

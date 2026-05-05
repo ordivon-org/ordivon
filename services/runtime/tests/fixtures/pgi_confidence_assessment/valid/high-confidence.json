@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIConfidenceAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-CONF-001",
+  "claim": "The PGI-1.03 EvidenceRecord validator rejects missing authority boundaries.",
+  "claim_type": "factual",
+  "confidence": 0.82,
+  "confidence_band": "HIGH",
+  "evidence_refs": [
+    "tests/unit/governance/test_pgi_evidence_record_validator.py"
+  ],
+  "base_rate": 0.75,
+  "uncertainty": [
+    "This confidence applies only to current fixture behavior, not all future evidence modeling."
+  ],
+  "calibration_status": "insufficient_history",
+  "review_trigger": "Change to scripts/validate_pgi_evidence_record.py or fixture schema.",
+  "authority_boundary": "This confidence does not authorize action."
+}

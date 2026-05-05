@@ -1,0 +1,18 @@
+{
+  "object_type": "PGICandidateRuleEthicsReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-BAD-001",
+  "candidate_rule_id": "PGI-CR-BAD-001",
+  "rule_text": "Always block all emotional decisions forever with no exceptions.",
+  "consequence_check": "Prevents mistakes.",
+  "rule_boundary_check": "Total control.",
+  "virtue_check": "Discipline.",
+  "false_positive_cost": "Unclear.",
+  "human_cost": "No exceptions.",
+  "exception_path": "No exceptions.",
+  "expiry_or_review_date": "Never.",
+  "over_control_risk": "block",
+  "candidate_status": "candidate",
+  "policy_activation_no_go": true,
+  "authority_boundary": "This ethics review does not authorize action and is candidate only."
+}

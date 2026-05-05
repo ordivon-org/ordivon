@@ -1,0 +1,20 @@
+{
+  "object_type": "PGIMemoryContentRecord",
+  "schema_version": "0.1",
+  "record_id": "PGI-MEM-BAD-002",
+  "content_type": "ai_note",
+  "source_ref": "old-phase-note.md",
+  "source_receipt": "unknown",
+  "last_verified": "2026-01-01",
+  "freshness_state": "stale",
+  "authority_class": "private_note",
+  "claim_status": "degraded",
+  "contamination_flags": [
+    "degraded_as_fact",
+    "stale_as_current"
+  ],
+  "safe_use": "safe_to_use",
+  "next_review": "Use as truth.",
+  "privacy_boundary": "No review.",
+  "authority_boundary": "Ready."
+}

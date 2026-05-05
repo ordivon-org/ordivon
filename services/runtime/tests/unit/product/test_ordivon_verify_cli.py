@@ -139,6 +139,12 @@ def test_parse_args_all():
     assert args.command == "all"
 
 
+def test_parse_args_check_target():
+    args = parse_args(["check", "."])
+    assert args.command == "check"
+    assert args.target == "."
+
+
 def test_parse_args_receipts():
     args = parse_args(["receipts"])
     assert args.command == "receipts"
@@ -263,7 +269,7 @@ def test_main_all_one_fail(monkeypatch, capsys):
     """main(['all']) with one check failing -> exit 1, status BLOCKED."""
 
     def mixed_run(check_id: str) -> dict:
-        if check_id == "debt":
+        if check_id == "verification_debt":
             return _mock_run_fail(check_id)
         return _mock_run_pass(check_id)
 
@@ -344,6 +350,20 @@ def test_main_default_maps_to_all(monkeypatch):
     assert calls == ALL_CHECKS
 
 
+def test_main_check_alias_maps_to_all(monkeypatch):
+    """main(['check']) runs the same checker set as 'all'."""
+    calls = []
+
+    def track_run(check_id: str) -> dict:
+        calls.append(check_id)
+        return _mock_run_pass(check_id)
+
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
+    exit_code = main(["check"])
+    assert exit_code == 0
+    assert calls == ALL_CHECKS
+
+
 def test_main_json_output_all_pass(monkeypatch, capsys):
     """main(['all', '--json']) emits valid JSON with required fields."""
     monkeypatch.setattr("ordivon_verify.runner.run_check", _mock_run_pass)
@@ -353,8 +373,11 @@ def test_main_json_output_all_pass(monkeypatch, capsys):
     report = json.loads(captured.out)
     assert report["tool"] == "ordivon-verify"
     assert report["status"] == "READY"
+    assert report["trust_signal"] == "READY_WITHOUT_AUTHORIZATION"
     assert report["mode"] in ("all", "standard")  # auto-detects Ordivon-native
-    assert len(report["checks"]) == 4
+    assert len(report["checks"]) == len(ALL_CHECKS)
+    assert "surfaces" in report
+    assert "claims" in report["surfaces"]
     assert report["hard_failures"] == []
 
 
@@ -362,7 +385,7 @@ def test_main_json_output_one_fail(monkeypatch, capsys):
     """main(['all', '--json']) with one failure -> status BLOCKED in JSON."""
 
     def mixed_run(check_id: str) -> dict:
-        if check_id == "gates":
+        if check_id == "gate_manifest":
             return _mock_run_fail(check_id)
         return _mock_run_pass(check_id)
 
@@ -444,6 +467,51 @@ def test_run_check_uses_list_not_string(monkeypatch):
     # cmd should be a list (not a string)
     assert isinstance(calls[0], list)
     assert calls[0][0] == sys.executable
+
+
+def test_main_invalid_explicit_config_returns_3(tmp_path, capsys):
+    cfg = tmp_path / "ordivon.verify.json"
+    cfg.write_text("{ invalid json")
+
+    exit_code = main(["all", "--root", str(tmp_path), "--config", str(cfg)])
+
+    assert exit_code == 3
+    captured = capsys.readouterr()
+    assert "Config parse error" in captured.err
+
+
+def test_main_missing_explicit_config_returns_3(tmp_path, capsys):
+    cfg = tmp_path / "missing.verify.json"
+
+    exit_code = main(["all", "--root", str(tmp_path), "--config", str(cfg)])
+
+    assert exit_code == 3
+    captured = capsys.readouterr()
+    assert "Config file not found" in captured.err
+
+
+def test_main_invalid_auto_config_returns_3(tmp_path, capsys):
+    cfg = tmp_path / "ordivon.verify.json"
+    cfg.write_text("{ invalid json")
+
+    exit_code = main(["all", "--root", str(tmp_path)])
+
+    assert exit_code == 3
+    captured = capsys.readouterr()
+    assert "Config parse error" in captured.err
+
+
+def test_standard_mode_without_receipt_paths_blocks(tmp_path, capsys):
+    cfg = tmp_path / "ordivon.verify.json"
+    cfg.write_text(json.dumps({"schema_version": "0.1", "mode": "standard"}))
+
+    exit_code = main(["all", "--root", str(tmp_path), "--config", str(cfg), "--json"])
+
+    assert exit_code == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "BLOCKED"
+    assert any(item["check"] == "receipts" for item in report["missing_evidence"])
+    assert report["surfaces"]["receipts"]["status"] == "FAIL"
 
 
 # ── Verify CHECKER_SCRIPTS paths exist ────────────────────────────────────

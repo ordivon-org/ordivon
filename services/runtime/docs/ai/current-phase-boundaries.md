@@ -1,8 +1,8 @@
 # Current Phase Boundaries
 
-Status: **DOCUMENTED** (DG-Z stage summit closed)
-Date: 2026-05-01
-Phase: OGAP-Z
+Status: **CURRENT** (Alpha-0 active; DG-7 + EG-1 active; PGI locally sealed)
+Date: 2026-05-04
+Phase: Alpha-0 / DG-7 / EG-1
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
 
 ## 1. Phase Timeline
@@ -31,6 +31,8 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
 | **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
 | **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
+| **DG-7** | **ACTIVE** | Checker Ecosystem Expansion — 36 checkers, entropy governance, maturity model, owner veto, extension processes |
+| **EG-1** | **ACTIVE** | Entropy Governance — telemetry + gates (Lehman's Laws applied), PEP+RFC+KEP extension design |
 | **Post-DG-H1** | **CLOSED** | Fix VD-004 manifest test instability (shallow copy bug) |
 | **Post-DG-H2-R** | **CLOSED** | Close VD-001 by reclassification (tool_limitation + command_mismatch) |
 | **Post-DG-H3** | **CLOSED** | Clean 4 non-DG F401 historical imports from governance tests |
@@ -38,7 +40,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **PV-2** | **COMPLETE** | Ordivon Verify CLI skeleton |
 | **PV-3** | **COMPLETE** | External fixture dogfood + --root/--config/--mode support |
 | **PV-4** | **COMPLETE** | Trust report polish — rich human + JSON output |
-| **PV-5** | **ACTIVE** | Agent skill + CI adoption pack |
+| **PV-5** | **COMPLETE** | Agent skill + CI adoption pack |
 | **OGAP-1** | **CLOSED** | Protocol semantics + object model |
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
@@ -46,6 +48,13 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **ADP-3** | **CLOSED** | Structure-aware + registry-aware + PV-aware + red-team-debt-aware — sealed |
 | **ADP-2R** | **CLOSED** | Red-team remediation — 5/13 findings fixed, 8 debt items registered |
 | **CPR-1** | **CLOSED** | Core/Pack governance loop restoration — sealed |
+| **CPR-2** | **CLOSED** | Realistic Coding Pack dogfood — sealed |
+| **CPR-3** | **CLOSED** | Review / Lesson / CandidateRule pipeline dogfood — sealed |
+| **Alpha-0** | **ACTIVE** | Evidence of Governed Work — AI coding agent trust audit |
+| **PGI** | **LOCALLY SEALED** | Philosophical Governance Implementation — PGI-1/2/3 closed with validators, fixtures, tests, receipts |
+| **PGI-1** | **CLOSED** | Reality and Value Substrate — truth/claim/evidence/confidence/falsifiability/boundary red-team layer |
+| **PGI-2** | **CLOSED** | Decision and Pack Operating System — DecisionGate, reversibility, control boundary, anti-overforce, Pack seeds |
+| **PGI-3** | **CLOSED** | Flywheel, Memory, and Externalization — self-model, memory hygiene, AI/tool boundary, externalization |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path
@@ -146,7 +155,7 @@ These are **design-time prohibitions**. No agent may violate them.
 |--------|----------|-------|
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
 | Run pr-fast baseline (includes doc checker) | YES | uv run python scripts/run_verification_baseline.py --profile pr-fast |
-| Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (11/11) |
+| Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (12/12) |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
 | Activate Policy or RiskEngine rules | NO | Design phase only |
@@ -166,6 +175,8 @@ These are **design-time prohibitions**. No agent may violate them.
 | `apps/web/src/components/governance/index.tsx` | All governance UI components |
 | `docs/runtime/finance-observation-provider-plan.md` | Provider selection + China operator notes |
 | `docs/ai/agent-output-contract.md` | Required output contract for every AI task — receipt template + verification discipline |
+| `docs/governance/philosophical-governance-layer.md` | Philosophical operating layer for truth, value, action, pain, and self-evolution |
+| `docs/product/philosophical-governance-implementation-roadmap.md` | PGI 3x10 implementation roadmap |
 | `docs/architecture/harness-adapter-protocol-hap-1.md` | HAP v0 protocol architecture |
 | `docs/runtime/hap-foundation-hap-1.md` | HAP object model + closure predicate |
 | `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` | HAP-1 stage notes |
@@ -176,5 +187,17 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | External-to-Ordivon concept mapping matrix |
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
-| `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 17 entries, DG-2 |
+|| `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 213 entries, DG-7 |
+|| `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
+|| `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
+|| `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |
+|| `checkers/entropy-telemetry/` | Entropy Telemetry checker (L4.5) — measures system metrics |
+|| `checkers/entropy-gate/` | Entropy Gate checker (L4.5A) — structural constraints (pr-fast) |
+|| `checkers/checker-maturity/` | Checker Maturity Gate (L4.2) — no self-promotion (pr-fast) |
+|| `checkers/owner-activation/` | Owner Activation Gate (L4.3) — owner signoff required (full) |
+|| `domains/checker_maturity/` | CheckerMaturityStateMachine — draft→shadow_tested→red_teamed→active |
+|| `docs/governance/candidate-rule-drafts.jsonl` | CandidateRule drafts from lessons (2 drafts) |
+|| `docs/governance/shadow-evaluation-log.jsonl` | Policy Shadow Runner evaluation results |
+|| `docs/governance/lesson-ledger.jsonl` | Lessons from checker findings (5 lessons) |
+|| `checkers/policy-shadow/` | Policy Shadow Runner checker (L8B) |

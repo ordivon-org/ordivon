@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Phase DG-6C: Verification Gate Manifest Checker.
 
 Reads docs/governance/verification-gate-manifest.json and validates that

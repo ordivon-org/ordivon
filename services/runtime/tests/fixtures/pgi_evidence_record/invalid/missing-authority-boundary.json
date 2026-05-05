@@ -1,0 +1,24 @@
+{
+  "object_type": "PGIEvidenceRecord",
+  "schema_version": "0.1",
+  "evidence_id": "PGI-EV-BAD-001",
+  "evidence_kind": "file_read",
+  "source": {
+    "path": "docs/governance/philosophical-governance-layer.md"
+  },
+  "observed_at": "2026-05-03T00:00:00+08:00",
+  "actor": "codex",
+  "scope": "bad fixture",
+  "reproducibility": "reproducible",
+  "freshness": {
+    "status": "CURRENT",
+    "last_verified": "2026-05-03",
+    "stale_after_days": 90
+  },
+  "confidence": 0.9,
+  "supports_claims": [
+    "This evidence proves action may proceed."
+  ],
+  "limitations": [],
+  "authority_boundary": "Ready to act."
+}

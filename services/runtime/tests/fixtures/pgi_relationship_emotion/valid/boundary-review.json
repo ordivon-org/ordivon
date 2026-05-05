@@ -1,0 +1,18 @@
+{
+  "object_type": "PGIRelationshipEmotionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-REL-001",
+  "surface": "mixed",
+  "event_summary": "A boundary conversation needs a calmer follow-up.",
+  "pattern_or_commitment": "Respond after cooling down; keep the commitment specific and respectful.",
+  "emotion_class": "signal",
+  "emotion_intensity": "moderate",
+  "decision_risk_level": "medium",
+  "decision_delay_required": false,
+  "manipulation_risk": "none",
+  "next_repair_or_boundary_step": "Write a concise boundary note and review tone before sending.",
+  "raw_private_data_recorded": false,
+  "do_not_record_acknowledged": true,
+  "privacy_boundary": "Record patterns only; no intimate raw data is recorded.",
+  "authority_boundary": "This review does not authorize action and is not therapy."
+}

@@ -1,0 +1,20 @@
+{
+  "object_type": "PGIAntiOverforceIntake",
+  "schema_version": "0.1",
+  "intake_id": "PGI-AOF-BAD-002",
+  "domain": "finance",
+  "stalled_work": "A high-consequence decision is being considered late at night.",
+  "constraint_classes": [
+    "physical",
+    "emotional",
+    "financial"
+  ],
+  "body_energy_signal": "Exhausted with sleep debt.",
+  "emotion_signal": "Panic and urgency.",
+  "strategic_signal": "Decision has downside risk.",
+  "current_impulse": "Force it now.",
+  "chosen_response": "continue_with_smaller_step",
+  "next_safe_step": "Downshift into a smaller note and decide now.",
+  "review_time": "Tomorrow.",
+  "authority_boundary": "Ready."
+}

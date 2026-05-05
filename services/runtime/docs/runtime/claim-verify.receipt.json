@@ -1,0 +1,997 @@
+{
+  "stage_id": "claim-verify-dogfood",
+  "risk_class": "AP-R0",
+  "authority_impact": "AI-0",
+  "task_type": "doc-governance",
+  "template_id": "doc-governance",
+  "timestamp": "2026-05-04T17:09:17.381833+00:00",
+  "head_commit": "88bc243",
+  "files_changed": [
+    ".github/pull_request_template.md",
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "README.md",
+    "docs/ai/current-phase-boundaries.md",
+    "docs/ai/new-ai-collaborator-guide.md",
+    "docs/ai/ordivon-root-context.md",
+    "docs/architecture/ordivon-moat-and-product-identity.md",
+    "docs/governance/README.md",
+    "docs/governance/agentic-pattern-source-ledger-adp-1.md",
+    "docs/governance/document-registry.jsonl",
+    "docs/governance/external-ai-governance-benchmark-pack-egb-1.md",
+    "docs/governance/verification-debt-ledger.jsonl",
+    "docs/governance/verification-gate-manifest.json",
+    "pyproject.toml",
+    "scripts/audit_ordivon_verify_public_wedge.py",
+    "scripts/check_architecture.py",
+    "scripts/check_coverage_governance.py",
+    "scripts/check_document_registry.py",
+    "scripts/check_receipt_integrity.py",
+    "scripts/check_runtime_evidence.py",
+    "scripts/check_verification_debt.py",
+    "scripts/check_verification_manifest.py",
+    "scripts/run_verification_baseline.py",
+    "scripts/smoke_ordivon_verify_build_artifacts.py",
+    "scripts/smoke_ordivon_verify_wheel_install.py",
+    "src/ordivon_verify/checks/receipts.py",
+    "src/ordivon_verify/cli.py",
+    "src/ordivon_verify/report.py",
+    "src/ordivon_verify/runner.py",
+    "src/ordivon_verify/schemas/trust-report.schema.json",
+    "tests/unit/product/test_ordivon_verify_cli.py",
+    "tests/unit/product/test_ordivon_verify_external_fixture.py",
+    "tests/unit/product/test_ordivon_verify_schemas.py",
+    "uv.lock"
+  ],
+  "verification_results": [],
+  "boundary_violations": [
+    {
+      "file": "scripts/audit_ordivon_verify_public_wedge.py",
+      "pattern": "scripts/audit_ordivon_verify_public_wedge.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "scripts/smoke_ordivon_verify_build_artifacts.py",
+      "pattern": "scripts/smoke_ordivon_verify_build_artifacts.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "scripts/smoke_ordivon_verify_wheel_install.py",
+      "pattern": "scripts/smoke_ordivon_verify_wheel_install.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/checks/receipts.py",
+      "pattern": "src/ordivon_verify/checks/receipts.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/trust-report.schema.json",
+      "pattern": "src/ordivon_verify/schemas/trust-report.schema.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/product/test_ordivon_verify_cli.py",
+      "pattern": "tests/unit/product/test_ordivon_verify_cli.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/product/test_ordivon_verify_external_fixture.py",
+      "pattern": "tests/unit/product/test_ordivon_verify_external_fixture.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/product/test_ordivon_verify_schemas.py",
+      "pattern": "tests/unit/product/test_ordivon_verify_schemas.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/closure-receipt.schema.json",
+      "pattern": "src/ordivon_verify/schemas/closure-receipt.schema.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/pgi-evidence-record.schema.json",
+      "pattern": "src/ordivon_verify/schemas/pgi-evidence-record.schema.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/stage-manifest.schema.json",
+      "pattern": "src/ordivon_verify/schemas/stage-manifest.schema.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_authorization_laundering/ordivon.verify.json",
+      "pattern": "tests/fixtures/alpha0_authorization_laundering/ordivon.verify.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_authorization_laundering/receipts/review-authorizes-merge.md",
+      "pattern": "tests/fixtures/alpha0_authorization_laundering/receipts/review-authorizes-merge.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_candidate_policy_confusion/ordivon.verify.json",
+      "pattern": "tests/fixtures/alpha0_candidate_policy_confusion/ordivon.verify.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_candidate_policy_confusion/receipts/candidate-rule-policy.md",
+      "pattern": "tests/fixtures/alpha0_candidate_policy_confusion/receipts/candidate-rule-policy.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_missing_receipts_standard/ordivon.verify.json",
+      "pattern": "tests/fixtures/alpha0_missing_receipts_standard/ordivon.verify.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_safe_boundaries/ordivon.verify.json",
+      "pattern": "tests/fixtures/alpha0_safe_boundaries/ordivon.verify.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/alpha0_safe_boundaries/receipts/safe-boundary-language.md",
+      "pattern": "tests/fixtures/alpha0_safe_boundaries/receipts/safe-boundary-language.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ai_onboarding/invalid/authority-overreach.json",
+      "pattern": "tests/fixtures/pgi_ai_onboarding/invalid/authority-overreach.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ai_onboarding/invalid/missing-boundaries.json",
+      "pattern": "tests/fixtures/pgi_ai_onboarding/invalid/missing-boundaries.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ai_onboarding/valid/collaborator.json",
+      "pattern": "tests/fixtures/pgi_ai_onboarding/valid/collaborator.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_anti_overforce/invalid/exhausted-continue.json",
+      "pattern": "tests/fixtures/pgi_anti_overforce/invalid/exhausted-continue.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_anti_overforce/invalid/try-harder-unknown.json",
+      "pattern": "tests/fixtures/pgi_anti_overforce/invalid/try-harder-unknown.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_anti_overforce/valid/coding-blockage-redesign.json",
+      "pattern": "tests/fixtures/pgi_anti_overforce/valid/coding-blockage-redesign.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_body_energy/invalid/exhausted-high-risk.json",
+      "pattern": "tests/fixtures/pgi_body_energy/invalid/exhausted-high-risk.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_body_energy/invalid/raw-private-data.json",
+      "pattern": "tests/fixtures/pgi_body_energy/invalid/raw-private-data.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_body_energy/valid/tired-low-risk.json",
+      "pattern": "tests/fixtures/pgi_body_energy/valid/tired-low-risk.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_builder_change/invalid/hidden-complexity.json",
+      "pattern": "tests/fixtures/pgi_builder_change/invalid/hidden-complexity.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_builder_change/invalid/no-tests-no-boundary.json",
+      "pattern": "tests/fixtures/pgi_builder_change/invalid/no-tests-no-boundary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_builder_change/valid/validator-seed.json",
+      "pattern": "tests/fixtures/pgi_builder_change/valid/validator-seed.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_candidate_rule_ethics/invalid/over-control.json",
+      "pattern": "tests/fixtures/pgi_candidate_rule_ethics/invalid/over-control.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_candidate_rule_ethics/invalid/policy-activation.json",
+      "pattern": "tests/fixtures/pgi_candidate_rule_ethics/invalid/policy-activation.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_candidate_rule_ethics/valid/scoped-rule.json",
+      "pattern": "tests/fixtures/pgi_candidate_rule_ethics/valid/scoped-rule.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_claim_argument/clean/claim.md",
+      "pattern": "tests/fixtures/pgi_claim_argument/clean/claim.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_claim_argument/false_comfort/narrative.md",
+      "pattern": "tests/fixtures/pgi_claim_argument/false_comfort/narrative.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_confidence_assessment/invalid/high-confidence-no-base-rate.json",
+      "pattern": "tests/fixtures/pgi_confidence_assessment/invalid/high-confidence-no-base-rate.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_confidence_assessment/invalid/wrong-band.json",
+      "pattern": "tests/fixtures/pgi_confidence_assessment/invalid/wrong-band.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_confidence_assessment/valid/high-confidence.json",
+      "pattern": "tests/fixtures/pgi_confidence_assessment/valid/high-confidence.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_constitution_boundary/invalid/active-policy.json",
+      "pattern": "tests/fixtures/pgi_constitution_boundary/invalid/active-policy.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_control_boundary/invalid/good-outcome-laundering.json",
+      "pattern": "tests/fixtures/pgi_control_boundary/invalid/good-outcome-laundering.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_control_boundary/invalid/quadrant-mismatch.json",
+      "pattern": "tests/fixtures/pgi_control_boundary/invalid/quadrant-mismatch.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_control_boundary/valid/good-process-bad-outcome.json",
+      "pattern": "tests/fixtures/pgi_control_boundary/valid/good-process-bad-outcome.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_current_truth/clean/current-truth.md",
+      "pattern": "tests/fixtures/pgi_current_truth/clean/current-truth.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_current_truth/clean/registry.jsonl",
+      "pattern": "tests/fixtures/pgi_current_truth/clean/registry.jsonl",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_current_truth/unsafe/permanent-truth.md",
+      "pattern": "tests/fixtures/pgi_current_truth/unsafe/permanent-truth.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_current_truth/unsafe/registry.jsonl",
+      "pattern": "tests/fixtures/pgi_current_truth/unsafe/registry.jsonl",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_decision_gate/invalid/authorizes-execution.json",
+      "pattern": "tests/fixtures/pgi_decision_gate/invalid/authorizes-execution.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_decision_gate/invalid/ready-with-missing-evidence.json",
+      "pattern": "tests/fixtures/pgi_decision_gate/invalid/ready-with-missing-evidence.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_decision_gate/valid/ready-without-authorization.json",
+      "pattern": "tests/fixtures/pgi_decision_gate/valid/ready-without-authorization.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ethical_triad/invalid/missing-character.json",
+      "pattern": "tests/fixtures/pgi_ethical_triad/invalid/missing-character.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ethical_triad/invalid/outcome-proves-process.json",
+      "pattern": "tests/fixtures/pgi_ethical_triad/invalid/outcome-proves-process.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_ethical_triad/valid/review.json",
+      "pattern": "tests/fixtures/pgi_ethical_triad/valid/review.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_evidence_record/invalid/bad-confidence.json",
+      "pattern": "tests/fixtures/pgi_evidence_record/invalid/bad-confidence.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_evidence_record/invalid/missing-authority-boundary.json",
+      "pattern": "tests/fixtures/pgi_evidence_record/invalid/missing-authority-boundary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_evidence_record/valid/file-read.json",
+      "pattern": "tests/fixtures/pgi_evidence_record/valid/file-read.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_extended_mind_tool/invalid/no-data-boundary.json",
+      "pattern": "tests/fixtures/pgi_extended_mind_tool/invalid/no-data-boundary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_extended_mind_tool/invalid/replaces-judgment.json",
+      "pattern": "tests/fixtures/pgi_extended_mind_tool/invalid/replaces-judgment.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_extended_mind_tool/valid/codex.json",
+      "pattern": "tests/fixtures/pgi_extended_mind_tool/valid/codex.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_externalization_alignment/invalid/no-casebook.json",
+      "pattern": "tests/fixtures/pgi_externalization_alignment/invalid/no-casebook.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_externalization_alignment/invalid/platform-claim.json",
+      "pattern": "tests/fixtures/pgi_externalization_alignment/invalid/platform-claim.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_externalization_alignment/valid/alpha0.json",
+      "pattern": "tests/fixtures/pgi_externalization_alignment/valid/alpha0.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_failure_predicate/invalid/no-authority-boundary.json",
+      "pattern": "tests/fixtures/pgi_failure_predicate/invalid/no-authority-boundary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_failure_predicate/invalid/non-falsifiable.json",
+      "pattern": "tests/fixtures/pgi_failure_predicate/invalid/non-falsifiable.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_failure_predicate/valid/roadmap-claim.json",
+      "pattern": "tests/fixtures/pgi_failure_predicate/valid/roadmap-claim.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_finance_decision/invalid/broker-write.json",
+      "pattern": "tests/fixtures/pgi_finance_decision/invalid/broker-write.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_finance_decision/invalid/fomo-ready.json",
+      "pattern": "tests/fixtures/pgi_finance_decision/invalid/fomo-ready.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_finance_decision/valid/review-only-hold.json",
+      "pattern": "tests/fixtures/pgi_finance_decision/valid/review-only-hold.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_learning/invalid/block-without-pause.json",
+      "pattern": "tests/fixtures/pgi_learning/invalid/block-without-pause.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_learning/invalid/read-more-only.json",
+      "pattern": "tests/fixtures/pgi_learning/invalid/read-more-only.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_learning/valid/philosophy-to-governance.json",
+      "pattern": "tests/fixtures/pgi_learning/valid/philosophy-to-governance.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_memory_content/invalid/candidate-policy.json",
+      "pattern": "tests/fixtures/pgi_memory_content/invalid/candidate-policy.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_memory_content/invalid/stale-safe.json",
+      "pattern": "tests/fixtures/pgi_memory_content/invalid/stale-safe.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_memory_content/valid/current-receipt-summary.json",
+      "pattern": "tests/fixtures/pgi_memory_content/valid/current-receipt-summary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_personal_case/invalid/no-artifacts.json",
+      "pattern": "tests/fixtures/pgi_personal_case/invalid/no-artifacts.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_personal_case/invalid/private-externalized.json",
+      "pattern": "tests/fixtures/pgi_personal_case/invalid/private-externalized.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_personal_case/valid/builder-case.json",
+      "pattern": "tests/fixtures/pgi_personal_case/valid/builder-case.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_philosophy_misuse/clean/boundary.md",
+      "pattern": "tests/fixtures/pgi_philosophy_misuse/clean/boundary.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_philosophy_misuse/unsafe/misuse.md",
+      "pattern": "tests/fixtures/pgi_philosophy_misuse/unsafe/misuse.md",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_public_philosophy/invalid/guarantee.json",
+      "pattern": "tests/fixtures/pgi_public_philosophy/invalid/guarantee.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_public_philosophy/invalid/missing-boundary.json",
+      "pattern": "tests/fixtures/pgi_public_philosophy/invalid/missing-boundary.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_public_philosophy/valid/about.json",
+      "pattern": "tests/fixtures/pgi_public_philosophy/valid/about.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_relationship_emotion/invalid/manipulation-block.json",
+      "pattern": "tests/fixtures/pgi_relationship_emotion/invalid/manipulation-block.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_relationship_emotion/invalid/raw-private.json",
+      "pattern": "tests/fixtures/pgi_relationship_emotion/invalid/raw-private.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_relationship_emotion/valid/boundary-review.json",
+      "pattern": "tests/fixtures/pgi_relationship_emotion/valid/boundary-review.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_reversibility_assessment/invalid/high-side-effect-no-review.json",
+      "pattern": "tests/fixtures/pgi_reversibility_assessment/invalid/high-side-effect-no-review.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_reversibility_assessment/invalid/unknown-external.json",
+      "pattern": "tests/fixtures/pgi_reversibility_assessment/invalid/unknown-external.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_reversibility_assessment/valid/local-doc.json",
+      "pattern": "tests/fixtures/pgi_reversibility_assessment/valid/local-doc.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_review_to_rule/invalid/emotional-policy.json",
+      "pattern": "tests/fixtures/pgi_review_to_rule/invalid/emotional-policy.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_review_to_rule/invalid/single-anecdote-candidate.json",
+      "pattern": "tests/fixtures/pgi_review_to_rule/invalid/single-anecdote-candidate.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_review_to_rule/valid/multiple-examples.json",
+      "pattern": "tests/fixtures/pgi_review_to_rule/valid/multiple-examples.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_self_model/invalid/confirmed-with-one-evidence.json",
+      "pattern": "tests/fixtures/pgi_self_model/invalid/confirmed-with-one-evidence.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_self_model/invalid/punitive-verdict.json",
+      "pattern": "tests/fixtures/pgi_self_model/invalid/punitive-verdict.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/fixtures/pgi_self_model/valid/not-enough-evidence.json",
+      "pattern": "tests/fixtures/pgi_self_model/valid/not-enough-evidence.json",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/checker_maturity/__init__.py",
+      "pattern": "tests/unit/checker_maturity/__init__.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/checker_maturity/test_maturity_state_machine.py",
+      "pattern": "tests/unit/checker_maturity/test_maturity_state_machine.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_ai_philosophical_onboarding.py",
+      "pattern": "tests/unit/governance/test_pgi_ai_philosophical_onboarding.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_anti_overforce_intake.py",
+      "pattern": "tests/unit/governance/test_pgi_anti_overforce_intake.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_body_energy_review.py",
+      "pattern": "tests/unit/governance/test_pgi_body_energy_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_builder_change_review.py",
+      "pattern": "tests/unit/governance/test_pgi_builder_change_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_candidate_rule_ethics.py",
+      "pattern": "tests/unit/governance/test_pgi_candidate_rule_ethics.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_claim_checker.py",
+      "pattern": "tests/unit/governance/test_pgi_claim_checker.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_confidence_assessment_validator.py",
+      "pattern": "tests/unit/governance/test_pgi_confidence_assessment_validator.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_constitution_boundary_matrix.py",
+      "pattern": "tests/unit/governance/test_pgi_constitution_boundary_matrix.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_control_boundary_review.py",
+      "pattern": "tests/unit/governance/test_pgi_control_boundary_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_current_truth_checker.py",
+      "pattern": "tests/unit/governance/test_pgi_current_truth_checker.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_decision_gate_validator.py",
+      "pattern": "tests/unit/governance/test_pgi_decision_gate_validator.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_ethical_triad_review.py",
+      "pattern": "tests/unit/governance/test_pgi_ethical_triad_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_evidence_record_validator.py",
+      "pattern": "tests/unit/governance/test_pgi_evidence_record_validator.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_extended_mind_tool.py",
+      "pattern": "tests/unit/governance/test_pgi_extended_mind_tool.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_externalization_alignment.py",
+      "pattern": "tests/unit/governance/test_pgi_externalization_alignment.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_failure_predicate_validator.py",
+      "pattern": "tests/unit/governance/test_pgi_failure_predicate_validator.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_finance_decision_review.py",
+      "pattern": "tests/unit/governance/test_pgi_finance_decision_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_learning_review.py",
+      "pattern": "tests/unit/governance/test_pgi_learning_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_memory_content_record.py",
+      "pattern": "tests/unit/governance/test_pgi_memory_content_record.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_personal_case_entry.py",
+      "pattern": "tests/unit/governance/test_pgi_personal_case_entry.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_philosophy_misuse_checker.py",
+      "pattern": "tests/unit/governance/test_pgi_philosophy_misuse_checker.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_public_philosophy_statement.py",
+      "pattern": "tests/unit/governance/test_pgi_public_philosophy_statement.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_relationship_emotion_review.py",
+      "pattern": "tests/unit/governance/test_pgi_relationship_emotion_review.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_reversibility_assessment.py",
+      "pattern": "tests/unit/governance/test_pgi_reversibility_assessment.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_review_to_rule_candidate.py",
+      "pattern": "tests/unit/governance/test_pgi_review_to_rule_candidate.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/governance/test_pgi_self_model_entry.py",
+      "pattern": "tests/unit/governance/test_pgi_self_model_entry.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "tests/unit/product/test_alpha0_trust_laundering.py",
+      "pattern": "tests/unit/product/test_alpha0_trust_laundering.py",
+      "severity": "BLOCKED",
+      "category": "boundary"
+    },
+    {
+      "file": "src/ordivon_verify/checks/receipts.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/cli.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/report.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/runner.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/trust-report.schema.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/checkers/.bundled_manifest",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/agent_contract.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/approval.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/authority_state.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/base_types.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/claim_verifier.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/evidence_graph.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/reconciler.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/rule_registry.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/control/stage_manifest.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/closure-receipt.schema.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/pgi-evidence-record.schema.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "src/ordivon_verify/schemas/stage-manifest.schema.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "checkers/policy-shadow/CHECKER.md",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "checkers/policy-shadow/fixtures/shadow_cases.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "checkers/policy-shadow/run.py",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/alpha0_candidate_policy_confusion/ordivon.verify.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/alpha0_candidate_policy_confusion/receipts/candidate-rule-policy.md",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/pgi_candidate_rule_ethics/invalid/policy-activation.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/pgi_constitution_boundary/invalid/active-policy.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/pgi_memory_content/invalid/candidate-policy.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    },
+    {
+      "file": "tests/fixtures/pgi_review_to_rule/invalid/emotional-policy.json",
+      "pattern": "",
+      "severity": "BLOCKED",
+      "category": "authority"
+    }
+  ],
+  "evidence_produced": [
+    {
+      "type": "claim_verification",
+      "path": "claim:registry_updated",
+      "hash": "384b7c7f072a9e13"
+    },
+    {
+      "type": "claim_verification",
+      "path": "claim:files_changed",
+      "hash": "ebda228039c22d0f"
+    }
+  ],
+  "closure_predicates": [
+    {
+      "id": "all_verification_passed",
+      "satisfied": false
+    },
+    {
+      "id": "no_boundary_violations",
+      "satisfied": false
+    },
+    {
+      "id": "receipt_written",
+      "satisfied": false
+    },
+    {
+      "id": "registry_updated",
+      "satisfied": false
+    },
+    {
+      "id": "ai_onboarding_checked",
+      "satisfied": false
+    },
+    {
+      "id": "current_truth_pass",
+      "satisfied": false
+    }
+  ],
+  "authorization": {
+    "status": "not_requested",
+    "approver": null,
+    "approved_at": null,
+    "rationale": null
+  },
+  "overall": "BLOCKED",
+  "notes": "Reconciled at 2026-05-04T17:09:17.381833+00:00. Head: 88bc243. DG: 197 entries. Checkers: 33.",
+  "claim_verification": {
+    "total_claims": 7,
+    "supported": 2,
+    "unsupported": 5,
+    "self_referential": 0,
+    "evidence_coverage": 0.29,
+    "overall": "UNVERIFIED"
+  }
+}

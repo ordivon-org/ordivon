@@ -1,0 +1,88 @@
+{
+  "object_type": "PGIConstitutionBoundaryMatrix",
+  "schema_version": "0.1",
+  "status": "current",
+  "authority_boundary": "This matrix classifies constitutional candidates; it does not authorize action and does not activate Policy.",
+  "rules": [
+    {
+      "rule_id": "PGI-CONST-001",
+      "statement": "Truth before narrative.",
+      "classification": "review_gate",
+      "activation_status": "candidate_only",
+      "reason": "Narrative can support orientation but cannot replace evidence.",
+      "closure_or_review_condition": "Claims cite evidence, uncertainty, and boundary."
+    },
+    {
+      "rule_id": "PGI-CONST-002",
+      "statement": "Evidence before feeling.",
+      "classification": "review_gate",
+      "activation_status": "candidate_only",
+      "reason": "Feelings are valid signals but cannot establish truth alone.",
+      "closure_or_review_condition": "High-consequence claims reference EvidenceRecord or explain missing evidence."
+    },
+    {
+      "rule_id": "PGI-CONST-003",
+      "statement": "Long-term freedom before short-term stimulation.",
+      "classification": "warning",
+      "activation_status": "advisory",
+      "reason": "This orients tradeoffs but needs domain-specific thresholds.",
+      "closure_or_review_condition": "DecisionGate names downside and reversibility."
+    },
+    {
+      "rule_id": "PGI-CONST-004",
+      "statement": "The body is the base layer for every ideal.",
+      "classification": "review_gate",
+      "activation_status": "candidate_only",
+      "reason": "Extreme fatigue or stress can degrade decision quality.",
+      "closure_or_review_condition": "Body/Energy Pack defines safe non-invasive signals."
+    },
+    {
+      "rule_id": "PGI-CONST-005",
+      "statement": "Finance serves freedom; it does not serve gambling or self-proof.",
+      "classification": "no_go_boundary",
+      "activation_status": "existing_no_go_support",
+      "reason": "Broker write/live trading remain NO-GO; gambling/self-proof language requires review.",
+      "closure_or_review_condition": "Finance Pack gate names max loss, thesis, FOMO screen, and no live-action authority."
+    },
+    {
+      "rule_id": "PGI-CONST-006",
+      "statement": "AI is leverage, not authority.",
+      "classification": "no_go_boundary",
+      "activation_status": "existing_no_go_support",
+      "reason": "AI output cannot authorize action or become verified fact without evidence.",
+      "closure_or_review_condition": "AI claims pass evidence/authority boundary checks."
+    },
+    {
+      "rule_id": "PGI-CONST-007",
+      "statement": "Failure is not a personality verdict; it is rule-update material.",
+      "classification": "learning_prompt",
+      "activation_status": "advisory",
+      "reason": "Protects review from shame and supports CandidateRule learning.",
+      "closure_or_review_condition": "Review distinguishes outcome, process, and identity."
+    },
+    {
+      "rule_id": "PGI-CONST-008",
+      "statement": "Other people's speed is information, not command.",
+      "classification": "learning_prompt",
+      "activation_status": "advisory",
+      "reason": "Comparison can inform context but should not define action authority.",
+      "closure_or_review_condition": "DecisionGate separates external signal from own constraint."
+    },
+    {
+      "rule_id": "PGI-CONST-009",
+      "statement": "Ordivon's meaning begins in self-governance, then externalizes as work, tool, product, or company.",
+      "classification": "review_gate",
+      "activation_status": "candidate_only",
+      "reason": "Prevents commercialization pressure from becoming meaning source.",
+      "closure_or_review_condition": "Externalization claims cite case evidence and public/private boundary."
+    },
+    {
+      "rule_id": "PGI-CONST-010",
+      "statement": "The goal is not one success event, but becoming a sustainably evolving person.",
+      "classification": "orientation",
+      "activation_status": "advisory",
+      "reason": "High-level identity direction, not a blocking rule.",
+      "closure_or_review_condition": "Self-model updates remain non-punitive and evidence-linked."
+    }
+  ]
+}

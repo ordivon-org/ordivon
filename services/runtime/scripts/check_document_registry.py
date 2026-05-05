@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Phase DG-4: Document Registry Consistency Checker with Freshness + Semantic Checks.
 
 Reads docs/governance/document-registry.jsonl and verifies core document
@@ -64,6 +66,7 @@ VALID_DOC_TYPES = {
     "product",
     "runtime",
     "governance_pack",
+    "tooling",
 }
 
 VALID_STATUSES = {

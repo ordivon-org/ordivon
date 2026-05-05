@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIMemoryContentRecord",
+  "schema_version": "0.1",
+  "record_id": "PGI-MEM-BAD-001",
+  "content_type": "memory_note",
+  "source_ref": "docs/runtime/pgi-3-02-review-to-rule-pipeline.md",
+  "source_receipt": "docs/runtime/pgi-3-02-review-to-rule-pipeline.md",
+  "last_verified": "2026-05-04",
+  "freshness_state": "current",
+  "authority_class": "source_of_truth",
+  "claim_status": "candidate_rule",
+  "contamination_flags": [
+    "candidate_rule_as_policy"
+  ],
+  "safe_use": "use_with_caution",
+  "next_review": "Treat as policy.",
+  "privacy_boundary": "Privacy reviewed; no private-to-public promotion.",
+  "authority_boundary": "This record does not authorize action and is not source of truth by itself."
+}

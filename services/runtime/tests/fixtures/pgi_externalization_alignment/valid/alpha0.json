@@ -1,0 +1,18 @@
+{
+  "object_type": "PGIExternalizationAlignment",
+  "schema_version": "0.1",
+  "alignment_id": "PGI-EXT-001",
+  "external_wedge": "alpha_0_agent_work_trust_audit",
+  "internal_root_preserved": true,
+  "external_claim": "Alpha-0 presents AI coding agent trust audit for governed work.",
+  "casebook_refs": [
+    "docs/runtime/alpha-0-casebook.md",
+    "docs/governance/personal-casebook-pgi-3.md"
+  ],
+  "schema_public_claim": false,
+  "adapter_public_claim": false,
+  "release_claim": false,
+  "trust_boundary": "Trust signal verifies evidence posture, not action permission.",
+  "companion_boundary": "Companion governance remains the root; commercialization is externalization.",
+  "authority_boundary": "This alignment does not authorize action and is not release approval."
+}

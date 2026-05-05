@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Phase COV-2: Verification Debt Ledger Checker with Candidate Discovery.
 
 Reads docs/governance/verification-debt-ledger.jsonl and verifies debt invariants.

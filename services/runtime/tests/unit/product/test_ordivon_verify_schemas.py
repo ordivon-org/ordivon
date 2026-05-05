@@ -95,7 +95,9 @@ def test_trust_report_schema_requires_status():
     assert "tool" in required
     assert "schema_version" in required
     assert "status" in required
+    assert "trust_signal" in required
     assert "checks" in required
+    assert "surfaces" in required
     assert "disclaimer" in required
 
 
@@ -110,7 +112,10 @@ def test_trust_report_status_enum():
 def test_trust_report_disclaimer_immutable():
     schema = json.loads((SCHEMAS_DIR / "trust-report.schema.json").read_text())
     disclaimer = schema["properties"]["disclaimer"]
-    assert disclaimer.get("const") == "READY means selected checks passed; it does not authorize execution."
+    assert disclaimer.get("const") == (
+        "READY means selected checks passed; it does not authorize execution, "
+        "does not authorize merge, does not authorize deployment, and does not authorize external action."
+    )
 
 
 # ── gate manifest ────────────────────────────────────────────────────────────

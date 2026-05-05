@@ -1,0 +1,21 @@
+{
+  "object_type": "PGIReviewToRuleCandidate",
+  "schema_version": "0.1",
+  "candidate_id": "PGI-RTR-BAD-002",
+  "source_reviews": [
+    "docs/runtime/pgi-2-09-relationship-emotion-boundary.md",
+    "docs/runtime/pgi-3-01-self-model-ledger.md"
+  ],
+  "pattern_basis": "multiple_examples",
+  "evidence_count": 2,
+  "severity": "high",
+  "emotional_intensity": "extreme",
+  "cool_down_review_completed": false,
+  "proposed_rule": "All conflict reviews must always block action forever.",
+  "rule_scope": "Relationship Pack.",
+  "candidate_status": "candidate",
+  "retirement_path": "No retirement.",
+  "next_review": "No review.",
+  "policy_boundary": "Activate policy now.",
+  "authority_boundary": "Ready."
+}

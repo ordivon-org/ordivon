@@ -1,0 +1,17 @@
+{
+  "object_type": "PGILearningReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-LEARN-BAD-002",
+  "learning_track": "finance",
+  "intent": "Learn trading ideas while anxious.",
+  "input_materials": [
+    "Social feed",
+    "Market commentary"
+  ],
+  "output_artifact": "Notes",
+  "skill_transfer": "Unclear.",
+  "application_context": "Unclear.",
+  "consumption_loop_risk": "block",
+  "next_application": "Open more videos and collect more opinions.",
+  "authority_boundary": "Ready."
+}

@@ -21,12 +21,12 @@ Authority: `supporting_evidence` | AI Read Priority: 2
 
 | Asset | Type | Files | Tests |
 |-------|------|-------|-------|
-| governance/risk_engine | Python | 18 .py | 302 gov tests |
-| governance/approval | Python | approval.py, orm, repository | ✓ |
-| governance/decision | Python | decision.py | ✓ |
-| governance/feedback | Python | feedback.py | ✓ |
-| governance/policy_source | Python | policy_source.py | ✓ |
-| governance/audit | Python | 7 .py | ✓ |
+| governance_engine/risk_engine | Python | 18 .py | 302 gov tests |
+| governance_engine/approval | Python | approval.py, orm, repository | ✓ |
+| governance_engine/decision | Python | decision.py | ✓ |
+| governance_engine/feedback | Python | feedback.py | ✓ |
+| governance_engine/policy_source | Python | policy_source.py | ✓ |
+| governance_engine/audit | Python | 7 .py | ✓ |
 
 ### L2 — Domain State / Truth Layer
 

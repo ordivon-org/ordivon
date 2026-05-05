@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIMemoryContentRecord",
+  "schema_version": "0.1",
+  "record_id": "PGI-MEM-001",
+  "content_type": "receipt_summary",
+  "source_ref": "docs/runtime/pgi-2-closure-seal.md",
+  "source_receipt": "docs/runtime/pgi-2-closure-seal.md",
+  "last_verified": "2026-05-04",
+  "freshness_state": "current",
+  "authority_class": "supporting_evidence",
+  "claim_status": "fact",
+  "contamination_flags": [
+    "none"
+  ],
+  "safe_use": "safe_to_use",
+  "next_review": "Review when PGI-3 closes or PGI-2 is superseded.",
+  "privacy_boundary": "Privacy reviewed; no private-to-public promotion.",
+  "authority_boundary": "This record does not authorize action and is not source of truth by itself."
+}

@@ -1,0 +1,19 @@
+{
+  "object_type": "PGIFinanceDecisionReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-FIN-BAD-002",
+  "decision_type": "position_size",
+  "decision_posture": "ready_without_authorization",
+  "thesis": "A position size is ready for execution.",
+  "evidence_summary": "Local note only.",
+  "base_rate_note": "Base rate not checked.",
+  "max_loss": "5% of portfolio.",
+  "time_horizon": "1 year.",
+  "review_date": "2026-05-04",
+  "fomo_or_gambling_risk": "none",
+  "self_proof_risk": "none",
+  "freedom_fragility_assessment": "Unclear.",
+  "live_trading_no_go": false,
+  "broker_write_boundary": "Broker write may be used.",
+  "authority_boundary": "Ready."
+}

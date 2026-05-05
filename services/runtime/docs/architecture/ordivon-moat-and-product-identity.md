@@ -9,11 +9,21 @@
 
 **PV / Ordivon Verify 是第一个可外化产品 wedge，不是 Ordivon 全系统本体。**
 
+更高一层的定义是：
+
+> Ordivon 首先是创造者的伴生治理系统；PV、Alpha、作品展示、社区和商业化都只是外部化路径。
+
+伴生治理宪法见：
+
+```
+docs/architecture/ordivon-companion-governance-constitution.md
+```
+
 澄清关系：
 
 | 问 | 答 |
 |---|---|
-| Ordivon 的主产物是什么？ | 一个治理操作系统——让 AI/agent/人类协作系统中的行动、声明、证据、授权和复盘变得可治理 |
+| Ordivon 的主产物是什么？ | 一个伴生治理操作系统——让人的意图、约束、决策、行动、证据、结果、复盘和规则更新形成闭环 |
 | Ordivon Verify 是什么？ | 第一个 surface layer 产品——最窄、最清晰、最容易外部理解的价值入口 |
 | 关系 | Linux ≠ Ubuntu；Kubernetes ≠ kubectl；Ordivon ≠ Ordivon Verify |
 

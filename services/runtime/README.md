@@ -17,6 +17,29 @@ Intent → Evaluation → Authority → Execution → Receipt → Debt → Gate 
 - **Packs** (`packs/`) — domain governance (Finance, Document, Coding, Verify). Imports Core.
 - **Adapters** (`adapters/`) — external boundary with capability declarations and safety guards.
 
+## Companion Governance Origin
+
+Ordivon exists first as a companion governance system for its creator: to make
+decisions traceable, actions accountable, outcomes reviewable, knowledge
+accumulative, and the self progressively more coherent under uncertainty.
+
+Commercialization, public release, users, community, and company formation are
+possible externalization paths. They are not the origin of Ordivon's meaning.
+
+See: `docs/architecture/ordivon-companion-governance-constitution.md`
+
+Its highest operating layer is philosophical governance: how Ordivon judges
+truth, chooses values, constrains action, interprets pain, and supports
+self-evolution under uncertainty.
+
+See: `docs/governance/philosophical-governance-layer.md`
+
+The implementation line for that layer is PGI:
+
+```text
+docs/product/philosophical-governance-implementation-roadmap.md
+```
+
 ## Current Product Wedge: Ordivon Verify
 
 The first externalizable product wedge is **Ordivon Verify** — a local read-only
@@ -29,10 +52,23 @@ It validates:
 - Documents (current truth vs staleness)
 
 Status: `READY` means selected checks pass — it does **not** authorize execution.
+Alpha-0 tightens this public signal as `READY_WITHOUT_AUTHORIZATION`.
 
 Package: `src/ordivon_verify/` (private prototype, not published).
 
-Run: `uv run python scripts/ordivon_verify.py all`
+Run: `uv run python scripts/ordivon_verify.py check .`
+
+## Current External Direction: Alpha-0
+
+Alpha-0 is **Evidence of Governed Work**. The first external use case is AI
+coding agent trust audit before teams trust agent output.
+
+Ordivon should not run agents. Ordivon should make agent work trustworthy.
+
+Alpha-0 uses one Verify entry point and one report. It does not create a new
+agent framework, CI replacement, GitHub bot, public schema standard, MCP server,
+SDK, package release, or adapter platform. Casebook evidence comes before
+schema claims.
 
 ## Historical Context
 
@@ -56,11 +92,13 @@ See: `docs/runtime/legacy-identity-hygiene-pv-n2h.md`
 | PV-Z (Verify Productization Summit) | CLOSED |
 | PV-N1 (Private Package Prototype) | CLOSED |
 | PV-N2 (Schema Extraction) | CLOSED |
-| PV-N2H (Legacy Identity Hygiene) | ACTIVE |
+| PV-N2H (Legacy Identity Hygiene) | CLOSED |
+| OSS-1 (System Summit) | CLOSED |
+| CPR-1/2/3 (Core/Pack Loop Restoration) | CLOSED |
+| Alpha-0 (Evidence of Governed Work) | ACTIVE |
 | Phase 8 (Live Trading) | DEFERRED |
 
-**pr-fast:** 11/11 PASS. **Tests:** 520+ (product 140, governance 192, finance 188).
-**Registered debt:** 4 closed, 0 open.
+**pr-fast:** 12/12 PASS. **Registered debt:** 0 open.
 
 ## Key Documents
 
@@ -71,8 +109,14 @@ For AI agents onboarding into this project, start here:
 | 0 | `AGENTS.md` — status header + living docs |
 | 1 | `docs/ai/current-phase-boundaries.md` — active/deferred/NO-GO |
 | 1 | `docs/ai/agent-output-contract.md` — required output shape |
+| 1 | `docs/product/alpha-roadmap.md` — full Alpha roadmap + trust flywheel |
+| 1 | `docs/product/alpha-0-evidence-of-governed-work.md` — current external direction |
+| 2 | `docs/runtime/alpha-0-casebook.md` — governed work evidence |
 | 2 | `docs/architecture/ordivon-core-pack-adapter-ontology.md` — architecture |
 | 2 | `docs/architecture/ordivon-moat-and-product-identity.md` — what can't be lost |
+| 2 | `docs/architecture/ordivon-companion-governance-constitution.md` — companion governance origin |
+| 2 | `docs/governance/philosophical-governance-layer.md` — philosophical operating layer |
+| 2 | `docs/product/philosophical-governance-implementation-roadmap.md` — PGI implementation roadmap |
 | 2 | `docs/runtime/ordivon-value-philosophy.md` — why not a trading bot |
 
 ## Development

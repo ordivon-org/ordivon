@@ -21,6 +21,7 @@ from ordivon_verify import (
 )
 
 from ordivon_verify.config import is_ordivon_native
+from ordivon_verify.runner import ALL_CHECKS, _ensure_all_checks
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_external_repo"
 
@@ -153,7 +154,8 @@ def test_run_external_receipts_on_valid_only():
 def test_external_checker_debt_missing_advisory():
     result = run_external_checker("debt", FIXTURE, "advisory", {})
     assert result["status"] == "WARN"
-    assert "not found" in result["stderr"]
+    assert "Not configured: debt_ledger" in result["stderr"]
+    assert result["missing_evidence"] is True
 
 
 def test_external_checker_debt_missing_strict():
@@ -269,12 +271,13 @@ def test_main_native_still_works(monkeypatch, capsys):
 
 def test_main_native_json_still_works(monkeypatch, capsys):
     """Native JSON output still works."""
+    _ensure_all_checks()
     exit_code = main(["all", "--json"])
     assert exit_code == 0
     captured = capsys.readouterr()
     report = json.loads(captured.out)
     assert report["status"] == "READY"
-    assert len(report["checks"]) == 4
+    assert len(report["checks"]) == len(ALL_CHECKS)
 
 
 def test_main_root_not_found():
@@ -323,6 +326,19 @@ def test_json_includes_disclaimer(monkeypatch, capsys):
     report = json.loads(captured.out)
     assert "disclaimer" in report
     assert "does not authorize execution" in report["disclaimer"]
+    assert "does not authorize merge" in report["disclaimer"]
+    assert "does not authorize deployment" in report["disclaimer"]
+
+
+def test_ready_report_does_not_claim_authorization(monkeypatch, capsys):
+    """READY output must stay evidence-only, not authorization language."""
+    main(["all", "--json"])
+    report = json.loads(capsys.readouterr().out)
+    rendered = json.dumps(report).lower()
+    assert "ready_without_authorization" in rendered
+    assert "ready authorizes" not in rendered
+    assert "authorizes merge" not in rendered
+    assert "authorizes deployment" not in rendered
 
 
 def test_external_human_output_shows_hard_failures(monkeypatch, capsys):
@@ -368,6 +384,17 @@ def test_json_warning_has_next_action(monkeypatch, capsys):
     assert len(report["warnings"]) >= 1
     w = report["warnings"][0]
     assert "next_action" in w
+
+
+def test_advisory_missing_optional_files_are_missing_evidence(monkeypatch, capsys):
+    """Advisory WARNs must declare missing evidence, not soft-pass comfort."""
+    main(["all", "--root", str(FIXTURE), "--json"])
+    report = json.loads(capsys.readouterr().out)
+    missing_checks = {item["check"] for item in report["missing_evidence"]}
+    assert {"debt", "gates", "docs"}.issubset(missing_checks)
+    assert report["surfaces"]["debt"]["status"] == "MISSING_EVIDENCE"
+    assert report["surfaces"]["gates"]["status"] == "MISSING_EVIDENCE"
+    assert report["surfaces"]["docs"]["status"] == "MISSING_EVIDENCE"
 
 
 def test_strict_mode_debt_is_hard_failure(monkeypatch, capsys):

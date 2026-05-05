@@ -1,0 +1,23 @@
+{
+  "object_type": "PGIPersonalCaseEntry",
+  "schema_version": "0.1",
+  "case_id": "PGI-CASE-001",
+  "domain": "builder",
+  "case_type": "learning",
+  "privacy_level": "public_safe",
+  "summary": "PGI-2 validators exposed how philosophical governance can become executable review without action authorization.",
+  "artifact_refs": [
+    "docs/runtime/pgi-2-dogfood-summit.md"
+  ],
+  "review_refs": [
+    "docs/runtime/pgi-3-02-review-to-rule-pipeline.md"
+  ],
+  "lesson_summary": "Validator-backed fixtures make philosophical claims easier to red-team.",
+  "self_model_refs": [
+    "tests/fixtures/pgi_self_model/valid/not-enough-evidence.json"
+  ],
+  "public_safe_summary": "Public-safe summary: PGI dogfood produced review-only validators and red-team fixtures.",
+  "raw_private_data_recorded": false,
+  "externalization_allowed": true,
+  "authority_boundary": "This case does not authorize action and is not publication approval."
+}

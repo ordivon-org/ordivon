@@ -1,0 +1,18 @@
+{
+  "object_type": "PGICandidateRuleEthicsReview",
+  "schema_version": "0.1",
+  "review_id": "PGI-ETH-BAD-002",
+  "candidate_rule_id": "PGI-CR-BAD-002",
+  "rule_text": "Activate a rule immediately.",
+  "consequence_check": "Fast enforcement.",
+  "rule_boundary_check": "All surfaces.",
+  "virtue_check": "Control.",
+  "false_positive_cost": "High.",
+  "human_cost": "High.",
+  "exception_path": "None.",
+  "expiry_or_review_date": "None.",
+  "over_control_risk": "watch",
+  "candidate_status": "candidate",
+  "policy_activation_no_go": false,
+  "authority_boundary": "Ready."
+}

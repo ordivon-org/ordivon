@@ -1,0 +1,13 @@
+{
+  "object_type": "PGIReversibilityAssessment",
+  "schema_version": "0.1",
+  "assessment_id": "PGI-REV-BAD-002",
+  "action_or_claim": "Call an external system.",
+  "side_effect_class": "external_system",
+  "reversibility": "unknown",
+  "blast_radius": "Unknown.",
+  "rollback_path": "Unknown.",
+  "irreversible_loss": "Unknown.",
+  "review_required": true,
+  "authority_boundary": "Ready."
+}

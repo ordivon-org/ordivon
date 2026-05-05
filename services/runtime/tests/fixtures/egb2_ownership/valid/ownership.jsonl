@@ -1,0 +1,10 @@
+{"path_pattern":"docs/governance/**","reviewers":["DG"],"approvers":["EGB"],"owner_role":"governance-owner","backup_owner":"core","staleness_days":30,"emeritus_reviewers":[],"notes":"Evidence only; approval role does not authorize external action."}
+{"path_pattern":"docs/product/**","reviewers":["Product"],"approvers":["EGB"],"owner_role":"product-owner","backup_owner":"core","staleness_days":60,"emeritus_reviewers":[],"notes":"Product governance."}
+{"path_pattern":"docs/architecture/**","reviewers":["Architecture"],"approvers":["EGB"],"owner_role":"architecture-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Architecture governance."}
+{"path_pattern":"docs/runtime/**","reviewers":["Runtime"],"approvers":["EGB"],"owner_role":"runtime-owner","backup_owner":"core","staleness_days":30,"emeritus_reviewers":[],"notes":"Runtime evidence."}
+{"path_pattern":"docs/ai/**","reviewers":["AI"],"approvers":["DG"],"owner_role":"ai-owner","backup_owner":"core","staleness_days":30,"emeritus_reviewers":[],"notes":"AI onboarding."}
+{"path_pattern":"src/ordivon_verify/**","reviewers":["Verify"],"approvers":["EGB"],"owner_role":"verify-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Verify core."}
+{"path_pattern":"checkers/**","reviewers":["Checker"],"approvers":["DG"],"owner_role":"checker-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Checker packages."}
+{"path_pattern":"scripts/**","reviewers":["Tooling"],"approvers":["EGB"],"owner_role":"tooling-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Local tooling."}
+{"path_pattern":"tests/**","reviewers":["Testing"],"approvers":["EGB"],"owner_role":"test-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Tests."}
+{"path_pattern":"stage-templates/**","reviewers":["Stage"],"approvers":["EGB"],"owner_role":"stage-owner","backup_owner":"core","staleness_days":90,"emeritus_reviewers":[],"notes":"Stage templates."}
