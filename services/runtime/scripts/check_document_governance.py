@@ -105,7 +105,7 @@ def main():
                 pass
 
     # Print report
-    print(f"Document Governance Pack — Layer Audit")
+    print("Document Governance Pack — Layer Audit")
     print(f"  Total entries:  {stats['total']}")
     print(f"  With doc_layer: {stats['with_layer']}/{stats['total']}")
     print(f"  With doc_authority: {stats['with_authority']}/{stats['total']}")

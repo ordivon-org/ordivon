@@ -10,8 +10,7 @@ from __future__ import annotations
 
 from ordivon_verify.control.stage_manifest import StageManifest, RiskClass, AuthorityImpact
 from ordivon_verify.control.authority_state import (
-    AuthorityState, EvidenceStatus, ReadinessStatus,
-    AuthorizationStatus, PolicyStatus,
+    AuthorityState,
 )
 
 
@@ -103,7 +102,7 @@ def generate_agent_context(manifest: StageManifest,
     # Receipt instruction
     lines.append("### 📋 Receipt")
     lines.append("")
-    lines.append(f"When your work is complete, a closure receipt will be generated at:")
+    lines.append("When your work is complete, a closure receipt will be generated at:")
     lines.append(f"`docs/runtime/{manifest.stage_id}.receipt.json`")
     lines.append("")
     lines.append("The receipt is machine-validated against the closure-receipt JSON Schema.")

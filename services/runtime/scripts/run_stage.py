@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -142,13 +141,11 @@ def run_verification(verification_gates: list) -> list[CheckResult]:
             cmd = gate.get("command", "")
             gate_id = gate.get("id", "")
             desc = gate.get("description", "")
-            failure_mode = gate.get("on_failure", "BLOCKED")
             timeout = gate.get("timeout", 300)
         elif isinstance(gate, str):
             cmd = gate
             gate_id = cmd[:60]
             desc = cmd
-            failure_mode = "BLOCKED"
             timeout = 300
         else:
             continue
@@ -325,7 +322,7 @@ def print_results(receipt: StageReceipt, template: dict) -> None:
         for v in receipt.boundary_violations:
             print(f"     {v}")
     else:
-        print(f"  ✅ No boundary violations")
+        print("  ✅ No boundary violations")
 
     # Files
     print(f"\n── Files Changed ({len(receipt.files_changed)}) ──")
@@ -340,7 +337,7 @@ def print_results(receipt: StageReceipt, template: dict) -> None:
         print(f"  [ ] {action.get('description', action.get('action', ''))}")
     for target in template.get("ai_onboarding", []):
         print(f"  [ ] Check {target.get('file', target)} — {target.get('update_condition', '')}")
-    print(f"  [ ] Commit with stage receipt reference")
+    print("  [ ] Commit with stage receipt reference")
     print()
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -432,7 +429,7 @@ def main() -> int:
         for v in violations:
             print(f"     {v}")
     else:
-        print(f"  ✅ No boundary violations")
+        print("  ✅ No boundary violations")
     print()
 
     # 6. Generate receipt

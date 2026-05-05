@@ -137,7 +137,7 @@ def main():
     all_errors.extend(unregistered)
     all_errors.extend(class_errors)
 
-    print(f"Artifact Registry Check")
+    print("Artifact Registry Check")
     print(f"  Registered:    {len(entries)}")
     print(f"  Ungoverned:    {len(unregistered)}")
     print(f"  Class errors:  {len(class_errors)}")

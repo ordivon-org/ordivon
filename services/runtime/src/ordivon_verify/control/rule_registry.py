@@ -14,8 +14,8 @@ No reconciler code changes needed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable, Any
+from dataclasses import dataclass
+from typing import Callable
 
 from ordivon_verify.control.stage_manifest import (
     StageManifest, RiskClass, AuthorityImpact,

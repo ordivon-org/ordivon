@@ -15,12 +15,9 @@ This is the minimal viable "Verify what your AI agent actually did."
 
 from __future__ import annotations
 
-import hashlib
-import json
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 
 @dataclass

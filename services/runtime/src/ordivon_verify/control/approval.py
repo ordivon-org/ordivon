@@ -12,9 +12,8 @@ Approval is required when:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import Enum
 
 from ordivon_verify.control.authority_state import (
     AuthorizationStatus, AuthorityLevel,

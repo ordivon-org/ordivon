@@ -39,12 +39,11 @@ Import chain (same direction as Hermes tools/registry.py):
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 ROOT = Path(__file__).resolve().parents[1]  # Ordivon root
 

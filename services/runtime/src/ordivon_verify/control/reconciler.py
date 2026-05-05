@@ -12,14 +12,11 @@ Usage:
 
 from __future__ import annotations
 
-import json
-import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 
 from ordivon_verify.control.stage_manifest import (
-    StageManifest, VerificationGate, ClosurePredicate, ClosureStatus,
+    StageManifest,
 )
 from ordivon_verify.control.base_types import DriftEntry, RepoSnapshot
 from ordivon_verify.control.rule_registry import evaluate_rules

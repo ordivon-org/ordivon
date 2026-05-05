@@ -39,14 +39,11 @@ import hashlib
 import json
 import logging
 import os
-import subprocess
-import sys
 import tempfile
-import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -418,7 +415,7 @@ def discover_checkers() -> Dict[str, CheckerEntry]:
             if run_py.exists():
                 # Validate run.py syntax without executing
                 try:
-                    compiled = compile(run_py.read_text(), str(run_py), "exec")
+                    compile(run_py.read_text(), str(run_py), "exec")
                 except (SyntaxError, OSError):
                     continue
                 # Don't exec here — delayed until run time
