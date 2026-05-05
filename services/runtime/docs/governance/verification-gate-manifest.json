@@ -1,15 +1,43 @@
 {
-  "manifest_id": "full-v2",
-  "profile": "full",
+  "manifest_id": "auto-generated-v1",
+  "profile": "auto",
   "status": "current",
   "authority": "derived_from_registry",
-  "gate_count": 26,
-  "hard_count": 22,
-  "escalation_count": 4,
-  "checkers_discovered_total": 33,
-  "checkers_not_in_manifest": 7,
-  "checkers_not_in_manifest_note": "7 checkers exist in checkers/ but are not yet in this manifest: checker-maturity, dependabot-governance, entropy-gate, entropy-telemetry, lesson-extraction, owner-activation, policy-shadow. They are discovered by the baseline runner at runtime.",
+  "gate_count": 36,
   "gates": [
+    {
+      "gate_id": "external_source_registry",
+      "display_name": "External Source Registry",
+      "layer": "L10A",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run external_source_registry",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate EGB-2 external benchmark source registry freshness, allowed use, forbidden use, and safe-language boundaries",
+      "protects_against": "Stale external benchmark claims, compliance overclaim, certification overclaim, endorsement overclaim, partnership overclaim, public-standard laundering"
+    },
+    {
+      "gate_id": "oep_governance",
+      "display_name": "OEP Governance",
+      "layer": "L10B",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run oep_governance",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate Ordivon Enhancement Proposals for required sections, rollback, graduation criteria, security review, and non-authorization boundaries",
+      "protects_against": "Unreviewable cross-boundary changes, missing rollback, missing graduation criteria, release authorization laundering"
+    },
+    {
+      "gate_id": "ownership_manifest",
+      "display_name": "Ownership Manifest",
+      "layer": "L10C",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run ownership_manifest",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate path-native ownership manifest coverage, reviewer/approver split, owner roles, staleness windows, and non-authorization wording",
+      "protects_against": "Ownerless governance surfaces, stale owner records, reviewer/approver confusion, approval-language laundering"
+    },
     {
       "gate_id": "state_truth",
       "display_name": "State Truth Verification",
@@ -42,6 +70,50 @@
       "may_be_removed_only_by": "Stage Summit with documented reason",
       "purpose": "Validate checker coverage manifest completeness",
       "protects_against": "Silent scope decay, enumeration drift, coverage gaps, missing critical checkers"
+    },
+    {
+      "gate_id": "checker_maturity",
+      "display_name": "Checker Maturity Gate",
+      "layer": "L4.2",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run checker_maturity",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Enforce checker maturity promotion rules — no self-promotion, evidence required per stage, independent review mandatory",
+      "protects_against": "Unreviewed checkers becoming active gates, self-approved policy activation, skipped maturity stages"
+    },
+    {
+      "gate_id": "owner_activation",
+      "display_name": "Owner Activation Gate",
+      "layer": "L4.3",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run owner_activation",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Enforce that Policy activation requires a named Owner with explicit signoff — no ownerless activation, no self-activation without review",
+      "protects_against": "Ownerless policies, unapproved policy activation, policy drift without accountability"
+    },
+    {
+      "gate_id": "entropy_telemetry",
+      "display_name": "Entropy Telemetry",
+      "layer": "L4.5",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run entropy_telemetry",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Measure and track system entropy metrics — file count, import edges, doc freshness, debt, checker coverage. Foundation of the anti-entropy system.",
+      "protects_against": "Unmeasured system growth, invisible complexity creep, blind accumulation"
+    },
+    {
+      "gate_id": "entropy_gate",
+      "display_name": "Entropy Gate",
+      "layer": "L4.5A",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run entropy_gate",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Enforce structural entropy ceilings — file count limit, import depth, freshness SLO, coverage minimum, growth velocity",
+      "protects_against": "Unchecked system growth, unsustainable file accumulation, documentation rot, checker coverage erosion"
     },
     {
       "gate_id": "architecture_boundaries",
@@ -119,6 +191,17 @@
       "may_be_removed_only_by": "Stage Summit with documented reason",
       "purpose": "Detect references to protected paths in docs that lack proper boundary qualification",
       "protects_against": "Unqualified .env references, secrets/ mentions without NO-GO, pyproject.toml change suggestions without explicit justification"
+    },
+    {
+      "gate_id": "dependabot_governance",
+      "display_name": "Dependabot Governance",
+      "layer": "L5F",
+      "hardness": "hard",
+      "command": "python -m ordivon_verify run dependabot_governance",
+      "expected_result_type": "exit_code_0",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Classify Dependabot PRs through CodingDisciplinePolicy gates + shadow evaluation logic — auto-governed dependency updates",
+      "protects_against": "Unreviewed dependency merges, CI-broken auto-merges, protected path changes via deps, runtime dependency escalation gaps"
     },
     {
       "gate_id": "document_registry",
@@ -231,6 +314,28 @@
       "protects_against": "Silent gate removal, downgrade, no-op replacement, manifest/baseline mismatch"
     },
     {
+      "gate_id": "lesson_extraction",
+      "display_name": "Lesson → CandidateRule Extraction",
+      "layer": "L8A",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run lesson_extraction",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Scan lesson-ledger.jsonl for rule_candidate lessons and extract CandidateRule drafts — closes the learning loop",
+      "protects_against": "Uncaptured lessons, stagnant checker findings, learning loop disconnection, orphaned rule candidates"
+    },
+    {
+      "gate_id": "policy_shadow",
+      "display_name": "Policy Shadow Runner",
+      "layer": "L8B",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run policy_shadow",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Run CandidateRule drafts through shadow evaluation against red-team corpus — accumulate advisory evidence for activation review",
+      "protects_against": "Untested candidate rules entering activation review without shadow evidence, governance rules deployed without red-team validation"
+    },
+    {
       "gate_id": "philosophy_misuse",
       "display_name": "Philosophy Misuse Detection",
       "layer": "L9A",
@@ -297,6 +402,5 @@
       "protects_against": "Overconfidence, missing base rate, confidence without evidence window"
     }
   ],
-  "_note": "Auto-generated from checker registry. Do not edit manually.",
-  "version": "2.1"
+  "_note": "Auto-generated from checkers/ directory. Do not edit manually."
 }
