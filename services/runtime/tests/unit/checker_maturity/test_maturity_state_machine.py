@@ -11,8 +11,7 @@ from domains.checker_maturity import (
 )
 
 
-def make_record(level=MaturityLevel.DRAFT, author="alice", changed_by="alice",
-                evidence=(), notes=""):
+def make_record(level=MaturityLevel.DRAFT, author="alice", changed_by="alice", evidence=(), notes=""):
     return CheckerMaturityRecord(
         checker_id="test-checker",
         maturity=level,
@@ -30,7 +29,8 @@ class TestValidTransitions:
     def test_draft_to_shadow_tested_independent(self):
         rec = make_record(MaturityLevel.DRAFT, author="alice")
         new = CheckerMaturityStateMachine.transition(
-            rec, MaturityLevel.SHADOW_TESTED,
+            rec,
+            MaturityLevel.SHADOW_TESTED,
             changed_by="bob",  # different from author
             evidence_refs=("shadow-log:2026-05-04",),
         )
@@ -40,7 +40,8 @@ class TestValidTransitions:
     def test_shadow_tested_to_red_teamed(self):
         rec = make_record(MaturityLevel.SHADOW_TESTED, author="alice")
         new = CheckerMaturityStateMachine.transition(
-            rec, MaturityLevel.RED_TEAMED,
+            rec,
+            MaturityLevel.RED_TEAMED,
             changed_by="bob",
             evidence_refs=("red-team-review:2026-05-04",),
         )
@@ -49,7 +50,8 @@ class TestValidTransitions:
     def test_red_teamed_to_active_with_owner(self):
         rec = make_record(MaturityLevel.RED_TEAMED, author="alice")
         new = CheckerMaturityStateMachine.transition(
-            rec, MaturityLevel.ACTIVE,
+            rec,
+            MaturityLevel.ACTIVE,
             changed_by="bob",
             evidence_refs=("owner-approval:2026-05-04", "shadow-assessment:PASS"),
         )
@@ -60,7 +62,8 @@ class TestValidTransitions:
         only applies to promotion, not demotion."""
         rec = make_record(MaturityLevel.ACTIVE, author="alice")
         new = CheckerMaturityStateMachine.transition(
-            rec, MaturityLevel.DRAFT,
+            rec,
+            MaturityLevel.DRAFT,
             changed_by="alice",  # same as author — allowed for rollback
             evidence_refs=("rollback-receipt:2026-05-04",),
         )
@@ -74,7 +77,9 @@ class TestInvalidTransitions:
         rec = make_record(MaturityLevel.DRAFT)
         with pytest.raises(InvalidTransitionError) as exc:
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE, changed_by="bob",
+                rec,
+                MaturityLevel.ACTIVE,
+                changed_by="bob",
                 evidence_refs=("approval",),
             )
         assert "draft" in str(exc.value).lower()
@@ -84,14 +89,18 @@ class TestInvalidTransitions:
         rec = make_record(MaturityLevel.SHADOW_TESTED)
         with pytest.raises(InvalidTransitionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE, changed_by="bob",
+                rec,
+                MaturityLevel.ACTIVE,
+                changed_by="bob",
             )
 
     def test_active_to_red_teamed_not_allowed(self):
         rec = make_record(MaturityLevel.ACTIVE)
         with pytest.raises(InvalidTransitionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.RED_TEAMED, changed_by="bob",
+                rec,
+                MaturityLevel.RED_TEAMED,
+                changed_by="bob",
             )
 
     def test_archived_is_terminal(self):
@@ -99,14 +108,18 @@ class TestInvalidTransitions:
         assert CheckerMaturityStateMachine.is_terminal(rec.maturity)
         with pytest.raises(InvalidTransitionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE, changed_by="bob",
+                rec,
+                MaturityLevel.ACTIVE,
+                changed_by="bob",
             )
 
     def test_deprecated_to_active_not_allowed(self):
         rec = make_record(MaturityLevel.DEPRECATED)
         with pytest.raises(InvalidTransitionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE, changed_by="bob",
+                rec,
+                MaturityLevel.ACTIVE,
+                changed_by="bob",
             )
 
 
@@ -117,7 +130,8 @@ class TestSelfPromotionPrevention:
         rec = make_record(MaturityLevel.DRAFT, author="alice")
         with pytest.raises(SelfPromotionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.SHADOW_TESTED,
+                rec,
+                MaturityLevel.SHADOW_TESTED,
                 changed_by="alice",  # same as author
                 evidence_refs=("shadow-log:2026-05-04",),
             )
@@ -126,7 +140,8 @@ class TestSelfPromotionPrevention:
         rec = make_record(MaturityLevel.RED_TEAMED, author="alice")
         with pytest.raises(SelfPromotionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE,
+                rec,
+                MaturityLevel.ACTIVE,
                 changed_by="alice",
                 evidence_refs=("owner-approval", "shadow-assessment"),
             )
@@ -135,7 +150,8 @@ class TestSelfPromotionPrevention:
         """Self-promotion check only blocks promotion, not demotion."""
         rec = make_record(MaturityLevel.ACTIVE, author="alice")
         new = CheckerMaturityStateMachine.transition(
-            rec, MaturityLevel.DRAFT,
+            rec,
+            MaturityLevel.DRAFT,
             changed_by="alice",
             evidence_refs=("rollback-receipt",),
         )
@@ -149,7 +165,8 @@ class TestEvidenceEnforcement:
         rec = make_record(MaturityLevel.DRAFT, author="alice")
         with pytest.raises(MissingEvidenceError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.SHADOW_TESTED,
+                rec,
+                MaturityLevel.SHADOW_TESTED,
                 changed_by="bob",
                 evidence_refs=(),  # no evidence
             )
@@ -159,7 +176,8 @@ class TestEvidenceEnforcement:
         # Missing shadow-assessment evidence
         with pytest.raises(MissingEvidenceError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.ACTIVE,
+                rec,
+                MaturityLevel.ACTIVE,
                 changed_by="bob",
                 evidence_refs=(),  # needs owner_approval + shadow_assessment
             )
@@ -176,8 +194,10 @@ class TestInvariants:
     def test_record_requires_checker_id(self):
         with pytest.raises(ValueError, match="checker_id"):
             CheckerMaturityRecord(
-                checker_id="", maturity=MaturityLevel.DRAFT,
-                author="alice", changed_by="alice",
+                checker_id="",
+                maturity=MaturityLevel.DRAFT,
+                author="alice",
+                changed_by="alice",
                 changed_at="2026-01-01T00:00:00Z",
                 evidence_refs=(),
             )
@@ -185,8 +205,10 @@ class TestInvariants:
     def test_record_requires_author(self):
         with pytest.raises(ValueError, match="author"):
             CheckerMaturityRecord(
-                checker_id="test", maturity=MaturityLevel.DRAFT,
-                author="", changed_by="alice",
+                checker_id="test",
+                maturity=MaturityLevel.DRAFT,
+                author="",
+                changed_by="alice",
                 changed_at="2026-01-01T00:00:00Z",
                 evidence_refs=(),
             )
@@ -204,7 +226,8 @@ class TestInvariants:
         rec = make_record(MaturityLevel.DRAFT)
         with pytest.raises(InvalidTransitionError):
             CheckerMaturityStateMachine.transition(
-                rec, MaturityLevel.DRAFT,
+                rec,
+                MaturityLevel.DRAFT,
                 changed_by="bob",
                 evidence_refs=("evidence",),
             )

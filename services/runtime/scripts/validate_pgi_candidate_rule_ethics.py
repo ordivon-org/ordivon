@@ -73,8 +73,7 @@ def validate_payload(payload: dict) -> list[str]:
         errors.append("block-level over-control risk cannot remain candidate")
 
     combined = " ".join(
-        str(payload.get(key, ""))
-        for key in ("rule_text", "rule_boundary_check", "exception_path", "human_cost")
+        str(payload.get(key, "")) for key in ("rule_text", "rule_boundary_check", "exception_path", "human_cost")
     )
     if OVERCONTROL_RE.search(combined) and payload.get("candidate_status") == "candidate":
         errors.append("candidate rules must not contain over-control language")

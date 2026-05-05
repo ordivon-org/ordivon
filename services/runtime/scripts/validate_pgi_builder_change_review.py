@@ -92,9 +92,7 @@ def validate_payload(payload: dict) -> list[str]:
         if payload.get("anti_overforce_checked") is not True:
             errors.append("complexity-increasing changes must pass anti-overforce review")
 
-    combined = " ".join(
-        str(payload.get(k, "")) for k in ("intent", "truth_impact", "value_impact", "action_impact")
-    )
+    combined = " ".join(str(payload.get(k, "")) for k in ("intent", "truth_impact", "value_impact", "action_impact"))
     if VISION_ONLY_RE.search(combined) and not payload.get("tests_or_receipts"):
         errors.append("vision-heavy builder changes require tests_or_receipts")
 

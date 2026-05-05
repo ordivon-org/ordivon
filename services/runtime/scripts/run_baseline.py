@@ -66,6 +66,7 @@ logger = logging.getLogger(__name__)
 
 # ── Gate result ─────────────────────────────────────────────────────
 
+
 @dataclass
 class GateResult:
     name: str
@@ -99,9 +100,11 @@ class BaselineSummary:
 
 # ── Runner ──────────────────────────────────────────────────────────
 
+
 def _run_checker_subprocess(entry: CheckerEntry, python: str) -> GateResult:
     """Run a checker as subprocess by its file_path."""
     import os as _os
+
     env = {**_os.environ, "PYTHONPATH": f"src{_os.pathsep}" + _os.environ.get("PYTHONPATH", "")}
     try:
         result = subprocess.run(
@@ -173,8 +176,10 @@ def run_all(profile: str = "full", skip_side_effects: bool = False) -> BaselineS
         skipped = [e for e in active if e.side_effects]
         active = [e for e in active if not e.side_effects]
         if skipped:
-            print(f"ℹ Read-only mode: skipped {len(skipped)} state-updating checker(s): "
-                  f"{', '.join(e.gate_id for e in skipped)}")
+            print(
+                f"ℹ Read-only mode: skipped {len(skipped)} state-updating checker(s): "
+                f"{', '.join(e.gate_id for e in skipped)}"
+            )
     # Sort by layer
     active.sort(key=lambda e: _layer_sort_key(e.layer))
 
@@ -191,6 +196,7 @@ def run_all(profile: str = "full", skip_side_effects: bool = False) -> BaselineS
 
 
 # ── Output ──────────────────────────────────────────────────────────
+
 
 def print_summary(summary: BaselineSummary) -> None:
     print("\n" + "=" * 60)
@@ -218,8 +224,10 @@ def print_manifest_json() -> None:
 
 # ── Main ────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     import argparse
+
     parser = argparse.ArgumentParser(description="Ordivon Verification Baseline (auto-discovery)")
     parser.add_argument("--pr-fast", action="store_true", help="Run PR-fast gates only")
     parser.add_argument("--read-only", action="store_true", help="Skip state-updating checkers (no JSONL writes)")
@@ -230,18 +238,20 @@ def main() -> int:
 
     if args.curator:
         result = run_document_curator()
-        print(f"Documents: {result.get('total',0)} total, {result.get('fresh',0)} fresh")
-        print(f"Stale: {len(result.get('stale',[]))} normal, {len(result.get('critical_stale',[]))} critical")
-        for doc in result.get('critical_stale', []):
+        print(f"Documents: {result.get('total', 0)} total, {result.get('fresh', 0)} fresh")
+        print(f"Stale: {len(result.get('stale', []))} normal, {len(result.get('critical_stale', []))} critical")
+        for doc in result.get("critical_stale", []):
             print(f"  CRITICAL: {doc['doc_id']} — {doc['age_days']}d old (window={doc['window_days']}d)")
-        for doc in result.get('stale', []):
+        for doc in result.get("stale", []):
             print(f"  stale: {doc['doc_id']} — {doc['age_days']}d old")
         return 0
 
     if args.sync:
         result = sync_bundled_checkers()
-        print(f"Synced: {len(result['copied'])} new, {len(result['updated'])} updated, "
-              f"{result['skipped']} unchanged, {result['total_bundled']} total")
+        print(
+            f"Synced: {len(result['copied'])} new, {len(result['updated'])} updated, "
+            f"{result['skipped']} unchanged, {result['total_bundled']} total"
+        )
         return 0
 
     if args.manifest:

@@ -14,8 +14,7 @@ from ordivon_verify.control.authority_state import (
 )
 
 
-def generate_agent_context(manifest: StageManifest,
-                           authority: AuthorityState | None = None) -> str:
+def generate_agent_context(manifest: StageManifest, authority: AuthorityState | None = None) -> str:
     """Generate the governance contract section for an agent's system prompt.
 
     Returns a markdown string ready for concatenation into a prompt.

@@ -29,6 +29,7 @@ RECEIPT_DIR = ROOT / "docs" / "runtime"
 
 # ── Data types ──────────────────────────────────────────────────────
 
+
 @dataclass
 class CheckResult:
     check_id: str
@@ -36,6 +37,7 @@ class CheckResult:
     passed: bool
     output: str = ""
     exit_code: int = 0
+
 
 @dataclass
 class StageReceipt:
@@ -51,11 +53,14 @@ class StageReceipt:
     warnings: list[str] = field(default_factory=list)
     overall: str = "READY"  # READY | DEGRADED | BLOCKED
 
+
 # ── YAML loader ─────────────────────────────────────────────────────
+
 
 def _load_yaml(path: Path) -> dict:
     """Load YAML using PyYAML (installed via uv add pyyaml)."""
     import yaml as _pyyaml
+
     loader = getattr(_pyyaml, "CSafeLoader", None) or _pyyaml.SafeLoader
     with open(path) as f:
         return _pyyaml.load(f, Loader=loader) or {}
@@ -65,8 +70,8 @@ def _resolve_list_of_dicts(raw: list) -> list:
     """Normalize mixed list items to dicts for pre_flight/verification sections."""
     result = []
     for item in raw:
-        if isinstance(item, str) and ':' in item:
-            key, _, val = item.partition(':')
+        if isinstance(item, str) and ":" in item:
+            key, _, val = item.partition(":")
             result.append({key.strip(): val.strip().strip('"').strip("'")})
         else:
             result.append(item)
@@ -74,6 +79,7 @@ def _resolve_list_of_dicts(raw: list) -> list:
 
 
 # ── Template loader ─────────────────────────────────────────────────
+
 
 def load_template(template_path: str) -> dict:
     """Load and validate a stage template."""
@@ -87,8 +93,7 @@ def load_template(template_path: str) -> dict:
     template = _load_yaml(path)
 
     # Validate required sections
-    required = ["template_id", "allowed_paths", "forbidden_boundaries",
-                "verification", "receipt", "ai_onboarding"]
+    required = ["template_id", "allowed_paths", "forbidden_boundaries", "verification", "receipt", "ai_onboarding"]
     missing = [k for k in required if k not in template]
     if missing:
         print(f"❌ Template missing required sections: {missing}")
@@ -96,13 +101,19 @@ def load_template(template_path: str) -> dict:
 
     return template
 
+
 # ── Checks ──────────────────────────────────────────────────────────
+
 
 def _run_command(cmd: str, timeout: int = 300) -> tuple[str, int]:
     """Run a shell command, return (stdout+stderr, exit_code)."""
     try:
         result = subprocess.run(
-            cmd, shell=True, cwd=ROOT, capture_output=True, text=True,
+            cmd,
+            shell=True,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
             timeout=timeout,
         )
         return (result.stdout + result.stderr).strip(), result.returncode
@@ -110,6 +121,7 @@ def _run_command(cmd: str, timeout: int = 300) -> tuple[str, int]:
         return f"TIMEOUT ({timeout}s)", -1
     except Exception as e:
         return str(e), -1
+
 
 def run_pre_flight(template: dict) -> list[CheckResult]:
     """Run pre-flight checks. Returns results; caller decides if any blocked."""
@@ -121,17 +133,28 @@ def run_pre_flight(template: dict) -> list[CheckResult]:
             desc = check.get("description", cmd)
             timeout = check.get("timeout", 120)
             output, rc = _run_command(cmd, timeout)
-            results.append(CheckResult(
-                check_id=check_id, description=desc,
-                passed=(rc == 0), output=output, exit_code=rc,
-            ))
+            results.append(
+                CheckResult(
+                    check_id=check_id,
+                    description=desc,
+                    passed=(rc == 0),
+                    output=output,
+                    exit_code=rc,
+                )
+            )
         elif isinstance(check, str):
             output, rc = _run_command(check)
-            results.append(CheckResult(
-                check_id=check[:60], description=check,
-                passed=(rc == 0), output=output, exit_code=rc,
-            ))
+            results.append(
+                CheckResult(
+                    check_id=check[:60],
+                    description=check,
+                    passed=(rc == 0),
+                    output=output,
+                    exit_code=rc,
+                )
+            )
     return results
+
 
 def run_verification(verification_gates: list) -> list[CheckResult]:
     """Run verification gates. Returns results with pass/fail."""
@@ -154,12 +177,17 @@ def run_verification(verification_gates: list) -> list[CheckResult]:
         output, rc = _run_command(cmd, timeout)
         passed = rc == 0
 
-        results.append(CheckResult(
-            check_id=gate_id,
-            description=desc,
-            passed=passed, output=output[:500], exit_code=rc,
-        ))
+        results.append(
+            CheckResult(
+                check_id=gate_id,
+                description=desc,
+                passed=passed,
+                output=output[:500],
+                exit_code=rc,
+            )
+        )
     return results
+
 
 def check_boundaries(template: dict) -> list[str]:
     """Check modified files against forbidden boundaries."""
@@ -179,34 +207,46 @@ def check_boundaries(template: dict) -> list[str]:
 
     return violations
 
+
 def _get_modified_files() -> list[str]:
     """Get list of modified/new files relative to HEAD."""
     # Staged + unstaged modifications
     result = subprocess.run(
-        "git diff --name-only HEAD", shell=True, cwd=ROOT,
-        capture_output=True, text=True,
+        "git diff --name-only HEAD",
+        shell=True,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
     modified = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
 
     # Untracked files (not in .gitignore)
     result2 = subprocess.run(
-        "git ls-files --others --exclude-standard", shell=True, cwd=ROOT,
-        capture_output=True, text=True,
+        "git ls-files --others --exclude-standard",
+        shell=True,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
     untracked = [f.strip() for f in result2.stdout.strip().split("\n") if f.strip()]
     modified.extend(untracked)
 
     return sorted(set(modified))
 
+
 def _glob_match(filepath: str, pattern: str) -> bool:
     """Simple glob matching for boundary patterns."""
     from fnmatch import fnmatch
+
     return fnmatch(filepath, pattern)
+
 
 # ── Receipt generation ─────────────────────────────────────────────
 
+
 def generate_receipt(
-    stage_id: str, template: dict,
+    stage_id: str,
+    template: dict,
     pre_flight_results: list[CheckResult],
     verification_results: list[CheckResult],
     boundary_violations: list[str],
@@ -240,14 +280,21 @@ def generate_receipt(
         timestamp=datetime.now(timezone.utc).isoformat(),
         freeze_protocol=dict(template.get("freeze_protocol", {})),
         files_changed=modified,
-        pre_flight=[{"id": r.check_id, "passed": r.passed, "output": r.output[:200]}
-                    for r in pre_flight_results],
-        verification=[{"id": r.check_id, "desc": r.description, "passed": r.passed,
-                       "exit_code": r.exit_code, "output": r.output[:200]}
-                      for r in verification_results],
+        pre_flight=[{"id": r.check_id, "passed": r.passed, "output": r.output[:200]} for r in pre_flight_results],
+        verification=[
+            {
+                "id": r.check_id,
+                "desc": r.description,
+                "passed": r.passed,
+                "exit_code": r.exit_code,
+                "output": r.output[:200],
+            }
+            for r in verification_results
+        ],
         boundary_violations=boundary_violations,
         overall=overall,
     )
+
 
 def _find_gate(gates: list, check_id: str) -> dict | None:
     """Find a gate definition by id."""
@@ -256,7 +303,9 @@ def _find_gate(gates: list, check_id: str) -> dict | None:
             return g
     return None
 
+
 # ── Output ──────────────────────────────────────────────────────────
+
 
 def write_receipt(receipt: StageReceipt, template: dict) -> Path:
     """Write receipt as JSON to runtime directory."""
@@ -281,6 +330,7 @@ def write_receipt(receipt: StageReceipt, template: dict) -> Path:
 
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     return path
+
 
 def print_results(receipt: StageReceipt, template: dict) -> None:
     """Print human-readable stage results."""
@@ -340,18 +390,22 @@ def print_results(receipt: StageReceipt, template: dict) -> None:
     print("  [ ] Commit with stage receipt reference")
     print()
 
+
 # ── Main ────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     import argparse
-    parser = argparse.ArgumentParser(
-        description="Ordivon Stage Runner — governance pipeline executor")
+
+    parser = argparse.ArgumentParser(description="Ordivon Stage Runner — governance pipeline executor")
     parser.add_argument("--template", required=True, help="Path to stage template YAML")
     parser.add_argument("--stage-id", required=True, help="Unique stage identifier")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Load template and show what would run, but don't execute")
-    parser.add_argument("--non-interactive", action="store_true",
-                        help="Skip agent execution prompt — run verification directly")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Load template and show what would run, but don't execute"
+    )
+    parser.add_argument(
+        "--non-interactive", action="store_true", help="Skip agent execution prompt — run verification directly"
+    )
     args = parser.parse_args()
 
     # 1. Load template
@@ -376,8 +430,10 @@ def main() -> int:
                 print(f"  {g}")
         freeze = template.get("freeze_protocol", {})
         if freeze:
-            print(f"Freeze state: {freeze.get('state', 'unknown')} "
-                  f"(enforcement={freeze.get('enforcement', 'record_only')})")
+            print(
+                f"Freeze state: {freeze.get('state', 'unknown')} "
+                f"(enforcement={freeze.get('enforcement', 'record_only')})"
+            )
         return 0
 
     # 2. Pre-flight
@@ -434,7 +490,11 @@ def main() -> int:
 
     # 6. Generate receipt
     receipt = generate_receipt(
-        args.stage_id, template, pre_results, ver_results, violations,
+        args.stage_id,
+        template,
+        pre_results,
+        ver_results,
+        violations,
     )
     receipt_path = write_receipt(receipt, template)
 

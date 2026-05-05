@@ -6,9 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_decision_gate.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_decision_gate" / "valid" / "ready-without-authorization.json"
-BAD_MISSING = (
-    ROOT / "tests" / "fixtures" / "pgi_decision_gate" / "invalid" / "ready-with-missing-evidence.json"
-)
+BAD_MISSING = ROOT / "tests" / "fixtures" / "pgi_decision_gate" / "invalid" / "ready-with-missing-evidence.json"
 BAD_AUTH = ROOT / "tests" / "fixtures" / "pgi_decision_gate" / "invalid" / "authorizes-execution.json"
 
 

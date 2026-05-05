@@ -50,10 +50,12 @@ ROOT = Path(__file__).resolve().parents[1]  # Ordivon root
 
 # ── Data types ──────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class CheckerResult:
     """Structured result from a checker run."""
-    status: str                      # "pass" | "fail" | "warn"
+
+    status: str  # "pass" | "fail" | "warn"
     exit_code: int
     findings: list[str] = field(default_factory=list)
     stats: dict = field(default_factory=dict)
@@ -63,19 +65,21 @@ class CheckerResult:
 @dataclass(frozen=True)
 class CheckerEntry:
     """Metadata for a registered checker. Lives in the checker file, not the manifest."""
+
     gate_id: str
     display_name: str
     layer: str
-    hardness: str                    # "hard" | "escalation" | "advisory"
+    hardness: str  # "hard" | "escalation" | "advisory"
     purpose: str
     protects_against: str
-    profiles: tuple[str, ...]        # ("pr-fast", "full")
+    profiles: tuple[str, ...]  # ("pr-fast", "full")
     entry: Callable[..., CheckerResult]
     timeout: int = 120
-    file_path: str = ""              # set by registry at registration time
+    file_path: str = ""  # set by registry at registration time
 
 
 # ── Registry ────────────────────────────────────────────────────────
+
 
 class CheckerRegistry:
     """Singleton. Checkers self-register via the @register_checker decorator."""
@@ -85,9 +89,11 @@ class CheckerRegistry:
 
     def register(self, **kwargs) -> Callable:
         """Decorator: @register_checker(gate_id=..., display_name=..., ...)."""
+
         def decorator(fn: Callable[..., CheckerResult]) -> Callable[..., CheckerResult]:
             # Capture the file path of the checker for subprocess spawning
             import inspect
+
             file_path = inspect.getfile(fn)
             entry = CheckerEntry(
                 entry=fn,
@@ -96,6 +102,7 @@ class CheckerRegistry:
             )
             self._entries[entry.gate_id] = entry
             return fn
+
         return decorator
 
     def get_all(self) -> list[CheckerEntry]:

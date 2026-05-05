@@ -34,44 +34,78 @@ DEFAULT_SCAN_PATHS = [
 ]
 
 RECEIPT_UNIVERSE_DIRS = [
-    "docs/runtime", "docs/product", "docs/governance", "docs/ai", "docs/architecture",
+    "docs/runtime",
+    "docs/product",
+    "docs/governance",
+    "docs/ai",
+    "docs/architecture",
 ]
 RECEIPT_UNIVERSE_ROOT_FILES = ["AGENTS.md", "README.md"]
 RECEIPT_SKIP_PATTERNS = ["docs/archive/", "docs/runtime/paper-trades/PT-0", ".tmp", "audit"]
 
 # ── Hard-fail patterns ──────────────────────────────────────────────
 HARD_FAILS: list[tuple[re.Pattern, str, re.Pattern | None]] = [
-    (re.compile(r"Skipped Verification:\s*None", re.IGNORECASE),
-     "claims 'Skipped: None' but nearby text suggests gate was not run", None),
-    (re.compile(r"(?:Status:\s*\*?\*?SEALED|FULLY SEALED)", re.IGNORECASE),
-     "claims SEALED but nearby text suggests incomplete verification", None),
-    (re.compile(r"clean working tree", re.IGNORECASE),
-     "claims 'clean working tree' — should say 'Tracked working tree clean' if untracked residue exists",
-     re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE)),
-    (re.compile(r"7\/7\s+(?:baseline|hard\s+gates?)", re.IGNORECASE),
-     "stale baseline count '7/7' — baseline is now 8/8 (or 10/10 after DG-6B)",
-     re.compile(r"before\s+DG-5|7\/7\s*→\s*8\/8|historical", re.IGNORECASE)),
-    (re.compile(r"Ruff\s+clean", re.IGNORECASE),
-     "claims 'Ruff clean' globally — should qualify with scope if pre-existing debt exists",
-     re.compile(r"DG\s+\S*\s+scope\s+clean|DG\s+\S*\s+files\s+clean", re.IGNORECASE)),
-    (re.compile(r"CandidateRule\s+validated", re.IGNORECASE),
-     "claims 'CandidateRule validated' — should say 'advisory' or 'supported by evidence'",
-     re.compile(r"advisory|not\s+Policy|supported\s+by\s+evidence", re.IGNORECASE)),
-    (re.compile(r"(?:can_place_order|order\s+placement|order\s+status)", re.IGNORECASE),
-     "work summary describes order/execution capability — boundary claim may lack paper-only evidence",
-     re.compile(r"paper.only|paper\s+environment|no\s+live|NO-GO|BLOCKED", re.IGNORECASE)),
+    (
+        re.compile(r"Skipped Verification:\s*None", re.IGNORECASE),
+        "claims 'Skipped: None' but nearby text suggests gate was not run",
+        None,
+    ),
+    (
+        re.compile(r"(?:Status:\s*\*?\*?SEALED|FULLY SEALED)", re.IGNORECASE),
+        "claims SEALED but nearby text suggests incomplete verification",
+        None,
+    ),
+    (
+        re.compile(r"clean working tree", re.IGNORECASE),
+        "claims 'clean working tree' — should say 'Tracked working tree clean' if untracked residue exists",
+        re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"7\/7\s+(?:baseline|hard\s+gates?)", re.IGNORECASE),
+        "stale baseline count '7/7' — baseline is now 8/8 (or 10/10 after DG-6B)",
+        re.compile(r"before\s+DG-5|7\/7\s*→\s*8\/8|historical", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"Ruff\s+clean", re.IGNORECASE),
+        "claims 'Ruff clean' globally — should qualify with scope if pre-existing debt exists",
+        re.compile(r"DG\s+\S*\s+scope\s+clean|DG\s+\S*\s+files\s+clean", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"CandidateRule\s+validated", re.IGNORECASE),
+        "claims 'CandidateRule validated' — should say 'advisory' or 'supported by evidence'",
+        re.compile(r"advisory|not\s+Policy|supported\s+by\s+evidence", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"(?:can_place_order|order\s+placement|order\s+status)", re.IGNORECASE),
+        "work summary describes order/execution capability — boundary claim may lack paper-only evidence",
+        re.compile(r"paper.only|paper\s+environment|no\s+live|NO-GO|BLOCKED", re.IGNORECASE),
+    ),
 ]
 
 SKIP_CONTEXT_WORDS = [
-    "not run", "not separately executed", "skipped", "omitted",
-    "will verify after commit", "pending verification", "not yet run",
-    "addendum required", "pending",
+    "not run",
+    "not separately executed",
+    "skipped",
+    "omitted",
+    "will verify after commit",
+    "pending verification",
+    "not yet run",
+    "addendum required",
+    "pending",
 ]
 
 RECEIPT_MARKERS = [
-    r"RECEIPT", r"Receipt", r"Seal Receipt", r"Completion Receipt",
-    r"Stage Summit", r"Verification Results", r"Boundary Confirmation",
-    r"\bPhase:", r"\bStatus:", r"\bCLOSED\b", r"\bSEALED\b",
+    r"RECEIPT",
+    r"Receipt",
+    r"Seal Receipt",
+    r"Completion Receipt",
+    r"Stage Summit",
+    r"Verification Results",
+    r"Boundary Confirmation",
+    r"\bPhase:",
+    r"\bStatus:",
+    r"\bCLOSED\b",
+    r"\bSEALED\b",
 ]
 RECEIPT_MARKER_RE = re.compile("|".join(RECEIPT_MARKERS))
 
@@ -80,12 +114,15 @@ def _has_skip_context(text_window: str) -> bool:
     lower = text_window.lower()
     return any(w in lower for w in SKIP_CONTEXT_WORDS)
 
+
 def _file_is_archived(filepath: Path) -> bool:
     sp = str(filepath)
     return any(p in sp for p in RECEIPT_SKIP_PATTERNS)
 
+
 def _is_receipt_bearing(content: str) -> bool:
     return bool(RECEIPT_MARKER_RE.search(content))
+
 
 def _scan_one(filepath: Path, failures: list[str], stats: Counter) -> None:
     if _file_is_archived(filepath):

@@ -23,9 +23,10 @@ from pathlib import Path
 @dataclass
 class ClaimResult:
     """Verification result for a single claim."""
+
     claim_id: str
     claim_description: str
-    status: str           # SUPPORTED | UNSUPPORTED | SELF_REFERENTIAL | CONTRADICTED
+    status: str  # SUPPORTED | UNSUPPORTED | SELF_REFERENTIAL | CONTRADICTED
     evidence_found: list[str] = field(default_factory=list)
     evidence_missing: list[str] = field(default_factory=list)
     detail: str = ""
@@ -34,6 +35,7 @@ class ClaimResult:
 @dataclass
 class ClaimVerificationReport:
     """Full claim verification report."""
+
     stage_id: str
     total_claims: int
     supported: int
@@ -140,8 +142,7 @@ class ClaimVerifier:
         # Predicate: no_authority_escalation
         if "authority" in pid.lower() or "escalation" in pid.lower():
             violations = receipt.get("boundary_violations", [])
-            auth_violations = [v for v in violations
-                              if v.get("category") in ("authority", "boundary")]
+            auth_violations = [v for v in violations if v.get("category") in ("authority", "boundary")]
             if not auth_violations:
                 evidence_found.append("no authority violations in receipt")
             else:
@@ -246,7 +247,9 @@ class ClaimVerifier:
         try:
             r = subprocess.run(
                 ["git", "diff", "--name-only", "HEAD"],
-                cwd=self.root, capture_output=True, text=True,
+                cwd=self.root,
+                capture_output=True,
+                text=True,
             )
             return {f.strip() for f in r.stdout.split("\n") if f.strip()}
         except Exception:

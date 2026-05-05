@@ -25,7 +25,9 @@ REQUIRED = [
 ]
 
 VALID_WEDGES = {"alpha_0_agent_work_trust_audit", "verify_cli", "casebook_demo", "none"}
-FORBIDDEN_CLAIMS_RE = re.compile(r"public\s+standard|platform\s+launched|sdk\s+available|mcp\s+server|adapter\s+released", re.I)
+FORBIDDEN_CLAIMS_RE = re.compile(
+    r"public\s+standard|platform\s+launched|sdk\s+available|mcp\s+server|adapter\s+released", re.I
+)
 
 
 def _nonempty(value) -> bool:
@@ -82,7 +84,9 @@ def validate_payload(payload: dict) -> list[str]:
 
     companion = str(payload.get("companion_boundary", "")).lower()
     if "companion governance" not in companion or "commercialization is externalization" not in companion:
-        errors.append("companion_boundary must preserve companion governance root and commercialization-as-externalization")
+        errors.append(
+            "companion_boundary must preserve companion governance root and commercialization-as-externalization"
+        )
 
     boundary = str(payload.get("authority_boundary", "")).lower()
     if "does not authorize" not in boundary or "not release approval" not in boundary:

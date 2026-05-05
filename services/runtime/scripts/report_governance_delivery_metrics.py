@@ -68,11 +68,7 @@ def _open_debt_count() -> int:
 
 
 def _checker_shadow_count() -> int:
-    return sum(
-        1
-        for entry in _load_jsonl(MATURITY_LEDGER)
-        if str(entry.get("maturity", "")).lower() == "shadow_tested"
-    )
+    return sum(1 for entry in _load_jsonl(MATURITY_LEDGER) if str(entry.get("maturity", "")).lower() == "shadow_tested")
 
 
 def _stale_source_count(reference_date: date | None = None) -> int:

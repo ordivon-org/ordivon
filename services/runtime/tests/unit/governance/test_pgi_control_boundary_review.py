@@ -6,9 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_control_boundary_review.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_control_boundary" / "valid" / "good-process-bad-outcome.json"
-BAD_LAUNDERING = (
-    ROOT / "tests" / "fixtures" / "pgi_control_boundary" / "invalid" / "good-outcome-laundering.json"
-)
+BAD_LAUNDERING = ROOT / "tests" / "fixtures" / "pgi_control_boundary" / "invalid" / "good-outcome-laundering.json"
 BAD_QUADRANT = ROOT / "tests" / "fixtures" / "pgi_control_boundary" / "invalid" / "quadrant-mismatch.json"
 
 

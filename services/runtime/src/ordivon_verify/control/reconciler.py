@@ -24,15 +24,17 @@ from ordivon_verify.control.rule_registry import evaluate_rules
 
 # ── Reconciliation Report ───────────────────────────────────────────
 
+
 @dataclass
 class ReconciliationReport:
     """Result of reconciling desired vs actual state."""
+
     stage_id: str
     timestamp: str
     desired: StageManifest
     actual: RepoSnapshot
     drifts: list[DriftEntry] = field(default_factory=list)
-    overall: str = "READY"   # READY | DEGRADED | BLOCKED
+    overall: str = "READY"  # READY | DEGRADED | BLOCKED
 
     @property
     def blocked(self) -> bool:
@@ -44,6 +46,7 @@ class ReconciliationReport:
 
 
 # ── Reconciler ──────────────────────────────────────────────────────
+
 
 class Reconciler:
     """Compares desired state (StageManifest) against actual repo state."""
@@ -79,5 +82,5 @@ class Reconciler:
 
 
 # Re-export for convenience
-RiskClass = __import__('ordivon_verify.control.stage_manifest', fromlist=['RiskClass']).RiskClass
-AuthorityImpact = __import__('ordivon_verify.control.stage_manifest', fromlist=['AuthorityImpact']).AuthorityImpact
+RiskClass = __import__("ordivon_verify.control.stage_manifest", fromlist=["RiskClass"]).RiskClass
+AuthorityImpact = __import__("ordivon_verify.control.stage_manifest", fromlist=["AuthorityImpact"]).AuthorityImpact

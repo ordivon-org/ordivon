@@ -315,12 +315,14 @@ tags: [tag1, tag2]
 ```python
 from dataclasses import dataclass, field
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str       # "pass" | "fail"
-    exit_code: int    # 0 = pass, 1 = fail
-    findings: list    # human-readable findings
-    stats: dict       # structured metrics
+    status: str  # "pass" | "fail"
+    exit_code: int  # 0 = pass, 1 = fail
+    findings: list  # human-readable findings
+    stats: dict  # structured metrics
+
 
 def run() -> CheckerResult:
     # Pure logic — no side effects beyond reading files

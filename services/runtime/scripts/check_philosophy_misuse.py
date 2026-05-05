@@ -34,7 +34,9 @@ class Finding:
 RULES = [
     (
         "PGI-MISUSE-001",
-        re.compile(r"\blong[- ]term(?:ism)?\b.{0,120}\b(?:ignore sleep|sacrifice (?:the )?body|no rest|burn out)\b", re.I),
+        re.compile(
+            r"\blong[- ]term(?:ism)?\b.{0,120}\b(?:ignore sleep|sacrifice (?:the )?body|no rest|burn out)\b", re.I
+        ),
         "Long-termism used to rationalize overwork or body neglect.",
         "Run Anti-Overforce review and Body/Energy boundary check.",
     ),
@@ -46,19 +48,26 @@ RULES = [
     ),
     (
         "PGI-MISUSE-003",
-        re.compile(r"\bdiscipline\b.{0,120}\b(?:ignore fatigue|suppress emotion|ignore emotion|push through pain)\b", re.I),
+        re.compile(
+            r"\bdiscipline\b.{0,120}\b(?:ignore fatigue|suppress emotion|ignore emotion|push through pain)\b", re.I
+        ),
         "Discipline language used to suppress valid body/emotion signals.",
         "Classify the signal before increasing effort.",
     ),
     (
         "PGI-MISUSE-004",
-        re.compile(r"\b(?:existential|meaning|destiny)\b.{0,120}\b(?:ignore evidence|skip evidence|bypass evidence)\b", re.I),
+        re.compile(
+            r"\b(?:existential|meaning|destiny)\b.{0,120}\b(?:ignore evidence|skip evidence|bypass evidence)\b", re.I
+        ),
         "Meaning language used to bypass evidence.",
         "Restore EvidenceRecord requirement and uncertainty review.",
     ),
     (
         "PGI-MISUSE-005",
-        re.compile(r"\b(?:non[- ]attachment|wu wei|daoism|let it flow)\b.{0,120}\b(?:avoid responsibility|no review|do nothing)\b", re.I),
+        re.compile(
+            r"\b(?:non[- ]attachment|wu wei|daoism|let it flow)\b.{0,120}\b(?:avoid responsibility|no review|do nothing)\b",
+            re.I,
+        ),
         "Non-attachment/non-force language used to avoid responsibility.",
         "Separate non-force from avoidance; create review or refusal receipt.",
     ),
@@ -82,9 +91,7 @@ def _iter_files(paths: list[Path]) -> list[Path]:
             files.append(path)
         elif path.is_dir():
             files.extend(
-                p
-                for p in sorted(path.rglob("*"))
-                if p.is_file() and p.suffix in {".md", ".txt", ".json", ".jsonl"}
+                p for p in sorted(path.rglob("*")) if p.is_file() and p.suffix in {".md", ".txt", ".json", ".jsonl"}
             )
     return files
 

@@ -7,12 +7,7 @@ ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_reversibility_assessment.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_reversibility_assessment" / "valid" / "local-doc.json"
 BAD_REVIEW = (
-    ROOT
-    / "tests"
-    / "fixtures"
-    / "pgi_reversibility_assessment"
-    / "invalid"
-    / "high-side-effect-no-review.json"
+    ROOT / "tests" / "fixtures" / "pgi_reversibility_assessment" / "invalid" / "high-side-effect-no-review.json"
 )
 BAD_UNKNOWN = ROOT / "tests" / "fixtures" / "pgi_reversibility_assessment" / "invalid" / "unknown-external.json"
 

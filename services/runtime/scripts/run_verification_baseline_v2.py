@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 # ── Gate result (unchanged from original baseline) ──────────────────
 
+
 @dataclass
 class GateResult:
     name: str
@@ -71,6 +72,7 @@ class BaselineSummary:
 
 # ── Discovery ───────────────────────────────────────────────────────
 
+
 def _discover_checker_modules() -> list[str]:
     """Find all .py files in scripts/ that contain @register_checker.
 
@@ -95,11 +97,11 @@ def _discover_checker_modules() -> list[str]:
         for stmt in tree.body:
             if isinstance(stmt, ast.FunctionDef):
                 for dec in stmt.decorator_list:
-                    if isinstance(dec, ast.Call) and hasattr(dec.func, 'id'):
-                        if dec.func.id == 'register_checker':
+                    if isinstance(dec, ast.Call) and hasattr(dec.func, "id"):
+                        if dec.func.id == "register_checker":
                             has_decorator = True
                             break
-                    elif isinstance(dec, ast.Name) and dec.id == 'register_checker':
+                    elif isinstance(dec, ast.Name) and dec.id == "register_checker":
                         has_decorator = True
                         break
             if has_decorator:
@@ -140,6 +142,7 @@ def _import_and_collect() -> tuple[list, list]:
 
 
 # ── Runner ──────────────────────────────────────────────────────────
+
 
 def _run_checker_subprocess(entry, python: str) -> GateResult:
     """Run a checker as a subprocess by its file path."""
@@ -201,6 +204,7 @@ def run_all(profile: str = "full") -> BaselineSummary:
 
 # ── Output ──────────────────────────────────────────────────────────
 
+
 def print_summary(summary: BaselineSummary) -> None:
     print("\n" + "=" * 60)
     print("ORDIVON VERIFICATION BASELINE (auto-discovered)")
@@ -222,6 +226,7 @@ def print_summary(summary: BaselineSummary) -> None:
 def print_manifest() -> None:
     """Print auto-generated manifest JSON from the registry."""
     from ordivon_verify.registry import registry
+
     manifest = registry.generate_manifest()
     # Add external gates (ruff, pytest, eval corpus) that aren't checkers
     manifest["auto_generated"] = True
@@ -236,8 +241,10 @@ def print_manifest() -> None:
 
 # ── Main ────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     import argparse
+
     parser = argparse.ArgumentParser(description="Ordivon Verification Baseline (auto-discovery)")
     parser.add_argument("--pr-fast", action="store_true", help="Run PR-fast gates only")
     parser.add_argument("--manifest", action="store_true", help="Dump auto-generated manifest JSON")

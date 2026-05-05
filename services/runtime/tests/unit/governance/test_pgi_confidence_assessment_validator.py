@@ -6,14 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_confidence_assessment.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_confidence_assessment" / "valid" / "high-confidence.json"
-BAD_BASE = (
-    ROOT
-    / "tests"
-    / "fixtures"
-    / "pgi_confidence_assessment"
-    / "invalid"
-    / "high-confidence-no-base-rate.json"
-)
+BAD_BASE = ROOT / "tests" / "fixtures" / "pgi_confidence_assessment" / "invalid" / "high-confidence-no-base-rate.json"
 BAD_BAND = ROOT / "tests" / "fixtures" / "pgi_confidence_assessment" / "invalid" / "wrong-band.json"
 
 

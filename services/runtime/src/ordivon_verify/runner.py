@@ -25,6 +25,7 @@ def _load_registry() -> dict[str, Any]:
         return _CHECKER_ENTRIES
 
     import importlib.util
+
     _src = Path(__file__).resolve().parents[1]
     _spec = importlib.util.spec_from_file_location(
         "ordivon_verify.checker_registry",
@@ -58,7 +59,7 @@ def _get_all_gate_ids() -> list[str]:
 
 # ── Compatibility: expose gate_id-based interface for CLI ────────────
 
-ALL_CHECKS: list[str] = []   # populated lazily
+ALL_CHECKS: list[str] = []  # populated lazily
 
 
 class _CheckerScriptsCompat(dict):
@@ -182,14 +183,20 @@ def run_check(gate_id: str, root: Path | None = None) -> dict:
         }
     except subprocess.TimeoutExpired:
         return {
-            "id": gate_id, "label": label, "status": "FAIL",
-            "exit_code": -1, "stdout": "",
+            "id": gate_id,
+            "label": label,
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
             "stderr": f"Checker timed out: {gate_id}",
         }
     except Exception as exc:
         return {
-            "id": gate_id, "label": label, "status": "FAIL",
-            "exit_code": -1, "stdout": "",
+            "id": gate_id,
+            "label": label,
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
             "stderr": f"Runtime error: {exc}",
         }
 
@@ -214,13 +221,18 @@ def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
     failures, scanned = scan_receipt_files(receipt_paths, root)
     if failures:
         return {
-            "id": "receipts", "label": "Receipt Integrity", "status": "FAIL",
-            "exit_code": 1, "stdout": "",
+            "id": "receipts",
+            "label": "Receipt Integrity",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
             "stderr": f"{len(failures)} contradiction(s) in {scanned} receipt(s)",
             "failures": failures,
         }
     return {
-        "id": "receipts", "label": "Receipt Integrity", "status": "PASS",
+        "id": "receipts",
+        "label": "Receipt Integrity",
+        "status": "PASS",
         "exit_code": 0,
         "stdout": f"{scanned} receipt(s) scanned, 0 contradictions",
         "stderr": "",
@@ -233,13 +245,16 @@ def run_external_checker(check_id: str, root: Path, mode: str, config: dict) -> 
     cfg_path = config.get(key, "") if config else ""
     target = root / cfg_path if cfg_path else None
     evidence_name = cfg_path or key or check_id
-    label_map = {"receipts": "Receipt Integrity", "debt": "Verification Debt",
-                 "gates": "Gate Manifest", "docs": "Document Registry"}
+    label_map = {
+        "receipts": "Receipt Integrity",
+        "debt": "Verification Debt",
+        "gates": "Gate Manifest",
+        "docs": "Document Registry",
+    }
     label = label_map.get(check_id, check_id)
 
     if target and target.exists() and cfg_path:
-        validators = {"debt": validate_debt_ledger, "gates": validate_gate_manifest,
-                      "docs": validate_document_registry}
+        validators = {"debt": validate_debt_ledger, "gates": validate_gate_manifest, "docs": validate_document_registry}
         try:
             result = validators[check_id](target)
         except Exception as exc:
@@ -250,21 +265,30 @@ def run_external_checker(check_id: str, root: Path, mode: str, config: dict) -> 
 
     if mode == "strict":
         return {
-            "id": check_id, "label": label, "status": "FAIL",
-            "exit_code": -1, "stdout": "",
+            "id": check_id,
+            "label": label,
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
             "stderr": f"Missing required file: {target or evidence_name}",
             "missing_evidence": True,
         }
     if mode == "standard" and cfg_path:
         return {
-            "id": check_id, "label": label, "status": "FAIL",
-            "exit_code": -1, "stdout": "",
+            "id": check_id,
+            "label": label,
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
             "stderr": f"Configured file not found: {target or cfg_path}",
             "missing_evidence": True,
         }
     return {
-        "id": check_id, "label": label, "status": "WARN",
-        "exit_code": -1, "stdout": "",
+        "id": check_id,
+        "label": label,
+        "status": "WARN",
+        "exit_code": -1,
+        "stdout": "",
         "stderr": f"Not configured: {evidence_name}",
         "missing_evidence": True,
         "next_action": _WARN_ADVICE.get(check_id, f"Configure {check_id} when ready."),

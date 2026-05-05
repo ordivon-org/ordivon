@@ -16,8 +16,9 @@ from pathlib import Path
 @dataclass
 class DriftEntry:
     """A single deviation between desired and actual state."""
-    category: str          # boundary, verification, evidence, closure, authority
-    severity: str          # BLOCKED, DEGRADED, ADVISORY
+
+    category: str  # boundary, verification, evidence, closure, authority
+    severity: str  # BLOCKED, DEGRADED, ADVISORY
     description: str
     detail: str = ""
 
@@ -25,6 +26,7 @@ class DriftEntry:
 @dataclass
 class RepoSnapshot:
     """A point-in-time capture of actual repo state."""
+
     timestamp: str = ""
     head_commit: str = ""
     modified_files: list[str] = field(default_factory=list)
@@ -41,7 +43,9 @@ class RepoSnapshot:
         try:
             r = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
-                cwd=root, capture_output=True, text=True,
+                cwd=root,
+                capture_output=True,
+                text=True,
             )
             snap.head_commit = r.stdout.strip()
         except Exception:
@@ -50,7 +54,9 @@ class RepoSnapshot:
         try:
             r = subprocess.run(
                 ["git", "diff", "--name-only", "HEAD"],
-                cwd=root, capture_output=True, text=True,
+                cwd=root,
+                capture_output=True,
+                text=True,
             )
             snap.modified_files = [f.strip() for f in r.stdout.split("\n") if f.strip()]
         except Exception:
@@ -59,7 +65,9 @@ class RepoSnapshot:
         try:
             r = subprocess.run(
                 ["git", "ls-files", "--others", "--exclude-standard"],
-                cwd=root, capture_output=True, text=True,
+                cwd=root,
+                capture_output=True,
+                text=True,
             )
             snap.untracked_files = [f.strip() for f in r.stdout.split("\n") if f.strip()]
         except Exception:
@@ -72,10 +80,7 @@ class RepoSnapshot:
 
         checkers_dir = root / "checkers"
         if checkers_dir.exists():
-            snap.checker_count = sum(
-                1 for d in checkers_dir.iterdir()
-                if d.is_dir() and not d.name.startswith(".")
-            )
+            snap.checker_count = sum(1 for d in checkers_dir.iterdir() if d.is_dir() and not d.name.startswith("."))
 
         manifest_path = root / "docs" / "governance" / "verification-gate-manifest.json"
         if manifest_path.exists():

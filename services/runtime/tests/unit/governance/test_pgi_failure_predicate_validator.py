@@ -6,12 +6,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_failure_predicate.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_failure_predicate" / "valid" / "roadmap-claim.json"
-BAD_NON_FALSIFIABLE = (
-    ROOT / "tests" / "fixtures" / "pgi_failure_predicate" / "invalid" / "non-falsifiable.json"
-)
-BAD_AUTH = (
-    ROOT / "tests" / "fixtures" / "pgi_failure_predicate" / "invalid" / "no-authority-boundary.json"
-)
+BAD_NON_FALSIFIABLE = ROOT / "tests" / "fixtures" / "pgi_failure_predicate" / "invalid" / "non-falsifiable.json"
+BAD_AUTH = ROOT / "tests" / "fixtures" / "pgi_failure_predicate" / "invalid" / "no-authority-boundary.json"
 
 
 spec = importlib.util.spec_from_file_location("validate_pgi_failure_predicate", SCRIPT)

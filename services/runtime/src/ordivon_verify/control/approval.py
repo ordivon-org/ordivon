@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from ordivon_verify.control.authority_state import (
-    AuthorizationStatus, AuthorityLevel,
+    AuthorizationStatus,
+    AuthorityLevel,
 )
 from ordivon_verify.control.stage_manifest import StageManifest, RiskClass, AuthorityImpact
 
@@ -29,13 +30,14 @@ class ApprovalGate:
     SEPARATE human decision that happens AFTER evidence is collected and
     verification has passed.
     """
+
     stage_id: str
     required_level: AuthorityLevel
     status: AuthorizationStatus = AuthorizationStatus.NOT_REQUESTED
     approver: str = ""
     approved_at: str = ""
     rationale: str = ""
-    expires_at: str = ""      # optional auto-expiry
+    expires_at: str = ""  # optional auto-expiry
 
     def request(self, approver: str = "") -> ApprovalGate:
         """Request human approval."""
@@ -48,8 +50,7 @@ class ApprovalGate:
             approver=approver,
         )
 
-    def approve(self, approver: str, rationale: str,
-                expires_hours: int = 0) -> ApprovalGate:
+    def approve(self, approver: str, rationale: str, expires_hours: int = 0) -> ApprovalGate:
         """Human approves the stage."""
         if self.status != AuthorizationStatus.REQUESTED:
             raise ValueError(f"Cannot approve in status {self.status.value}")
@@ -85,7 +86,8 @@ class ApprovalGate:
     def is_required(self) -> bool:
         """Is human approval required for this gate?"""
         return self.required_level in (
-            AuthorityLevel.AI_2, AuthorityLevel.AI_3,
+            AuthorityLevel.AI_2,
+            AuthorityLevel.AI_3,
         )
 
     @property

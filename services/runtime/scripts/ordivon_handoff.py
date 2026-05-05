@@ -28,7 +28,9 @@ def _git_head() -> str:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
-            cwd=ROOT, capture_output=True, text=True,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
         )
         return r.stdout.strip()
     except Exception:
@@ -45,20 +47,17 @@ def _dg_count() -> int:
 def _checker_count() -> int:
     if not CHECKERS_DIR.exists():
         return 0
-    return sum(1 for d in CHECKERS_DIR.iterdir()
-               if d.is_dir() and not d.name.startswith("."))
+    return sum(1 for d in CHECKERS_DIR.iterdir() if d.is_dir() and not d.name.startswith("."))
 
 
 def _latest_receipt() -> str | None:
     if not RECEIPT_DIR.exists():
         return None
-    receipts = sorted(RECEIPT_DIR.glob("*.receipt.json"),
-                      key=lambda p: p.stat().st_mtime, reverse=True)
+    receipts = sorted(RECEIPT_DIR.glob("*.receipt.json"), key=lambda p: p.stat().st_mtime, reverse=True)
     if receipts:
         return str(receipts[0].relative_to(ROOT))
     # Fall back to .md receipts
-    md_receipts = sorted(RECEIPT_DIR.glob("*receipt*.md"),
-                         key=lambda p: p.stat().st_mtime, reverse=True)
+    md_receipts = sorted(RECEIPT_DIR.glob("*receipt*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
     if md_receipts:
         return str(md_receipts[0].relative_to(ROOT))
     return None
@@ -124,6 +123,7 @@ def generate_handoff() -> dict:
 
 def main():
     import argparse
+
     p = argparse.ArgumentParser(description="Ordivon Handoff — context transfer protocol")
     p.add_argument("--json", action="store_true", help="Output as JSON")
     p.add_argument("--output", metavar="PATH", help="Write snapshot to file")

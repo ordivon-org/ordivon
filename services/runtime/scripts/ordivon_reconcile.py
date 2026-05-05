@@ -47,8 +47,9 @@ def validate_receipt(receipt_path: str) -> tuple[bool, list[str]]:
     return True, []
 
 
-def build_receipt(manifest: StageManifest, snapshot: RepoSnapshot,
-                  report, verification_results: list[dict] = None) -> dict:
+def build_receipt(
+    manifest: StageManifest, snapshot: RepoSnapshot, report, verification_results: list[dict] = None
+) -> dict:
     """Build a schema-valid receipt dict from reconciliation results."""
     return {
         "stage_id": manifest.stage_id,
@@ -71,8 +72,7 @@ def build_receipt(manifest: StageManifest, snapshot: RepoSnapshot,
         ],
         "evidence_produced": [],
         "closure_predicates": [
-            {"id": p.predicate_id, "satisfied": report.overall == "READY"}
-            for p in manifest.closure_predicates
+            {"id": p.predicate_id, "satisfied": report.overall == "READY"} for p in manifest.closure_predicates
         ],
         "authorization": {
             "status": "not_requested",
@@ -82,7 +82,7 @@ def build_receipt(manifest: StageManifest, snapshot: RepoSnapshot,
         },
         "overall": report.overall,
         "notes": f"Reconciled at {report.timestamp}. Head: {snapshot.head_commit}. "
-                 f"DG: {snapshot.dg_entry_count} entries. Checkers: {snapshot.checker_count}.",
+        f"DG: {snapshot.dg_entry_count} entries. Checkers: {snapshot.checker_count}.",
     }
 
 
@@ -93,8 +93,12 @@ def run_verification_gates(manifest: StageManifest) -> list[dict]:
         start = time.time()
         try:
             r = subprocess.run(
-                gate.command, shell=True, cwd=ROOT,
-                capture_output=True, text=True, timeout=gate.timeout,
+                gate.command,
+                shell=True,
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=gate.timeout,
             )
             output = (r.stdout + r.stderr).strip()
             passed = r.returncode == 0
@@ -123,12 +127,12 @@ def run_verification_gates(manifest: StageManifest) -> list[dict]:
 
 def main():
     import argparse
+
     p = argparse.ArgumentParser(description="Ordivon Governance Reconciler")
     p.add_argument("--template", help="Path to stage template YAML")
     p.add_argument("--stage-id", help="Stage identifier")
     p.add_argument("--json", action="store_true", help="Output receipt as JSON")
-    p.add_argument("--run-verification", action="store_true",
-                   help="Run verification gates before reconciling")
+    p.add_argument("--run-verification", action="store_true", help="Run verification gates before reconciling")
     p.add_argument("--validate", metavar="RECEIPT", help="Validate an existing receipt against schema")
     p.add_argument("--output", metavar="PATH", help="Write receipt to file")
     args = p.parse_args()
@@ -153,6 +157,7 @@ def main():
         template_path = ROOT / template_path
 
     import yaml
+
     with open(template_path) as f:
         template = yaml.safe_load(f)
 
@@ -188,9 +193,7 @@ def main():
             receipt["evidence_produced"].append({
                 "type": "claim_verification",
                 "path": f"claim:{r.claim_id}",
-                "hash": hashlib.sha256(
-                    json.dumps(r.evidence_found, sort_keys=True).encode()
-                ).hexdigest()[:16],
+                "hash": hashlib.sha256(json.dumps(r.evidence_found, sort_keys=True).encode()).hexdigest()[:16],
             })
     receipt["claim_verification"] = {
         "total_claims": claim_report.total_claims,

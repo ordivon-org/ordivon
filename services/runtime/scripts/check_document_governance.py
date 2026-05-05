@@ -22,8 +22,12 @@ REGISTRY = ROOT / "docs" / "governance" / "document-registry.jsonl"
 
 DOC_LAYERS = {"L0", "L1", "L2", "L3", "L4", "L5"}
 DOC_AUTHORITIES = {
-    "source_of_truth", "current_status", "supporting_evidence",
-    "historical_record", "proposal", "archive",
+    "source_of_truth",
+    "current_status",
+    "supporting_evidence",
+    "historical_record",
+    "proposal",
+    "archive",
 }
 
 # ── Layer-authority compatibility ──────────────────────────────────
@@ -39,11 +43,11 @@ VALID_AUTHORITY_PER_LAYER = {
 
 # ── Freshness windows (days) ───────────────────────────────────────
 FRESHNESS_WINDOWS = {
-    "L0": 7,    # root context must be fresh
-    "L1": 7,    # current truth must be fresh
-    "L2": 30,   # evidence receipts can age
-    "L3": 90,   # governance canon is stable
-    "L4": 90,   # product notes can age
+    "L0": 7,  # root context must be fresh
+    "L1": 7,  # current truth must be fresh
+    "L2": 30,  # evidence receipts can age
+    "L3": 90,  # governance canon is stable
+    "L4": 90,  # product notes can age
     "L5": 365,  # archive is permanent
 }
 
@@ -61,8 +65,7 @@ def main():
                 entries.append(json.loads(line))
 
     errors = []
-    stats = {"total": len(entries), "with_layer": 0, "with_authority": 0,
-             "layer_counts": {}, "authority_counts": {}}
+    stats = {"total": len(entries), "with_layer": 0, "with_authority": 0, "layer_counts": {}, "authority_counts": {}}
 
     for e in entries:
         did = e.get("doc_id", "?")
@@ -85,8 +88,7 @@ def main():
             valid_auth = VALID_AUTHORITY_PER_LAYER.get(layer, set())
             if authority not in valid_auth:
                 errors.append(
-                    f"{did}: authority '{authority}' not valid for layer '{layer}'. "
-                    f"Valid: {sorted(valid_auth)}"
+                    f"{did}: authority '{authority}' not valid for layer '{layer}'. Valid: {sorted(valid_auth)}"
                 )
 
         # Freshness check
@@ -98,9 +100,7 @@ def main():
                     age_days = (datetime.now(timezone.utc) - freshness_date).days
                     window = FRESHNESS_WINDOWS[layer]
                     if age_days > window:
-                        errors.append(
-                            f"{did}: layer {layer} freshness {age_days}d exceeds {window}d window"
-                        )
+                        errors.append(f"{did}: layer {layer} freshness {age_days}d exceeds {window}d window")
             except (ValueError, TypeError):
                 pass
 

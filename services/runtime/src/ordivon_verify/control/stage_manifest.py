@@ -16,24 +16,28 @@ from enum import Enum
 
 # ── Enums ───────────────────────────────────────────────────────────
 
+
 class RiskClass(str, Enum):
     """Risk classification for a stage."""
-    AP_R0 = "AP-R0"   # advisory / documentation only
-    AP_R1 = "AP-R1"   # local code change, no external effect
-    AP_R2 = "AP-R2"   # integration / external dependency
-    AP_R3 = "AP-R3"   # runtime / external action / publish
+
+    AP_R0 = "AP-R0"  # advisory / documentation only
+    AP_R1 = "AP-R1"  # local code change, no external effect
+    AP_R2 = "AP-R2"  # integration / external dependency
+    AP_R3 = "AP-R3"  # runtime / external action / publish
 
 
 class AuthorityImpact(str, Enum):
     """Authority impact level."""
-    AI_0 = "AI-0"     # current_truth only
-    AI_1 = "AI-1"     # governance docs / schemas
-    AI_2 = "AI-2"     # policy proposal / evidence
-    AI_3 = "AI-3"     # policy activation / publish / release
+
+    AI_0 = "AI-0"  # current_truth only
+    AI_1 = "AI-1"  # governance docs / schemas
+    AI_2 = "AI-2"  # policy proposal / evidence
+    AI_3 = "AI-3"  # policy activation / publish / release
 
 
 class ClosureStatus(str, Enum):
     """Stage closure state."""
+
     ACTIVE = "active"
     READY_FOR_REVIEW = "ready_for_review"
     CLOSED = "closed"
@@ -43,27 +47,32 @@ class ClosureStatus(str, Enum):
 
 # ── Verification Gate ───────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class VerificationGate:
     """A single verification step in a stage manifest."""
+
     gate_id: str
     command: str
     description: str = ""
-    on_failure: str = "BLOCKED"   # BLOCKED | DEGRADED | ADVISORY
+    on_failure: str = "BLOCKED"  # BLOCKED | DEGRADED | ADVISORY
     timeout: int = 300
 
 
 # ── Closure Predicate ───────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class ClosurePredicate:
     """A condition that must be true for the stage to be closed."""
+
     predicate_id: str
     description: str = ""
-    check_method: str = ""   # registry_scan, receipt_schema_validation, etc.
+    check_method: str = ""  # registry_scan, receipt_schema_validation, etc.
 
 
 # ── Stage Manifest ──────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class StageManifest:
@@ -72,6 +81,7 @@ class StageManifest:
     Loaded from stage-templates/*.yaml (CATLASS) or standalone manifest YAML.
     This is the canonical declaration of what a stage IS.
     """
+
     stage_id: str
     risk_class: RiskClass
     authority_impact: AuthorityImpact
@@ -99,13 +109,15 @@ class StageManifest:
         gates = []
         for g in template.get("verification", []):
             if isinstance(g, dict):
-                gates.append(VerificationGate(
-                    gate_id=g.get("id", ""),
-                    command=g.get("command", ""),
-                    description=g.get("description", ""),
-                    on_failure=g.get("on_failure", "BLOCKED"),
-                    timeout=g.get("timeout", 300),
-                ))
+                gates.append(
+                    VerificationGate(
+                        gate_id=g.get("id", ""),
+                        command=g.get("command", ""),
+                        description=g.get("description", ""),
+                        on_failure=g.get("on_failure", "BLOCKED"),
+                        timeout=g.get("timeout", 300),
+                    )
+                )
 
         # Parse closure predicates
         predicates = []
@@ -113,10 +125,12 @@ class StageManifest:
         if isinstance(closure_cfg, dict):
             for key, val in closure_cfg.items():
                 if isinstance(val, bool) and val:
-                    predicates.append(ClosurePredicate(
-                        predicate_id=key,
-                        description=key.replace("_", " "),
-                    ))
+                    predicates.append(
+                        ClosurePredicate(
+                            predicate_id=key,
+                            description=key.replace("_", " "),
+                        )
+                    )
 
         # Parse allowed/forbidden
         allowed = tuple(template.get("allowed_paths", []))
@@ -156,6 +170,7 @@ class StageManifest:
     def is_hard_boundary(self, filepath: str) -> bool:
         """Check if a filepath violates a forbidden boundary."""
         from fnmatch import fnmatch
+
         for pattern in self.forbidden_paths:
             if fnmatch(filepath, pattern):
                 return True
@@ -164,6 +179,7 @@ class StageManifest:
     def is_allowed(self, filepath: str) -> bool:
         """Check if a filepath is within allowed scope."""
         from fnmatch import fnmatch
+
         if not self.allowed_paths:
             return True  # no restrictions = everything allowed
         for pattern in self.allowed_paths:

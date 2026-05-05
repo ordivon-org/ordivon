@@ -107,10 +107,7 @@ def _iter_text_files(paths: list[Path]) -> list[Path]:
             files.extend(
                 p
                 for p in sorted(path.rglob("*"))
-                if p.is_file()
-                and p.suffix in extensions
-                and ".git/" not in str(p)
-                and "docs/archive/" not in str(p)
+                if p.is_file() and p.suffix in extensions and ".git/" not in str(p) and "docs/archive/" not in str(p)
             )
     return files
 

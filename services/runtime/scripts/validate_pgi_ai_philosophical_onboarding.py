@@ -100,7 +100,9 @@ def validate_payload(payload: dict) -> list[str]:
 
     boundary = str(payload.get("authority_boundary", "")).lower()
     if "does not authorize" not in boundary or "not an authority over the creator" not in boundary:
-        errors.append("authority_boundary must state this does not authorize action and is not an authority over the creator")
+        errors.append(
+            "authority_boundary must state this does not authorize action and is not an authority over the creator"
+        )
 
     return errors
 

@@ -25,30 +25,55 @@ REGISTRY = ROOT / "docs" / "governance" / "artifact-registry.jsonl"
 GOVERNED_DIRS = ["tests", "scripts", "domains", "src"]
 
 VALID_CLASSES = {
-    "checker_core", "checker_meta", "checker_fixture",
-    "script_checker", "script_control", "script_tool",
-    "script_verification", "script_migration", "script_shell",
-    "domain_pure", "domain_state", "domain_engine",
-    "source_control", "source_schema", "source_check",
-    "source_registry", "source_cli", "source_lib",
-    "test_unit", "test_fixture", "test_integration",
-    "test_contract", "test_other",
+    "checker_core",
+    "checker_meta",
+    "checker_fixture",
+    "script_checker",
+    "script_control",
+    "script_tool",
+    "script_verification",
+    "script_migration",
+    "script_shell",
+    "domain_pure",
+    "domain_state",
+    "domain_engine",
+    "source_control",
+    "source_schema",
+    "source_check",
+    "source_registry",
+    "source_cli",
+    "source_lib",
+    "test_unit",
+    "test_fixture",
+    "test_integration",
+    "test_contract",
+    "test_other",
 }
 
 VALID_CRITICALITIES = {
-    "governance_critical", "governance_supporting",
-    "test_evidence", "test_supporting",
+    "governance_critical",
+    "governance_supporting",
+    "test_evidence",
+    "test_supporting",
     "application",
 }
 
 VALID_LAYERS = {
-    "L1_TRUTH", "L2_EVIDENCE", "L3_CANON",
-    "L4_PRODUCT", "L_CHECKER",
+    "L1_TRUTH",
+    "L2_EVIDENCE",
+    "L3_CANON",
+    "L4_PRODUCT",
+    "L_CHECKER",
 }
 
 EXCLUDE_PATTERNS = [
-    "__pycache__", ".egg-info", ".bundled_manifest", ".usage.json",
-    ".pyc", ".pyo", ".so",
+    "__pycache__",
+    ".egg-info",
+    ".bundled_manifest",
+    ".usage.json",
+    ".pyc",
+    ".pyo",
+    ".so",
 ]
 
 

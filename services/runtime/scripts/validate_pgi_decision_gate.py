@@ -97,7 +97,10 @@ def validate_payload(payload: dict) -> list[str]:
             if check.get("result") not in VALID_CHECK_RESULT:
                 errors.append(f"constitution_checks[{idx}]: result must be one of {sorted(VALID_CHECK_RESULT)}")
 
-    if payload.get("risk_level") in {"high", "irreversible"} and payload.get("decision_posture") == "READY_WITHOUT_AUTHORIZATION":
+    if (
+        payload.get("risk_level") in {"high", "irreversible"}
+        and payload.get("decision_posture") == "READY_WITHOUT_AUTHORIZATION"
+    ):
         if payload.get("reversibility") == "unknown":
             errors.append("high/irreversible READY posture cannot have unknown reversibility")
 

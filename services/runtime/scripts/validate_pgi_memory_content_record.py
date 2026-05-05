@@ -131,7 +131,9 @@ def validate_payload(payload: dict) -> list[str]:
 
     boundary = str(payload.get("authority_boundary", "")).lower()
     if "does not authorize" not in boundary or "not source of truth by itself" not in boundary:
-        errors.append("authority_boundary must state this does not authorize action and is not source of truth by itself")
+        errors.append(
+            "authority_boundary must state this does not authorize action and is not source of truth by itself"
+        )
 
     return errors
 

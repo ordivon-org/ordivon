@@ -6,9 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "validate_pgi_ethical_triad_review.py"
 VALID = ROOT / "tests" / "fixtures" / "pgi_ethical_triad" / "valid" / "review.json"
-BAD_OUTCOME = (
-    ROOT / "tests" / "fixtures" / "pgi_ethical_triad" / "invalid" / "outcome-proves-process.json"
-)
+BAD_OUTCOME = ROOT / "tests" / "fixtures" / "pgi_ethical_triad" / "invalid" / "outcome-proves-process.json"
 BAD_MISSING = ROOT / "tests" / "fixtures" / "pgi_ethical_triad" / "invalid" / "missing-character.json"
 
 

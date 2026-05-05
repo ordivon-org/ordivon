@@ -56,9 +56,7 @@ def _iter_files(paths: list[Path]) -> list[Path]:
             files.extend(
                 p
                 for p in sorted(path.rglob("*"))
-                if p.is_file()
-                and p.suffix in {".md", ".jsonl", ".json"}
-                and "docs/archive/" not in str(p)
+                if p.is_file() and p.suffix in {".md", ".jsonl", ".json"} and "docs/archive/" not in str(p)
             )
     return files
 

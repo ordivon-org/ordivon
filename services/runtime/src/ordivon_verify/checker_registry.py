@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 # ── Paths ───────────────────────────────────────────────────────────
 
-ROOT = Path(__file__).resolve().parents[2]   # src/ordivon_verify/ → src/ → root
+ROOT = Path(__file__).resolve().parents[2]  # src/ordivon_verify/ → src/ → root
 CHECKERS_DIR = ROOT / "checkers"
 MANIFEST_FILE = CHECKERS_DIR / ".bundled_manifest"
 USAGE_FILE = CHECKERS_DIR / ".usage.json"
@@ -68,10 +68,12 @@ DEFAULT_ARCHIVE_AFTER_DAYS = 90
 
 # ── Data types ──────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class CheckerResult:
     """Structured result from a checker run."""
-    status: str                      # "pass" | "fail" | "warn"
+
+    status: str  # "pass" | "fail" | "warn"
     exit_code: int
     findings: list[str] = field(default_factory=list)
     stats: dict = field(default_factory=dict)
@@ -81,37 +83,43 @@ class CheckerResult:
 @dataclass
 class CheckerEntry:
     """A registered checker — populated from CHECKER.md + run.py."""
-    gate_id: str                     # unique id: "receipt_integrity"
-    display_name: str                # human: "Receipt Integrity"
-    layer: str                       # "L7B"
-    hardness: str                    # "hard" | "escalation" | "advisory"
-    purpose: str                     # what this checker does
-    protects_against: str            # what failure mode it catches
-    profiles: tuple[str, ...]        # ("pr-fast", "full")
-    side_effects: bool = False       # writes files / modifies state
+
+    gate_id: str  # unique id: "receipt_integrity"
+    display_name: str  # human: "Receipt Integrity"
+    layer: str  # "L7B"
+    hardness: str  # "hard" | "escalation" | "advisory"
+    purpose: str  # what this checker does
+    protects_against: str  # what failure mode it catches
+    profiles: tuple[str, ...]  # ("pr-fast", "full")
+    side_effects: bool = False  # writes files / modifies state
     timeout: int = 120
     entry_fn: Callable[[], CheckerResult] | None = None
-    file_path: str = ""              # path to run.py
-    checker_dir: str = ""            # path to checker package dir
-    bundled_hash: str = ""           # MD5 of bundled content
+    file_path: str = ""  # path to run.py
+    checker_dir: str = ""  # path to checker package dir
+    bundled_hash: str = ""  # MD5 of bundled content
 
 
 # ── YAML helper ─────────────────────────────────────────────────────
 
 _yaml_load_fn = None
 
+
 def _yaml_load(content: str) -> dict:
     global _yaml_load_fn
     if _yaml_load_fn is None:
         import yaml
+
         loader = getattr(yaml, "CSafeLoader", None) or yaml.SafeLoader
+
         def _load(value: str):
             return yaml.load(value, Loader=loader) or {}
+
         _yaml_load_fn = _load
     return _yaml_load_fn(content)
 
 
 # ── Frontmatter parsing ─────────────────────────────────────────────
+
 
 def parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     """Parse YAML frontmatter from CHECKER.md content.
@@ -119,6 +127,7 @@ def parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     Returns (frontmatter_dict, markdown_body).
     """
     import re
+
     fm: Dict[str, Any] = {}
     body = content
     if not content.startswith("---"):
@@ -149,6 +158,7 @@ def parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
 
 # ── Hash utilities ──────────────────────────────────────────────────
 
+
 def _coerce_int(value: Any, default: int) -> int:
     """Coerce a value (possibly string from YAML fallback) to int."""
     if isinstance(value, int) and not isinstance(value, bool):
@@ -175,6 +185,7 @@ def _dir_hash(directory: Path) -> str:
 
 # ── Atomic I/O ──────────────────────────────────────────────────────
 
+
 def _atomic_write_json(path: Path, data: dict) -> None:
     """Write JSON atomically via tempfile + os.replace."""
     try:
@@ -199,6 +210,7 @@ def _atomic_write_json(path: Path, data: dict) -> None:
 # ═══════════════════════════════════════════════════════════════════════
 # Bundled Manifest — tracks bundled checker origin hashes
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def _read_bundled_manifest() -> Dict[str, str]:
     """Read .bundled_manifest as {name: hash}."""
@@ -245,6 +257,7 @@ def _write_bundled_manifest(entries: Dict[str, str]) -> None:
 # ═══════════════════════════════════════════════════════════════════════
 # Usage Telemetry (.usage.json sidecar)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -312,6 +325,7 @@ def bump_checker_use(gate_id: str) -> None:
     def _apply(rec):
         rec["use_count"] = int(rec.get("use_count") or 0) + 1
         rec["last_used_at"] = _now_iso()
+
     _mutate_usage(gate_id, _apply)
 
 
@@ -321,24 +335,28 @@ def bump_checker_result(gate_id: str, passed: bool) -> None:
             rec["last_pass_at"] = _now_iso()
         else:
             rec["last_fail_at"] = _now_iso()
+
     _mutate_usage(gate_id, _apply)
 
 
 def set_checker_state(gate_id: str, state: str) -> None:
     if state not in _VALID_STATES:
         return
+
     def _apply(rec):
         rec["state"] = state
         if state == STATE_ARCHIVED:
             rec["archived_at"] = _now_iso()
         else:
             rec["archived_at"] = None
+
     _mutate_usage(gate_id, _apply)
 
 
 def set_checker_pinned(gate_id: str, pinned: bool) -> None:
     def _apply(rec):
         rec["pinned"] = bool(pinned)
+
     _mutate_usage(gate_id, _apply)
 
 
@@ -360,6 +378,7 @@ def get_all_checker_dirs() -> List[Path]:
     # External dirs from config
     try:
         from ordivon_verify.config import load_config
+
         config = load_config()
         external = config.get("checkers", {}).get("external_dirs", [])
         if isinstance(external, str):
@@ -437,9 +456,7 @@ def discover_checkers() -> Dict[str, CheckerEntry]:
                 entry_fn=entry_fn,  # populated at run time
                 file_path=str(run_py) if run_py.exists() else "",
                 checker_dir=str(checker_dir),
-                bundled_hash=(
-                    bundled_manifest.get(gate_id, "") if _is_bundled(checker_dir) else ""
-                ),
+                bundled_hash=(bundled_manifest.get(gate_id, "") if _is_bundled(checker_dir) else ""),
             )
             entries[gate_id] = entry
 
@@ -449,6 +466,7 @@ def discover_checkers() -> Dict[str, CheckerEntry]:
 # ═══════════════════════════════════════════════════════════════════════
 # Sync — seed and update bundled checkers
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def sync_bundled_checkers(quiet: bool = False) -> dict:
     """Sync bundled checkers using the manifest (same logic as skills_sync.py).
@@ -515,6 +533,7 @@ def sync_bundled_checkers(quiet: bool = False) -> dict:
 # Manifest generation — auto-generate verification-gate-manifest.json
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def generate_manifest() -> dict:
     """Generate a verification-gate-manifest.json from registered checkers."""
     entries = discover_checkers()
@@ -546,6 +565,7 @@ def generate_manifest() -> dict:
 # Archival — archive/restore checker packages
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def archive_checker(gate_id: str) -> Tuple[bool, str]:
     """Move a checker directory to .archive/. Returns (ok, message)."""
     entries = discover_checkers()
@@ -570,6 +590,7 @@ def archive_checker(gate_id: str) -> Tuple[bool, str]:
         checker_dir.rename(dest)
     except OSError:
         import shutil
+
         try:
             shutil.move(str(checker_dir), str(dest))
         except Exception as e:
@@ -582,6 +603,7 @@ def archive_checker(gate_id: str) -> Tuple[bool, str]:
 # ═══════════════════════════════════════════════════════════════════════
 # Curator — auto-maintenance (stale/archive detection)
 # ═══════════════════════════════════════════════════════════════════════
+
 
 def _load_curator_state() -> Dict[str, Any]:
     if not CURATOR_STATE_FILE.exists():
@@ -653,6 +675,7 @@ def run_curator(
 # Document Curator — detect stale documents in document-registry.jsonl
 # ═══════════════════════════════════════════════════════════════════════
 
+
 def run_document_curator() -> Dict[str, Any]:
     """Scan document-registry.jsonl for stale documents.
 
@@ -700,8 +723,13 @@ def run_document_curator() -> Dict[str, Any]:
         age = (today - lv_date).days
 
         if age > window * 2:
-            item = {"doc_id": did, "path": e.get("path",""), "age_days": age,
-                    "window_days": window, "authority": authority}
+            item = {
+                "doc_id": did,
+                "path": e.get("path", ""),
+                "age_days": age,
+                "window_days": window,
+                "authority": authority,
+            }
             if authority in ("source_of_truth", "current_status"):
                 result["critical_stale"].append(item)
             else:
