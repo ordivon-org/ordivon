@@ -39,3 +39,15 @@ def test_invalid_staleness_fails():
 def test_missing_required_coverage_fails():
     errors = checker.validate_entries(_entries(FIXTURES / "invalid" / "missing-coverage.jsonl"))
     assert any("missing required ownership coverage" in e for e in errors)
+
+
+def test_ownership_notes_cannot_authorize_release():
+    entries = _entries(FIXTURES / "valid" / "ownership.jsonl")
+    entries[0] = {
+        **entries[0],
+        "notes": "Approvers provide release approval for this path.",
+    }
+
+    errors = checker.validate_entries(entries)
+
+    assert any("release approval" in e.lower() for e in errors)

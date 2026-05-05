@@ -34,6 +34,38 @@ def test_safe_boundary_language_passes():
     assert result["status"] == "PASS"
 
 
+def test_local_test_claim_without_command_evidence_blocks(tmp_path):
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    (receipt_dir / "missing-test-evidence.md").write_text(
+        "# Receipt\n\n"
+        "Status: COMPLETE\n\n"
+        "Tests passed locally.\n\n"
+        "This receipt does not list a command or reproducible evidence.\n",
+        encoding="utf-8",
+    )
+
+    result = run_external_receipts(["receipts"], tmp_path)
+
+    assert result["status"] == "FAIL"
+    assert any(f["id"] == "missing_test_evidence" for f in result["failures"])
+
+
+def test_local_test_claim_with_command_evidence_passes(tmp_path):
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    (receipt_dir / "with-test-evidence.md").write_text(
+        "# Receipt\n\n"
+        "Status: COMPLETE\n\n"
+        "Tests passed locally with `pytest tests/unit -q`.\n",
+        encoding="utf-8",
+    )
+
+    result = run_external_receipts(["receipts"], tmp_path)
+
+    assert result["status"] == "PASS"
+
+
 def test_authorization_laundering_fixture_json_report(capsys):
     exit_code = main(["all", "--root", str(AUTH_FIXTURE), "--json"])
 

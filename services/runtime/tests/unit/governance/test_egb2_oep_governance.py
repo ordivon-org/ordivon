@@ -33,3 +33,12 @@ def test_authorization_laundering_fails():
     path = FIXTURES / "invalid" / "authorization.md"
     errors = checker.validate_oep_text(path, path.read_text(encoding="utf-8"))
     assert any("unsafe authorization language" in e for e in errors)
+
+
+def test_ready_for_merge_language_fails():
+    path = FIXTURES / "valid" / "oep-0001.md"
+    text = path.read_text(encoding="utf-8") + "\n\nThis OEP is ready for merge.\n"
+
+    errors = checker.validate_oep_text(path, text)
+
+    assert any("ready for merge" in e.lower() for e in errors)

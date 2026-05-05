@@ -34,6 +34,15 @@ _CANDIDATE_RULE_POLICY_PATTERN = re.compile(
     r"|\bpolicy\b.*\b(?:from|via)\b.*\bcandidaterule\b",
     re.IGNORECASE,
 )
+_LOCAL_TEST_CLAIM_PATTERN = re.compile(
+    r"\b(?:tests?|test suite|verification)\s+(?:passed|green|succeeded)\s+locally\b",
+    re.IGNORECASE,
+)
+_COMMAND_EVIDENCE_PATTERN = re.compile(
+    r"`[^`]*(?:pytest|ruff|uv\s+run|python\s+-m|npm|pnpm|yarn|make)[^`]*`"
+    r"|\b(?:command|commands|pytest|ruff|uv\s+run|python\s+-m|npm|pnpm|yarn|make)\b",
+    re.IGNORECASE,
+)
 
 _SAFE_BOUNDARY_PATTERN = re.compile(
     r"\b(?:not|non-binding|advisory|no-go|without authorization|does not authorize|is not authorization)\b",
@@ -46,6 +55,7 @@ _FAILURE_ADVICE = {
     "clean working tree": "Receipt claims 'clean working tree' without acknowledging untracked residue. Either remove residue or qualify as 'Tracked working tree clean'.",
     "authorization": "READY/review evidence must not be written as merge, deploy, execution, release, or external-action authorization.",
     "CandidateRule": "CandidateRule is advisory evidence, not active policy. Correct the receipt or route through the explicit policy process.",
+    "test evidence": "A local test success claim must name the command or reproducible evidence that supports it.",
 }
 
 
@@ -70,6 +80,8 @@ def _classify_failure(reason: str) -> str:
         return "authorization_laundering"
     if "CandidateRule" in reason:
         return "candidate_rule_policy_confusion"
+    if "test evidence" in reason:
+        return "missing_test_evidence"
     return "receipt_contradiction"
 
 
@@ -84,6 +96,8 @@ def _why_it_matters(reason: str) -> str:
         return "Verification evidence must not be laundered into action authorization."
     if "CandidateRule" in reason:
         return "CandidateRule must not be treated as binding or active policy."
+    if "test evidence" in reason:
+        return "Test success claims must be backed by reproducible command evidence."
     return "Receipt language contradicts evidence."
 
 
@@ -96,6 +110,22 @@ def _next_action(reason: str) -> str:
 
 def _safe_boundary_line(line: str) -> bool:
     return bool(_SAFE_BOUNDARY_PATTERN.search(line))
+
+
+def _has_command_evidence_nearby(lines: list[str], match_line_idx: int) -> bool:
+    ctx_start = max(0, match_line_idx - 4)
+    ctx_end = min(len(lines), match_line_idx + 5)
+    context_lines = [
+        line
+        for line in lines[ctx_start:ctx_end]
+        if not re.search(
+            r"\b(?:no|not|without|does\s+not|did\s+not|missing)\b.{0,40}\b(?:command|evidence)\b",
+            line,
+            re.IGNORECASE,
+        )
+    ]
+    context = "\n".join(context_lines)
+    return bool(_COMMAND_EVIDENCE_PATTERN.search(context))
 
 
 def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict], int]:
@@ -161,6 +191,16 @@ def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict]
                     })
                 elif _CANDIDATE_RULE_POLICY_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "CandidateRule is described as active or binding policy"
+                    failures.append({
+                        "id": _classify_failure(reason),
+                        "file": rel,
+                        "line": i,
+                        "reason": reason,
+                        "why_it_matters": _why_it_matters(reason),
+                        "next_action": _next_action(reason),
+                    })
+                elif _LOCAL_TEST_CLAIM_PATTERN.search(line) and not _has_command_evidence_nearby(lines, idx):
+                    reason = "Receipt claims tests passed locally without reproducible test evidence"
                     failures.append({
                         "id": _classify_failure(reason),
                         "file": rel,
