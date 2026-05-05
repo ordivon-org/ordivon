@@ -5,7 +5,7 @@ from typing import Any
 
 from capabilities.contracts import AnalyzeResult
 from domains.research.models import AnalysisRequest
-from governance.decision import build_governance_decision
+from governance_engine.decision import build_governance_decision
 from orchestrator.runtime.engine import PFIOSOrchestrator
 from packs.finance.analyze_profile import build_finance_analyze_profile
 from shared.observability import increment_counter, span

@@ -10,7 +10,7 @@ from apps.api.app.main import app
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from domains.research.orm import AnalysisORM
 from domains.strategy.orm import RecommendationORM
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.config.settings import settings
 from shared.utils.serialization import from_json_text
 from state.db.base import Base

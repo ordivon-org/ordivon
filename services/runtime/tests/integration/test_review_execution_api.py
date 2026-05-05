@@ -13,7 +13,7 @@ from domains.journal.orm import ReviewORM
 from domains.journal.repository import ReviewRepository
 from domains.strategy.models import Recommendation
 from domains.strategy.repository import RecommendationRepository
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import ReviewStatus
 from state.db.base import Base
 

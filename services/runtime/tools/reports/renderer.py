@@ -1,4 +1,4 @@
-from governance.decision import GovernanceDecision
+from governance_engine.decision import GovernanceDecision
 from domains.research.models import AnalysisResult
 
 

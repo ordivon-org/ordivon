@@ -94,7 +94,7 @@
     "pack": "cross_pack",
     "description": "Core does not import Pack semantics",
     "check_type": "static",
-    "check_command": "rg 'from packs.finance|from packs.coding|import packs.finance|import packs.coding' governance/ -n",
+    "check_command": "rg 'from packs.finance|from packs.coding|import packs.finance|import packs.coding' governance_engine/ -n",
     "expected": {"exit_code": 0, "output_empty": false, "note": "policy_source.py imports are ADR-006 whitelisted (tool namespace metadata)"},
     "forbidden_side_effects": [],
     "source_refs": ["eval-corpus-v1", "adr-006"]

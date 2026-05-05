@@ -15,7 +15,7 @@ import json
 import sys
 
 from domains.decision_intake.models import DecisionIntake
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.risk_engine.engine import RiskEngine
 from packs.coding.models import CodingDecisionPayload
 from packs.coding.policy import CodingDisciplinePolicy
 
@@ -176,7 +176,7 @@ def main():
             "R08: high impact",
             {
                 "task_description": "Rewrite the risk engine validation logic",
-                "file_paths": ["governance/risk_engine/engine.py"],
+                "file_paths": ["governance_engine/risk_engine/engine.py"],
                 "estimated_impact": "high",
                 "reasoning": "Need to support streaming validation.",
                 "test_plan": "Run full governance test suite.",

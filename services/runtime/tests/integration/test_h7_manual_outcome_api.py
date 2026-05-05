@@ -25,7 +25,7 @@ from domains.journal.repository import ReviewRepository
 from domains.journal.service import ReviewService
 from domains.journal.lesson_service import LessonService
 from domains.journal.lesson_repository import LessonRepository
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from state.db.base import Base
 
 

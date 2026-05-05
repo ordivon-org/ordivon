@@ -8,8 +8,8 @@ from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from domains.knowledge_feedback.orm import KnowledgeFeedbackPacketORM
-from governance.approval import HumanApprovalGate
-from governance.approval_repository import ApprovalRepository
+from governance_engine.approval import HumanApprovalGate
+from governance_engine.approval_repository import ApprovalRepository
 from domains.strategy.models import Recommendation
 from domains.research.models import AnalysisResult
 from domains.research.repository import AnalysisRepository
@@ -19,7 +19,7 @@ from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.orm import RecommendationORM
 from domains.strategy.service import RecommendationService
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from domains.journal.models import Review
 from domains.journal.orm import ReviewORM
 from domains.journal.repository import ReviewRepository

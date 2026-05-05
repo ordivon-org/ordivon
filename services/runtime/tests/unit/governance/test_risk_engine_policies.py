@@ -1,6 +1,6 @@
 import pytest
 from domains.research.models import AnalysisResult
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.risk_engine.engine import RiskEngine
 from datetime import datetime
 
 

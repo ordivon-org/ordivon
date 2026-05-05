@@ -13,8 +13,8 @@ from domains.strategy.outcome_repository import OutcomeRepository
 from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
-from governance.audit.auditor import RiskAuditor
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import OutcomeState, ReviewStatus, ReviewVerdict
 from state.db.base import Base
 

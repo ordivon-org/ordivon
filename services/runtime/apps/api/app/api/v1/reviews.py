@@ -34,8 +34,8 @@ from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
 from execution.adapters import ReviewExecutionFailure
-from governance.approval import ApprovalRequiredError
-from governance.audit.auditor import RiskAuditor
+from governance_engine.approval import ApprovalRequiredError
+from governance_engine.audit.auditor import RiskAuditor
 from capabilities.boundary import ActionContext
 
 

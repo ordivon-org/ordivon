@@ -18,8 +18,8 @@ from execution.registry import (
     ExecutionAdapterRegistry,
     build_default_execution_adapter_registry,
 )
-from governance.approval import ApprovalRequiredError, HumanApprovalGate
-from governance.approval_repository import ApprovalRepository
+from governance_engine.approval import ApprovalRequiredError, HumanApprovalGate
+from governance_engine.approval_repository import ApprovalRepository
 from intelligence.context_builder import HintAwareContextBuilder
 from intelligence.feedback import IntelligenceFeedbackContext
 from intelligence.runtime.policy import MemoryPolicy

@@ -25,7 +25,7 @@ from domains.journal.repository import ReviewRepository
 from domains.journal.lesson_repository import LessonRepository
 from domains.journal.lesson_service import LessonService
 from domains.journal.service import ReviewService
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.risk_engine.engine import RiskEngine
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 from scripts.audit_runtime_evidence_db import audit_evidence_chain
 from shared.enums.domain import ReviewVerdict

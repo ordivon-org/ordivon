@@ -10,7 +10,7 @@ from domains.strategy.outcome_models import OutcomeSnapshot
 from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.service import RecommendationService
 from domains.journal.state_machine import ReviewStateMachine
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 from knowledge.extraction import LessonExtractionService
 from knowledge.feedback import KnowledgeFeedbackService
 from shared.enums.domain import OutcomeState, ReviewStatus, ReviewVerdict

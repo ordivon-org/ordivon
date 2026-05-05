@@ -6,7 +6,7 @@ from capabilities.boundary import ActionContext
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
 from domains.journal.issue_service import IssueService
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 
 
 @dataclass(slots=True)

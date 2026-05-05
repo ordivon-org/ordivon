@@ -7,7 +7,7 @@ from domains.knowledge_feedback.feedback_record_service import FeedbackRecordSer
 from domains.knowledge_feedback.repository import KnowledgeFeedbackPacketRepository
 from domains.research.orm import AnalysisORM
 from domains.strategy.orm import RecommendationORM
-from governance.decision import GovernanceAdvisoryHint
+from governance_engine.decision import GovernanceAdvisoryHint
 from knowledge.extraction import LessonExtractionService
 from knowledge.feedback import KnowledgeFeedbackService
 

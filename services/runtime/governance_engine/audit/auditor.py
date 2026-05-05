@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from governance.audit.models import AuditEvent
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.repository import AuditEventRepository
 from shared.config.settings import settings
 from shared.logging.logger import get_logger
 from shared.observability import increment_counter, record_exception, span

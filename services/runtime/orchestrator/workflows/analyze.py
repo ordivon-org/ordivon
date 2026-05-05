@@ -28,9 +28,9 @@ from domains.research.service import AnalysisService
 from domains.strategy.models import Recommendation
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
-from governance.audit.auditor import RiskAuditor
-from governance.feedback import GovernanceFeedbackReader
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.feedback import GovernanceFeedbackReader
+from governance_engine.risk_engine.engine import RiskEngine
 from execution.catalog import get_execution_action
 from execution.adapters import RecommendationExecutionFailure, build_default_execution_adapter_registry
 from domains.execution_records.repository import ExecutionRecordRepository

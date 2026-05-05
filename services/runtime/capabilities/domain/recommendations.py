@@ -8,9 +8,9 @@ from capabilities.contracts import RecommendationResult
 from domains.research.repository import AnalysisRepository
 from domains.strategy.outcome_repository import OutcomeRepository
 from execution.adapters import RecommendationExecutionAdapter
-from governance.audit.auditor import RiskAuditor
-from governance.decision import recommendation_governance_view
-from governance.policy_source import GovernancePolicySource
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.decision import recommendation_governance_view
+from governance_engine.policy_source import GovernancePolicySource
 from knowledge.extraction import LessonExtractionService
 from shared.enums.domain import RecommendationStatus
 

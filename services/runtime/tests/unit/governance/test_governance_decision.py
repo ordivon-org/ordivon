@@ -1,6 +1,6 @@
 import pytest
 
-from governance.decision import (
+from governance_engine.decision import (
     GovernanceAdvisoryHint,
     GovernanceDecision,
     build_governance_decision,

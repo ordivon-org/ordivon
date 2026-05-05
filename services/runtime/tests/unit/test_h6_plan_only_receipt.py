@@ -18,8 +18,8 @@ from capabilities.domain.finance_decisions import (
 from domains.decision_intake.repository import DecisionIntakeRepository
 from domains.decision_intake.service import DecisionIntakeService
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
-from governance.audit.orm import AuditEventORM
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.audit.orm import AuditEventORM
+from governance_engine.risk_engine.engine import RiskEngine
 from state.db.base import Base
 
 

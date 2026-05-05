@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from governance.audit.contracts import AUDIT_SCHEMA_VERSION, StructuredAuditPayload
-from governance.audit.models import AuditEvent
+from governance_engine.audit.contracts import AUDIT_SCHEMA_VERSION, StructuredAuditPayload
+from governance_engine.audit.models import AuditEvent
 
 
 def normalize_audit_event(event: AuditEvent) -> AuditEvent:

@@ -32,7 +32,7 @@ SKIP_DIRS = {"__pycache__", "migrations"}
 # Files known to contain "broker" in architectural documentation or metadata only
 # (not actual broker business logic imports)
 ALLOWED_FILES = {
-    "governance/policy_source.py",  # ADR-006 tool namespace metadata
+    "governance_engine/policy_source.py",  # ADR-006 tool namespace metadata
     "state/db/schema.py",  # Legacy DuckDB analytics DDL
     "execution/catalog.py",  # action catalog descriptions
     "capabilities/domain/finance_outcome.py",  # docstring: "Does NOT connect to broker"

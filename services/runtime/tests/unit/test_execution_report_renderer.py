@@ -1,4 +1,4 @@
-from governance.risk_engine.engine import GovernanceDecision
+from governance_engine.risk_engine.engine import GovernanceDecision
 from domains.research.models import AnalysisResult
 from tools.reports.renderer import ReportRenderer
 

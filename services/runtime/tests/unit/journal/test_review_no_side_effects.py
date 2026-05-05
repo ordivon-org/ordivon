@@ -61,7 +61,7 @@ def test_complete_review_does_not_create_candidate_rule(db: Session):
 
 def test_complete_review_does_not_create_policy_audit_events(db: Session):
     """After complete_review, no audit events with 'policy' or 'promote' type."""
-    from governance.audit.orm import AuditEventORM
+    from governance_engine.audit.orm import AuditEventORM
 
     service = ReviewService(
         review_repository=ReviewRepository(db),

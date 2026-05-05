@@ -20,8 +20,8 @@ from domains.knowledge_feedback.feedback_record_orm import FeedbackRecordORM  # 
 from domains.knowledge_feedback.orm import KnowledgeFeedbackPacketORM  # noqa: F401
 from domains.strategy.orm import RecommendationORM  # noqa: F401
 from domains.strategy.outcome_orm import OutcomeSnapshotORM  # noqa: F401
-from governance.approval_orm import ApprovalRecordORM  # noqa: F401
-from governance.audit.orm import AuditEventORM  # noqa: F401
+from governance_engine.approval_orm import ApprovalRecordORM  # noqa: F401
+from governance_engine.audit.orm import AuditEventORM  # noqa: F401
 from infra.scheduler.orm import ScheduledTriggerORM  # noqa: F401
 from state.usage.orm import UsageSnapshotORM  # noqa: F401
 

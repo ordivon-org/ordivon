@@ -18,7 +18,7 @@ from domains.strategy.models import Recommendation
 from domains.strategy.repository import RecommendationRepository
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 from knowledge.feedback import KnowledgeHint
 from state.db.base import Base
 from state.trace import TraceService

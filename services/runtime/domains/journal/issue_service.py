@@ -1,6 +1,6 @@
 from domains.journal.issue_models import Issue
 from domains.journal.issue_repository import IssueRepository
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 
 
 class IssueService:

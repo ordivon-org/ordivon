@@ -9,8 +9,8 @@ from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
-from governance.audit.models import AuditEvent
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.repository import AuditEventRepository
 from shared.config.settings import settings
 from state.db.base import Base
 

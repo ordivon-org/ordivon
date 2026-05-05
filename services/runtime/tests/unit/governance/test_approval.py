@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from governance.approval import (
+from governance_engine.approval import (
     ApprovalRecord,
     ApprovalRequiredError,
     HumanApprovalGate,

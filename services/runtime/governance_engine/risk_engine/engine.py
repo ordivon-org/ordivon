@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from domains.decision_intake.models import DecisionIntake
 from domains.research.models import AnalysisResult
-from governance.decision import GovernanceAdvisoryHint, GovernanceDecision
-from governance.policy_source import GovernancePolicySource
+from governance_engine.decision import GovernanceAdvisoryHint, GovernanceDecision
+from governance_engine.policy_source import GovernancePolicySource
 
 
 class RiskEngine:

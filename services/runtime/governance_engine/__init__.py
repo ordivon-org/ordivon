@@ -1,7 +1,7 @@
 """Governance package."""
 
-from governance.audit import AuditEvent, AuditEventRepository, AuditEventORM, AuditService, RiskAuditor
-from governance.risk_engine import RiskEngine
+from governance_engine.audit import AuditEvent, AuditEventRepository, AuditEventORM, AuditService, RiskAuditor
+from governance_engine.risk_engine import RiskEngine
 
 __all__ = [
     "AuditEvent",

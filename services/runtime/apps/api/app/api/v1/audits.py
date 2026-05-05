@@ -10,8 +10,8 @@ audit_capability = AuditCapability()
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from apps.api.app.deps import get_db
-from governance.audit.repository import AuditEventRepository
-from governance.audit.service import AuditService
+from governance_engine.audit.repository import AuditEventRepository
+from governance_engine.audit.service import AuditService
 
 
 @router.get("/recent", response_model=AuditListResponse)

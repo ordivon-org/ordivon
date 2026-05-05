@@ -23,7 +23,7 @@ from domains.decision_intake.service import DecisionIntakeService
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.finance_outcome.models import FinanceManualOutcome
 from domains.finance_outcome.repository import FinanceManualOutcomeRepository
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 
 
 class PlanReceiptNotValid(Exception):

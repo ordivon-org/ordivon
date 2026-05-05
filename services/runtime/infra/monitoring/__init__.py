@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from domains.execution_records.orm import ExecutionReceiptORM
 from domains.workflow_runs.orm import WorkflowRunORM
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from infra.monitoring.history import build_monitoring_history_summary
 from infra.monitoring.models import MonitoringHistorySummary
 from shared.observability import increment_counter, span

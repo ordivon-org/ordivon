@@ -13,7 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from domains.candidate_rules.models import CandidateRule, VALID_CANDIDATE_RULE_STATES
 from domains.candidate_rules.repository import CandidateRuleRepository
-from governance.policy_source import GovernancePolicySource
+from governance_engine.policy_source import GovernancePolicySource
 from state.db.base import Base
 
 

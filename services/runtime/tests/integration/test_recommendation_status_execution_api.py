@@ -9,7 +9,7 @@ from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestO
 from domains.strategy.models import Recommendation
 from domains.strategy.orm import RecommendationORM
 from domains.strategy.repository import RecommendationRepository
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import RecommendationStatus
 from shared.utils.serialization import from_json_text
 from state.db.base import Base

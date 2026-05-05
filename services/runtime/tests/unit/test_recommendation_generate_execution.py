@@ -6,7 +6,7 @@ from capabilities.boundary import ActionContext
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from domains.research.models import AnalysisRequest, AnalysisResult
 from domains.strategy.orm import RecommendationORM
-from governance.risk_engine.engine import GovernanceDecision
+from governance_engine.risk_engine.engine import GovernanceDecision
 from orchestrator.contracts.workflow import WorkflowContext
 from orchestrator.workflows.analyze import GenerateRecommendationStep
 from state.db.base import Base

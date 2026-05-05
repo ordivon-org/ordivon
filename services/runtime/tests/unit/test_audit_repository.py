@@ -1,5 +1,5 @@
-from governance.audit.models import AuditEvent
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.repository import AuditEventRepository
 from state.db.bootstrap import init_db
 from state.db.session import SessionLocal
 

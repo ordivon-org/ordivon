@@ -40,7 +40,7 @@ from domains.execution_records.orm import ExecutionReceiptORM  # noqa: E402
 from domains.finance_outcome.orm import FinanceManualOutcomeORM  # noqa: E402
 from domains.journal.orm import ReviewORM  # noqa: E402
 from domains.journal.lesson_orm import LessonORM  # noqa: E402
-from governance.audit.orm import AuditEventORM  # noqa: E402
+from governance_engine.audit.orm import AuditEventORM  # noqa: E402
 from shared.utils.serialization import from_json_text  # noqa: E402
 
 

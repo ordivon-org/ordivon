@@ -7,7 +7,7 @@ banned patterns, missing invalidation wording.
 import pytest
 
 from domains.decision_intake.models import DecisionIntake
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.risk_engine.engine import RiskEngine
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
 

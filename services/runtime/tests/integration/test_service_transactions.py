@@ -9,8 +9,8 @@ from domains.strategy.orm import RecommendationORM
 from domains.strategy.service import RecommendationService
 from domains.strategy.repository import RecommendationRepository
 from shared.enums.domain import RecommendationStatus
-from governance.audit.auditor import RiskAuditor
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.audit.orm import AuditEventORM
 
 # Setup in-memory SQLite
 engine = create_engine("sqlite:///:memory:")

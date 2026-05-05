@@ -1,8 +1,8 @@
 """Coding Pack architecture boundary tests — verify Pack isolation from Core.
 
 Rules:
-  1. governance/ must not import packs.coding
-  2. packs/coding must not import governance internals
+  1. governance_engine/ must not import packs.coding
+  2. packs/coding must not import governance_engine internals
      (public contracts like GovernanceDecision are acceptable if needed)
   3. packs/coding must not import broker/order/trade
   4. packs/coding must not import ExecutionRequest/ExecutionReceipt
@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_governance_does_not_import_packs_coding():
-    """governance/ must never import packs.coding."""
-    governance_dir = ROOT / "governance"
+    """governance_engine/ must never import packs.coding."""
+    governance_dir = ROOT / "governance_engine"
     violations = []
     for py_file in governance_dir.rglob("*.py"):
         if "__pycache__" in str(py_file):
@@ -25,7 +25,7 @@ def test_governance_does_not_import_packs_coding():
         for line in import_lines:
             if "packs.coding" in line:
                 violations.append(f"{py_file.relative_to(ROOT)}: {line.strip()}")
-    assert violations == [], "governance must not import packs.coding:\n" + "\n".join(violations)
+    assert violations == [], "governance_engine must not import packs.coding:\n" + "\n".join(violations)
 
 
 def test_packs_coding_does_not_import_broker_order_trade():
@@ -51,9 +51,9 @@ def test_packs_coding_does_not_import_governance_internals():
     coding_dir = ROOT / "packs" / "coding"
     # These governance modules are internal implementation — forbidden
     forbidden_internals = [
-        "governance.risk_engine",
-        "governance.audit.auditor",
-        "governance.approval",
+        "governance_engine.risk_engine",
+        "governance_engine.audit.auditor",
+        "governance_engine.approval",
     ]
     violations = []
     for py_file in coding_dir.rglob("*.py"):
@@ -65,4 +65,4 @@ def test_packs_coding_does_not_import_governance_internals():
             for forbidden in forbidden_internals:
                 if forbidden in line:
                     violations.append(f"{py_file.relative_to(ROOT)}: {line.strip()}")
-    assert violations == [], "packs/coding must not import governance internals:\n" + "\n".join(violations)
+    assert violations == [], "packs/coding must not import governance_engine internals:\n" + "\n".join(violations)

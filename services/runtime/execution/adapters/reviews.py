@@ -6,9 +6,9 @@ from capabilities.boundary import ActionContext
 from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
 from domains.journal.service import ReviewService
-from governance.approval import ApprovalRequiredError, HumanApprovalGate
-from governance.approval_repository import ApprovalRepository
-from governance.audit.auditor import RiskAuditor
+from governance_engine.approval import ApprovalRequiredError, HumanApprovalGate
+from governance_engine.approval_repository import ApprovalRepository
+from governance_engine.audit.auditor import RiskAuditor
 from shared.errors.domain import DomainNotFound, InvalidStateTransition
 
 

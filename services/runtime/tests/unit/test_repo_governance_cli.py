@@ -175,7 +175,7 @@ def test_high_impact_returns_escalate():
         "--task-description",
         "Rewrite risk engine validation logic",
         "--file-path",
-        "governance/risk_engine/engine.py",
+        "governance_engine/risk_engine/engine.py",
         "--estimated-impact",
         "high",
         "--reasoning",

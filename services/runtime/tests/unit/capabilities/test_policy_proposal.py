@@ -184,7 +184,7 @@ def test_bridge_does_not_import_risk_engine():
     src = inspect.getsource(mod)
     import_lines = [l for l in src.splitlines() if l.strip().startswith(("from ", "import "))]
     assert "RiskEngine" not in "\n".join(import_lines)
-    assert "governance.risk_engine" not in "\n".join(import_lines)
+    assert "governance_engine.risk_engine" not in "\n".join(import_lines)
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -7,8 +7,8 @@ from domains.decision_intake.repository import DecisionIntakeRepository
 from domains.decision_intake.service import DecisionIntakeService
 from domains.execution_records.repository import ExecutionRecordRepository
 from execution.adapters.finance import FinancePlanReceiptAdapter, FinancePlanReceiptResult
-from governance.audit.auditor import RiskAuditor
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.risk_engine.engine import RiskEngine
 from packs.finance.decision_intake import validate_finance_decision_intake
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 

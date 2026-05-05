@@ -1,5 +1,5 @@
-from governance.policy_source import GovernancePolicySource
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.policy_source import GovernancePolicySource
+from governance_engine.risk_engine.engine import RiskEngine
 from domains.research.models import AnalysisResult
 
 

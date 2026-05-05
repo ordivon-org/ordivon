@@ -133,7 +133,7 @@
       "pack_id": "coding", "intake_type": "code_change",
       "payload": {
         "task_description": "Rewrite risk engine validation logic",
-        "file_paths": ["governance/risk_engine/engine.py"],
+        "file_paths": ["governance_engine/risk_engine/engine.py"],
         "estimated_impact": "high",
         "reasoning": "Need to support streaming validation.",
         "test_plan": "Run full governance test suite."

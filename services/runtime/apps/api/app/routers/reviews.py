@@ -11,7 +11,7 @@ from domains.journal.lesson_repository import LessonRepository
 from domains.journal.lesson_service import LessonService
 from domains.journal.repository import ReviewRepository
 from domains.journal.service import ReviewService
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])

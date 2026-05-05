@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from domains.research.models import AnalysisRequest, AnalysisResult
-from governance.risk_engine.engine import GovernanceDecision
+from governance_engine.risk_engine.engine import GovernanceDecision
 
 
 from sqlalchemy.orm import Session

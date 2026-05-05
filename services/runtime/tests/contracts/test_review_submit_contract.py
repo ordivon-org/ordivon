@@ -40,8 +40,8 @@ import domains.knowledge_feedback.feedback_record_orm  # noqa: F401
 import domains.knowledge_feedback.orm  # noqa: F401
 import domains.strategy.orm  # noqa: F401
 import domains.strategy.outcome_orm  # noqa: F401
-import governance.approval_orm  # noqa: F401
-import governance.audit.orm  # noqa: F401
+import governance_engine.approval_orm  # noqa: F401
+import governance_engine.audit.orm  # noqa: F401
 import infra.scheduler.orm  # noqa: F401
 import state.usage.orm  # noqa: F401
 

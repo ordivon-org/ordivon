@@ -7,8 +7,8 @@ from domains.execution_records.repository import ExecutionRecordRepository
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
 from infra.scheduler import ScheduledTrigger, SchedulerService
-from governance.audit.models import AuditEvent
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.repository import AuditEventRepository
 from infra.monitoring import MonitoringService
 from state.db.base import Base
 

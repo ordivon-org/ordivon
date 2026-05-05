@@ -34,7 +34,7 @@ from domains.strategy.outcome_repository import OutcomeRepository
 from domains.strategy.outcome_service import OutcomeService
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import ReviewVerdict
 from state.db.base import Base
 

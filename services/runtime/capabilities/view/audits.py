@@ -4,8 +4,8 @@ from dataclasses import asdict
 from typing import Any
 
 from capabilities.contracts import AuditEventResult
-from governance.audit.builders import structured_payload_or_legacy
-from governance.audit.service import AuditService
+from governance_engine.audit.builders import structured_payload_or_legacy
+from governance_engine.audit.service import AuditService
 
 
 class AuditCapability:

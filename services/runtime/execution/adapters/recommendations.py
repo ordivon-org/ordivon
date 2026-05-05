@@ -7,7 +7,7 @@ from domains.execution_records.repository import ExecutionRecordRepository
 from domains.execution_records.service import ExecutionRecordService
 from domains.strategy.models import Recommendation
 from domains.strategy.service import RecommendationService
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 from shared.enums.domain import RecommendationStatus
 from shared.errors.domain import DomainNotFound, InvalidStateTransition
 

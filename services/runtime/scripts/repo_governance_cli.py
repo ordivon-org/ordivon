@@ -107,7 +107,7 @@ def classify_repo_intent(
     """
     from packs.coding.models import CodingDecisionPayload
     from domains.decision_intake.models import DecisionIntake
-    from governance.risk_engine.engine import RiskEngine
+    from governance_engine.risk_engine.engine import RiskEngine
     from packs.coding.policy import CodingDisciplinePolicy
 
     payload = CodingDecisionPayload(

@@ -15,7 +15,7 @@ from domains.journal.issue_repository import IssueRepository
 from domains.journal.issue_service import IssueService
 from state.usage.repository import UsageSnapshotRepository
 from state.usage.service import UsageService
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 from capabilities.boundary import ActionContext
 from execution.adapters import ValidationExecutionFailure
 

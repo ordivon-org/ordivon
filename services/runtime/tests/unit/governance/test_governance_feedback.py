@@ -12,9 +12,9 @@ from domains.strategy.models import Recommendation
 from domains.strategy.outcome_models import OutcomeSnapshot
 from domains.strategy.outcome_repository import OutcomeRepository
 from domains.strategy.repository import RecommendationRepository
-from governance.decision import GovernanceAdvisoryHint
-from governance.feedback import GovernanceFeedbackReader
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.decision import GovernanceAdvisoryHint
+from governance_engine.feedback import GovernanceFeedbackReader
+from governance_engine.risk_engine.engine import RiskEngine
 from knowledge.feedback import KnowledgeFeedbackPacket, KnowledgeHint
 from shared.enums.domain import OutcomeState
 from state.db.base import Base

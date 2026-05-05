@@ -4,7 +4,7 @@ from domains.execution_records.models import ExecutionReceipt, ExecutionRequest
 from domains.strategy.outcome_models import OutcomeSnapshot
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.task_run import TaskRun
-from governance.decision import (
+from governance_engine.decision import (
     GovernanceActor,
     GovernanceDecision,
     GovernanceEvidence,
@@ -29,7 +29,7 @@ def test_governance_decision_freezes_actor_scope_and_evidence():
     decision = GovernanceDecision(
         decision="execute",
         reasons=["policy passed"],
-        source="governance.risk_engine",
+        source="governance_engine.risk_engine",
         actor=GovernanceActor(actor_id="risk_engine.default", actor_type="system"),
         scope=GovernanceScope(scope_type="workflow", scope_id="analyze"),
         evidence=(GovernanceEvidence(object_type="policy", object_id="policy_default"),),

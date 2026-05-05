@@ -157,7 +157,7 @@ def test_github_event_high_impact_label_returns_escalate():
         pr_body="## Summary\nMajor refactor.\n\n## Test Plan\nFull governance test suite.",
         labels=["impact/high"],
     )
-    exit_code, result = _run_adapter_github(event, ["governance/risk_engine/engine.py"])
+    exit_code, result = _run_adapter_github(event, ["governance_engine/risk_engine/engine.py"])
     assert exit_code == 2
     assert result["decision"] == "escalate"
     assert any("high" in r.lower() for r in result["reasons"])

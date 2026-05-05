@@ -1,13 +1,13 @@
-from governance.audit.auditor import RiskAuditor
-from governance.audit.models import AuditEvent
-from governance.audit.orm import AuditEventORM
-from governance.audit.repository import AuditEventRepository
-from governance.audit.service import AuditService
-from governance.audit.auditor import RiskAuditor as LegacyRiskAuditor
-from governance.audit.models import AuditEvent as LegacyAuditEvent
-from governance.audit.orm import AuditEventORM as LegacyAuditEventORM
-from governance.audit.repository import AuditEventRepository as LegacyAuditEventRepository
-from governance.audit.service import AuditService as LegacyAuditService
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.orm import AuditEventORM
+from governance_engine.audit.repository import AuditEventRepository
+from governance_engine.audit.service import AuditService
+from governance_engine.audit.auditor import RiskAuditor as LegacyRiskAuditor
+from governance_engine.audit.models import AuditEvent as LegacyAuditEvent
+from governance_engine.audit.orm import AuditEventORM as LegacyAuditEventORM
+from governance_engine.audit.repository import AuditEventRepository as LegacyAuditEventRepository
+from governance_engine.audit.service import AuditService as LegacyAuditService
 
 
 def test_root_governance_audit_imports_are_available():

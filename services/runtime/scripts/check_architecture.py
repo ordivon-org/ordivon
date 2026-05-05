@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Migrated to checkers/ ecosystem. See checkers/*/run.py.
+# Kept for historical reference. Use: python scripts/run_baseline.py
 """Architecture boundary checker — prevents domain pollution into Core.
 
 ADR-006 allows: Core → pack_policy (RejectReason, EscalateReason types only).
@@ -16,7 +18,7 @@ CORE_MODULES = ["governance", "state", "domains", "capabilities", "execution", "
 
 # Files allowed to reference broker/tool namespace metadata (ADR-006 interface)
 ALLOWED_FILES = {
-    "governance/policy_source.py",  # ADR-006: tool namespace refs (metadata only)
+    "governance_engine/policy_source.py",  # ADR-006: tool namespace refs (metadata only)
     "state/db/schema.py",  # Legacy DuckDB analytics schema (DDL only, not domain logic)
     "domains/finance/read_only_adapter.py",  # Phase 6G: read-only capability contract (declares what is NOT allowed)
 }

@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from state.db.base import Base
 
 

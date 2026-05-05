@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from execution.catalog import get_execution_action
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.config.settings import settings
 from state.db.base import Base
 

@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 
 from domains.research.models import AnalysisRequest
-from governance.policy_source import GovernancePolicySource
+from governance_engine.policy_source import GovernancePolicySource
 from orchestrator.context.governance_context import GovernanceContext
 from orchestrator.context.memory_context import MemoryContext
 from orchestrator.context.query_context import QueryContext

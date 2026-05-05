@@ -433,7 +433,7 @@ def test_state_machine_has_no_imports_from_risk_engine():
     from domains.policies import state_machine as sm
 
     source_lines = inspect.getsource(sm).split("\n")
-    forbidden = ["risk_engine", "governance.", "packs.", "execution.", "sqlalchemy"]
+    forbidden = ["risk_engine", "governance_engine.", "packs.", "execution.", "sqlalchemy"]
     for word in forbidden:
         for line in source_lines:
             stripped = line.strip()
@@ -449,7 +449,7 @@ def test_models_have_no_imports_from_risk_engine():
     from domains.policies import models as m
 
     source_lines = inspect.getsource(m).split("\n")
-    forbidden = ["risk_engine", "governance.", "packs.", "execution.", "sqlalchemy"]
+    forbidden = ["risk_engine", "governance_engine.", "packs.", "execution.", "sqlalchemy"]
     for word in forbidden:
         for line in source_lines:
             # Skip docstring lines and comments

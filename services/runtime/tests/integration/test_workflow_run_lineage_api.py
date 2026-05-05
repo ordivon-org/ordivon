@@ -7,7 +7,7 @@ from apps.api.app.deps import get_db
 from apps.api.app.main import app
 from domains.research.orm import AnalysisORM
 from domains.workflow_runs.orm import WorkflowRunORM
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from intelligence.runtime.hermes_client import HermesUnavailableError
 from shared.config.settings import settings
 from shared.utils.serialization import from_json_text

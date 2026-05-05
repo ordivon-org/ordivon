@@ -8,7 +8,7 @@ from domains.strategy.models import Recommendation
 from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
 from execution.adapters import RecommendationExecutionAdapter, RecommendationExecutionFailure
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import RecommendationStatus
 from state.db.base import Base
 

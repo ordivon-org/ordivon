@@ -5,10 +5,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from capabilities.view.audits import AuditCapability
-from governance.audit.models import AuditEvent
-from governance.audit.orm import AuditEventORM
-from governance.audit.repository import AuditEventRepository
-from governance.audit.service import AuditService
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.orm import AuditEventORM
+from governance_engine.audit.repository import AuditEventRepository
+from governance_engine.audit.service import AuditService
 from state.db.base import Base
 
 

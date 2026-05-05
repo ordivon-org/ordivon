@@ -14,7 +14,7 @@ from __future__ import annotations
 import sys
 
 from domains.decision_intake.models import DecisionIntake
-from governance.risk_engine.engine import RiskEngine
+from governance_engine.risk_engine.engine import RiskEngine
 from packs.coding.policy import CodingDisciplinePolicy
 from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
@@ -457,7 +457,7 @@ def main():
             "C08 high impact",
             {
                 "task_description": "Rewrite risk engine validation logic",
-                "file_paths": ["governance/risk_engine/engine.py"],
+                "file_paths": ["governance_engine/risk_engine/engine.py"],
                 "estimated_impact": "high",
                 "reasoning": "Need to support streaming validation.",
                 "test_plan": "Run full governance test suite.",

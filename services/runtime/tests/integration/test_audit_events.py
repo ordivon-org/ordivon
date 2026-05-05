@@ -15,8 +15,8 @@ from domains.journal.lesson_service import LessonService
 from domains.journal.issue_repository import IssueRepository
 from domains.journal.issue_service import IssueService
 from domains.journal.issue_models import Issue
-from governance.audit.auditor import RiskAuditor
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.auditor import RiskAuditor
+from governance_engine.audit.orm import AuditEventORM
 from shared.enums.domain import RecommendationStatus, ReviewVerdict
 
 # Setup in-memory SQLite for transaction testing

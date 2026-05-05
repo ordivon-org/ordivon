@@ -20,7 +20,7 @@ from capabilities.domain.finance_outcome import (
 )
 from domains.execution_records.orm import ExecutionReceiptORM, ExecutionRequestORM
 from domains.finance_outcome.orm import FinanceManualOutcomeORM
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.orm import AuditEventORM
 from state.db.base import Base
 
 

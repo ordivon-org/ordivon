@@ -25,8 +25,8 @@ from domains.strategy.repository import RecommendationRepository
 from domains.strategy.service import RecommendationService
 from domains.workflow_runs.models import WorkflowRun
 from domains.workflow_runs.repository import WorkflowRunRepository
-from governance.audit.models import AuditEvent
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.repository import AuditEventRepository
 from knowledge.retrieval import KnowledgeRetrievalService
 from shared.enums.domain import RecommendationStatus, ReviewStatus, ReviewVerdict
 from state.db.base import Base

@@ -31,7 +31,7 @@ def load_cases(glob_pattern: str) -> list[dict]:
 
 def run_finance_case(case: dict) -> dict:
     from domains.decision_intake.models import DecisionIntake
-    from governance.risk_engine.engine import RiskEngine
+    from governance_engine.risk_engine.engine import RiskEngine
     from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 
     engine = RiskEngine()
@@ -50,7 +50,7 @@ def run_finance_case(case: dict) -> dict:
 
 def run_coding_case(case: dict) -> dict:
     from domains.decision_intake.models import DecisionIntake
-    from governance.risk_engine.engine import RiskEngine
+    from governance_engine.risk_engine.engine import RiskEngine
     from packs.coding.policy import CodingDisciplinePolicy
 
     engine = RiskEngine()
@@ -69,7 +69,7 @@ def run_coding_case(case: dict) -> dict:
 
 def run_cross_pack_case(case: dict) -> dict:
     from domains.decision_intake.models import DecisionIntake
-    from governance.risk_engine.engine import RiskEngine
+    from governance_engine.risk_engine.engine import RiskEngine
     from packs.coding.policy import CodingDisciplinePolicy
     from packs.finance.trading_discipline_policy import TradingDisciplinePolicy
 

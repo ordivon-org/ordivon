@@ -4,8 +4,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from governance.approval import ApprovalRecord
-from governance.approval_orm import ApprovalRecordORM
+from governance_engine.approval import ApprovalRecord
+from governance_engine.approval_orm import ApprovalRecordORM
 
 
 def _parse_dt(value: str | None) -> datetime | None:

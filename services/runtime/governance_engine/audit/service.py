@@ -1,4 +1,4 @@
-from governance.audit.repository import AuditEventRepository
+from governance_engine.audit.repository import AuditEventRepository
 
 
 class AuditService:

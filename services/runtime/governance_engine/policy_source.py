@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from governance.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
+from governance_engine.risk_engine.policies.forbidden_symbols import ForbiddenSymbolsPolicy
 from packs.finance.policy import get_finance_policy_overlays
 from packs.finance.tool_refs import get_finance_tool_refs
 

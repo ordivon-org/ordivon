@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from governance.audit.builders import normalize_audit_event, structured_payload_or_legacy
-from governance.audit.models import AuditEvent
-from governance.audit.orm import AuditEventORM
+from governance_engine.audit.builders import normalize_audit_event, structured_payload_or_legacy
+from governance_engine.audit.models import AuditEvent
+from governance_engine.audit.orm import AuditEventORM
 from shared.utils.serialization import from_json_text, to_json_text
 
 

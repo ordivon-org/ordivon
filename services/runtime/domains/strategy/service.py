@@ -5,7 +5,7 @@ from shared.enums.domain import RecommendationStatus
 from shared.errors.domain import DomainNotFound
 
 
-from governance.audit.auditor import RiskAuditor
+from governance_engine.audit.auditor import RiskAuditor
 
 
 class RecommendationService:
