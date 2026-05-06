@@ -19,6 +19,9 @@ uv run python scripts/ordivon_verify.py check .
 # JSON output (for CI / programmatic use)
 uv run python scripts/ordivon_verify.py check . --json
 
+# Markdown output (for PR review / handoff)
+uv run python scripts/ordivon_verify.py check . --markdown
+
 # Individual checks
 uv run python scripts/ordivon_verify.py receipts
 uv run python scripts/ordivon_verify.py debt
@@ -121,6 +124,7 @@ Agent workflow:
 ## 5. Use in CI
 
 A GitHub Actions example is at `examples/ordivon-verify/github-action.yml.example`.
+A three-case AI coding trust-audit dogfood pack is at `examples/ordivon-verify/dogfood/`.
 
 Key behaviors:
 - BLOCKED → CI should block merge

@@ -19,9 +19,10 @@ Run Ordivon Verify manually before trusting an AI-generated receipt:
 
 ```bash
 uv run python scripts/ordivon_verify.py check .
+uv run python scripts/ordivon_verify.py check . --markdown
 ```
 
-Read the human report. Fix BLOCKED items. Re-run. This is the minimum.
+Read the human or Markdown report. Fix BLOCKED items. Re-run. This is the minimum.
 
 ### Level 1 — Agent Skill
 

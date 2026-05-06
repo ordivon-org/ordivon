@@ -10,6 +10,7 @@ Authority: `proposal` | AI Read Priority: 2
 
 ```
 ordivon verify check .      Run the default read-only trust audit
+ordivon verify check . --markdown  Render a PR-pasteable Markdown trust report
 ordivon verify receipts     Scan receipts for contradictions
 ordivon verify debt         Check debt ledger invariants
 ordivon verify gates        Verify gate manifest integrity
@@ -37,6 +38,9 @@ ordivon config show         Display current effective config
 | `ordivon verify gates` | `check_verification_manifest.py` | Manifest matches baseline, no gate removal/downgrade, no no-op commands |
 | `ordivon verify docs` | `check_document_registry.py` | Registry invariants, freshness, dangerous phrases, semantic safety |
 | `ordivon verify check .` | All above through the read-only Verify wrapper | Combined trust report without state updates |
+
+Markdown output renders the same trust report for PR comments. It does not run
+extra checks, post comments, write files, or authorize action.
 
 ## 2. Input Assumptions
 

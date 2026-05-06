@@ -1,9 +1,12 @@
 # Ordivon Verify — GitHub Action Example
 
-This directory contains an **example** GitHub Actions workflow for Ordivon Verify. It is **not active CI** — copy and adapt it for your own repository.
+This directory contains local Ordivon Verify examples. They are **not active CI**,
+not public release artifacts, and not production-readiness claims.
 
 ## Files
 
+- `quickstart/` — Minimal standard-mode fixture that reaches READY.
+- `dogfood/` — AI coding trust-audit examples for READY, BLOCKED, and DEGRADED.
 - `github-action.yml.example` — Example PR workflow that runs Ordivon Verify on pull requests.
 
 ## What It Checks

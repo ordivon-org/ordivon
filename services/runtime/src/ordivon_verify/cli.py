@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from ordivon_verify.config import is_ordivon_native, load_config, validate_config
-from ordivon_verify.report import build_report, determine_status, print_human, status_to_exit_code
+from ordivon_verify.report import build_report, determine_status, print_human, render_markdown, status_to_exit_code
 from ordivon_verify.runner import (
     _ensure_all_checks,
     _get_all_gate_ids,
@@ -27,6 +27,8 @@ def _parse_unknown(parser, unknown: list[str], ns) -> None:
         u = unknown[i]
         if u == "--json":
             ns.json = True
+        elif u == "--markdown":
+            ns.markdown = True
         elif u == "--root":
             i += 1
             if i >= len(unknown):
@@ -63,6 +65,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sub.add_parser("gates", help="Verify gate manifest integrity")
     sub.add_parser("docs", help="Check document registry + semantic safety")
     parser.add_argument("--json", action="store_true", help="Output JSON report")
+    parser.add_argument("--markdown", action="store_true", help="Output Markdown trust report")
     parser.add_argument("--root", type=str, default=None, help="Project root directory")
     parser.add_argument("--config", type=str, default=None, help="Path to ordivon.verify.json")
     parser.add_argument("--mode", type=str, default=None, help="Mode: advisory, standard, strict")
@@ -172,6 +175,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             report = build_report(results, mode, root_str, cfg_str)
             print(json.dumps(report, indent=2))
+        elif args.markdown:
+            report = build_report(results, mode, root_str, cfg_str)
+            print(render_markdown(report), end="")
         else:
             print_human(results, mode, root_str, cfg_str)
 

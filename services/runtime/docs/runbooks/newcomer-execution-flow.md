@@ -31,6 +31,7 @@ Use the lowest command that answers the question in front of you.
 |---|---|---:|---|
 | Product trust audit | `uv run python scripts/ordivon_verify.py check .` | No | You need a newcomer-safe trust signal. |
 | Product trust audit JSON | `uv run python scripts/ordivon_verify.py check . --json` | No | CI, scripts, or structured report checks. |
+| Product trust audit Markdown | `uv run python scripts/ordivon_verify.py check . --markdown` | No | PR comments or human review handoff. |
 | Internal read-only baseline | `uv run python scripts/run_baseline.py --read-only` | No | You need internal checker confidence without updating telemetry ledgers. |
 | pr-fast hard gates | `uv run python scripts/run_baseline.py --pr-fast` | No | You need the canonical fast hard-gate seal. |
 | Full maintainer baseline | `uv run python scripts/run_baseline.py` | Yes | A maintainer intentionally wants telemetry/shadow ledgers refreshed. |

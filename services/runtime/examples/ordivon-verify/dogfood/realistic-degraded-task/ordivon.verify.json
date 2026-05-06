@@ -1,0 +1,6 @@
+{
+  "schema_version": "0.1",
+  "project_name": "realistic-degraded-ai-coding-task",
+  "mode": "advisory",
+  "receipt_paths": ["receipts"]
+}

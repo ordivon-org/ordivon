@@ -4,9 +4,10 @@
 Delegates to the ordivon_verify package. All logic lives in src/ordivon_verify/.
 
 Usage:
-    uv run python scripts/ordivon_verify.py all
-    uv run python scripts/ordivon_verify.py all --json
-    uv run python -m ordivon_verify all
+    uv run python scripts/ordivon_verify.py check .
+    uv run python scripts/ordivon_verify.py check . --json
+    uv run python scripts/ordivon_verify.py check . --markdown
+    uv run python -m ordivon_verify check .
 """
 
 import sys

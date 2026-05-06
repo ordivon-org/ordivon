@@ -29,6 +29,7 @@ Run Ordivon Verify when you:
 ```
 uv run python scripts/ordivon_verify.py check .
 uv run python scripts/ordivon_verify.py check . --json
+uv run python scripts/ordivon_verify.py check . --markdown
 ```
 
 ### External Repo with Config
@@ -127,6 +128,9 @@ uv run python scripts/ordivon_verify.py receipts
 
 # Verify with JSON output (for CI / programmatic use)
 uv run python scripts/ordivon_verify.py check . --json
+
+# Verify with Markdown output (for PR / handoff)
+uv run python scripts/ordivon_verify.py check . --markdown
 
 # Verify external repo
 uv run python scripts/ordivon_verify.py check /path/to/repo --config /path/to/repo/ordivon.verify.json

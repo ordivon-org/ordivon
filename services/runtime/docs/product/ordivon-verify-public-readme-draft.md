@@ -66,6 +66,7 @@ READY means selected checks passed; it does not authorize execution.
 ```bash
 uv run python scripts/ordivon_verify.py check .
 uv run python scripts/ordivon_verify.py check . --json
+uv run python scripts/ordivon_verify.py check . --markdown
 ```
 
 ### External Repo (Advisory Mode)

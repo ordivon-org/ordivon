@@ -8,6 +8,7 @@ from ordivon_verify.report import (
     build_report as build_report,
     determine_status as determine_status,
     print_human as print_human,
+    render_markdown as render_markdown,
     status_to_exit_code as status_to_exit_code,
 )
 from ordivon_verify.config import (
@@ -31,6 +32,7 @@ __all__ = [
     "build_report",
     "determine_status",
     "print_human",
+    "render_markdown",
     "status_to_exit_code",
     "is_ordivon_native",
     "load_config",

@@ -147,6 +147,70 @@ def build_report(results: list[dict], mode: str, root: str, config_path: str | N
     }
 
 
+def render_markdown(report: dict) -> str:
+    """Render a PR-pasteable Markdown trust report."""
+    lines = [
+        "## Ordivon Verify Trust Report",
+        "",
+        f"**Status:** {report['status']}",
+        f"**Trust signal:** {report['trust_signal']}",
+        f"**Mode:** {report['mode']}",
+        f"**Root:** `{report['root']}`",
+    ]
+    if report.get("config"):
+        lines.append(f"**Config:** `{report['config']}`")
+    lines.extend([
+        "",
+        "### Surfaces",
+        "",
+        "| Surface | Status | Checks |",
+        "|---|---|---|",
+    ])
+    surfaces = report.get("surfaces", {})
+    for surface in ("claims", "receipts", "tests", "diff", "debt", "docs", "gates", "review"):
+        entry = surfaces.get(surface, {"status": "NOT_APPLICABLE", "checks": []})
+        checks = ", ".join(entry.get("checks", [])) or "-"
+        lines.append(f"| {surface} | {entry.get('status', 'NOT_APPLICABLE')} | {checks} |")
+
+    if report.get("hard_failures"):
+        lines.extend(["", "### Hard Failures", ""])
+        for failure in report["hard_failures"]:
+            file_part = f" `{failure['file']}`" if failure.get("file") else ""
+            line_part = f":{failure['line']}" if failure.get("line") else ""
+            lines.append(f"- **{failure['id']}**{file_part}{line_part}: {failure.get('reason', 'Checker failed')}")
+            if failure.get("next_action"):
+                lines.append(f"  - Next action: {failure['next_action']}")
+
+    if report.get("missing_evidence"):
+        lines.extend(["", "### Missing Evidence", ""])
+        for item in report["missing_evidence"]:
+            surfaces_text = ", ".join(item.get("surfaces", [])) or "unknown"
+            lines.append(f"- **{item['check']}** ({surfaces_text}): {item.get('reason', 'Evidence missing')}")
+            if item.get("next_action"):
+                lines.append(f"  - Next action: {item['next_action']}")
+
+    if report.get("warnings"):
+        lines.extend(["", "### Warnings", ""])
+        for warning in report["warnings"]:
+            lines.append(f"- **{warning['id']}**: {warning.get('reason', 'Warning')}")
+            if warning.get("next_action"):
+                lines.append(f"  - Next action: {warning['next_action']}")
+
+    lines.extend([
+        "",
+        "### Recommended Next Action",
+        "",
+    ])
+    if report["status"] == "READY":
+        lines.append("- Record the evidence status. Do not treat READY as action authorization.")
+    elif report["status"] == "DEGRADED":
+        lines.append("- Review missing evidence and decide whether to add evidence or keep an explicit review boundary.")
+    else:
+        lines.append("- Fix hard failures before claiming the agent work is complete or trustworthy.")
+    lines.extend(["", f"> {report['disclaimer']}"])
+    return "\n".join(lines) + "\n"
+
+
 def print_human(results: list[dict], mode: str, root: str, config_path: str | None) -> None:
     """Print human-readable trust report."""
     status = determine_status(results)

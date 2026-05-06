@@ -19,6 +19,7 @@ from ordivon_verify import (
 STD_FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_standard_external_repo"
 CLEAN_FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_clean_external_repo"
 BAD_FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_external_repo"
+DOGFOOD_ROOT = Path(__file__).resolve().parents[3] / "examples" / "ordivon-verify" / "dogfood"
 
 STD_CONFIG = STD_FIXTURE / "ordivon.verify.json"
 
@@ -101,6 +102,47 @@ def test_standard_fixture_check_target_json_ready(monkeypatch, capsys):
     assert report["root"] == str(STD_FIXTURE.resolve())
     assert report["status"] == "READY"
     assert len(report["hard_failures"]) == 0
+
+
+def _run_dogfood(case_name: str, capsys):
+    case_root = DOGFOOD_ROOT / case_name
+    exit_code = main(["check", str(case_root), "--config", str(case_root / "ordivon.verify.json"), "--json"])
+    report = json.loads(capsys.readouterr().out)
+    return exit_code, report
+
+
+def test_dogfood_clean_ai_task_ready(monkeypatch, capsys):
+    exit_code, report = _run_dogfood("clean-ai-task", capsys)
+    assert exit_code == 0
+    assert report["trust_signal"] == "READY_WITHOUT_AUTHORIZATION"
+    assert report["surfaces"]["tests"]["status"] == "PASS"
+    assert report["missing_evidence"] == []
+
+
+def test_dogfood_false_comfort_ai_task_blocked(monkeypatch, capsys):
+    exit_code, report = _run_dogfood("false-comfort-ai-task", capsys)
+    assert exit_code == 1
+    assert report["status"] == "BLOCKED"
+    assert any(f["id"] == "missing_test_evidence" for f in report["hard_failures"])
+
+
+def test_dogfood_realistic_degraded_task_reports_missing_evidence(monkeypatch, capsys):
+    exit_code, report = _run_dogfood("realistic-degraded-task", capsys)
+    assert exit_code == 2
+    assert report["status"] == "DEGRADED"
+    assert {item["check"] for item in report["missing_evidence"]} == {"debt", "gates", "docs"}
+
+
+def test_dogfood_markdown_is_pr_pasteable(monkeypatch, capsys):
+    case_root = DOGFOOD_ROOT / "false-comfort-ai-task"
+    exit_code = main(["check", str(case_root), "--config", str(case_root / "ordivon.verify.json"), "--markdown"])
+    assert exit_code == 1
+    markdown = capsys.readouterr().out
+    assert "## Ordivon Verify Trust Report" in markdown
+    assert "### Hard Failures" in markdown
+    assert "missing_test_evidence" in markdown
+    assert "### Recommended Next Action" in markdown
+    assert "does not authorize" in markdown
 
 
 # ── Cross-fixture: bad remains BLOCKED ──────────────────────────────────

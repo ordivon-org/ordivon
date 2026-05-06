@@ -15,6 +15,7 @@ from ordivon_verify import (
     run_check,
     determine_status,
     build_report,
+    render_markdown,
     status_to_exit_code,
     parse_args,
     main,
@@ -169,6 +170,42 @@ def test_parse_args_json_flag():
     args = parse_args(["all", "--json"])
     assert args.command == "all"
     assert args.json is True
+
+
+def test_parse_args_markdown_flag():
+    args = parse_args(["check", ".", "--markdown"])
+    assert args.command == "check"
+    assert args.target == "."
+    assert args.markdown is True
+
+
+def test_render_markdown_report_contains_pr_sections():
+    results = [
+        {
+            "id": "receipts",
+            "label": "Receipt Integrity",
+            "status": "PASS",
+            "exit_code": 0,
+            "stdout": "1 receipt(s) scanned, 0 contradictions",
+            "stderr": "",
+        },
+        {
+            "id": "debt",
+            "label": "Verification Debt",
+            "status": "WARN",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "Not configured: debt_ledger",
+            "missing_evidence": True,
+            "next_action": "Add verification-debt-ledger.jsonl when moving from advisory to standard mode.",
+        },
+    ]
+    markdown = render_markdown(build_report(results, "advisory", "/repo", None))
+    assert "## Ordivon Verify Trust Report" in markdown
+    assert "| claims | PASS | receipts |" in markdown
+    assert "### Missing Evidence" in markdown
+    assert "READY means selected checks passed" in markdown
+    assert "authorizes merge" not in markdown.lower()
 
 
 # ── Integration: run_check (mocked subprocess) ────────────────────────────

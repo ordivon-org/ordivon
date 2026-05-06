@@ -51,7 +51,25 @@ uv run python scripts/ordivon_verify.py check \
 
 Expected: **READY**.
 
-## 4. Clean Advisory Fixture
+## 4. AI Coding Trust Audit Dogfood
+
+Three local examples demonstrate the product wedge:
+
+```bash
+uv run python scripts/ordivon_verify.py check examples/ordivon-verify/dogfood/clean-ai-task --config examples/ordivon-verify/dogfood/clean-ai-task/ordivon.verify.json --markdown
+uv run python scripts/ordivon_verify.py check examples/ordivon-verify/dogfood/false-comfort-ai-task --config examples/ordivon-verify/dogfood/false-comfort-ai-task/ordivon.verify.json --markdown
+uv run python scripts/ordivon_verify.py check examples/ordivon-verify/dogfood/realistic-degraded-task --config examples/ordivon-verify/dogfood/realistic-degraded-task/ordivon.verify.json --markdown
+```
+
+Expected:
+
+- `clean-ai-task`: **READY_WITHOUT_AUTHORIZATION**
+- `false-comfort-ai-task`: **BLOCKED**
+- `realistic-degraded-task`: **DEGRADED** with `missing_evidence`
+
+The Markdown report is designed to paste into PR review. It is evidence only.
+
+## 5. Clean Advisory Fixture
 
 A project that passes its receipt check but is missing most governance files:
 
@@ -63,7 +81,7 @@ uv run python scripts/ordivon_verify.py check \
 
 Expected: **DEGRADED** (exit 2). No hard failures, but governance incomplete.
 
-## 5. Bad External Fixture
+## 6. Bad External Fixture
 
 A project with a contradictory receipt:
 
