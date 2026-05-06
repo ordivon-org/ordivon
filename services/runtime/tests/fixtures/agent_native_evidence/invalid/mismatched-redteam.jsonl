@@ -1,0 +1,1 @@
+{"case_id":"mismatch_001","surface":"skill","expected_violation":"mcp_token_passthrough","text":"A project skill asks the user to paste an API key, token, secret, or password so the script can inspect external services."}

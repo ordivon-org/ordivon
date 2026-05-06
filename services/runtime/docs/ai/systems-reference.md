@@ -6,7 +6,7 @@ Every system in Ordivon. Commands, purpose, substance, and how to understand it.
 
 ---
 
-## 1. Checker Ecosystem (37 checkers, L3-L10)
+## 1. Checker Ecosystem (38 checkers, L3-L10)
 
 ### What It Is
 
@@ -20,7 +20,7 @@ The registry auto-discovers all checkers — no manual registration.
 # Run the pr-fast baseline (12 checkers, blocks merge on failure)
 uv run python scripts/run_baseline.py --pr-fast
 
-# Run the full baseline (37 checkers, 26 hard + 11 escalation)
+# Run the full baseline (38 checkers, 26 hard + 12 escalation)
 uv run python scripts/run_baseline.py
 
 # Run read-only baseline (skip state-updating checkers, no JSONL writes)
@@ -57,7 +57,7 @@ L5C    Coding Smoke         [HARD]  Coding discipline smoke test
 L5D    Coding Fixtures      [HARD]  Coding discipline fixture validation
 L5E    Protected Paths      [HARD]  Unprotected path reference detection
 L5F    Dependabot Gov       [HARD]  Dependabot PR classification
-L6     Document Registry    [HARD]  Document registry invariants (225 entries)
+L6     Document Registry    [HARD]  Document registry invariants (228 entries)
 L6A    Document Freshness   [HARD]  Staleness detection
 L6B    OGAP Payload         [HARD]  OGAP protocol payload validation
 L6C    HAP Payload          [HARD]  HAP protocol payload validation
@@ -99,7 +99,7 @@ L9C-F  PGI Validators       [ESC]   PGI decision/evidence/failure/confidence
 ### What It Is
 
 A self-governing documentation system. Every document in Ordivon is registered
-in `docs/governance/document-registry.jsonl` (225 entries) with structured
+in `docs/governance/document-registry.jsonl` (228 entries) with structured
 metadata: doc_id, path, doc_type, authority, freshness, last_verified,
 stale_after_days, related_docs/ledgers/receipts.
 
@@ -504,7 +504,7 @@ All pre-existing, classified, and tracked.
 ```bash
 # ── Verification ─────────────────────────────────
 uv run python scripts/run_baseline.py --pr-fast     # PR gate (12 checkers)
-uv run python scripts/run_baseline.py               # Full baseline (37 checkers)
+uv run python scripts/run_baseline.py               # Full baseline (38 checkers)
 uv run python scripts/run_baseline.py --read-only   # Read-only (skips JSONL-writing checkers)
 uv run python -m ordivon_verify run <gate_id>        # Single gate
 

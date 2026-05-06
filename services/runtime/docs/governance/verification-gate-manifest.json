@@ -4,9 +4,9 @@
   "version": "1.0",
   "status": "current",
   "authority": "derived_from_registry",
-  "gate_count": 37,
+  "gate_count": 38,
   "hard_count": 26,
-  "escalation_count": 11,
+  "escalation_count": 12,
   "gates": [
     {
       "gate_id": "external_source_registry",
@@ -51,6 +51,17 @@
       "may_be_removed_only_by": "Stage Summit with documented reason",
       "purpose": "Validate EGB-3 OEP lifecycle, freeze warning, trust-budget interpretation, shadow-first boundaries, and reviewer/approver/owner confusion fixtures",
       "protects_against": "Operating governance laundering, shadow checker hard-gate confusion, ownerless approval, freeze authorization, trust-budget expansion after spent budget"
+    },
+    {
+      "gate_id": "agent_native_evidence",
+      "display_name": "Agent-Native Evidence Boundary",
+      "layer": "L10E",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run agent_native_evidence",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate read-only agent-native evidence surfaces for skills, memory/content, harness traces, and MCP-like manifests",
+      "protects_against": "Skill permission laundering, stale memory as current truth, checkpoint approval laundering, token passthrough, audience/resource confusion, tool availability as authorization"
     },
     {
       "gate_id": "state_truth",

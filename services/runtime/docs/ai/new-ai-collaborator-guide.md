@@ -77,7 +77,7 @@ When you receive a phase prompt:
 ```bash
 # ── Primary verification ──────────────────────────
 uv run python scripts/run_baseline.py --pr-fast     # PR gate (12 checkers)
-uv run python scripts/run_baseline.py               # Full baseline (37 checkers)
+uv run python scripts/run_baseline.py               # Full baseline (38 checkers)
 uv run python -m ordivon_verify run <gate_id>        # Single gate
 
 # ── Run tests ─────────────────────────────────────
@@ -135,8 +135,8 @@ Every receipt must answer:
 ## Current Systems (2026-05-05)
 
 ```
-Checker ecosystem: 37 checkers, L3-L10, pr-fast 12/12, full 37/37 ALL PASS (26 hard + 11 escalation)
-Document governance: 225 registered docs, 0 stale, 0 missing freshness
+Checker ecosystem: 38 checkers, L3-L10, pr-fast 12/12, full 38/38 ALL PASS (26 hard + 12 escalation)
+Document governance: 228 registered docs, 0 stale, 0 missing freshness
 Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
 Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed
 Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion
