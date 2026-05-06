@@ -88,7 +88,7 @@ uv run python evals/run_evals.py        # Eval corpus (24 cases)
 # Governance
 uv run python scripts/check_architecture.py       # Architecture boundaries
 uv run python scripts/check_runtime_evidence.py   # Evidence integrity
-uv run python scripts/run_verification_baseline.py --profile pr-fast  # Full seal
+uv run python scripts/run_baseline.py --pr-fast  # Canonical pr-fast seal
 
 # Docs
 uv run ruff format --check docs

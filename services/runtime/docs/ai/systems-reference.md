@@ -60,7 +60,7 @@ L5C    Coding Smoke         [HARD]  Coding discipline smoke test
 L5D    Coding Fixtures      [HARD]  Coding discipline fixture validation
 L5E    Protected Paths      [HARD]  Unprotected path reference detection
 L5F    Dependabot Gov       [HARD]  Dependabot PR classification
-L6     Document Registry    [HARD]  Document registry invariants (230 entries)
+L6     Document Registry    [HARD]  Document registry invariants (231 entries)
 L6A    Document Freshness   [HARD]  Staleness detection
 L6B    OGAP Payload         [HARD]  OGAP protocol payload validation
 L6C    HAP Payload          [HARD]  HAP protocol payload validation
@@ -102,7 +102,7 @@ L9C-F  PGI Validators       [ESC]   PGI decision/evidence/failure/confidence
 ### What It Is
 
 A self-governing documentation system. Every document in Ordivon is registered
-in `docs/governance/document-registry.jsonl` (230 entries) with structured
+in `docs/governance/document-registry.jsonl` (231 entries) with structured
 metadata: doc_id, path, doc_type, authority, freshness, last_verified,
 stale_after_days, related_docs/ledgers/receipts.
 
@@ -154,24 +154,24 @@ product         — Product briefs, roadmaps, stage notes
 ### What It Is
 
 The CLI frontend for governance verification. Wraps the checker registry and
-baseline runner into a user-facing tool. Supports: all/gate run, JSON output,
+baseline runner into a user-facing tool. Supports: read-only check runs, JSON output,
 external repo verification, CI integration.
 
 ### Commands
 
 ```bash
-# Run all gates
-uv run python scripts/ordivon_verify.py all
+# Run the default read-only trust audit
+uv run python scripts/ordivon_verify.py check .
 
-# Run all gates with JSON output
-uv run python scripts/ordivon_verify.py all --json
+# Run the default read-only trust audit with JSON output
+uv run python scripts/ordivon_verify.py check . --json
 
 # Run a specific gate
 uv run python -m ordivon_verify run <gate_id>
 
 # Run against external repo
-uv run python scripts/ordivon_verify.py all \
-  --root tests/fixtures/ordivon_verify_standard_external_repo \
+uv run python scripts/ordivon_verify.py check \
+  tests/fixtures/ordivon_verify_standard_external_repo \
   --config tests/fixtures/ordivon_verify_standard_external_repo/ordivon.verify.json
 
 # Product quickstart dogfood

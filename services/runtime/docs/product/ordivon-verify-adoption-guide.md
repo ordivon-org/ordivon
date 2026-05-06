@@ -18,7 +18,7 @@ Authority: `proposal` | AI Read Priority: 3
 Run Ordivon Verify manually before trusting an AI-generated receipt:
 
 ```bash
-uv run python scripts/ordivon_verify.py all
+uv run python scripts/ordivon_verify.py check .
 ```
 
 Read the human report. Fix BLOCKED items. Re-run. This is the minimum.
@@ -54,7 +54,7 @@ Copy this minimal `ordivon.verify.json` to your repo root:
 ### 2. Run Advisory Mode
 
 ```bash
-uv run python scripts/ordivon_verify.py all --root . --config ordivon.verify.json
+uv run python scripts/ordivon_verify.py check . --config ordivon.verify.json
 ```
 
 ### 3. Inspect the Report

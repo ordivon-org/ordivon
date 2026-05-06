@@ -46,7 +46,7 @@ Verification:
 [Standard seal commands — customize only if needed]
 pnpm test
 pnpm build
-uv run python scripts/run_verification_baseline.py --profile pr-fast
+uv run python scripts/run_baseline.py --pr-fast
 [etc.]
 
 Receipt:

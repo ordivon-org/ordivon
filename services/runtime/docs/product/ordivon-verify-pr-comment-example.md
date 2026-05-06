@@ -119,7 +119,7 @@ Agents running Ordivon Verify before handoff should paste this block:
 
 ```
 Ordivon Verify:
-  Command: uv run python scripts/ordivon_verify.py all
+  Command: uv run python scripts/ordivon_verify.py check .
   Status: [READY | BLOCKED | DEGRADED]
   Hard failures: [N or list]
   Warnings: [N or list]

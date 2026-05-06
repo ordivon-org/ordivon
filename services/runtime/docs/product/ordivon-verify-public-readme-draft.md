@@ -64,8 +64,8 @@ READY means selected checks passed; it does not authorize execution.
 ### Native Ordivon Repo
 
 ```bash
-uv run python scripts/ordivon_verify.py all
-uv run python scripts/ordivon_verify.py all --json
+uv run python scripts/ordivon_verify.py check .
+uv run python scripts/ordivon_verify.py check . --json
 ```
 
 ### External Repo (Advisory Mode)
@@ -84,7 +84,7 @@ Create `ordivon.verify.json`:
 Run:
 
 ```bash
-uv run python scripts/ordivon_verify.py all --root . --config ordivon.verify.json
+uv run python scripts/ordivon_verify.py check . --config ordivon.verify.json
 ```
 
 ### Moving to Standard / READY

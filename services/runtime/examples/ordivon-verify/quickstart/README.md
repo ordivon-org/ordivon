@@ -23,8 +23,8 @@ governance/
 ## Run
 
 ```bash
-uv run python scripts/ordivon_verify.py all \
-  --root examples/ordivon-verify/quickstart \
+uv run python scripts/ordivon_verify.py check \
+  examples/ordivon-verify/quickstart \
   --config examples/ordivon-verify/quickstart/ordivon.verify.json
 ```
 

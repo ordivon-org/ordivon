@@ -20,7 +20,7 @@ DEGRADED and BLOCKED on fixtures with incomplete or broken governance.
 Verify Ordivon itself:
 
 ```bash
-uv run python scripts/ordivon_verify.py all
+uv run python scripts/ordivon_verify.py check .
 ```
 
 Expected: **READY** (exit 0).
@@ -28,13 +28,13 @@ Expected: **READY** (exit 0).
 JSON output:
 
 ```bash
-uv run python scripts/ordivon_verify.py all --json
+uv run python scripts/ordivon_verify.py check . --json
 ```
 
 ## 2. Package Module Mode
 
 ```bash
-uv run python -m ordivon_verify all
+uv run python -m ordivon_verify check .
 ```
 
 Expected: **READY**.
@@ -44,8 +44,8 @@ Expected: **READY**.
 A minimal project with clean governance:
 
 ```bash
-uv run python scripts/ordivon_verify.py all \
-  --root examples/ordivon-verify/quickstart \
+uv run python scripts/ordivon_verify.py check \
+  examples/ordivon-verify/quickstart \
   --config examples/ordivon-verify/quickstart/ordivon.verify.json
 ```
 
@@ -56,8 +56,8 @@ Expected: **READY**.
 A project that passes its receipt check but is missing most governance files:
 
 ```bash
-uv run python scripts/ordivon_verify.py all \
-  --root tests/fixtures/ordivon_verify_clean_external_repo \
+uv run python scripts/ordivon_verify.py check \
+  tests/fixtures/ordivon_verify_clean_external_repo \
   --config tests/fixtures/ordivon_verify_clean_external_repo/ordivon.verify.json
 ```
 
@@ -68,8 +68,8 @@ Expected: **DEGRADED** (exit 2). No hard failures, but governance incomplete.
 A project with a contradictory receipt:
 
 ```bash
-uv run python scripts/ordivon_verify.py all \
-  --root tests/fixtures/ordivon_verify_external_repo \
+uv run python scripts/ordivon_verify.py check \
+  tests/fixtures/ordivon_verify_external_repo \
   --config tests/fixtures/ordivon_verify_external_repo/ordivon.verify.json
 ```
 

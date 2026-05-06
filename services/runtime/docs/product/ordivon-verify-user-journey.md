@@ -20,7 +20,7 @@ Jane has receipts in `docs/runtime/` but no way to systematically verify them.
 ### Command
 
 ```bash
-$ ordivon verify
+$ ordivon verify check .
 ```
 
 ### Output
@@ -83,7 +83,7 @@ Last sprint: an agent opened a PR claiming "11/11 gates passing." A reviewer not
 ```yaml
 # .github/workflows/verify.yml
 - name: Ordivon Verify
-  run: ordivon verify --json > verify-report.json
+  run: ordivon verify check . --json > verify-report.json
 - name: Post Report
   if: failure()
   run: |
@@ -108,7 +108,7 @@ Last sprint: an agent opened a PR claiming "11/11 gates passing." A reviewer not
 ### Hard Failures
 
 **Gate manifest mismatch**: Manifest declares 11 gates (pr-fast-v1).
-Baseline runner (`run_verification_baseline.py`) reports 10 gates.
+Baseline runner (`run_baseline.py`) reports 10 gates.
 Gate `architecture_boundaries` (L4) present in manifest but missing
 from runner output.
 
@@ -145,7 +145,7 @@ Problem: docs are drifting. A junior engineer's agent updated 3 docs last week b
 
 ```bash
 $ ordivon verify docs
-$ ordivon verify all
+$ ordivon verify check .
 ```
 
 ### Output
@@ -185,7 +185,7 @@ The team lead runs `ordivon verify docs` to see the docs-only failures. They:
 
 1. Update `README.md` status from CLOSING to CLOSED
 2. Fix `current-phase-boundaries.md` baseline count from 8/8 to 11/11
-3. Re-run `ordivon verify` — READY
+3. Re-run `ordivon verify check .` — READY
 
 ### Value
 

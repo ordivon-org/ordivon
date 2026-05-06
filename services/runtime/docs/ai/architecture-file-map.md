@@ -61,7 +61,8 @@ financial-ai-os/
 │   └── ...
 │
 ├── scripts/                        CI/CD, verification, governance
-│   ├── run_verification_baseline.py  Master gate runner
+│   ├── run_baseline.py              Canonical baseline runner
+│   ├── run_verification_baseline.py  Deprecated compatibility wrapper
 │   ├── check_architecture.py        Architecture boundary checker
 │   ├── check_runtime_evidence.py    Evidence integrity checker
 │   └── repo_governance_github_adapter.py  Dependabot/bot PR adapter

@@ -9,12 +9,12 @@ Authority: `proposal` | AI Read Priority: 2
 ### 1.1 Required Commands (v0)
 
 ```
-ordivon verify              Run all checks (receipts + debt + gates + docs)
+ordivon verify check .      Run the default read-only trust audit
 ordivon verify receipts     Scan receipts for contradictions
 ordivon verify debt         Check debt ledger invariants
 ordivon verify gates        Verify gate manifest integrity
 ordivon verify docs         Check document registry + semantic safety
-ordivon verify all          Alias for `ordivon verify`
+ordivon verify all          Compatibility alias for the default trust audit
 ```
 
 ### 1.2 Optional Future Commands
@@ -36,7 +36,7 @@ ordivon config show         Display current effective config
 | `ordivon verify debt` | `check_verification_debt.py` | All debt registered, no overdue, no high/blocking unaddressed |
 | `ordivon verify gates` | `check_verification_manifest.py` | Manifest matches baseline, no gate removal/downgrade, no no-op commands |
 | `ordivon verify docs` | `check_document_registry.py` | Registry invariants, freshness, dangerous phrases, semantic safety |
-| `ordivon verify` | All above + `run_verification_baseline.py` | Combined trust report |
+| `ordivon verify check .` | All above through the read-only Verify wrapper | Combined trust report without state updates |
 
 ## 2. Input Assumptions
 
@@ -134,7 +134,7 @@ The CLI auto-detects repo type by presence of key files:
 ```yaml
 # Example GitHub Actions step
 - name: Ordivon Verify
-  run: ordivon verify
+  run: ordivon verify check .
   # Exit 0 = pass, exit 1 = block, exit 2 = warning annotation
 ```
 
@@ -294,7 +294,7 @@ cat > ordivon.verify.json << 'EOF'
 EOF
 
 # Step 2: Run in advisory mode
-ordivon verify
+ordivon verify check .
 
 # Step 3: Review report, add debt ledger, upgrade to standard mode
 ```
@@ -333,9 +333,9 @@ Future optional: `ordivon init --write` to create config file. Always opt-in, ne
 | `check_verification_manifest.py` | Reference implementation | `ordivon verify gates` |
 | `check_document_registry.py` | Reference implementation | `ordivon verify docs` |
 | `check_paper_dogfood_ledger.py` | Phase 7P-specific | Not part of PV (phase-specific) |
-| `check_architecture.py` | Layer L4 | Included in `ordivon verify` — full mode |
-| `check_runtime_evidence.py` | Layer L5 | Included in `ordivon verify` — full mode |
-| `run_verification_baseline.py` | Orchestrator | `ordivon verify` — full mode equivalent |
+| `check_architecture.py` | Layer L4 | Included in `ordivon verify check .` through the read-only wrapper |
+| `check_runtime_evidence.py` | Layer L5 | Included in `ordivon verify check .` through the read-only wrapper |
+| `run_baseline.py` | Canonical internal orchestrator | Internal baseline; Verify uses a read-only wrapper |
 | `evals/run_evals.py` | Eval corpus | Not part of PV (Ordivon-internal) |
 
 ### Implementation Note

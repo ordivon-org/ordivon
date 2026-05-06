@@ -13,11 +13,11 @@ Authority: `proposal`
 ## 1. Run on an Ordivon-Native Repo
 
 ```bash
-# Run all checks
-uv run python scripts/ordivon_verify.py all
+# Run the default read-only trust audit
+uv run python scripts/ordivon_verify.py check .
 
 # JSON output (for CI / programmatic use)
-uv run python scripts/ordivon_verify.py all --json
+uv run python scripts/ordivon_verify.py check . --json
 
 # Individual checks
 uv run python scripts/ordivon_verify.py receipts
@@ -44,7 +44,7 @@ Create `ordivon.verify.json` in your repo root:
 Run:
 
 ```bash
-uv run python scripts/ordivon_verify.py all --root . --config ordivon.verify.json
+uv run python scripts/ordivon_verify.py check . --config ordivon.verify.json
 ```
 
 Expected output:
@@ -103,7 +103,7 @@ Create `governance/document-registry.jsonl`:
 Run again:
 
 ```bash
-uv run python scripts/ordivon_verify.py all --root . --config ordivon.verify.json
+uv run python scripts/ordivon_verify.py check . --config ordivon.verify.json
 ```
 
 Expected: **READY** — all four checks pass.
@@ -114,7 +114,7 @@ Add the Ordivon Verify skill to your AI coding agent. See `skills/ordivon-verify
 
 Agent workflow:
 1. Agent completes task
-2. Agent runs `ordivon verify all`
+2. Agent runs `ordivon verify check .`
 3. If BLOCKED → agent reports HOLD, does not claim complete
 4. If READY → agent reports status with disclaimer
 

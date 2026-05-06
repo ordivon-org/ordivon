@@ -27,15 +27,15 @@ Run Ordivon Verify when you:
 ### Native Ordivon Repo
 
 ```
-uv run python scripts/ordivon_verify.py all
-uv run python scripts/ordivon_verify.py all --json
+uv run python scripts/ordivon_verify.py check .
+uv run python scripts/ordivon_verify.py check . --json
 ```
 
 ### External Repo with Config
 
 ```
-uv run python scripts/ordivon_verify.py all --root <repo> --config <repo>/ordivon.verify.json
-uv run python scripts/ordivon_verify.py all --root <repo> --config <repo>/ordivon.verify.json --json
+uv run python scripts/ordivon_verify.py check <repo> --config <repo>/ordivon.verify.json
+uv run python scripts/ordivon_verify.py check <repo> --config <repo>/ordivon.verify.json --json
 ```
 
 ### Focused Checks
@@ -83,7 +83,7 @@ Include this block in every completion receipt:
 
 ```
 Ordivon Verify:
-  Command: uv run python scripts/ordivon_verify.py all
+  Command: uv run python scripts/ordivon_verify.py check .
   Status: READY | BLOCKED | DEGRADED
   Hard failures: N (or list)
   Warnings: N (or list)
@@ -120,14 +120,14 @@ Ordivon Verify is:
 
 ```
 # Verify everything
-uv run python scripts/ordivon_verify.py all
+uv run python scripts/ordivon_verify.py check .
 
 # Verify just receipts
 uv run python scripts/ordivon_verify.py receipts
 
 # Verify with JSON output (for CI / programmatic use)
-uv run python scripts/ordivon_verify.py all --json
+uv run python scripts/ordivon_verify.py check . --json
 
 # Verify external repo
-uv run python scripts/ordivon_verify.py all --root /path/to/repo --config /path/to/ordivon.verify.json
+uv run python scripts/ordivon_verify.py check /path/to/repo --config /path/to/repo/ordivon.verify.json
 ```

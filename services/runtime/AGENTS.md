@@ -19,6 +19,7 @@ docs/governance/README.md                Document Governance Pack (accepted)
 docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
 docs/runtime/ordivon-value-philosophy.md Why not a trading bot
 docs/governance/verification-signal-classification.md  Classify checker failures before acting
+docs/runbooks/newcomer-execution-flow.md  One safe command ladder for new humans and AI collaborators
 
 ── Extension & Governance Systems (NEW) ──
 docs/governance/extension-processes.md        How to extend Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired

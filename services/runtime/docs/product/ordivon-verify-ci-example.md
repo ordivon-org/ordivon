@@ -49,7 +49,7 @@ jobs:
       - name: Run Ordivon Verify
         id: verify
         run: |
-          uv run python scripts/ordivon_verify.py all --json > verify-report.json
+          uv run python scripts/ordivon_verify.py check . --json > verify-report.json
         continue-on-error: true
 
       - name: Check exit code

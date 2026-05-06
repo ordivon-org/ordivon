@@ -93,6 +93,16 @@ def test_standard_fixture_json_ready(monkeypatch, capsys):
     assert "does not authorize" in report["disclaimer"]
 
 
+def test_standard_fixture_check_target_json_ready(monkeypatch, capsys):
+    exit_code = main(["check", str(STD_FIXTURE), "--config", str(STD_CONFIG), "--json"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert report["root"] == str(STD_FIXTURE.resolve())
+    assert report["status"] == "READY"
+    assert len(report["hard_failures"]) == 0
+
+
 # ── Cross-fixture: bad remains BLOCKED ──────────────────────────────────
 
 

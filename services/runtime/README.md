@@ -111,6 +111,7 @@ For AI agents onboarding into this project, start here:
 | 1 | `docs/ai/agent-output-contract.md` — required output shape |
 | 1 | `docs/product/alpha-roadmap.md` — full Alpha roadmap + trust flywheel |
 | 1 | `docs/product/alpha-0-evidence-of-governed-work.md` — current external direction |
+| 1 | `docs/runbooks/newcomer-execution-flow.md` — safe command ladder for read-only Verify and baseline |
 | 2 | `docs/runtime/alpha-0-casebook.md` — governed work evidence |
 | 2 | `docs/architecture/ordivon-core-pack-adapter-ontology.md` — architecture |
 | 2 | `docs/architecture/ordivon-moat-and-product-identity.md` — what can't be lost |
