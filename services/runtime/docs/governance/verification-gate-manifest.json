@@ -4,9 +4,9 @@
   "version": "1.0",
   "status": "current",
   "authority": "derived_from_registry",
-  "gate_count": 36,
+  "gate_count": 37,
   "hard_count": 26,
-  "escalation_count": 10,
+  "escalation_count": 11,
   "gates": [
     {
       "gate_id": "external_source_registry",
@@ -40,6 +40,17 @@
       "may_be_removed_only_by": "Stage Summit with documented reason",
       "purpose": "Validate path-native ownership manifest coverage, reviewer/approver split, owner roles, staleness windows, and non-authorization wording",
       "protects_against": "Ownerless governance surfaces, stale owner records, reviewer/approver confusion, approval-language laundering"
+    },
+    {
+      "gate_id": "egb3_operating_governance",
+      "display_name": "EGB-3 Operating Governance",
+      "layer": "L10D",
+      "hardness": "escalation",
+      "command": "python -m ordivon_verify run egb3_operating_governance",
+      "expected_result_type": "checker_output",
+      "may_be_removed_only_by": "Stage Summit with documented reason",
+      "purpose": "Validate EGB-3 OEP lifecycle, freeze warning, trust-budget interpretation, shadow-first boundaries, and reviewer/approver/owner confusion fixtures",
+      "protects_against": "Operating governance laundering, shadow checker hard-gate confusion, ownerless approval, freeze authorization, trust-budget expansion after spent budget"
     },
     {
       "gate_id": "state_truth",

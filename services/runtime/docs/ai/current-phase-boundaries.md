@@ -31,7 +31,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
 | **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
 | **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
-| **DG-7** | **ACTIVE** | Checker Ecosystem Expansion — 36 checkers, entropy governance, maturity model, owner veto, extension processes |
+| **DG-7** | **ACTIVE** | Checker Ecosystem Expansion — 37 checkers, entropy governance, maturity model, owner veto, extension processes |
 | **EG-1** | **ACTIVE** | Entropy Governance — telemetry + gates (Lehman's Laws applied), PEP+RFC+KEP extension design |
 | **Post-DG-H1** | **CLOSED** | Fix VD-004 manifest test instability (shallow copy bug) |
 | **Post-DG-H2-R** | **CLOSED** | Close VD-001 by reclassification (tool_limitation + command_mismatch) |
@@ -188,7 +188,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 || `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 222 entries, DG-7 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 225 entries, DG-7 |
 || `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
 || `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
 || `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |

@@ -27,9 +27,14 @@ def test_collect_metrics_shape_is_stable():
         "checker_shadow_count",
         "rework_placeholder",
         "disclaimer",
+        "interpretation",
     }
     assert expected == set(metrics)
     assert "authorization" in metrics["disclaimer"]
+    assert metrics["interpretation"]["current_blocker_count"] == (
+        metrics["registry_drift_count"] + metrics["stale_source_count"]
+    )
+    assert "historical_sample_indicators" in metrics["interpretation"]
 
 
 def test_collect_metrics_handles_missing_optional_files(tmp_path, monkeypatch):
@@ -46,3 +51,4 @@ def test_collect_metrics_handles_missing_optional_files(tmp_path, monkeypatch):
     assert metrics["missing_evidence_count"] == 0
     assert metrics["open_debt_count"] == 0
     assert metrics["registry_drift_count"] == 0
+    assert metrics["interpretation"]["current_blocker_count"] == 0

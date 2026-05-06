@@ -103,7 +103,7 @@ def collect_metrics(reference_date: date | None = None) -> dict:
     missing_evidence_count = _count_receipt_pattern(r"\bmissing[_\s-]?evidence\b")
     degraded_count = _count_receipt_pattern(r"\bDEGRADED\b")
     blocked_count = _count_receipt_pattern(r"\bBLOCKED\b")
-    return {
+    metrics = {
         "missing_evidence_count": missing_evidence_count,
         "degraded_count": degraded_count,
         "blocked_count": blocked_count,
@@ -116,6 +116,33 @@ def collect_metrics(reference_date: date | None = None) -> dict:
             "Read-only diagnostic metrics. Evidence only; not merge, release, "
             "deployment, publication, trading, policy, or external-action authorization."
         ),
+    }
+    metrics["interpretation"] = interpret_metrics(metrics)
+    return metrics
+
+
+def interpret_metrics(metrics: dict) -> dict:
+    """Split raw trust-budget counters into operating categories.
+
+    The raw BLOCKED/DEGRADED counts are mostly historical receipt mentions and
+    preserved fixtures. Registry drift and stale external sources are current
+    blocker candidates because they describe live governance substrate health.
+    """
+    current_blockers = int(metrics.get("registry_drift_count", 0)) + int(metrics.get("stale_source_count", 0))
+    return {
+        "current_blocker_count": current_blockers,
+        "historical_sample_indicators": {
+            "blocked_mentions": int(metrics.get("blocked_count", 0)),
+            "degraded_mentions": int(metrics.get("degraded_count", 0)),
+            "missing_evidence_mentions": int(metrics.get("missing_evidence_count", 0)),
+        },
+        "diagnostic_debt_count": int(metrics.get("open_debt_count", 0)),
+        "shadow_surface_count": int(metrics.get("checker_shadow_count", 0)),
+        "notes": [
+            "blocked/degraded/missing-evidence counts are text evidence indicators, not a quality score",
+            "registry drift and stale source counts are current blocker candidates",
+            "shadow checker count indicates calibration surfaces, not hard-gate promotion",
+        ],
     }
 
 
@@ -133,6 +160,14 @@ def print_human(metrics: dict) -> None:
         "rework_placeholder",
     ]:
         print(f"{key:28s} {metrics[key]}")
+    interpretation = metrics.get("interpretation", {})
+    if interpretation:
+        print()
+        print("Interpretation")
+        print("-" * 40)
+        print(f"current_blocker_count       {interpretation.get('current_blocker_count', 0)}")
+        print(f"diagnostic_debt_count       {interpretation.get('diagnostic_debt_count', 0)}")
+        print(f"shadow_surface_count        {interpretation.get('shadow_surface_count', 0)}")
     print()
     print(metrics["disclaimer"])
 
