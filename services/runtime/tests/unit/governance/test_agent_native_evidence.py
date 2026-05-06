@@ -198,3 +198,41 @@ def test_harness_bundle_directory_validator():
     errors = checker.validate_harness_bundles(FIXTURES / "harness" / "invalid")
 
     assert len(errors) >= 5
+
+
+def test_valid_mcp_manifest_passes():
+    assert checker.validate_mcp_manifest(FIXTURES / "mcp" / "valid" / "bounded_manifest.json") == []
+
+
+def test_invalid_mcp_token_passthrough_fails():
+    errors = checker.validate_mcp_manifest(FIXTURES / "mcp" / "invalid" / "token_passthrough.json")
+
+    assert any("token passthrough" in e for e in errors)
+    assert any("read or refresh real tokens" in e for e in errors)
+
+
+def test_invalid_mcp_tool_authorization_fails():
+    errors = checker.validate_mcp_manifest(FIXTURES / "mcp" / "invalid" / "tool_authorization.json")
+
+    assert any("tool availability cannot authorize action" in e for e in errors)
+    assert any("availability is conflated with authorization" in e for e in errors)
+    assert any("external side effects require read_only=true" in e for e in errors)
+
+
+def test_invalid_mcp_audience_confusion_fails():
+    errors = checker.validate_mcp_manifest(FIXTURES / "mcp" / "invalid" / "audience_confusion.json")
+
+    assert any("resource and audience cannot be treated as equivalent" in e for e in errors)
+    assert any("audience does not match expected audience" in e for e in errors)
+
+
+def test_invalid_mcp_missing_confused_deputy_fails():
+    errors = checker.validate_mcp_manifest(FIXTURES / "mcp" / "invalid" / "missing_confused_deputy.json")
+
+    assert any("must name confused-deputy risk" in e for e in errors)
+
+
+def test_mcp_manifest_directory_validator():
+    errors = checker.validate_mcp_manifests(FIXTURES / "mcp" / "invalid")
+
+    assert len(errors) >= 5

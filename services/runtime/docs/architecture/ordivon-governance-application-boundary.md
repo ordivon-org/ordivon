@@ -15,7 +15,7 @@ relationships:
                     │                         │
            ┌────────▼────────┐    ┌───────────▼──────────┐
            │  GOVERNED LAYER  │    │   APPLICATION LAYER   │
-           │  (935 objects)   │    │   (726 files)         │
+           │  (940 objects)   │    │   (726 files)         │
            │                  │    │                       │
            │  Each file has:  │    │  No registration      │
            │  - registry entry│    │  No classification    │
@@ -28,7 +28,7 @@ relationships:
                                    └───────────────────────┘
 ```
 
-## Governed Layer (935 registry objects)
+## Governed Layer (940 registry objects)
 
 These are Ordivon Verify's **own infrastructure** — the files that make Ordivon
 Verify work. They are self-governed through the dogfood loop.
@@ -36,14 +36,14 @@ Verify work. They are self-governed through the dogfood loop.
 | Registry | Objects | What it governs |
 |----------|---------|-----------------|
 | `document-registry.jsonl` | 228 docs | Markdown/JSON/JSONL docs with `doc_layer` × `doc_authority` |
-| `artifact-registry.jsonl` | 669 entries | Code files (tests, scripts, domains, src) with `artifact_class` × `criticality` × `layer` |
+| `artifact-registry.jsonl` | 674 entries | Code files (tests, scripts, domains, src) with `artifact_class` × `criticality` × `layer` |
 | `checker_registry.py` | 38 checkers | Checker maturity with `hardness` × `profiles` × `maturity` |
 
 ### Governed directories
 
 ```
 docs/             228 files  →  document-registry.jsonl  (L0-L5 docs)
-tests/            430 files  →  artifact-registry.jsonl  (test files)
+tests/            435 files  →  artifact-registry.jsonl  (test files)
 scripts/           91 files  →  artifact-registry.jsonl  (build/CI scripts)
 domains/          107 files  →  artifact-registry.jsonl  (domain models)
 src/ordivon_verify/ 41 files →  artifact-registry.jsonl  (source code)

@@ -33,6 +33,15 @@ HARNESS_BUNDLE_REQUIRED_FIELDS = {
     "review_record",
     "execution_receipt",
 }
+MCP_MANIFEST_REQUIRED_FIELDS = {
+    "manifest_id",
+    "server_name",
+    "tools",
+    "resources",
+    "authorization",
+    "token_handling",
+    "audience",
+}
 ALLOWED_MEMORY_AUTHORITIES = {"source_of_truth", "supporting_evidence", "current_status", "candidate_rule", "policy"}
 CURRENT_PROJECT_SCOPE = "Ordivon"
 
@@ -473,6 +482,88 @@ def validate_harness_bundles(root: Path) -> list[str]:
     errors: list[str] = []
     for path in sorted(root.rglob("*.json")):
         errors.extend(validate_harness_bundle(path))
+    return errors
+
+
+def validate_mcp_manifest(path: Path) -> list[str]:
+    name = _path_label(path)
+    manifest, errors = _load_json(path)
+    if errors:
+        return errors
+
+    missing = sorted(field for field in MCP_MANIFEST_REQUIRED_FIELDS if field not in manifest)
+    for field_name in missing:
+        errors.append(f"{name}: missing MCP manifest field '{field_name}'")
+
+    tools = manifest.get("tools") if isinstance(manifest.get("tools"), list) else []
+    resources = manifest.get("resources") if isinstance(manifest.get("resources"), list) else []
+    auth = manifest.get("authorization") if isinstance(manifest.get("authorization"), dict) else {}
+    token = manifest.get("token_handling") if isinstance(manifest.get("token_handling"), dict) else {}
+    audience = manifest.get("audience") if isinstance(manifest.get("audience"), dict) else {}
+
+    if "tools" in manifest and not isinstance(manifest.get("tools"), list):
+        errors.append(f"{name}: tools must be array")
+    if "resources" in manifest and not isinstance(manifest.get("resources"), list):
+        errors.append(f"{name}: resources must be array")
+    if "authorization" in manifest and not isinstance(manifest.get("authorization"), dict):
+        errors.append(f"{name}: authorization must be object")
+    if "token_handling" in manifest and not isinstance(manifest.get("token_handling"), dict):
+        errors.append(f"{name}: token_handling must be object")
+    if "audience" in manifest and not isinstance(manifest.get("audience"), dict):
+        errors.append(f"{name}: audience must be object")
+
+    if token.get("passthrough") is True:
+        errors.append(f"{name}: token passthrough is not allowed in read-only import boundary")
+    if token.get("reads_real_tokens") is True or token.get("refreshes_tokens") is True:
+        errors.append(f"{name}: checker boundary cannot read or refresh real tokens")
+
+    if auth.get("tool_availability_authorizes_action") is True:
+        errors.append(f"{name}: tool availability cannot authorize action")
+    if auth.get("optional") is True and auth.get("boundary_note"):
+        note = str(auth.get("boundary_note", "")).lower()
+        if "not authorization" not in note and "does not authorize" not in note:
+            errors.append(f"{name}: optional authorization needs explicit non-authorization boundary")
+
+    if audience.get("resource_equals_audience") is True:
+        errors.append(f"{name}: resource and audience cannot be treated as equivalent")
+
+    if tools:
+        for idx, tool in enumerate(tools, 1):
+            if not isinstance(tool, dict):
+                errors.append(f"{name}: tools[{idx}] must be object")
+                continue
+            if tool.get("available") is True and tool.get("authorized") is True:
+                errors.append(f"{name}: tools[{idx}] availability is conflated with authorization")
+            if tool.get("external_side_effects") is True and tool.get("read_only") is not True:
+                errors.append(f"{name}: tools[{idx}] external side effects require read_only=true for import boundary")
+
+    if resources:
+        for idx, resource in enumerate(resources, 1):
+            if not isinstance(resource, dict):
+                errors.append(f"{name}: resources[{idx}] must be object")
+                continue
+            if resource.get("audience") and audience.get("expected") and resource.get("audience") != audience.get("expected"):
+                errors.append(f"{name}: resources[{idx}] audience does not match expected audience")
+
+    risk_notes = " ".join(str(item) for item in manifest.get("risk_notes", []))
+    risk_notes_lower = risk_notes.lower()
+    if "confused deputy" not in risk_notes_lower and "confused-deputy" not in risk_notes_lower:
+        errors.append(f"{name}: MCP boundary must name confused-deputy risk")
+
+    text = json.dumps(manifest, sort_keys=True)
+    for violation in detect_agent_evidence_violations(text):
+        if violation.startswith("mcp_"):
+            errors.append(f"{name}: unsafe MCP wording {violation}")
+
+    return errors
+
+
+def validate_mcp_manifests(root: Path) -> list[str]:
+    if not root.exists():
+        return []
+    errors: list[str] = []
+    for path in sorted(root.rglob("*.json")):
+        errors.extend(validate_mcp_manifest(path))
     return errors
 
 

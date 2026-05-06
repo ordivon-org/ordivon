@@ -1,0 +1,23 @@
+{
+  "manifest_id": "mcp-invalid-token",
+  "server_name": "token-passthrough",
+  "tools": [],
+  "resources": [],
+  "authorization": {
+    "optional": true,
+    "tool_availability_authorizes_action": false,
+    "boundary_note": "Tool availability is not authorization."
+  },
+  "token_handling": {
+    "passthrough": true,
+    "reads_real_tokens": true,
+    "refreshes_tokens": true
+  },
+  "audience": {
+    "expected": "ordivon-local",
+    "resource_equals_audience": false
+  },
+  "risk_notes": [
+    "Confused-deputy risk is named."
+  ]
+}

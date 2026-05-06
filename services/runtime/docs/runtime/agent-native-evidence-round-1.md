@@ -34,6 +34,9 @@ release, or external action.
   CandidateRule/Policy confusion.
 - Added P4D Harness Evidence Import fixture validation for traces,
   checkpoints, tool-call logs, review records, and execution receipts.
+- Added P4E MCP Boundary Review fixture validation for MCP-like manifests,
+  token handling, tool availability, audience/resource binding, and
+  confused-deputy risk notes.
 
 ## Red-Team Coverage
 
@@ -55,6 +58,9 @@ Round 1 covers:
 - checkpoint approval laundering, failed tool-call omission, human review node
   mismatch, trace-presence-as-truth, and execution receipt authorization
   laundering.
+- token passthrough, real token handling, tool availability authorization,
+  audience/resource confusion, external side-effect tool claims, and missing
+  confused-deputy risk notes.
 
 ## Boundary
 
@@ -69,12 +75,12 @@ Observed at closure:
 - `python checkers/agent-native-evidence/run.py`: PASS, 4 surfaces, 9 red-team
   cases, 1 repo skill file.
 - `uv run --with pytest python -m pytest tests/unit/governance/test_agent_native_evidence.py -q`:
-  32 passed.
+  38 passed.
 - `uv run python scripts/run_baseline.py --read-only`: READY, 26/26 hard gates
   passed, L10E escalation passed.
 - `uv run python scripts/check_document_registry.py`: PASS, 228 registered
   docs, 0 completeness violations.
-- `python scripts/check_artifact_registry.py`: PASS, 669 registered artifacts,
+- `python scripts/check_artifact_registry.py`: PASS, 674 registered artifacts,
   0 ungoverned.
 - `python checkers/current-truth/run.py`: PASS.
 
