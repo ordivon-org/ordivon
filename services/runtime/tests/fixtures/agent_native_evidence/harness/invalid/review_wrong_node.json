@@ -1,0 +1,28 @@
+{
+  "bundle_id": "harness-invalid-review-node",
+  "trace": {
+    "trace_id": "trace-review-node",
+    "presence_claims_truth": false,
+    "nodes": [{"node_id": "agent-step", "kind": "agent_step"}]
+  },
+  "checkpoint": {
+    "checkpoint_id": "ckpt-review-node",
+    "node_id": "agent-step",
+    "approval_claim": false,
+    "authorizes_action": false
+  },
+  "tool_calls": [],
+  "review_record": {
+    "review_id": "review-wrong-node",
+    "human_reviewed": true,
+    "reviewed_node_id": "missing-review-node",
+    "decision": "HOLD"
+  },
+  "execution_receipt": {
+    "receipt_id": "receipt-review-node",
+    "status": "DEGRADED",
+    "failed_tool_call_count": 0,
+    "authorization_claim": false,
+    "external_action_taken": false
+  }
+}

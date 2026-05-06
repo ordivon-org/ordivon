@@ -1,0 +1,28 @@
+{
+  "bundle_id": "harness-invalid-receipt-authorization",
+  "trace": {
+    "trace_id": "trace-receipt-auth",
+    "presence_claims_truth": false,
+    "nodes": [{"node_id": "review", "kind": "human_review"}]
+  },
+  "checkpoint": {
+    "checkpoint_id": "ckpt-receipt-auth",
+    "node_id": "review",
+    "approval_claim": false,
+    "authorizes_action": false
+  },
+  "tool_calls": [],
+  "review_record": {
+    "review_id": "review-receipt-auth",
+    "human_reviewed": true,
+    "reviewed_node_id": "review",
+    "decision": "READY"
+  },
+  "execution_receipt": {
+    "receipt_id": "receipt-auth",
+    "status": "READY",
+    "failed_tool_call_count": 0,
+    "authorization_claim": true,
+    "external_action_taken": true
+  }
+}

@@ -32,6 +32,8 @@ release, or external action.
 - Added P4C Memory / Content Hygiene fixture validation for source receipt,
   freshness, project scope, authority, evidence status laundering, and
   CandidateRule/Policy confusion.
+- Added P4D Harness Evidence Import fixture validation for traces,
+  checkpoints, tool-call logs, review records, and execution receipts.
 
 ## Red-Team Coverage
 
@@ -50,6 +52,9 @@ Round 1 covers:
   patterns.
 - missing source receipts, stale current truth, silent cross-project memory,
   DEGRADED/BLOCKED laundering, and CandidateRule-as-Policy memory records.
+- checkpoint approval laundering, failed tool-call omission, human review node
+  mismatch, trace-presence-as-truth, and execution receipt authorization
+  laundering.
 
 ## Boundary
 
@@ -64,12 +69,12 @@ Observed at closure:
 - `python checkers/agent-native-evidence/run.py`: PASS, 4 surfaces, 9 red-team
   cases, 1 repo skill file.
 - `uv run --with pytest python -m pytest tests/unit/governance/test_agent_native_evidence.py -q`:
-  25 passed.
+  32 passed.
 - `uv run python scripts/run_baseline.py --read-only`: READY, 26/26 hard gates
   passed, L10E escalation passed.
 - `uv run python scripts/check_document_registry.py`: PASS, 228 registered
   docs, 0 completeness violations.
-- `python scripts/check_artifact_registry.py`: PASS, 663 registered artifacts,
+- `python scripts/check_artifact_registry.py`: PASS, 669 registered artifacts,
   0 ungoverned.
 - `python checkers/current-truth/run.py`: PASS.
 

@@ -1,0 +1,30 @@
+{
+  "bundle_id": "harness-invalid-failed-tool-omitted",
+  "trace": {
+    "trace_id": "trace-missing-failure",
+    "presence_claims_truth": false,
+    "nodes": [{"node_id": "review", "kind": "human_review"}]
+  },
+  "checkpoint": {
+    "checkpoint_id": "ckpt-missing-failure",
+    "node_id": "review",
+    "approval_claim": false,
+    "authorizes_action": false
+  },
+  "tool_calls": [
+    {"call_id": "call-pass", "tool": "pytest", "status": "passed"}
+  ],
+  "review_record": {
+    "review_id": "review-missing-failure",
+    "human_reviewed": true,
+    "reviewed_node_id": "review",
+    "decision": "HOLD"
+  },
+  "execution_receipt": {
+    "receipt_id": "receipt-missing-failure",
+    "status": "DEGRADED",
+    "failed_tool_call_count": 1,
+    "authorization_claim": false,
+    "external_action_taken": false
+  }
+}

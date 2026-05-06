@@ -156,3 +156,45 @@ def test_memory_record_directory_validator():
     errors = checker.validate_memory_records(FIXTURES / "memory" / "invalid")
 
     assert len(errors) >= 5
+
+
+def test_valid_harness_fixture_passes():
+    assert checker.validate_harness_bundle(FIXTURES / "harness" / "valid" / "complete_trace.json") == []
+
+
+def test_invalid_harness_checkpoint_approval_fails():
+    errors = checker.validate_harness_bundle(FIXTURES / "harness" / "invalid" / "checkpoint_approval.json")
+
+    assert any("checkpoint cannot claim approval" in e for e in errors)
+
+
+def test_invalid_harness_failed_tool_omitted_fails():
+    errors = checker.validate_harness_bundle(FIXTURES / "harness" / "invalid" / "failed_tool_omitted.json")
+
+    assert any("omits failed tool call evidence" in e for e in errors)
+    assert any("evidence count is lower than receipt count" in e for e in errors)
+
+
+def test_invalid_harness_review_wrong_node_fails():
+    errors = checker.validate_harness_bundle(FIXTURES / "harness" / "invalid" / "review_wrong_node.json")
+
+    assert any("unknown trace node" in e for e in errors)
+
+
+def test_invalid_harness_trace_truth_fails():
+    errors = checker.validate_harness_bundle(FIXTURES / "harness" / "invalid" / "trace_truth.json")
+
+    assert any("trace presence cannot be imported as truth" in e for e in errors)
+
+
+def test_invalid_harness_receipt_authorization_fails():
+    errors = checker.validate_harness_bundle(FIXTURES / "harness" / "invalid" / "receipt_authorization.json")
+
+    assert any("execution receipt cannot claim authorization" in e for e in errors)
+    assert any("READY receipt cannot imply external action" in e for e in errors)
+
+
+def test_harness_bundle_directory_validator():
+    errors = checker.validate_harness_bundles(FIXTURES / "harness" / "invalid")
+
+    assert len(errors) >= 5

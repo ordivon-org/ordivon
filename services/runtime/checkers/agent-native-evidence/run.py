@@ -25,6 +25,14 @@ MEMORY_RECORD_REQUIRED_FIELDS = {
     "authority",
     "claim",
 }
+HARNESS_BUNDLE_REQUIRED_FIELDS = {
+    "bundle_id",
+    "trace",
+    "checkpoint",
+    "tool_calls",
+    "review_record",
+    "execution_receipt",
+}
 ALLOWED_MEMORY_AUTHORITIES = {"source_of_truth", "supporting_evidence", "current_status", "candidate_rule", "policy"}
 CURRENT_PROJECT_SCOPE = "Ordivon"
 
@@ -390,6 +398,81 @@ def validate_memory_records(root: Path) -> list[str]:
     errors: list[str] = []
     for path in sorted(root.rglob("*.json")):
         errors.extend(validate_memory_record(path))
+    return errors
+
+
+def validate_harness_bundle(path: Path) -> list[str]:
+    name = _path_label(path)
+    bundle, errors = _load_json(path)
+    if errors:
+        return errors
+
+    missing = sorted(field for field in HARNESS_BUNDLE_REQUIRED_FIELDS if field not in bundle)
+    for field_name in missing:
+        errors.append(f"{name}: missing harness field '{field_name}'")
+
+    trace = bundle.get("trace") if isinstance(bundle.get("trace"), dict) else {}
+    checkpoint = bundle.get("checkpoint") if isinstance(bundle.get("checkpoint"), dict) else {}
+    tool_calls = bundle.get("tool_calls") if isinstance(bundle.get("tool_calls"), list) else []
+    review = bundle.get("review_record") if isinstance(bundle.get("review_record"), dict) else {}
+    receipt = bundle.get("execution_receipt") if isinstance(bundle.get("execution_receipt"), dict) else {}
+
+    if "trace" in bundle and not isinstance(bundle.get("trace"), dict):
+        errors.append(f"{name}: trace must be object")
+    if "checkpoint" in bundle and not isinstance(bundle.get("checkpoint"), dict):
+        errors.append(f"{name}: checkpoint must be object")
+    if "tool_calls" in bundle and not isinstance(bundle.get("tool_calls"), list):
+        errors.append(f"{name}: tool_calls must be array")
+    if "review_record" in bundle and not isinstance(bundle.get("review_record"), dict):
+        errors.append(f"{name}: review_record must be object")
+    if "execution_receipt" in bundle and not isinstance(bundle.get("execution_receipt"), dict):
+        errors.append(f"{name}: execution_receipt must be object")
+
+    trace_nodes = trace.get("nodes", [])
+    if not isinstance(trace_nodes, list):
+        errors.append(f"{name}: trace.nodes must be array")
+        trace_nodes = []
+    node_ids = {str(node.get("node_id", "")) for node in trace_nodes if isinstance(node, dict)}
+
+    if trace.get("presence_claims_truth") is True:
+        errors.append(f"{name}: trace presence cannot be imported as truth")
+
+    if checkpoint.get("approval_claim") is True or checkpoint.get("authorizes_action") is True:
+        errors.append(f"{name}: checkpoint cannot claim approval or action authorization")
+
+    reviewed_node = str(review.get("reviewed_node_id", ""))
+    if review.get("human_reviewed") is not True:
+        errors.append(f"{name}: human review must be explicit")
+    if reviewed_node and reviewed_node not in node_ids:
+        errors.append(f"{name}: human review references unknown trace node '{reviewed_node}'")
+
+    failed_calls = [call for call in tool_calls if isinstance(call, dict) and str(call.get("status", "")).lower() == "failed"]
+    expected_failed = receipt.get("failed_tool_call_count", 0)
+    try:
+        expected_failed_int = int(expected_failed)
+    except (TypeError, ValueError):
+        expected_failed_int = 0
+        errors.append(f"{name}: failed_tool_call_count must be integer")
+    if expected_failed_int > 0 and not failed_calls:
+        errors.append(f"{name}: execution receipt reports failed tool calls but trace omits failed tool call evidence")
+    if len(failed_calls) < expected_failed_int:
+        errors.append(f"{name}: failed tool call evidence count is lower than receipt count")
+
+    if receipt.get("authorization_claim") is True:
+        errors.append(f"{name}: execution receipt cannot claim authorization")
+    status = str(receipt.get("status", "")).upper()
+    if status == "READY" and receipt.get("external_action_taken") is True:
+        errors.append(f"{name}: READY receipt cannot imply external action was authorized or taken")
+
+    return errors
+
+
+def validate_harness_bundles(root: Path) -> list[str]:
+    if not root.exists():
+        return []
+    errors: list[str] = []
+    for path in sorted(root.rglob("*.json")):
+        errors.extend(validate_harness_bundle(path))
     return errors
 
 
