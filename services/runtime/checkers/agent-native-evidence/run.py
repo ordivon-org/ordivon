@@ -16,6 +16,17 @@ ROOT = Path(__file__).resolve().parents[2]
 PLAN_DOC = ROOT / "docs" / "governance" / "agent-native-evidence-surfaces-2026.md"
 REDTEAM_LEDGER = ROOT / "docs" / "governance" / "agent-native-evidence-redteam.jsonl"
 SKILLS_DIR = ROOT / "skills"
+MEMORY_RECORD_REQUIRED_FIELDS = {
+    "record_id",
+    "project_scope",
+    "source_receipt",
+    "last_verified",
+    "stale_after_days",
+    "authority",
+    "claim",
+}
+ALLOWED_MEMORY_AUTHORITIES = {"source_of_truth", "supporting_evidence", "current_status", "candidate_rule", "policy"}
+CURRENT_PROJECT_SCOPE = "Ordivon"
 
 REQUIRED_DOC_PHRASES = [
     "Ordivon should verify",
@@ -298,6 +309,87 @@ def validate_skills(root: Path = SKILLS_DIR) -> list[str]:
     errors: list[str] = []
     for path in sorted(root.rglob("SKILL.md")):
         errors.extend(validate_skill_file(path))
+    return errors
+
+
+def _load_json(path: Path) -> tuple[dict, list[str]]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {}, [f"{path.relative_to(ROOT)}: invalid JSON: {exc}"]
+    if not isinstance(value, dict):
+        return {}, [f"{path.relative_to(ROOT)}: JSON root must be object"]
+    return value, []
+
+
+def _path_label(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def validate_memory_record(path: Path, reference_year: int = 2026) -> list[str]:
+    name = _path_label(path)
+    record, errors = _load_json(path)
+    if errors:
+        return errors
+
+    missing = sorted(field for field in MEMORY_RECORD_REQUIRED_FIELDS if field not in record)
+    for field_name in missing:
+        errors.append(f"{name}: missing memory field '{field_name}'")
+
+    source_receipt = str(record.get("source_receipt", "")).strip()
+    if not source_receipt:
+        errors.append(f"{name}: missing source_receipt")
+    elif not (ROOT / source_receipt).exists():
+        errors.append(f"{name}: source_receipt does not exist: {source_receipt}")
+
+    project_scope = str(record.get("project_scope", "")).strip()
+    if project_scope and project_scope != CURRENT_PROJECT_SCOPE:
+        errors.append(f"{name}: cross-project memory scope '{project_scope}' cannot be imported silently")
+
+    authority = str(record.get("authority", "")).strip()
+    if authority and authority not in ALLOWED_MEMORY_AUTHORITIES:
+        errors.append(f"{name}: invalid authority '{authority}'")
+
+    try:
+        stale_after_days = int(record.get("stale_after_days", 0))
+    except (TypeError, ValueError):
+        stale_after_days = 0
+    if stale_after_days <= 0:
+        errors.append(f"{name}: stale_after_days must be positive")
+
+    last_verified = str(record.get("last_verified", ""))
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", last_verified):
+        errors.append(f"{name}: last_verified must be YYYY-MM-DD")
+    elif last_verified[:4].isdigit() and int(last_verified[:4]) < reference_year and authority in {
+        "source_of_truth",
+        "current_status",
+    }:
+        errors.append(f"{name}: stale memory cannot be cited as current authority")
+
+    claim = str(record.get("claim", ""))
+    claim_lower = claim.lower()
+    evidence_status = str(record.get("evidence_status", "")).upper()
+    if evidence_status in {"DEGRADED", "BLOCKED"} and re.search(r"\b(clean|passed|ready|approved|current truth)\b", claim_lower):
+        errors.append(f"{name}: {evidence_status} evidence is rewritten as clean/current fact")
+
+    object_type = str(record.get("object_type", ""))
+    if object_type == "CandidateRule" and authority == "policy":
+        errors.append(f"{name}: CandidateRule cannot be imported as Policy")
+    if "CandidateRule is Policy" in claim:
+        errors.append(f"{name}: CandidateRule/Policy authority confusion")
+
+    return errors
+
+
+def validate_memory_records(root: Path) -> list[str]:
+    if not root.exists():
+        return []
+    errors: list[str] = []
+    for path in sorted(root.rglob("*.json")):
+        errors.extend(validate_memory_record(path))
     return errors
 
 

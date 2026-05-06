@@ -29,6 +29,9 @@ release, or external action.
 - Added P4B Skill Safety fixture validation for `SKILL.md` frontmatter,
   `allowed-tools`, credential language, authorization laundering, and missing
   local references.
+- Added P4C Memory / Content Hygiene fixture validation for source receipt,
+  freshness, project scope, authority, evidence status laundering, and
+  CandidateRule/Policy confusion.
 
 ## Red-Team Coverage
 
@@ -45,6 +48,8 @@ Round 1 covers:
 - tool availability treated as authorization.
 - unsafe Skill frontmatter, credential, allowed-tools, and local reference
   patterns.
+- missing source receipts, stale current truth, silent cross-project memory,
+  DEGRADED/BLOCKED laundering, and CandidateRule-as-Policy memory records.
 
 ## Boundary
 
@@ -59,12 +64,12 @@ Observed at closure:
 - `python checkers/agent-native-evidence/run.py`: PASS, 4 surfaces, 9 red-team
   cases, 1 repo skill file.
 - `uv run --with pytest python -m pytest tests/unit/governance/test_agent_native_evidence.py -q`:
-  18 passed.
+  25 passed.
 - `uv run python scripts/run_baseline.py --read-only`: READY, 26/26 hard gates
   passed, L10E escalation passed.
 - `uv run python scripts/check_document_registry.py`: PASS, 228 registered
   docs, 0 completeness violations.
-- `python scripts/check_artifact_registry.py`: PASS, 657 registered artifacts,
+- `python scripts/check_artifact_registry.py`: PASS, 663 registered artifacts,
   0 ungoverned.
 - `python checkers/current-truth/run.py`: PASS.
 

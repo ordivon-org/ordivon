@@ -115,3 +115,44 @@ def test_invalid_skill_missing_reference_fails():
 
 def test_repo_skills_pass():
     assert checker.validate_skills(ROOT / "skills") == []
+
+
+def test_valid_memory_fixture_passes():
+    assert checker.validate_memory_record(FIXTURES / "memory" / "valid" / "fresh_sourced.json") == []
+
+
+def test_invalid_memory_missing_source_fails():
+    errors = checker.validate_memory_record(FIXTURES / "memory" / "invalid" / "missing_source.json")
+
+    assert any("missing memory field 'source_receipt'" in e or "missing source_receipt" in e for e in errors)
+
+
+def test_invalid_memory_stale_current_truth_fails():
+    errors = checker.validate_memory_record(FIXTURES / "memory" / "invalid" / "stale_current_truth.json")
+
+    assert any("stale memory cannot be cited as current authority" in e for e in errors)
+
+
+def test_invalid_memory_cross_project_fails():
+    errors = checker.validate_memory_record(FIXTURES / "memory" / "invalid" / "cross_project.json")
+
+    assert any("cross-project memory scope" in e for e in errors)
+
+
+def test_invalid_memory_signal_laundering_fails():
+    errors = checker.validate_memory_record(FIXTURES / "memory" / "invalid" / "signal_laundering.json")
+
+    assert any("DEGRADED evidence is rewritten" in e for e in errors)
+
+
+def test_invalid_memory_candidate_rule_policy_fails():
+    errors = checker.validate_memory_record(FIXTURES / "memory" / "invalid" / "candidate_rule_policy.json")
+
+    assert any("CandidateRule cannot be imported as Policy" in e for e in errors)
+    assert any("CandidateRule/Policy authority confusion" in e for e in errors)
+
+
+def test_memory_record_directory_validator():
+    errors = checker.validate_memory_records(FIXTURES / "memory" / "invalid")
+
+    assert len(errors) >= 5

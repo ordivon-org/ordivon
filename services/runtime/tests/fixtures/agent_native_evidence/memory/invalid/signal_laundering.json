@@ -1,0 +1,11 @@
+{
+  "record_id": "mem-invalid-signal-laundering",
+  "project_scope": "Ordivon",
+  "source_receipt": "docs/runtime/agent-native-evidence-round-1.md",
+  "last_verified": "2026-05-06",
+  "stale_after_days": 30,
+  "authority": "current_status",
+  "object_type": "MemoryRecord",
+  "evidence_status": "DEGRADED",
+  "claim": "The degraded evidence is now clean and ready."
+}

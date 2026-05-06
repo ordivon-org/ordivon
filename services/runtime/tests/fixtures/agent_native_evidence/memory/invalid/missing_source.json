@@ -1,0 +1,10 @@
+{
+  "record_id": "mem-invalid-missing-source",
+  "project_scope": "Ordivon",
+  "last_verified": "2026-05-06",
+  "stale_after_days": 30,
+  "authority": "supporting_evidence",
+  "object_type": "MemoryRecord",
+  "evidence_status": "READY",
+  "claim": "This memory lacks source receipt evidence."
+}

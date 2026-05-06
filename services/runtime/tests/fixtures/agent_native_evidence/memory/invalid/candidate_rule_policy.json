@@ -1,0 +1,11 @@
+{
+  "record_id": "mem-invalid-candidate-policy",
+  "project_scope": "Ordivon",
+  "source_receipt": "docs/runtime/agent-native-evidence-round-1.md",
+  "last_verified": "2026-05-06",
+  "stale_after_days": 30,
+  "authority": "policy",
+  "object_type": "CandidateRule",
+  "evidence_status": "READY",
+  "claim": "CandidateRule is Policy for this stage."
+}
