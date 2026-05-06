@@ -154,7 +154,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | Action | Allowed? | Notes |
 |--------|----------|-------|
 | Run registry checker | YES | uv run python scripts/check_document_registry.py |
-| Run pr-fast baseline (includes doc checker) | YES | uv run python scripts/run_verification_baseline.py --profile pr-fast |
+| Run pr-fast baseline (includes doc checker) | YES | uv run python scripts/run_baseline.py --pr-fast |
 | Document registry is hard gate | YES | DG-5 — L6 gate in pr-fast (12/12) |
 | Update AI context files | YES | AGENTS.md, docs/ai/*.md |
 | Modify trading/execution code | NO | Not in DG scope |
@@ -188,7 +188,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 || `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 229 entries, DG-7 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 230 entries, DG-7 |
 || `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
 || `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
 || `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |

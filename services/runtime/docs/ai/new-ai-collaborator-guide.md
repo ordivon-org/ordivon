@@ -77,7 +77,9 @@ When you receive a phase prompt:
 ```bash
 # ── Primary verification ──────────────────────────
 uv run python scripts/run_baseline.py --pr-fast     # PR gate (12 checkers)
-uv run python scripts/run_baseline.py               # Full baseline (38 checkers)
+uv run python scripts/run_baseline.py --read-only   # Read-only baseline (35 checks, no JSONL writes)
+uv run python scripts/run_baseline.py               # Full baseline (38 checks, writes telemetry/shadow ledgers)
+uv run python scripts/ordivon_verify.py check .     # Product trust audit entry (read-only)
 uv run python -m ordivon_verify run <gate_id>        # Single gate
 
 # ── Run tests ─────────────────────────────────────
@@ -135,8 +137,8 @@ Every receipt must answer:
 ## Current Systems (2026-05-05)
 
 ```
-Checker ecosystem: 38 checkers, L3-L10, pr-fast 12/12, full 38/38 ALL PASS (26 hard + 12 escalation)
-Document governance: 229 registered docs, 0 stale, 0 missing freshness
+Checker ecosystem: 38 checkers, L3-L10, pr-fast 12/12, full 38/38 ALL PASS (26 hard + 12 escalation), read-only Verify 35/35 PASS
+Document governance: 230 registered docs, 0 stale, 0 missing freshness
 Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
 Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed
 Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion
@@ -156,14 +158,14 @@ docs/ai/current-phase-boundaries.md          ← Phase timeline + boundaries
 docs/ai/agent-output-contract.md             ← Required output format
 docs/governance/extension-processes.md       ← How to extend any layer
 docs/governance/entropy-governance-design.md  ← Anti-entropy system
-docs/governance/document-registry.jsonl      ← 197 registered documents
+docs/governance/document-registry.jsonl      ← 229 registered documents
 docs/governance/entropy-telemetry.jsonl      ← Entropy metrics
 docs/governance/candidate-rule-drafts.jsonl  ← CandidateRule proposals
 docs/governance/shadow-evaluation-log.jsonl  ← Shadow evaluation results
 docs/governance/lesson-ledger.jsonl          ← Lessons from findings
 docs/governance/verification-debt-ledger.jsonl ← Known debt
-checkers/                                    ← 36 checker packages
-src/ordivon_verify/                          ← Registry + runner
+checkers/                                    ← 38 checker packages
+src/ordivon_verify/                          ← Verify package + registry + runner
 domains/                                     ← Domain models
 scripts/run_baseline.py                      ← Primary verification entry
 ```

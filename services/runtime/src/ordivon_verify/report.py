@@ -12,9 +12,20 @@ DISCLAIMER = (
 
 _CHECK_SURFACES = {
     "receipts": ["claims", "receipts", "tests", "diff", "review"],
+    "receipt_integrity": ["claims", "receipts", "tests", "diff", "review"],
     "debt": ["debt"],
+    "verification_debt": ["debt"],
     "gates": ["gates"],
+    "gate_manifest": ["gates"],
     "docs": ["docs"],
+    "document_registry": ["docs"],
+    "document_freshness": ["docs"],
+    "current_truth": ["docs"],
+    "agent_native_evidence": ["claims", "receipts", "tests", "diff", "docs", "gates", "review"],
+    "egb3_operating_governance": ["claims", "docs", "gates", "review"],
+    "oep_governance": ["claims", "docs", "review"],
+    "ownership_manifest": ["docs", "gates", "review"],
+    "external_source_registry": ["docs"],
 }
 
 

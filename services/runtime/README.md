@@ -98,7 +98,7 @@ See: `docs/runtime/legacy-identity-hygiene-pv-n2h.md`
 | Alpha-0 (Evidence of Governed Work) | ACTIVE |
 | Phase 8 (Live Trading) | DEFERRED |
 
-**pr-fast:** 12/12 PASS. **Registered debt:** 0 open.
+**pr-fast:** 12/12 PASS. **Registered debt:** 3 open diagnostic items.
 
 ## Key Documents
 

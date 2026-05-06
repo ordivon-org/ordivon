@@ -21,7 +21,7 @@ from ordivon_verify import (
 )
 
 from ordivon_verify.config import is_ordivon_native
-from ordivon_verify.runner import ALL_CHECKS, _ensure_all_checks
+from ordivon_verify.runner import _ensure_all_checks, _get_readonly_gate_ids
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "ordivon_verify_external_repo"
 
@@ -270,14 +270,14 @@ def test_main_native_still_works(monkeypatch, capsys):
 
 
 def test_main_native_json_still_works(monkeypatch, capsys):
-    """Native JSON output still works."""
+    """Native JSON output uses the read-only Verify checker set."""
     _ensure_all_checks()
     exit_code = main(["all", "--json"])
     assert exit_code == 0
     captured = capsys.readouterr()
     report = json.loads(captured.out)
     assert report["status"] == "READY"
-    assert len(report["checks"]) == len(ALL_CHECKS)
+    assert len(report["checks"]) == len(_get_readonly_gate_ids())
 
 
 def test_main_root_not_found():

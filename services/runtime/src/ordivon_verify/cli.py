@@ -12,6 +12,7 @@ from ordivon_verify.report import build_report, determine_status, print_human, s
 from ordivon_verify.runner import (
     _ensure_all_checks,
     _get_all_gate_ids,
+    _get_readonly_gate_ids,
     ALL_CHECKS,
     _get_entry,
 )
@@ -51,8 +52,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="ordivon-verify", description="Ordivon Verify — local read-only verification CLI"
     )
     sub = parser.add_subparsers(dest="command", title="commands")
-    sub.add_parser("all", help="Run all checks (receipts + debt + gates + docs)")
-    check_parser = sub.add_parser("check", help="Run all checks against a target root")
+    sub.add_parser("all", help="Run read-only checks (receipts + debt + gates + docs)")
+    check_parser = sub.add_parser("check", help="Run read-only checks against a target root")
     check_parser.add_argument("target", nargs="?", help="Project root to verify")
     run_parser = sub.add_parser("run", help="Run a specific checker by gate_id")
     run_parser.add_argument("gate_id", help="Checker gate_id (e.g. receipt_integrity)")
@@ -115,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if command in ("all", "check"):
         _ensure_all_checks()
-        check_ids = list(ALL_CHECKS)
+        check_ids = _get_readonly_gate_ids()
     elif command == "run":
         gate_id = getattr(args, "gate_id", None)
         if not gate_id:

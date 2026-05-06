@@ -19,7 +19,7 @@ from ordivon_verify import (
     parse_args,
     main,
 )
-from ordivon_verify.runner import CHECKER_SCRIPTS, ALL_CHECKS
+from ordivon_verify.runner import CHECKER_SCRIPTS, ALL_CHECKS, _get_readonly_gate_ids
 
 
 # ── Unit: status_to_exit_code ────────────────────────────────────────────
@@ -337,7 +337,7 @@ def test_main_docs_command(monkeypatch):
 
 
 def test_main_default_maps_to_all(monkeypatch):
-    """main([]) — no args — defaults to 'all' and runs all checks."""
+    """main([]) defaults to read-only Verify checks."""
     calls = []
 
     def track_run(check_id: str) -> dict:
@@ -347,11 +347,11 @@ def test_main_default_maps_to_all(monkeypatch):
     monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main([])
     assert exit_code == 0
-    assert calls == ALL_CHECKS
+    assert calls == _get_readonly_gate_ids()
 
 
 def test_main_check_alias_maps_to_all(monkeypatch):
-    """main(['check']) runs the same checker set as 'all'."""
+    """main(['check']) runs the read-only checker set."""
     calls = []
 
     def track_run(check_id: str) -> dict:
@@ -361,7 +361,23 @@ def test_main_check_alias_maps_to_all(monkeypatch):
     monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
     exit_code = main(["check"])
     assert exit_code == 0
-    assert calls == ALL_CHECKS
+    assert calls == _get_readonly_gate_ids()
+
+
+def test_main_all_skips_side_effect_checkers(monkeypatch):
+    """The public Verify entrypoint must not run state-updating checkers."""
+    calls = []
+
+    def track_run(check_id: str) -> dict:
+        calls.append(check_id)
+        return _mock_run_pass(check_id)
+
+    monkeypatch.setattr("ordivon_verify.runner.run_check", track_run)
+    exit_code = main(["all"])
+    assert exit_code == 0
+    assert "entropy_telemetry" not in calls
+    assert "lesson_extraction" not in calls
+    assert "policy_shadow" not in calls
 
 
 def test_main_json_output_all_pass(monkeypatch, capsys):
@@ -375,7 +391,7 @@ def test_main_json_output_all_pass(monkeypatch, capsys):
     assert report["status"] == "READY"
     assert report["trust_signal"] == "READY_WITHOUT_AUTHORIZATION"
     assert report["mode"] in ("all", "standard")  # auto-detects Ordivon-native
-    assert len(report["checks"]) == len(ALL_CHECKS)
+    assert len(report["checks"]) == len(_get_readonly_gate_ids())
     assert "surfaces" in report
     assert "claims" in report["surfaces"]
     assert report["hard_failures"] == []
@@ -512,6 +528,29 @@ def test_standard_mode_without_receipt_paths_blocks(tmp_path, capsys):
     assert report["status"] == "BLOCKED"
     assert any(item["check"] == "receipts" for item in report["missing_evidence"])
     assert report["surfaces"]["receipts"]["status"] == "FAIL"
+
+
+def test_native_checker_ids_map_to_public_trust_surfaces():
+    report = build_report(
+        [
+            _mock_run_pass("receipt_integrity"),
+            _mock_run_pass("verification_debt"),
+            _mock_run_pass("gate_manifest"),
+            _mock_run_pass("document_registry"),
+        ],
+        "standard",
+        "/tmp/repo",
+        None,
+    )
+
+    assert report["surfaces"]["claims"]["status"] == "PASS"
+    assert report["surfaces"]["receipts"]["status"] == "PASS"
+    assert report["surfaces"]["tests"]["status"] == "PASS"
+    assert report["surfaces"]["diff"]["status"] == "PASS"
+    assert report["surfaces"]["review"]["status"] == "PASS"
+    assert report["surfaces"]["debt"]["status"] == "PASS"
+    assert report["surfaces"]["gates"]["status"] == "PASS"
+    assert report["surfaces"]["docs"]["status"] == "PASS"
 
 
 # ── Verify CHECKER_SCRIPTS paths exist ────────────────────────────────────

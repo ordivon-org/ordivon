@@ -57,6 +57,11 @@ def _get_all_gate_ids() -> list[str]:
     return sorted(_load_registry().keys())
 
 
+def _get_readonly_gate_ids() -> list[str]:
+    """Return gate ids safe for the public read-only Verify entrypoint."""
+    return sorted(gate_id for gate_id, entry in _load_registry().items() if not entry.side_effects)
+
+
 # ── Compatibility: expose gate_id-based interface for CLI ────────────
 
 ALL_CHECKS: list[str] = []  # populated lazily
