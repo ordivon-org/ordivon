@@ -81,3 +81,37 @@ def test_mismatched_redteam_ledger_fails():
 
 def test_plan_document_passes():
     assert checker.validate_plan_document() == []
+
+
+def test_valid_skill_fixtures_pass():
+    for path in sorted((FIXTURES / "skills" / "valid").rglob("SKILL.md")):
+        assert checker.validate_skill_file(path) == []
+
+
+def test_invalid_skill_credential_fails():
+    errors = checker.validate_skill_file(FIXTURES / "skills" / "invalid" / "credential" / "SKILL.md")
+
+    assert any("credential/token" in e for e in errors)
+
+
+def test_invalid_skill_authorization_fails():
+    errors = checker.validate_skill_file(FIXTURES / "skills" / "invalid" / "authorization" / "SKILL.md")
+
+    assert any("skill_permission_laundering" in e for e in errors)
+
+
+def test_invalid_skill_missing_frontmatter_fails():
+    errors = checker.validate_skill_file(FIXTURES / "skills" / "invalid" / "missing_frontmatter" / "SKILL.md")
+
+    assert any("missing YAML frontmatter" in e for e in errors)
+    assert any("missing frontmatter field 'name'" in e for e in errors)
+
+
+def test_invalid_skill_missing_reference_fails():
+    errors = checker.validate_skill_file(FIXTURES / "skills" / "invalid" / "missing_reference" / "SKILL.md")
+
+    assert any("referenced file does not exist" in e for e in errors)
+
+
+def test_repo_skills_pass():
+    assert checker.validate_skills(ROOT / "skills") == []

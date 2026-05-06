@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PLAN_DOC = ROOT / "docs" / "governance" / "agent-native-evidence-surfaces-2026.md"
 REDTEAM_LEDGER = ROOT / "docs" / "governance" / "agent-native-evidence-redteam.jsonl"
+SKILLS_DIR = ROOT / "skills"
 
 REQUIRED_DOC_PHRASES = [
     "Ordivon should verify",
@@ -92,6 +93,22 @@ VIOLATION_PATTERNS: dict[str, list[re.Pattern[str]]] = {
         ),
     ],
 }
+
+SKILL_CREDENTIAL_PATTERN = re.compile(
+    r"\b(?:ask|asks|request|requests|collect|read|export|print|store|paste|provide)\b.{0,100}\b(?:api[_\s-]?key|token|secret|password|credential)\b",
+    re.IGNORECASE,
+)
+SKILL_DANGEROUS_ALLOWED_TOOLS = {
+    "bash",
+    "shell",
+    "network",
+    "web",
+    "write",
+    "edit",
+    "filesystem",
+    "mcp",
+}
+SKILL_PATH_REF_PATTERN = re.compile(r"\b(?:scripts|tools|resources|templates)/[A-Za-z0-9_./-]+")
 
 
 @dataclass(frozen=True)
@@ -196,14 +213,105 @@ def validate_redteam_ledger(path: Path = REDTEAM_LEDGER) -> list[str]:
     return errors
 
 
+def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
+    if not text.startswith("---\n"):
+        return {}, text
+    end = text.find("\n---\n", 4)
+    if end == -1:
+        return {}, text
+    raw = text[4:end]
+    body = text[end + 5 :]
+    data: dict[str, str] = {}
+    for line in raw.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        data[key.strip()] = value.strip().strip("'\"")
+    return data, body
+
+
+def _line_is_safe(line: str) -> bool:
+    return bool(SAFE_CONTEXT.search(line))
+
+
+def _split_allowed_tools(raw: str) -> set[str]:
+    value = raw.strip()
+    if value.startswith("[") and value.endswith("]"):
+        value = value[1:-1]
+    parts = re.split(r"[,;\s]+", value)
+    return {p.strip().strip("'\"").lower() for p in parts if p.strip()}
+
+
+def _skill_name(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def validate_skill_file(path: Path) -> list[str]:
+    name = _skill_name(path)
+    text = path.read_text(encoding="utf-8", errors="replace")
+    frontmatter, body = _parse_frontmatter(text)
+    errors: list[str] = []
+
+    if not frontmatter:
+        errors.append(f"{name}: missing YAML frontmatter")
+    for field_name in ("name", "description"):
+        if not frontmatter.get(field_name):
+            errors.append(f"{name}: missing frontmatter field '{field_name}'")
+
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if SKILL_CREDENTIAL_PATTERN.search(line) and not _line_is_safe(line):
+            errors.append(f"{name}:{lineno}: skill requests or handles protected credential/token material")
+
+    unsafe = detect_agent_evidence_violations(text)
+    for violation in unsafe:
+        if violation.startswith("skill_"):
+            errors.append(f"{name}: unsafe skill wording {violation}")
+
+    allowed_tools = _split_allowed_tools(frontmatter.get("allowed-tools", ""))
+    dangerous = sorted(allowed_tools & SKILL_DANGEROUS_ALLOWED_TOOLS)
+    if dangerous:
+        lower_body = body.lower()
+        has_non_authorization = bool(re.search(r"\b(?:does\s+not|not|no)\b.{0,40}\bauthori[sz]e", lower_body))
+        if "read-only" not in lower_body or not has_non_authorization:
+            errors.append(
+                f"{name}: dangerous allowed-tools {dangerous} require read-only and non-authorization boundaries"
+            )
+
+    for ref in sorted(set(SKILL_PATH_REF_PATTERN.findall(text))):
+        # Template/resource examples may be generic. Only enforce concrete repo-local
+        # references without placeholder markers.
+        if "<" in ref or ">" in ref:
+            continue
+        target = ROOT / ref
+        if not target.exists():
+            errors.append(f"{name}: referenced file does not exist: {ref}")
+
+    return errors
+
+
+def validate_skills(root: Path = SKILLS_DIR) -> list[str]:
+    if not root.exists():
+        return []
+    errors: list[str] = []
+    for path in sorted(root.rglob("SKILL.md")):
+        errors.extend(validate_skill_file(path))
+    return errors
+
+
 def run() -> CheckerResult:
     findings: list[str] = []
     findings.extend(validate_plan_document())
     findings.extend(validate_redteam_ledger())
+    findings.extend(validate_skills())
     entries, _ = _load_jsonl(REDTEAM_LEDGER)
+    skill_files = list(SKILLS_DIR.rglob("SKILL.md")) if SKILLS_DIR.exists() else []
     stats = {
         "surfaces": sorted({str(e.get("surface", "")) for e in entries if e.get("surface")}),
         "redteam_cases": len(entries),
+        "skill_files": len(skill_files),
         "findings": len(findings),
     }
     return CheckerResult("fail" if findings else "pass", 1 if findings else 0, findings, stats)
@@ -219,6 +327,7 @@ def main() -> int:
         print("Agent-native evidence boundary: PASS")
         print(f"Surfaces: {', '.join(result.stats['surfaces'])}")
         print(f"Red-team cases: {result.stats['redteam_cases']}")
+        print(f"Skill files: {result.stats['skill_files']}")
     return result.exit_code
 
 

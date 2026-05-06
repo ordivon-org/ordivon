@@ -26,6 +26,9 @@ release, or external action.
   `tests/fixtures/agent_native_evidence/`.
 - Added `tests/unit/governance/test_agent_native_evidence.py`.
 - Registered the checker as `shadow_tested` in the checker maturity ledger.
+- Added P4B Skill Safety fixture validation for `SKILL.md` frontmatter,
+  `allowed-tools`, credential language, authorization laundering, and missing
+  local references.
 
 ## Red-Team Coverage
 
@@ -40,6 +43,8 @@ Round 1 covers:
 - token passthrough.
 - audience/resource confusion.
 - tool availability treated as authorization.
+- unsafe Skill frontmatter, credential, allowed-tools, and local reference
+  patterns.
 
 ## Boundary
 
@@ -52,14 +57,14 @@ external systems.
 Observed at closure:
 
 - `python checkers/agent-native-evidence/run.py`: PASS, 4 surfaces, 9 red-team
-  cases.
+  cases, 1 repo skill file.
 - `uv run --with pytest python -m pytest tests/unit/governance/test_agent_native_evidence.py -q`:
-  12 passed.
+  18 passed.
 - `uv run python scripts/run_baseline.py --read-only`: READY, 26/26 hard gates
   passed, L10E escalation passed.
 - `uv run python scripts/check_document_registry.py`: PASS, 228 registered
   docs, 0 completeness violations.
-- `python scripts/check_artifact_registry.py`: PASS, 651 registered artifacts,
+- `python scripts/check_artifact_registry.py`: PASS, 657 registered artifacts,
   0 ungoverned.
 - `python checkers/current-truth/run.py`: PASS.
 
