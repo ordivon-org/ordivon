@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PLAN_DOC = ROOT / "docs" / "governance" / "agent-native-evidence-surfaces-2026.md"
 REDTEAM_LEDGER = ROOT / "docs" / "governance" / "agent-native-evidence-redteam.jsonl"
 SKILLS_DIR = ROOT / "skills"
+FIXTURES_DIR = ROOT / "tests" / "fixtures" / "agent_native_evidence"
 MEMORY_RECORD_REQUIRED_FIELDS = {
     "record_id",
     "project_scope",
@@ -567,17 +568,72 @@ def validate_mcp_manifests(root: Path) -> list[str]:
     return errors
 
 
+def validate_fixture_suite(root: Path = FIXTURES_DIR) -> list[str]:
+    """Validate positive fixtures pass and negative fixtures keep failing."""
+    if not root.exists():
+        return [f"missing agent-native evidence fixture root: {root.relative_to(ROOT)}"]
+
+    errors: list[str] = []
+    validators = {
+        "skills": (validate_skill_file, "SKILL.md"),
+        "memory": (validate_memory_record, "*.json"),
+        "harness": (validate_harness_bundle, "*.json"),
+        "mcp": (validate_mcp_manifest, "*.json"),
+    }
+
+    for surface, (validator, pattern) in validators.items():
+        surface_root = root / surface
+        valid_root = surface_root / "valid"
+        invalid_root = surface_root / "invalid"
+
+        valid_files = sorted(valid_root.rglob(pattern)) if valid_root.exists() else []
+        if not valid_files:
+            errors.append(f"{surface}: missing positive fixtures")
+        for path in valid_files:
+            fixture_errors = validator(path)
+            if fixture_errors:
+                label = _path_label(path)
+                errors.append(f"{label}: positive fixture failed: {'; '.join(fixture_errors)}")
+
+        invalid_files = sorted(invalid_root.rglob(pattern)) if invalid_root.exists() else []
+        if not invalid_files:
+            errors.append(f"{surface}: missing red-team fixtures")
+        for path in invalid_files:
+            fixture_errors = validator(path)
+            if not fixture_errors:
+                errors.append(f"{_path_label(path)}: red-team fixture did not produce a finding")
+
+    return errors
+
+
+def fixture_suite_stats(root: Path = FIXTURES_DIR) -> dict[str, dict[str, int]]:
+    stats: dict[str, dict[str, int]] = {}
+    patterns = {
+        "skills": "SKILL.md",
+        "memory": "*.json",
+        "harness": "*.json",
+        "mcp": "*.json",
+    }
+    for surface, pattern in patterns.items():
+        valid = list((root / surface / "valid").rglob(pattern)) if (root / surface / "valid").exists() else []
+        invalid = list((root / surface / "invalid").rglob(pattern)) if (root / surface / "invalid").exists() else []
+        stats[surface] = {"valid": len(valid), "redteam": len(invalid), "total": len(valid) + len(invalid)}
+    return stats
+
+
 def run() -> CheckerResult:
     findings: list[str] = []
     findings.extend(validate_plan_document())
     findings.extend(validate_redteam_ledger())
     findings.extend(validate_skills())
+    findings.extend(validate_fixture_suite())
     entries, _ = _load_jsonl(REDTEAM_LEDGER)
     skill_files = list(SKILLS_DIR.rglob("SKILL.md")) if SKILLS_DIR.exists() else []
     stats = {
         "surfaces": sorted({str(e.get("surface", "")) for e in entries if e.get("surface")}),
         "redteam_cases": len(entries),
         "skill_files": len(skill_files),
+        "fixture_suite": fixture_suite_stats(),
         "findings": len(findings),
     }
     return CheckerResult("fail" if findings else "pass", 1 if findings else 0, findings, stats)
@@ -594,6 +650,8 @@ def main() -> int:
         print(f"Surfaces: {', '.join(result.stats['surfaces'])}")
         print(f"Red-team cases: {result.stats['redteam_cases']}")
         print(f"Skill files: {result.stats['skill_files']}")
+        for surface, counts in result.stats["fixture_suite"].items():
+            print(f"{surface} fixtures: {counts['valid']} valid, {counts['redteam']} red-team")
     return result.exit_code
 
 

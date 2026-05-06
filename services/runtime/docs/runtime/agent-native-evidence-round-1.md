@@ -37,6 +37,9 @@ release, or external action.
 - Added P4E MCP Boundary Review fixture validation for MCP-like manifests,
   token handling, tool availability, audience/resource binding, and
   confused-deputy risk notes.
+- Added P4F import-report integration so the checker main path validates
+  positive and red-team structured fixtures across Skill, Memory, Harness, and
+  MCP surfaces.
 
 ## Red-Team Coverage
 
@@ -61,6 +64,8 @@ Round 1 covers:
 - token passthrough, real token handling, tool availability authorization,
   audience/resource confusion, external side-effect tool claims, and missing
   confused-deputy risk notes.
+- fixture-suite laundering where valid examples fail silently or red-team
+  examples stop producing findings.
 
 ## Boundary
 
@@ -73,12 +78,12 @@ external systems.
 Observed at closure:
 
 - `python checkers/agent-native-evidence/run.py`: PASS, 4 surfaces, 9 red-team
-  cases, 1 repo skill file.
+  language cases, 23 structured fixtures, 1 repo skill file.
 - `uv run --with pytest python -m pytest tests/unit/governance/test_agent_native_evidence.py -q`:
-  38 passed.
+  40 passed.
 - `uv run python scripts/run_baseline.py --read-only`: READY, 26/26 hard gates
   passed, L10E escalation passed.
-- `uv run python scripts/check_document_registry.py`: PASS, 228 registered
+- `uv run python scripts/check_document_registry.py`: PASS, 229 registered
   docs, 0 completeness violations.
 - `python scripts/check_artifact_registry.py`: PASS, 674 registered artifacts,
   0 ungoverned.

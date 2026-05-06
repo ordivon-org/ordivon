@@ -236,3 +236,17 @@ def test_mcp_manifest_directory_validator():
     errors = checker.validate_mcp_manifests(FIXTURES / "mcp" / "invalid")
 
     assert len(errors) >= 5
+
+
+def test_fixture_suite_keeps_valid_and_redteam_cases_separated():
+    assert checker.validate_fixture_suite(FIXTURES) == []
+
+
+def test_run_reports_fixture_suite_stats():
+    result = checker.run()
+
+    assert result.exit_code == 0
+    assert result.stats["fixture_suite"]["skills"] == {"valid": 2, "redteam": 4, "total": 6}
+    assert result.stats["fixture_suite"]["memory"] == {"valid": 1, "redteam": 5, "total": 6}
+    assert result.stats["fixture_suite"]["harness"] == {"valid": 1, "redteam": 5, "total": 6}
+    assert result.stats["fixture_suite"]["mcp"] == {"valid": 1, "redteam": 4, "total": 5}

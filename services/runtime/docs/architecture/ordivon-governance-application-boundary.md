@@ -35,14 +35,14 @@ Verify work. They are self-governed through the dogfood loop.
 
 | Registry | Objects | What it governs |
 |----------|---------|-----------------|
-| `document-registry.jsonl` | 228 docs | Markdown/JSON/JSONL docs with `doc_layer` × `doc_authority` |
+| `document-registry.jsonl` | 229 docs | Markdown/JSON/JSONL docs with `doc_layer` × `doc_authority` |
 | `artifact-registry.jsonl` | 674 entries | Code files (tests, scripts, domains, src) with `artifact_class` × `criticality` × `layer` |
 | `checker_registry.py` | 38 checkers | Checker maturity with `hardness` × `profiles` × `maturity` |
 
 ### Governed directories
 
 ```
-docs/             228 files  →  document-registry.jsonl  (L0-L5 docs)
+docs/             229 files  →  document-registry.jsonl  (L0-L5 docs)
 tests/            435 files  →  artifact-registry.jsonl  (test files)
 scripts/           91 files  →  artifact-registry.jsonl  (build/CI scripts)
 domains/          107 files  →  artifact-registry.jsonl  (domain models)
