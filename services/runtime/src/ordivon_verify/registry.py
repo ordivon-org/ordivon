@@ -160,15 +160,17 @@ class CheckerRegistry:
         """Generate verification-gate-manifest.json from registered checkers."""
         gates = []
         for entry in sorted(self._entries.values(), key=lambda e: e.layer):
-            gates.append({
-                "gate_id": entry.gate_id,
-                "display_name": entry.display_name,
-                "layer": entry.layer,
-                "hardness": entry.hardness,
-                "purpose": entry.purpose,
-                "protects_against": entry.protects_against,
-                "may_be_removed_only_by": "Stage Summit with documented reason",
-            })
+            gates.append(
+                {
+                    "gate_id": entry.gate_id,
+                    "display_name": entry.display_name,
+                    "layer": entry.layer,
+                    "hardness": entry.hardness,
+                    "purpose": entry.purpose,
+                    "protects_against": entry.protects_against,
+                    "may_be_removed_only_by": "Stage Summit with documented reason",
+                }
+            )
         return {
             "manifest_id": "auto-generated-v1",
             "profile": "auto",

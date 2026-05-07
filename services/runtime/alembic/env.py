@@ -14,6 +14,7 @@ if PROJECT_ROOT not in sys.path:
 # Import project settings and metadata
 from shared.config.settings import settings
 from state.db.base import Base
+
 # Side-effect import: register all ORM models on Base.metadata
 import state.db.bootstrap  # noqa: F401
 
@@ -58,9 +59,7 @@ def run_migrations_online() -> None:
     connectable = create_engine(db_url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

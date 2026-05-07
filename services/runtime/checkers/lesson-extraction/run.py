@@ -17,18 +17,23 @@ LESSON_LEDGER = ROOT / "docs" / "governance" / "lesson-ledger.jsonl"
 DRAFT_OUTPUT = ROOT / "docs" / "governance" / "candidate-rule-drafts.jsonl"
 EXTRACTION_LOG = ROOT / "docs" / "governance" / "lesson-extraction-log.jsonl"
 
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def _hash_lesson_id(lesson_id: str) -> str:
     """Deterministic draft ID from lesson ID — ensures idempotency."""
     return f"CR-{hashlib.md5(lesson_id.encode()).hexdigest()[:12]}"
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
+
 
 def load_lessons() -> list[dict]:
     if not LESSON_LEDGER.exists():
@@ -42,6 +47,7 @@ def load_lessons() -> list[dict]:
                 except json.JSONDecodeError:
                     pass
     return entries
+
 
 def load_existing_drafts() -> dict[str, dict]:
     """Load existing drafts keyed by lesson_id for idempotency."""
@@ -60,6 +66,7 @@ def load_existing_drafts() -> dict[str, dict]:
                     pass
     return drafts
 
+
 def load_extraction_log() -> set[str]:
     """Load set of already-extracted lesson IDs."""
     if not EXTRACTION_LOG.exists():
@@ -74,6 +81,7 @@ def load_extraction_log() -> set[str]:
                 except json.JSONDecodeError:
                     pass
     return extracted
+
 
 def extract_candidate_rules() -> tuple[list[dict], dict]:
     """Extract CandidateRule drafts from rule_candidate lessons.
@@ -131,6 +139,7 @@ def extract_candidate_rules() -> tuple[list[dict], dict]:
     stats["new_drafts"] = len(new_drafts)
     return new_drafts, stats
 
+
 def run() -> CheckerResult:
     drafts, stats = extract_candidate_rules()
 
@@ -145,11 +154,17 @@ def run() -> CheckerResult:
         mode = "a" if EXTRACTION_LOG.exists() else "w"
         with open(EXTRACTION_LOG, mode) as f:
             for d in drafts:
-                f.write(json.dumps({
-                    "lesson_id": d["source_lesson_id"],
-                    "candidate_rule_id": d["candidate_rule_id"],
-                    "extracted_at": d["extracted_at"],
-                }, ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "lesson_id": d["source_lesson_id"],
+                            "candidate_rule_id": d["candidate_rule_id"],
+                            "extracted_at": d["extracted_at"],
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
 
         findings.append(f"Extracted {len(drafts)} new CandidateRule draft(s)")
         for d in drafts:
@@ -165,10 +180,12 @@ def run() -> CheckerResult:
         dict(stats),
     )
 
+
 if __name__ == "__main__":
     r = run()
     s = r.stats
-    print(f"Lessons: {s.get('total_lessons',0)} total, {s.get('rule_candidates',0)} rule_candidates")
-    print(f"Extracted: {s.get('new_drafts',0)} new, {s.get('skipped_duplicate',0)} skipped (duplicate)")
-    for f in r.findings: print(f"  {f}")
+    print(f"Lessons: {s.get('total_lessons', 0)} total, {s.get('rule_candidates', 0)} rule_candidates")
+    print(f"Extracted: {s.get('new_drafts', 0)} new, {s.get('skipped_duplicate', 0)} skipped (duplicate)")
+    for f in r.findings:
+        print(f"  {f}")
     sys.exit(r.exit_code)

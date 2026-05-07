@@ -24,11 +24,7 @@ if str(ROOT) not in sys.path:
 
 from domains.checker_maturity import (
     CheckerMaturityRecord,
-    CheckerMaturityStateMachine,
     MaturityLevel,
-    InvalidTransitionError,
-    MissingEvidenceError,
-    SelfPromotionError,
 )
 
 CHECKERS_DIR = ROOT / "checkers"
@@ -36,13 +32,17 @@ MATURITY_LEDGER = ROOT / "docs" / "governance" / "checker-maturity-ledger.jsonl"
 
 # ── Data types ──────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 # ── Loaders ─────────────────────────────────────────────────────────
+
 
 def _parse_checker_md(path: Path) -> dict | None:
     """Parse CHECKER.md YAML frontmatter."""
@@ -67,6 +67,7 @@ def _parse_checker_md(path: Path) -> dict | None:
                 val = [v.strip().strip("'\"") for v in val[1:-1].split(",") if v.strip()]
             frontmatter[key] = val
     return frontmatter
+
 
 def _load_maturity_ledger() -> dict[str, CheckerMaturityRecord]:
     """Load existing maturity records, keyed by checker_id."""
@@ -99,7 +100,9 @@ def _load_maturity_ledger() -> dict[str, CheckerMaturityRecord]:
                 pass
     return records
 
+
 # ── Validation ──────────────────────────────────────────────────────
+
 
 def validate_checker_maturity(
     checker_id: str,
@@ -121,8 +124,9 @@ def validate_checker_maturity(
     # ── Rule 0: grandfathered checkers bypass evidence + self-promotion ──
     # Grandfathered = admitted without full pipeline. The grandfathered_reason
     # documents the debt. These pass the gate but the debt is tracked.
-    is_grandfathered = getattr(maturity_record, "grandfathered", False) or \
-        "grandfathered" in [r.lower() for r in maturity_record.evidence_refs]
+    is_grandfathered = getattr(maturity_record, "grandfathered", False) or "grandfathered" in [
+        r.lower() for r in maturity_record.evidence_refs
+    ]
 
     if is_grandfathered:
         # Grandfathered checkers skip evidence and self-promotion checks.
@@ -155,8 +159,7 @@ def validate_checker_maturity(
     # ── Rule 3: owner exists for active checkers ───────────────
     if level == MaturityLevel.ACTIVE and maturity_record.author == maturity_record.changed_by:
         violations.append(
-            f"{checker_id}: active but author={maturity_record.author} "
-            f"self-promoted. Independent review required."
+            f"{checker_id}: active but author={maturity_record.author} self-promoted. Independent review required."
         )
 
     return violations
@@ -175,12 +178,21 @@ def _describe_path(level: MaturityLevel) -> str:
         return "terminal"
     return " → ".join(path)
 
+
 # ── Main ────────────────────────────────────────────────────────────
+
 
 def run() -> CheckerResult:
     findings = []
-    stats = {"checkers_total": 0, "checkers_with_maturity": 0, "active": 0,
-             "draft": 0, "shadow_tested": 0, "red_teamed": 0, "violations": 0}
+    stats = {
+        "checkers_total": 0,
+        "checkers_with_maturity": 0,
+        "active": 0,
+        "draft": 0,
+        "shadow_tested": 0,
+        "red_teamed": 0,
+        "violations": 0,
+    }
 
     maturity_ledger = _load_maturity_ledger()
 
@@ -241,8 +253,10 @@ def run() -> CheckerResult:
 
 if __name__ == "__main__":
     r = run()
-    print(f"Checkers: {r.stats.get('checkers_total', 0)} total, "
-          f"{r.stats.get('checkers_with_maturity', 0)} with maturity records")
+    print(
+        f"Checkers: {r.stats.get('checkers_total', 0)} total, "
+        f"{r.stats.get('checkers_with_maturity', 0)} with maturity records"
+    )
     for f in r.findings:
         print(f"  {f}")
     sys.exit(r.exit_code)

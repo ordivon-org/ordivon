@@ -37,7 +37,9 @@ REQUIRED_PATTERNS = {
 
 DANGEROUS_APPROVAL = [
     re.compile(r"\b(?:authorizes|authorized|authorization)\b", re.IGNORECASE),
-    re.compile(r"\bapproved\s+for\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action)\b", re.IGNORECASE),
+    re.compile(
+        r"\bapproved\s+for\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action)\b", re.IGNORECASE
+    ),
     re.compile(r"\brelease\s+approval\b", re.IGNORECASE),
 ]
 
@@ -88,9 +90,7 @@ def _scan_notes(entry: dict) -> list[str]:
         for match in pattern.finditer(notes):
             if _safe_context(notes, match.start()):
                 continue
-            errors.append(
-                f"{entry.get('path_pattern', '?')}: unsafe ownership authority wording '{match.group(0)}'"
-            )
+            errors.append(f"{entry.get('path_pattern', '?')}: unsafe ownership authority wording '{match.group(0)}'")
     return errors
 
 

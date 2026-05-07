@@ -36,8 +36,13 @@ REQUIRED_METADATA = [
 ]
 
 DANGEROUS_AUTHORIZATION = [
-    re.compile(r"\b(?:authorizes|authorized|authorization)\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action|policy\s+activation)\b", re.IGNORECASE),
-    re.compile(r"\bapproved\s+for\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:authorizes|authorized|authorization)\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action|policy\s+activation)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bapproved\s+for\s+(?:merge|release|deploy|deployment|publication|trading|external\s+action)\b", re.IGNORECASE
+    ),
     re.compile(r"\bready\s+for\s+(?:merge|release|deploy|deployment|publication|trading)\b", re.IGNORECASE),
 ]
 

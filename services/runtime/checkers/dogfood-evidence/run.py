@@ -8,11 +8,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "docs/runtime/paper-trades/paper-dogfood-ledger.jsonl"
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
+
 
 def run():
     findings = []
@@ -25,9 +28,18 @@ def run():
             findings.append(f"Content too short: {len(content)} chars")
     except Exception as e:
         findings.append(f"Read error: {e}")
-    return CheckerResult("fail" if findings else "pass", 1 if findings else 0, findings,
-                         {"file": str(TARGET), "size": len(content) if 'content' in dir() else 0})
+    return CheckerResult(
+        "fail" if findings else "pass",
+        1 if findings else 0,
+        findings,
+        {"file": str(TARGET), "size": len(content) if "content" in dir() else 0},
+    )
 
-if __name__=="__main__":
-    r=run(); label = "checker"; print(f"{label}: {'PASS' if not r.findings else 'FAIL'}")
-    for f in r.findings: print(f"  {f}"); sys.exit(r.exit_code)
+
+if __name__ == "__main__":
+    r = run()
+    label = "checker"
+    print(f"{label}: {'PASS' if not r.findings else 'FAIL'}")
+    for f in r.findings:
+        print(f"  {f}")
+        sys.exit(r.exit_code)

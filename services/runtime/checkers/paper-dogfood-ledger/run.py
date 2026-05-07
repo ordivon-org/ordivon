@@ -18,16 +18,26 @@ BLOCKING = {"ORDER_PENDING"}
 TERMINAL = {"ORDER_CLOSED", "ORDER_EXPIRED", "ORDER_REJECTED", "ORDER_CANCELED"}
 REFUSAL = {"TRADE_REJECTED", "TRADE_HELD", "TRADE_NO_GO"}
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 def run() -> CheckerResult:
-    stats = {"total_events": 0, "completed_rt": 0, "pending": 0,
-             "hold": 0, "reject": 0, "no_go": 0, "boundary_violations": 0,
-             "simulated_pnl": 0.0}
+    stats = {
+        "total_events": 0,
+        "completed_rt": 0,
+        "pending": 0,
+        "hold": 0,
+        "reject": 0,
+        "no_go": 0,
+        "boundary_violations": 0,
+        "simulated_pnl": 0.0,
+    }
     findings = []
 
     if not LEDGER_PATH.exists():
@@ -36,7 +46,8 @@ def run() -> CheckerResult:
     events = []
     with open(LEDGER_PATH) as f:
         for i, line in enumerate(f, 1):
-            if not line.strip(): continue
+            if not line.strip():
+                continue
             try:
                 events.append(json.loads(line))
             except json.JSONDecodeError as e:
@@ -80,10 +91,14 @@ def run() -> CheckerResult:
 
         # Count stats
         if e["event_type"] in REFUSAL:
-            if e["event_type"] == "TRADE_HELD": stats["hold"] += 1
-            elif e["event_type"] == "TRADE_REJECTED": stats["reject"] += 1
-            elif e["event_type"] == "TRADE_NO_GO": stats["no_go"] += 1
-        if e.get("boundary_violation"): stats["boundary_violations"] += 1
+            if e["event_type"] == "TRADE_HELD":
+                stats["hold"] += 1
+            elif e["event_type"] == "TRADE_REJECTED":
+                stats["reject"] += 1
+            elif e["event_type"] == "TRADE_NO_GO":
+                stats["no_go"] += 1
+        if e.get("boundary_violation"):
+            stats["boundary_violations"] += 1
         if isinstance(e.get("simulated_pnl"), (int, float)):
             stats["simulated_pnl"] += float(e["simulated_pnl"])
 
@@ -101,12 +116,17 @@ def run() -> CheckerResult:
 
     return CheckerResult("fail" if findings else "pass", 1 if findings else 0, findings, dict(stats))
 
+
 if __name__ == "__main__":
     r = run()
     s = r.stats
-    print(f"Events: {s.get('total_events',0)} | RTs: {s.get('completed_rt',0)} completed, {s.get('pending',0)} pending")
-    print(f"Refusals: {s.get('hold',0)} HOLD, {s.get('reject',0)} REJECT, {s.get('no_go',0)} NO-GO")
-    if s.get('simulated_pnl', 0): print(f"Paper PnL: ${s['simulated_pnl']:+.2f} (simulated)")
+    print(
+        f"Events: {s.get('total_events', 0)} | RTs: {s.get('completed_rt', 0)} completed, {s.get('pending', 0)} pending"
+    )
+    print(f"Refusals: {s.get('hold', 0)} HOLD, {s.get('reject', 0)} REJECT, {s.get('no_go', 0)} NO-GO")
+    if s.get("simulated_pnl", 0):
+        print(f"Paper PnL: ${s['simulated_pnl']:+.2f} (simulated)")
     print(f"Violations: {len(r.findings)}")
-    for f in r.findings: print(f"  {f}")
+    for f in r.findings:
+        print(f"  {f}")
     sys.exit(r.exit_code)

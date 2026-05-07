@@ -8,7 +8,6 @@ Always advisory (escalation). Never blocks.
 
 from __future__ import annotations
 import json, re, sys
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,26 +34,42 @@ SCAN_SPEC = {
 SOURCE_EXTS = {".py", ".ts", ".tsx", ".js", ".jsx", ".json", ".yaml", ".yml"}
 
 # Directories excluded from line counts (vendored, generated)
-EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".venv", "venv",
-                ".archive", ".mypy_cache", ".pytest_cache", "dist", "build"}
+EXCLUDE_DIRS = {
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".archive",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+}
 
 # ── Data types ──────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class TelemetrySnapshot:
     timestamp: str
     metrics: dict  # metric_name -> {value, unit}
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 # ── Measurement functions ───────────────────────────────────────────
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def _count_files(directory: Path, exts: set = None) -> int:
     """Count files in directory, optionally filtered by extension."""
@@ -68,6 +83,7 @@ def _count_files(directory: Path, exts: set = None) -> int:
             if exts is None or f.suffix in exts:
                 count += 1
     return count
+
 
 def _count_lines(directory: Path) -> int:
     """Approximate line count (fast — just count newlines)."""
@@ -84,13 +100,13 @@ def _count_lines(directory: Path) -> int:
                 pass
     return total
 
+
 def _count_imports() -> tuple[int, int]:
     """Count cross-boundary imports and unique import sources in Python files."""
     cross = 0
     unique_sources = set()
     boundary_prefixes = ("domains.", "packs.", "apps.", "shared.", "src.")
-    search_dirs = [ROOT / "src", ROOT / "domains", ROOT / "packs",
-                   ROOT / "scripts", ROOT / "checkers"]
+    search_dirs = [ROOT / "src", ROOT / "domains", ROOT / "packs", ROOT / "scripts", ROOT / "checkers"]
     import_pat = re.compile(r"^(?:from|import)\s+([\w.]+)", re.MULTILINE)
 
     for d in search_dirs:
@@ -111,6 +127,7 @@ def _count_imports() -> tuple[int, int]:
                         cross += 1
                         break
     return cross, len(unique_sources)
+
 
 def _analyze_doc_registry() -> dict:
     """Analyze document-registry.jsonl for freshness and cross-references."""
@@ -155,6 +172,7 @@ def _analyze_doc_registry() -> dict:
         "cross_refs": cross_refs,
     }
 
+
 def _count_debt_entries() -> int:
     """Count open debt entries in verification-debt-ledger.jsonl."""
     if not DEBT_LEDGER.exists():
@@ -173,7 +191,9 @@ def _count_debt_entries() -> int:
                 pass
     return count
 
+
 # ── Velocity calculation ────────────────────────────────────────────
+
 
 def _load_history() -> list[dict]:
     """Load previous telemetry snapshots."""
@@ -189,6 +209,7 @@ def _load_history() -> list[dict]:
                 except json.JSONDecodeError:
                     pass
     return snapshots
+
 
 def _calc_velocity(current: dict, history: list[dict]) -> dict:
     """Calculate velocity (% change per 30 days) for each metric."""
@@ -239,7 +260,9 @@ def _calc_velocity(current: dict, history: list[dict]) -> dict:
 
     return velocity
 
+
 # ── Main ────────────────────────────────────────────────────────────
+
 
 def run() -> CheckerResult:
     timestamp = _now_iso()
@@ -287,6 +310,7 @@ def run() -> CheckerResult:
 
     # Coverage ratio: checkers / sqrt(total_files)
     import math
+
     if total_files > 0:
         coverage = checker_count / math.sqrt(total_files)
     else:
@@ -328,12 +352,11 @@ def run() -> CheckerResult:
         for name, v in velocity.items():
             pct = v["pct_per_30d"]
             if abs(pct) > 10:
-                findings.append(
-                    f"VELOCITY ALERT: {name} changing at {pct:+.1f}%/30d "
-                    f"(threshold: ±10%)"
-                )
-        findings.append(f"Velocity tracked for {len(velocity)} metrics over "
-                        f"{velocity.get(list(velocity.keys())[0] if velocity else '', {}).get('days', '?')} days")
+                findings.append(f"VELOCITY ALERT: {name} changing at {pct:+.1f}%/30d (threshold: ±10%)")
+        findings.append(
+            f"Velocity tracked for {len(velocity)} metrics over "
+            f"{velocity.get(list(velocity.keys())[0] if velocity else '', {}).get('days', '?')} days"
+        )
     else:
         findings.append("Velocity: insufficient history (< 2 snapshots)")
 

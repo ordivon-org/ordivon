@@ -8,32 +8,48 @@ documents (docs/governance/agentic-pattern-*) from scanning.
 """
 
 from __future__ import annotations
-import re, sys, json
+import re, sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
+
 
 # ── Safe negation patterns ─────────────────────────────────────────
 
 SAFE_NEGATIONS = [
-    r"not\s+authori[zs]ed?\b", r"does\s+not\s+authori[zs]e?\b",
-    r"no\s+action\s+authori[zs]ation\b", r"forbidden\b", r"NO-GO\b",
-    r"blocked\b", r"does\s+not\s+imply\b", r"not\s+.*approval\b",
-    r"never\s+.*authori[zs]", r"remains?\s+non-binding\b",
-    r"NON-BINDING\b", r"reference\s+only\b", r"not\s+granted\b",
-    r"cannot\s+lower\s+risk\b", r"not\s+.*execution\b",
+    r"not\s+authori[zs]ed?\b",
+    r"does\s+not\s+authori[zs]e?\b",
+    r"no\s+action\s+authori[zs]ation\b",
+    r"forbidden\b",
+    r"NO-GO\b",
+    r"blocked\b",
+    r"does\s+not\s+imply\b",
+    r"not\s+.*approval\b",
+    r"never\s+.*authori[zs]",
+    r"remains?\s+non-binding\b",
+    r"NON-BINDING\b",
+    r"reference\s+only\b",
+    r"not\s+granted\b",
+    r"cannot\s+lower\s+risk\b",
+    r"not\s+.*execution\b",
     # ── Added for wider-safe-prose ──
-    r"not\s+a\s+substitute\b", r"does\s+NOT\b",
-    r"must\s+not\b", r"must\s+remain\b",
-    r"should\s+not\b", r"should\s+remain\b",
-    r"without\s+.*authori[zs]", r"confuse\b.*\bwith\b",
+    r"not\s+a\s+substitute\b",
+    r"does\s+NOT\b",
+    r"must\s+not\b",
+    r"must\s+remain\b",
+    r"should\s+not\b",
+    r"should\s+remain\b",
+    r"without\s+.*authori[zs]",
+    r"confuse\b.*\bwith\b",
 ]
 
 # ── Safe proximity radius (chars) ──────────────────────────────────
@@ -71,9 +87,9 @@ SAFE_FILES = {
 # These contain immutable evidence records (receipts, runtime logs) or
 # test fixtures that intentionally exhibit patterns for red-teaming.
 SCAN_EXCLUDE_PREFIXES = (
-    "docs/runtime/",       # immutable governance receipts
-    "docs/archive/",       # historical records
-    "examples/",           # red-team fixtures
+    "docs/runtime/",  # immutable governance receipts
+    "docs/archive/",  # historical records
+    "examples/",  # red-team fixtures
 )
 
 SCAN_DIRS = ["docs", "AGENTS.md", "examples", "README.md"]
@@ -82,7 +98,7 @@ SCAN_DIRS = ["docs", "AGENTS.md", "examples", "README.md"]
 def _safe_proximate(line, m_start, m_end, radius=None):
     if radius is None:
         radius = SAFE_RADIUS
-    w = line[max(0, m_start - radius):min(len(line), m_end + radius)]
+    w = line[max(0, m_start - radius) : min(len(line), m_end + radius)]
     return any(re.search(p, w, re.I) for p in SAFE_NEGATIONS)
 
 
@@ -127,7 +143,8 @@ def run() -> CheckerResult:
                 am = re.search(
                     r"(?:authori[zs]e[sd]?\s+(?:execution|merge|deploy|action|production)"
                     r"|approved\s+for\s+(?:merge|deploy|execution))",
-                    line, re.I,
+                    line,
+                    re.I,
                 )
                 if am and not _safe_proximate(line, am.start(), am.end()):
                     stats["blocking"] += 1
@@ -137,10 +154,14 @@ def run() -> CheckerResult:
             # ── C4 gate mismatch ─────────────────────────────────
             c4 = re.search(
                 r"(?:credentials?|network|MCP|browser|external\s+API|remote\s+tool|side\s+effect)",
-                line, re.I,
+                line,
+                re.I,
             )
-            if c4 and re.search(r"READY\b(?!_WITHOUT_AUTHORIZATION)|PASS\b|proceed", line) \
-                    and not re.search(r"BLOCKED|NO-GO|REVIEW_REQUIRED", line):
+            if (
+                c4
+                and re.search(r"READY\b(?!_WITHOUT_AUTHORIZATION)|PASS\b|proceed", line)
+                and not re.search(r"BLOCKED|NO-GO|REVIEW_REQUIRED", line)
+            ):
                 if not _safe_proximate(line, c4.start(), c4.end()):
                     stats["blocking"] += 1
                     stats["findings"] += 1
@@ -152,7 +173,8 @@ def run() -> CheckerResult:
                 cra = re.search(
                     r"(?:binding\s+policy|promoted\s+to\s+policy|active\s+policy"
                     r"|enforced\s+policy|policy\s+activated)",
-                    line, re.I,
+                    line,
+                    re.I,
                 )
                 if cra and not _safe_proximate(line, cra.start(), cra.end()):
                     stats["blocking"] += 1
@@ -169,8 +191,7 @@ def run() -> CheckerResult:
 
 if __name__ == "__main__":
     r = run()
-    print(f"Files: {r.stats.get('files', 0)} | Findings: {len(r.findings)} "
-          f"({r.stats.get('blocking', 0)} blocking)")
+    print(f"Files: {r.stats.get('files', 0)} | Findings: {len(r.findings)} ({r.stats.get('blocking', 0)} blocking)")
     for f in r.findings[:30]:
         print(f"  {f}")
     sys.exit(r.exit_code)

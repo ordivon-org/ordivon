@@ -144,11 +144,13 @@ where = ["src"]
             matches = list(re.finditer(pat, content, re.IGNORECASE))
             for m in matches:
                 line = content[: m.start()].count("\n") + 1
-                findings.append({
-                    "file": str(f.relative_to(output_dir)),
-                    "line": line,
-                    "match": m.group(0),
-                })
+                findings.append(
+                    {
+                        "file": str(f.relative_to(output_dir)),
+                        "line": line,
+                        "match": m.group(0),
+                    }
+                )
 
     return {
         "output_path": str(output_dir),

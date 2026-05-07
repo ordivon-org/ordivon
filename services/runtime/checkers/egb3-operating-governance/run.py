@@ -175,7 +175,11 @@ def validate_oep_lifecycle(path: Path, text: str) -> list[str]:
     lower = text.lower()
     if status in {"shadow_tested", "red_teamed", "owner_reviewed", "active_or_closed"} and "shadow" not in lower:
         errors.append(f"{name}: {status} requires shadow evidence language")
-    if status in {"red_teamed", "owner_reviewed", "active_or_closed"} and "red-team" not in lower and "red team" not in lower:
+    if (
+        status in {"red_teamed", "owner_reviewed", "active_or_closed"}
+        and "red-team" not in lower
+        and "red team" not in lower
+    ):
         errors.append(f"{name}: {status} requires red-team evidence language")
     if status in {"owner_reviewed", "active_or_closed"} and "owner review" not in lower:
         errors.append(f"{name}: {status} requires owner review language")

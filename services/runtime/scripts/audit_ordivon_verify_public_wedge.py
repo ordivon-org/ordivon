@@ -216,14 +216,16 @@ def scan_file(path: Path, rel: str) -> list[dict]:
                 if _is_safe_context(ctx_text):
                     classification = "allowed_context"
 
-                findings.append({
-                    "file": rel,
-                    "line": i,
-                    "match": matched,
-                    "category": cat_name,
-                    "classification": classification,
-                    "context": line.strip()[:120],
-                })
+                findings.append(
+                    {
+                        "file": rel,
+                        "line": i,
+                        "match": matched,
+                        "category": cat_name,
+                        "classification": classification,
+                        "context": line.strip()[:120],
+                    }
+                )
 
     return findings
 

@@ -12,7 +12,6 @@ from __future__ import annotations
 import json, sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,7 +19,10 @@ ROOT = Path(__file__).resolve().parents[2]
 # Dependabot ALWAYS changes lock files. That's its job. Only truly sensitive
 # files are protected here: env, secrets, credentials, migration runner.
 _FORBIDDEN = {
-    ".env", "secrets", "private_key", "credentials",
+    ".env",
+    "secrets",
+    "private_key",
+    "credentials",
     "state/db/migrations/runner.py",
 }
 
@@ -28,26 +30,44 @@ _FORBIDDEN = {
 # pyproject.toml changes from Dependabot are normal (version bumps).
 # But if the PR also touches source code beyond the lock file, escalate.
 _ELEVATED = {
-    "pyproject.toml", "package.json",
+    "pyproject.toml",
+    "package.json",
 }
 
 # ── Runtime dependency indicators ───────────────────────────────────
-_RUNTIME_INDICATORS = {"react", "next", "vue", "fastapi", "uvicorn", "sqlalchemy",
-                       "pydantic", "httpx", "redis", "celery", "django", "flask",
-                       "numpy", "pandas", "torch", "tensorflow"}
+_RUNTIME_INDICATORS = {
+    "react",
+    "next",
+    "vue",
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "pydantic",
+    "httpx",
+    "redis",
+    "celery",
+    "django",
+    "flask",
+    "numpy",
+    "pandas",
+    "torch",
+    "tensorflow",
+}
 
 # ── Data types ──────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class PRContext:
     """Structured input describing a PR for governance classification."""
-    actor: str                          # "dependabot" | "human" | "ai_agent" | "unknown"
-    changed_files: tuple[str, ...]      # relative file paths
-    ci_status: str                      # "pass" | "fail" | "partial" | "unknown"
-    is_runtime_dep: bool = False        # does this update affect runtime behavior?
-    pr_title: str = ""                  # PR title for context
-    has_test_plan: bool = False         # does the PR include a test plan?
-    evidence_freshness: str = "current" # "current" | "stale" | "unknown"
+
+    actor: str  # "dependabot" | "human" | "ai_agent" | "unknown"
+    changed_files: tuple[str, ...]  # relative file paths
+    ci_status: str  # "pass" | "fail" | "partial" | "unknown"
+    is_runtime_dep: bool = False  # does this update affect runtime behavior?
+    pr_title: str = ""  # PR title for context
+    has_test_plan: bool = False  # does the PR include a test plan?
+    evidence_freshness: str = "current"  # "current" | "stale" | "unknown"
 
     @classmethod
     def from_dict(cls, d: dict) -> PRContext:
@@ -61,26 +81,32 @@ class PRContext:
             evidence_freshness=d.get("evidence_freshness", "current"),
         )
 
+
 @dataclass(frozen=True)
 class GovernanceReceipt:
     """Structured evidence record for a governance decision."""
-    decision: str                       # execute | escalate | reject
+
+    decision: str  # execute | escalate | reject
     reasons: tuple[str, ...]
     actor: str
     file_count: int
     has_forbidden: bool
     has_runtime_dep: bool
     ci_status: str
-    recommendation: str                 # human-readable recommendation
+    recommendation: str  # human-readable recommendation
     auto_merge_safe: bool
+
 
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 # ── Classification logic ────────────────────────────────────────────
+
 
 def classify(pr: PRContext) -> GovernanceReceipt:
     """Classify a PR through governance gates and return a receipt."""
@@ -169,12 +195,13 @@ def classify(pr: PRContext) -> GovernanceReceipt:
         auto_merge_safe=(decision == "execute"),
     )
 
+
 # ── Entry point ─────────────────────────────────────────────────────
+
 
 def run() -> CheckerResult:
     """Run dependabot governance check. Uses TEST_SCENARIOS in test mode,
     or reads JSON from stdin/--input argument."""
-    import os
 
     # Check for --input flag
     input_file = None
@@ -188,12 +215,17 @@ def run() -> CheckerResult:
         with open(input_file) as f:
             pr = PRContext.from_dict(json.load(f))
         receipt = classify(pr)
-        print(json.dumps({
-            "decision": receipt.decision,
-            "reasons": list(receipt.reasons),
-            "recommendation": receipt.recommendation,
-            "auto_merge_safe": receipt.auto_merge_safe,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "decision": receipt.decision,
+                    "reasons": list(receipt.reasons),
+                    "recommendation": receipt.recommendation,
+                    "auto_merge_safe": receipt.auto_merge_safe,
+                },
+                indent=2,
+            )
+        )
         exit_code = 0 if receipt.decision == "execute" else (2 if receipt.decision == "escalate" else 3)
         sys.exit(exit_code)
 
@@ -226,13 +258,17 @@ def run() -> CheckerResult:
         findings.append(f"{mismatches} decision mismatch(es) — checker logic may need review")
     return CheckerResult("pass" if mismatches == 0 else "fail", 0 if mismatches == 0 else 1, findings, dict(stats))
 
+
 if __name__ == "__main__":
     r = run()
-    print(f"Scenarios: {r.stats.get('scenarios',0)}")
-    print(f"Decisions: execute={r.stats.get('execute',0)}, escalate={r.stats.get('escalate',0)}, reject={r.stats.get('reject',0)}, hold={r.stats.get('hold',0)}")
-    for f in r.findings: print(f"  {f}")
+    print(f"Scenarios: {r.stats.get('scenarios', 0)}")
+    print(
+        f"Decisions: execute={r.stats.get('execute', 0)}, escalate={r.stats.get('escalate', 0)}, reject={r.stats.get('reject', 0)}, hold={r.stats.get('hold', 0)}"
+    )
+    for f in r.findings:
+        print(f"  {f}")
     if r.status == "fail":
-        print(f"\n❌ {r.stats.get('reject',0)} blocked scenario(s)")
+        print(f"\n❌ {r.stats.get('reject', 0)} blocked scenario(s)")
     else:
         print("\n✅ All scenarios classified correctly")
     sys.exit(r.exit_code)

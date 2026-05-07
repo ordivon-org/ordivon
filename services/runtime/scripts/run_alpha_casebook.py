@@ -220,23 +220,17 @@ def _generate_case_root(case: GovernedWorkCase, tmp: Path) -> Path:
         _write_base_config(root, document_registry="governance/document-registry.jsonl")
     elif case.generator == "diff_evidence_missing":
         (receipt_dir / "diff-missing.md").write_text(
-            "# Receipt\n\n"
-            "Status: **SEALED**\n\n"
-            "Diff evidence omitted and addendum required.\n",
+            "# Receipt\n\nStatus: **SEALED**\n\nDiff evidence omitted and addendum required.\n",
             encoding="utf-8",
         )
     elif case.generator == "review_incomplete":
         (receipt_dir / "review-pending.md").write_text(
-            "# Receipt\n\n"
-            "Status: **SEALED**\n\n"
-            "Review pending before trust decision.\n",
+            "# Receipt\n\nStatus: **SEALED**\n\nReview pending before trust decision.\n",
             encoding="utf-8",
         )
     elif case.generator == "degraded_as_pass":
         (receipt_dir / "degraded-pass.md").write_text(
-            "# Receipt\n\n"
-            "Status: COMPLETE\n\n"
-            "DEGRADED is green and passed for merge readiness.\n",
+            "# Receipt\n\nStatus: COMPLETE\n\nDEGRADED is green and passed for merge readiness.\n",
             encoding="utf-8",
         )
     elif case.generator == "hidden_open_debt":
@@ -250,16 +244,12 @@ def _generate_case_root(case: GovernedWorkCase, tmp: Path) -> Path:
         _write_base_config(root, debt_ledger="governance/verification-debt-ledger.jsonl")
     elif case.generator == "external_benchmark_overclaim":
         (receipt_dir / "benchmark-overclaim.md").write_text(
-            "# Receipt\n\n"
-            "Status: COMPLETE\n\n"
-            "Ordivon is certified, compliant, production-ready, and SLSA level 3.\n",
+            "# Receipt\n\nStatus: COMPLETE\n\nOrdivon is certified, compliant, production-ready, and SLSA level 3.\n",
             encoding="utf-8",
         )
     elif case.generator == "false_clean_tree":
         (receipt_dir / "clean-tree-overclaim.md").write_text(
-            "# Receipt\n\n"
-            "Status: COMPLETE\n\n"
-            "The working tree is clean.\n",
+            "# Receipt\n\nStatus: COMPLETE\n\nThe working tree is clean.\n",
             encoding="utf-8",
         )
     else:

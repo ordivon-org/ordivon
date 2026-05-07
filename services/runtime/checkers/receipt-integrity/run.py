@@ -18,31 +18,56 @@ ROOT = Path(__file__).resolve().parents[2]
 # ── Hard-fail patterns ──────────────────────────────────────────────
 
 HARD_FAILS: list[tuple[re.Pattern, str, re.Pattern | None]] = [
-    (re.compile(r"Skipped Verification:\s*None", re.IGNORECASE),
-     "claims 'Skipped: None' but nearby text suggests gate was not run", None),
-    (re.compile(r"(?:Status:\s*\*?\*?SEALED|FULLY SEALED)", re.IGNORECASE),
-     "claims SEALED but nearby text suggests incomplete verification", None),
-    (re.compile(r"clean working tree", re.IGNORECASE),
-     "claims 'clean working tree' — should say 'Tracked working tree clean' if untracked residue exists",
-     re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE)),
-    (re.compile(r"7\/7\s+(?:baseline|hard\s+gates?)", re.IGNORECASE),
-     "stale baseline count '7/7' — baseline is now larger",
-     re.compile(r"before\s+DG-5|7\/7\s*→\s*8\/8|historical", re.IGNORECASE)),
-    (re.compile(r"Ruff\s+clean", re.IGNORECASE),
-     "claims 'Ruff clean' globally — should qualify with scope if pre-existing debt exists",
-     re.compile(r"DG\s+scope\s+clean|DG\s+files\s+clean|forbidden|anti.pattern|\"Ruff clean\"|Ruff clean.*don't|Ruff clean.*do not", re.IGNORECASE)),
-    (re.compile(r"CandidateRule\s+validated", re.IGNORECASE),
-     "claims 'CandidateRule validated' — should say 'advisory' or 'supported by evidence'",
-     re.compile(r"advisory|not\s+Policy|supported\s+by\s+evidence", re.IGNORECASE)),
-    (re.compile(r"(?:can_place_order|order\s+placement)", re.IGNORECASE),
-     "work summary describes order capability — boundary claim may lack paper-only evidence",
-     re.compile(r"paper.only|no\s+live|NO-GO|BLOCKED|not\s+execution", re.IGNORECASE)),
+    (
+        re.compile(r"Skipped Verification:\s*None", re.IGNORECASE),
+        "claims 'Skipped: None' but nearby text suggests gate was not run",
+        None,
+    ),
+    (
+        re.compile(r"(?:Status:\s*\*?\*?SEALED|FULLY SEALED)", re.IGNORECASE),
+        "claims SEALED but nearby text suggests incomplete verification",
+        None,
+    ),
+    (
+        re.compile(r"clean working tree", re.IGNORECASE),
+        "claims 'clean working tree' — should say 'Tracked working tree clean' if untracked residue exists",
+        re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"7\/7\s+(?:baseline|hard\s+gates?)", re.IGNORECASE),
+        "stale baseline count '7/7' — baseline is now larger",
+        re.compile(r"before\s+DG-5|7\/7\s*→\s*8\/8|historical", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"Ruff\s+clean", re.IGNORECASE),
+        "claims 'Ruff clean' globally — should qualify with scope if pre-existing debt exists",
+        re.compile(
+            r"DG\s+scope\s+clean|DG\s+files\s+clean|forbidden|anti.pattern|\"Ruff clean\"|Ruff clean.*don't|Ruff clean.*do not",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        re.compile(r"CandidateRule\s+validated", re.IGNORECASE),
+        "claims 'CandidateRule validated' — should say 'advisory' or 'supported by evidence'",
+        re.compile(r"advisory|not\s+Policy|supported\s+by\s+evidence", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"(?:can_place_order|order\s+placement)", re.IGNORECASE),
+        "work summary describes order capability — boundary claim may lack paper-only evidence",
+        re.compile(r"paper.only|no\s+live|NO-GO|BLOCKED|not\s+execution", re.IGNORECASE),
+    ),
 ]
 
 SKIP_CONTEXT_WORDS = [
-    "not run", "not separately executed", "skipped", "omitted",
-    "will verify after commit", "pending verification", "not yet run",
-    "addendum required", "pending",
+    "not run",
+    "not separately executed",
+    "skipped",
+    "omitted",
+    "will verify after commit",
+    "pending verification",
+    "not yet run",
+    "addendum required",
+    "pending",
 ]
 
 DEFAULT_SCAN_PATHS = [
@@ -88,7 +113,7 @@ def _scan_one(filepath: Path, failures: list[str], stats: Counter) -> None:
                 stats[f"fail_{desc[:30]}"] += 1
 
 
-def run() -> "CheckerResult":
+def run():
     """Run receipt integrity checks. Returns structured result.
 
     This function signature is the auto-discovery contract —
@@ -123,6 +148,7 @@ def run() -> "CheckerResult":
 
 if __name__ == "__main__":
     import sys
+
     result = run()
     print(f"  Files scanned: {result.stats.get('scanned', 0)}")
     print(f"  Failures:      {len(result.findings)}")

@@ -13,7 +13,6 @@ Ordivon translation: activation requires the specific Owner's ✅.
 from __future__ import annotations
 import json, sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,14 +20,14 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from domains.policies.models import PolicyRecord, PolicyState
 
 ACTIVATION_LEDGER = ROOT / "docs" / "governance" / "policy-activation-ledger.jsonl"
 
 
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
@@ -54,9 +53,9 @@ def _load_activation_signoffs() -> dict[str, list[dict]]:
     return signoffs
 
 
-def validate_activation(policy_id: str, policy_state: str,
-                        owner_id: str | None,
-                        signoffs: dict[str, list[dict]]) -> list[str]:
+def validate_activation(
+    policy_id: str, policy_state: str, owner_id: str | None, signoffs: dict[str, list[dict]]
+) -> list[str]:
     """Validate that policy activation has proper owner signoff.
 
     Returns list of violations (empty = valid).
@@ -123,7 +122,6 @@ def run() -> CheckerResult:
                     continue
 
                 policy_id = draft.get("candidate_rule_id", "")
-                review_status = draft.get("review_status", "")
 
                 # A draft being promoted to Policy would be "accepted_candidate"
                 status = draft.get("status", "")
@@ -134,9 +132,7 @@ def run() -> CheckerResult:
                     # Accepted candidates should have an owner set
                     # (For now, check: does the draft have an explicit owner?)
                     owner = draft.get("owner", None)
-                    violations = validate_activation(
-                        policy_id, "active_shadow", owner, signoffs
-                    )
+                    violations = validate_activation(policy_id, "active_shadow", owner, signoffs)
                     if violations:
                         stats["violations"] += len(violations)
                         findings.extend(violations)
@@ -169,8 +165,7 @@ def run() -> CheckerResult:
 
     if findings:
         findings.append(
-            f"Owner activation violations: {stats['violations']}. "
-            f"Activation requires named owner + explicit signoff."
+            f"Owner activation violations: {stats['violations']}. Activation requires named owner + explicit signoff."
         )
 
     return CheckerResult(

@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CLI = str(ROOT / "scripts" / "repo_governance_cli.py")
 
+
 def _find_python() -> str:
     """Find the venv Python if available, fall back to sys.executable."""
     venv_python = ROOT / ".venv" / "bin" / "python"
@@ -20,37 +21,54 @@ def _find_python() -> str:
         return str(venv_python)
     return sys.executable
 
+
 PYTHON = _find_python()
 
 VALID_CASE = [
-    "--task-description", "Fix unit test naming",
-    "--file-path", "tests/unit/test_example.py",
-    "--estimated-impact", "low",
-    "--reasoning", "Small test-only cleanup",
-    "--test-plan", "uv run pytest tests/unit/test_example.py",
+    "--task-description",
+    "Fix unit test naming",
+    "--file-path",
+    "tests/unit/test_example.py",
+    "--estimated-impact",
+    "low",
+    "--reasoning",
+    "Small test-only cleanup",
+    "--test-plan",
+    "uv run pytest tests/unit/test_example.py",
     "--json",
 ]
 
 FORBIDDEN_CASE = [
-    "--task-description", "Update environment secret",
-    "--file-path", ".env",
-    "--estimated-impact", "low",
-    "--reasoning", "Dangerous secret change",
-    "--test-plan", "manual review",
+    "--task-description",
+    "Update environment secret",
+    "--file-path",
+    ".env",
+    "--estimated-impact",
+    "low",
+    "--reasoning",
+    "Dangerous secret change",
+    "--test-plan",
+    "manual review",
     "--json",
 ]
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
+
 
 def _run_case(case: list[str], label: str, expected_decision: str) -> tuple[bool, str]:
     try:
         result = subprocess.run(
             [PYTHON, CLI] + case,
-            capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT),
         )
         output = result.stdout.strip()
         try:
@@ -68,13 +86,16 @@ def _run_case(case: list[str], label: str, expected_decision: str) -> tuple[bool
     except Exception as exc:
         return False, f"{label}: error: {exc}"
 
+
 def run() -> CheckerResult:
     findings = []
     ok1, msg1 = _run_case(VALID_CASE, "valid→execute", "execute")
-    if not ok1: findings.append(msg1)
+    if not ok1:
+        findings.append(msg1)
 
     ok2, msg2 = _run_case(FORBIDDEN_CASE, "forbidden→reject", "reject")
-    if not ok2: findings.append(msg2)
+    if not ok2:
+        findings.append(msg2)
 
     stats = {"valid_case": msg1, "forbidden_case": msg2}
     return CheckerResult(
@@ -83,6 +104,7 @@ def run() -> CheckerResult:
         findings,
         stats,
     )
+
 
 if __name__ == "__main__":
     r = run()

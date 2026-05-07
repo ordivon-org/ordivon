@@ -26,7 +26,6 @@ from domains.policies.models import (
 )
 from domains.policies.shadow import (
     PolicyShadowCase,
-    PolicyShadowResult,
     PolicyShadowEvaluator,
     ShadowVerdict,
 )
@@ -43,16 +42,21 @@ FIXTURES_FILE = ROOT / "checkers" / "policy-shadow" / "fixtures" / "shadow_cases
 
 # ── Datatypes ────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 # ── Loaders ──────────────────────────────────────────────────────────
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def load_candidate_rule_drafts() -> list[dict]:
     """Load CandidateRule drafts from JSONL."""
@@ -68,6 +72,7 @@ def load_candidate_rule_drafts() -> list[dict]:
                     pass
     return entries
 
+
 def load_shadow_cases() -> list[dict]:
     """Load red-team shadow cases from fixtures."""
     if not FIXTURES_FILE.exists():
@@ -75,7 +80,9 @@ def load_shadow_cases() -> list[dict]:
     with open(FIXTURES_FILE) as f:
         return json.load(f)
 
+
 # ── CandidateRule → PolicyRecord mapping ─────────────────────────────
+
 
 def _draft_to_policy(draft: dict) -> PolicyRecord:
     """Map a CandidateRule draft JSON dict to a PolicyRecord.
@@ -136,6 +143,7 @@ def _draft_to_policy(draft: dict) -> PolicyRecord:
         evidence_refs=tuple(evidence_refs),
     )
 
+
 def _infer_ref_type(ref: str) -> str:
     """Infer evidence ref_type from reference prefix."""
     if ref.startswith("candidate_rule:"):
@@ -151,6 +159,7 @@ def _infer_ref_type(ref: str) -> str:
     if ref.startswith("phase:"):
         return "source_ref"
     return "source_ref"
+
 
 def _case_from_dict(data: dict) -> PolicyShadowCase:
     """Construct PolicyShadowCase from JSON dict."""
@@ -199,7 +208,9 @@ def _case_from_dict(data: dict) -> PolicyShadowCase:
         expected_verdict=expected_verdict,
     )
 
+
 # ── Core logic ───────────────────────────────────────────────────────
+
 
 def run_shadow_evaluation() -> tuple[list[dict], dict]:
     """Run all CandidateRule drafts against the red-team shadow corpus.
@@ -217,8 +228,12 @@ def run_shadow_evaluation() -> tuple[list[dict], dict]:
             "correct_verdicts": 0,
             "wrong_verdicts": 0,
             "no_match": 0,
-            "readiness_checks": {"ready_for_activation": 0, "ready_for_shadow": 0,
-                                  "ready_for_review": 0, "not_ready": 0},
+            "readiness_checks": {
+                "ready_for_activation": 0,
+                "ready_for_shadow": 0,
+                "ready_for_review": 0,
+                "not_ready": 0,
+            },
         }
 
     evaluator = PolicyShadowEvaluator()
@@ -233,8 +248,7 @@ def run_shadow_evaluation() -> tuple[list[dict], dict]:
         "correct_verdicts": 0,
         "wrong_verdicts": 0,
         "no_match": 0,
-        "readiness_checks": {"ready_for_activation": 0, "ready_for_shadow": 0,
-                              "ready_for_review": 0, "not_ready": 0},
+        "readiness_checks": {"ready_for_activation": 0, "ready_for_shadow": 0, "ready_for_review": 0, "not_ready": 0},
     }
 
     for draft in drafts:
@@ -242,24 +256,28 @@ def run_shadow_evaluation() -> tuple[list[dict], dict]:
         try:
             policy = _draft_to_policy(draft)
         except Exception as e:
-            log_entries.append({
-                "candidate_rule_id": candidate_rule_id,
-                "run_at": _now_iso(),
-                "error": f"PolicyRecord construction failed: {e}",
-                "results": [],
-            })
+            log_entries.append(
+                {
+                    "candidate_rule_id": candidate_rule_id,
+                    "run_at": _now_iso(),
+                    "error": f"PolicyRecord construction failed: {e}",
+                    "results": [],
+                }
+            )
             continue
 
         # Run evaluation for all cases against this policy
         try:
             results = evaluator.evaluate_batch(policy, cases)
         except Exception as e:
-            log_entries.append({
-                "candidate_rule_id": candidate_rule_id,
-                "run_at": _now_iso(),
-                "error": f"Shadow evaluation failed: {e}",
-                "results": [],
-            })
+            log_entries.append(
+                {
+                    "candidate_rule_id": candidate_rule_id,
+                    "run_at": _now_iso(),
+                    "error": f"Shadow evaluation failed: {e}",
+                    "results": [],
+                }
+            )
             continue
 
         stats["total_evaluations"] += len(results)
@@ -318,7 +336,9 @@ def run_shadow_evaluation() -> tuple[list[dict], dict]:
 
     return log_entries, stats
 
+
 # ── Checker entry point ──────────────────────────────────────────────
+
 
 def run() -> CheckerResult:
     log_entries, stats = run_shadow_evaluation()
@@ -336,26 +356,20 @@ def run() -> CheckerResult:
     )
 
     if stats["correct_verdicts"] > 0:
-        findings.append(
-            f"  ✅ {stats['correct_verdicts']} correct verdicts "
-            f"(matched expected)"
-        )
+        findings.append(f"  ✅ {stats['correct_verdicts']} correct verdicts (matched expected)")
     if stats["wrong_verdicts"] > 0:
-        findings.append(
-            f"  ⚠️  {stats['wrong_verdicts']} unexpected verdicts "
-            f"(may need rule refinement)"
-        )
+        findings.append(f"  ⚠️  {stats['wrong_verdicts']} unexpected verdicts (may need rule refinement)")
     if stats["no_match"] > 0:
-        findings.append(
-            f"  ℹ️  {stats['no_match']} no_match (scope didn't apply)"
-        )
+        findings.append(f"  ℹ️  {stats['no_match']} no_match (scope didn't apply)")
 
     # Readiness report
     rc = stats["readiness_checks"]
-    findings.append(f"  Readiness: {rc['ready_for_activation']} activation-ready, "
-                     f"{rc['ready_for_shadow']} shadow-ready, "
-                     f"{rc['ready_for_review']} review-only, "
-                     f"{rc['not_ready']} not_ready")
+    findings.append(
+        f"  Readiness: {rc['ready_for_activation']} activation-ready, "
+        f"{rc['ready_for_shadow']} shadow-ready, "
+        f"{rc['ready_for_review']} review-only, "
+        f"{rc['not_ready']} not_ready"
+    )
 
     # Write log entries
     if log_entries:

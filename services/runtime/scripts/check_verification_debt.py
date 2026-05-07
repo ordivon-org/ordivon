@@ -270,31 +270,37 @@ def discover_debt_candidates(
                 excl_key = f"{rel}:{i}"
                 excl_wild = f"{rel}:*"
                 if excl_key in exclusions:
-                    excluded.append({
-                        "file": rel,
-                        "line": i,
-                        "signal": label,
-                        "exclusion": exclusions[excl_key].get("reason", "unknown"),
-                    })
+                    excluded.append(
+                        {
+                            "file": rel,
+                            "line": i,
+                            "signal": label,
+                            "exclusion": exclusions[excl_key].get("reason", "unknown"),
+                        }
+                    )
                     continue
                 if excl_wild in exclusions:
-                    excluded.append({
-                        "file": rel,
-                        "line": i,
-                        "signal": label,
-                        "exclusion": exclusions[excl_wild].get("reason", "unknown"),
-                    })
+                    excluded.append(
+                        {
+                            "file": rel,
+                            "line": i,
+                            "signal": label,
+                            "exclusion": exclusions[excl_wild].get("reason", "unknown"),
+                        }
+                    )
                     continue
 
                 # Flag as candidate
                 # But only if in a debt section, or the signal is specific enough
                 if is_debt_section or label in ("BLOCKED", "skipped verification", "known gap", "pending verification"):
-                    candidates.append({
-                        "file": rel,
-                        "line": i,
-                        "signal": label,
-                        "context": ctx_text[:200],
-                    })
+                    candidates.append(
+                        {
+                            "file": rel,
+                            "line": i,
+                            "signal": label,
+                            "context": ctx_text[:200],
+                        }
+                    )
 
     # Classify: candidates without VD reference are unmanaged
     unmanaged = [c for c in candidates]

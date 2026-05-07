@@ -540,32 +540,34 @@ def _confusable_normalize(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
 
     # Cross-script confusable mappings (source → target)
-    _CONFUSABLES = str.maketrans({
-        # Cyrillic → Latin
-        "\u0430": "a",
-        "\u0435": "e",
-        "\u043e": "o",
-        "\u0441": "c",
-        "\u0440": "p",
-        "\u0445": "x",
-        "\u0455": "s",
-        "\u0456": "i",
-        "\u0410": "A",
-        "\u0415": "E",
-        "\u041e": "O",
-        "\u0421": "C",
-        "\u0420": "P",
-        "\u0425": "X",
-        "\u0405": "S",
-        "\u0406": "I",
-        # Greek → Latin
-        "\u03bf": "o",
-        "\u039f": "O",
-        "\u03b1": "a",
-        "\u0391": "A",
-        "\u03b5": "e",
-        "\u0395": "E",
-    })
+    _CONFUSABLES = str.maketrans(
+        {
+            # Cyrillic → Latin
+            "\u0430": "a",
+            "\u0435": "e",
+            "\u043e": "o",
+            "\u0441": "c",
+            "\u0440": "p",
+            "\u0445": "x",
+            "\u0455": "s",
+            "\u0456": "i",
+            "\u0410": "A",
+            "\u0415": "E",
+            "\u041e": "O",
+            "\u0421": "C",
+            "\u0420": "P",
+            "\u0425": "X",
+            "\u0405": "S",
+            "\u0406": "I",
+            # Greek → Latin
+            "\u03bf": "o",
+            "\u039f": "O",
+            "\u03b1": "a",
+            "\u0391": "A",
+            "\u03b5": "e",
+            "\u0395": "E",
+        }
+    )
 
     return text.translate(_CONFUSABLES)
 
@@ -926,13 +928,15 @@ def _print_policy_report(entries: list[dict], errors: list[str]) -> None:
             category = "semantics"
             severity = "high"
 
-        results.append({
-            "result": "fail",
-            "severity": severity,
-            "category": category,
-            "message": err,
-            "scored": True,
-        })
+        results.append(
+            {
+                "result": "fail",
+                "severity": severity,
+                "category": category,
+                "message": err,
+                "scored": True,
+            }
+        )
 
     # Count by severity
     summary = {

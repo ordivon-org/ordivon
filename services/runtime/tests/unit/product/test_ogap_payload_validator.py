@@ -94,14 +94,16 @@ class TestValidator:
         temp = ROOT / ".tmp" / "bad-decision.json"
         temp.parent.mkdir(exist_ok=True)
         temp.write_text(
-            json.dumps({
-                "schema_version": "0.1",
-                "decision": "APPROVED",
-                "decision_scope": "test",
-                "evidence_summary": "test",
-                "coverage_summary": "test",
-                "authority_statement": "test",
-            }),
+            json.dumps(
+                {
+                    "schema_version": "0.1",
+                    "decision": "APPROVED",
+                    "decision_scope": "test",
+                    "evidence_summary": "test",
+                    "coverage_summary": "test",
+                    "authority_statement": "test",
+                }
+            ),
             encoding="utf-8",
         )
         r = subprocess.run(
@@ -117,14 +119,16 @@ class TestValidator:
         temp = ROOT / ".tmp" / "bad-ready.json"
         temp.parent.mkdir(exist_ok=True)
         temp.write_text(
-            json.dumps({
-                "schema_version": "0.1",
-                "decision": "READY",
-                "decision_scope": "test",
-                "evidence_summary": "test",
-                "coverage_summary": "test",
-                "authority_statement": "READY authorizes deployment",
-            }),
+            json.dumps(
+                {
+                    "schema_version": "0.1",
+                    "decision": "READY",
+                    "decision_scope": "test",
+                    "evidence_summary": "test",
+                    "coverage_summary": "test",
+                    "authority_statement": "READY authorizes deployment",
+                }
+            ),
             encoding="utf-8",
         )
         r = subprocess.run(

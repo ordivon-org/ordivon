@@ -7,10 +7,9 @@ Hard gate: BLOCKS when constraints are violated.
 """
 
 from __future__ import annotations
-import json, re, math, sys
+import json, re, sys
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,31 +19,40 @@ TELEMETRY_FILE = ROOT / "docs" / "governance" / "entropy-telemetry.jsonl"
 # (name, metric_key, threshold, operator, hardness, description)
 # operator: "lt" = less than, "gt" = greater than
 GATES = [
-    ("file_ceiling", "total_files", 2500, "lt",
-     "hard", "Total files must remain below 2500"),
-    ("freshness_slo", "stale_docs_pct", 10.0, "lt",
-     "degraded", "Stale docs must be <10% of registry"),
-    ("coverage_minimum", "checker_coverage_ratio", 0.5, "gt",
-     "degraded", "Checkers/sqrt(files) must stay above 0.5"),
-    ("growth_velocity", "total_files_pct_30d", 10.0, "lt",
-     "hard", "File growth must stay below 10%/month"),
-    ("debt_ceiling", "debt_entries", 100, "lt",
-     "degraded", "Open debt entries must stay below 100"),
+    ("file_ceiling", "total_files", 2500, "lt", "hard", "Total files must remain below 2500"),
+    ("freshness_slo", "stale_docs_pct", 10.0, "lt", "degraded", "Stale docs must be <10% of registry"),
+    ("coverage_minimum", "checker_coverage_ratio", 0.5, "gt", "degraded", "Checkers/sqrt(files) must stay above 0.5"),
+    ("growth_velocity", "total_files_pct_30d", 10.0, "lt", "hard", "File growth must stay below 10%/month"),
+    ("debt_ceiling", "debt_entries", 100, "lt", "degraded", "Open debt entries must stay below 100"),
 ]
 
 # These directories are excluded from import depth analysis
-EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".venv", "venv",
-                ".archive", ".mypy_cache", ".pytest_cache", "dist", "build"}
+EXCLUDE_DIRS = {
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".archive",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+}
 
 # ── Data types ──────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
+
 # ── Telemetry reading ───────────────────────────────────────────────
+
 
 def _load_latest_telemetry() -> dict | None:
     """Load the most recent telemetry snapshot."""
@@ -61,7 +69,9 @@ def _load_latest_telemetry() -> dict | None:
                     pass
     return last
 
+
 # ── Import depth analysis ───────────────────────────────────────────
+
 
 def _max_import_depth() -> int:
     """Calculate maximum import chain depth in the codebase.
@@ -72,10 +82,8 @@ def _max_import_depth() -> int:
     """
     import_graph: dict[str, set[str]] = {}
     import_pat = re.compile(r"^(?:from|import)\s+([\w.]+)", re.MULTILINE)
-    file_module_pat = re.compile(r"^(?:from|import)\s+([\w.]+)", re.MULTILINE)
 
     search_dirs = [ROOT / "src", ROOT / "domains", ROOT / "packs", ROOT / "checkers"]
-    file_to_mods: dict[str, set[str]] = {}
 
     # Build module → file mapping (approximate)
     mod_to_file: dict[str, str] = {}
@@ -136,11 +144,13 @@ def _max_import_depth() -> int:
 
     return max_depth
 
+
 # ── Gate evaluation ─────────────────────────────────────────────────
 
-def _evaluate_gate(name: str, value: float, threshold: float,
-                   operator: str, hardness: str, description: str,
-                   metrics: dict) -> tuple[bool, str, str]:
+
+def _evaluate_gate(
+    name: str, value: float, threshold: float, operator: str, hardness: str, description: str, metrics: dict
+) -> tuple[bool, str, str]:
     """Evaluate a single gate. Returns (pass, status, message)."""
     if operator == "lt":
         passed = value < threshold
@@ -150,9 +160,11 @@ def _evaluate_gate(name: str, value: float, threshold: float,
         symbol = ">"
 
     status = "PASS" if passed else ("BLOCKED" if hardness == "hard" else "DEGRADED")
-    msg = (f"{name}: {value:.1f} {symbol} {threshold} → {status}"
-           if not passed else
-           f"{name}: {value:.1f} {symbol} {threshold} → OK")
+    msg = (
+        f"{name}: {value:.1f} {symbol} {threshold} → {status}"
+        if not passed
+        else f"{name}: {value:.1f} {symbol} {threshold} → OK"
+    )
 
     return passed, status, msg
 
@@ -161,9 +173,12 @@ def run() -> CheckerResult:
     telemetry = _load_latest_telemetry()
     if telemetry is None:
         return CheckerResult(
-            "pass", 0,
-            ["No telemetry data yet — entropy gates inactive (first run). "
-             "Run entropy-telemetry checker to initialize."],
+            "pass",
+            0,
+            [
+                "No telemetry data yet — entropy gates inactive (first run). "
+                "Run entropy-telemetry checker to initialize."
+            ],
             {"error": "no_telemetry", "gates_active": False},
         )
 
@@ -201,9 +216,7 @@ def run() -> CheckerResult:
             findings.append(f"{name}: metric '{metric_key}' not available")
             continue
 
-        passed, status, msg = _evaluate_gate(
-            name, value, threshold, operator, hardness, desc, metrics_raw
-        )
+        passed, status, msg = _evaluate_gate(name, value, threshold, operator, hardness, desc, metrics_raw)
         findings.append(msg)
         gate_results[name] = {"passed": passed, "status": status, "value": value}
 
@@ -213,9 +226,7 @@ def run() -> CheckerResult:
     # ── Import depth gate (separate — not in telemetry yet) ─────
     depth_passed = max_depth < 6
     depth_status = "OK" if depth_passed else "BLOCKED"
-    findings.append(
-        f"import_depth: max={max_depth} < 6 → {depth_status}"
-    )
+    findings.append(f"import_depth: max={max_depth} < 6 → {depth_status}")
     if not depth_passed:
         all_pass = False
 
@@ -229,14 +240,12 @@ def run() -> CheckerResult:
         "gates_blocked": blocked + (0 if depth_passed else 1),
         "gates_degraded": degraded,
         "snapshot_ts": telemetry.get("timestamp", "unknown"),
-        "derived_metrics": {k: round(v, 2) if isinstance(v, float) else v
-                            for k, v in derived.items()},
+        "derived_metrics": {k: round(v, 2) if isinstance(v, float) else v for k, v in derived.items()},
     }
 
     if not all_pass:
         findings.append(
-            f"ENTROPY GATE: {blocked} BLOCKED, {degraded} DEGRADED "
-            f"— system entropy exceeds governance thresholds"
+            f"ENTROPY GATE: {blocked} BLOCKED, {degraded} DEGRADED — system entropy exceeds governance thresholds"
         )
 
     return CheckerResult(

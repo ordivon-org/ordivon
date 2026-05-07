@@ -381,16 +381,23 @@ def validate_memory_record(path: Path, reference_year: int = 2026) -> list[str]:
     last_verified = str(record.get("last_verified", ""))
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", last_verified):
         errors.append(f"{name}: last_verified must be YYYY-MM-DD")
-    elif last_verified[:4].isdigit() and int(last_verified[:4]) < reference_year and authority in {
-        "source_of_truth",
-        "current_status",
-    }:
+    elif (
+        last_verified[:4].isdigit()
+        and int(last_verified[:4]) < reference_year
+        and authority
+        in {
+            "source_of_truth",
+            "current_status",
+        }
+    ):
         errors.append(f"{name}: stale memory cannot be cited as current authority")
 
     claim = str(record.get("claim", ""))
     claim_lower = claim.lower()
     evidence_status = str(record.get("evidence_status", "")).upper()
-    if evidence_status in {"DEGRADED", "BLOCKED"} and re.search(r"\b(clean|passed|ready|approved|current truth)\b", claim_lower):
+    if evidence_status in {"DEGRADED", "BLOCKED"} and re.search(
+        r"\b(clean|passed|ready|approved|current truth)\b", claim_lower
+    ):
         errors.append(f"{name}: {evidence_status} evidence is rewritten as clean/current fact")
 
     object_type = str(record.get("object_type", ""))
@@ -456,7 +463,9 @@ def validate_harness_bundle(path: Path) -> list[str]:
     if reviewed_node and reviewed_node not in node_ids:
         errors.append(f"{name}: human review references unknown trace node '{reviewed_node}'")
 
-    failed_calls = [call for call in tool_calls if isinstance(call, dict) and str(call.get("status", "")).lower() == "failed"]
+    failed_calls = [
+        call for call in tool_calls if isinstance(call, dict) and str(call.get("status", "")).lower() == "failed"
+    ]
     expected_failed = receipt.get("failed_tool_call_count", 0)
     try:
         expected_failed_int = int(expected_failed)
@@ -543,7 +552,11 @@ def validate_mcp_manifest(path: Path) -> list[str]:
             if not isinstance(resource, dict):
                 errors.append(f"{name}: resources[{idx}] must be object")
                 continue
-            if resource.get("audience") and audience.get("expected") and resource.get("audience") != audience.get("expected"):
+            if (
+                resource.get("audience")
+                and audience.get("expected")
+                and resource.get("audience") != audience.get("expected")
+            ):
                 errors.append(f"{name}: resources[{idx}] audience does not match expected audience")
 
     risk_notes = " ".join(str(item) for item in manifest.get("risk_notes", []))

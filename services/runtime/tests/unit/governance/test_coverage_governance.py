@@ -64,64 +64,66 @@ def _run(manifest: dict) -> tuple[int, str]:
 
 
 def test_valid_manifest_passes():
-    manifest = _make_manifest([
-        _make_valid_entry(),
-        _make_valid_entry(
-            checker_id="verification_debt",
-            checker_path="scripts/check_verification_debt.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            coverage_summary_required=True,
-            known_gaps=["no auto-discovery"],
-        ),
-        _make_valid_entry(
-            checker_id="receipt_integrity",
-            checker_path="scripts/check_receipt_integrity.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            known_gaps=["config-bound"],
-        ),
-        _make_valid_entry(
-            checker_id="verification_manifest",
-            checker_path="scripts/check_verification_manifest.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="pr_fast_baseline",
-            checker_path="scripts/run_verification_baseline.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            known_gaps=["wave_files whitelist"],
-        ),
-        _make_valid_entry(
-            checker_id="public_wedge_audit",
-            checker_path="scripts/audit_ordivon_verify_public_wedge.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="public_repo_dryrun",
-            checker_path="scripts/dryrun_ordivon_verify_public_repo.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="private_install_smoke",
-            checker_path="scripts/smoke_ordivon_verify_private_install.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="build_artifact_smoke",
-            checker_path="scripts/smoke_ordivon_verify_build_artifacts.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-    ])
+    manifest = _make_manifest(
+        [
+            _make_valid_entry(),
+            _make_valid_entry(
+                checker_id="verification_debt",
+                checker_path="scripts/check_verification_debt.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                coverage_summary_required=True,
+                known_gaps=["no auto-discovery"],
+            ),
+            _make_valid_entry(
+                checker_id="receipt_integrity",
+                checker_path="scripts/check_receipt_integrity.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                known_gaps=["config-bound"],
+            ),
+            _make_valid_entry(
+                checker_id="verification_manifest",
+                checker_path="scripts/check_verification_manifest.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="pr_fast_baseline",
+                checker_path="scripts/run_verification_baseline.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                known_gaps=["wave_files whitelist"],
+            ),
+            _make_valid_entry(
+                checker_id="public_wedge_audit",
+                checker_path="scripts/audit_ordivon_verify_public_wedge.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="public_repo_dryrun",
+                checker_path="scripts/dryrun_ordivon_verify_public_repo.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="private_install_smoke",
+                checker_path="scripts/smoke_ordivon_verify_private_install.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="build_artifact_smoke",
+                checker_path="scripts/smoke_ordivon_verify_build_artifacts.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+        ]
+    )
     exit_code, _ = _run(manifest)
     assert exit_code == 0
 
@@ -154,10 +156,12 @@ def test_missing_top_level_field_fails():
 
 
 def test_duplicate_checker_id_fails():
-    manifest = _make_manifest([
-        _make_valid_entry(checker_id="dup"),
-        _make_valid_entry(checker_id="dup"),
-    ])
+    manifest = _make_manifest(
+        [
+            _make_valid_entry(checker_id="dup"),
+            _make_valid_entry(checker_id="dup"),
+        ]
+    )
     exit_code, _ = _run(manifest)
     assert exit_code != 0
 
@@ -224,64 +228,66 @@ def test_deferred_with_path_missing_passes():
         status="deferred_with_reason",
         known_gaps=["not yet built"],
     )
-    manifest = _make_manifest([
-        entry,
-        _make_valid_entry(),
-        _make_valid_entry(
-            checker_id="verification_debt",
-            checker_path="scripts/check_verification_debt.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            known_gaps=["none"],
-        ),
-        _make_valid_entry(
-            checker_id="receipt_integrity",
-            checker_path="scripts/check_receipt_integrity.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            known_gaps=["n/a"],
-        ),
-        _make_valid_entry(
-            checker_id="verification_manifest",
-            checker_path="scripts/check_verification_manifest.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="pr_fast_baseline",
-            checker_path="scripts/run_verification_baseline.py",
-            status="partial",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-            known_gaps=["whitelist"],
-        ),
-        _make_valid_entry(
-            checker_id="public_wedge_audit",
-            checker_path="scripts/audit_ordivon_verify_public_wedge.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="public_repo_dryrun",
-            checker_path="scripts/dryrun_ordivon_verify_public_repo.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="private_install_smoke",
-            checker_path="scripts/smoke_ordivon_verify_private_install.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-        _make_valid_entry(
-            checker_id="build_artifact_smoke",
-            checker_path="scripts/smoke_ordivon_verify_build_artifacts.py",
-            reconciliation_required=False,
-            unknown_object_test_required=False,
-        ),
-    ])
+    manifest = _make_manifest(
+        [
+            entry,
+            _make_valid_entry(),
+            _make_valid_entry(
+                checker_id="verification_debt",
+                checker_path="scripts/check_verification_debt.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                known_gaps=["none"],
+            ),
+            _make_valid_entry(
+                checker_id="receipt_integrity",
+                checker_path="scripts/check_receipt_integrity.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                known_gaps=["n/a"],
+            ),
+            _make_valid_entry(
+                checker_id="verification_manifest",
+                checker_path="scripts/check_verification_manifest.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="pr_fast_baseline",
+                checker_path="scripts/run_verification_baseline.py",
+                status="partial",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+                known_gaps=["whitelist"],
+            ),
+            _make_valid_entry(
+                checker_id="public_wedge_audit",
+                checker_path="scripts/audit_ordivon_verify_public_wedge.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="public_repo_dryrun",
+                checker_path="scripts/dryrun_ordivon_verify_public_repo.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="private_install_smoke",
+                checker_path="scripts/smoke_ordivon_verify_private_install.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+            _make_valid_entry(
+                checker_id="build_artifact_smoke",
+                checker_path="scripts/smoke_ordivon_verify_build_artifacts.py",
+                reconciliation_required=False,
+                unknown_object_test_required=False,
+            ),
+        ]
+    )
     exit_code, _ = _run(manifest)
     assert exit_code == 0
 

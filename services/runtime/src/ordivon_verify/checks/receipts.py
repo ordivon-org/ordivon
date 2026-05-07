@@ -115,7 +115,9 @@ def _why_it_matters(reason: str) -> str:
     if "DEGRADED" in reason:
         return "DEGRADED is missing/weak evidence, not a pass or approval signal."
     if "external benchmark" in reason:
-        return "External benchmark references must not become compliance, certification, production, or SLSA-level claims."
+        return (
+            "External benchmark references must not become compliance, certification, production, or SLSA-level claims."
+        )
     if "test evidence" in reason:
         return "Test success claims must be backed by reproducible command evidence."
     return "Receipt language contradicts evidence."
@@ -180,85 +182,101 @@ def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict]
                 idx = i - 1
                 if _SEALED_PATTERN.search(line) and _has_skip_context_excluding_match(lines, idx):
                     reason = "Status SEALED but nearby text suggests incomplete verification"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
-                elif _SKIP_NONE_PATTERN.search(line) and _has_skip_context_excluding_match(lines, idx):
-                    reason = "Claims 'Skipped: None' but nearby text suggests gate was not run"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
-                elif _CLEAN_TREE_PATTERN.search(line):
-                    ctx_start, ctx_end = max(0, idx - 5), min(len(lines), idx + 5)
-                    ctx_text = "\n".join(lines[ctx_start:ctx_end])
-                    if not re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE).search(ctx_text):
-                        reason = "Claims 'clean working tree' without acknowledging untracked residue"
-                        failures.append({
+                    failures.append(
+                        {
                             "id": _classify_failure(reason),
                             "file": rel,
                             "line": i,
                             "reason": reason,
                             "why_it_matters": _why_it_matters(reason),
                             "next_action": _next_action(reason),
-                        })
+                        }
+                    )
+                elif _SKIP_NONE_PATTERN.search(line) and _has_skip_context_excluding_match(lines, idx):
+                    reason = "Claims 'Skipped: None' but nearby text suggests gate was not run"
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
+                elif _CLEAN_TREE_PATTERN.search(line):
+                    ctx_start, ctx_end = max(0, idx - 5), min(len(lines), idx + 5)
+                    ctx_text = "\n".join(lines[ctx_start:ctx_end])
+                    if not re.compile(r"tracked working tree clean|tracked clean", re.IGNORECASE).search(ctx_text):
+                        reason = "Claims 'clean working tree' without acknowledging untracked residue"
+                        failures.append(
+                            {
+                                "id": _classify_failure(reason),
+                                "file": rel,
+                                "line": i,
+                                "reason": reason,
+                                "why_it_matters": _why_it_matters(reason),
+                                "next_action": _next_action(reason),
+                            }
+                        )
                 elif _AUTHORIZATION_LAUNDERING_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "Receipt language turns verification/review evidence into authorization"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
                 elif _CANDIDATE_RULE_POLICY_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "CandidateRule is described as active or binding policy"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
                 elif _DEGRADED_AS_PASS_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "DEGRADED is described as a pass or readiness signal"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
                 elif _EXTERNAL_BENCHMARK_OVERCLAIM_PATTERN.search(line) and not _safe_boundary_line(line):
                     reason = "Receipt makes unsafe external benchmark or supply-chain overclaim"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
                 elif _LOCAL_TEST_CLAIM_PATTERN.search(line) and not _has_command_evidence_nearby(lines, idx):
                     reason = "Receipt claims tests passed locally without reproducible test evidence"
-                    failures.append({
-                        "id": _classify_failure(reason),
-                        "file": rel,
-                        "line": i,
-                        "reason": reason,
-                        "why_it_matters": _why_it_matters(reason),
-                        "next_action": _next_action(reason),
-                    })
+                    failures.append(
+                        {
+                            "id": _classify_failure(reason),
+                            "file": rel,
+                            "line": i,
+                            "reason": reason,
+                            "why_it_matters": _why_it_matters(reason),
+                            "next_action": _next_action(reason),
+                        }
+                    )
     return failures, scanned

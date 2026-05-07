@@ -29,15 +29,16 @@ DOCUMENTS_TO_CHECK = {
 }
 
 _HISTORICAL_PHASE_PATTERNS = [
-    re.compile(r'\|\s+\*\*(DG|PV|PGI|CPR|ADP|EG|COV|OGAP|HAP|GOV|OSS)-[\dA-Za-z-]+\*\*'),
-    re.compile(r'DG-[2-6][A-Za-z]?\s.*entries'),
-    re.compile(r'Phase\s+[2-7][A-Za-z]?\b'),
+    re.compile(r"\|\s+\*\*(DG|PV|PGI|CPR|ADP|EG|COV|OGAP|HAP|GOV|OSS)-[\dA-Za-z-]+\*\*"),
+    re.compile(r"DG-[2-6][A-Za-z]?\s.*entries"),
+    re.compile(r"Phase\s+[2-7][A-Za-z]?\b"),
 ]
 
 
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
@@ -45,17 +46,22 @@ class CheckerResult:
 @dataclass
 class DriftFix:
     """A single drift that can be auto-fixed."""
+
     file: str
     line: int
-    old_line: str    # the full original line
-    new_line: str    # the corrected line
+    old_line: str  # the full original line
+    new_line: str  # the corrected line
     description: str
 
 
 # ── Ground truth collectors ─────────────────────────────────────────
 
+
 def _collect_checker_truth() -> dict:
-    hard = 0; escalation = 0; pr_fast = 0; total = 0
+    hard = 0
+    escalation = 0
+    pr_fast = 0
+    total = 0
     if not CHECKERS_DIR.exists():
         return {"total": 0, "hard": 0, "escalation": 0, "pr_fast": 0}
     for entry in sorted(CHECKERS_DIR.iterdir()):
@@ -70,29 +76,40 @@ def _collect_checker_truth() -> dict:
         for line in text.splitlines():
             line = line.strip()
             if line == "---":
-                if not in_frontmatter: in_frontmatter = True; continue
-                else: break
-            if not in_frontmatter: continue
-            if ":" not in line: continue
+                if not in_frontmatter:
+                    in_frontmatter = True
+                    continue
+                else:
+                    break
+            if not in_frontmatter:
+                continue
+            if ":" not in line:
+                continue
             key, _, val = line.partition(":")
-            key = key.strip(); val = val.strip().strip("'\"")
+            key = key.strip()
+            val = val.strip().strip("'\"")
             if key == "hardness":
-                if val == "hard": hard += 1
-                elif val == "escalation": escalation += 1
+                if val == "hard":
+                    hard += 1
+                elif val == "escalation":
+                    escalation += 1
             if key == "profiles" and "pr-fast" in val:
                 pr_fast += 1
     return {"total": total, "hard": hard, "escalation": escalation, "pr_fast": pr_fast}
 
 
 def _collect_dg_truth() -> int:
-    if not DG_REGISTRY.exists(): return 0
-    with open(DG_REGISTRY) as f: return sum(1 for _ in f)
+    if not DG_REGISTRY.exists():
+        return 0
+    with open(DG_REGISTRY) as f:
+        return sum(1 for _ in f)
 
 
 def _collect_manifest_truth() -> dict:
     if not GATE_MANIFEST.exists():
         return {"gates": 0, "hard": 0, "escalation": 0, "discovered": 0}
-    with open(GATE_MANIFEST) as f: m = json.load(f)
+    with open(GATE_MANIFEST) as f:
+        m = json.load(f)
     gates = m.get("gates", [])
     return {
         "gates": len(gates),
@@ -104,11 +121,13 @@ def _collect_manifest_truth() -> dict:
 
 def _is_historical_phase_line(line: str) -> bool:
     for pat in _HISTORICAL_PHASE_PATTERNS:
-        if pat.search(line): return True
+        if pat.search(line):
+            return True
     return False
 
 
 # ── Scanner with fix support ────────────────────────────────────────
+
 
 def _scan_doc_with_fixes(path: Path) -> tuple[list[str], list[DriftFix]]:
     """Scan a doc and return (findings, fixable_drifts)."""
@@ -117,7 +136,6 @@ def _scan_doc_with_fixes(path: Path) -> tuple[list[str], list[DriftFix]]:
 
     truth = _collect_checker_truth()
     dg_truth = _collect_dg_truth()
-    manifest = _collect_manifest_truth()
 
     findings: list[str] = []
     fixes: list[DriftFix] = []
@@ -131,66 +149,74 @@ def _scan_doc_with_fixes(path: Path) -> tuple[list[str], list[DriftFix]]:
             continue
 
         # ── DG entry count ──────────────────────────────────────
-        if re.search(r'document.*registry|document-registry|registered\s+doc', stripped, re.IGNORECASE):
-            m = re.search(r'\b(\d+)\s+(?:registered\s+)?(?:entries|docs)\b', stripped, re.IGNORECASE)
+        if re.search(r"document.*registry|document-registry|registered\s+doc", stripped, re.IGNORECASE):
+            m = re.search(r"\b(\d+)\s+(?:registered\s+)?(?:entries|docs)\b", stripped, re.IGNORECASE)
             if m:
                 claimed = int(m.group(1))
                 if claimed != dg_truth:
                     old = m.group(0)
                     new = old.replace(str(claimed), str(dg_truth), 1)
                     new_line = line.replace(old, new, 1)
-                    findings.append(f"{rel}:{i+1} — DG entries: claims {claimed}, actual {dg_truth}")
-                    fixes.append(DriftFix(rel, i, line, new_line,
-                                          f"DG entries: {claimed} → {dg_truth}"))
+                    findings.append(f"{rel}:{i + 1} — DG entries: claims {claimed}, actual {dg_truth}")
+                    fixes.append(DriftFix(rel, i, line, new_line, f"DG entries: {claimed} → {dg_truth}"))
 
         # ── Total checker count ─────────────────────────────────
-        m = re.search(r'\b(\d+)\s+checkers\b', stripped, re.IGNORECASE)
+        m = re.search(r"\b(\d+)\s+checkers\b", stripped, re.IGNORECASE)
         if m:
             claimed = int(m.group(1))
             if claimed > 20 and claimed != truth["total"] and "pr-fast" not in stripped.lower():
                 old = m.group(0)
                 new = old.replace(str(claimed), str(truth["total"]), 1)
                 new_line = line.replace(old, new, 1)
-                findings.append(f"{rel}:{i+1} — checker total: claims {claimed}, actual {truth['total']}")
-                fixes.append(DriftFix(rel, i, line, new_line,
-                                      f"Checker total: {claimed} → {truth['total']}"))
+                findings.append(f"{rel}:{i + 1} — checker total: claims {claimed}, actual {truth['total']}")
+                fixes.append(DriftFix(rel, i, line, new_line, f"Checker total: {claimed} → {truth['total']}"))
 
         # ── Hard/escalation breakdown ───────────────────────────
-        m = re.search(r'\(?(\d+)\s+hard\s*[+,]\s*(\d+)\s+escalation\)?', stripped, re.IGNORECASE)
+        m = re.search(r"\(?(\d+)\s+hard\s*[+,]\s*(\d+)\s+escalation\)?", stripped, re.IGNORECASE)
         if m:
-            claimed_hard = int(m.group(1)); claimed_esc = int(m.group(2))
+            claimed_hard = int(m.group(1))
+            claimed_esc = int(m.group(2))
             if claimed_hard != truth["hard"] or claimed_esc != truth["escalation"]:
                 old = m.group(0)
                 new = old.replace(str(claimed_hard), str(truth["hard"]), 1)
                 new = new.replace(str(claimed_esc), str(truth["escalation"]), 1)
                 new_line = line.replace(old, new, 1)
-                findings.append(f"{rel}:{i+1} — hard/escalation: claims {claimed_hard}/{claimed_esc}, actual {truth['hard']}/{truth['escalation']}")
-                fixes.append(DriftFix(rel, i, line, new_line,
-                                      f"Hard/escalation: {claimed_hard}/{claimed_esc} → {truth['hard']}/{truth['escalation']}"))
+                findings.append(
+                    f"{rel}:{i + 1} — hard/escalation: claims {claimed_hard}/{claimed_esc}, actual {truth['hard']}/{truth['escalation']}"
+                )
+                fixes.append(
+                    DriftFix(
+                        rel,
+                        i,
+                        line,
+                        new_line,
+                        f"Hard/escalation: {claimed_hard}/{claimed_esc} → {truth['hard']}/{truth['escalation']}",
+                    )
+                )
 
         # ── pr-fast gate count ──────────────────────────────────
-        m = re.search(r'pr-fast[:\s]+(\d+)/(\d+)', stripped, re.IGNORECASE)
+        m = re.search(r"pr-fast[:\s]+(\d+)/(\d+)", stripped, re.IGNORECASE)
         if m:
             claimed = int(m.group(1))
             if claimed != truth["pr_fast"]:
                 old = m.group(0)
                 new = old.replace(f"{claimed}/", f"{truth['pr_fast']}/", 1)
                 new_line = line.replace(old, new, 1)
-                findings.append(f"{rel}:{i+1} — pr-fast: claims {claimed}/{m.group(2)}, actual {truth['pr_fast']}")
-                fixes.append(DriftFix(rel, i, line, new_line,
-                                      f"pr-fast: {claimed} → {truth['pr_fast']}"))
+                findings.append(f"{rel}:{i + 1} — pr-fast: claims {claimed}/{m.group(2)}, actual {truth['pr_fast']}")
+                fixes.append(DriftFix(rel, i, line, new_line, f"pr-fast: {claimed} → {truth['pr_fast']}"))
 
         # ── Full baseline count ─────────────────────────────────
-        m = re.search(r'full[:\s]+(\d+)/(\d+)', stripped, re.IGNORECASE)
+        m = re.search(r"full[:\s]+(\d+)/(\d+)", stripped, re.IGNORECASE)
         if m:
             claimed = int(m.group(1))
             if claimed != truth["total"]:
                 old = m.group(0)
                 new = old.replace(f"{claimed}/", f"{truth['total']}/", 1)
                 new_line = line.replace(old, new, 1)
-                findings.append(f"{rel}:{i+1} — full baseline: claims {claimed}/{m.group(2)}, actual {truth['total']}")
-                fixes.append(DriftFix(rel, i, line, new_line,
-                                      f"Full baseline: {claimed} → {truth['total']}"))
+                findings.append(
+                    f"{rel}:{i + 1} — full baseline: claims {claimed}/{m.group(2)}, actual {truth['total']}"
+                )
+                fixes.append(DriftFix(rel, i, line, new_line, f"Full baseline: {claimed} → {truth['total']}"))
 
     return findings, fixes
 
@@ -198,6 +224,7 @@ def _scan_doc_with_fixes(path: Path) -> tuple[list[str], list[DriftFix]]:
 def _auto_fix(fixes: list[DriftFix]) -> int:
     """Apply all fixes in-place. Returns number of files modified."""
     from collections import defaultdict
+
     by_file = defaultdict(list)
     for f in fixes:
         by_file[f.file].append(f)
@@ -217,11 +244,11 @@ def _auto_fix(fixes: list[DriftFix]) -> int:
 
 # ── Main ────────────────────────────────────────────────────────────
 
+
 def run(auto_fix: bool = False) -> CheckerResult:
     findings: list[str] = []
     all_fixes: list[DriftFix] = []
-    stats = {"docs_checked": 0, "drifts_found": 0, "drifts_fixed": 0,
-             "checkers_total": 0, "dg_entries": 0}
+    stats = {"docs_checked": 0, "drifts_found": 0, "drifts_fixed": 0, "checkers_total": 0, "dg_entries": 0}
 
     truth = _collect_checker_truth()
     stats["checkers_total"] = truth["total"]
@@ -237,13 +264,17 @@ def run(auto_fix: bool = False) -> CheckerResult:
     if auto_fix and all_fixes:
         modified = _auto_fix(all_fixes)
         stats["drifts_fixed"] = len(all_fixes)
-        findings.append(f"Auto-fixed {len(all_fixes)} drift(s) across {modified} file(s). "
-                        f"Re-run without --auto-fix to verify.")
+        findings.append(
+            f"Auto-fixed {len(all_fixes)} drift(s) across {modified} file(s). Re-run without --auto-fix to verify."
+        )
 
     if findings and not auto_fix:
-        findings.insert(0, f"Cross-doc consistency: {stats['drifts_found']} drift(s) "
-                        f"across {stats['docs_checked']} docs. "
-                        f"Run with --auto-fix to patch automatically.")
+        findings.insert(
+            0,
+            f"Cross-doc consistency: {stats['drifts_found']} drift(s) "
+            f"across {stats['docs_checked']} docs. "
+            f"Run with --auto-fix to patch automatically.",
+        )
 
     return CheckerResult(
         "fail" if (findings and not auto_fix) else "pass",

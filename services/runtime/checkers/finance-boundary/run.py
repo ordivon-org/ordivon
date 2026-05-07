@@ -31,12 +31,12 @@ SAFE = re.compile(
 
 # Directories excluded from scanning — immutable evidence records
 SCAN_EXCLUDE_PREFIXES = (
-    "docs/runtime/",     # immutable governance receipts
-    "docs/archive/",     # historical records
-    "docs/ai/",          # AI agent templates — instruct on boundaries, don't violate them
-    "docs/audits/",      # audit reports — document past findings
-    "docs/product/",     # product docs — describe what product checks for
-    "docs/design/",      # design docs — reference live trading in mockups/specs
+    "docs/runtime/",  # immutable governance receipts
+    "docs/archive/",  # historical records
+    "docs/ai/",  # AI agent templates — instruct on boundaries, don't violate them
+    "docs/audits/",  # audit reports — document past findings
+    "docs/product/",  # product docs — describe what product checks for
+    "docs/design/",  # design docs — reference live trading in mockups/specs
 )
 
 # Files that define the boundary (normative)
@@ -61,9 +61,11 @@ SAFE_FILES = {
     "docs/product/policy-platform-stage-summit-phase-5.md",
 }
 
+
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 

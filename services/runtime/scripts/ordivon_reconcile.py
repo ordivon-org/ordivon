@@ -113,15 +113,17 @@ def run_verification_gates(manifest: StageManifest) -> list[dict]:
             output_hash = ""
 
         duration = int((time.time() - start) * 1000)
-        results.append({
-            "id": gate.gate_id,
-            "description": gate.description,
-            "command": gate.command,
-            "passed": passed,
-            "exit_code": 0 if passed else 1,
-            "output_hash": output_hash,
-            "duration_ms": duration,
-        })
+        results.append(
+            {
+                "id": gate.gate_id,
+                "description": gate.description,
+                "command": gate.command,
+                "passed": passed,
+                "exit_code": 0 if passed else 1,
+                "output_hash": output_hash,
+                "duration_ms": duration,
+            }
+        )
     return results
 
 
@@ -190,11 +192,13 @@ def main():
     receipt["evidence_produced"] = []
     for r in claim_report.results:
         if r.evidence_found:
-            receipt["evidence_produced"].append({
-                "type": "claim_verification",
-                "path": f"claim:{r.claim_id}",
-                "hash": hashlib.sha256(json.dumps(r.evidence_found, sort_keys=True).encode()).hexdigest()[:16],
-            })
+            receipt["evidence_produced"].append(
+                {
+                    "type": "claim_verification",
+                    "path": f"claim:{r.claim_id}",
+                    "hash": hashlib.sha256(json.dumps(r.evidence_found, sort_keys=True).encode()).hexdigest()[:16],
+                }
+            )
     receipt["claim_verification"] = {
         "total_claims": claim_report.total_claims,
         "supported": claim_report.supported,

@@ -111,9 +111,7 @@ def _scan_overclaim(entry: dict) -> list[str]:
         for match in pattern.finditer(text):
             if _is_safe_context(text, match.start()):
                 continue
-            errors.append(
-                f"{entry.get('source_id', '?')}: unsafe external benchmark claim '{match.group(0)}'"
-            )
+            errors.append(f"{entry.get('source_id', '?')}: unsafe external benchmark claim '{match.group(0)}'")
     return errors
 
 
@@ -156,9 +154,7 @@ def validate_entries(entries: list[dict], reference_date: date | None = None) ->
         if not isinstance(freshness_days, int) or isinstance(freshness_days, bool) or freshness_days <= 0:
             errors.append(f"{sid}: freshness_days must be positive integer")
         elif (reference_date - last_checked).days > freshness_days:
-            errors.append(
-                f"{sid}: source is stale ({(reference_date - last_checked).days}d > {freshness_days}d)"
-            )
+            errors.append(f"{sid}: source is stale ({(reference_date - last_checked).days}d > {freshness_days}d)")
 
         errors.extend(_scan_overclaim(entry))
 

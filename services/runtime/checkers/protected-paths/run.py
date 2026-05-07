@@ -31,16 +31,16 @@ SAFE = re.compile(
 
 # Directories excluded from scanning — immutable evidence records
 SCAN_EXCLUDE_PREFIXES = (
-    "docs/runtime/",     # immutable governance receipts
-    "docs/archive/",     # historical records
-    "docs/audits/",      # audit reports — document past findings
-    "docs/plans/",       # planning docs — describe remediation, not violations
-    "docs/ai/",          # AI agent templates — instruct on boundaries
-    "docs/design/",      # design docs — reference paths in mockups/specs
-    "docs/runbooks/",    # operational runbooks — document procedures
-    "docs/architecture/",# architecture specs — define protection, don't violate it
-    "docs/product/",     # product docs — describe what product checks for
-    "docs/adr/",         # architecture decision records — historical design docs
+    "docs/runtime/",  # immutable governance receipts
+    "docs/archive/",  # historical records
+    "docs/audits/",  # audit reports — document past findings
+    "docs/plans/",  # planning docs — describe remediation, not violations
+    "docs/ai/",  # AI agent templates — instruct on boundaries
+    "docs/design/",  # design docs — reference paths in mockups/specs
+    "docs/runbooks/",  # operational runbooks — document procedures
+    "docs/architecture/",  # architecture specs — define protection, don't violate it
+    "docs/product/",  # product docs — describe what product checks for
+    "docs/adr/",  # architecture decision records — historical design docs
 )
 
 # Files that define the protected paths policy itself
@@ -73,7 +73,8 @@ def _is_excluded(rel_path: str) -> bool:
 
 @dataclass(frozen=True)
 class CheckerResult:
-    status: str; exit_code: int
+    status: str
+    exit_code: int
     findings: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
 
@@ -112,9 +113,7 @@ def run() -> CheckerResult:
                     ctx = "\n".join(lines[ctx_start:ctx_end])
                     if SAFE.search(ctx):
                         continue
-                    findings.append(
-                        f"{rel}:{i}: unprotected reference to '{m.group()}'"
-                    )
+                    findings.append(f"{rel}:{i}: unprotected reference to '{m.group()}'")
 
     return CheckerResult(
         "fail" if findings else "pass",

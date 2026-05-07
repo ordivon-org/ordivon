@@ -55,9 +55,7 @@ def test_local_test_claim_with_command_evidence_passes(tmp_path):
     receipt_dir = tmp_path / "receipts"
     receipt_dir.mkdir()
     (receipt_dir / "with-test-evidence.md").write_text(
-        "# Receipt\n\n"
-        "Status: COMPLETE\n\n"
-        "Tests passed locally with `pytest tests/unit -q`.\n",
+        "# Receipt\n\nStatus: COMPLETE\n\nTests passed locally with `pytest tests/unit -q`.\n",
         encoding="utf-8",
     )
 
