@@ -51,6 +51,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **CPR-2** | **CLOSED** | Realistic Coding Pack dogfood — sealed |
 | **CPR-3** | **CLOSED** | Review / Lesson / CandidateRule pipeline dogfood — sealed |
 | **Alpha-0** | **ACTIVE** | Evidence of Governed Work — AI coding agent trust audit |
+| **CTTS-3** | **ACTIVE** | Template adoption pack + agent-native evidence surfaces for Coding Trust |
 | **PGI** | **LOCALLY SEALED** | Philosophical Governance Implementation — PGI-1/2/3 closed with validators, fixtures, tests, receipts |
 | **PGI-1** | **CLOSED** | Reality and Value Substrate — truth/claim/evidence/confidence/falsifiability/boundary red-team layer |
 | **PGI-2** | **CLOSED** | Decision and Pack Operating System — DecisionGate, reversibility, control boundary, anti-overforce, Pack seeds |
@@ -115,6 +116,8 @@ These are **design-time prohibitions**. No agent may violate them.
 | Financial/broker/live action via OGAP | NO-GO | NO-GO at schema level |
 | CTTS discovery candidate → canonical gate without owner/reviewer confirmation | NO-GO | CTTS-2 localization boundary |
 | OV READY_WITHOUT_AUTHORIZATION → merge/release/deploy permission | NO-GO | CTTS-2 trust signal boundary |
+| CTTS-3 template export → target repo mutation by default | NO-GO | `--emit-template-dir` must be explicit |
+| Skill/tool/workflow/trace/memory evidence → permission/truth/approval/safe action | NO-GO | Agent-native evidence boundary |
 
 ## 4. Finance Observation Status
 
@@ -190,7 +193,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 || `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 235 entries, DG-7 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 236 entries, DG-7 |
 || `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
 || `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
 || `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |

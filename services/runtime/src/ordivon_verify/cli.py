@@ -11,6 +11,7 @@ from ordivon_verify.config import is_ordivon_native, load_config, resolve_profil
 from ordivon_verify.discovery import (
     SUPPORTED_TEMPLATE_TIERS,
     discover_external_evidence,
+    emit_template_pack,
     render_discovery_markdown,
     render_discovery_summary,
 )
@@ -65,6 +66,11 @@ def _parse_unknown(parser, unknown: list[str], ns) -> None:
             if i >= len(unknown):
                 parser.error("--template requires a value (minimal, standard, deep)")
             ns.template = unknown[i]
+        elif u == "--emit-template-dir":
+            i += 1
+            if i >= len(unknown):
+                parser.error("--emit-template-dir requires a directory path")
+            ns.emit_template_dir = unknown[i]
         elif u == "--profile":
             i += 1
             if i >= len(unknown):
@@ -108,6 +114,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--standard-pack", action="store_true", help="Include a read-only standard governance pack draft"
     )
     parser.add_argument("--template", type=str, default=None, help="Template tier: minimal, standard, deep")
+    parser.add_argument("--emit-template-dir", type=str, default=None, help="Write template pack to this directory")
     parser.add_argument("--profile", type=str, default=None, help="Profile: coding")
     parser.add_argument("--risk-stage", type=str, default=None, help="Risk stage: vibe, merge, release")
     parser.add_argument("--summary", action="store_true", help="Output compact trust summary")
@@ -202,6 +209,32 @@ def _profile_stage_results(evidence_report: dict, config: dict, profile_context:
                 "stderr": f"{skill_failures} skill safety finding(s) require owner disposition before release-stage audit",
             }
         )
+    memory = inv.get("memory_content_hygiene", {})
+    memory_blockers = memory.get("status_counts", {}).get("BLOCKED", 0)
+    if memory_blockers:
+        results.append(
+            {
+                "id": "memory_content_hygiene",
+                "label": "Memory / Content Hygiene",
+                "status": "FAIL",
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": f"{memory_blockers} memory/content record(s) contain stale source, scope, or authority confusion",
+            }
+        )
+    harness = inv.get("harness_evidence_import", {})
+    harness_blockers = harness.get("status_counts", {}).get("BLOCKED", 0)
+    if harness_blockers:
+        results.append(
+            {
+                "id": "harness_evidence_import",
+                "label": "Harness Evidence Import",
+                "status": "FAIL",
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": f"{harness_blockers} trace/checkpoint bundle(s) contain missing failures or authorization leakage",
+            }
+        )
     return results
 
 
@@ -221,17 +254,29 @@ def main(argv: list[str] | None = None) -> int:
     if args.template and args.template not in SUPPORTED_TEMPLATE_TIERS:
         print(f"Invalid template: {args.template}", file=sys.stderr)
         return 3
+    if args.emit_template_dir and not args.suggest_config:
+        print("--emit-template-dir requires --suggest-config", file=sys.stderr)
+        return 3
 
     if args.suggest_config:
         risk_stage = args.risk_stage or "vibe"
         template_tier = args.template or "standard"
-        include_template_pack = args.standard_pack or args.template is not None
+        include_template_pack = args.standard_pack or args.template is not None or args.emit_template_dir is not None
         suggestion = discover_external_evidence(
             root,
             include_standard_pack=include_template_pack,
             risk_stage=risk_stage,
             template_tier=template_tier,
         )
+        if args.emit_template_dir:
+            try:
+                emit_result = emit_template_pack(
+                    suggestion["standard_pack_draft"], Path(args.emit_template_dir).resolve()
+                )
+            except Exception as exc:
+                print(f"Template emit error: {exc}", file=sys.stderr)
+                return 4
+            suggestion["template_emit"] = emit_result
         if args.summary:
             print(render_discovery_summary(suggestion), end="")
         elif args.markdown:
@@ -342,6 +387,8 @@ def main(argv: list[str] | None = None) -> int:
                 "agent_claim_bindings": inv.get("agent_claim_bindings", {}),
                 "release_claim_audit": inv.get("release_claim_audit", {}),
                 "skills": inv.get("skills", {}),
+                "memory_content_hygiene": inv.get("memory_content_hygiene", {}),
+                "harness_evidence_import": inv.get("harness_evidence_import", {}),
                 "gate_manifest_candidates": inv.get("gate_manifest_candidates", []),
                 "agent_native_risk_matrix": inv.get("agent_native_risk_matrix", []),
             }

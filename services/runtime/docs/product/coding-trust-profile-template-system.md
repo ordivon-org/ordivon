@@ -25,6 +25,10 @@ CTTS-1 created the generic template system. CTTS-2 validates localization with
 dogfood fixtures and a casebook: project AI fills local evidence, while OV keeps
 checking structure and boundary language only.
 
+CTTS-3 adds the adoption pack: OV can emit the generic template files into an
+explicit output directory for a target project AI to localize. The export is
+still not project authority; it is a starter pack plus discovery hints.
+
 ## Template Tiers
 
 ### minimal
@@ -34,6 +38,8 @@ Reminder-level evidence loop for solo developers and vibe-coding projects.
 Required template surfaces:
 
 - `ordivon.verify.json`
+- `PROJECT_AI_LOCALIZATION.md`
+- `AI_TRUST_LEVELS.md`
 - `governance/agent-claim-bindings.jsonl`
 - `receipts/external-audit-receipt.md`
 - `governance/project-ai-onboarding-playbook.md`
@@ -87,6 +93,43 @@ OV emits only `READY_WITHOUT_AUTHORIZATION`, `DEGRADED`, or `BLOCKED`.
 7. Run OV in `vibe`, `merge`, then `release` stages as needed.
 8. Convert `DEGRADED` or `BLOCKED` into evidence repair, claim downgrade, or debt.
 9. Close a receipt with lessons and optional CandidateRule or no-rule rationale.
+
+## CTTS-3 Adoption Command
+
+```bash
+ordivon-verify check <repo> --profile coding --risk-stage vibe \
+  --suggest-config --template minimal --emit-template-dir <out>
+```
+
+`--emit-template-dir` writes only to the explicit output directory. The target
+repository is not modified unless the user intentionally points the output
+directory inside it. Template bodies stay project-independent; project
+observations stay in `governance/discovery-candidates.json`.
+
+Adoption sequence:
+
+1. Run discovery.
+2. Emit `minimal`, `standard`, or `deep` template pack to a review directory.
+3. Target project AI reads `PROJECT_AI_LOCALIZATION.md` and
+   `AI_TRUST_LEVELS.md`.
+4. Project AI fills local evidence.
+5. Owner/reviewer confirms canonical gates and authority boundaries.
+6. Rerun OV at `vibe`, `merge`, or `release`.
+
+## Agent-Native Evidence Pack
+
+Coding Trust release-stage audits now treat these as read-only evidence
+surfaces:
+
+- Skill/tool boundaries: `SKILL.md`, `allowed-tools`, scripts, credentials, and
+  authorization wording.
+- Memory/content hygiene: source receipt, freshness, scope, authority, and
+  CandidateRule/Policy separation.
+- Harness/trace import: trace presence, checkpoint claims, failed tool calls,
+  review nodes, and receipt authorization leakage.
+
+OV does not execute skills, run tools, start servers, call SDKs, refresh tokens,
+or decide whether evidence is business-approved.
 
 ## New AI Context Check
 

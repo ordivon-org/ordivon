@@ -31,6 +31,8 @@ _CHECK_SURFACES = {
     "coding_profile_gate_manifest": ["gates"],
     "release_claim_audit": ["claims", "docs", "gates"],
     "skill_safety": ["claims", "docs", "gates", "review"],
+    "memory_content_hygiene": ["claims", "docs", "review"],
+    "harness_evidence_import": ["claims", "receipts", "tests", "review"],
 }
 
 
@@ -323,6 +325,22 @@ def render_markdown(report: dict, full: bool = False) -> str:
             lines.append(
                 "- Skill safety: "
                 f"PASS {counts.get('PASS', 0)}, WARN {counts.get('WARN', 0)}, FAIL {counts.get('FAIL', 0)}"
+            )
+        memory = appendix.get("memory_content_hygiene", {})
+        if memory:
+            counts = memory.get("status_counts", {})
+            lines.append(
+                "- Memory/content hygiene: "
+                f"READY_WITHOUT_AUTHORIZATION {counts.get('READY_WITHOUT_AUTHORIZATION', 0)}, "
+                f"DEGRADED {counts.get('DEGRADED', 0)}, BLOCKED {counts.get('BLOCKED', 0)}"
+            )
+        harness = appendix.get("harness_evidence_import", {})
+        if harness:
+            counts = harness.get("status_counts", {})
+            lines.append(
+                "- Harness evidence import: "
+                f"READY_WITHOUT_AUTHORIZATION {counts.get('READY_WITHOUT_AUTHORIZATION', 0)}, "
+                f"DEGRADED {counts.get('DEGRADED', 0)}, BLOCKED {counts.get('BLOCKED', 0)}"
             )
         gates = appendix.get("gate_manifest_candidates", [])
         if gates:

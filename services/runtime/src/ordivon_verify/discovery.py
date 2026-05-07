@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date, datetime
 from pathlib import Path
 
 SUPPORTED_TEMPLATE_TIERS = {"minimal", "standard", "deep"}
+SUPPORTED_EMIT_FILENAMES = (".json", ".jsonl", ".md")
 
 CLAIM_DOC_NAMES = {
     "README.md",
@@ -73,6 +75,18 @@ _RELEASE_STRONG_MARKERS = (
     "certified",
 )
 
+_MEMORY_CANDIDATE_FILES = (
+    "governance/memory-source-ledger.jsonl",
+    "docs/governance/memory-source-ledger.jsonl",
+)
+
+_HARNESS_CANDIDATE_FILES = (
+    "governance/harness-evidence.jsonl",
+    "governance/trace-evidence.jsonl",
+    "docs/governance/harness-evidence.jsonl",
+    "docs/governance/trace-evidence.jsonl",
+)
+
 
 def _rel(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
@@ -101,6 +115,13 @@ def _safe_jsonl(path: Path) -> list[dict]:
         if isinstance(data, dict):
             rows.append(data)
     return rows
+
+
+def _safe_date(value: str) -> date | None:
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
 
 
 def _first_existing(root: Path, names: list[str]) -> str | None:
@@ -476,6 +497,164 @@ def _collect_release_claims(root: Path) -> dict:
     }
 
 
+def _classify_memory_record(row: dict, root: Path) -> dict:
+    memory_id = (
+        row.get("memory_id") or row.get("record_id") or f"memory-{abs(hash(json.dumps(row, sort_keys=True))) % 10000}"
+    )
+    source = row.get("source") or row.get("source_receipt")
+    freshness = row.get("freshness") or row.get("last_verified")
+    scope = str(row.get("scope") or row.get("project_scope") or "")
+    authority = str(row.get("authority", ""))
+    claim = str(row.get("claim", ""))
+    object_type = str(row.get("object_type", ""))
+    evidence_status = str(row.get("evidence_status", ""))
+    missing = [
+        name
+        for name, value in (
+            ("memory_id", memory_id),
+            ("source", source),
+            ("freshness", freshness),
+            ("scope", scope),
+            ("authority", authority),
+            ("claim", claim),
+        )
+        if not value
+    ]
+    finding_ids: list[str] = []
+
+    if source and not (root / source).exists():
+        finding_ids.append("source_receipt_missing")
+    verified_at = _safe_date(str(freshness))
+    stale_after = int(row.get("stale_after_days", 90) or 90)
+    if verified_at is None:
+        finding_ids.append("freshness_missing")
+    elif (date.today() - verified_at).days > stale_after:
+        finding_ids.append("freshness_stale")
+    if scope and scope not in ("project", root.name, "<project>", "<project-scope>"):
+        finding_ids.append("project_scope_unclear")
+    if object_type.lower() == "candidaterule" and authority.lower() == "policy":
+        finding_ids.append("candidate_rule_treated_as_policy")
+    if evidence_status.upper() in ("DEGRADED", "BLOCKED") and re.search(
+        r"\b(clean|pass|passed|ready|truth|fact)\b", claim, re.I
+    ):
+        finding_ids.append("degraded_or_blocked_treated_as_fact")
+
+    if missing:
+        finding_ids.append("required_memory_fields_missing")
+    if any(
+        item in finding_ids
+        for item in (
+            "source_receipt_missing",
+            "candidate_rule_treated_as_policy",
+            "degraded_or_blocked_treated_as_fact",
+        )
+    ):
+        signal = "BLOCKED"
+    elif finding_ids:
+        signal = "DEGRADED"
+    else:
+        signal = "READY_WITHOUT_AUTHORIZATION"
+
+    return {
+        "memory_id": memory_id,
+        "trust_signal": signal,
+        "findings": finding_ids,
+        "missing_fields": missing,
+        "boundary": "Memory/content evidence is not automatic truth; source, freshness, and project scope must remain explicit.",
+    }
+
+
+def _collect_memory_evidence(root: Path) -> dict:
+    selected = next((root / name for name in _MEMORY_CANDIDATE_FILES if (root / name).is_file()), None)
+    rows = _safe_jsonl(selected) if selected else []
+    items = [_classify_memory_record(row, root) for row in rows]
+    counts = {"READY_WITHOUT_AUTHORIZATION": 0, "DEGRADED": 0, "BLOCKED": 0}
+    for item in items:
+        counts[item["trust_signal"]] += 1
+    return {
+        "ledger_file": _rel(selected, root) if selected else None,
+        "count": len(items),
+        "items": items,
+        "status_counts": counts,
+        "note": "Memory/content evidence is read-only and heuristic; OV does not decide factual truth.",
+    }
+
+
+def _classify_harness_bundle(row: dict) -> dict:
+    bundle_id = (
+        row.get("bundle_id") or row.get("trace_id") or f"harness-{abs(hash(json.dumps(row, sort_keys=True))) % 10000}"
+    )
+    trace = row.get("trace", {}) if isinstance(row.get("trace"), dict) else {}
+    checkpoint = row.get("checkpoint", {}) if isinstance(row.get("checkpoint"), dict) else {}
+    review = row.get("review_record", {}) if isinstance(row.get("review_record"), dict) else {}
+    receipt = row.get("execution_receipt", {}) if isinstance(row.get("execution_receipt"), dict) else {}
+    tool_calls = row.get("tool_calls", [])
+    findings: list[str] = []
+
+    if trace.get("presence_claims_truth") is True or row.get("trace_claims_truth") is True:
+        findings.append("trace_present_treated_as_truth")
+    if checkpoint.get("approval_claim") is True or checkpoint.get("authorizes_action") is True:
+        findings.append("checkpoint_claims_approval")
+    failed_tool_calls = [
+        call for call in tool_calls if isinstance(call, dict) and str(call.get("status", "")).lower() == "failed"
+    ]
+    expected_failed = int(receipt.get("failed_tool_call_count", row.get("failed_tool_call_count", 0)) or 0)
+    if expected_failed and len(failed_tool_calls) < expected_failed:
+        findings.append("failed_tool_call_missing_from_trace")
+    node_ids = {str(node.get("node_id")) for node in trace.get("nodes", []) if isinstance(node, dict)}
+    reviewed_node = str(review.get("reviewed_node_id", ""))
+    if review.get("human_reviewed") is True and reviewed_node and node_ids and reviewed_node not in node_ids:
+        findings.append("review_node_not_in_trace")
+    if receipt.get("authorization_claim") is True or receipt.get("external_action_taken") is True:
+        findings.append("receipt_claims_authorization_or_action")
+
+    if any(
+        item in findings
+        for item in (
+            "checkpoint_claims_approval",
+            "failed_tool_call_missing_from_trace",
+            "receipt_claims_authorization_or_action",
+        )
+    ):
+        signal = "BLOCKED"
+    elif findings:
+        signal = "DEGRADED"
+    else:
+        signal = "READY_WITHOUT_AUTHORIZATION"
+    return {
+        "bundle_id": bundle_id,
+        "trust_signal": signal,
+        "findings": findings,
+        "boundary": "Trace/checkpoint/tool-call evidence is not truth, approval, consent, or safe action.",
+    }
+
+
+def _collect_harness_evidence(root: Path) -> dict:
+    selected = next((root / name for name in _HARNESS_CANDIDATE_FILES if (root / name).is_file()), None)
+    rows: list[dict] = []
+    if selected:
+        if selected.suffix == ".jsonl":
+            rows = _safe_jsonl(selected)
+        else:
+            raw = _safe_json(selected)
+            rows = raw.get("items", [raw]) if isinstance(raw.get("items"), list) else [raw]
+    for p in sorted((root / "traces").glob("**/*.json"))[:40] + sorted((root / "harness").glob("**/*.json"))[:40]:
+        raw = _safe_json(p)
+        if raw:
+            rows.append(raw)
+    items = [_classify_harness_bundle(row) for row in rows]
+    counts = {"READY_WITHOUT_AUTHORIZATION": 0, "DEGRADED": 0, "BLOCKED": 0}
+    for item in items:
+        counts[item["trust_signal"]] += 1
+    return {
+        "evidence_file": _rel(selected, root) if selected else None,
+        "count": len(items),
+        "items": items,
+        "status_counts": counts,
+        "note": "Harness/trace import is read-only. OV does not run agents or treat traces as approval.",
+    }
+
+
 def collect_agent_claim_bindings(root: Path) -> dict:
     candidates = [
         root / "agent_claims.jsonl",
@@ -593,6 +772,30 @@ def _base_template_files(report: dict, template_tier: str) -> dict:
             "- Workflow presence is not a canonical gate.\n"
             "- Review is not approval unless project policy says so.\n"
             "- READY_WITHOUT_AUTHORIZATION is evidence sufficiency only.\n"
+        ),
+        "PROJECT_AI_LOCALIZATION.md": (
+            "# Project AI Localization\n\n"
+            "This file is a project-independent instruction sheet for the target project's AI.\n"
+            "Fill local evidence; do not copy discovery candidates into authority fields without owner/reviewer confirmation.\n\n"
+            "## Required Loop\n\n"
+            "1. Claim: identify the AI work claim.\n"
+            "2. Evidence: bind artifacts, diff, tests, receipt, review, and gates.\n"
+            "3. Decision boundary: record READY_WITHOUT_AUTHORIZATION, DEGRADED, or BLOCKED.\n"
+            "4. Repair: convert gaps into evidence repair, debt, claim downgrade, lesson, or CandidateRule draft.\n\n"
+            "OV verifies trust structure only. Project owner/reviewer authorizes merge, release, deploy, execution, tool use, and business workflow.\n"
+        ),
+        "AI_TRUST_LEVELS.md": (
+            "# AI Trust Levels\n\n"
+            "| Level | Meaning | Boundary |\n"
+            "|---|---|---|\n"
+            "| L0 Unobserved | AI wrote without structured record | Not READY |\n"
+            "| L1 Claimed | AI claims completion | Claim only |\n"
+            "| L2 Evidenced | Artifacts, tests, receipt, or diff exist | Evidence can still be weak |\n"
+            "| L3 Reviewed | Review evidence exists | Review is not approval |\n"
+            "| L4 Gate-Checked | Owner-confirmed gates passed | Still not authorization |\n"
+            "| L5 Release-Evidence | Release/debt/skill/tool surfaces handled | Evidence only |\n"
+            "| L6 Authorized | Project owner authorizes action | OV never emits this |\n\n"
+            "READY_WITHOUT_AUTHORIZATION maps only to evidence sufficiency. It never authorizes action.\n"
         ),
         "governance/discovery-candidates.json": {
             "project_name": report["project_name"],
@@ -745,6 +948,43 @@ def _build_template_pack_draft(report: dict, template_tier: str = "standard") ->
     }
 
 
+def emit_template_pack(draft: dict, output_dir: Path) -> dict:
+    """Write a generated template pack to an explicit output directory.
+
+    This never writes to the target repository unless the caller explicitly
+    chooses that path. The files remain placeholders; discovery observations are
+    isolated in governance/discovery-candidates.json.
+    """
+    files = draft.get("files", {})
+    if not isinstance(files, dict):
+        raise ValueError("template draft missing files")
+    written: list[str] = []
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for rel_path, content in files.items():
+        if not rel_path.endswith(SUPPORTED_EMIT_FILENAMES):
+            raise ValueError(f"unsupported template file type: {rel_path}")
+        dest = output_dir / rel_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if rel_path.endswith(".json"):
+            text = json.dumps(content, indent=2) + "\n"
+        elif rel_path.endswith(".jsonl"):
+            rows = content if isinstance(content, list) else [content]
+            text = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows)
+        else:
+            text = str(content)
+            if not text.endswith("\n"):
+                text += "\n"
+        dest.write_text(text, encoding="utf-8")
+        written.append(rel_path)
+    return {
+        "output_dir": str(output_dir),
+        "written_files": written,
+        "file_count": len(written),
+        "writes_target_repo": False,
+        "boundary": "Template export writes only to the explicit output directory and does not authorize project action.",
+    }
+
+
 def discover_external_evidence(
     root: Path,
     include_standard_pack: bool = False,
@@ -798,6 +1038,8 @@ def discover_external_evidence(
     gate_candidates = _infer_gate_manifest(workflows, tests)
     release_claims = _collect_release_claims(root)
     agent_claim_bindings = collect_agent_claim_bindings(root)
+    memory_evidence = _collect_memory_evidence(root)
+    harness_evidence = _collect_harness_evidence(root)
     agent_risk_matrix = _build_agent_risk_matrix(agent_surfaces, skills)
 
     next_actions = []
@@ -817,6 +1059,10 @@ def discover_external_evidence(
         next_actions.append("Map release claims to test, CI, PR, or review evidence before trusting completion claims.")
     if not agent_claim_bindings["binding_file"]:
         next_actions.append("Add agent claim bindings when you need to prove a specific AI work claim.")
+    if memory_evidence["status_counts"]["BLOCKED"] or memory_evidence["status_counts"]["DEGRADED"]:
+        next_actions.append("Repair memory/content source, freshness, project scope, or authority boundaries.")
+    if harness_evidence["status_counts"]["BLOCKED"] or harness_evidence["status_counts"]["DEGRADED"]:
+        next_actions.append("Repair trace/checkpoint/review evidence before treating harness artifacts as trustworthy.")
 
     report = {
         "tool": "ordivon-verify",
@@ -839,6 +1085,8 @@ def discover_external_evidence(
             "agent_native_risk_matrix": agent_risk_matrix,
             "release_claim_audit": release_claims,
             "agent_claim_bindings": agent_claim_bindings,
+            "memory_content_hygiene": memory_evidence,
+            "harness_evidence_import": harness_evidence,
             "security_docs": [p for p in ("SECURITY.md", "README.md", "AGENTS.md") if (root / p).is_file()],
         },
         "next_actions": next_actions,
@@ -859,6 +1107,8 @@ def render_discovery_markdown(report: dict) -> str:
     skills = inv["skills"]
     release = inv["release_claim_audit"]
     bindings = inv["agent_claim_bindings"]
+    memory = inv["memory_content_hygiene"]
+    harness = inv["harness_evidence_import"]
     lines = [
         "## Ordivon Verify Discovery Report",
         "",
@@ -883,6 +1133,8 @@ def render_discovery_markdown(report: dict) -> str:
         f"- Release claim lines sampled: {release['claim_count']}",
         f"- Release claim lines without evidence refs: {release['missing_evidence_ref_count']}",
         f"- Agent claim bindings: {bindings['count']}",
+        f"- Memory/content records: {memory['count']}",
+        f"- Harness/trace bundles: {harness['count']}",
         "",
         "### Gate Candidates",
         "",
@@ -996,9 +1248,24 @@ def render_discovery_markdown(report: dict) -> str:
                 "governance/project-ai-onboarding-playbook.md": "project AI localization flow",
                 "governance/discovery-candidates.json": "candidate evidence hints, not authority",
                 "receipts/external-audit-receipt.md": "read-only audit receipt draft",
+                "PROJECT_AI_LOCALIZATION.md": "project AI evidence-localization instructions",
+                "AI_TRUST_LEVELS.md": "L0-L6 trust level boundary reference",
             }.get(name, "draft governance artifact")
             lines.append(f"| `{name}` | {purpose} |")
         lines.extend(["", "```json", json.dumps(files["ordivon.verify.json"], indent=2), "```"])
+    if report.get("template_emit"):
+        emit = report["template_emit"]
+        lines.extend(
+            [
+                "",
+                "### Template Export",
+                "",
+                f"- Output directory: `{emit['output_dir']}`",
+                f"- Files written: {emit['file_count']}",
+                "- Target repository was not modified unless this directory was explicitly inside it.",
+                f"- Boundary: {emit['boundary']}",
+            ]
+        )
 
     lines.extend(
         [
@@ -1040,6 +1307,8 @@ def render_discovery_summary(report: dict) -> str:
     skills = inv["skills"]
     release = inv["release_claim_audit"]
     bindings = inv["agent_claim_bindings"]
+    memory = inv["memory_content_hygiene"]
+    harness = inv["harness_evidence_import"]
     gates = inv["gate_manifest_candidates"]
     canonical_gates = [gate for gate in gates if gate.get("canonical_confidence") == "high"]
     write_gates = [gate for gate in gates if gate.get("write_or_deploy_surface")]
@@ -1058,6 +1327,8 @@ def render_discovery_summary(report: dict) -> str:
         f"- SKILL.md files: {skills['count']} (WARN {skills['status_counts']['WARN']}, FAIL {skills['status_counts']['FAIL']})",
         f"- Release claims sampled: {release['claim_count']} ({release['missing_evidence_ref_count']} missing evidence refs)",
         f"- Agent claim bindings: {bindings['count']} ({bindings['binding_file'] or 'not found'})",
+        f"- Memory/content hygiene: {memory['count']} records (DEGRADED {memory['status_counts']['DEGRADED']}, BLOCKED {memory['status_counts']['BLOCKED']})",
+        f"- Harness evidence import: {harness['count']} bundles (DEGRADED {harness['status_counts']['DEGRADED']}, BLOCKED {harness['status_counts']['BLOCKED']})",
         "",
         "### Top Next Actions",
         "",
@@ -1076,6 +1347,18 @@ def render_discovery_summary(report: dict) -> str:
                 "- Template pack: project-independent placeholders; project AI must fill and owner-confirm them.",
                 "- Discovery candidates are separated into `governance/discovery-candidates.json`.",
                 "- Proposed files: " + ", ".join(f"`{name}`" for name in draft["files"].keys()),
+            ]
+        )
+    if report.get("template_emit"):
+        emit = report["template_emit"]
+        lines.extend(
+            [
+                "",
+                "### Template Export",
+                "",
+                f"- Output directory: `{emit['output_dir']}`.",
+                f"- Files written: {emit['file_count']}.",
+                "- OV wrote only to the explicit output directory.",
             ]
         )
     lines.extend(

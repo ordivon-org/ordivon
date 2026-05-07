@@ -404,6 +404,47 @@ def test_main_suggest_config_deep_template_markdown_outputs_deep_files(tmp_path,
     assert "memory-source-ledger.jsonl" in captured.out
 
 
+def test_main_emit_template_dir_writes_only_explicit_output_dir(tmp_path, capsys):
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    (target_repo / "README.md").write_text("# Target\n", encoding="utf-8")
+    output_dir = tmp_path / "emitted-pack"
+    before = sorted(p.relative_to(target_repo).as_posix() for p in target_repo.rglob("*") if p.is_file())
+
+    exit_code = main(
+        [
+            "check",
+            str(target_repo),
+            "--suggest-config",
+            "--template",
+            "deep",
+            "--emit-template-dir",
+            str(output_dir),
+            "--summary",
+        ]
+    )
+    captured = capsys.readouterr()
+    after = sorted(p.relative_to(target_repo).as_posix() for p in target_repo.rglob("*") if p.is_file())
+
+    assert exit_code == 0
+    assert before == after
+    assert "Template Export" in captured.out
+    assert (output_dir / "ordivon.verify.json").is_file()
+    assert (output_dir / "PROJECT_AI_LOCALIZATION.md").is_file()
+    assert (output_dir / "AI_TRUST_LEVELS.md").is_file()
+    assert (output_dir / "governance" / "discovery-candidates.json").is_file()
+    assert (output_dir / "governance" / "memory-source-ledger.jsonl").is_file()
+    assert "<project-name>" in (output_dir / "ordivon.verify.json").read_text(encoding="utf-8")
+    assert str(target_repo) not in (output_dir / "PROJECT_AI_LOCALIZATION.md").read_text(encoding="utf-8")
+
+
+def test_emit_template_dir_requires_suggest_config(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--emit-template-dir", str(tmp_path / "out")])
+
+    assert exit_code == 3
+    assert "requires --suggest-config" in capsys.readouterr().err
+
+
 def test_main_suggest_config_summary_outputs_compact_onboarding(tmp_path, capsys):
     (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
     (tmp_path / ".github" / "workflows").mkdir(parents=True)
@@ -525,6 +566,96 @@ def test_release_stage_blocks_unsafe_skill_and_release_claim(tmp_path, capsys):
     assert report["risk_stage"] == "release"
     assert any(f["check"] == "release_claim_audit" for f in report["hard_failures"])
     assert any(f["check"] == "skill_safety" for f in report["hard_failures"])
+
+
+def test_release_stage_blocks_memory_authority_confusion(tmp_path, capsys):
+    (tmp_path / "governance").mkdir()
+    (tmp_path / "governance" / "memory-source-ledger.jsonl").write_text(
+        json.dumps(
+            {
+                "memory_id": "mem-001",
+                "source": "missing-receipt.md",
+                "freshness": "2025-01-01",
+                "scope": "OtherProject",
+                "authority": "policy",
+                "object_type": "CandidateRule",
+                "evidence_status": "DEGRADED",
+                "claim": "CandidateRule is active policy and degraded evidence is now truth.",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "release", "--json"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert any(f["check"] == "memory_content_hygiene" for f in report["hard_failures"])
+    memory = report["evidence_appendix"]["memory_content_hygiene"]
+    assert memory["status_counts"]["BLOCKED"] == 1
+
+
+def test_release_stage_blocks_harness_missing_failed_tool_and_checkpoint_approval(tmp_path, capsys):
+    (tmp_path / "governance").mkdir()
+    (tmp_path / "governance" / "harness-evidence.jsonl").write_text(
+        json.dumps(
+            {
+                "bundle_id": "trace-001",
+                "trace": {
+                    "presence_claims_truth": True,
+                    "nodes": [{"node_id": "review", "kind": "human_review"}],
+                },
+                "checkpoint": {"approval_claim": True, "authorizes_action": True},
+                "tool_calls": [{"call_id": "call-pass", "status": "passed"}],
+                "review_record": {
+                    "human_reviewed": True,
+                    "reviewed_node_id": "review",
+                },
+                "execution_receipt": {
+                    "failed_tool_call_count": 1,
+                    "authorization_claim": False,
+                    "external_action_taken": False,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "release", "--json"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert any(f["check"] == "harness_evidence_import" for f in report["hard_failures"])
+    harness = report["evidence_appendix"]["harness_evidence_import"]
+    assert harness["status_counts"]["BLOCKED"] == 1
+
+
+def test_full_markdown_includes_memory_and_harness_appendix(tmp_path, capsys):
+    (tmp_path / "governance").mkdir()
+    (tmp_path / "governance" / "memory-source-ledger.jsonl").write_text(
+        json.dumps(
+            {
+                "memory_id": "mem-ready",
+                "source": "README.md",
+                "freshness": "2026-05-08",
+                "scope": "project",
+                "authority": "supporting_evidence",
+                "claim": "Local memory has source and freshness.",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "README.md").write_text("# Receipt\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "release", "--markdown", "--full"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Memory/content hygiene" in captured.out
+    assert "Harness evidence import" in captured.out
 
 
 def test_summary_output_is_compact(tmp_path, capsys):

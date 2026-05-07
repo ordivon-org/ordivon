@@ -52,6 +52,7 @@ docs/product/alpha-0-evidence-of-governed-work.md  Alpha-0 product direction: ag
 docs/runtime/alpha-0-casebook.md                   Governed AI coding work casebook
 docs/product/coding-trust-profile-template-system.md  CTTS generic Coding Trust templates
 docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization dogfood casebook
+docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md  CTTS-3 adoption + agent-native evidence pack receipt
 ```
 
 ## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED | EG-1: ACTIVE | Alpha-0: ACTIVE
@@ -103,7 +104,7 @@ CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
 
 **pr-fast**: 12/12 hard gates. **full**: 38/38 ALL PASS (26 hard + 12 escalation). **read-only Verify**: 35/35 PASS. 3 open debt.
 **Current center**: Coding Trust Template System (CTTS) + Alpha-0 Evidence of Governed Work.
-**Next**: validate project AI localization through CTTS-2 fixtures and casebook.
+**Next**: CTTS-3 adoption pack — emit project-independent templates and verify agent-native evidence surfaces.
 
 ## Critical Boundaries
 
@@ -118,3 +119,5 @@ CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
 - READY ≠ approval: valid OGAP payloads do not authorize execution
 - CTTS templates ≠ project authority: discovery candidates are hints, not canonical gates
 - Project AI localizes evidence; owner/reviewer decides; OV verifies trust structure only
+- CTTS-3 template export writes only to an explicit `--emit-template-dir`
+- Skill/tool/workflow/trace/memory evidence is not permission, truth, approval, or safe action

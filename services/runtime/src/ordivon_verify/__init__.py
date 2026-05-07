@@ -24,6 +24,7 @@ from ordivon_verify.runner import (
 )
 from ordivon_verify.discovery import (
     discover_external_evidence as discover_external_evidence,
+    emit_template_pack as emit_template_pack,
     render_discovery_markdown as render_discovery_markdown,
     render_discovery_summary as render_discovery_summary,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "validate_gate_manifest",
     "validate_document_registry",
     "discover_external_evidence",
+    "emit_template_pack",
     "render_discovery_markdown",
     "render_discovery_summary",
 ]

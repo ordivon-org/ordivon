@@ -54,6 +54,9 @@ uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --t
 uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage merge --template standard --markdown
 uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage release --template deep --markdown --full
 
+# CTTS-3: emit the template pack to an explicit review directory
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --template minimal --emit-template-dir /tmp/ov-template-pack --summary
+
 # Compact onboarding summary
 uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage merge --standard-pack --summary
 ```
@@ -89,6 +92,20 @@ The template pack does not decide local process. The target project's AI should
 read `governance/discovery-candidates.json`, propose a local evidence system,
 ask the project owner to confirm canonical gates and boundaries, then fill the
 templates with project-specific evidence.
+
+When `--emit-template-dir` is used, OV writes only to that explicit output
+directory. It does not write to the target repo by default. The emitted pack
+includes `PROJECT_AI_LOCALIZATION.md` and `AI_TRUST_LEVELS.md` so a project AI
+can localize the evidence system without treating discovery candidates as
+authority.
+
+Agent-native release surfaces:
+
+- Skill/tool boundary: skill capability and `allowed-tools` are not permission.
+- Memory/content hygiene: memory is not truth without source, freshness, and
+  project scope.
+- Harness/trace import: trace presence, checkpoint presence, and successful tool
+  calls are not approval or safe action.
 
 CTTS-2 localization rule: template files stay project-independent, while
 `discovery-candidates.json` carries observations. Project AI localizes evidence;
