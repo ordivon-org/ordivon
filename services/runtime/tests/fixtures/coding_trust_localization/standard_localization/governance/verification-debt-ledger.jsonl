@@ -1,0 +1,1 @@
+{"debt_id":"VD-CTTS2-001","status":"closed","category":"missing_evidence","source":"claim-merge-001","reason":"Initial DEGRADED evidence gap converted into closed debt after review evidence was added.","owner":"fixture-owner-role","next_action":"none","boundary":"Debt closure is evidence disposition only; not approval."}

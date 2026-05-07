@@ -9,6 +9,7 @@ from ordivon_verify.report import (
     determine_status as determine_status,
     print_human as print_human,
     render_markdown as render_markdown,
+    render_summary as render_summary,
     status_to_exit_code as status_to_exit_code,
 )
 from ordivon_verify.config import (
@@ -20,6 +21,11 @@ from ordivon_verify.runner import (
     run_check as run_check,
     run_external_checker as run_external_checker,
     run_external_receipts as run_external_receipts,
+)
+from ordivon_verify.discovery import (
+    discover_external_evidence as discover_external_evidence,
+    render_discovery_markdown as render_discovery_markdown,
+    render_discovery_summary as render_discovery_summary,
 )
 from ordivon_verify.checks.receipts import scan_receipt_files as scan_receipt_files
 from ordivon_verify.checks.debt import validate_debt_ledger as validate_debt_ledger
@@ -33,6 +39,7 @@ __all__ = [
     "determine_status",
     "print_human",
     "render_markdown",
+    "render_summary",
     "status_to_exit_code",
     "is_ordivon_native",
     "load_config",
@@ -44,4 +51,7 @@ __all__ = [
     "validate_debt_ledger",
     "validate_gate_manifest",
     "validate_document_registry",
+    "discover_external_evidence",
+    "render_discovery_markdown",
+    "render_discovery_summary",
 ]

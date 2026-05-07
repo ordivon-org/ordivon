@@ -1,0 +1,1 @@
+{"claim_id":"release-claim-001","file":"CHANGELOG.md","line":3,"claim":"Shipped secure production-ready deployment path.","evidence_refs":["receipts/external-audit-receipt.md"],"trust_signal":"BLOCKED","next_action":"Attach CI/test/review evidence or downgrade claim.","boundary":"Release claim evidence is not release approval."}

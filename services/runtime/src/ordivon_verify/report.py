@@ -7,7 +7,8 @@ from __future__ import annotations
 
 DISCLAIMER = (
     "READY means selected checks passed; it does not authorize execution, "
-    "does not authorize merge, does not authorize deployment, and does not authorize external action."
+    "does not authorize merge, does not authorize deployment, and does not authorize release, "
+    "tool use, policy activation, or external action."
 )
 
 _CHECK_SURFACES = {
@@ -26,6 +27,10 @@ _CHECK_SURFACES = {
     "oep_governance": ["claims", "docs", "review"],
     "ownership_manifest": ["docs", "gates", "review"],
     "external_source_registry": ["docs"],
+    "agent_claim_bindings": ["claims", "tests", "diff", "receipts", "review"],
+    "coding_profile_gate_manifest": ["gates"],
+    "release_claim_audit": ["claims", "docs", "gates"],
+    "skill_safety": ["claims", "docs", "gates", "review"],
 }
 
 
@@ -57,12 +62,14 @@ def _missing_evidence(results: list[dict]) -> list[dict]:
     for r in results:
         if not r.get("missing_evidence"):
             continue
-        missing.append({
-            "check": r["id"],
-            "surfaces": _surfaces_for(r["id"]),
-            "reason": r.get("stderr", "Evidence missing or not configured."),
-            "next_action": r.get("next_action", f"Configure {r['label'].lower()} evidence."),
-        })
+        missing.append(
+            {
+                "check": r["id"],
+                "surfaces": _surfaces_for(r["id"]),
+                "reason": r.get("stderr", "Evidence missing or not configured."),
+                "next_action": r.get("next_action", f"Configure {r['label'].lower()} evidence."),
+            }
+        )
     return missing
 
 
@@ -85,7 +92,59 @@ def _surface_summary(results: list[dict]) -> dict:
     return surfaces
 
 
-def build_report(results: list[dict], mode: str, root: str, config_path: str | None) -> dict:
+def _top_findings(hard_failures: list[dict], missing: list[dict], warnings: list[dict]) -> list[dict]:
+    findings = []
+    represented = set()
+    for item in hard_failures[:7]:
+        represented.add(item.get("check") or item.get("id"))
+        findings.append(
+            {
+                "severity": "blocker",
+                "id": item.get("id", item.get("check", "failure")),
+                "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
+                "reason": item.get("reason", "Hard failure"),
+                "next_action": item.get("next_action", "Review checker output."),
+            }
+        )
+    for item in missing:
+        if len(findings) >= 7:
+            break
+        if item.get("check") in represented:
+            continue
+        represented.add(item.get("check"))
+        findings.append(
+            {
+                "severity": "missing_evidence",
+                "id": item.get("check", "missing_evidence"),
+                "surface": ", ".join(item.get("surfaces", [])) or "unknown",
+                "reason": item.get("reason", "Evidence missing."),
+                "next_action": item.get("next_action", "Add evidence or record an explicit boundary."),
+            }
+        )
+    filtered_warnings = [
+        item for item in warnings if item.get("check") not in represented and item.get("id") not in represented
+    ]
+    for item in filtered_warnings[: max(0, 7 - len(findings))]:
+        findings.append(
+            {
+                "severity": "warning",
+                "id": item.get("id", item.get("check", "warning")),
+                "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
+                "reason": item.get("reason", "Warning"),
+                "next_action": item.get("next_action", "Review warning."),
+            }
+        )
+    return findings
+
+
+def build_report(
+    results: list[dict],
+    mode: str,
+    root: str,
+    config_path: str | None,
+    profile_context: dict | None = None,
+    evidence_appendix: dict | None = None,
+) -> dict:
     """Build JSON-serializable trust report dict."""
     status = determine_status(results)
     hard_failures = []
@@ -96,36 +155,51 @@ def build_report(results: list[dict], mode: str, root: str, config_path: str | N
             sub_failures = r.get("failures", [])
             if sub_failures:
                 for sf in sub_failures:
-                    hard_failures.append({
-                        "id": sf["id"],
-                        "check": r["id"],
-                        "file": sf["file"],
-                        "line": sf.get("line", 0),
-                        "reason": sf["reason"],
-                        "why_it_matters": sf["why_it_matters"],
-                        "next_action": sf["next_action"],
-                    })
+                    hard_failures.append(
+                        {
+                            "id": sf["id"],
+                            "check": r["id"],
+                            "file": sf["file"],
+                            "line": sf.get("line", 0),
+                            "reason": sf["reason"],
+                            "why_it_matters": sf["why_it_matters"],
+                            "next_action": sf["next_action"],
+                        }
+                    )
             else:
-                hard_failures.append({
+                hard_failures.append(
+                    {
+                        "id": r["id"],
+                        "check": r["id"],
+                        "reason": r.get("stderr", "Checker failed"),
+                        "why_it_matters": "A hard verification gate failed.",
+                        "next_action": r.get("next_action", f"Review {r['label'].lower()} checker output."),
+                    }
+                )
+        elif r["status"] == "WARN":
+            warn_entries.append(
+                {
                     "id": r["id"],
                     "check": r["id"],
-                    "reason": r.get("stderr", "Checker failed"),
-                    "why_it_matters": "A hard verification gate failed.",
-                    "next_action": f"Review {r['label'].lower()} checker output.",
-                })
-        elif r["status"] == "WARN":
-            warn_entries.append({
-                "id": r["id"],
-                "check": r["id"],
-                "reason": r.get("stderr", "Warning"),
-                "next_action": r.get("next_action", f"Configure {r['label'].lower()} when ready."),
-            })
+                    "reason": r.get("stderr", "Warning"),
+                    "next_action": r.get("next_action", f"Configure {r['label'].lower()} when ready."),
+                }
+            )
 
+    missing = _missing_evidence(results)
+    profile_context = profile_context or {
+        "pack": "coding",
+        "profile": "ai_coding_trust_audit",
+        "risk_stage": "vibe" if mode == "advisory" else "merge",
+    }
     return {
         "tool": "ordivon-verify",
         "schema_version": "0.1",
         "status": status,
         "trust_signal": "READY_WITHOUT_AUTHORIZATION" if status == "READY" else status,
+        "pack": profile_context.get("pack", "coding"),
+        "profile": profile_context.get("profile", "ai_coding_trust_audit"),
+        "risk_stage": profile_context.get("risk_stage", "vibe"),
         "mode": mode,
         "root": root,
         "config": config_path,
@@ -142,30 +216,60 @@ def build_report(results: list[dict], mode: str, root: str, config_path: str | N
         "surfaces": _surface_summary(results),
         "hard_failures": hard_failures,
         "warnings": warn_entries,
-        "missing_evidence": _missing_evidence(results),
+        "missing_evidence": missing,
+        "top_findings": _top_findings(hard_failures, missing, warn_entries),
+        "evidence_appendix": evidence_appendix or {},
         "disclaimer": DISCLAIMER,
     }
 
 
-def render_markdown(report: dict) -> str:
+def render_summary(report: dict) -> str:
+    """Render a compact trust report for humans."""
+    lines = [
+        "## Ordivon Verify Summary",
+        "",
+        f"**Status:** {report['status']}",
+        f"**Trust signal:** {report['trust_signal']}",
+        f"**Profile:** `{report.get('profile', 'ai_coding_trust_audit')}`",
+        f"**Risk stage:** `{report.get('risk_stage', 'vibe')}`",
+        "",
+        "### Top Findings",
+        "",
+    ]
+    if report.get("top_findings"):
+        for item in report["top_findings"]:
+            lines.append(f"- **{item['severity']} / {item['surface']}**: {item['reason']}")
+            if item.get("next_action"):
+                lines.append(f"  - Next action: {item['next_action']}")
+    else:
+        lines.append("- No blocking or missing-evidence findings in selected checks.")
+    lines.extend(["", f"> {report['disclaimer']}"])
+    return "\n".join(lines) + "\n"
+
+
+def render_markdown(report: dict, full: bool = False) -> str:
     """Render a PR-pasteable Markdown trust report."""
     lines = [
         "## Ordivon Verify Trust Report",
         "",
         f"**Status:** {report['status']}",
         f"**Trust signal:** {report['trust_signal']}",
+        f"**Profile:** `{report.get('profile', 'ai_coding_trust_audit')}`",
+        f"**Risk stage:** `{report.get('risk_stage', 'vibe')}`",
         f"**Mode:** {report['mode']}",
         f"**Root:** `{report['root']}`",
     ]
     if report.get("config"):
         lines.append(f"**Config:** `{report['config']}`")
-    lines.extend([
-        "",
-        "### Surfaces",
-        "",
-        "| Surface | Status | Checks |",
-        "|---|---|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "### Surfaces",
+            "",
+            "| Surface | Status | Checks |",
+            "|---|---|---|",
+        ]
+    )
     surfaces = report.get("surfaces", {})
     for surface in ("claims", "receipts", "tests", "diff", "debt", "docs", "gates", "review"):
         entry = surfaces.get(surface, {"status": "NOT_APPLICABLE", "checks": []})
@@ -196,15 +300,50 @@ def render_markdown(report: dict) -> str:
             if warning.get("next_action"):
                 lines.append(f"  - Next action: {warning['next_action']}")
 
-    lines.extend([
-        "",
-        "### Recommended Next Action",
-        "",
-    ])
+    if full and report.get("evidence_appendix"):
+        appendix = report["evidence_appendix"]
+        lines.extend(["", "### Evidence Appendix", ""])
+        bindings = appendix.get("agent_claim_bindings", {})
+        if bindings:
+            lines.append(
+                f"- Agent claim bindings: {bindings.get('count', 0)} "
+                f"(file: `{bindings.get('binding_file') or 'not found'}`)"
+            )
+        release = appendix.get("release_claim_audit", {})
+        if release:
+            counts = release.get("status_counts", {})
+            lines.append(
+                "- Release claims: "
+                f"supported {counts.get('supported', 0)}, partial {counts.get('partial', 0)}, "
+                f"missing {counts.get('missing', 0)}, blocked {counts.get('blocked', 0)}"
+            )
+        skills = appendix.get("skills", {})
+        if skills:
+            counts = skills.get("status_counts", {})
+            lines.append(
+                "- Skill safety: "
+                f"PASS {counts.get('PASS', 0)}, WARN {counts.get('WARN', 0)}, FAIL {counts.get('FAIL', 0)}"
+            )
+        gates = appendix.get("gate_manifest_candidates", [])
+        if gates:
+            lines.append(f"- Gate candidates: {len(gates)} discovered; owner confirmation still required.")
+        risk = appendix.get("agent_native_risk_matrix", [])
+        if risk:
+            lines.append(f"- Agent-native risk surfaces: {len(risk)}")
+
+    lines.extend(
+        [
+            "",
+            "### Recommended Next Action",
+            "",
+        ]
+    )
     if report["status"] == "READY":
-        lines.append("- Record the evidence status. Do not treat READY as action authorization.")
+        lines.append("- Record the evidence status. Do not treat READY as permission for action.")
     elif report["status"] == "DEGRADED":
-        lines.append("- Review missing evidence and decide whether to add evidence or keep an explicit review boundary.")
+        lines.append(
+            "- Review missing evidence and decide whether to add evidence or keep an explicit review boundary."
+        )
     else:
         lines.append("- Fix hard failures before claiming the agent work is complete or trustworthy.")
     lines.extend(["", f"> {report['disclaimer']}"])

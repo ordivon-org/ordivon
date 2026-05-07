@@ -33,6 +33,8 @@ docs/ai/current-phase-boundaries.md        what's live, what's deferred
 docs/ai/agent-output-contract.md           required output shape for every AI task receipt
 docs/ai/agent-working-rules.md             operating rules for AI agents
 docs/ai/task-prompt-template.md            reusable compressed prompt format
+docs/product/coding-trust-profile-template-system.md  CTTS template system for Coding trust
+docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization casebook
 
 AGENTS.md (repo root)                      compact entry point for IDE agents
 docs/governance/README.md                  Document Governance Pack (accepted)
@@ -61,3 +63,19 @@ docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
 | Unclear what's allowed | current-phase-boundaries |
 | Writing a task prompt for Ordivon | task-prompt-template |
 | Understanding doc rules | docs/governance/ai-onboarding-doc-policy.md |
+| Localizing Coding Trust templates | coding-trust-profile-template-system + CTTS-2 casebook |
+
+## CTTS New AI Check
+
+For Coding Trust work, a new AI must preserve this boundary:
+
+```text
+OV provides generic templates and trust signals.
+Project AI fills local evidence.
+Owner/reviewer confirms canonical authority.
+OV does not grant action permission.
+```
+
+`discovery-candidates.json` is hints only. CandidateRule is advisory until
+separately promoted by project policy. Skill/tool/workflow existence is not
+permission.

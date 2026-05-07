@@ -16,11 +16,14 @@ from ordivon_verify import (
     determine_status,
     build_report,
     render_markdown,
+    render_summary,
+    discover_external_evidence,
+    render_discovery_markdown,
     status_to_exit_code,
     parse_args,
     main,
 )
-from ordivon_verify.runner import CHECKER_SCRIPTS, ALL_CHECKS, _get_readonly_gate_ids
+from ordivon_verify.runner import CHECKER_SCRIPTS, _get_readonly_gate_ids
 
 
 # ── Unit: status_to_exit_code ────────────────────────────────────────────
@@ -140,6 +143,409 @@ def test_parse_args_all():
     assert args.command == "all"
 
 
+def test_parse_args_suggest_config_flag():
+    args = parse_args(["check", "/tmp/example", "--suggest-config"])
+    assert args.command == "check"
+    assert args.target == "/tmp/example"
+    assert args.suggest_config is True
+
+
+def test_parse_args_standard_pack_flag():
+    args = parse_args(["check", "/tmp/example", "--suggest-config", "--standard-pack"])
+    assert args.command == "check"
+    assert args.suggest_config is True
+    assert args.standard_pack is True
+
+
+def test_parse_args_template_flag():
+    args = parse_args(["check", "/tmp/example", "--suggest-config", "--template", "deep"])
+    assert args.command == "check"
+    assert args.suggest_config is True
+    assert args.template == "deep"
+
+
+def test_parse_args_profile_and_risk_stage_flags():
+    args = parse_args(["check", "/tmp/example", "--profile", "coding", "--risk-stage", "merge", "--summary"])
+    assert args.profile == "coding"
+    assert args.risk_stage == "merge"
+    assert args.summary is True
+
+
+def test_discover_external_evidence_suggests_config(tmp_path):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+    (tmp_path / "SECURITY.md").write_text("# Security\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_smoke.py").write_text("def test_ok(): pass\n", encoding="utf-8")
+    (tmp_path / "RELEASE_v1.md").write_text("- Shipped secure deployment path\n", encoding="utf-8")
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "tests.yml").write_text("name: Tests\n", encoding="utf-8")
+    (tmp_path / "skills" / "demo").mkdir(parents=True)
+    (tmp_path / "skills" / "demo" / "SKILL.md").write_text(
+        "---\nname: demo\n---\nUses shell. Set API key in env.\n",
+        encoding="utf-8",
+    )
+
+    suggestion = discover_external_evidence(tmp_path)
+
+    assert suggestion["mode"] == "suggest_config"
+    assert suggestion["suggested_config"]["mode"] == "advisory"
+    assert suggestion["suggested_config"]["pack"] == "coding"
+    assert suggestion["suggested_config"]["profile"] == "ai_coding_trust_audit"
+    assert "README.md" in suggestion["suggested_config"]["receipt_paths"]
+    assert suggestion["inventory"]["tests"]["python_test_files"] == 1
+    assert suggestion["inventory"]["skills"]["count"] == 1
+    assert suggestion["inventory"]["skills"]["credential_language_mentions"] == ["skills/demo/SKILL.md"]
+    assert suggestion["inventory"]["skills"]["items"][0]["status"] in ("WARN", "FAIL")
+    assert suggestion["inventory"]["gate_manifest_candidates"]
+    assert suggestion["inventory"]["release_claim_audit"]["missing_evidence_ref_count"] == 1
+    assert suggestion["inventory"]["agent_native_risk_matrix"]
+
+
+def test_discover_external_evidence_classifies_skills_per_file(tmp_path):
+    clean = tmp_path / "skills" / "clean"
+    clean.mkdir(parents=True)
+    (clean / "SKILL.md").write_text(
+        "---\nname: clean\n---\nRead-only review. Human review required. Run tests before use.\n",
+        encoding="utf-8",
+    )
+    risky = tmp_path / "skills" / "risky"
+    risky.mkdir(parents=True)
+    (risky / "SKILL.md").write_text(
+        "---\nname: risky\nallowed-tools: Bash\n---\nShell script asks for API key and says this authorizes deploy.\n",
+        encoding="utf-8",
+    )
+
+    skills = discover_external_evidence(tmp_path)["inventory"]["skills"]
+
+    by_path = {item["path"]: item for item in skills["items"]}
+    assert by_path["skills/clean/SKILL.md"]["status"] == "PASS"
+    assert by_path["skills/risky/SKILL.md"]["status"] == "FAIL"
+    assert "authorization_language" in by_path["skills/risky/SKILL.md"]["findings"]
+
+
+def test_discover_external_evidence_marks_deploy_workflow_not_canonical(tmp_path):
+    wf_dir = tmp_path / ".github" / "workflows"
+    wf_dir.mkdir(parents=True)
+    (wf_dir / "tests.yml").write_text(
+        "on: [pull_request]\nname: Tests\njobs:\n  test:\n    steps:\n      - run: pytest\n",
+        encoding="utf-8",
+    )
+    (wf_dir / "deploy.yml").write_text(
+        "on: [workflow_dispatch]\npermissions:\n  contents: write\njobs:\n  deploy:\n    steps:\n      - run: gh release create v1\n",
+        encoding="utf-8",
+    )
+
+    gates = discover_external_evidence(tmp_path)["inventory"]["gate_manifest_candidates"]
+    by_id = {gate["gate_id"]: gate for gate in gates}
+
+    assert by_id["tests"]["canonical_confidence"] == "high"
+    assert by_id["deploy"]["canonical_confidence"] == "not_canonical"
+
+
+def test_discover_external_evidence_maps_release_claims_to_signals(tmp_path):
+    (tmp_path / "CHANGELOG.md").write_text(
+        "\n".join(
+            [
+                "- Shipped secure production-ready deployment path.",
+                "- Fixed parser with CI test evidence in #123.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    audit = discover_external_evidence(tmp_path)["inventory"]["release_claim_audit"]
+    by_claim = {item["claim_id"]: item for item in audit["items"]}
+
+    assert by_claim["release-claim-001"]["trust_signal"] == "BLOCKED"
+    assert by_claim["release-claim-002"]["evidence_status"] == "supported"
+
+
+def test_discover_external_evidence_binds_agent_claims(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("print('ok')\n", encoding="utf-8")
+    (tmp_path / "agent_claims.jsonl").write_text(
+        json.dumps(
+            {
+                "claim_id": "claim-clean",
+                "claim": "Implemented feature and tests passed.",
+                "work_artifacts": ["src/app.py"],
+                "test_evidence": "pytest -q",
+                "receipt": "receipt.md",
+                "review_evidence": "review.md",
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "claim_id": "claim-missing-test",
+                "claim": "Tests passed for missing evidence.",
+                "work_artifacts": ["src/app.py"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    bindings = discover_external_evidence(tmp_path)["inventory"]["agent_claim_bindings"]
+    by_id = {item["claim_id"]: item for item in bindings["items"]}
+
+    assert by_id["claim-clean"]["trust_signal"] == "READY_WITHOUT_AUTHORIZATION"
+    assert by_id["claim-missing-test"]["trust_signal"] == "BLOCKED"
+
+
+def test_discover_external_evidence_standard_pack_dry_run(tmp_path):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_smoke.py").write_text("def test_ok(): pass\n", encoding="utf-8")
+
+    suggestion = discover_external_evidence(tmp_path, include_standard_pack=True, risk_stage="merge")
+    draft = suggestion["standard_pack_draft"]
+
+    assert draft["writes_files"] is False
+    assert draft["template_pack"] is True
+    assert "ordivon.verify.json" in draft["files"]
+    assert "governance/verification-gate-manifest.json" in draft["files"]
+    assert draft["files"]["ordivon.verify.json"]["mode"] == "standard"
+    assert draft["files"]["ordivon.verify.json"]["risk_stage"] == "merge"
+    assert draft["files"]["ordivon.verify.json"]["project_name"] == "<project-name>"
+    assert draft["files"]["ordivon.verify.json"]["gate_manifest"] == "governance/verification-gate-manifest.json"
+    assert draft["files"]["governance/verification-gate-manifest.json"]["gates"][0]["gate_id"] == "<gate-id>"
+    assert draft["files"]["governance/discovery-candidates.json"]["project_name"] == tmp_path.name
+    assert draft["files"]["governance/document-registry.jsonl"][0]["type"] == "claim_or_receipt_candidate"
+
+
+def test_discover_external_evidence_template_tiers_are_project_independent(tmp_path):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+
+    minimal = discover_external_evidence(tmp_path, include_standard_pack=True, template_tier="minimal")
+    standard = discover_external_evidence(tmp_path, include_standard_pack=True, template_tier="standard")
+    deep = discover_external_evidence(tmp_path, include_standard_pack=True, template_tier="deep")
+
+    minimal_files = minimal["standard_pack_draft"]["files"]
+    standard_files = standard["standard_pack_draft"]["files"]
+    deep_files = deep["standard_pack_draft"]["files"]
+
+    assert minimal["standard_pack_draft"]["template_tier"] == "minimal"
+    assert standard["standard_pack_draft"]["template_tier"] == "standard"
+    assert deep["standard_pack_draft"]["template_tier"] == "deep"
+    assert "governance/verification-gate-manifest.json" not in minimal_files
+    assert "governance/verification-gate-manifest.json" in standard_files
+    assert "governance/tool-boundary-map.jsonl" in deep_files
+    assert "governance/memory-source-ledger.jsonl" in deep_files
+    template_only = {k: v for k, v in deep_files.items() if k != "governance/discovery-candidates.json"}
+    serialized = json.dumps(template_only)
+    assert str(tmp_path) not in serialized
+    assert "/root/projects/hermes-agent" not in serialized
+
+
+def test_render_discovery_markdown_contains_newcomer_sections(tmp_path):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_smoke.py").write_text("def test_ok(): pass\n", encoding="utf-8")
+
+    markdown = render_discovery_markdown(discover_external_evidence(tmp_path))
+
+    assert "Ordivon Verify Discovery Report" in markdown
+    assert "Suggested Config" in markdown
+    assert "Gate Candidates" in markdown
+    assert "Skill Safety Precheck" in markdown
+    assert "Release Claim Evidence Map" in markdown
+    assert "Agent Claim Bindings" in markdown
+    assert "Agent-Native Risk Matrix" in markdown
+
+
+def test_main_suggest_config_outputs_inventory(tmp_path, capsys):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "tests.yml").write_text("name: Tests\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--suggest-config"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["mode"] == "suggest_config"
+    assert payload["root"] == str(tmp_path.resolve())
+    assert payload["inventory"]["github_workflows"][0]["path"] == ".github/workflows/tests.yml"
+
+
+def test_main_suggest_config_markdown_outputs_report(tmp_path, capsys):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--suggest-config", "--markdown"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Ordivon Verify Discovery Report" in captured.out
+    assert "Suggested Config" in captured.out
+
+
+def test_main_suggest_config_standard_pack_markdown_outputs_draft(tmp_path, capsys):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--suggest-config", "--standard-pack", "--markdown"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Template Pack Draft" in captured.out
+    assert "ordivon.verify.json" in captured.out
+
+
+def test_main_suggest_config_deep_template_markdown_outputs_deep_files(tmp_path, capsys):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--suggest-config", "--template", "deep", "--markdown"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Template Pack Draft" in captured.out
+    assert "Tier: `deep`" in captured.out
+    assert "tool-boundary-map.jsonl" in captured.out
+    assert "memory-source-ledger.jsonl" in captured.out
+
+
+def test_main_suggest_config_summary_outputs_compact_onboarding(tmp_path, capsys):
+    (tmp_path / "README.md").write_text("# Project\n", encoding="utf-8")
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "tests.yml").write_text("name: Tests\non: [pull_request]\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--suggest-config", "--standard-pack", "--summary"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Ordivon Verify Onboarding Summary" in captured.out
+    assert "Evidence Found" in captured.out
+    assert "Template Pack Draft" in captured.out
+    assert "Suggested Config" not in captured.out
+
+
+def test_main_invalid_template_returns_3(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--suggest-config", "--template", "bespoke", "--json"])
+
+    assert exit_code == 3
+    assert "Invalid template" in capsys.readouterr().err
+
+
+def test_main_unsupported_profile_returns_3(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "trade", "--json"])
+
+    assert exit_code == 3
+    assert "unsupported pack/profile" in capsys.readouterr().err
+
+
+def test_main_invalid_risk_stage_returns_3(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--risk-stage", "chaos", "--json"])
+
+    assert exit_code == 3
+    assert "invalid risk_stage" in capsys.readouterr().err
+
+
+def test_vibe_stage_missing_governance_is_degraded_not_blocked(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "vibe", "--json"])
+
+    assert exit_code == 2
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "DEGRADED"
+
+
+def test_receipt_paths_accept_markdown_files(tmp_path, capsys):
+    receipt = tmp_path / "README.md"
+    receipt.write_text(
+        "# Receipt\n\nVerification passed locally.\nCommand: `python -m pytest tests/ -q`\n", encoding="utf-8"
+    )
+    config = tmp_path / "ordivon.verify.json"
+    config.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "mode": "advisory",
+                "receipt_paths": ["README.md"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["check", str(tmp_path), "--config", str(config), "--json"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 2
+    receipt_check = next(check for check in report["checks"] if check["id"] == "receipts")
+    assert receipt_check["status"] == "PASS"
+    assert receipt_check["summary"] == "1 receipt(s) scanned, 0 contradictions"
+
+
+def test_configured_receipt_paths_that_scan_zero_are_missing_evidence(tmp_path, capsys):
+    config = tmp_path / "ordivon.verify.json"
+    config.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "mode": "advisory",
+                "receipt_paths": ["missing.md"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["check", str(tmp_path), "--config", str(config), "--json"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 2
+    receipt_check = next(check for check in report["checks"] if check["id"] == "receipts")
+    assert receipt_check["status"] == "WARN"
+    assert any(item["check"] == "receipts" for item in report["missing_evidence"])
+    assert report["profile"] == "ai_coding_trust_audit"
+    assert report["risk_stage"] == "vibe"
+    assert report["missing_evidence"]
+
+
+def test_merge_stage_requires_agent_bindings_and_confirmed_gates(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "merge", "--json"])
+
+    assert exit_code == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "BLOCKED"
+    assert report["risk_stage"] == "merge"
+    assert any(item["check"] == "agent_claim_bindings" for item in report["missing_evidence"])
+    assert any(item["check"] == "coding_profile_gate_manifest" for item in report["missing_evidence"])
+
+
+def test_release_stage_blocks_unsafe_skill_and_release_claim(tmp_path, capsys):
+    (tmp_path / "skills" / "danger").mkdir(parents=True)
+    (tmp_path / "skills" / "danger" / "SKILL.md").write_text(
+        "---\nname: danger\nallowed-tools: Bash\n---\nShell script asks for API key and says this authorizes deploy.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "CHANGELOG.md").write_text("- Shipped secure production-ready deployment path.\n", encoding="utf-8")
+
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "release", "--json"])
+
+    assert exit_code == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["risk_stage"] == "release"
+    assert any(f["check"] == "release_claim_audit" for f in report["hard_failures"])
+    assert any(f["check"] == "skill_safety" for f in report["hard_failures"])
+
+
+def test_summary_output_is_compact(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "merge", "--summary"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Ordivon Verify Summary" in captured.out
+    assert "Top Findings" in captured.out
+    assert "Surfaces" not in captured.out
+
+
+def test_full_markdown_includes_evidence_appendix(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "merge", "--markdown", "--full"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Evidence Appendix" in captured.out
+    assert "Agent claim bindings" in captured.out
+
+
 def test_parse_args_check_target():
     args = parse_args(["check", "."])
     assert args.command == "check"
@@ -202,10 +608,38 @@ def test_render_markdown_report_contains_pr_sections():
     ]
     markdown = render_markdown(build_report(results, "advisory", "/repo", None))
     assert "## Ordivon Verify Trust Report" in markdown
+    assert "**Profile:** `ai_coding_trust_audit`" in markdown
     assert "| claims | PASS | receipts |" in markdown
     assert "### Missing Evidence" in markdown
     assert "READY means selected checks passed" in markdown
     assert "authorizes merge" not in markdown.lower()
+
+
+def test_render_summary_report_contains_top_findings():
+    report = build_report(
+        [
+            {
+                "id": "agent_claim_bindings",
+                "label": "Agent Claim Bindings",
+                "status": "FAIL",
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": "No agent claim binding file found",
+                "missing_evidence": True,
+                "next_action": "Add agent_claims.jsonl.",
+            }
+        ],
+        "advisory",
+        "/repo",
+        None,
+        {"pack": "coding", "profile": "ai_coding_trust_audit", "risk_stage": "merge"},
+    )
+
+    summary = render_summary(report)
+
+    assert "Ordivon Verify Summary" in summary
+    assert "Risk stage:** `merge`" in summary
+    assert "No agent claim binding file found" in summary
 
 
 # ── Integration: run_check (mocked subprocess) ────────────────────────────

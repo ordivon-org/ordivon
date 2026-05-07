@@ -1,0 +1,13 @@
+{
+  "status_counts": {"PASS": 0, "WARN": 0, "FAIL": 1},
+  "items": [
+    {
+      "path": "skills/example/SKILL.md",
+      "status": "FAIL",
+      "risk": "high",
+      "findings": ["authorization_language", "credential_language", "tool_scope_declared"],
+      "owner_disposition": "repair",
+      "boundary": "Skill capability is not permission; allowed-tools is not authorization."
+    }
+  ]
+}

@@ -10,6 +10,10 @@ collaboration through evidence, policy, shadow evaluation, and review.
 
 We are not a trading bot, an AI wrapper, a dashboard, or a CI pipeline.
 
+For Coding Trust work, Ordivon Verify is AI trust infrastructure. It provides
+generic CTTS templates and trust signals; the target project AI localizes
+evidence; the target owner/reviewer confirms canonical authority.
+
 ## Quick Start
 
 ```bash
@@ -34,6 +38,8 @@ Before doing anything, read:
 - `docs/ai/current-phase-boundaries.md` — what's active, what's NO-GO
 - `docs/ai/agent-output-contract.md` — required output shape
 - `docs/governance/extension-processes.md` — how to extend any layer ← NEW
+- `docs/product/coding-trust-profile-template-system.md` — CTTS template system
+- `docs/product/coding-trust-localization-casebook-ctts-2.md` — CTTS-2 examples
 
 ### 2. Understand the Governance Vocabulary
 
@@ -46,6 +52,8 @@ These are not optional. They're the grammar of the system:
 | **Evidence ≠ Approval** | Evidence supports review. Evidence does not approve. |
 | **CandidateRule ≠ Policy** | Advisory observation. Promotion requires: shadow→redteam→owner. |
 | **Receipt ≠ Approval** | Records what happened. Does not authorize future action. |
+| **Discovery Candidate ≠ Canonical Gate** | Candidate evidence needs owner/reviewer confirmation. |
+| **Skill/Tool Exists ≠ Permission** | Capability and traces are evidence surfaces, not action grants. |
 | **BLOCKED** | Hard boundary violation. Cannot proceed without fix. |
 | **NO-GO** | Permanently out of scope in current state. |
 | **DEGRADED** | Governance incomplete but honest. Needs review. |
@@ -59,6 +67,8 @@ These are NEVER allowed:
 - Self-promoting a checker from draft to active
 - Activating a Policy without named Owner + explicit signoff
 - Treating READY as authorization
+- Treating CTTS discovery candidates as canonical gates
+- Treating skill/tool/workflow existence as permission
 - Claiming "Ruff clean" without qualifying scope
 
 ### 4. Follow the Phase Discipline
@@ -138,9 +148,10 @@ Every receipt must answer:
 
 ```
 Checker ecosystem: 38 checkers, L3-L10, pr-fast 12/12, full 38/38 ALL PASS (26 hard + 12 escalation), read-only Verify 35/35 PASS
-Document governance: 231 registered docs, 0 stale, 0 missing freshness
+Document governance: 235 registered docs, 0 stale, 0 missing freshness
 Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
 Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed
+CTTS: generic Coding Trust templates + localization casebook; Coding is the only active OV profile
 Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion
 Owner veto: Policy activation requires named Owner + explicit signoff
 Extension processes: Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired
@@ -164,6 +175,8 @@ docs/governance/candidate-rule-drafts.jsonl  ← CandidateRule proposals
 docs/governance/shadow-evaluation-log.jsonl  ← Shadow evaluation results
 docs/governance/lesson-ledger.jsonl          ← Lessons from findings
 docs/governance/verification-debt-ledger.jsonl ← Known debt
+docs/product/coding-trust-profile-template-system.md ← CTTS template source of truth
+docs/product/coding-trust-localization-casebook-ctts-2.md ← CTTS-2 localization casebook
 checkers/                                    ← 38 checker packages
 src/ordivon_verify/                          ← Verify package + registry + runner
 domains/                                     ← Domain models

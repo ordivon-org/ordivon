@@ -20,9 +20,24 @@
       "enum": ["advisory", "standard", "strict"],
       "description": "Verification mode. advisory: warnings allowed. standard: configured checks must pass. strict: all checks required."
     },
+    "pack": {
+      "type": "string",
+      "enum": ["coding"],
+      "description": "Governed-work pack. v1 supports the coding pack only."
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["coding", "ai_coding_trust_audit"],
+      "description": "Trust profile. v1 maps coding to ai_coding_trust_audit."
+    },
+    "risk_stage": {
+      "type": "string",
+      "enum": ["vibe", "merge", "release"],
+      "description": "Coding trust stage for evidence expectations and reporting."
+    },
     "receipt_paths": {
       "type": "array",
-      "description": "Relative paths to directories containing receipt markdown files.",
+      "description": "Relative paths to Markdown receipt/claim files or directories containing receipt markdown files.",
       "items": { "type": "string" }
     },
     "debt_ledger": {

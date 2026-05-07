@@ -234,6 +234,17 @@ def run_external_receipts(receipt_paths: list[str], root: Path) -> dict:
             "stderr": f"{len(failures)} contradiction(s) in {scanned} receipt(s)",
             "failures": failures,
         }
+    if scanned == 0:
+        return {
+            "id": "receipts",
+            "label": "Receipt Integrity",
+            "status": "WARN",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "Configured receipt_paths did not match any Markdown receipt files",
+            "missing_evidence": True,
+            "next_action": "Point receipt_paths at existing Markdown files or directories containing receipt Markdown.",
+        }
     return {
         "id": "receipts",
         "label": "Receipt Integrity",

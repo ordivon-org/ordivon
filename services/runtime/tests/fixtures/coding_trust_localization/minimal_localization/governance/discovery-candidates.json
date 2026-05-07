@@ -1,0 +1,13 @@
+{
+  "project_name": "ctts2-minimal-fixture",
+  "claim_or_receipt_candidate_docs": ["README.md"],
+  "gate_manifest_candidates": [
+    {
+      "gate_id": "pytest",
+      "command": "python -m pytest tests/ -q",
+      "requires_owner_confirmation": true,
+      "note": "Candidate only; not a canonical gate until owner/reviewer confirms."
+    }
+  ],
+  "note": "Candidate evidence only. Project AI localizes; owner/reviewer confirms authority."
+}

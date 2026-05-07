@@ -16,6 +16,11 @@ Authority: `proposal`
 # Run the default read-only trust audit
 uv run python scripts/ordivon_verify.py check .
 
+# Explicit Coding Trust Profile stages
+uv run python scripts/ordivon_verify.py check . --profile coding --risk-stage vibe --summary
+uv run python scripts/ordivon_verify.py check . --profile coding --risk-stage merge --markdown
+uv run python scripts/ordivon_verify.py check . --profile coding --risk-stage release --markdown --full
+
 # JSON output (for CI / programmatic use)
 uv run python scripts/ordivon_verify.py check . --json
 
@@ -33,16 +38,90 @@ Expected output: **READY** — all four checks pass.
 
 ## 2. Run on an External Repo (Advisory Mode)
 
+If the repo does not have Ordivon files yet, start with discovery:
+
+```bash
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config
+
+# Newcomer-readable report
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --markdown
+
+# Dry-run the files needed for standard-mode adoption; writes nothing
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage merge --standard-pack --markdown
+
+# Choose a project-independent template tier
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --template minimal --summary
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage merge --template standard --markdown
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage release --template deep --markdown --full
+
+# Compact onboarding summary
+uv run python scripts/ordivon_verify.py check /path/to/repo --suggest-config --risk-stage merge --standard-pack --summary
+```
+
+This prints a read-only inventory:
+
+- candidate claim / receipt documents
+- test files and likely test commands
+- GitHub workflow surfaces
+- existing Ordivon governance files, if any
+- `SKILL.md` files
+- per-file skill safety status (`PASS` / `WARN` / `FAIL`)
+- release claim evidence mapping
+- agent claim binding status, if a binding file exists
+- agent-native surfaces such as MCP, ACP, approvals, memory, and credentials
+- a suggested `ordivon.verify.json` starting point
+- an optional dry-run standard governance template pack
+
+The standard pack is intentionally project-independent. It contains
+placeholders plus a `governance/discovery-candidates.json` file. The target
+project's AI or owner must decide which candidates become canonical receipts,
+gates, claim bindings, debts, release evidence, or skill dispositions.
+
+Template tiers:
+
+- `minimal`: reminder-level evidence loop for solo or vibe coding projects.
+- `standard`: basic project AI evidence system with gates, debt, docs, receipts,
+  and claim binding.
+- `deep`: long-lived team workflow with release claims, skills/tools, memory
+  sources, lessons, and CandidateRule drafts.
+
+The template pack does not decide local process. The target project's AI should
+read `governance/discovery-candidates.json`, propose a local evidence system,
+ask the project owner to confirm canonical gates and boundaries, then fill the
+templates with project-specific evidence.
+
+CTTS-2 localization rule: template files stay project-independent, while
+`discovery-candidates.json` carries observations. Project AI localizes evidence;
+owner/reviewer confirms canonical authority; OV verifies trust structure only.
+`READY_WITHOUT_AUTHORIZATION` is never merge, release, deploy, execution, tool,
+skill, or business workflow permission.
+
+Risk stages:
+
+- `vibe`: fast advisory discovery; useful during rapid AI-assisted iteration.
+- `merge`: requires a concrete claim-to-evidence path before work is trusted.
+- `release`: adds stricter release-claim, skill/tool, stale-doc, and debt scrutiny.
+
+Discovery is not verification. It does not write files, run tests, run agents,
+start servers, read credentials, or authorize action.
+
 Create `ordivon.verify.json` in your repo root:
 
 ```json
 {
   "schema_version": "0.1",
   "project_name": "my-project",
+  "pack": "coding",
+  "profile": "ai_coding_trust_audit",
+  "risk_stage": "vibe",
   "mode": "advisory",
-  "receipt_paths": ["docs/runtime"]
+  "receipt_paths": ["docs/runtime", "README.md", "RELEASE_v1.md"]
 }
 ```
+
+`receipt_paths` may point to Markdown files or directories containing Markdown
+receipts. If configured paths match zero Markdown files, Ordivon treats that as
+missing evidence instead of a pass.
 
 Run:
 
@@ -96,6 +175,9 @@ Create `governance/document-registry.jsonl`:
 
 ```json
 {
+  "pack": "coding",
+  "profile": "ai_coding_trust_audit",
+  "risk_stage": "merge",
   "mode": "standard",
   "debt_ledger": "governance/verification-debt-ledger.jsonl",
   "gate_manifest": "governance/verification-gate-manifest.json",

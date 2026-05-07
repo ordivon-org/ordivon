@@ -148,15 +148,27 @@ def _has_command_evidence_nearby(lines: list[str], match_line_idx: int) -> bool:
     return bool(_COMMAND_EVIDENCE_PATTERN.search(context))
 
 
+def _iter_receipt_markdown_files(receipt_path: str, root: Path) -> list[Path]:
+    """Return in-root Markdown receipt files for a configured file or directory."""
+    candidate = (root / receipt_path).resolve()
+    root_resolved = root.resolve()
+    try:
+        candidate.relative_to(root_resolved)
+    except ValueError:
+        return []
+    if candidate.is_file():
+        return [candidate] if candidate.suffix.lower() == ".md" else []
+    if candidate.is_dir():
+        return sorted(p for p in candidate.rglob("*.md") if p.is_file())
+    return []
+
+
 def scan_receipt_files(receipt_paths: list[str], root: Path) -> tuple[list[dict], int]:
-    """Scan receipt files for contradictions. Returns (failures, scanned_count)."""
+    """Scan receipt files/directories for contradictions. Returns (failures, scanned_count)."""
     failures: list[dict] = []
     scanned = 0
     for rp in receipt_paths:
-        scan_dir = root / rp
-        if not scan_dir.is_dir():
-            continue
-        for md_file in sorted(scan_dir.rglob("*.md")):
+        for md_file in _iter_receipt_markdown_files(rp, root):
             scanned += 1
             try:
                 content = md_file.read_text()

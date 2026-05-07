@@ -1,0 +1,1 @@
+{"tool_id":"unsafe-example","surface":"skill","capability":"can run shell commands","permission_boundary":"Capability is not permission; owner must authorize high-impact action outside OV.","owner_disposition":"repair"}

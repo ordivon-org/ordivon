@@ -19,6 +19,7 @@ def validate_gate_manifest(path: Path) -> dict:
         manifest = json.load(f)
     gates = manifest.get("gates", [])
     gate_count = manifest.get("gate_count", len(gates))
+    coding_trust_manifest = manifest.get("profile") == "ai_coding_trust_audit"
     errors = []
     for g in gates:
         gid = g.get("gate_id", "?")
@@ -31,6 +32,13 @@ def validate_gate_manifest(path: Path) -> dict:
             errors.append(f"{gid}: missing command")
         elif _is_noop_cmd(cmd):
             errors.append(f"{gid}: command appears to be a no-op: '{cmd}'")
+        if coding_trust_manifest or "owner_confirmed" in g:
+            if g.get("owner_confirmed") is not True:
+                errors.append(f"{gid}: owner_confirmed must be true before a candidate becomes canonical")
+            if not g.get("reviewer"):
+                errors.append(f"{gid}: missing reviewer for coding trust gate")
+            if not g.get("approver"):
+                errors.append(f"{gid}: missing approver for coding trust gate")
     if len(gates) != gate_count:
         errors.append(f"gate_count ({gate_count}) != actual gates ({len(gates)})")
     if errors:

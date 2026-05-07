@@ -50,6 +50,8 @@ docs/ai/codebase-deep-analysis-2026-05-02.md       Source-doc consistency audit 
 docs/product/alpha-roadmap.md                      Full Alpha roadmap and trust flywheel
 docs/product/alpha-0-evidence-of-governed-work.md  Alpha-0 product direction: agent work trust audit
 docs/runtime/alpha-0-casebook.md                   Governed AI coding work casebook
+docs/product/coding-trust-profile-template-system.md  CTTS generic Coding Trust templates
+docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization dogfood casebook
 ```
 
 ## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED | EG-1: ACTIVE | Alpha-0: ACTIVE
@@ -100,8 +102,8 @@ Owner veto: Policy activation requires named owner + explicit signoff.
 CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
 
 **pr-fast**: 12/12 hard gates. **full**: 38/38 ALL PASS (26 hard + 12 escalation). **read-only Verify**: 35/35 PASS. 3 open debt.
-**Current center**: Alpha-0 Evidence of Governed Work + EG-1 CATLASS MVP (stage templates + runner).
-**Next**: expand stage template library, integrate with Ordivon Verify.
+**Current center**: Coding Trust Template System (CTTS) + Alpha-0 Evidence of Governed Work.
+**Next**: validate project AI localization through CTTS-2 fixtures and casebook.
 
 ## Critical Boundaries
 
@@ -114,3 +116,5 @@ CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
 - OGAP: protocol foundation only — no API, no SDK, no MCP server, no public standard
 - Financial/broker/live action: NO-GO
 - READY ≠ approval: valid OGAP payloads do not authorize execution
+- CTTS templates ≠ project authority: discovery candidates are hints, not canonical gates
+- Project AI localizes evidence; owner/reviewer decides; OV verifies trust structure only
