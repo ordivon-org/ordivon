@@ -73,7 +73,7 @@ execution, or external-system authorization.
 
 | Debt ID | Status | Scope |
 |---------|--------|-------|
-| DOC-WIKI-FLAKY-001 | open | test_document_wiki.py::test_generator_output_deterministic |
+| DOC-WIKI-FLAKY-001 | closed by 2026-05-08 internal audit debt cleanup | test_document_wiki.py::test_generator_output_deterministic |
 
 ## 7. Next Recommended Phase
 

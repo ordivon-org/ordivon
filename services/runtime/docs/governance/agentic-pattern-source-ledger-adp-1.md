@@ -38,7 +38,7 @@ seeds extracted, and overclaim warnings.
 - **Source type:** internal Ordivon
 - **Path:** `docs/governance/external-ai-governance-benchmark-pack-egb-1.md`, `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md`, `docs/governance/external-ai-governance-gap-analysis-egb-1.md`
 - **Version/date:** 2026-05-02
-- **Freshness:** verified-current (internal docs); EGB-SOURCE-FRESHNESS-001 open for external source versions
+- **Freshness:** verified-current (internal docs); EGB-SOURCE-FRESHNESS-001 closed by EGB-2 source registry + 2026-05-08 debt cleanup
 - **Key concepts:** 5 external frameworks mapped, 18 Ordivon concepts cross-referenced, 7 Ordivon-native innovations without external precedent, 6 gaps identified
 - **Pattern seeds:** External Benchmark Overclaim, Current Truth Drift, Capability-to-Authorization Collapse, Baseline Debt Masking
 - **Ordivon translation:** External framework concepts → Ordivon control mapping

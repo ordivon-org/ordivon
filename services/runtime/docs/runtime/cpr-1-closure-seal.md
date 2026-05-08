@@ -81,7 +81,7 @@ No CandidateRule becomes active Policy.
 | CODE-FENCE-001 | open | ADP-4 |
 | RECEIPT-SCOPE-001 | open | ADP-4 |
 | DOC-WIKI-FLAKY-001 | accepted_until | DG-2 |
-| EGB-SOURCE-FRESHNESS-001 | open | EGB-2 |
+| EGB-SOURCE-FRESHNESS-001 | closed by 2026-05-08 internal audit debt cleanup | EGB-2 |
 | PV-N8 244 private paths | open | PV |
 | CandidateRule promotion | gated | Phase 8+ |
 

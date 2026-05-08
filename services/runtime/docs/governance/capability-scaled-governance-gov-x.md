@@ -200,7 +200,7 @@ All 14 HAP-2 fixtures map to GOV-X gate matrix:
 | Capability-scaled governance | C0-C5 + AP-R0-R5 ladder |
 | Systematic risk taxonomy | Capability×Risk×Authority matrix |
 | Deployment authorization | Gate response matrix + AI levels |
-| Source freshness | EGB-SOURCE-FRESHNESS-001 remains open |
+| Source freshness | EGB-SOURCE-FRESHNESS-001 closed by EGB-2 source registry + 2026-05-08 debt cleanup |
 
 ## 11. Boundary Confirmation
 

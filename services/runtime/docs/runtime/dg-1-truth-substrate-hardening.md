@@ -25,12 +25,12 @@ and future Ordivon Verify users.
 |---------|------------|--------|-------------|
 | CODE-FENCE-001 | ADP-4 | open | Routed to ADP-4 for detector precision hardening |
 | RECEIPT-SCOPE-001 | ADP-4 + Receipt | open | Routed to receipt integrity/ADP-4; DG involvement for receipt lifecycle |
-| DOC-WIKI-FLAKY-001 | DG-2 | accepted_until | Wiki currently deterministic; re-verify at next registry change |
-| EGB-SOURCE-FRESHNESS-001 | EGB-2 | open | External benchmark freshness; requires periodic review |
+| DOC-WIKI-FLAKY-001 | Internal-Audit-Debt-Cleanup | closed | Wiki regenerated from current registry; deterministic test passes |
+| EGB-SOURCE-FRESHNESS-001 | Internal-Audit-Debt-Cleanup | closed | External source registry checker PASS; stale_source_count=0 |
 | CONFIG-GUARD-001 | ADP-3 (mitigated) | partially mitigated | AP-RT-CONFIG-GUARD rule active |
 | DEGRADED-LIFECYCLE-001 | ADP-3 (mitigated) | mitigated | ADP3-DG-DEGRADED-LIFECYCLE rule active |
 | PATH-BRITTLENESS | ADP-3 (mitigated) | partially mitigated | Broader PV detection active |
-| FRESHNESS-001 | DG-2 | partially mitigated | ADP3-DG-STALENESS rule active; registry schema upgrade needed |
+| FRESHNESS-001 | Internal-Audit-Debt-Cleanup | closed | All registered docs have last_verified; document registry completeness PASS |
 
 ## Registry Gap Baseline
 

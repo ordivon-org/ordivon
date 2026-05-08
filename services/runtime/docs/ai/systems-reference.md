@@ -60,7 +60,7 @@ L5C    Coding Smoke         [HARD]  Coding discipline smoke test
 L5D    Coding Fixtures      [HARD]  Coding discipline fixture validation
 L5E    Protected Paths      [HARD]  Unprotected path reference detection
 L5F    Dependabot Gov       [HARD]  Dependabot PR classification
-L6     Document Registry    [HARD]  Document registry invariants (243 entries)
+L6     Document Registry    [HARD]  Document registry invariants (244 entries)
 L6A    Document Freshness   [HARD]  Staleness detection
 L6B    OGAP Payload         [HARD]  OGAP protocol payload validation
 L6C    HAP Payload          [HARD]  HAP protocol payload validation
@@ -102,7 +102,7 @@ L9C-F  PGI Validators       [ESC]   PGI decision/evidence/failure/confidence
 ### What It Is
 
 A self-governing documentation system. Every document in Ordivon is registered
-in `docs/governance/document-registry.jsonl` (243 entries) with structured
+in `docs/governance/document-registry.jsonl` (244 entries) with structured
 metadata: doc_id, path, doc_type, authority, freshness, last_verified,
 stale_after_days, related_docs/ledgers/receipts.
 

@@ -181,7 +181,7 @@ No Policy transition occurred. No PolicyEngine or RiskEngine behavior modified.
 | CODE-FENCE-001 | open | Not relevant |
 | RECEIPT-SCOPE-001 | open | Not relevant |
 | DOC-WIKI-FLAKY-001 | accepted_until | Not relevant |
-| EGB-SOURCE-FRESHNESS-001 | open | Not relevant |
+| EGB-SOURCE-FRESHNESS-001 | closed by 2026-05-08 internal audit debt cleanup | Not relevant |
 | CandidateRule promotion | gated | Confirmed gated |
 | Policy activation | NO-GO | Confirmed NO-GO |
 

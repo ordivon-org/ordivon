@@ -68,8 +68,8 @@ seeds with citation, freshness status, and overclaim warnings.
 
 | Debt ID | Status |
 |---------|--------|
-| DOC-WIKI-FLAKY-001 | open |
-| EGB-SOURCE-FRESHNESS-001 | open |
+| DOC-WIKI-FLAKY-001 | closed by 2026-05-08 internal audit debt cleanup |
+| EGB-SOURCE-FRESHNESS-001 | closed by 2026-05-08 internal audit debt cleanup |
 
 ## 8. Next Recommended Phase
 
