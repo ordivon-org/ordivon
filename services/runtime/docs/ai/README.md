@@ -37,6 +37,8 @@ docs/product/coding-trust-profile-template-system.md  CTTS template system for C
 docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization casebook
 docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md  CTTS-3 adoption receipt
 docs/runtime/ctts-closure-seal.md                     CTTS foundation closure seal
+docs/product/coding-trust-adoption-plan.md            Coding Trust Adoption source of truth
+docs/runtime/coding-trust-adoption-dogfood-matrix.md  Adoption dogfood matrix
 
 AGENTS.md (repo root)                      compact entry point for IDE agents
 docs/governance/README.md                  Document Governance Pack (accepted)
@@ -66,6 +68,7 @@ docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
 | Writing a task prompt for Ordivon | task-prompt-template |
 | Understanding doc rules | docs/governance/ai-onboarding-doc-policy.md |
 | Localizing Coding Trust templates | coding-trust-profile-template-system + CTTS-2 casebook |
+| Running Coding Trust Adoption | coding-trust-adoption-plan + adoption dogfood matrix |
 
 ## CTTS New AI Check
 

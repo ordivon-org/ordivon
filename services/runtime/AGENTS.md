@@ -54,6 +54,8 @@ docs/product/coding-trust-profile-template-system.md  CTTS generic Coding Trust 
 docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization dogfood casebook
 docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md  CTTS-3 adoption + agent-native evidence pack receipt
 docs/runtime/ctts-closure-seal.md             CTTS foundation closure seal
+docs/product/coding-trust-adoption-plan.md    Coding Trust Adoption source of truth
+docs/runtime/coding-trust-adoption-dogfood-matrix.md  Adoption dogfood matrix
 ```
 
 ## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED | EG-1: ACTIVE | Alpha-0: ACTIVE

@@ -238,13 +238,33 @@ def render_summary(report: dict) -> str:
         "### Top Findings",
         "",
     ]
-    if report.get("top_findings"):
-        for item in report["top_findings"]:
+    top = report.get("top_findings", [])[:5]
+    if top:
+        for item in top:
             lines.append(f"- **{item['severity']} / {item['surface']}**: {item['reason']}")
             if item.get("next_action"):
                 lines.append(f"  - Next action: {item['next_action']}")
     else:
         lines.append("- No blocking or missing-evidence findings in selected checks.")
+    missing = report.get("missing_evidence", [])[:5]
+    if missing:
+        lines.extend(["", "### Missing Evidence", ""])
+        for item in missing:
+            surfaces_text = ", ".join(item.get("surfaces", [])) or "unknown"
+            lines.append(f"- **{item['check']}** ({surfaces_text})")
+    lines.extend(
+        [
+            "",
+            "### Next Action",
+            "",
+        ]
+    )
+    if report["status"] == "READY":
+        lines.append("- Record evidence status; project owner/reviewer still decides any action.")
+    elif report["status"] == "DEGRADED":
+        lines.append("- Add missing evidence, downgrade the claim, or record explicit debt.")
+    else:
+        lines.append("- Repair blockers before presenting the AI work claim as trustworthy.")
     lines.extend(["", f"> {report['disclaimer']}"])
     return "\n".join(lines) + "\n"
 
@@ -277,6 +297,38 @@ def render_markdown(report: dict, full: bool = False) -> str:
         entry = surfaces.get(surface, {"status": "NOT_APPLICABLE", "checks": []})
         checks = ", ".join(entry.get("checks", [])) or "-"
         lines.append(f"| {surface} | {entry.get('status', 'NOT_APPLICABLE')} | {checks} |")
+
+    if report.get("top_findings"):
+        lines.extend(["", "### Top Findings", ""])
+        for item in report["top_findings"][:7]:
+            lines.append(f"- **{item['severity']} / {item['surface']}**: {item['reason']}")
+            if item.get("next_action"):
+                lines.append(f"  - Next action: {item['next_action']}")
+
+    appendix = report.get("evidence_appendix", {})
+    bindings = appendix.get("agent_claim_bindings", {})
+    gates = appendix.get("gate_manifest_candidates", [])
+    if bindings or gates:
+        lines.extend(["", "### Adoption Boundaries", ""])
+        if bindings:
+            counts = bindings.get("status_counts", {})
+            lines.append(
+                "- Claim/evidence/review: "
+                f"{bindings.get('count', 0)} binding(s), "
+                f"READY_WITHOUT_AUTHORIZATION {counts.get('READY_WITHOUT_AUTHORIZATION', 0)}, "
+                f"DEGRADED {counts.get('DEGRADED', 0)}, BLOCKED {counts.get('BLOCKED', 0)}."
+            )
+        if gates:
+            canonical_like = sum(1 for gate in gates if gate.get("canonical_confidence") == "high")
+            blocked_as_canonical = sum(1 for gate in gates if gate.get("canonical_confidence") == "not_canonical")
+            lines.append(
+                "- Candidate vs canonical gates: "
+                f"{len(gates)} candidate(s), {canonical_like} likely verification candidate(s), "
+                f"{blocked_as_canonical} write/deploy surface(s); owner/reviewer confirmation is still required."
+            )
+        lines.append(
+            "- Evidence is not approval; discovery candidates are hints until confirmed by the target project."
+        )
 
     if report.get("hard_failures"):
         lines.extend(["", "### Hard Failures", ""])

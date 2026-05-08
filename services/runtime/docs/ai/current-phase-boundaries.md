@@ -51,6 +51,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **CPR-2** | **CLOSED** | Realistic Coding Pack dogfood — sealed |
 | **CPR-3** | **CLOSED** | Review / Lesson / CandidateRule pipeline dogfood — sealed |
 | **Alpha-0** | **ACTIVE** | Evidence of Governed Work — AI coding agent trust audit |
+| **Coding Trust Adoption** | **ACTIVE** | External dogfood, report UX, and project AI onboarding after CTTS foundation seal |
 | **CTTS-S** | **CLOSED AS FOUNDATION** | Coding Trust Template System sealed; next work moves to Coding Trust Adoption |
 | **PGI** | **LOCALLY SEALED** | Philosophical Governance Implementation — PGI-1/2/3 closed with validators, fixtures, tests, receipts |
 | **PGI-1** | **CLOSED** | Reality and Value Substrate — truth/claim/evidence/confidence/falsifiability/boundary red-team layer |
@@ -193,7 +194,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 || `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 237 entries, DG-7 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 240 entries, DG-7 |
 || `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
 || `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
 || `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |

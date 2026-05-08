@@ -438,6 +438,40 @@ def test_main_emit_template_dir_writes_only_explicit_output_dir(tmp_path, capsys
     assert str(target_repo) not in (output_dir / "PROJECT_AI_LOCALIZATION.md").read_text(encoding="utf-8")
 
 
+def test_emitted_project_ai_playbook_contains_adoption_workflow(tmp_path, capsys):
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    (target_repo / "README.md").write_text("# Target\n", encoding="utf-8")
+    output_dir = tmp_path / "emitted-pack"
+
+    exit_code = main(
+        [
+            "check",
+            str(target_repo),
+            "--suggest-config",
+            "--template",
+            "standard",
+            "--emit-template-dir",
+            str(output_dir),
+            "--summary",
+        ]
+    )
+    _ = capsys.readouterr()
+
+    assert exit_code == 0
+    localization = (output_dir / "PROJECT_AI_LOCALIZATION.md").read_text(encoding="utf-8")
+    playbook = (output_dir / "governance" / "project-ai-onboarding-playbook.md").read_text(encoding="utf-8")
+    combined = localization + "\n" + playbook
+    assert "discovery-candidates.json` as hints only" in combined
+    assert "agent-claim-bindings.jsonl" in combined
+    assert "owner/reviewer" in combined
+    assert "DEGRADED/BLOCKED" in combined
+    assert "CandidateRule" in combined
+    assert "not permission, truth, approval, or safe action" in combined
+    assert str(target_repo) not in combined
+    assert "/root/projects/hermes-agent" not in combined
+
+
 def test_emit_template_dir_requires_suggest_config(tmp_path, capsys):
     exit_code = main(["check", str(tmp_path), "--emit-template-dir", str(tmp_path / "out")])
 
@@ -665,7 +699,30 @@ def test_summary_output_is_compact(tmp_path, capsys):
     assert exit_code == 1
     assert "Ordivon Verify Summary" in captured.out
     assert "Top Findings" in captured.out
+    assert "Next Action" in captured.out
+    assert "Missing Evidence" in captured.out
     assert "Surfaces" not in captured.out
+
+
+def test_summary_caps_top_findings_to_five():
+    results = [
+        {
+            "id": f"check_{i}",
+            "label": f"Check {i}",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"failure {i}",
+        }
+        for i in range(8)
+    ]
+
+    summary = render_summary(build_report(results, "advisory", "/repo", None))
+
+    assert summary.count("**blocker /") == 5
+    assert "failure 0" in summary
+    assert "failure 4" in summary
+    assert "failure 5" not in summary
 
 
 def test_full_markdown_includes_evidence_appendix(tmp_path, capsys):
@@ -675,6 +732,84 @@ def test_full_markdown_includes_evidence_appendix(tmp_path, capsys):
     assert exit_code == 1
     assert "Evidence Appendix" in captured.out
     assert "Agent claim bindings" in captured.out
+
+
+def test_markdown_includes_adoption_boundaries_without_full_appendix(tmp_path, capsys):
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "tests.yml").write_text(
+        "on: [pull_request]\nname: Tests\njobs:\n  test:\n    steps:\n      - run: pytest\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "merge", "--markdown"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "### Top Findings" in captured.out
+    assert "### Adoption Boundaries" in captured.out
+    assert "Candidate vs canonical gates" in captured.out
+    assert "owner/reviewer confirmation is still required" in captured.out
+    assert "Evidence is not approval" in captured.out
+    assert "Evidence Appendix" not in captured.out
+
+
+def test_markdown_ready_signal_contains_no_action_authorization_words():
+    markdown = render_markdown(
+        build_report(
+            [
+                {
+                    "id": "receipts",
+                    "label": "Receipt Integrity",
+                    "status": "PASS",
+                    "exit_code": 0,
+                    "stdout": "ok",
+                    "stderr": "",
+                }
+            ],
+            "advisory",
+            "/repo",
+            None,
+        )
+    ).lower()
+
+    forbidden = [
+        "approved to merge",
+        "approved to deploy",
+        "approved to release",
+        "safe to merge",
+        "safe to deploy",
+        "safe to release",
+        "production ready",
+        "certified",
+        "compliant",
+    ]
+    for phrase in forbidden:
+        assert phrase not in markdown
+
+
+def test_markdown_degraded_is_not_described_as_pass():
+    markdown = render_markdown(
+        build_report(
+            [
+                {
+                    "id": "debt",
+                    "label": "Verification Debt",
+                    "status": "WARN",
+                    "exit_code": -1,
+                    "stdout": "",
+                    "stderr": "No debt ledger configured",
+                    "missing_evidence": True,
+                }
+            ],
+            "advisory",
+            "/repo",
+            None,
+        )
+    ).lower()
+
+    assert "**status:** degraded" in markdown
+    assert "degraded is pass" not in markdown
+    assert "degraded means pass" not in markdown
 
 
 def test_parse_args_check_target():
