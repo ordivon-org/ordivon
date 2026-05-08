@@ -753,6 +753,18 @@ def test_markdown_includes_adoption_boundaries_without_full_appendix(tmp_path, c
     assert "Evidence Appendix" not in captured.out
 
 
+def test_markdown_deduplicates_missing_evidence_warnings(tmp_path, capsys):
+    exit_code = main(["check", str(tmp_path), "--profile", "coding", "--risk-stage", "merge", "--markdown"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "### Missing Evidence" in captured.out
+    assert "### Warnings" not in captured.out
+    assert captured.out.count("No receipt_paths configured") == 2
+    assert captured.out.count("No agent claim binding file found") == 2
+    assert "**agent_claim_bindings** (claims" not in captured.out
+
+
 def test_markdown_ready_signal_contains_no_action_authorization_words():
     markdown = render_markdown(
         build_report(

@@ -103,3 +103,24 @@ Not allowed:
 - hard-coding Hermes paths, gates, owners, skills, or release process into OV
 - treating Hermes dogfood results as approval of Hermes merge/release/deploy
 
+## Recorded Read-Only Sample: Hermes Agent
+
+Date: 2026-05-08
+
+| Field | Observation |
+|-------|-------------|
+| `repo_kind` | agent-native repo sample |
+| `risk_stage` | `release` for deep discovery; `merge` for trust report |
+| `template_tier` | `deep` |
+| `discovery_result` | 14 candidate claim/receipt docs, 2 candidate test commands, 10 workflows, 145 `SKILL.md` files, 80 release claim lines sampled |
+| `template_export_result` | 16 generic template files emitted to `/tmp/ov-hermes-deep-pack`; target repo not modified |
+| `localization_gap` | no agent claim bindings, no OV config, no owner-confirmed gate manifest, no debt/document registry |
+| `top_blockers` | merge-stage report BLOCKED on missing claim binding and missing confirmed gate manifest |
+| `next_action` | project AI should localize deep pack, bind a concrete claim to artifacts/tests/receipt/review, and ask owner/reviewer to confirm canonical gates |
+| `non_authorization_boundary` | read-only sample; no Hermes merge/release/deploy/tool/skill authorization |
+
+UX note: the first Hermes full Markdown report repeated the same missing-evidence
+signals under Warnings after they already appeared in Top Findings, Hard
+Failures, and Missing Evidence. CTA Round 2 therefore deduplicates Markdown
+warnings that are already represented as hard failures or missing evidence.
+

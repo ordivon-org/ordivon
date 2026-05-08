@@ -339,17 +339,26 @@ def render_markdown(report: dict, full: bool = False) -> str:
             if failure.get("next_action"):
                 lines.append(f"  - Next action: {failure['next_action']}")
 
-    if report.get("missing_evidence"):
+    hard_failure_checks = {failure.get("check") for failure in report.get("hard_failures", [])}
+    visible_missing = [
+        item for item in report.get("missing_evidence", []) if item.get("check") not in hard_failure_checks
+    ]
+    if visible_missing:
         lines.extend(["", "### Missing Evidence", ""])
-        for item in report["missing_evidence"]:
+        for item in visible_missing:
             surfaces_text = ", ".join(item.get("surfaces", [])) or "unknown"
             lines.append(f"- **{item['check']}** ({surfaces_text}): {item.get('reason', 'Evidence missing')}")
             if item.get("next_action"):
                 lines.append(f"  - Next action: {item['next_action']}")
 
-    if report.get("warnings"):
+    duplicate_warning_ids = {item.get("check") for item in report.get("missing_evidence", [])}
+    duplicate_warning_ids.update(hard_failure_checks)
+    visible_warnings = [
+        warning for warning in report.get("warnings", []) if warning.get("id") not in duplicate_warning_ids
+    ]
+    if visible_warnings:
         lines.extend(["", "### Warnings", ""])
-        for warning in report["warnings"]:
+        for warning in visible_warnings:
             lines.append(f"- **{warning['id']}**: {warning.get('reason', 'Warning')}")
             if warning.get("next_action"):
                 lines.append(f"  - Next action: {warning['next_action']}")
