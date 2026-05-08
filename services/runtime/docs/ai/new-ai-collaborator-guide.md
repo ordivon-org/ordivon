@@ -148,7 +148,7 @@ Every receipt must answer:
 
 ```
 Checker ecosystem: 38 checkers, L3-L10, pr-fast 12/12, full 38/38 ALL PASS (26 hard + 12 escalation), read-only Verify 35/35 PASS
-Document governance: 242 registered docs, 0 stale, 0 missing freshness
+Document governance: 243 registered docs, 0 stale, 0 missing freshness
 Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
 Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed
 CTTS: generic Coding Trust templates + localization casebook; Coding is the only active OV profile

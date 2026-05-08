@@ -40,6 +40,7 @@ docs/runtime/ctts-closure-seal.md                     CTTS foundation closure se
 docs/product/coding-trust-adoption-plan.md            Coding Trust Adoption source of truth
 docs/runtime/coding-trust-adoption-dogfood-matrix.md  Adoption dogfood matrix
 docs/runtime/ordivon-internal-full-audit-2026-05-08.md Internal full audit after OV/CTTS/CTA closure
+docs/runtime/ordivon-internal-full-audit-round-2-2026-05-08.md Mainline deep-dive audit for target-layer reconnect
 
 AGENTS.md (repo root)                      compact entry point for IDE agents
 docs/governance/README.md                  Document Governance Pack (accepted)
