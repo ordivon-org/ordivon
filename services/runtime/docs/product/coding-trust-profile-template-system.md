@@ -29,6 +29,9 @@ CTTS-3 adds the adoption pack: OV can emit the generic template files into an
 explicit output directory for a target project AI to localize. The export is
 still not project authority; it is a starter pack plus discovery hints.
 
+CTTS is now closed as a foundation. Future work should use the Coding Trust
+Adoption label instead of extending CTTS as an open-ended phase family.
+
 ## Template Tiers
 
 ### minimal

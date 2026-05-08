@@ -36,6 +36,7 @@ docs/ai/task-prompt-template.md            reusable compressed prompt format
 docs/product/coding-trust-profile-template-system.md  CTTS template system for Coding trust
 docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization casebook
 docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md  CTTS-3 adoption receipt
+docs/runtime/ctts-closure-seal.md                     CTTS foundation closure seal
 
 AGENTS.md (repo root)                      compact entry point for IDE agents
 docs/governance/README.md                  Document Governance Pack (accepted)
@@ -85,3 +86,7 @@ CTTS-3 adds explicit template export via `--emit-template-dir`. Exported files
 are still placeholders and must be localized by the target project AI. Memory,
 trace, checkpoint, skill, workflow, and tool evidence remains read-only evidence
 only; it is not truth, approval, permission, or safe action.
+
+CTTS is now closed as a foundation. Future work should be framed as Coding
+Trust Adoption, external dogfood, report UX, and project AI onboarding rather
+than as CTTS-4.
