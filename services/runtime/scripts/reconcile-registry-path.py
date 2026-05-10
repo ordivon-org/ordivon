@@ -71,8 +71,10 @@ def load_rules() -> dict:
 def load_exclusions() -> list[str]:
     return list(json.loads(EXCLUSIONS_PATH.read_text()).get("entries", {}).keys())
 
+
 def load_taxonomy() -> dict:
     return json.loads(TAXONOMY_PATH.read_text())
+
 
 def load_route_taxonomy() -> dict:
     return json.loads(ROUTE_TAXONOMY_PATH.read_text())
@@ -107,7 +109,10 @@ def reconcile() -> tuple[list[dict], dict]:
             "code": "RPR-1",
             "severity": "blocking",
             "path": path,
-            "registry_claim": {"doc_type": registry[path].get("doc_type", "?"), "status": registry[path].get("status", "?")},
+            "registry_claim": {
+                "doc_type": registry[path].get("doc_type", "?"),
+                "status": registry[path].get("status", "?"),
+            },
             "path_observation": None,
             "disposition": "A1",
             "message": f"Registry claims '{path}' exists but path map has no such node",
@@ -185,11 +190,15 @@ def reconcile() -> tuple[list[dict], dict]:
         incompatible = False
         if node.get("kind") == "generated_view" and auth_role in compatibility.get("generated_view_cannot_be", []):
             incompatible = True
-        elif auth_domain == "implementation" and node_route not in compatibility.get("implementation_source_only_for", []):
+        elif auth_domain == "implementation" and node_route not in compatibility.get(
+            "implementation_source_only_for", []
+        ):
             incompatible = True
         elif auth_domain == "schema" and node_route not in compatibility.get("schema_source_only_for", []):
             incompatible = True
-        elif auth_role == "doc_source_of_truth" and node_route not in compatibility.get("doc_source_of_truth_only_for", []):
+        elif auth_role == "doc_source_of_truth" and node_route not in compatibility.get(
+            "doc_source_of_truth_only_for", []
+        ):
             incompatible = True
         elif auth_role == "active_policy" and node_route not in compatibility.get("active_policy_only_for", []):
             incompatible = True
@@ -253,7 +262,9 @@ def main() -> int:
 
     print(f"Registry–Path Reconciliation")
     print(f"  Registry: {stats['registry_entries']} entries · Path Map: {stats['path_map_nodes']} nodes")
-    print(f"  In both: {stats['in_both']} · Only registry: {stats['only_registry']} · Only path map: {stats['only_path_map']}")
+    print(
+        f"  In both: {stats['in_both']} · Only registry: {stats['only_registry']} · Only path map: {stats['only_path_map']}"
+    )
     print(f"  Findings: {len(blocking)} BLOCKING, {len(degraded)} DEGRADED")
 
     if blocking:

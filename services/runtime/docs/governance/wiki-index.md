@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 441
+**Total registered docs**: 457
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -75,9 +75,11 @@
 | [Philosophical Governance Implementation Roadmap](../product/philosophical-governance-implementation-roadmap.md) | `docs/product/philosophical-governance-implementation-roadmap.md` | product | current | source_of_truth | L1 | 2026-05-03 |
 | [Philosophical Red-Team Suite — PGI-1](../governance/philosophical-redteam-suite-pgi-1.md) | `docs/governance/philosophical-redteam-suite-pgi-1.md` | red_team | current | source_of_truth | L1 | 2026-05-03 |
 | [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
+| [CI Self-Calibration — Stage Summit](../product/ci-self-calibration-stage-summit.md) | `docs/product/ci-self-calibration-stage-summit.md` | stage_summit | current | source_of_truth | L1 | 2026-05-10 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
+| [Ordivon Governance Assessment Template — Evidence-First State Ledger](../governance/assessment-template.md) | `docs/governance/assessment-template.md` | template | current | source_of_truth | L1 | 2026-05-10 |
 | [Stage Runner — Governance Pipeline Executor](../../scripts/run_stage.py) | `scripts/run_stage.py` | tooling | current | source_of_truth | L1 | 2026-05-05 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
@@ -111,6 +113,8 @@
 | [Auto-Discovery Baseline Runner](../../scripts/run_baseline.py) | `scripts/run_baseline.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
 | [Checker Maturity Domain Model](../../domains/checker_maturity/__init__.py) | `domains/checker_maturity/__init__.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
 | [Checker Registry — Discovery, Manifest, Sync, Usage, Curator](../../src/ordivon_verify/checker_registry.py) | `src/ordivon_verify/checker_registry.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
+| [Ordivon Architecture — ASCII Overview](../architecture/ordivon-architecture-overview.txt) | `docs/architecture/ordivon-architecture-overview.txt` | architecture | current | source_of_truth | L2 | 2026-05-10 |
+| [Ordivon Architecture — SVG Diagram](../architecture/ordivon-architecture.html) | `docs/architecture/ordivon-architecture.html` | architecture | current | source_of_truth | L2 | 2026-05-10 |
 | [OGAP Integration Levels](../product/ordivon-external-adapter-integration-levels.md) | `docs/product/ordivon-external-adapter-integration-levels.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Changelog Policy](../product/ordivon-verify-changelog-policy.md) | `docs/product/ordivon-verify-changelog-policy.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
 | [Ordivon Verify Versioning Policy](../product/ordivon-verify-versioning-policy-pv-n12.md) | `docs/product/ordivon-verify-versioning-policy-pv-n12.md` | design_spec | current | source_of_truth | L2 | 2026-05-01 |
@@ -225,7 +229,15 @@
 | [Ordivon Stage Summit — Phase 6 Close](../product/ordivon-stage-summit-phase-6.md) | `docs/product/ordivon-stage-summit-phase-6.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Phase 8 Readiness Tracker](../runtime/paper-trades/phase-7p-readiness-tracker.md) | `docs/runtime/paper-trades/phase-7p-readiness-tracker.md` | tracker | deferred | current_status | L3 | 2026-04-29 |
 | [Ordivon Macro Structure — System Architecture Overview](../ai/ordivon-macro-structure.md) | `docs/ai/ordivon-macro-structure.md` | ai_onboarding | current | source_of_truth | L0 | 2026-05-10 |
+| [Path Map Checker](../../checkers/path-map/CHECKER.md) | `checkers/path-map/CHECKER.md` | checker | current | source_of_truth | L? | 2026-05-11 |
+| [GOS-PM-1: Auto-Maintained Path Map Seal Receipt](../product/gos-pm1-seal-receipt.md) | `docs/product/gos-pm1-seal-receipt.md` | receipt | current | source_of_truth | L? | 2026-05-11 |
 | [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-08 |
+| [Path Map Edge Schema](../governance/schemas/path-map-edge.schema.json) | `docs/governance/schemas/path-map-edge.schema.json` | schema | current | source_of_truth | L? | 2026-05-11 |
+| [Path Map Node Schema](../governance/schemas/path-map-node.schema.json) | `docs/governance/schemas/path-map-node.schema.json` | schema | current | source_of_truth | L? | 2026-05-11 |
+| [Path Map Generator](../../scripts/update-path-map.py) | `scripts/update-path-map.py` | tooling | current | source_of_truth | L? | 2026-05-11 |
+| [Path Map Verifier](../../scripts/verify-path-map.py) | `scripts/verify-path-map.py` | tooling | current | source_of_truth | L? | 2026-05-11 |
+| [Stage Evidence Collector](../../scripts/collect-stage-evidence.py) | `scripts/collect-stage-evidence.py` | tooling | current | source_of_truth | L? | 2026-05-11 |
+| [Stage Evidence Verifier](../../scripts/verify-stage-evidence.py) | `scripts/verify-stage-evidence.py` | tooling | current | source_of_truth | L? | 2026-05-11 |
 
 
 ## 2. AI Onboarding
@@ -337,6 +349,7 @@
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
 | [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
+| [CI Self-Calibration — Stage Summit](../product/ci-self-calibration-stage-summit.md) | `docs/product/ci-self-calibration-stage-summit.md` | stage_summit | current | source_of_truth | L1 | 2026-05-10 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
@@ -553,6 +566,8 @@
 | [Alpaca Paper Repeated Dogfood Protocol](../runtime/alpaca-paper-repeated-dogfood-protocol.md) | `docs/runtime/alpaca-paper-repeated-dogfood-protocol.md` | runtime | closed | supporting_evidence | L3 | 2026-04-29 |
 | [Ordivon Value Philosophy](../runtime/ordivon-value-philosophy.md) | `docs/runtime/ordivon-value-philosophy.md` | runtime | current | supporting_evidence | L3 | 2026-04-28 |
 | [Verification Gate Manifest v2](../governance/verification-gate-manifest.json) | `docs/governance/verification-gate-manifest.json` | schema | current | supporting_evidence | L3 | 2026-05-04 |
+| [Path Map Edge Schema](../governance/schemas/path-map-edge.schema.json) | `docs/governance/schemas/path-map-edge.schema.json` | schema | current | source_of_truth | L? | 2026-05-11 |
+| [Path Map Node Schema](../governance/schemas/path-map-node.schema.json) | `docs/governance/schemas/path-map-node.schema.json` | schema | current | source_of_truth | L? | 2026-05-11 |
 
 > ⚠ **Evidence only — does not authorize execution.**
 > JSONL ledger is machine-readable evidence, not execution authority.

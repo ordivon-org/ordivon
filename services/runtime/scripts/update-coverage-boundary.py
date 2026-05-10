@@ -57,6 +57,7 @@ def load_batch_receipts() -> dict[str, str]:
                     receipts[fp] = target
     return receipts
 
+
 def load_debts() -> dict[str, dict]:
     global _debt_patterns
     _debt_patterns = []
@@ -82,10 +83,13 @@ def load_coverage_rules() -> dict:
 
 def is_protected(filepath: str, protected_paths: list[str]) -> bool:
     import fnmatch
+
     return any(fnmatch.fnmatch(filepath, p) for p in protected_paths)
 
 
-def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, debts: dict, rules: dict, batch_receipts: dict) -> dict:
+def classify(
+    filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, debts: dict, rules: dict, batch_receipts: dict
+) -> dict:
     protected_paths = rules.get("protected_paths", [])
     node = pm_nodes.get(filepath)
     reg = registry.get(filepath)
@@ -96,24 +100,53 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
 
     # 1. Has registry entry
     if reg and node and node.get("classification_status") == "governed":
-        return {"path": filepath, "coverage_status": "governed", "source": "registry + path-map", "metadata": {"route": node.get("route", ""), "doc_type": reg.get("doc_type", ""), "authority_domain": reg.get("authority_domain", "")}}
+        return {
+            "path": filepath,
+            "coverage_status": "governed",
+            "source": "registry + path-map",
+            "metadata": {
+                "route": node.get("route", ""),
+                "doc_type": reg.get("doc_type", ""),
+                "authority_domain": reg.get("authority_domain", ""),
+            },
+        }
 
     # 2. Generated
     if node and node.get("kind") == "generated_view":
-        return {"path": filepath, "coverage_status": "generated", "source": "path-map classification", "metadata": {"must_not_be_source_of_truth": node.get("must_not_be_source_of_truth", False)}}
+        return {
+            "path": filepath,
+            "coverage_status": "generated",
+            "source": "path-map classification",
+            "metadata": {"must_not_be_source_of_truth": node.get("must_not_be_source_of_truth", False)},
+        }
 
     # 3. Explicit exclusion
     if excl or filepath in exclusions or (node and node.get("kind") == "explicit_exclusion"):
         reason = exclusions.get(filepath, node.get("reason", "")) if node else ""
-        return {"path": filepath, "coverage_status": "excluded", "source": "governed-exclusions.json", "metadata": {"reason": str(reason)[:100]}}
+        return {
+            "path": filepath,
+            "coverage_status": "excluded",
+            "source": "governed-exclusions.json",
+            "metadata": {"reason": str(reason)[:100]},
+        }
 
     # 4. Source code
     if node and node.get("route") == "source-code":
-        return {"path": filepath, "coverage_status": "governed", "source": "path-map route", "metadata": {"route": "source-code"}}
+        return {
+            "path": filepath,
+            "coverage_status": "governed",
+            "source": "path-map route",
+            "metadata": {"route": "source-code"},
+        }
 
     # 5. Checker nodes
     if node and node.get("kind") == "checker":
-        return {"path": filepath, "coverage_status": "governed", "source": "checker discovery", "metadata": {"route": node.get("route", "")}}
+        return {
+            "path": filepath,
+            "coverage_status": "governed",
+            "source": "checker discovery",
+            "metadata": {"route": node.get("route", "")},
+        }
 
     # 6. CI workflows
     if filepath.startswith(".github/workflows/"):
@@ -125,7 +158,12 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
 
     # 8. Test fixtures
     if "tests/fixtures/" in filepath:
-        return {"path": filepath, "coverage_status": "fixture", "source": "path pattern", "metadata": {"need_owning_test": True}}
+        return {
+            "path": filepath,
+            "coverage_status": "fixture",
+            "source": "path pattern",
+            "metadata": {"need_owning_test": True},
+        }
 
     # 9. Legacy / archive
     if "/legacy/" in filepath or "/archive/" in filepath:
@@ -137,6 +175,7 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
 
     # 11. Debt-parked: exact + pattern match
     import fnmatch
+
     debt_entry = debts.get(filepath)
     if not debt_entry:
         for pd in _debt_patterns:
@@ -144,7 +183,12 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
                 debt_entry = pd
                 break
     if debt_entry and debt_entry.get("status") == "OPEN":
-        return {"path": filepath, "coverage_status": "debt_parked", "source": "debt ledger", "metadata": {"debt_id": debt_entry.get("debt_id", "")}}
+        return {
+            "path": filepath,
+            "coverage_status": "debt_parked",
+            "source": "debt ledger",
+            "metadata": {"debt_id": debt_entry.get("debt_id", "")},
+        }
 
     # 12. Applied batch receipt (PM-7): status override from resolution batches
     if filepath in batch_receipts:
@@ -153,9 +197,19 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
 
     # 13. Governance scripts (scripts/ files that are governance tools)
     gov_prefixes = [
-        "scripts/check_", "scripts/run_", "scripts/generate-", "scripts/update-", "scripts/verify-",
-        "scripts/reconcile", "scripts/hash_ledger", "scripts/review_lessons", "scripts/detect_overclaim",
-        "scripts/detect_agentic", "scripts/triage", "scripts/explain", "scripts/collect-stage",
+        "scripts/check_",
+        "scripts/run_",
+        "scripts/generate-",
+        "scripts/update-",
+        "scripts/verify-",
+        "scripts/reconcile",
+        "scripts/hash_ledger",
+        "scripts/review_lessons",
+        "scripts/detect_overclaim",
+        "scripts/detect_agentic",
+        "scripts/triage",
+        "scripts/explain",
+        "scripts/collect-stage",
         "scripts/verify-stage",
     ]
     if any(filepath.startswith(p) for p in gov_prefixes):
@@ -163,11 +217,21 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
 
     # 13. Schema files in governed dirs (excluded from doc governance)
     if filepath.startswith("docs/governance/schemas/") and filepath.endswith(".json"):
-        return {"path": filepath, "coverage_status": "excluded", "source": "schema file in governed dir — excluded from doc governance", "metadata": {"reason": exclusions.get(filepath, "Meta-schema, not governed doc")}}
+        return {
+            "path": filepath,
+            "coverage_status": "excluded",
+            "source": "schema file in governed dir — excluded from doc governance",
+            "metadata": {"reason": exclusions.get(filepath, "Meta-schema, not governed doc")},
+        }
 
     # 14. Protected path → blocked
     if is_protected(filepath, protected_paths):
-        return {"path": filepath, "coverage_status": "blocked", "source": "protected path", "finding": "CB-1 UNKNOWN_PROTECTED_FILE"}
+        return {
+            "path": filepath,
+            "coverage_status": "blocked",
+            "source": "protected path",
+            "finding": "CB-1 UNKNOWN_PROTECTED_FILE",
+        }
 
     # 13. Non-protected → requires debt or exclusion
     return {"path": filepath, "coverage_status": "debt_or_exclusion_required", "source": "non-protected unclassified"}
@@ -198,7 +262,13 @@ def main() -> int:
     output = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "authority": "generated_view",
-        "source_refs": ["git ls-files", "path-map.json", "document-registry.jsonl", "governed-exclusions.json", "debt ledger (pattern match)"],
+        "source_refs": [
+            "git ls-files",
+            "path-map.json",
+            "document-registry.jsonl",
+            "governed-exclusions.json",
+            "debt ledger (pattern match)",
+        ],
         "stats": stats,
         "files": classified,
         "blocked_findings": blocked,

@@ -105,7 +105,7 @@ def main() -> int:
         print(json.dumps(output, indent=2))
         return 1 if findings else 0
 
-    print(f"Pre-Execution Authority Gate")
+    print("Pre-Execution Authority Gate")
     print(f"  Documents: {stats['total']}")
     print(f"  No owner:  {stats['no_owner']}")
     print(f"  Bad authority: {stats['bad_authority']}")
@@ -117,7 +117,7 @@ def main() -> int:
             print(f"  [{f['rule']}] {f['file']}: {f['message']}")
         return 1
 
-    print(f"\n✓ Authority gate PASSED")
+    print("\n✓ Authority gate PASSED")
     print(f"  {READY_DISCLAIMER}")
     return 0
 

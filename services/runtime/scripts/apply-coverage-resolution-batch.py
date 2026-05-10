@@ -12,7 +12,7 @@ Usage:
 
 from __future__ import annotations
 
-import fnmatch, json, subprocess, sys
+import fnmatch, json, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -82,7 +82,7 @@ def apply(bucket_id: str) -> dict:
         "affected_paths": affected_paths[:10],
         "required_metadata": required_metadata,
         "not_claimed": ["CB-12 fully resolved", "full closure", "all files governed"],
-        "rollback_condition": f"Re-run update-coverage-boundary.py to regenerate from sources",
+        "rollback_condition": "Re-run update-coverage-boundary.py to regenerate from sources",
     }
     receipt_path = RECEIPTS_DIR / f"{bucket_id}.json"
     receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n")
