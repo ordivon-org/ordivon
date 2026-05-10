@@ -205,5 +205,8 @@ These are **design-time prohibitions**. No agent may violate them.
 || `domains/checker_maturity/` | CheckerMaturityStateMachine — draft→shadow_tested→red_teamed→active |
 || `docs/governance/candidate-rule-drafts.jsonl` | CandidateRule drafts from lessons (2 drafts) |
 || `docs/governance/shadow-evaluation-log.jsonl` | Policy Shadow Runner evaluation results |
-|| `docs/governance/lesson-ledger.jsonl` | Lessons from checker findings (5 lessons) |
-|| `checkers/policy-shadow/` | Policy Shadow Runner checker (L8B) |
+||| `checkers/policy-shadow/` | Policy Shadow Runner checker (L8B) |
+||| `docs/governance/schemas/document-types.json` | Single source of truth for valid doc_types — schema-first architecture (L-CI-SELFCAL-002) |
+||| `docs/governance/dependency-audit-debts.jsonl` | Dependency audit debt ledger (CVE-2026-3219 NO_FIX_UPSTREAM) |
+||| `docs/governance/lesson-ledger.jsonl` | Governance lessons ledger (8 total, 3 CI self-calibration) |
+||| `scripts/check_cve_2026_3219.py` | CVE-2026-3219 review script — checks OSV API for fixed version |
