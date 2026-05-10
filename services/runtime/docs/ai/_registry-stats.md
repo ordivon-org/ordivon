@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — DO NOT EDIT -->
 <!-- Source: docs/governance/document-registry.jsonl -->
 <!-- Generator: scripts/update-registry-stats.py -->
-<!-- Generated: 2026-05-10T16:57:55Z -->
+<!-- Generated: 2026-05-10T17:05:58Z -->
 <!-- Authority: generated_view — not source_of_truth -->
 
 # Document Registry Statistics
@@ -72,10 +72,9 @@
 | Authority | Count |
 |-----------|-------|
 | current_status | 88 |
-| generated_view | 1 |
 | proposal | 59 |
 | source_of_truth | 113 |
-| supporting_evidence | 181 |
+| supporting_evidence | 182 |
 
 ## Potentially Stale Documents
 
