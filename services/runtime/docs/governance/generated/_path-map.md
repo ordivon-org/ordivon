@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T21:38:22Z
+> Generated: 2026-05-10T21:41:04Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2090
+- Tracked files: 2095
 - Governed: 809
-- Generated views: 80
+- Generated views: 83
 - Excluded: 68
 - Blocked: 0
-- Debt-parked: 1133
+- Debt-parked: 1135
 
 ## Governed Nodes
 ### ai-boundaries
@@ -1400,6 +1400,7 @@
 - `scripts/eval_reasoning_quality.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/explain-path-node.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/export_openapi.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-path-map-delta.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-reconciliation-graph.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-reconciliation-report.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1463,6 +1464,7 @@
 - `scripts/validate_pgi_reversibility_assessment.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_review_to_rule_candidate.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_self_model_entry.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/verify-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-path-map-evidence.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/app.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/config.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
