@@ -6,7 +6,7 @@ Every system in Ordivon. Commands, purpose, substance, and how to understand it.
 
 ---
 
-## 1. Checker Ecosystem (38 checkers, L3-L10)
+## 1. Checker Ecosystem (39 checkers, L3-L10)
 
 ### What It Is
 
@@ -20,7 +20,7 @@ The registry auto-discovers all checkers — no manual registration.
 # Run the pr-fast baseline (12 checkers, blocks merge on failure)
 uv run python scripts/run_baseline.py --pr-fast
 
-# Run the full baseline (38 checkers, 26 hard + 12 escalation; writes telemetry/shadow ledgers)
+# Run the full baseline (39 checkers, 27 hard + 12 escalation; writes telemetry/shadow ledgers)
 uv run python scripts/run_baseline.py
 
 # Run read-only baseline (skip state-updating checkers, no JSONL writes)
@@ -507,7 +507,7 @@ All pre-existing, classified, and tracked.
 ```bash
 # ── Verification ─────────────────────────────────
 uv run python scripts/run_baseline.py --pr-fast     # PR gate (12 checkers)
-uv run python scripts/run_baseline.py               # Full baseline (38 checkers; writes telemetry/shadow ledgers)
+uv run python scripts/run_baseline.py               # Full baseline (39 checkers; writes telemetry/shadow ledgers)
 uv run python scripts/run_baseline.py --read-only   # Read-only (skips JSONL-writing checkers)
 uv run python scripts/ordivon_verify.py check .     # Product trust audit (read-only)
 uv run python -m ordivon_verify run <gate_id>        # Single gate
