@@ -25,6 +25,8 @@
     "docs/governance/red-team-remediation-plan-2026-05-10.md": "Remediation plan — proposal, not governed doc",
     "docs/ai/onboarding-snapshot.json": "Generated snapshot — temporary AI context file",
     "docs/ai/_registry-stats.md": "Generated view — auto-generated from registry",
-    "docs/governance/schemas/governed-exclusions.json": "Exclusion schema — meta-schema, loaded by atomic-governance checker"
+    "docs/governance/schemas/governed-exclusions.json": "Exclusion schema — meta-schema, loaded by atomic-governance checker",
+    "docs/governance/schemas/protected-paths-config.json": "Protected-paths authority config — loaded by checker, not a governed doc",
+    "docs/governance/schemas/agentic-patterns-config.json": "Agentic-patterns authority config — loaded by checker, not a governed doc"
   }
 }

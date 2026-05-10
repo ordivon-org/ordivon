@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agentic Patterns Configuration",
+  "description": "SAFE_FILES for the agentic-patterns checker. Documents that DEFINE governance concepts — they talk ABOUT patterns, they don't commit them. Extracted from inline Python constant (RT-11 fix).",
+  "generated_at": "2026-05-10",
+  "governed_by": "agentic-patterns checker",
+  "safe_files": [
+    "docs/governance/agentic-pattern-taxonomy-adp-1.md",
+    "docs/governance/agentic-pattern-source-ledger-adp-1.md",
+    "docs/governance/capability-scaled-governance-gov-x.md",
+    "docs/governance/document-authority-model-dg-1.md",
+    "docs/governance/document-authority-model-dgp-3.md",
+    "docs/architecture/ordivon-current-architecture.md",
+    "docs/governance/document-governance-pack-contract.md",
+    "docs/architecture/core-primitives-spec-v1.md",
+    "docs/architecture/governance-receipt-review-loop.md",
+    "docs/architecture/repo-governance-baseline.md",
+    "docs/product/ordivon-verify-public-readme-draft.md",
+    "docs/product/repo-governance-pack.md",
+    "docs/product/alpha-roadmap.md",
+    "README.md",
+    "docs/governance/verification-gate-manifest.json",
+    "docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md",
+    "docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md",
+    "docs/plans/2026-04-27-test-gap-closure-plan-v2.md"
+  ],
+  "scan_exclude_prefixes": [
+    "docs/runtime/",
+    "docs/archive/",
+    "examples/"
+  ]
+}

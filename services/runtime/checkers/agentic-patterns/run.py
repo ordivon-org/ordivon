@@ -8,7 +8,7 @@ documents (docs/governance/agentic-pattern-*) from scanning.
 """
 
 from __future__ import annotations
-import re, sys
+import re, sys, json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,29 +60,10 @@ SAFE_RADIUS = 80
 # ── Documents that DEFINE governance patterns ──────────────────────
 # These documents are normative definitions — they talk ABOUT patterns,
 # they don't commit them.
-SAFE_FILES = {
-    "docs/governance/agentic-pattern-taxonomy-adp-1.md",
-    "docs/governance/agentic-pattern-source-ledger-adp-1.md",
-    "docs/governance/capability-scaled-governance-gov-x.md",
-    "docs/governance/document-authority-model-dg-1.md",
-    "docs/governance/document-authority-model-dgp-3.md",
-    "docs/architecture/ordivon-current-architecture.md",
-    "docs/governance/document-governance-pack-contract.md",
-    # Added: normative specs + governance definitions
-    "docs/architecture/core-primitives-spec-v1.md",
-    "docs/architecture/governance-receipt-review-loop.md",
-    "docs/architecture/repo-governance-baseline.md",
-    "docs/product/ordivon-verify-public-readme-draft.md",
-    "docs/product/repo-governance-pack.md",
-    # Added: ALPHA roadmap rows are about PAST mitigated issues
-    "docs/product/alpha-roadmap.md",
-    # Added: false positives after safe-radius increase
-    "README.md",
-    "docs/governance/verification-gate-manifest.json",
-    "docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md",
-    "docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md",
-    "docs/plans/2026-04-27-test-gap-closure-plan-v2.md",
-}
+# Loaded from canonical schema (RT-11 fix)
+CONFIG_PATH = ROOT / "docs/governance/schemas/agentic-patterns-config.json"
+_config = json.loads(CONFIG_PATH.read_text())
+SAFE_FILES = set(_config["safe_files"])
 
 # ── Directories excluded from scanning ─────────────────────────────
 # These contain immutable evidence records (receipts, runtime logs) or

@@ -76,9 +76,15 @@ SAFE_NEGATIONS = [
 # These documents DEFINE governance concepts (CandidateRule, Policy, etc.).
 # Flagging them would be self-referential: the definition of "CandidateRule"
 # is not the same as an agent prematurely promoting one.
-AUTHORITATIVE_DOC_GLOBS = [
-    "docs/governance/document-authority-model-dgp-3.md",
-]
+# Loaded from canonical schema (RT-11 fix)
+AUTHORITATIVE_CONFIG = ROOT / "docs/governance/schemas/agentic-patterns-config.json"
+
+def _load_authoritative_docs():
+    config = json.loads(open(AUTHORITATIVE_CONFIG).read())
+    # Use safe_files as authoritative doc globs
+    return config.get("safe_files", [])
+
+AUTHORITATIVE_DOC_GLOBS = _load_authoritative_docs()
 
 
 def _is_authoritative_doc(filepath: str) -> bool:

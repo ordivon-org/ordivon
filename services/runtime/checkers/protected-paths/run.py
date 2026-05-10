@@ -6,67 +6,24 @@ without explicit governance context. Excludes immutable evidence records
 """
 
 from __future__ import annotations
-import re, sys
+import re, sys, json
 from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-PROTECTED = [
-    r"\.env\b",
-    r"\bsecrets?\b",
-    r"private[_\s]?key",
-    r"credentials?",
-    r"pyproject\.toml",
-    r"uv\.lock",
-    r"(?:pnpm|package)-lock\.ya?ml",
-    r"state/db/migrations/runner\.py",
-]
+# ── Load authority sets from canonical schema (RT-11 fix) ───────────
+CONFIG_PATH = ROOT / "docs/governance/schemas/protected-paths-config.json"
+_config = json.loads(CONFIG_PATH.read_text())
+PROTECTED = _config["protected_patterns"]
+SCAN_EXCLUDE_PREFIXES = tuple(_config["scan_exclude_prefixes"])
+SAFE_FILES = set(_config["safe_files"])
 
 SAFE = re.compile(
     r"NO-GO|not\s+allowed|protected|governed|forbidden|"
     r"FORBIDDEN|boundary|explicit\s+justification|explicitly\s+allowed",
     re.I,
 )
-
-# Directories excluded from scanning — immutable evidence records
-SCAN_EXCLUDE_PREFIXES = (
-    "docs/runtime/",  # immutable governance receipts
-    "docs/archive/",  # historical records
-    "docs/audits/",  # audit reports — document past findings
-    "docs/plans/",  # planning docs — describe remediation, not violations
-    "docs/ai/",  # AI agent templates — instruct on boundaries
-    "docs/design/",  # design docs — reference paths in mockups/specs
-    "docs/runbooks/",  # operational runbooks — document procedures
-    "docs/architecture/",  # architecture specs — define protection, don't violate it
-    "docs/product/",  # product docs — describe what product checks for
-    "docs/adr/",  # architecture decision records — historical design docs
-)
-
-# Files that define the protected paths policy itself
-SAFE_FILES = {
-    "packs/coding/policy.py",
-    "docs/governance/document-governance-pack-contract.md",
-    # Agentic pattern taxonomy — defines "Credential"/"secret" as pattern categories
-    "docs/governance/agentic-pattern-taxonomy-adp-1.md",
-    "docs/governance/agentic-pattern-source-ledger-adp-1.md",
-    "docs/governance/capability-scaled-governance-gov-x.md",
-    "docs/governance/document-authority-model-dg-1.md",
-    "docs/governance/document-classification-index-dg-1.md",
-    "docs/governance/authority-impact-gate-matrix-gov-x.md",
-    "docs/governance/risk-ladder-gov-x.md",
-    # Post-mortem — documents past incidents
-    "docs/governance/vd-005-post-mortem-known-unknown-quadrant.md",
-    # PGI docs that define boundaries
-    "docs/governance/relationship-emotion-boundary-pgi-2.md",
-    # AGENTS.md — documents CLOSED audit summary, not live secrets
-    "AGENTS.md",
-    # LGC/RG governance docs — define/analyze pyproject.toml references
-    "docs/governance/script-legacy-triage-dgp-lgc-5c.md",
-    "docs/governance/registry-object-model-rg-1.md",
-    # Wiki index — references document titles (e.g. "...Secret...Audit...")
-    "docs/governance/wiki-index.md",
-}
 
 
 def _is_excluded(rel_path: str) -> bool:
