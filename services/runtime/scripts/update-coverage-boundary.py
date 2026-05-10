@@ -58,6 +58,8 @@ def load_batch_receipts() -> dict[str, str]:
     return receipts
 
 def load_debts() -> dict[str, dict]:
+    global _debt_patterns
+    _debt_patterns = []
     debts = {}
     debt_path = ROOT / "docs/governance/dependency-audit-debts.jsonl"
     if debt_path.exists():
@@ -65,8 +67,11 @@ def load_debts() -> dict[str, dict]:
             for line in f:
                 if line.strip():
                     d = json.loads(line)
-                    if d.get("path"):
-                        debts[d["path"]] = d
+                    p = d.get("path", "")
+                    if p and ("*" in p or "**" in p):
+                        _debt_patterns.append(d)
+                    elif p:
+                        debts[p] = d
                     debts[d.get("debt_id", "")] = d
     return debts
 
@@ -130,11 +135,16 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
     if "/vendor/" in filepath or "/vendored/" in filepath:
         return {"path": filepath, "coverage_status": "vendored", "source": "path pattern"}
 
-    # 11. Scenario 1: files with debt_id
-    if debts and filepath in debts:
-        d = debts[filepath]
-        if d.get("status") == "OPEN":
-            return {"path": filepath, "coverage_status": "debt_parked", "source": "debt ledger", "metadata": {"debt_id": d.get("debt_id", "")}}
+    # 11. Debt-parked: exact + pattern match
+    import fnmatch
+    debt_entry = debts.get(filepath)
+    if not debt_entry:
+        for pd in _debt_patterns:
+            if pd.get("status") == "OPEN" and fnmatch.fnmatch(filepath, pd.get("path", "")):
+                debt_entry = pd
+                break
+    if debt_entry and debt_entry.get("status") == "OPEN":
+        return {"path": filepath, "coverage_status": "debt_parked", "source": "debt ledger", "metadata": {"debt_id": debt_entry.get("debt_id", "")}}
 
     # 12. Applied batch receipt (PM-7): status override from resolution batches
     if filepath in batch_receipts:
@@ -188,7 +198,7 @@ def main() -> int:
     output = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "authority": "generated_view",
-        "source_refs": ["git ls-files", "path-map.json", "document-registry.jsonl", "governed-exclusions.json", "debt ledger"],
+        "source_refs": ["git ls-files", "path-map.json", "document-registry.jsonl", "governed-exclusions.json", "debt ledger (pattern match)"],
         "stats": stats,
         "files": classified,
         "blocked_findings": blocked,

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T21:41:04Z",
+  "generated_at": "2026-05-10T22:36:28Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,13 +8,13 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T21:41:04Z",
-    "tracked_files": 2095,
-    "governed": 809,
-    "generated": 83,
-    "excluded": 68,
+    "generated_at": "2026-05-10T22:36:28Z",
+    "tracked_files": 2121,
+    "governed": 813,
+    "generated": 89,
+    "excluded": 75,
     "blocked": 0,
-    "debt_parked": 1135
+    "debt_parked": 1144
   },
   "nodes": [
     {
@@ -6121,6 +6121,42 @@
       "route": "governance-core"
     },
     {
+      "path": "docs/governance/generated/_coverage-boundary.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated coverage view"
+    },
+    {
+      "path": "docs/governance/generated/_coverage-resolution-plan.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated resolution plan view"
+    },
+    {
+      "path": "docs/governance/generated/_coverage-review-routing.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
+      "path": "docs/governance/generated/_gos-pm-s2-summit.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
       "path": "docs/governance/generated/_gos-pm-summit.md",
       "source_refs": [
         "git ls-files"
@@ -6149,6 +6185,60 @@
     },
     {
       "path": "docs/governance/generated/_rpr-triage.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
+      "path": "docs/governance/generated/coverage-admission-report.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
+      "path": "docs/governance/generated/coverage-boundary.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated coverage data"
+    },
+    {
+      "path": "docs/governance/generated/coverage-resolution-plan.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated resolution plan data"
+    },
+    {
+      "path": "docs/governance/generated/coverage-review-routing.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
+      "path": "docs/governance/generated/gos-pm-s2-summit.dot",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "generated",
+      "kind": "generated_view",
+      "must_not_be_source_of_truth": true
+    },
+    {
+      "path": "docs/governance/generated/gos-pm-s2-summit.json",
       "source_refs": [
         "git ls-files"
       ],
@@ -6695,6 +6785,33 @@
       "route": "governance-core"
     },
     {
+      "path": "docs/governance/receipts/coverage-batches/config-file-candidate.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Batch receipt — evidence record"
+    },
+    {
+      "path": "docs/governance/receipts/coverage-batches/dataset-candidate.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Batch receipt — evidence record"
+    },
+    {
+      "path": "docs/governance/receipts/coverage-batches/generated-candidate.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Batch receipt — evidence record"
+    },
+    {
       "path": "docs/governance/red-team-remediation-plan-2026-05-10.md",
       "source_refs": [
         "git ls-files"
@@ -6827,6 +6944,42 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Claim vocabulary schema — meta-schema defining forbidden words, loaded by overclaim detector"
+    },
+    {
+      "path": "docs/governance/schemas/coverage-admission-policy.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "governed",
+      "kind": "schema",
+      "route": "config-and-schemas"
+    },
+    {
+      "path": "docs/governance/schemas/coverage-boundary.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "governed",
+      "kind": "schema",
+      "route": "config-and-schemas"
+    },
+    {
+      "path": "docs/governance/schemas/coverage-resolution-rules.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "governed",
+      "kind": "schema",
+      "route": "config-and-schemas"
+    },
+    {
+      "path": "docs/governance/schemas/coverage-review-routing.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "governed",
+      "kind": "schema",
+      "route": "config-and-schemas"
     },
     {
       "path": "docs/governance/schemas/document-types.json",
@@ -14622,6 +14775,15 @@
       "must_not_be_source_of_truth": true
     },
     {
+      "path": "scripts/apply-coverage-resolution-batch.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
       "path": "scripts/audit_ordivon_verify_public_wedge.py",
       "source_refs": [
         "git ls-files"
@@ -14889,6 +15051,15 @@
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
     },
     {
+      "path": "scripts/coverage-admission.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
       "path": "scripts/detect_agentic_patterns.py",
       "source_refs": [
         "git ls-files"
@@ -14952,6 +15123,15 @@
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
     },
     {
+      "path": "scripts/explain-path-governance.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
       "path": "scripts/explain-path-node.py",
       "source_refs": [
         "git ls-files"
@@ -14962,6 +15142,33 @@
     },
     {
       "path": "scripts/export_openapi.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/generate-coverage-resolution-plan.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/generate-coverage-review-routing.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/generate-gos-pm-s2-summit.py",
       "source_refs": [
         "git ls-files"
       ],
@@ -15088,6 +15295,15 @@
     },
     {
       "path": "scripts/prepare_ordivon_verify_package_context.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/query-path-governance.py",
       "source_refs": [
         "git ls-files"
       ],
@@ -15349,6 +15565,15 @@
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
     },
     {
+      "path": "scripts/update-coverage-boundary.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
       "path": "scripts/update-path-map.py",
       "source_refs": [
         "git ls-files",
@@ -15594,6 +15819,15 @@
     },
     {
       "path": "scripts/validate_pgi_self_model_entry.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/verify-coverage-boundary.py",
       "source_refs": [
         "git ls-files"
       ],

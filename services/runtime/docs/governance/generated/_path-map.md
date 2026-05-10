@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T21:41:04Z
+> Generated: 2026-05-10T22:36:28Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2095
-- Governed: 809
-- Generated views: 83
-- Excluded: 68
+- Tracked files: 2121
+- Governed: 813
+- Generated views: 89
+- Excluded: 75
 - Blocked: 0
-- Debt-parked: 1135
+- Debt-parked: 1144
 
 ## Governed Nodes
 ### ai-boundaries
@@ -179,6 +179,10 @@
 - `docs/runtime/verify-external-dogfood-hermes-agent-2026-05-07.md` (document, owner=Governance)
 - `docs/runtime/waves-a-e-dogfood-receipt.md` (document, owner=EG)
 ### config-and-schemas
+- `docs/governance/schemas/coverage-admission-policy.json` (schema, owner=-)
+- `docs/governance/schemas/coverage-boundary.json` (schema, owner=-)
+- `docs/governance/schemas/coverage-resolution-rules.json` (schema, owner=-)
+- `docs/governance/schemas/coverage-review-routing.json` (schema, owner=-)
 - `docs/governance/schemas/registry-path-reconciliation.schema.json` (schema, owner=-)
 - `docs/governance/schemas/route-taxonomy.json` (schema, owner=-)
 ### governance-core
@@ -1366,6 +1370,7 @@
 - `pyproject.toml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `repomix.config.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/apply-coverage-resolution-batch.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/audit_ordivon_verify_public_wedge.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/audit_runtime_evidence_db.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/check_architecture.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1391,6 +1396,7 @@
 - `scripts/check_verification_manifest.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/ci-quality-gates.sh`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/compare_eval_runs.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/coverage-admission.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/detect_agentic_patterns.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/detect_overclaim.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/dev/init_db.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1398,8 +1404,12 @@
 - `scripts/dev/run_mock_analyze.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/dryrun_ordivon_verify_public_repo.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/eval_reasoning_quality.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/explain-path-governance.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/explain-path-node.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/export_openapi.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-coverage-resolution-plan.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-coverage-review-routing.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-gos-pm-s2-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-path-map-delta.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-reconciliation-graph.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1414,6 +1424,7 @@
 - `scripts/ordivon_reconcile.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/ordivon_verify.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/prepare_ordivon_verify_package_context.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/query-path-governance.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/reconcile-registry-path.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/render_repo_governance_report.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/repo_governance_cli.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1439,6 +1450,7 @@
 - `scripts/smoke_test_reasoning_bridge.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/smoke_test_report_builder.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/triage-rpr-findings.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/update-coverage-boundary.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_constitution_boundary_matrix.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_hap_payload.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_ogap_payload.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1464,6 +1476,7 @@
 - `scripts/validate_pgi_reversibility_assessment.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_review_to_rule_candidate.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_self_model_entry.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/verify-coverage-boundary.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-path-map-evidence.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/app.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED

@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-05-10T22:21:12Z",
+  "generated_at": "2026-05-10T23:07:40Z",
   "authority": "generated_view",
   "source_refs": [
     "git ls-files",
     "path-map.json",
     "document-registry.jsonl",
     "governed-exclusions.json",
-    "debt ledger"
+    "debt ledger (pattern match)"
   ],
   "stats": {
-    "total": 2108,
+    "total": 2121,
     "by_status": {
-      "excluded": 99,
-      "governed": 851,
-      "debt_or_exclusion_required": 826,
-      "generated": 88,
+      "excluded": 105,
+      "governed": 854,
+      "debt_or_exclusion_required": 824,
+      "generated": 94,
       "legacy": 29,
       "fixture": 215
     },
@@ -30,7 +30,10 @@
     {
       "path": ".env.example",
       "coverage_status": "excluded",
-      "source": "batch receipt (GOS-PM-7)"
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "Environment template — config, not governed doc"
+      }
     },
     {
       "path": ".gitattributes",
@@ -85,7 +88,10 @@
     {
       "path": ".gitleaks.toml",
       "coverage_status": "excluded",
-      "source": "batch receipt (GOS-PM-7)"
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "GitLeaks config — security tooling, not governed doc"
+      }
     },
     {
       "path": ".hermes/plans/2025-04-26_H8-review-closure-plan.md",
@@ -95,7 +101,10 @@
     {
       "path": ".importlinter",
       "coverage_status": "excluded",
-      "source": "batch receipt (GOS-PM-7)"
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "Import Linter config — code tooling"
+      }
     },
     {
       "path": ".lighthouserc.json",
@@ -104,8 +113,11 @@
     },
     {
       "path": ".npmrc",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "npm config — package manager"
+      }
     },
     {
       "path": ".vscode/extensions.json",
@@ -139,8 +151,11 @@
     },
     {
       "path": "Makefile",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "Build tooling — not governed doc"
+      }
     },
     {
       "path": "README.md",
@@ -4216,7 +4231,7 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Generated coverage view"
       }
     },
     {
@@ -4224,7 +4239,23 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Generated resolution plan view"
+      }
+    },
+    {
+      "path": "docs/governance/generated/_coverage-review-routing.md",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
+      }
+    },
+    {
+      "path": "docs/governance/generated/_gos-pm-s2-summit.md",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
       }
     },
     {
@@ -4260,11 +4291,19 @@
       }
     },
     {
+      "path": "docs/governance/generated/coverage-admission-report.json",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
+      }
+    },
+    {
       "path": "docs/governance/generated/coverage-boundary.json",
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Generated coverage data"
       }
     },
     {
@@ -4272,7 +4311,31 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Generated resolution plan data"
+      }
+    },
+    {
+      "path": "docs/governance/generated/coverage-review-routing.json",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
+      }
+    },
+    {
+      "path": "docs/governance/generated/gos-pm-s2-summit.dot",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
+      }
+    },
+    {
+      "path": "docs/governance/generated/gos-pm-s2-summit.json",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
       }
     },
     {
@@ -4680,7 +4743,7 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Batch receipt — evidence record"
       }
     },
     {
@@ -4688,7 +4751,7 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Batch receipt — evidence record"
       }
     },
     {
@@ -4696,7 +4759,7 @@
       "coverage_status": "excluded",
       "source": "governed-exclusions.json",
       "metadata": {
-        "reason": ""
+        "reason": "Batch receipt — evidence record"
       }
     },
     {
@@ -4802,6 +4865,14 @@
       }
     },
     {
+      "path": "docs/governance/schemas/coverage-admission-policy.json",
+      "coverage_status": "excluded",
+      "source": "schema file in governed dir — excluded from doc governance",
+      "metadata": {
+        "reason": "Meta-schema, not governed doc"
+      }
+    },
+    {
       "path": "docs/governance/schemas/coverage-boundary.json",
       "coverage_status": "excluded",
       "source": "schema file in governed dir — excluded from doc governance",
@@ -4811,6 +4882,14 @@
     },
     {
       "path": "docs/governance/schemas/coverage-resolution-rules.json",
+      "coverage_status": "excluded",
+      "source": "schema file in governed dir — excluded from doc governance",
+      "metadata": {
+        "reason": "Meta-schema, not governed doc"
+      }
+    },
+    {
+      "path": "docs/governance/schemas/coverage-review-routing.json",
       "coverage_status": "excluded",
       "source": "schema file in governed dir — excluded from doc governance",
       "metadata": {
@@ -9941,8 +10020,11 @@
     },
     {
       "path": "package.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "Package manifest — not governed doc"
+      }
     },
     {
       "path": "packs/README.md",
@@ -10100,8 +10182,11 @@
     },
     {
       "path": "pnpm-lock.yaml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": "Package lock — generated by pnpm"
+      }
     },
     {
       "path": "pnpm-workspace.yaml",
@@ -10312,6 +10397,11 @@
       "source": "non-protected unclassified"
     },
     {
+      "path": "scripts/coverage-admission.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "source": "non-protected unclassified"
+    },
+    {
       "path": "scripts/detect_agentic_patterns.py",
       "coverage_status": "governed",
       "source": "governance script"
@@ -10347,6 +10437,11 @@
       "source": "non-protected unclassified"
     },
     {
+      "path": "scripts/explain-path-governance.py",
+      "coverage_status": "governed",
+      "source": "governance script"
+    },
+    {
       "path": "scripts/explain-path-node.py",
       "coverage_status": "governed",
       "source": "governance script"
@@ -10358,6 +10453,16 @@
     },
     {
       "path": "scripts/generate-coverage-resolution-plan.py",
+      "coverage_status": "governed",
+      "source": "governance script"
+    },
+    {
+      "path": "scripts/generate-coverage-review-routing.py",
+      "coverage_status": "governed",
+      "source": "governance script"
+    },
+    {
+      "path": "scripts/generate-gos-pm-s2-summit.py",
       "coverage_status": "governed",
       "source": "governance script"
     },
@@ -10428,6 +10533,11 @@
     },
     {
       "path": "scripts/prepare_ordivon_verify_package_context.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "source": "non-protected unclassified"
+    },
+    {
+      "path": "scripts/query-path-governance.py",
       "coverage_status": "debt_or_exclusion_required",
       "source": "non-protected unclassified"
     },
