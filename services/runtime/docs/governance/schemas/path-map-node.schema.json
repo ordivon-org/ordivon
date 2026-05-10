@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ordivon Path Map Node",
+  "description": "A single node in the generated governance path map. Nodes are classified by the path-map algorithm from git ls-files, document-registry.jsonl, and path-map-rules.json. Nodes are derived — not source of truth.",
+  "generated_at": "2026-05-11",
+  "governed_by": "path-map checker (GOS-PM-1)",
+  "version": "0.1.0",
+  "status": "proposed",
+  "required_fields": ["path", "kind", "route", "source_refs", "classification_status"],
+  "governed_document_required_fields": ["owner", "authority", "doc_type", "lifecycle"],
+  "exclusion_required_fields": ["reason", "owner", "review_date", "removal_condition"],
+  "kind_values": [
+    "document",
+    "checker",
+    "ci_gate",
+    "schema",
+    "generated_view",
+    "knowledge_asset",
+    "source_code",
+    "explicit_exclusion",
+    "unclassified",
+    "blocked"
+  ],
+  "classification_status_values": [
+    "governed",
+    "generated",
+    "excluded",
+    "debt_parked",
+    "blocked"
+  ],
+  "lifecycle_values": [
+    "active",
+    "draft",
+    "closed",
+    "deferred",
+    "superseded",
+    "archived",
+    "proposed"
+  ]
+}

@@ -259,6 +259,22 @@ jobs:
       - name: Atomic governance gate
         run: uv run python scripts/check_atomic_governance.py
 
+  # ── verify path map: generated views must match repo reality ──────────
+  # GOS-PM-1: generated path map is derived from git ls-files, registry,
+  # and path-map-rules. Manual edits to generated files → DRIFT DETECTED.
+
+  verify-path-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - name: Verify generated path map matches repo reality
+        run: uv run python scripts/verify-path-map.py
+
   # ── frontend ───────────────────────────────────────────────────────────
 
   frontend:

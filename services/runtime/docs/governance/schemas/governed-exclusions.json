@@ -49,6 +49,11 @@
     "docs/decisions/ADR-005-tool-vs-skill-boundary.md": "ADR — self-documenting",
     "docs/decisions/ADR-006-pack-policy-binding.md": "ADR — self-documenting",
     "docs/governance/schemas/claim-vocabulary.json": "Claim vocabulary schema — meta-schema defining forbidden words, loaded by overclaim detector",
-    "docs/governance/schemas/path-map-rules.json": "Path map classification rules — loaded by path-map scripts, not a governed doc"
+    "docs/governance/schemas/path-map-rules.json": "Path map classification rules — loaded by path-map scripts, not a governed doc",
+    "docs/governance/schemas/path-map-node.schema.json": "Path map node schema — meta-schema, not a governed doc",
+    "docs/governance/schemas/path-map-edge.schema.json": "Path map edge schema — meta-schema, not a governed doc",
+    "docs/governance/generated/path-map.json": "Generated path map — derived view, not a governed doc",
+    "docs/governance/generated/_path-map.md": "Generated path map markdown — derived view",
+    "docs/governance/generated/path-map.dot": "Generated path map dot — derived view"
   }
 }
