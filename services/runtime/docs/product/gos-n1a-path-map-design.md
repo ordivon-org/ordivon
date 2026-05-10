@@ -175,6 +175,49 @@ Replace hand-drawn architecture diagram counts
 | MkDocs | auto nav from markdown | adds governance metadata layers |
 | Nx | auto project graph from imports | adds document→checker→CI→debt chains |
 | GitHub CODEOWNERS | auto owner from path pattern | adds evidence + receipt + debt routing |
+| Obsidian | auto knowledge graph from links | adds authority + lifecycle + CI enforcement |
+
+---
+
+## 9.1 Obsidian Comparison — Detailed
+
+Obsidian is the closest existing analogy, but only as a **knowledge management prototype**, not a governance answer.
+
+**What Obsidian does well (and Ordivon should adopt):**
+
+| Pattern | Obsidian | Ordivon Adaptation |
+|---------|----------|--------------------|
+| Vault | Notes folder = knowledge universe | Repo = governed vault |
+| Internal links | `[[link]]` creates bidirectional edges | Governance backlinks: policy → docs · debt → receipts · checker → files · CandidateRule → lessons |
+| Graph View | Global + local graph of note relationships | Global + local governance graph: file → owner → authority → checker → CI → debt → lesson |
+| Backlinks | Incoming references to current note | Incoming governance references: "who depends on this schema?" "which docs cite this debt?" |
+| Canvas | Visual workspace with embedded notes | Governance canvas: architecture diagram auto-populated from path-map.json |
+| Properties | YAML frontmatter metadata | Registry fields: doc_type, owner, authority, lifecycle, risk |
+
+**What Obsidian does NOT do (and Ordivon requires):**
+
+```
+Obsidian:       discover relationships
+Ordivon:        discover + verify + BLOCK illegal states + generate receipt/debt
+
+Obsidian graph: relation visibility
+Ordivon path map: relation visibility + authority + lifecycle + CI enforcement
+```
+
+**Key differences:**
+
+```text
+Obsidian link      ≠ Ordivon authority edge
+Obsidian graph node ≠ GovernableObject
+Backlink           ≠ Receipt
+Tag                ≠ Policy
+Canvas             ≠ Source of Truth
+YAML property      ≠ Registry metadata (not CI-enforced)
+```
+
+**Synthesis:**
+
+> Ordivon's path map should be an Obsidian-style, repo-native, CI-enforced, authority-aware governance graph. Not a personal knowledge graph with governance fields bolted on — a governance control graph that happens to use graph visualization patterns.
 
 ---
 
