@@ -33,21 +33,15 @@ GOVERNED_DIRS = [
 ]
 
 # ── Files in governed dirs that are intentionally not registered ───────
-# Each entry must have a reason.
-GOVERNED_EXCLUSIONS = {
-    "docs/governance/document-registry.jsonl": "Registry itself — is the source of truth",
-    "docs/governance/document-registry-exclusions.json": "Exclusion ledger — meta-registry",
-    "docs/governance/schemas/document-types.json": "Schema — loaded by checkers, not itself a governed doc",
-    "docs/governance/verification-debt-ledger.jsonl": "Operational ledger — tracked by verification-debt checker",
-    "docs/governance/lesson-extraction-log.jsonl": "Operational log — derived from lesson-ledger",
-    "docs/governance/dependency-audit-debts.jsonl": "Debt ledger — tracked by debt checker",
-    "docs/governance/owner-routing-rules.jsonl": "Operational routing — consumed by registry checker",
-    "docs/governance/legacy-scope-manifest-rg-14.jsonl": "Legacy scope manifest — historical reference",
-    "docs/governance/_deprecated_verification-gate-manifest-v1.json": "Deprecated v1 manifest",
-    "docs/governance/verification-gate-manifest-v2.json": "Generated manifest — derived from checker registry",
-    "docs/ai/onboarding-snapshot.json": "Generated snapshot — temporary AI context file",
-    "docs/ai/_registry-stats.md": "Generated view — auto-generated from registry",
-}
+# Loaded from canonical schema (RT-11 fix — L-CI-SELFCAL-002 pattern).
+# Adding a new exclusion requires editing the schema file, not the checker source.
+EXCLUSIONS_SCHEMA_PATH = ROOT / "docs/governance/schemas/governed-exclusions.json"
+
+def _load_exclusions() -> dict[str, str]:
+    with open(EXCLUSIONS_SCHEMA_PATH) as f:
+        return json.load(f)["entries"]
+
+GOVERNED_EXCLUSIONS = _load_exclusions()
 
 # ── Load schema for doc_type validation ────────────────────────────────
 SCHEMA_PATH = ROOT / "docs/governance/schemas/document-types.json"

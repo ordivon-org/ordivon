@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Ordivon Document Type Schema",
-  "description": "Single source of truth for valid document types in the Ordivon governance system. Both scripts/check_document_registry.py and checkers/document-registry/run.py load from this file. Adding a new doc_type requires only editing this file \u2014 no dual-checker drift.",
+  "description": "Single source of truth for valid document types in the Ordivon governance system. Both scripts/check_document_registry.py and checkers/document-registry/run.py load from this file. Adding a new doc_type requires only editing this file — no dual-checker drift.",
   "generated_at": "2026-05-10",
   "governed_by": "DGP-2 document lifecycle governance",
   "lesson_refs": [
@@ -32,5 +32,13 @@
     "supporting_evidence",
     "triage",
     "methodology"
-  ]
+  ],
+  "validation": {
+    "rules": [
+      "no empty strings",
+      "no whitespace-only",
+      "min 2 chars",
+      "must start with letter"
+    ]
+  }
 }

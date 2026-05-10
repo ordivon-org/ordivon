@@ -223,6 +223,24 @@ jobs:
           assert len(types) >= 20, f'Too few doc_types: {len(types)}'
           print('✓ Schema valid, both checkers auto-sync from single source')
           "
+      - name: Verify authority schema integrity (RT-11 fix)
+        run: |
+          uv run python -c "
+          import json, os
+          schemas_dir = 'docs/governance/schemas'
+          schemas = [f for f in os.listdir(schemas_dir) if f.endswith('.json')]
+          print(f'Authority schemas: {len(schemas)}')
+          for s in sorted(schemas):
+              path = os.path.join(schemas_dir, s)
+              data = json.loads(open(path).read())
+              if 'entries' in data:
+                  count = len(data['entries'])
+                  print(f'  {s}: {count} entries')
+                  assert count >= 1, f'{s} has empty entries'
+              print(f'✓ All {len(schemas)} authority schemas valid')
+          "
+      - name: Verify ledger entry integrity (RT-09 fix)
+        run: uv run python scripts/hash_ledger.py --verify docs/governance/dependency-audit-debts.jsonl docs/governance/lesson-ledger.jsonl
 
   # ── atomic governance: every governed file must be registered ─────────
   # Google presubmit / Linux bisectability: adding a file to docs/ai/ or

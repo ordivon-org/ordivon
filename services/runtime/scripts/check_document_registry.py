@@ -53,7 +53,17 @@ def _load_valid_doc_types() -> set:
     schema_path = ROOT / "docs/governance/schemas/document-types.json"
     with open(schema_path) as f:
         schema = json.loads(f.read())
-    return set(schema["valid_doc_types"])
+    # RT-03 fix: validate no empty/whitespace/invalid types
+    types = schema["valid_doc_types"]
+    for t in types:
+        t_stripped = t.strip()
+        if not t_stripped:
+            raise ValueError(f"Empty doc_type in {schema_path}")
+        if t_stripped != t:
+            raise ValueError(f"Whitespace-padded doc_type in {schema_path}: {repr(t)}")
+        if not t_stripped[0].isalpha():
+            raise ValueError(f"Doc_type must start with letter: {repr(t)}")
+    return set(types)
 
 
 VALID_DOC_TYPES = _load_valid_doc_types()
