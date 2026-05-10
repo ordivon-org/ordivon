@@ -113,6 +113,10 @@ def main() -> int:
     for fp in files:
         if not fp.exists():
             continue
+        # Skip files that define the vocabulary (quote forbidden words as examples)
+        rel = str(fp.resolve().relative_to(ROOT))
+        if rel in ("docs/governance/ordivon-methodology-core.md", "docs/governance/assessment-template.md", "docs/governance/schemas/claim-vocabulary.json"):
+            continue
         all_findings.extend(scan_file(fp, forbidden))
 
     stats = {
