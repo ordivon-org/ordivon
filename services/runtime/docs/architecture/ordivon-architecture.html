@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordivon Governance OS — Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15,23,42,0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1200px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .card { background: rgba(15,23,42,0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; } .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; } .card-dot.rose { background: #fb7185; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <div class="header-row"><div class="pulse-dot"></div><h1>Ordivon Governance OS</h1></div>
+  <p class="subtitle">443 docs · 38 checkers · 16 CI jobs · 12 lessons · 4 CandidateRules · READY (35/35)</p>
+</div>
+
+<!-- Diagram 1: System Architecture -->
+<div class="diagram-container">
+<svg viewBox="0 0 1350 950">
+<defs>
+  <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker>
+  <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+  <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+  <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+</defs>
+<rect width="100%" height="100%" fill="url(#grid)"/>
+
+<!-- LAYER 0: Philosophy & Methodology -->
+<rect x="20" y="20" width="1310" height="85" rx="8" fill="rgba(8,51,68,0.25)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="35" y="42" fill="#22d3ee" font-size="11" font-weight="600">L0 — PHILOSOPHY &amp; METHODOLOGY</text>
+<text x="45" y="60" fill="#94a3b8" font-size="10">12 Invariants · Dual-Gate Loop · A1-A4 Matrix · Controlled Vocabulary · AI Observer · Assessment Template</text>
+<text x="45" y="78" fill="#475569" font-size="9">Evidence≠Claim · READY≠Auth · Checker≠Policy · Generated≠Source · Ignore≠Resolution · Suppress≠Fix · Derived≠Duplicated · Analogy≠Proof · Summary≠Truth</text>
+
+<!-- Layer 0 → Core arrow -->
+<line x1="675" y1="105" x2="675" y2="125" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+<!-- LAYER 1: Core — Governance Kernel -->
+<rect x="20" y="130" width="1310" height="140" rx="8" fill="rgba(6,78,59,0.2)" stroke="#34d399" stroke-width="1.5"/>
+<text x="35" y="152" fill="#34d399" font-size="11" font-weight="600">L1 — CORE: GOVERNANCE KERNEL</text>
+
+<!-- Checker Ecosystem box -->
+<rect x="35" y="165" width="630" height="95" rx="6" fill="rgba(6,78,59,0.15)" stroke="#34d399" stroke-width="1"/>
+<text x="48" y="183" fill="#34d399" font-size="10" font-weight="600">Checker Ecosystem (38)</text>
+<text x="48" y="199" fill="#94a3b8" font-size="9">moat(6): agentic-patterns, arch-boundaries, protected-paths, agent-native, philosophy, ownership</text>
+<text x="48" y="214" fill="#94a3b8" font-size="9">document(7): doc-registry, current-truth, receipt-integrity, dogfood, runtime-evidence, freshness</text>
+<text x="48" y="229" fill="#94a3b8" font-size="9">coding(6): coding-smoke, fixtures, coverage, dependabot, finance-boundary, trading-discipline</text>
+<text x="48" y="244" fill="#94a3b8" font-size="9">pgi(4) · protocol(3) · operational(12): entropy, policy-shadow, checker-maturity, gate-manifest, ...</text>
+
+<!-- CI Gates box -->
+<rect x="685" y="165" width="630" height="95" rx="6" fill="rgba(6,78,59,0.15)" stroke="#34d399" stroke-width="1"/>
+<text x="698" y="183" fill="#34d399" font-size="10" font-weight="600">CI Gates (16 jobs)</text>
+<text x="698" y="199" fill="#94a3b8" font-size="9">blocking(14): ruff · pr-fast · governance-self-check · atomic-governance · verify-native</text>
+<text x="698" y="214" fill="#94a3b8" font-size="9">product-tests · governance-tests · finance-tests · coding-tests · frontend · evals · verify-external</text>
+<text x="698" y="229" fill="#94a3b8" font-size="9">advisory(2): entropy-telemetry · policy-shadow</text>
+<text x="698" y="244" fill="#94a3b8" font-size="9">security(3): pip-audit · pnpm audit · Gitleaks · CodeQL</text>
+
+<!-- Schema box -->
+<rect x="35" y="165" width="1280" height="95" rx="6" fill="rgba(6,78,59,0.05)" stroke="#34d399" stroke-width="0.5" stroke-dasharray="4,4"/>
+<text x="1200" y="250" fill="#475569" font-size="8" text-anchor="end">5 schemas: document-types · governed-exclusions · protected-paths · agentic-patterns · claim-vocabulary</text>
+
+<!-- Core → Packs/Adapter arrows -->
+<line x1="350" y1="270" x2="200" y2="310" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+<line x1="675" y1="270" x2="675" y2="310" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+<line x1="1000" y1="270" x2="1150" y2="310" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+<!-- LAYER 2: Packs + Document Universe + Adapters -->
+<!-- Packs -->
+<rect x="40" y="315" width="300" height="180" rx="8" fill="rgba(30,41,59,0.4)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="55" y="337" fill="#94a3b8" font-size="11" font-weight="600">Packs (2)</text>
+<rect x="55" y="350" width="270" height="65" rx="5" fill="rgba(6,78,59,0.2)" stroke="#34d399" stroke-width="1"/>
+<text x="65" y="368" fill="#34d399" font-size="10" font-weight="600">coding/</text>
+<text x="65" y="384" fill="#94a3b8" font-size="9">CodingDisciplinePolicy</text>
+<text x="65" y="400" fill="#475569" font-size="8">protected path rules · PR review gates</text>
+<rect x="55" y="422" width="270" height="65" rx="5" fill="rgba(6,78,59,0.2)" stroke="#34d399" stroke-width="1"/>
+<text x="65" y="440" fill="#34d399" font-size="10" font-weight="600">finance/</text>
+<text x="65" y="456" fill="#94a3b8" font-size="9">TradingDisciplinePolicy · DecisionIntake</text>
+<text x="65" y="472" fill="#475569" font-size="8">stop_loss semantics · HOLD/REJECT/ALLOW rules</text>
+
+<!-- Document Universe -->
+<rect x="380" y="315" width="560" height="180" rx="8" fill="rgba(76,29,149,0.15)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="395" y="337" fill="#a78bfa" font-size="11" font-weight="600">Document Universe (443 entries)</text>
+<text x="395" y="357" fill="#94a3b8" font-size="10">22 doc_types · 6 layers (L0-L5) · schema-first · dual checker sync</text>
+<rect x="395" y="370" width="170" height="55" rx="4" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="405" y="387" fill="#a78bfa" font-size="9">Registry + Schemas</text>
+<text x="405" y="403" fill="#94a3b8" font-size="8">document-registry.jsonl</text>
+<text x="405" y="417" fill="#94a3b8" font-size="8">5 JSON schemas</text>
+<rect x="575" y="370" width="170" height="55" rx="4" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="585" y="387" fill="#a78bfa" font-size="9">Verification Gates</text>
+<text x="585" y="403" fill="#94a3b8" font-size="8">atomic-governance (308 files)</text>
+<text x="585" y="417" fill="#94a3b8" font-size="8">authority-gate (442 docs)</text>
+<rect x="755" y="370" width="170" height="55" rx="4" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="765" y="387" fill="#a78bfa" font-size="9">Generated Views</text>
+<text x="765" y="403" fill="#94a3b8" font-size="8">_registry-stats.md</text>
+<text x="765" y="417" fill="#94a3b8" font-size="8">overclaim detection</text>
+<text x="395" y="480" fill="#475569" font-size="8">442 docs with owner · 0 bad authority · 0 duplicate · hash integrity on all ledgers</text>
+
+<!-- Adapters -->
+<rect x="980" y="315" width="330" height="180" rx="8" fill="rgba(30,41,59,0.4)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="995" y="337" fill="#94a3b8" font-size="11" font-weight="600">Adapters (2)</text>
+<rect x="995" y="350" width="300" height="65" rx="5" fill="rgba(120,53,15,0.2)" stroke="#fbbf24" stroke-width="1"/>
+<text x="1005" y="368" fill="#fbbf24" font-size="10" font-weight="600">finance/AlpacaObservation</text>
+<text x="1005" y="384" fill="#94a3b8" font-size="9">Paper trading · GET-only · 4 security guards</text>
+<text x="1005" y="400" fill="#475569" font-size="8">Capability ≠ Authority · read ≠ execute</text>
+<rect x="995" y="422" width="300" height="65" rx="5" fill="rgba(120,53,15,0.2)" stroke="#fbbf24" stroke-width="1"/>
+<text x="1005" y="440" fill="#fbbf24" font-size="10" font-weight="600">runtimes/Hermes</text>
+<text x="1005" y="456" fill="#94a3b8" font-size="9">Session read · agent config read</text>
+<text x="1005" y="472" fill="#475569" font-size="8">No agent modification · no policy activation</text>
+
+<!-- Pack/Adapter governance arrow -->
+<line x1="660" y1="310" x2="660" y2="297" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="670" y="305" fill="#475569" font-size="7">governed by</text>
+
+<!-- LAYER 2 → Knowledge Assets arrow -->
+<line x1="660" y1="495" x2="660" y2="530" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+<!-- Knowledge Assets -->
+<rect x="40" y="535" width="1270" height="120" rx="8" fill="rgba(76,29,149,0.15)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="55" y="557" fill="#a78bfa" font-size="11" font-weight="600">KNOWLEDGE ASSETS</text>
+
+<rect x="55" y="568" width="380" height="78" rx="5" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="65" y="585" fill="#a78bfa" font-size="10" font-weight="600">Lesson Ledger (12)</text>
+<text x="65" y="601" fill="#94a3b8" font-size="9">8 actioned · 4 pending review · pipeline: active</text>
+<text x="65" y="616" fill="#94a3b8" font-size="9">review_lessons.py deployed</text>
+<text x="65" y="631" fill="#94a3b8" font-size="9">L-DG-CHECKERIZATION + L-CI-SELFCAL series</text>
+
+<rect x="450" y="568" width="380" height="78" rx="5" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="460" y="585" fill="#a78bfa" font-size="10" font-weight="600">Debt Ledger (7)</text>
+<text x="460" y="601" fill="#34d399" font-size="9">3 CLOSED: RT-09  integrity · RT-11 blind spot</text>
+<text x="460" y="616" fill="#fb7185" font-size="9">4 OPEN: CVE-2026-3219 · CI product-tests env · lesson review</text>
+<text x="460" y="631" fill="#fb7185" font-size="9">draft checkers · non-governed files</text>
+
+<rect x="845" y="568" width="450" height="78" rx="5" fill="rgba(76,29,149,0.1)" stroke="#a78bfa" stroke-width="0.5"/>
+<text x="855" y="585" fill="#a78bfa" font-size="10" font-weight="600">CandidateRules (4)</text>
+<text x="855" y="601" fill="#fbbf24" font-size="9">All draft · 0 activated</text>
+<text x="855" y="616" fill="#94a3b8" font-size="9">CR-bcf8bb · CR-32b58 · CR-ci-selcal-001 · CR-ci-selcal-002</text>
+<text x="855" y="631" fill="#475569" font-size="8">freshness · overclaim · no-hardcoded-drift · no-dual-maintenance</text>
+
+<!-- Self-Calibration Loop (bottom) -->
+<rect x="40" y="680" width="1270" height="95" rx="8" fill="rgba(136,19,55,0.1)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="55" y="702" fill="#fb7185" font-size="11" font-weight="600">SELF-CALIBRATION LOOP</text>
+<text x="55" y="722" fill="#94a3b8" font-size="10">Reality drift → CI BLOCKED → Freeze → Classify → A1/A2/A3/A4 → Execute → Verify → Lesson → CandidateRule → Methodology → (loop back)</text>
+<text x="55" y="742" fill="#94a3b8" font-size="10">Proven once: CI-SelfCalibration event (13 commits, 5 rounds) → methodology-core.md · macro-structure.md · assessment-template.md</text>
+<text x="55" y="762" fill="#475569" font-size="9">L-CI-SELFCAL-004: methodology extraction itself became a lesson</text>
+
+<!-- External boundaries -->
+<rect x="40" y="800" width="1270" height="125" rx="8" fill="rgba(30,41,59,0.3)" stroke="#94a3b8" stroke-width="1"/>
+<text x="55" y="822" fill="#94a3b8" font-size="11" font-weight="600">EXTERNAL BOUNDARIES</text>
+
+<rect x="55" y="835" width="350" height="78" rx="5" fill="rgba(30,41,59,0.2)" stroke="#94a3b8" stroke-width="0.5"/>
+<text x="65" y="852" fill="#94a3b8" font-size="10">Human Developer</text>
+<text x="65" y="868" fill="#475569" font-size="9">git push → CI gate → BLOCKED/READY</text>
+<text x="65" y="884" fill="#475569" font-size="9">PR review → architecture-boundaries check</text>
+<text x="65" y="900" fill="#475569" font-size="9">Governed by: all blocking CI jobs</text>
+
+<rect x="420" y="835" width="450" height="78" rx="5" fill="rgba(30,41,59,0.2)" stroke="#94a3b8" stroke-width="0.5"/>
+<text x="430" y="852" fill="#94a3b8" font-size="10">AI Collaborator (Governed)</text>
+<text x="430" y="868" fill="#475569" font-size="9">AI Observer: may propose/classify/draft · may NOT authorize/close/suppress</text>
+<text x="430" y="884" fill="#475569" font-size="9">Governed by: agent-output-contract · detect_overclaim · agentic-patterns · claim-vocabulary</text>
+<text x="430" y="900" fill="#fb7185" font-size="9">AI governance requires protocol adhesion — unconstrained AI can bypass vocabulary checks</text>
+
+<rect x="885" y="835" width="410" height="78" rx="5" fill="rgba(30,41,59,0.2)" stroke="#94a3b8" stroke-width="0.5"/>
+<text x="895" y="852" fill="#94a3b8" font-size="10">External Systems</text>
+<text x="895" y="868" fill="#475569" font-size="9">Alpaca Markets (paper) · GitHub (CI/PR) · PyPI (audit) · OSV (CVE)</text>
+<text x="895" y="884" fill="#475569" font-size="9">Dependabot (auto-update) · CodeQL (static analysis)</text>
+<text x="895" y="900" fill="#475569" font-size="9">Governed through: adapters + security CI + capability model</text>
+
+<!-- Legend -->
+<rect x="30" y="938" width="1280" height="8" rx="2" fill="#1e293b"/>
+</svg>
+</div>
+
+<!-- Diagram 2: Data Flow -->
+<div class="diagram-container">
+<svg viewBox="0 0 1350 350">
+<defs>
+  <marker id="arr2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker>
+  <marker id="arr2r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+  <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
+</defs>
+<rect width="100%" height="100%" fill="url(#grid2)"/>
+
+<text x="30" y="30" fill="#22d3ee" font-size="12" font-weight="600">Governance Data Flow: push → verify → classify → learn</text>
+
+<!-- Flow boxes -->
+<rect x="30" y="55" width="180" height="70" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="2"/>
+<text x="120" y="80" fill="white" font-size="11" font-weight="600" text-anchor="middle">git push</text>
+<text x="120" y="98" fill="#94a3b8" font-size="9" text-anchor="middle">Human or AI</text>
+<text x="120" y="112" fill="#475569" font-size="8" text-anchor="middle">commits changes</text>
+
+<line x1="210" y1="90" x2="280" y2="90" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+<rect x="285" y="50" width="200" height="80" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="2"/>
+<text x="385" y="75" fill="white" font-size="11" font-weight="600" text-anchor="middle">CI GATES</text>
+<text x="385" y="93" fill="#94a3b8" font-size="9" text-anchor="middle">16 jobs run</text>
+<text x="385" y="109" fill="#94a3b8" font-size="9" text-anchor="middle">ruff · atomic-gov · tests</text>
+<text x="385" y="123" fill="#475569" font-size="8" text-anchor="middle">verify-native · security</text>
+
+<!-- BLOCKED path -->
+<line x1="485" y1="70" x2="550" y2="50" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arr2r)"/>
+<rect x="555" y="30" width="150" height="45" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="630" y="50" fill="white" font-size="10" font-weight="600" text-anchor="middle">BLOCKED</text>
+<text x="630" y="65" fill="#94a3b8" font-size="8" text-anchor="middle">must fix before merge</text>
+
+<!-- READY path -->
+<line x1="485" y1="105" x2="550" y2="130" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr2)"/>
+<rect x="555" y="110" width="150" height="45" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="630" y="130" fill="white" font-size="10" font-weight="600" text-anchor="middle">READY</text>
+<text x="630" y="145" fill="#94a3b8" font-size="8" text-anchor="middle">selected checks pass</text>
+
+<!-- Continue from READY -->
+<line x1="705" y1="132" x2="760" y2="132" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+<rect x="765" y="105" width="160" height="55" rx="8" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="2"/>
+<text x="845" y="128" fill="white" font-size="11" font-weight="600" text-anchor="middle">CLASSIFY</text>
+<text x="845" y="146" fill="#94a3b8" font-size="9" text-anchor="middle">A1/A2/A3/A4</text>
+
+<line x1="925" y1="132" x2="980" y2="132" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+<rect x="985" y="100" width="170" height="65" rx="8" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="2"/>
+<text x="1070" y="123" fill="white" font-size="11" font-weight="600" text-anchor="middle">EXTRACT</text>
+<text x="1070" y="141" fill="#94a3b8" font-size="9" text-anchor="middle">lesson / debt / CR</text>
+<text x="1070" y="155" fill="#475569" font-size="8" text-anchor="middle">methodology update</text>
+
+<line x1="1155" y1="132" x2="1210" y2="132" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+<rect x="1215" y="105" width="110" height="55" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="2"/>
+<text x="1270" y="128" fill="white" font-size="11" font-weight="600" text-anchor="middle">LOOP</text>
+<text x="1270" y="146" fill="#94a3b8" font-size="9" text-anchor="middle">back to Core</text>
+
+<!-- Feedback arrow -->
+<path d="M 1130 165 L 1130 200 Q 1130 220 1110 220 L 200 220 Q 180 220 180 200 L 180 145" fill="none" stroke="#fb7185" stroke-width="1" stroke-dasharray="5,5"/>
+<text x="660" y="235" fill="#fb7185" font-size="8" text-anchor="middle">detect_overclaim prevents false claims · schema-first prevents drift · hash prevents tampering</text>
+
+<!-- Bottom explanation -->
+<text x="30" y="290" fill="#475569" font-size="10">A1 (fix) → A2 (refine checker) → A3 (redesign system) → A4 (record debt). Any flow can loop back to CI gates.</text>
+<text x="30" y="310" fill="#475569" font-size="10">Overclaim detector blocks forbidden words. Assessment template bans synthetic conclusions when dimensions differ.</text>
+<text x="30" y="330" fill="#475569" font-size="10">System learned from 2 overclaim incidents → structural fix (controlled vocabulary), not behavioral fix (be more careful).</text>
+</svg>
+</div>
+
+<!-- Cards -->
+<div class="cards">
+  <div class="card">
+    <div class="card-header"><div class="card-dot cyan"></div><h3>Core (Governance Kernel)</h3></div>
+    <ul>
+      <li>• 12 L0 invariants with machine checks</li>
+      <li>• Dual-gate loop (Pre + Post Execution)</li>
+      <li>• A1-A4 disposition matrix</li>
+      <li>• Controlled claim vocabulary</li>
+      <li>• Self-calibration proven once</li>
+      <li>• Assessment template (anti-overclaim)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot emerald"></div><h3>Execution Layer</h3></div>
+    <ul>
+      <li>• 38 checkers (37 active, 1 draft)</li>
+      <li>• 16 CI jobs (14 blocking)</li>
+      <li>• 5 authority schemas (schema-first)</li>
+      <li>• Atomic governance: 308 files</li>
+      <li>• Authority gate: 442 docs, 0 no-owner</li>
+      <li>• Hash integrity: SHA256 on all ledgers</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot violet"></div><h3>Knowledge Layer</h3></div>
+    <ul>
+      <li>• 12 lessons (8 actioned)</li>
+      <li>• 7 debts (4 explicitly OPEN)</li>
+      <li>• 4 CandidateRules (0 activated)</li>
+      <li>• Lesson review pipeline active</li>
+      <li>• Debt hash integrity enforced</li>
+      <li>• Macro structure + onboarding docs</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-dot rose"></div><h3>Governance Boundary</h3></div>
+    <ul>
+      <li>• AI Observer: may propose, NOT authorize</li>
+      <li>• AI requires protocol adhesion</li>
+      <li>• Unconstrained AI: no vocabulary enforcement</li>
+      <li>• Adapters: Alpaca Paper + Hermes runtime</li>
+      <li>• 2 Packs: coding + finance</li>
+      <li>• No AI Output Adapter deployed</li>
+    </ul>
+  </div>
+</div>
+
+<p class="footer">Ordivon Governance OS · 443 docs · 38 checkers · 16 CI jobs · READY (35/35) · Not Clean. Governed.</p>
+</div>
+</body>
+</html>
