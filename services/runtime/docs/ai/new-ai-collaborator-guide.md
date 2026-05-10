@@ -147,7 +147,7 @@ Every receipt must answer:
 ## Current Systems (2026-05-05)
 
 ```
-Checker ecosystem: 40 checkers, L3-L10, pr-fast 12/12, full 40/40 ALL PASS (27 hard + 12 escalation), read-only Verify 35/35 PASS
+Checker ecosystem: 40 checkers, L3-L10, pr-fast 12/12, full 40/40 ALL PASS (28 hard + 12 escalation), read-only Verify 35/35 PASS
 Document governance: see document-registry.jsonl for current entry count (generated_view — not authoritative)
 Entropy governance: L4.5 telemetry + L4.5A gates, Lehman's Laws applied
 Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed

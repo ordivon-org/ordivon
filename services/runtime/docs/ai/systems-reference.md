@@ -20,7 +20,7 @@ The registry auto-discovers all checkers — no manual registration.
 # Run the pr-fast baseline (12 checkers, blocks merge on failure)
 uv run python scripts/run_baseline.py --pr-fast
 
-# Run the full baseline (40 checkers, 27 hard + 12 escalation; writes telemetry/shadow ledgers)
+# Run the full baseline (40 checkers, 28 hard + 12 escalation; writes telemetry/shadow ledgers)
 uv run python scripts/run_baseline.py
 
 # Run read-only baseline (skip state-updating checkers, no JSONL writes)
