@@ -25,5 +25,10 @@
     "check:doc:dogfood": "uv run python scripts/check_paper_dogfood_ledger.py",
     "audit:py": "uv run pip-audit",
     "audit:web": "pnpm audit --prod --audit-level=high"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": ">=8.5.10"
+    }
   }
 }
