@@ -217,7 +217,38 @@ YAML property      ≠ Registry metadata (not CI-enforced)
 
 **Synthesis:**
 
-> Ordivon's path map should be an Obsidian-style, repo-native, CI-enforced, authority-aware governance graph. Not a personal knowledge graph with governance fields bolted on — a governance control graph that happens to use graph visualization patterns.
+> Ordivon's path map should be an Obsidian-style, repo-native, CI-enforced, authority-aware governance graph.
+
+---
+
+## 9.2 Extended Reference Matrix — 11 Systems Across 4 Categories
+
+Ordivon's path map should not just be an Obsidian-style graph. It should absorb four mature traditions:
+
+| Category | Systems | Core Mechanism | Ordivon Adaptation |
+|----------|---------|---------------|--------------------|
+| Knowledge/Navigation | Docusaurus, MkDocs, Obsidian | File tree → nav; links → backlinks; local graph | Authority-aware generated navigation |
+| Ownership/Catalog | GitHub CODEOWNERS, Kubernetes OWNERS, Backstage | Path → owner routing; metadata catalog; orphan detection | Owner ≠ Approver ≠ Authority |
+| Build/Dependency | Bazel, Pants, Nx, Turborepo | Source → targets; dependency graph; tailor --check; queryable graph | Governance dependency graph; CI verify drift |
+| Policy/Admission | OPA, Conftest, Sentinel | Admission before mutation; policy-as-code; plan gate | Pre-Execution Gate; ALLOW/BLOCK/DEBT_REQUIRED |
+| Architecture | ArchUnit, Import Linter, ESLint | Layer contracts; forbidden imports; cycle detection | architecture-boundaries checker (existing) |
+
+**Eight principles absorbed:**
+
+```text
+1. Map ≠ Territory           Path map is generated view, not source of truth
+2. Classification ≠ Authorization  Routed ≠ Approved
+3. Ownership ≠ Authority      Owner maintains; Approver authorizes; Authority assigns truth-status
+4. Generated ≠ Source         Derived views can be rebuilt; duplicated copies drift
+5. Admission Before Mutation  Intent → Pre-Execution Gate → Execution (OPA/K8s pattern)
+6. Every Object Needs Route   Orphan governance object → BLOCKED or A4 debt
+7. Local Graph Beats Global   Explain single node; don't just render 500-node wall
+8. Governance Must Be Queryable  ordivon path-map query --owner X --unclassified --debt-open
+```
+
+**Synthesis:**
+
+> Ordivon Path Map = Obsidian-style knowledge graph + Backstage-style catalog + Kubernetes-style ownership routing + Bazel/Nx-style dependency graph + OPA/Sentinel-style policy gate.
 
 ---
 
