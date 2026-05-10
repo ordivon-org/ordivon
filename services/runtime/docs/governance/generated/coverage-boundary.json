@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T22:15:14Z",
+  "generated_at": "2026-05-10T22:20:30Z",
   "authority": "generated_view",
   "source_refs": [
     "git ls-files",
@@ -11,47 +11,47 @@
   "stats": {
     "total": 2108,
     "by_status": {
-      "debt_or_exclusion_required": 851,
+      "excluded": 96,
       "governed": 851,
-      "generated": 83,
-      "excluded": 72,
+      "debt_or_exclusion_required": 826,
+      "generated": 88,
       "legacy": 29,
-      "blocked": 7,
+      "blocked": 3,
       "fixture": 215
     },
-    "blocked": 7,
-    "protected_unknown": 7
+    "blocked": 3,
+    "protected_unknown": 3
   },
   "files": [
     {
       "path": ".editorconfig",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".env.example",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".gitattributes",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".github/CODEOWNERS",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".github/dependabot.yml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".github/pull_request_template.md",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -80,23 +80,23 @@
     },
     {
       "path": ".gitignore",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".gitleaks.toml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".hermes/plans/2025-04-26_H8-review-closure-plan.md",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".importlinter",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": ".lighthouserc.json",
@@ -613,28 +613,28 @@
     },
     {
       "path": "apps/web/public/file.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "apps/web/public/globe.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "apps/web/public/next.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "apps/web/public/vercel.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "apps/web/public/window.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "apps/web/src/README.md",
@@ -2004,53 +2004,53 @@
     },
     {
       "path": "data/evals/baselines/baseline_v1.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/datasets/core/btc_mixed_signals.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/datasets/core/btc_trend_breakout.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/datasets/core/high_exposure_risk.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/datasets/core/insufficient_data.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/runs/2026-04-17_run_011848.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/runs/2026-04-17_run_011944.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/evals/runs/2026-04-17_run_012001.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/logs/audit/2026-04-17.jsonl",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "data/openapi_snapshot_baseline.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch receipt (GOS-PM-7)"
     },
     {
       "path": "db/pfios_main.duckdb",
@@ -4214,15 +4214,19 @@
     },
     {
       "path": "docs/governance/generated/_coverage-boundary.md",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/generated/_coverage-resolution-plan.md",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/generated/_gos-pm-summit.md",
@@ -4258,15 +4262,19 @@
     },
     {
       "path": "docs/governance/generated/coverage-boundary.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/generated/coverage-resolution-plan.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/generated/gos-pm-summit.dot",
@@ -14959,30 +14967,6 @@
     }
   ],
   "blocked_findings": [
-    {
-      "path": "docs/governance/generated/_coverage-boundary.md",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
-    {
-      "path": "docs/governance/generated/_coverage-resolution-plan.md",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
-    {
-      "path": "docs/governance/generated/coverage-boundary.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
-    {
-      "path": "docs/governance/generated/coverage-resolution-plan.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
     {
       "path": "docs/governance/receipts/coverage-batches/config-file-candidate.json",
       "coverage_status": "blocked",

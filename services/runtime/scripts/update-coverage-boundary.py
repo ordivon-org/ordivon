@@ -44,6 +44,19 @@ def load_exclusions() -> dict:
     return json.loads(excl_path.read_text()).get("entries", {}) if excl_path.exists() else {}
 
 
+def load_batch_receipts() -> dict[str, str]:
+    """Load applied batch receipts — status overrides from PM-7."""
+    receipts = {}
+    receipt_dir = ROOT / "docs/governance/receipts/coverage-batches"
+    if receipt_dir.exists():
+        for rf in receipt_dir.glob("*.json"):
+            r = json.loads(rf.read_text())
+            target = r.get("target_status", "")
+            if target:
+                for fp in r.get("affected_paths", []):
+                    receipts[fp] = target
+    return receipts
+
 def load_debts() -> dict[str, dict]:
     debts = {}
     debt_path = ROOT / "docs/governance/dependency-audit-debts.jsonl"
@@ -67,7 +80,7 @@ def is_protected(filepath: str, protected_paths: list[str]) -> bool:
     return any(fnmatch.fnmatch(filepath, p) for p in protected_paths)
 
 
-def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, debts: dict, rules: dict) -> dict:
+def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, debts: dict, rules: dict, batch_receipts: dict) -> dict:
     protected_paths = rules.get("protected_paths", [])
     node = pm_nodes.get(filepath)
     reg = registry.get(filepath)
@@ -123,7 +136,12 @@ def classify(filepath: str, pm_nodes: dict, registry: dict, exclusions: dict, de
         if d.get("status") == "OPEN":
             return {"path": filepath, "coverage_status": "debt_parked", "source": "debt ledger", "metadata": {"debt_id": d.get("debt_id", "")}}
 
-    # 12. Governance scripts (scripts/ files that are governance tools)
+    # 12. Applied batch receipt (PM-7): status override from resolution batches
+    if filepath in batch_receipts:
+        target = batch_receipts[filepath]
+        return {"path": filepath, "coverage_status": target, "source": "batch receipt (GOS-PM-7)"}
+
+    # 13. Governance scripts (scripts/ files that are governance tools)
     gov_prefixes = [
         "scripts/check_", "scripts/run_", "scripts/generate-", "scripts/update-", "scripts/verify-",
         "scripts/reconcile", "scripts/hash_ledger", "scripts/review_lessons", "scripts/detect_overclaim",
@@ -152,13 +170,14 @@ def main() -> int:
     excl = load_exclusions()
     debts = load_debts()
     rules = load_coverage_rules()
+    batch_receipts = load_batch_receipts()
 
     classified = []
     counts = Counter()
     blocked = []
 
     for fp in sorted(files):
-        c = classify(fp, pm, reg, excl, debts, rules)
+        c = classify(fp, pm, reg, excl, debts, rules, batch_receipts)
         classified.append(c)
         counts[c["coverage_status"]] += 1
         if c["coverage_status"] == "blocked":
