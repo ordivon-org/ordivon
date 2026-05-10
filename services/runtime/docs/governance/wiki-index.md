@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 435
+**Total registered docs**: 438
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -61,6 +61,7 @@
 | [Review-to-Rule Pipeline — PGI-3](../governance/review-to-rule-pipeline-pgi-3.md) | `docs/governance/review-to-rule-pipeline-pgi-3.md` | governance_pack | current | source_of_truth | L1 | 2026-05-04 |
 | [Self-Model Ledger — PGI-3](../governance/self-model-ledger-pgi-3.md) | `docs/governance/self-model-ledger-pgi-3.md` | governance_pack | current | source_of_truth | L1 | 2026-05-04 |
 | [Trust Budget Model (EGB-2)](../governance/trust-budget-model-egb-2.md) | `docs/governance/trust-budget-model-egb-2.md` | governance_pack | current | source_of_truth | L1 | 2026-05-05 |
+| [Ordivon Methodology Core](../governance/ordivon-methodology-core.md) | `docs/governance/ordivon-methodology-core.md` | methodology | accepted | source_of_truth | L1 | 2026-05-10 |
 | [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-08 |
 | [Alpha Roadmap - Agent Work Trust Flywheel](../product/alpha-roadmap.md) | `docs/product/alpha-roadmap.md` | product | current | source_of_truth | L1 | 2026-05-02 |
 | [Alpha-0 Evidence of Governed Work](../product/alpha-0-evidence-of-governed-work.md) | `docs/product/alpha-0-evidence-of-governed-work.md` | product | current | source_of_truth | L1 | 2026-05-02 |
@@ -214,6 +215,7 @@
 | [Philosophical Governance Gap Ledger](../governance/philosophical-governance-gap-ledger.jsonl) | `docs/governance/philosophical-governance-gap-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-03 |
 | [DG Pack Checker Ecosystem Phase Receipt](../runtime/dg-checker-ecosystem-receipt.md) | `docs/runtime/dg-checker-ecosystem-receipt.md` | receipt | current | current_status | L2 | 2026-05-04 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
+| [Update Registry Statistics](../../scripts/update-registry-stats.py) | `scripts/update-registry-stats.py` | tooling | current | current_status | L2 | 2026-05-10 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |
 | [Alpaca Paper Trade Ledger](../runtime/paper-trades/paper-trade-ledger.md) | `docs/runtime/paper-trades/paper-trade-ledger.md` | runtime | current | current_status | L3 | 2026-04-29 |
@@ -532,6 +534,7 @@
 | [HAP-3 TaskPlan + ReviewRecord Strengthening](../runtime/hap-taskplan-reviewrecord-hap-3.md) | `docs/runtime/hap-taskplan-reviewrecord-hap-3.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [PGI-2 Dogfood Summit — Decision and Pack Operating System](../runtime/pgi-2-dogfood-summit.md) | `docs/runtime/pgi-2-dogfood-summit.md` | runtime | closed | supporting_evidence | L2 | 2026-05-03 |
 | [PGI-3 Dogfood Summit — Flywheel, Memory, and Externalization](../runtime/pgi-3-dogfood-summit.md) | `docs/runtime/pgi-3-dogfood-summit.md` | runtime | closed | supporting_evidence | L2 | 2026-05-04 |
+| [Document Registry Statistics](../ai/_registry-stats.md) | `docs/ai/_registry-stats.md` | supporting_evidence | current | supporting_evidence | L2 | 2026-05-10 |
 | [Deferred Legacy Term Triage — LGC-5](../governance/deferred-legacy-term-triage-dgp-lgc-5.jsonl) | `docs/governance/deferred-legacy-term-triage-dgp-lgc-5.jsonl` | triage | current | supporting_evidence | L2 | 2026-05-09 |
 | [ADP-3 Structure-Aware + Registry-Aware + PV-Aware Detection](../runtime/adp-3-structure-registry-public-surface-detection.md) | `docs/runtime/adp-3-structure-registry-public-surface-detection.md` | runtime | superseded | historical_record | L2 | 2026-05-02 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |

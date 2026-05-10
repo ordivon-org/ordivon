@@ -81,7 +81,7 @@ def compute_stats(entries: list[dict]) -> dict:
                     "doc_id": e.get("doc_id"),
                     "path": e.get("path"),
                     "freshness": freshness,
-                    "stale_after_days": stale_days
+                    "stale_after_days": stale_days,
                 })
 
     return {
@@ -92,7 +92,7 @@ def compute_stats(entries: list[dict]) -> dict:
         "by_authority": by_authority,
         "doc_type_count": len(by_type),
         "stale_count": len(stale_entries),
-        "stale_entries": stale_entries
+        "stale_entries": stale_entries,
     }
 
 
@@ -162,13 +162,15 @@ def main() -> int:
             return 1
 
         committed = OUTPUT.read_text()
+
         # Strip timestamp line for stable comparison
         def _strip_ts(text: str) -> str:
-            return re.sub(r'<!-- Generated: .* -->\n', '', text)
+            return re.sub(r"<!-- Generated: .* -->\n", "", text)
+
         if _strip_ts(committed) != _strip_ts(generated):
             print(f"DRIFT DETECTED: {OUTPUT} is out of date.")
             print(f"  Registry has {stats['total']} entries, {stats['doc_type_count']} types.")
-            print(f"  Fix: uv run python scripts/update-registry-stats.py")
+            print("  Fix: uv run python scripts/update-registry-stats.py")
             return 1
 
         print(f"✓ Registry stats consistent: {stats['total']} entries, {stats['doc_type_count']} types")

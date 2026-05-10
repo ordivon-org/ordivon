@@ -47,12 +47,14 @@ REFERENCE_DATE = date.fromisoformat(_REF_DATE) if _REF_DATE else date.today()
 
 # ── Valid values from governance docs ──────────────────────────────────
 
+
 def _load_valid_doc_types() -> set:
     """Load valid doc_types from canonical schema (L-CI-SELFCAL-002 fix)."""
     schema_path = ROOT / "docs/governance/schemas/document-types.json"
     with open(schema_path) as f:
         schema = json.loads(f.read())
     return set(schema["valid_doc_types"])
+
 
 VALID_DOC_TYPES = _load_valid_doc_types()
 
