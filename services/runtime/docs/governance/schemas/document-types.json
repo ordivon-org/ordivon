@@ -31,7 +31,8 @@
     "inventory",
     "supporting_evidence",
     "triage",
-    "methodology"
+    "methodology",
+    "proposal"
   ],
   "validation": {
     "rules": [
