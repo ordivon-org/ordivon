@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 438
+**Total registered docs**: 441
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -215,6 +215,7 @@
 | [Philosophical Governance Gap Ledger](../governance/philosophical-governance-gap-ledger.jsonl) | `docs/governance/philosophical-governance-gap-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-03 |
 | [DG Pack Checker Ecosystem Phase Receipt](../runtime/dg-checker-ecosystem-receipt.md) | `docs/runtime/dg-checker-ecosystem-receipt.md` | receipt | current | current_status | L2 | 2026-05-04 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
+| [Atomic Governance Gate](../../scripts/check_atomic_governance.py) | `scripts/check_atomic_governance.py` | tooling | current | current_status | L2 | 2026-05-10 |
 | [Update Registry Statistics](../../scripts/update-registry-stats.py) | `scripts/update-registry-stats.py` | tooling | current | current_status | L2 | 2026-05-10 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |
@@ -223,6 +224,7 @@
 | [Ordivon Stage Summit — Phase 4 Close](../product/ordivon-stage-summit-phase-4.md) | `docs/product/ordivon-stage-summit-phase-4.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Ordivon Stage Summit — Phase 6 Close](../product/ordivon-stage-summit-phase-6.md) | `docs/product/ordivon-stage-summit-phase-6.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Phase 8 Readiness Tracker](../runtime/paper-trades/phase-7p-readiness-tracker.md) | `docs/runtime/paper-trades/phase-7p-readiness-tracker.md` | tracker | deferred | current_status | L3 | 2026-04-29 |
+| [Ordivon Macro Structure — System Architecture Overview](../ai/ordivon-macro-structure.md) | `docs/ai/ordivon-macro-structure.md` | ai_onboarding | current | source_of_truth | L0 | 2026-05-10 |
 | [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-08 |
 
 
@@ -240,6 +242,7 @@
 | [Ordivon Systems Reference — Commands, Purpose, Substance for AI Agents](../ai/systems-reference.md) | `docs/ai/systems-reference.md` | ai_onboarding | current | current_status | L1 | 2026-05-04 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
 | [Ordivon Source-Doc Consistency Audit and Red-Team Repair Map](../ai/codebase-deep-analysis-2026-05-02.md) | `docs/ai/codebase-deep-analysis-2026-05-02.md` | ai_onboarding | current | supporting_evidence | L2 | 2026-05-02 |
+| [Ordivon Macro Structure — System Architecture Overview](../ai/ordivon-macro-structure.md) | `docs/ai/ordivon-macro-structure.md` | ai_onboarding | current | source_of_truth | L0 | 2026-05-10 |
 | [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-08 |
 
 **AI read path**: AGENTS.md (L0) → docs/ai/ (L1) → governance pack (L2) → evidence (L3) → archive (L4)
@@ -326,6 +329,7 @@
 | [Shadow Evaluation Log](../governance/shadow-evaluation-log.jsonl) | `docs/governance/shadow-evaluation-log.jsonl` | governance_pack | current | supporting_evidence | L2 | 2026-05-03 |
 | [Shadow Evaluation Red-Team Corpus](../../checkers/policy-shadow/fixtures/shadow_cases.json) | `checkers/policy-shadow/fixtures/shadow_cases.json` | governance_pack | current | supporting_evidence | L2 | 2026-05-03 |
 | [OEP-0001 EGB-2 Core Governance Backbone](../governance/oep-0001-egb-2-core-governance-backbone.md) | `docs/governance/oep-0001-egb-2-core-governance-backbone.md` | governance_pack | proposed | proposal | L2 | 2026-05-05 |
+| [Red-Team Remediation Plan — 2026-05-10](../governance/red-team-remediation-plan-2026-05-10.md) | `docs/governance/red-team-remediation-plan-2026-05-10.md` | governance_pack | proposed | proposal | L2 | 2026-05-10 |
 
 
 ## 4. Evidence / Ledger

@@ -37,9 +37,11 @@ GOVERNED_DIRS = [
 # Adding a new exclusion requires editing the schema file, not the checker source.
 EXCLUSIONS_SCHEMA_PATH = ROOT / "docs/governance/schemas/governed-exclusions.json"
 
+
 def _load_exclusions() -> dict[str, str]:
     with open(EXCLUSIONS_SCHEMA_PATH) as f:
         return json.load(f)["entries"]
+
 
 GOVERNED_EXCLUSIONS = _load_exclusions()
 
@@ -68,13 +70,15 @@ def get_changed_files() -> list[str]:
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", "origin/main...HEAD"],
-            capture_output=True, text=True, cwd=str(ROOT), timeout=10
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            timeout=10,
         )
         if result.returncode != 0:
             # Fallback: last commit
             result = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD~1"],
-                capture_output=True, text=True, cwd=str(ROOT), timeout=10
+                ["git", "diff", "--name-only", "HEAD~1"], capture_output=True, text=True, cwd=str(ROOT), timeout=10
             )
         return [l for l in result.stdout.strip().split("\n") if l]
     except Exception:
@@ -124,8 +128,8 @@ def check_registration(
                 "rule": "AG-1",
                 "severity": "blocking",
                 "file": rel,
-                "message": f"File in governed directory is not registered in document-registry.jsonl",
-                "fix": f"Add entry to {REGISTRY_PATH} with doc_id, path, doc_type, status, authority"
+                "message": "File in governed directory is not registered in document-registry.jsonl",
+                "fix": f"Add entry to {REGISTRY_PATH} with doc_id, path, doc_type, status, authority",
             })
             continue
 
@@ -140,7 +144,7 @@ def check_registration(
                 "file": rel,
                 "doc_type": dt,
                 "message": f"doc_type '{dt}' is not in {SCHEMA_PATH}",
-                "fix": f"Add '{dt}' to valid_doc_types in {SCHEMA_PATH}"
+                "fix": f"Add '{dt}' to valid_doc_types in {SCHEMA_PATH}",
             })
 
     return findings, stats
@@ -178,7 +182,7 @@ def main() -> int:
                 print(f"  [{f['rule']}] {f['file']}: {f['message']}")
             return 1
         else:
-            print(f"\n✓ Atomic governance gate PASSED")
+            print("\n✓ Atomic governance gate PASSED")
             return 0
 
     return 1 if findings else 0

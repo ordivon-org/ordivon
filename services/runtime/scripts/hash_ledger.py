@@ -19,17 +19,41 @@ from pathlib import Path
 
 # Fields included in the content hash (governable fields).
 # Excludes: metadata fields that change on re-generation (created, etc.)
-HASH_FIELDS = ["debt_id", "lesson_id", "status", "classification",
-               "description", "package", "advisory", "reason",
-               "detected_version", "mitigation", "resolution",
-               "body", "severity", "tags", "source_checker",
-               "source_phase", "evidence_count"]
+HASH_FIELDS = [
+    "debt_id",
+    "lesson_id",
+    "status",
+    "classification",
+    "description",
+    "package",
+    "advisory",
+    "reason",
+    "detected_version",
+    "mitigation",
+    "resolution",
+    "body",
+    "severity",
+    "tags",
+    "source_checker",
+    "source_phase",
+    "evidence_count",
+]
 
-FIXED_FIELDS = {"created", "review_trigger", "review_schedule",
-                "resolution_criteria", "ci_ignore", "ci_config",
-                "remediation_plan", "outcome_ref_type", "outcome_ref_id",
-                "review_id", "recommendation_id", "review_script",
-                "review_command"}
+FIXED_FIELDS = {
+    "created",
+    "review_trigger",
+    "review_schedule",
+    "resolution_criteria",
+    "ci_ignore",
+    "ci_config",
+    "remediation_plan",
+    "outcome_ref_type",
+    "outcome_ref_id",
+    "review_id",
+    "recommendation_id",
+    "review_script",
+    "review_command",
+}
 
 
 def hash_entry(entry: dict) -> str:
@@ -75,7 +99,7 @@ def process_ledger(path: Path, verify_only: bool = False) -> tuple[int, int]:
             ok += 1
 
     if not verify_only:
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             for e in entries:
                 f.write(json.dumps(e, ensure_ascii=False) + "\n")
 
