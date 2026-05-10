@@ -24,7 +24,8 @@
     "docs/runbooks/",
     "docs/architecture/",
     "docs/product/",
-    "docs/adr/"
+    "docs/adr/",
+    "docs/governance/generated/"
   ],
   "safe_files": [
     "packs/coding/policy.py",

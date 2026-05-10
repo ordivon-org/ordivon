@@ -97,6 +97,8 @@ digraph OrdivonPathMap {
   checkers_ownership-manifest_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_paper-dogfood-ledger_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];
   checkers_paper-dogfood-ledger_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
+  checkers_path-map_CHECKER_md [label="CHECKER.md",fillcolor="#a78bfa20",color="#a78bfa"];
+  checkers_path-map_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_pgi-confidence_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];
   checkers_pgi-confidence_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_pgi-decision-gate_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];
@@ -693,7 +695,9 @@ digraph OrdivonPathMap {
   scripts_check_atomic_governance_py [label="check_atomic_governance.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_run_baseline_py [label="run_baseline.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_run_stage_py [label="run_stage.py",fillcolor="#a78bfa20",color="#a78bfa"];
+  scripts_update-path-map_py [label="update-path-map.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_update-registry-stats_py [label="update-registry-stats.py",fillcolor="#a78bfa20",color="#a78bfa"];
+  scripts_verify-path-map_py [label="verify-path-map.py",fillcolor="#a78bfa20",color="#a78bfa"];
   shared_README_md [label="README.md",fillcolor="#94a3b820",color="#94a3b8"];
   shared_config_settings_py [label="settings.py",fillcolor="#94a3b820",color="#94a3b8"];
   shared_enums_domain_py [label="domain.py",fillcolor="#94a3b820",color="#94a3b8"];
@@ -810,6 +814,7 @@ digraph OrdivonPathMap {
   checkers_oep-governance_CHECKER_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   checkers_owner-activation_CHECKER_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   checkers_ownership-manifest_CHECKER_md -> docs_governance_document-registry_jsonl [label="registered_in"];
+  checkers_path-map_CHECKER_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   checkers_policy-shadow_CHECKER_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   checkers_policy-shadow_fixtures_shadow_cases_json -> docs_governance_document-registry_jsonl [label="registered_in"];
   docs_ai_README_md -> docs_governance_document-registry_jsonl [label="registered_in"];
@@ -897,5 +902,4 @@ digraph OrdivonPathMap {
   docs_governance_agentic-pattern-source-ledger-adp-1_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   docs_governance_agentic-pattern-taxonomy-adp-1_md -> docs_governance_document-registry_jsonl [label="registered_in"];
   docs_governance_ai-onboarding-doc-policy_md -> docs_governance_document-registry_jsonl [label="registered_in"];
-  docs_governance_alpha-externalization-alignment-pgi-3_md -> docs_governance_document-registry_jsonl [label="registered_in"];
 }

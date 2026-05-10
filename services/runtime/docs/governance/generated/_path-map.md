@@ -1,15 +1,15 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T19:39:02Z
+> Generated: 2026-05-10T19:40:19Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2035
-- Governed: 797
+- Tracked files: 2044
+- Governed: 801
 - Generated views: 75
-- Excluded: 37
+- Excluded: 42
 - Blocked: 0
 - Debt-parked: 1126
 
@@ -237,6 +237,8 @@
 - `checkers/ownership-manifest/run.py` (checker, owner=-)
 - `checkers/paper-dogfood-ledger/CHECKER.md` (checker, owner=-)
 - `checkers/paper-dogfood-ledger/run.py` (checker, owner=-)
+- `checkers/path-map/CHECKER.md` (document, owner=ordivon-core-maintainer)
+- `checkers/path-map/run.py` (checker, owner=-)
 - `checkers/pgi-confidence/CHECKER.md` (checker, owner=-)
 - `checkers/pgi-confidence/run.py` (checker, owner=-)
 - `checkers/pgi-decision-gate/CHECKER.md` (checker, owner=-)
@@ -400,7 +402,9 @@
 - `docs/governance/wiki-index.md` (document, owner=Governance)
 - `scripts/check_artifact_registry.py` (document, owner=EG)
 - `scripts/check_atomic_governance.py` (document, owner=ordivon-core-maintainer)
+- `scripts/update-path-map.py` (document, owner=ordivon-core-maintainer)
 - `scripts/update-registry-stats.py` (document, owner=ordivon-core-maintainer)
+- `scripts/verify-path-map.py` (document, owner=ordivon-core-maintainer)
 ### knowledge-assets
 - `examples/ordivon-verify/dogfood/clean-ai-task/governance/verification-debt-ledger.jsonl` (knowledge_asset, owner=-)
 - `examples/ordivon-verify/dogfood/false-comfort-ai-task/governance/verification-debt-ledger.jsonl` (knowledge_asset, owner=-)

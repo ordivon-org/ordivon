@@ -32,7 +32,8 @@
     "supporting_evidence",
     "triage",
     "methodology",
-    "proposal"
+    "proposal",
+    "checker"
   ],
   "validation": {
     "rules": [

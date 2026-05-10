@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T19:38:20Z",
+  "generated_at": "2026-05-10T19:40:19Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,11 +8,11 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T19:38:20Z",
-    "tracked_files": 2035,
-    "governed": 797,
+    "generated_at": "2026-05-10T19:40:19Z",
+    "tracked_files": 2044,
+    "governed": 801,
     "generated": 75,
-    "excluded": 37,
+    "excluded": 42,
     "blocked": 0,
     "debt_parked": 1126
   },
@@ -2659,6 +2659,30 @@
     },
     {
       "path": "checkers/paper-dogfood-ledger/run.py",
+      "source_refs": [
+        "git ls-files",
+        "checker discovery"
+      ],
+      "classification_status": "governed",
+      "kind": "checker",
+      "route": "governance-core"
+    },
+    {
+      "path": "checkers/path-map/CHECKER.md",
+      "source_refs": [
+        "git ls-files",
+        "document-registry.jsonl"
+      ],
+      "classification_status": "governed",
+      "kind": "document",
+      "doc_type": "checker",
+      "owner": "ordivon-core-maintainer",
+      "authority": "source_of_truth",
+      "lifecycle": "current",
+      "route": "governance-core"
+    },
+    {
+      "path": "checkers/path-map/run.py",
       "source_refs": [
         "git ls-files",
         "checker discovery"
@@ -5852,6 +5876,33 @@
       "route": "governance-core"
     },
     {
+      "path": "docs/governance/generated/_path-map.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated path map markdown — derived view"
+    },
+    {
+      "path": "docs/governance/generated/path-map.dot",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated path map dot — derived view"
+    },
+    {
+      "path": "docs/governance/generated/path-map.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated path map — derived view, not a governed doc"
+    },
+    {
       "path": "docs/governance/governance-freeze-protocol-egb-2.md",
       "source_refs": [
         "git ls-files",
@@ -6468,6 +6519,24 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Exclusion schema — meta-schema, loaded by atomic-governance checker"
+    },
+    {
+      "path": "docs/governance/schemas/path-map-edge.schema.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Path map edge schema — meta-schema, not a governed doc"
+    },
+    {
+      "path": "docs/governance/schemas/path-map-node.schema.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Path map node schema — meta-schema, not a governed doc"
     },
     {
       "path": "docs/governance/schemas/path-map-rules.json",
@@ -14831,6 +14900,20 @@
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
     },
     {
+      "path": "scripts/update-path-map.py",
+      "source_refs": [
+        "git ls-files",
+        "document-registry.jsonl"
+      ],
+      "classification_status": "governed",
+      "kind": "document",
+      "doc_type": "tooling",
+      "owner": "ordivon-core-maintainer",
+      "authority": "source_of_truth",
+      "lifecycle": "current",
+      "route": "governance-core"
+    },
+    {
       "path": "scripts/update-registry-stats.py",
       "source_refs": [
         "git ls-files",
@@ -15068,6 +15151,20 @@
       "classification_status": "debt_parked",
       "kind": "unclassified",
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/verify-path-map.py",
+      "source_refs": [
+        "git ls-files",
+        "document-registry.jsonl"
+      ],
+      "classification_status": "governed",
+      "kind": "document",
+      "doc_type": "tooling",
+      "owner": "ordivon-core-maintainer",
+      "authority": "source_of_truth",
+      "lifecycle": "current",
+      "route": "governance-core"
     },
     {
       "path": "services/hermes_bridge/__init__.py",
@@ -20967,6 +21064,11 @@
       "type": "registered_in"
     },
     {
+      "from": "checkers/path-map/CHECKER.md",
+      "to": "docs/governance/document-registry.jsonl",
+      "type": "registered_in"
+    },
+    {
       "from": "checkers/policy-shadow/CHECKER.md",
       "to": "docs/governance/document-registry.jsonl",
       "type": "registered_in"
@@ -23107,7 +23209,17 @@
       "type": "registered_in"
     },
     {
+      "from": "scripts/update-path-map.py",
+      "to": "docs/governance/document-registry.jsonl",
+      "type": "registered_in"
+    },
+    {
       "from": "scripts/update-registry-stats.py",
+      "to": "docs/governance/document-registry.jsonl",
+      "type": "registered_in"
+    },
+    {
+      "from": "scripts/verify-path-map.py",
       "to": "docs/governance/document-registry.jsonl",
       "type": "registered_in"
     },
