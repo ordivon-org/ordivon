@@ -37,6 +37,7 @@ SCAN_PATHS = [
 # Exclusions: documents that are NOT governance claims
 EXCLUDE_PREFIXES = [
     "docs/governance/ordivon-methodology-core.md",  # Defines the vocabulary, quotes forbidden words as examples
+    "docs/governance/assessment-template.md",  # Defines anti-patterns using forbidden words as examples
     "docs/governance/schemas/claim-vocabulary.json",  # The vocabulary itself
     "docs/product/aegisos",
     "docs/product/task-template",
