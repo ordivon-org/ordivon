@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T19:40:19Z",
+  "generated_at": "2026-05-10T19:47:58Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,7 +8,7 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T19:40:19Z",
+    "generated_at": "2026-05-10T19:47:58Z",
     "tracked_files": 2044,
     "governed": 801,
     "generated": 75,
