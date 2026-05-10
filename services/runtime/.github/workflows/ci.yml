@@ -97,7 +97,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
       - name: Product tests (incl. ordivon_verify package + schemas)
-        run: uv run pytest tests/unit/product -q
+        run: uv run pytest tests/unit/product -q --tb=short
 
   governance-tests:
     runs-on: ubuntu-latest
