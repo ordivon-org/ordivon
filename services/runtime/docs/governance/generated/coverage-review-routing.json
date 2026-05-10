@@ -1,0 +1,475 @@
+{
+  "generated_at": "2026-05-10T22:23:43Z",
+  "authority": "generated_view",
+  "stats": {
+    "total": 2108,
+    "ownerless": 0,
+    "by_status": {
+      "excluded": 99,
+      "governed": 851,
+      "debt_or_exclusion_required": 826,
+      "generated": 88,
+      "legacy": 29,
+      "fixture": 215
+    }
+  },
+  "ownerless": [],
+  "objects": [
+    {
+      "path": ".editorconfig",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".env.example",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".gitattributes",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": ".github/workflows/codeql.yml",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": ".github/workflows/delivery.yml",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": ".github/workflows/nightly-regression.yml",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": ".gitignore",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".gitleaks.toml",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".hermes/plans/2025-04-26_H8-review-closure-plan.md",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".importlinter",
+      "coverage_status": "excluded",
+      "owner": "unknown exclusion owner",
+      "reviewer_route": "exclusion owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": true,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".lighthouserc.json",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".npmrc",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".vscode/extensions.json",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".vscode/launch.json",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".vscode/settings.json",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": ".vulture.toml",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "AGENTS.md",
+      "coverage_status": "governed",
+      "owner": "ordivon-core-maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "Makefile",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "adapters/README.md",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/__init__.py",
+      "coverage_status": "generated",
+      "owner": "generator script (see source_refs)",
+      "reviewer_route": "generator owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "adapters/finance/__init__.py",
+      "coverage_status": "generated",
+      "owner": "generator script (see source_refs)",
+      "reviewer_route": "generator owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "adapters/finance/health.py",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/finance/paper_execution.py",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/runtimes/README.md",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/runtimes/__init__.py",
+      "coverage_status": "generated",
+      "owner": "generator script (see source_refs)",
+      "reviewer_route": "generator owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "adapters/runtimes/factory.py",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/runtimes/hermes/README.md",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "adapters/runtimes/hermes/__init__.py",
+      "coverage_status": "generated",
+      "owner": "generator script (see source_refs)",
+      "reviewer_route": "generator owner",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "adapters/runtimes/hermes/runtime.py",
+      "coverage_status": "governed",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "registry owner or delegate",
+      "approver_route": "authority-gate reviewer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": true
+    },
+    {
+      "path": "alembic.ini",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "alembic/README",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "alembic/env.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "alembic/script.py.mako",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "alembic/versions/407db90346a8_baseline.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "alembic/versions/d3eb52144b33_describe_change.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/v1/README.md",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/v1/agent_actions.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/v1/analyze.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/v1/audits.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    },
+    {
+      "path": "apps/api/app/api/v1/dashboard.py",
+      "coverage_status": "debt_or_exclusion_required",
+      "owner": "governance-core maintainer",
+      "reviewer_route": "governance-core maintainer",
+      "approver_route": "governance-core maintainer",
+      "mutation_requires_review": false,
+      "mutation_requires_approver": false
+    }
+  ],
+  "not_claimed": [
+    "human identity system",
+    "external governance",
+    "PolicyActivation",
+    "full closure"
+  ]
+}
