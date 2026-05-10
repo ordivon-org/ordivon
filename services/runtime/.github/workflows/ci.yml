@@ -224,6 +224,23 @@ jobs:
           print('✓ Schema valid, both checkers auto-sync from single source')
           "
 
+  # ── atomic governance: every governed file must be registered ─────────
+  # Google presubmit / Linux bisectability: adding a file to docs/ai/ or
+  # docs/governance/ without a registry entry is a governance drift.
+  # CI must BLOCK until the file is registered with doc_type, status, authority.
+
+  atomic-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - name: Atomic governance gate
+        run: uv run python scripts/check_atomic_governance.py
+
   # ── frontend ───────────────────────────────────────────────────────────
 
   frontend:

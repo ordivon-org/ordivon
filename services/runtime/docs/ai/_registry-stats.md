@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — DO NOT EDIT -->
 <!-- Source: docs/governance/document-registry.jsonl -->
 <!-- Generator: scripts/update-registry-stats.py -->
-<!-- Generated: 2026-05-10T15:47:09Z -->
+<!-- Generated: 2026-05-10T15:54:16Z -->
 <!-- Authority: generated_view — not source_of_truth -->
 
 # Document Registry Statistics
@@ -14,7 +14,7 @@
 
 ## Summary
 
-- **Total registered documents**: 439
+- **Total registered documents**: 440
 - **Document types**: 22
 - **Potentially stale**: 433
 
@@ -24,7 +24,7 @@
 |--------|-------|
 | accepted | 10 |
 | closed | 77 |
-| current | 349 |
+| current | 350 |
 | deferred | 1 |
 | proposed | 1 |
 | superseded | 1 |
@@ -52,7 +52,7 @@
 | stage_summit | 8 |
 | supporting_evidence | 6 |
 | template | 3 |
-| tooling | 3 |
+| tooling | 4 |
 | tracker | 1 |
 | triage | 7 |
 
@@ -65,13 +65,13 @@
 | L2 | 181 |
 | L3 | 168 |
 | L4 | 62 |
-| L5 | 1 |
+| L5 | 2 |
 
 ## By Authority
 
 | Authority | Count |
 |-----------|-------|
-| current_status | 87 |
+| current_status | 88 |
 | generated_view | 1 |
 | proposal | 58 |
 | source_of_truth | 112 |
