@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T23:43:31Z
+> Generated: 2026-05-10T23:57:36Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2117
-- Governed: 813
-- Generated views: 90
-- Excluded: 82
+- Tracked files: 2108
+- Governed: 807
+- Generated views: 79
+- Excluded: 99
 - Blocked: 0
-- Debt-parked: 1132
+- Debt-parked: 1123
 
 ## Governed Nodes
 ### ai-boundaries
@@ -178,13 +178,6 @@
 - `docs/runtime/security-external-tooling-closure.md` (document, owner=Governance)
 - `docs/runtime/verify-external-dogfood-hermes-agent-2026-05-07.md` (document, owner=Governance)
 - `docs/runtime/waves-a-e-dogfood-receipt.md` (document, owner=EG)
-### config-and-schemas
-- `docs/governance/schemas/coverage-admission-policy.json` (schema, owner=-)
-- `docs/governance/schemas/coverage-boundary.json` (schema, owner=-)
-- `docs/governance/schemas/coverage-resolution-rules.json` (schema, owner=-)
-- `docs/governance/schemas/coverage-review-routing.json` (schema, owner=-)
-- `docs/governance/schemas/registry-path-reconciliation.schema.json` (schema, owner=-)
-- `docs/governance/schemas/route-taxonomy.json` (schema, owner=-)
 ### governance-core
 - `.github/workflows/ci.yml` (ci_gate, owner=-)
 - `.github/workflows/codeql.yml` (ci_gate, owner=-)
@@ -1357,7 +1350,6 @@
 - `policies/constitution.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `policies/trading_limits.yaml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `pyproject.toml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `repomix.config.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/apply-coverage-resolution-batch.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/audit_ordivon_verify_public_wedge.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1956,14 +1948,6 @@
 - `tests/unit/test_workflow_recovery.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `tests/unit/test_workflow_run_repository.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `tools/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/broker/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/macro_data/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/market_data/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/news_data/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/notifications/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `tools/reports/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `tools/reports/renderer.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/storage/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/utils/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `tools/wiki_io/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `uv.lock`: PM-9 DEBT_OR_EXCLUSION_REQUIRED

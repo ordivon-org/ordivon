@@ -425,6 +425,18 @@
       "may_be_removed_only_by": "Stage Summit with documented reason",
       "purpose": "Validate PGI confidence assessments: calibration, base rate, uncertainty quantification",
       "protects_against": "Overconfidence, missing base rate, confidence without evidence window"
+    },
+    {
+      "gate_id": "path_map",
+      "display_name": "Path Map Drift Detection",
+      "layer": "L3C",
+      "hardness": "hard"
+    },
+    {
+      "gate_id": "path_map_evidence",
+      "display_name": "Path Map Evidence Verification",
+      "layer": "L3D",
+      "hardness": "hard"
     }
   ],
   "_note": "Auto-generated from checkers/ directory. Do not edit manually."
