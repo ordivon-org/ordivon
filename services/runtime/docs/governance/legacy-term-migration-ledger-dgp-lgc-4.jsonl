@@ -1,0 +1,5 @@
+{"path": "docs/governance/legacy-cleanup-risk-matrix-dgp-lgc-0.md", "before_count": 2, "after_count": 0, "action": "edited", "deferred_to": "", "notes": "PFIOS: 1\u21920, AegisOS: 1\u21920"}
+{"path": "docs/governance/data-stateful-classification-dgp-lgc-2.md", "before_count": 4, "after_count": 0, "action": "edited", "deferred_to": "", "notes": "PFIOS: 2\u21920, AegisOS: 2\u21920"}
+{"path": "docs/governance/generated-artifact-quarantine-dgp-lgc-1.md", "before_count": 4, "after_count": 0, "action": "edited", "deferred_to": "", "notes": "PFIOS: 0, AegisOS: 0 (corrected)"}
+{"path": "docs/governance/archive-active-path-historical-docs-dgp-lgc-3.md", "before_count": 2, "after_count": 0, "action": "edited", "deferred_to": "", "notes": "PFIOS: 1\u21920, AegisOS: 1\u21920"}
+{"path": "docs/naming.md", "before_count": 4, "after_count": 4, "action": "deferred_to_lgc5", "deferred_to": "LGC-5", "notes": "naming.md documents intentional legacy naming transition. Cannot rename without breaking doc purpose."}

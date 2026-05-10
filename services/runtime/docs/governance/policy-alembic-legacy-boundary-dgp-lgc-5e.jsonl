@@ -1,0 +1,2 @@
+{"path": "policies/trading_limits.yaml", "term": "PFIOS", "count": 1, "surface_type": "policy_config", "reference_role": "active_policy_identifier", "recommended_action": "trading_pack_boundary", "risk": "R4", "owner": "Governance", "notes": "LGC-5E: boundary established. No edits."}
+{"path": "alembic/env.py", "term": "PFIOS", "count": 2, "surface_type": "alembic_migration", "reference_role": "migration_record", "recommended_action": "do_not_edit_migration", "risk": "R3", "owner": "Governance", "notes": "LGC-5E: boundary established. No edits."}
