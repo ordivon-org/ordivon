@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T19:47:58Z",
+  "generated_at": "2026-05-10T20:04:14Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,13 +8,13 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T19:47:58Z",
-    "tracked_files": 2044,
-    "governed": 801,
+    "generated_at": "2026-05-10T20:04:14Z",
+    "tracked_files": 2046,
+    "governed": 802,
     "generated": 75,
     "excluded": 42,
     "blocked": 0,
-    "debt_parked": 1126
+    "debt_parked": 1127
   },
   "nodes": [
     {
@@ -7222,6 +7222,20 @@
       "owner": "ordivon-core-maintainer",
       "authority": "proposal",
       "lifecycle": "ready_for_execution",
+      "route": "product-docs"
+    },
+    {
+      "path": "docs/product/gos-pm1-seal-receipt.md",
+      "source_refs": [
+        "git ls-files",
+        "document-registry.jsonl"
+      ],
+      "classification_status": "governed",
+      "kind": "document",
+      "doc_type": "receipt",
+      "owner": "ordivon-core-maintainer",
+      "authority": "source_of_truth",
+      "lifecycle": "current",
       "route": "product-docs"
     },
     {
@@ -14558,6 +14572,15 @@
     },
     {
       "path": "scripts/eval_reasoning_quality.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/explain-path-node.py",
       "source_refs": [
         "git ls-files"
       ],
@@ -22225,6 +22248,11 @@
     },
     {
       "from": "docs/product/gos-pm1-execution-plan.md",
+      "to": "docs/governance/document-registry.jsonl",
+      "type": "registered_in"
+    },
+    {
+      "from": "docs/product/gos-pm1-seal-receipt.md",
       "to": "docs/governance/document-registry.jsonl",
       "type": "registered_in"
     },

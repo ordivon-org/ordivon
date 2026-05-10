@@ -1,0 +1,8 @@
+COMMAND: grep -c blocked docs/governance/generated/path-map.json
+EXIT: 0
+
+STDOUT:
+13
+
+
+STDERR:

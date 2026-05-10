@@ -275,6 +275,20 @@ jobs:
       - name: Verify generated path map matches repo reality
         run: uv run python scripts/verify-path-map.py
 
+  # ── verify stage evidence: all stage receipts must have raw evidence ──
+
+  verify-stage-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - name: Verify GOS-PM-1 stage evidence bundle
+        run: uv run python scripts/verify-stage-evidence.py --bundle gos-pm-1
+
   # ── frontend ───────────────────────────────────────────────────────────
 
   frontend:

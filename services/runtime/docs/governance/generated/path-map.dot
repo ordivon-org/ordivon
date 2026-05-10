@@ -356,6 +356,7 @@ digraph OrdivonPathMap {
   docs_product_experience-state-spec_md [label="experience-state-spec.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_product_gos-n1a-path-map-design_md [label="gos-n1a-path-map-design.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_product_gos-pm1-execution-plan_md [label="gos-pm1-execution-plan.md",fillcolor="#a78bfa20",color="#a78bfa"];
+  docs_product_gos-pm1-seal-receipt_md [label="gos-pm1-seal-receipt.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_product_gov-x-stage-notes_md [label="gov-x-stage-notes.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_product_hap-2-stage-notes_md [label="hap-2-stage-notes.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_product_harness-adapter-protocol-stage-notes-hap-1_md [label="harness-adapter-protocol-stage-notes-hap",fillcolor="#a78bfa20",color="#a78bfa"];

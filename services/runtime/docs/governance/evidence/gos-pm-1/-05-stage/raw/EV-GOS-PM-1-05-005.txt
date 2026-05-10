@@ -1,0 +1,8 @@
+COMMAND: grep -c must_not_be_source_of_truth docs/governance/generated/path-map.json
+EXIT: 0
+
+STDOUT:
+75
+
+
+STDERR:
