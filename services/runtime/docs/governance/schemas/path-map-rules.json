@@ -175,8 +175,8 @@
     {
       "condition": "non_protected_unclassified",
       "description": "File outside governed directories with no route",
-      "action": "WARNING_OPTIONAL_EXCLUSION",
-      "required_remediation": "Optionally add to governed-exclusions.json with reason, OR ignore (non-protected path)"
+      "action": "DEBT_OR_EXCLUSION_REQUIRED",
+      "required_remediation": "Must be added to governed-exclusions.json with reason/owner/review_date, OR recorded as A4 debt with review trigger"
     },
     {
       "condition": "generated_view_manual_edit",
