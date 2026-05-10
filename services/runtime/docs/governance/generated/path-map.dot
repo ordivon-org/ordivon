@@ -319,6 +319,7 @@ digraph OrdivonPathMap {
   docs_governance_risk-ladder-gov-x_md [label="risk-ladder-gov-x.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_governance_safe-doc-rename-ledger-dgp-lgc-5b_jsonl [label="safe-doc-rename-ledger-dgp-lgc-5b.jsonl",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_governance_schemas_registry-path-reconciliation_schema_json [label="registry-path-reconciliation.schema.json",fillcolor="#fbbf2420",color="#fbbf24"];
+  docs_governance_schemas_route-taxonomy_json [label="route-taxonomy.json",fillcolor="#fbbf2420",color="#fbbf24"];
   docs_governance_scope-drift-governance-rot-pattern_md [label="scope-drift-governance-rot-pattern.md",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_governance_script-legacy-reference-inventory-dgp-lgc-5c_jsonl [label="script-legacy-reference-inventory-dgp-lg",fillcolor="#a78bfa20",color="#a78bfa"];
   docs_governance_script-legacy-triage-dgp-lgc-5c_md [label="script-legacy-triage-dgp-lgc-5c.md",fillcolor="#a78bfa20",color="#a78bfa"];

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T21:13:39Z",
+  "generated_at": "2026-05-10T21:30:41Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,9 +8,9 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T21:13:39Z",
-    "tracked_files": 2089,
-    "governed": 808,
+    "generated_at": "2026-05-10T21:30:41Z",
+    "tracked_files": 2090,
+    "governed": 809,
     "generated": 80,
     "excluded": 68,
     "blocked": 0,
@@ -6857,6 +6857,15 @@
     },
     {
       "path": "docs/governance/schemas/registry-path-reconciliation.schema.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "governed",
+      "kind": "schema",
+      "route": "config-and-schemas"
+    },
+    {
+      "path": "docs/governance/schemas/route-taxonomy.json",
       "source_refs": [
         "git ls-files"
       ],

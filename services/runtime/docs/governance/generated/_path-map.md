@@ -1,13 +1,13 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T21:13:39Z
+> Generated: 2026-05-10T21:30:41Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2089
-- Governed: 808
+- Tracked files: 2090
+- Governed: 809
 - Generated views: 80
 - Excluded: 68
 - Blocked: 0
@@ -180,6 +180,7 @@
 - `docs/runtime/waves-a-e-dogfood-receipt.md` (document, owner=EG)
 ### config-and-schemas
 - `docs/governance/schemas/registry-path-reconciliation.schema.json` (schema, owner=-)
+- `docs/governance/schemas/route-taxonomy.json` (schema, owner=-)
 ### governance-core
 - `.github/workflows/ci.yml` (ci_gate, owner=-)
 - `.github/workflows/codeql.yml` (ci_gate, owner=-)
