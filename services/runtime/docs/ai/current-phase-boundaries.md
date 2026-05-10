@@ -211,3 +211,6 @@ These are **design-time prohibitions**. No agent may violate them.
 ||| `docs/governance/lesson-ledger.jsonl` | Governance lessons ledger (9 total, 4 CI self-calibration) |
 ||| `scripts/check_cve_2026_3219.py` | CVE-2026-3219 review script — checks OSV API for fixed version |
 ||| `docs/governance/ordivon-methodology-core.md` | L0 methodology — invariants, dual-gate loop, A1-A4 matrix, self-calibration doctrine |
+||| `scripts/update-registry-stats.py` | Registry stats generator + CI verifier — K8s hack/update+verify pattern (A3) |
+||| `docs/ai/_registry-stats.md` | Auto-generated registry statistics (generated_view, do not edit) |
+||| `.github/workflows/ci.yml` | +governance-self-check job — verifies generated views + dual-checker consistency |

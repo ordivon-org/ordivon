@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 436
+**Total registered docs**: 435
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -86,7 +86,6 @@
 | [Ordivon Systems Reference — Commands, Purpose, Substance for AI Agents](../ai/systems-reference.md) | `docs/ai/systems-reference.md` | ai_onboarding | current | current_status | L1 | 2026-05-04 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
 | [AI Onboarding Protocol — DGP-4](../ai/onboarding-protocol-dgp-4.md) | `docs/ai/onboarding-protocol-dgp-4.md` | design_spec | current | current_status | L1 | 2026-05-09 |
-| [Active Enforcement Bridge — DGP-E1](../governance/document-governance-active-enforcement-dgp-e1.md) | `docs/governance/document-governance-active-enforcement-dgp-e1.md` | design_spec | current | current_status | L1 | 2026-05-09 |
 | [Document Authority Model — DGP-3](../governance/document-authority-model-dgp-3.md) | `docs/governance/document-authority-model-dgp-3.md` | design_spec | current | current_status | L1 | 2026-05-09 |
 | [Document Governance CI — DGP-9](../governance/document-governance-ci-dgp-9.md) | `docs/governance/document-governance-ci-dgp-9.md` | design_spec | current | current_status | L1 | 2026-05-09 |
 | [Document Lifecycle Governance — DGP-2](../governance/document-lifecycle-governance-dgp-2.md) | `docs/governance/document-lifecycle-governance-dgp-2.md` | design_spec | current | current_status | L1 | 2026-05-09 |
@@ -510,6 +509,7 @@
 | [Pt 003](../runtime/paper-trades/PT-003.md) | `docs/runtime/paper-trades/PT-003.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
 | [Pt 004](../runtime/paper-trades/PT-004.md) | `docs/runtime/paper-trades/PT-004.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
 | [Readme](../runtime/README.md) | `docs/runtime/README.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Readme](../runtime/paper-trades/README.md) | `docs/runtime/paper-trades/README.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
 | [Repo Governance Cli](../runtime/repo-governance-cli.md) | `docs/runtime/repo-governance-cli.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Repo Governance Failure Semantics](../runtime/repo-governance-failure-semantics.md) | `docs/runtime/repo-governance-failure-semantics.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Runtime Evidence Baseline](../runtime/runtime-evidence-baseline.md) | `docs/runtime/runtime-evidence-baseline.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |

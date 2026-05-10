@@ -169,7 +169,7 @@ docs/ai/current-phase-boundaries.md          ← Phase timeline + boundaries
 docs/ai/agent-output-contract.md             ← Required output format
 docs/governance/extension-processes.md       ← How to extend any layer
 docs/governance/entropy-governance-design.md  ← Anti-entropy system
-docs/governance/document-registry.jsonl      ← 229 registered documents
+docs/governance/document-registry.jsonl      ← see docs/ai/_registry-stats.md for current count (generated_view)
 docs/governance/entropy-telemetry.jsonl      ← Entropy metrics
 docs/governance/candidate-rule-drafts.jsonl  ← CandidateRule proposals
 docs/governance/shadow-evaluation-log.jsonl  ← Shadow evaluation results
