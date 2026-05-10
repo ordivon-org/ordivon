@@ -539,19 +539,17 @@ def generate_manifest() -> dict:
     entries = discover_checkers()
     gates = []
     for entry in sorted(entries.values(), key=lambda e: e.layer):
-        gates.append(
-            {
-                "gate_id": entry.gate_id,
-                "display_name": entry.display_name,
-                "layer": entry.layer,
-                "hardness": entry.hardness,
-                "command": f"python -m ordivon_verify run {entry.gate_id}",
-                "expected_result_type": "exit_code_0" if entry.hardness == "hard" else "checker_output",
-                "may_be_removed_only_by": "Stage Summit with documented reason",
-                "purpose": entry.purpose,
-                "protects_against": entry.protects_against,
-            }
-        )
+        gates.append({
+            "gate_id": entry.gate_id,
+            "display_name": entry.display_name,
+            "layer": entry.layer,
+            "hardness": entry.hardness,
+            "command": f"python -m ordivon_verify run {entry.gate_id}",
+            "expected_result_type": "exit_code_0" if entry.hardness == "hard" else "checker_output",
+            "may_be_removed_only_by": "Stage Summit with documented reason",
+            "purpose": entry.purpose,
+            "protects_against": entry.protects_against,
+        })
     hard_count = sum(1 for e in entries.values() if e.hardness == "hard")
     escalation_count = sum(1 for e in entries.values() if e.hardness == "escalation")
     return {

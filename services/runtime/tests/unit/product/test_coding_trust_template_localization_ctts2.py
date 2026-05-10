@@ -240,16 +240,14 @@ def test_cli_template_regressions_and_no_target_writes(tmp_path, capsys):
 
 
 def test_new_ai_context_check_is_discoverable_from_onboarding_docs():
-    docs = "\n".join(
-        [
-            (Path("AGENTS.md")).read_text(encoding="utf-8"),
-            (Path("docs/ai/README.md")).read_text(encoding="utf-8"),
-            (Path("docs/ai/current-phase-boundaries.md")).read_text(encoding="utf-8"),
-            (Path("docs/ai/new-ai-collaborator-guide.md")).read_text(encoding="utf-8"),
-            (Path("docs/product/coding-trust-profile-template-system.md")).read_text(encoding="utf-8"),
-            (Path("docs/product/coding-trust-localization-casebook-ctts-2.md")).read_text(encoding="utf-8"),
-        ]
-    )
+    docs = "\n".join([
+        (Path("AGENTS.md")).read_text(encoding="utf-8"),
+        (Path("docs/ai/README.md")).read_text(encoding="utf-8"),
+        (Path("docs/ai/current-phase-boundaries.md")).read_text(encoding="utf-8"),
+        (Path("docs/ai/new-ai-collaborator-guide.md")).read_text(encoding="utf-8"),
+        (Path("docs/product/coding-trust-profile-template-system.md")).read_text(encoding="utf-8"),
+        (Path("docs/product/coding-trust-localization-casebook-ctts-2.md")).read_text(encoding="utf-8"),
+    ])
 
     docs_lower = docs.lower()
     required = [

@@ -1,9 +1,9 @@
 # Current Phase Boundaries
 
-Status: **CURRENT** (Alpha-0 active; DG-7 + EG-1 active; PGI locally sealed)
-Date: 2026-05-04
-Phase: Alpha-0 / DG-7 / EG-1
-Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`
+Status: **CURRENT** (DGP-S CLOSED; DGP-1→DGP-9 complete)
+Date: 2026-05-09
+Phase: DGP-S / DGP-1→DGP-9
+Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`, `dgp`, `registry-control-plane`
 
 ## 1. Phase Timeline
 
@@ -16,18 +16,17 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
 | Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
 | **Phase 7P** | **CLOSED** | Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published |
-| **DG-1** | **COMPLETE** | Document Governance Pack — 7 doc files, taxonomy + lifecycle + wiki |
-| **DG-1A** | **COMPLETE** | AI Output Contract Middleware — receipt template + verification discipline |
-| **DG-1B** | **COMPLETE** | Document Governance Pack Acceptance Seal — commit + tag |
-| **DG-2** | **COMPLETE** | Document Registry Prototype + Doc Consistency Checker — 28 entries |
-| **DG-3** | **COMPLETE** | Document Staleness Audit + Authority Conflict Review |
-| **DG-4** | **COMPLETE** | Staleness Automation + Freshness Checker — 33 tests, semantic scan |
-| **DG-5** | **COMPLETE** | Baseline Integration — document checker in pr-fast (8/8 gates) |
-| **DG-6** | **COMPLETE** | Wiki Navigation Prototype — registry-derived wiki-index.md |
-| **DG-6A** | **COMPLETE** | Core/Pack/Adapter Ontology Consolidation |
-| **DG-6A-S** | **COMPLETE** | Ontology Registry Landing + Metadata Checker — 29 entries, 40 tests |
-| **DG-6B** | **COMPLETE** | Verification Debt Ledger + Receipt Integrity — 10/10 baseline |
-| **DG-6C** | **COMPLETE** | Verification Gate Manifest + Baseline Integrity — 11/11 |
+| **DG-1 through DG-6C** | **COMPLETE** | Document Governance Pack v1 — document lifecycle, registry, staleness, wiki |
+| **DGP-1 / RCP** | **CLOSED** | Registry Control Plane Foundation — 1220 objects, 6 source adapters, 10 reconciler checks |
+| **DGP-2** | **CLOSED** | Document Lifecycle Governance — lifecycle invariants in reconciler |
+| **DGP-3** | **CLOSED** | Current Truth / Authority Governance — 188 current truth entries, authority-boundary check |
+| **DGP-4** | **CLOSED** | AI Onboarding / Context Governance — onboarding protocol, context map, reading order, no-go map |
+| **DGP-5** | **CLOSED** | Receipt / Stage Summit Governance — receipt standard, stage summit standard, phase-closure ledger |
+| **DGP-6** | **CLOSED** | Format / Medium Governance — 11 media formats with authority boundaries |
+| **DGP-7** | **CLOSED** | Archive / Tombstone / Metabolism — tombstone ledger, supersession map |
+| **DGP-8** | **CLOSED** | Knowledge Map / Navigation Governance — knowledge map, reading graph, system map |
+| **DGP-9** | **CLOSED** | Document Governance CI / Operationalization — ordivon-verify document-governance --check |
+| **DGP-S** | **CURRENT** | Document Governance Pack Stage Summit — this compression
 | **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
 | **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
 | **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
@@ -57,6 +56,7 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **PGI-1** | **CLOSED** | Reality and Value Substrate — truth/claim/evidence/confidence/falsifiability/boundary red-team layer |
 | **PGI-2** | **CLOSED** | Decision and Pack Operating System — DecisionGate, reversibility, control boundary, anti-overforce, Pack seeds |
 | **PGI-3** | **CLOSED** | Flywheel, Memory, and Externalization — self-model, memory hygiene, AI/tool boundary, externalization |
+| **CTTS-3M-S** | **CLOSED** | Stage Summit / Metabolic Closure — all 12 phases sealed |
 | Phase 8 | **DEFERRED** | Manual Live Micro-Capital Dogfood |
 
 ## 2. Corrected Phase 7 Path

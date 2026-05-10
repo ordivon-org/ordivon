@@ -51,35 +51,29 @@ def validate_finance_decision_intake(payload: dict[str, Any]) -> FinanceDecision
 
     direction = normalized_payload["direction"]
     if not isinstance(direction, str) or direction not in ALLOWED_FINANCE_DECISION_DIRECTIONS:
-        errors.append(
-            {
-                "field": "direction",
-                "code": "invalid_choice",
-                "message": "direction must be one of: long, short, hold, observe.",
-            }
-        )
+        errors.append({
+            "field": "direction",
+            "code": "invalid_choice",
+            "message": "direction must be one of: long, short, hold, observe.",
+        })
 
     confidence = normalized_payload["confidence"]
     if confidence is not None:
         try:
             parsed_confidence = float(confidence)
         except (TypeError, ValueError):
-            errors.append(
-                {
-                    "field": "confidence",
-                    "code": "invalid_number",
-                    "message": "confidence must be numeric when provided.",
-                }
-            )
+            errors.append({
+                "field": "confidence",
+                "code": "invalid_number",
+                "message": "confidence must be numeric when provided.",
+            })
         else:
             if parsed_confidence < 0 or parsed_confidence > 1:
-                errors.append(
-                    {
-                        "field": "confidence",
-                        "code": "out_of_range",
-                        "message": "confidence must be between 0 and 1.",
-                    }
-                )
+                errors.append({
+                    "field": "confidence",
+                    "code": "out_of_range",
+                    "message": "confidence must be between 0 and 1.",
+                })
             else:
                 normalized_payload["confidence"] = parsed_confidence
 
@@ -89,55 +83,45 @@ def validate_finance_decision_intake(payload: dict[str, Any]) -> FinanceDecision
 def _require_non_empty_text(errors: list[dict[str, str]], field_name: str, value: Any) -> None:
     if isinstance(value, str) and value.strip():
         return
-    errors.append(
-        {
-            "field": field_name,
-            "code": "required",
-            "message": f"{field_name} is required before governance.",
-        }
-    )
+    errors.append({
+        "field": field_name,
+        "code": "required",
+        "message": f"{field_name} is required before governance.",
+    })
 
 
 def _require_positive_number(errors: list[dict[str, str]], field_name: str, value: Any) -> None:
     if value is None:
-        errors.append(
-            {
-                "field": field_name,
-                "code": "required",
-                "message": f"{field_name} is required before governance.",
-            }
-        )
+        errors.append({
+            "field": field_name,
+            "code": "required",
+            "message": f"{field_name} is required before governance.",
+        })
         return
 
     try:
         parsed = float(value)
     except (TypeError, ValueError):
-        errors.append(
-            {
-                "field": field_name,
-                "code": "invalid_number",
-                "message": f"{field_name} must be numeric.",
-            }
-        )
+        errors.append({
+            "field": field_name,
+            "code": "invalid_number",
+            "message": f"{field_name} must be numeric.",
+        })
         return
 
     if parsed <= 0:
-        errors.append(
-            {
-                "field": field_name,
-                "code": "non_positive",
-                "message": f"{field_name} must be positive.",
-            }
-        )
+        errors.append({
+            "field": field_name,
+            "code": "non_positive",
+            "message": f"{field_name} must be positive.",
+        })
 
 
 def _require_explicit_boolean(errors: list[dict[str, str]], field_name: str, value: Any) -> None:
     if isinstance(value, bool):
         return
-    errors.append(
-        {
-            "field": field_name,
-            "code": "explicit_answer_required",
-            "message": f"{field_name} must be explicitly answered before governance.",
-        }
-    )
+    errors.append({
+        "field": field_name,
+        "code": "explicit_answer_required",
+        "message": f"{field_name} must be explicitly answered before governance.",
+    })

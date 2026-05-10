@@ -47,7 +47,7 @@ scripts/check_current_truth_protocol.py
 
 It detects:
 
-- `current_truth` described as permanent/final/unsupersedable
+- `current_truth` described as stale/overconfident/unsupersedable
 - `source_of_truth` registry entries missing `last_verified` or
   `stale_after_days`
 

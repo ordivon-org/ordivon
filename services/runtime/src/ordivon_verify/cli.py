@@ -105,6 +105,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sub.add_parser("debt", help="Check debt ledger invariants")
     sub.add_parser("gates", help="Verify gate manifest integrity")
     sub.add_parser("docs", help="Check document registry + semantic safety")
+    ri_parser = sub.add_parser("registry-index", help="Generate unified registry control plane index (JSON)")
+    ri_parser.add_argument("--check", action="store_true", help="Exit non-zero if BLOCKED > 0 (CI gate)")
+    ri_parser.add_argument("--snapshot", action="store_true", help="Write index snapshot for future diff")
+    ri_parser.add_argument("--diff", action="store_true", help="Compare current index vs last snapshot")
+    dg_parser = sub.add_parser("document-governance", help="Run DGP document governance check (CI gate)")
+    dg_parser.add_argument("--check", action="store_true", help="CI mode: exit non-zero on BLOCKED")
+    dg_parser.add_argument("--summary", action="store_true", help="Compact status output")
+    dg_parser.add_argument("--full", action="store_true", help="Full findings with details")
     parser.add_argument("--json", action="store_true", help="Output JSON report")
     parser.add_argument("--markdown", action="store_true", help="Output Markdown trust report")
     parser.add_argument(
@@ -140,43 +148,37 @@ def _profile_stage_results(evidence_report: dict, config: dict, profile_context:
     binding_items = bindings.get("items", [])
     non_ready_bindings = [item for item in binding_items if item.get("trust_signal") != "READY_WITHOUT_AUTHORIZATION"]
     if not bindings.get("binding_file"):
-        results.append(
-            {
-                "id": "agent_claim_bindings",
-                "label": "Agent Claim Bindings",
-                "status": "FAIL",
-                "exit_code": -1,
-                "stdout": "",
-                "stderr": "No agent claim binding file found for merge/release-stage coding trust audit",
-                "missing_evidence": True,
-                "next_action": "Add agent_claims.jsonl binding each claim to artifacts, tests, receipt, and review evidence.",
-            }
-        )
+        results.append({
+            "id": "agent_claim_bindings",
+            "label": "Agent Claim Bindings",
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "No agent claim binding file found for merge/release-stage coding trust audit",
+            "missing_evidence": True,
+            "next_action": "Add agent_claims.jsonl binding each claim to artifacts, tests, receipt, and review evidence.",
+        })
     elif non_ready_bindings:
-        results.append(
-            {
-                "id": "agent_claim_bindings",
-                "label": "Agent Claim Bindings",
-                "status": "FAIL",
-                "exit_code": 1,
-                "stdout": "",
-                "stderr": f"{len(non_ready_bindings)} agent claim binding(s) lack complete evidence",
-            }
-        )
+        results.append({
+            "id": "agent_claim_bindings",
+            "label": "Agent Claim Bindings",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"{len(non_ready_bindings)} agent claim binding(s) lack complete evidence",
+        })
 
     if not config.get("gate_manifest"):
-        results.append(
-            {
-                "id": "coding_profile_gate_manifest",
-                "label": "Coding Profile Gate Manifest",
-                "status": "FAIL",
-                "exit_code": -1,
-                "stdout": "",
-                "stderr": "No confirmed gate_manifest configured for merge/release-stage coding trust audit",
-                "missing_evidence": True,
-                "next_action": "Confirm canonical test/lint/security gates and configure gate_manifest.",
-            }
-        )
+        results.append({
+            "id": "coding_profile_gate_manifest",
+            "label": "Coding Profile Gate Manifest",
+            "status": "FAIL",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "No confirmed gate_manifest configured for merge/release-stage coding trust audit",
+            "missing_evidence": True,
+            "next_action": "Confirm canonical test/lint/security gates and configure gate_manifest.",
+        })
 
     if stage != "release":
         return results
@@ -185,56 +187,48 @@ def _profile_stage_results(evidence_report: dict, config: dict, profile_context:
     release_counts = release.get("status_counts", {})
     release_weak = release_counts.get("missing", 0) + release_counts.get("blocked", 0)
     if release_weak:
-        results.append(
-            {
-                "id": "release_claim_audit",
-                "label": "Release Claim Audit",
-                "status": "FAIL",
-                "exit_code": 1,
-                "stdout": "",
-                "stderr": f"{release_weak} release claim(s) need evidence mapping before release-stage audit",
-            }
-        )
+        results.append({
+            "id": "release_claim_audit",
+            "label": "Release Claim Audit",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"{release_weak} release claim(s) need evidence mapping before release-stage audit",
+        })
 
     skills = inv.get("skills", {})
     skill_failures = skills.get("status_counts", {}).get("FAIL", 0)
     if skill_failures:
-        results.append(
-            {
-                "id": "skill_safety",
-                "label": "Skill Safety",
-                "status": "FAIL",
-                "exit_code": 1,
-                "stdout": "",
-                "stderr": f"{skill_failures} skill safety finding(s) require owner disposition before release-stage audit",
-            }
-        )
+        results.append({
+            "id": "skill_safety",
+            "label": "Skill Safety",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"{skill_failures} skill safety finding(s) require owner disposition before release-stage audit",
+        })
     memory = inv.get("memory_content_hygiene", {})
     memory_blockers = memory.get("status_counts", {}).get("BLOCKED", 0)
     if memory_blockers:
-        results.append(
-            {
-                "id": "memory_content_hygiene",
-                "label": "Memory / Content Hygiene",
-                "status": "FAIL",
-                "exit_code": 1,
-                "stdout": "",
-                "stderr": f"{memory_blockers} memory/content record(s) contain stale source, scope, or authority confusion",
-            }
-        )
+        results.append({
+            "id": "memory_content_hygiene",
+            "label": "Memory / Content Hygiene",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"{memory_blockers} memory/content record(s) contain stale source, scope, or authority confusion",
+        })
     harness = inv.get("harness_evidence_import", {})
     harness_blockers = harness.get("status_counts", {}).get("BLOCKED", 0)
     if harness_blockers:
-        results.append(
-            {
-                "id": "harness_evidence_import",
-                "label": "Harness Evidence Import",
-                "status": "FAIL",
-                "exit_code": 1,
-                "stdout": "",
-                "stderr": f"{harness_blockers} trace/checkpoint bundle(s) contain missing failures or authorization leakage",
-            }
-        )
+        results.append({
+            "id": "harness_evidence_import",
+            "label": "Harness Evidence Import",
+            "status": "FAIL",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": f"{harness_blockers} trace/checkpoint bundle(s) contain missing failures or authorization leakage",
+        })
     return results
 
 
@@ -335,6 +329,156 @@ def main(argv: list[str] | None = None) -> int:
         check_ids = [gate_id]
     elif command in ("receipts", "debt", "gates", "docs"):
         check_ids = [command]
+    elif command == "registry-index":
+        # RG-8: generate unified registry control plane index
+        from ordivon_verify.registry.reconciler import generate_registry_index
+        import json as _json
+
+        index = generate_registry_index(root)
+
+        # RG-18: --check flag for CI: exit non-zero if BLOCKED > 0
+        if getattr(args, "check", False):
+            blocked = index["summary"]["blocked_findings"]
+            degraded = index["summary"]["degraded_findings"]
+            routed = index["summary"].get("routed_by_inheritance", 0)
+            print(f"BLOCKED={blocked} DEGRADED={degraded} ROUTED={routed}")
+            if blocked > 0:
+                print(f"FAIL: {blocked} BLOCKED findings — hard gate failed", file=sys.stderr)
+                print(f"Gate: --check exits nonzero only on BLOCKED > 0.", file=sys.stderr)
+                print(f"      DEGRADED is advisory. Use --strict for degraded gate.", file=sys.stderr)
+                print(f"      This is NOT merge/release/deploy authorization.", file=sys.stderr)
+                return 1
+            print(f"PASS: 0 BLOCKED")
+            print(f"Gate: BLOCKED=0 — hard gate passed.")
+            print(f"      DEGRADED={degraded} (advisory) ROUTED={routed} (by inheritance)")
+            print(f"      This is NOT merge/release/deploy authorization.")
+            return 0
+
+        # RG-18: --snapshot flag: write index to .ordivon/registry/last-index.json for diff
+        if getattr(args, "snapshot", False):
+            snap_dir = root / ".ordivon" / "registry"
+            snap_dir.mkdir(parents=True, exist_ok=True)
+            snap_path = snap_dir / "last-index.json"
+            snap_path.write_text(_json.dumps(index, indent=2))
+            print(f"Snapshot written: {snap_path}")
+            return 0
+
+        # RG-18: --diff flag: compare current vs last snapshot
+        if getattr(args, "diff", False):
+            snap_path = root / ".ordivon" / "registry" / "last-index.json"
+            if not snap_path.exists():
+                print("No snapshot found. Run --snapshot first.", file=sys.stderr)
+                return 3
+            import json as _json
+
+            prev = _json.loads(snap_path.read_text())
+            prev_ids = set(prev.get("objects", {}).keys())
+            curr_ids = set(index.get("objects", {}).keys())
+            new_objects = curr_ids - prev_ids
+            removed_objects = prev_ids - curr_ids
+            print(f"New objects: {len(new_objects)}")
+            if new_objects:
+                for nid in sorted(new_objects)[:20]:
+                    obj = index["objects"].get(nid, {})
+                    print(f"  + {nid} ({obj.get('kind', '?')}) {obj.get('path', '')}")
+            print(f"Removed objects: {len(removed_objects)}")
+            if removed_objects:
+                for rid in sorted(removed_objects)[:10]:
+                    print(f"  - {rid}")
+            return 0 if len(new_objects) == 0 else 0  # --diff is advisory
+
+        print(_json.dumps(index, indent=2))
+        return 0
+    elif command == "document-governance":
+        # DGP-9: document governance CI check — wraps registry-index + DGP layer reporting
+        from ordivon_verify.registry.reconciler import generate_registry_index
+        import json as _json
+
+        index = generate_registry_index(root)
+        blocked = index["summary"]["blocked_findings"]
+        degraded = index["summary"]["degraded_findings"]
+        routed = index["summary"].get("routed_by_inheritance", 0)
+        checks = index["summary"].get("by_check", {})
+        # Show ALL registered checks, not just ones with findings
+        from ordivon_verify.registry.reconciler import _RECONCILER_CHECKS
+
+        total_checks = len(_RECONCILER_CHECKS)
+        check_names = [c[0] for c in _RECONCILER_CHECKS]
+
+        dgp_layers = {
+            "DGP-1": "Registry Control Plane Foundation",
+            "DGP-2": "Document Lifecycle Governance",
+            "DGP-3": "Current Truth / Authority Governance",
+            "DGP-4": "AI Onboarding / Context Governance",
+            "DGP-5": "Receipt / Stage Summit Governance",
+            "DGP-6": "Format / Medium Governance",
+            "DGP-7": "Archive / Tombstone / Metabolism",
+            "DGP-8": "Knowledge Map / Navigation Governance",
+        }
+
+        is_check = getattr(args, "check", False)
+        is_summary = getattr(args, "summary", False)
+        is_full = getattr(args, "full", False)
+
+        if is_check:
+            print(f"Document Governance Check:")
+            print(f"  BLOCKED={blocked}  DEGRADED={degraded}  ROUTED={routed}")
+            print(f"  DGP layers: {len(dgp_layers)} governed")
+            print(f"  Checks active: {total_checks}")
+            for cn in check_names:
+                cnt = checks.get(cn, 0)
+                print(f"    {cn}: {cnt}")
+            if blocked > 0:
+                print(f"\nFAIL: {blocked} BLOCKED findings", file=sys.stderr)
+                return 1
+            print(f"\nPASS: 0 BLOCKED")
+            print(f"Gate: --check exits nonzero only on BLOCKED > 0.")
+            print(f"      DEGRADED is advisory unless --strict is used.")
+            print(f"      This is NOT merge/release/deploy authorization.")
+            return 0
+        elif is_summary:
+            print(f"Document Governance: BLOCKED={blocked} DEGRADED={degraded} ROUTED={routed}")
+            print(f"DGP layers active: DGP-1→DGP-8")
+            print(f"Reconciler checks: {total_checks}")
+            print(f"Command: ordivon-verify registry-index --check")
+            return 0
+        elif is_full:
+            print(f"=== Document Governance Full Report ===")
+            print(f"BLOCKED: {blocked}")
+            print(f"DEGRADED: {degraded}")
+            print(f"ROUTED (by inheritance): {routed}")
+            print(f"Objects: {index['summary']['total_objects']}")
+            print(f"\nDGP Layers:")
+            for layer, desc in dgp_layers.items():
+                print(f"  {layer}: {desc}")
+            print(f"\nReconciler checks: {total_checks}")
+            for cn in check_names:
+                cnt = checks.get(cn, 0)
+                print(f"  {cn}: {cnt} findings")
+            if index.get("findings"):
+                print(f"\nTop findings:")
+                for f in index["findings"][:10]:
+                    print(f"  [{f['status']}] {f['invariant']}: {f['message'][:100]}")
+            print(f"\nNon-authorization boundary:")
+            print(f"  Report is generated_view. Not merge/release/deploy authorization.")
+            return 0
+        else:
+            print(
+                json.dumps(
+                    {
+                        "document_governance": {
+                            "blocked": blocked,
+                            "degraded": degraded,
+                            "routed": routed,
+                            "checks": checks,
+                            "dgp_layers": list(dgp_layers.keys()),
+                        },
+                        "registry_index": index["summary"],
+                    },
+                    indent=2,
+                )
+            )
+            return 0
     else:
         print(f"Unknown command: {command}", file=sys.stderr)
         return 3
@@ -356,18 +500,16 @@ def main(argv: list[str] | None = None) -> int:
                         results.append(_runner.run_external_receipts(receipt_paths, root))
                     else:
                         receipts_required = mode in ("standard", "strict")
-                        results.append(
-                            {
-                                "id": "receipts",
-                                "label": "Receipt Integrity",
-                                "status": "FAIL" if receipts_required else "WARN",
-                                "exit_code": -1,
-                                "stdout": "",
-                                "stderr": "No receipt_paths configured",
-                                "missing_evidence": True,
-                                "next_action": "Configure receipt_paths so Ordivon can verify agent work claims.",
-                            }
-                        )
+                        results.append({
+                            "id": "receipts",
+                            "label": "Receipt Integrity",
+                            "status": "FAIL" if receipts_required else "WARN",
+                            "exit_code": -1,
+                            "stdout": "",
+                            "stderr": "No receipt_paths configured",
+                            "missing_evidence": True,
+                            "next_action": "Configure receipt_paths so Ordivon can verify agent work claims.",
+                        })
                 else:
                     results.append(_runner.run_external_checker(cid, root, mode, config))
             evidence_report = discover_external_evidence(

@@ -26,29 +26,27 @@ class EscalateReason:
 _MAX_LOSS_TO_RISK_UNIT_RATIO = 2.0
 _MAX_POSITION_TO_RISK_UNIT_RATIO = 10.0
 
-_EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset(
-    {
-        "stress",
-        "stressed",
-        "stressful",
-        "fear",
-        "fearful",
-        "scared",
-        "terrified",
-        "panicked",
-        "panic",
-        "anger",
-        "angry",
-        "furious",
-        "frustrated",
-        "fomo",
-        "greedy",
-        "desperate",
-        "reckless",
-        "revenge",
-        "impulsive",
-    }
-)
+_EMOTIONAL_RISK_KEYWORDS: frozenset[str] = frozenset({
+    "stress",
+    "stressed",
+    "stressful",
+    "fear",
+    "fearful",
+    "scared",
+    "terrified",
+    "panicked",
+    "panic",
+    "anger",
+    "angry",
+    "furious",
+    "frustrated",
+    "fomo",
+    "greedy",
+    "desperate",
+    "reckless",
+    "revenge",
+    "impulsive",
+})
 
 _BANNED_THESIS_PATTERNS: tuple[str, ...] = (
     "just feels right",

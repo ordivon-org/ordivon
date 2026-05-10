@@ -256,28 +256,24 @@ def run_shadow_evaluation() -> tuple[list[dict], dict]:
         try:
             policy = _draft_to_policy(draft)
         except Exception as e:
-            log_entries.append(
-                {
-                    "candidate_rule_id": candidate_rule_id,
-                    "run_at": _now_iso(),
-                    "error": f"PolicyRecord construction failed: {e}",
-                    "results": [],
-                }
-            )
+            log_entries.append({
+                "candidate_rule_id": candidate_rule_id,
+                "run_at": _now_iso(),
+                "error": f"PolicyRecord construction failed: {e}",
+                "results": [],
+            })
             continue
 
         # Run evaluation for all cases against this policy
         try:
             results = evaluator.evaluate_batch(policy, cases)
         except Exception as e:
-            log_entries.append(
-                {
-                    "candidate_rule_id": candidate_rule_id,
-                    "run_at": _now_iso(),
-                    "error": f"Shadow evaluation failed: {e}",
-                    "results": [],
-                }
-            )
+            log_entries.append({
+                "candidate_rule_id": candidate_rule_id,
+                "run_at": _now_iso(),
+                "error": f"Shadow evaluation failed: {e}",
+                "results": [],
+            })
             continue
 
         stats["total_evaluations"] += len(results)

@@ -31,7 +31,7 @@ These documents define the current system identity. Start here:
    The canonical architecture baseline as of 2026-04-22. All other architecture docs defer to this.
 
 2. **Architecture Language** — `docs/architecture/LANGUAGE.md`
-   Shared vocabulary for all Ordivon/PFIOS architecture discussions.
+   Shared vocabulary for all Ordivon architecture discussions.
 
 3. **State Truth Boundary** — `docs/architecture/state-truth-boundary.md`
    Hard boundary between SQLAlchemy ORM (domain truth) and DuckDB (analytics). Tagged H-2, P4-prep.

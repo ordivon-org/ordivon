@@ -10,121 +10,68 @@ docs/ai/README.md                        AI onboarding start
 docs/ai/ordivon-root-context.md          Identity + governance doctrine
 docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries
 docs/ai/agent-output-contract.md         Required output shape for every AI task
+docs/ai/current-system-map.md            Current system state overview
+docs/ai/no-go-boundary-map.md            Hard boundaries for AI operation
+docs/ai/new-ai-reading-order.md          9-step mandatory reading path
+docs/ai/onboarding-protocol-dgp-4.md     Governed AI onboarding protocol
+
+── Constitution & Philosophy ──
+docs/architecture/ordivon-companion-governance-constitution.md  Companion governance origin
+docs/governance/philosophical-governance-layer.md  Philosophical operating layer
 docs/architecture/ordivon-core-pack-adapter-ontology.md  Canonical Core/Pack/Adapter ontology
-docs/architecture/ordivon-moat-and-product-identity.md  What is inalienable, what is not, where the moat is
-docs/architecture/ordivon-companion-governance-constitution.md  Companion governance origin and highest constitution
-docs/governance/philosophical-governance-layer.md  Philosophical operating layer for truth, value, action, pain, and self-evolution
-docs/product/philosophical-governance-implementation-roadmap.md  PGI 3x10 implementation roadmap for philosophical governance
-docs/governance/README.md                Document Governance Pack (accepted)
-docs/runbooks/ordivon-agent-operating-doctrine.md  Full doctrine
-docs/runtime/ordivon-value-philosophy.md Why not a trading bot
-docs/governance/verification-signal-classification.md  Classify checker failures before acting
-docs/runbooks/newcomer-execution-flow.md  One safe command ladder for new humans and AI collaborators
+docs/architecture/ordivon-moat-and-product-identity.md  Inalienable assets and moat
 
-── Extension & Governance Systems (NEW) ──
-docs/governance/extension-processes.md        How to extend Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired
-docs/governance/entropy-governance-design.md   Anti-entropy system design (Lehman's Laws applied)
-docs/governance/entropy-telemetry.jsonl        Entropy metrics ledger (timestamped snapshots)
-docs/governance/checker-maturity-ledger.jsonl  Checker maturity state transitions
-docs/governance/policy-activation-ledger.jsonl Policy activation owner signoffs
-docs/governance/candidate-rule-drafts.jsonl    Extracted CandidateRules from lessons (2 drafts)
-docs/governance/shadow-evaluation-log.jsonl    Policy Shadow Runner evaluation results
-docs/governance/lesson-ledger.jsonl            Lessons from checker findings (5 lessons)
+── Registry Control Plane (DGP-1 / RCP) ──
+ordivon-verify registry-index --check     Current reconciler state (CLI)
+ordivon-verify document-governance --check  Document governance hard gate (CI)
+docs/governance/registry-object-model-rg-1.md  RegistryObject model
+docs/governance/current-truth-entry-map.jsonl  Authoritative truth register (188 entries)
+docs/governance/owner-routing-rules.jsonl      Path-inheritance owner routing (10 rules)
 
-── Governance Pipeline (CATLASS) ──
-stage-templates/doc-governance.yaml            Stage template: doc-governance pipeline
-scripts/run_stage.py                           Stage runner — governance pipeline executor
-docs/runtime/waves-a-e-dogfood-receipt.md      Dogfood receipt — first CATLASS stage run
+── Document Governance Pack (DGP-2 → DGP-9) ──
+docs/governance/document-lifecycle-governance-dgp-2.md   Lifecycle state machine
+docs/governance/document-authority-model-dgp-3.md        Authority boundaries
+docs/governance/document-medium-authority-dgp-6.md        Medium/format authority
+docs/governance/document-metabolism-dgp-7.md              Archive/tombstone rules
+docs/governance/phase-receipt-standard-dgp-5.md           Receipt standard
+docs/governance/stage-summit-standard-dgp-5.md            Stage summit standard
+docs/product/document-governance-pack-stage-summit.md     DGP-S: final compression
 
-── Architecture ──
-docs/architecture/harness-adapter-protocol-hap-1.md   HAP v0 protocol architecture
-docs/runtime/hap-foundation-hap-1.md                HAP foundation evidence
-docs/product/harness-adapter-protocol-stage-notes-hap-1.md  HAP-1 stage notes
-docs/governance/external-ai-governance-benchmark-pack-egb-1.md  External governance benchmarks
-docs/ai/external-benchmark-reading-guide.md         EGB-1 AI reading guide
-docs/governance/agentic-pattern-taxonomy-adp-1.md   Agentic pattern taxonomy (18 patterns)
-docs/runtime/ordivon-system-summit-oss-1.md        OSS-1 system summit and re-centering audit
-docs/runtime/core-pack-governance-loop-gap-analysis-oss-1.md  Core/Pack loop node-level gap analysis
-docs/architecture/ordivon-system-classification-audit-oss-1.md  OSS-1 L0-L10 asset map
-docs/ai/codebase-deep-analysis-2026-05-02.md       Source-doc consistency audit + red-team repair map
-docs/product/alpha-roadmap.md                      Full Alpha roadmap and trust flywheel
-docs/product/alpha-0-evidence-of-governed-work.md  Alpha-0 product direction: agent work trust audit
-docs/runtime/alpha-0-casebook.md                   Governed AI coding work casebook
-docs/product/coding-trust-profile-template-system.md  CTTS generic Coding Trust templates
-docs/product/coding-trust-localization-casebook-ctts-2.md  CTTS-2 localization dogfood casebook
-docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md  CTTS-3 adoption + agent-native evidence pack receipt
-docs/runtime/ctts-closure-seal.md             CTTS foundation closure seal
-docs/product/coding-trust-adoption-plan.md    Coding Trust Adoption source of truth
-docs/runtime/coding-trust-adoption-dogfood-matrix.md  Adoption dogfood matrix
-docs/runtime/ordivon-internal-full-audit-2026-05-08.md  Internal full audit after OV/CTTS/CTA closure
-docs/runtime/ordivon-internal-full-audit-round-2-2026-05-08.md  Mainline deep-dive audit for target-layer reconnect
-docs/runtime/internal-audit-debt-cleanup-2026-05-08.md  Verification debt cleanup after internal audits
+── Legacy Governance (LGC-0 → LGC-S) ──
+docs/governance/legacy-cleanup-risk-matrix-dgp-lgc-0.md  Freeze: 26 dirs, 209 terms
+docs/product/legacy-governance-stage-summit-dgp-lgc-s.md  LGC-S: governed legacy seal
+docs/governance/architecture-baseline-bridge-plan-dgp-lgc-5a.md  Bridge doc status
 ```
 
-## Current Status — Phase 7P: CLOSED | DG Pack: CLOSED | PV-NZ: CLOSED | COV-1R: CLOSED | COV-2: CLOSED | OGAP-Z: CLOSED | HAP-1: CLOSED | EGB-1: CLOSED | ADP-1: CLOSED | HAP-2: CLOSED | GOV-X: CLOSED | ADP-2: CLOSED | HAP-3: CLOSED | ADP-2R: CLOSED | ADP-3: CLOSED | DG-1: CLOSED | OSS-1: CLOSED | CPR-1: CLOSED | CPR-2: CLOSED | CPR-3: CLOSED | EG-1: ACTIVE | Alpha-0: ACTIVE
-Next: Alpha-0 Evidence of Governed Work — AI coding agent trust audit
+## Current Status — DGP-S: CLOSED | LGC-S: CLOSED | DGP-1→DGP-9: CLOSED
 
-pr-fast: 12/12 PASS | full baseline: 38/38 ALL PASS (26 hard + 12 escalation) | read-only Verify: 35/35 PASS | 0 open debt | Phase 8: DEFERRED
-Phase 6: Design + Finance Observation — COMPLETE
-**Phase 7P: Alpaca Paper Dogfood — CLOSED** (Stage Summit published)
-**DG Pack: CLOSED** — Document Governance Pack, 18 sub-phases, Stage Summit published
-**PV-1: PROPOSAL** — Ordivon Verify CLI product contract (docs only)
-**PV-2: COMPLETE** — Ordivon Verify CLI skeleton (35 tests, 4 checkers wrapped)
-**PV-3: COMPLETE** — External fixture dogfood + minimal config mode
-**PV-4: COMPLETE** — Trust report polish (76 tests, rich output)
-**PV-5: COMPLETE** — Agent skill + CI adoption pack
-**PV-6: COMPLETE** — Agent skill dogfood (scenarios A-D validated)
-**PV-7: COMPLETE** — Clean external fixture READY path
-**PV-8: COMPLETE** — Standard external fixture (governance files → READY)
-**PV-9: COMPLETE** — GitHub Action example dogfood
-**PV-10: COMPLETE** — Public README / landing copy drafts
-**PV-11: COMPLETE** — Public packaging boundary (private core + public wedge)
-**PV-12: COMPLETE** — Package extraction plan
-**PV-Z: CLOSED** — Ordivon Verify productization Stage Summit
-**PV-N1: CLOSED** — Private package prototype (src/ordivon_verify/ created, script wrapper preserved)
-**PV-N2: CLOSED** — Schema extraction (5 JSON schemas + 29 tests, no private references)
-**PV-N2H: CLOSED** — DG coverage hardening + legacy identity hygiene (VD-005 closed, coverage plane implemented)
-**PV-N3: CLOSED** — Public quickstart dogfood (example fixture READY, 14 tests)
-**PV-N4: CLOSED** — Private package install smoke (console entrypoint, 16 tests)
-**PV-N5: CLOSED** — Release readiness audit (17 blockers across 4 tiers)
-**PV-N6: CLOSED** — Secret + Private Reference Audit Dry Run (0 blocking findings)
-**PV-N7: CLOSED** — Local public repo dry-run (16 copied, 0 missing required)
-**PV-N8: CLOSED** — Local build artifact smoke (wheel built, 244 private paths — BLOCKED for public publish)
-**OGAP-1: CLOSED** — Protocol semantics + object model
-**OGAP-2: CLOSED** — Schemas + local validator
-**OGAP-3: CLOSED** — Adapter fixture dogfood
-**OGAP-Z: CLOSED** — Protocol foundation Stage Summit
-<!-- PV status legend: CLOSED=no open work, COMPLETE=sealed, ACTIVE=in progress, DEFERRED=not started -->
+**Registry Control Plane**: 1221 objects, 0 BLOCKED, 0 DEGRADED, 269 ROUTED, 13 reconciler checks
+**Document Governance**: 10 phases (DGP-1→DGP-9 + DGP-E1), CLOSED. 436 doc-registry entries, 30 JSON schemas
+**Legacy Governance**: 13 phases (LGC-0→LGC-5F + LGC-S), CLOSED_AS_GOVERNED_LEGACY. 0 deletions, 0 behavior changes
 
-Paper dogfood proved governance pipeline integrity, not profitability.
-3 completed round trips. 4 refusals. 0 boundary violations.
-204 backend tests. 57 frontend tests. 38/38 full baseline (26 hard + 12 escalation).
+Previous eras: Phase 7P CLOSED | DG Pack v1 CLOSED | PV-NZ CLOSED | OGAP-Z CLOSED | HAP/EGB/ADP lines CLOSED
+Active: Alpha-0 | Next: MR-0 Main Reality Freeze
 
-Checker ecosystem: 38 checkers (26 hard, 12 escalation) across L3-L10.
-Governance loop: Checker→Lesson→CandidateRule→Shadow→Review — fully closed.
-Entropy governance: telemetry + gates, Lehman's Laws applied.
-Extension processes: Core/Pack/Adapter/Checker/Test — PEP+RFC+KEP inspired.
-Maturity model: draft→shadow_tested→red_teamed→active, no self-promotion.
-Owner veto: Policy activation requires named owner + explicit signoff.
-CandidateRules: 2 drafts (freshness, receipt overclaim). Phase 8: DEFERRED.
+## Operational Commands
 
-**pr-fast**: 12/12 hard gates. **full**: 38/38 ALL PASS (26 hard + 12 escalation). **read-only Verify**: 35/35 PASS. 0 open debt.
-**Current center**: Coding Trust Adoption + Alpha-0 Evidence of Governed Work.
-**CTTS**: CLOSED AS FOUNDATION — do not expand into CTTS-4 unless a new owner reopens it.
-**Next**: External dogfood, report UX, and project AI onboarding for Coding Trust.
+```
+ordivon-verify document-governance --check   # CI hard gate (BLOCKED > 0 → exit 1)
+ordivon-verify registry-index --check        # Reconciler status
+ordivon-verify registry-index --snapshot     # Write index snapshot
+ordivon-verify registry-index --diff         # Compare vs last snapshot
+```
 
 ## Critical Boundaries
 
-- Live trading: PHASE 8 DEFERRED (requires Stage Gate)
-- Broker write API: NO-GO
+- Live trading: DEFERRED (requires Stage Gate)
 - Policy activation: NO-GO
-- Auto-trading: NO-GO
-- CandidateRule to Policy: NO-GO
-- Document Governance Pack: design-only, no code enforcement
-- OGAP: protocol foundation only — no API, no SDK, no MCP server, no public standard
-- Financial/broker/live action: NO-GO
-- READY ≠ approval: valid OGAP payloads do not authorize execution
-- CTTS templates ≠ project authority: discovery candidates are hints, not canonical gates
-- Project AI localizes evidence; owner/reviewer decides; OV verifies trust structure only
-- CTTS-3 template export writes only to an explicit `--emit-template-dir`
-- Skill/tool/workflow/trace/memory evidence is not permission, truth, approval, or safe action
+- CandidateRule to Policy: NO-GO without PolicyActivation
+- Document governance PASS is NOT merge/release/deploy authorization
+- Generated view is NOT source_of_truth
+- Owner is NOT approver
+- Archive is NOT current truth
+- alembic migrations are do-not-edit by default
+- policies/trading_limits.yaml is outside DGP scope (requires Trading Pack)
+- Legacy directories are legacy_inactive — re-entry requires manifest conditions
+- 26 legacy dirs are governed, not deleted
+- PFIOS/AegisOS legacy terms are governed legacy context, not current Ordivon naming

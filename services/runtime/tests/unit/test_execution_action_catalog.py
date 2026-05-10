@@ -28,28 +28,26 @@ def test_execution_action_catalog_exposes_primary_receipt_candidates():
 
 def test_execution_action_catalog_rejects_duplicate_action_ids():
     with pytest.raises(ValueError, match="Duplicate execution action_id"):
-        validate_execution_catalog(
-            (
-                ExecutionActionSpec(
-                    action_id="dup_action",
-                    family="analysis",
-                    side_effect_level="state_mutation",
-                    owner_path="owner.one",
-                    boundary_status="covered",
-                    state_targets=("analyses",),
-                    primary_receipt_candidate=False,
-                ),
-                ExecutionActionSpec(
-                    action_id="dup_action",
-                    family="analysis",
-                    side_effect_level="state_mutation",
-                    owner_path="owner.two",
-                    boundary_status="covered",
-                    state_targets=("analyses",),
-                    primary_receipt_candidate=False,
-                ),
-            )
-        )
+        validate_execution_catalog((
+            ExecutionActionSpec(
+                action_id="dup_action",
+                family="analysis",
+                side_effect_level="state_mutation",
+                owner_path="owner.one",
+                boundary_status="covered",
+                state_targets=("analyses",),
+                primary_receipt_candidate=False,
+            ),
+            ExecutionActionSpec(
+                action_id="dup_action",
+                family="analysis",
+                side_effect_level="state_mutation",
+                owner_path="owner.two",
+                boundary_status="covered",
+                state_targets=("analyses",),
+                primary_receipt_candidate=False,
+            ),
+        ))
 
 
 def test_get_execution_action_raises_for_unknown_action():

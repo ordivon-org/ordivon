@@ -32,7 +32,8 @@ class AuditEventRepository:
 
     def list_for_review(self, review_id: str) -> list[AuditEventORM]:
         return (
-            self.db.query(AuditEventORM)
+            self.db
+            .query(AuditEventORM)
             .filter(AuditEventORM.review_id == review_id)
             .order_by(AuditEventORM.created_at.desc())
             .all()

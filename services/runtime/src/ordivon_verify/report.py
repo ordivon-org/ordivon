@@ -64,14 +64,12 @@ def _missing_evidence(results: list[dict]) -> list[dict]:
     for r in results:
         if not r.get("missing_evidence"):
             continue
-        missing.append(
-            {
-                "check": r["id"],
-                "surfaces": _surfaces_for(r["id"]),
-                "reason": r.get("stderr", "Evidence missing or not configured."),
-                "next_action": r.get("next_action", f"Configure {r['label'].lower()} evidence."),
-            }
-        )
+        missing.append({
+            "check": r["id"],
+            "surfaces": _surfaces_for(r["id"]),
+            "reason": r.get("stderr", "Evidence missing or not configured."),
+            "next_action": r.get("next_action", f"Configure {r['label'].lower()} evidence."),
+        })
     return missing
 
 
@@ -99,43 +97,37 @@ def _top_findings(hard_failures: list[dict], missing: list[dict], warnings: list
     represented = set()
     for item in hard_failures[:7]:
         represented.add(item.get("check") or item.get("id"))
-        findings.append(
-            {
-                "severity": "blocker",
-                "id": item.get("id", item.get("check", "failure")),
-                "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
-                "reason": item.get("reason", "Hard failure"),
-                "next_action": item.get("next_action", "Review checker output."),
-            }
-        )
+        findings.append({
+            "severity": "blocker",
+            "id": item.get("id", item.get("check", "failure")),
+            "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
+            "reason": item.get("reason", "Hard failure"),
+            "next_action": item.get("next_action", "Review checker output."),
+        })
     for item in missing:
         if len(findings) >= 7:
             break
         if item.get("check") in represented:
             continue
         represented.add(item.get("check"))
-        findings.append(
-            {
-                "severity": "missing_evidence",
-                "id": item.get("check", "missing_evidence"),
-                "surface": ", ".join(item.get("surfaces", [])) or "unknown",
-                "reason": item.get("reason", "Evidence missing."),
-                "next_action": item.get("next_action", "Add evidence or record an explicit boundary."),
-            }
-        )
+        findings.append({
+            "severity": "missing_evidence",
+            "id": item.get("check", "missing_evidence"),
+            "surface": ", ".join(item.get("surfaces", [])) or "unknown",
+            "reason": item.get("reason", "Evidence missing."),
+            "next_action": item.get("next_action", "Add evidence or record an explicit boundary."),
+        })
     filtered_warnings = [
         item for item in warnings if item.get("check") not in represented and item.get("id") not in represented
     ]
     for item in filtered_warnings[: max(0, 7 - len(findings))]:
-        findings.append(
-            {
-                "severity": "warning",
-                "id": item.get("id", item.get("check", "warning")),
-                "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
-                "reason": item.get("reason", "Warning"),
-                "next_action": item.get("next_action", "Review warning."),
-            }
-        )
+        findings.append({
+            "severity": "warning",
+            "id": item.get("id", item.get("check", "warning")),
+            "surface": ", ".join(_surfaces_for(item.get("check", ""))) or "unknown",
+            "reason": item.get("reason", "Warning"),
+            "next_action": item.get("next_action", "Review warning."),
+        })
     return findings
 
 
@@ -157,36 +149,30 @@ def build_report(
             sub_failures = r.get("failures", [])
             if sub_failures:
                 for sf in sub_failures:
-                    hard_failures.append(
-                        {
-                            "id": sf["id"],
-                            "check": r["id"],
-                            "file": sf["file"],
-                            "line": sf.get("line", 0),
-                            "reason": sf["reason"],
-                            "why_it_matters": sf["why_it_matters"],
-                            "next_action": sf["next_action"],
-                        }
-                    )
-            else:
-                hard_failures.append(
-                    {
-                        "id": r["id"],
+                    hard_failures.append({
+                        "id": sf["id"],
                         "check": r["id"],
-                        "reason": r.get("stderr", "Checker failed"),
-                        "why_it_matters": "A hard verification gate failed.",
-                        "next_action": r.get("next_action", f"Review {r['label'].lower()} checker output."),
-                    }
-                )
-        elif r["status"] == "WARN":
-            warn_entries.append(
-                {
+                        "file": sf["file"],
+                        "line": sf.get("line", 0),
+                        "reason": sf["reason"],
+                        "why_it_matters": sf["why_it_matters"],
+                        "next_action": sf["next_action"],
+                    })
+            else:
+                hard_failures.append({
                     "id": r["id"],
                     "check": r["id"],
-                    "reason": r.get("stderr", "Warning"),
-                    "next_action": r.get("next_action", f"Configure {r['label'].lower()} when ready."),
-                }
-            )
+                    "reason": r.get("stderr", "Checker failed"),
+                    "why_it_matters": "A hard verification gate failed.",
+                    "next_action": r.get("next_action", f"Review {r['label'].lower()} checker output."),
+                })
+        elif r["status"] == "WARN":
+            warn_entries.append({
+                "id": r["id"],
+                "check": r["id"],
+                "reason": r.get("stderr", "Warning"),
+                "next_action": r.get("next_action", f"Configure {r['label'].lower()} when ready."),
+            })
 
     missing = _missing_evidence(results)
     profile_context = profile_context or {
@@ -252,13 +238,11 @@ def render_summary(report: dict) -> str:
         for item in missing:
             surfaces_text = ", ".join(item.get("surfaces", [])) or "unknown"
             lines.append(f"- **{item['check']}** ({surfaces_text})")
-    lines.extend(
-        [
-            "",
-            "### Next Action",
-            "",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Next Action",
+        "",
+    ])
     if report["status"] == "READY":
         lines.append("- Record evidence status; project owner/reviewer still decides any action.")
     elif report["status"] == "DEGRADED":
@@ -283,15 +267,13 @@ def render_markdown(report: dict, full: bool = False) -> str:
     ]
     if report.get("config"):
         lines.append(f"**Config:** `{report['config']}`")
-    lines.extend(
-        [
-            "",
-            "### Surfaces",
-            "",
-            "| Surface | Status | Checks |",
-            "|---|---|---|",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Surfaces",
+        "",
+        "| Surface | Status | Checks |",
+        "|---|---|---|",
+    ])
     surfaces = report.get("surfaces", {})
     for surface in ("claims", "receipts", "tests", "diff", "debt", "docs", "gates", "review"):
         entry = surfaces.get(surface, {"status": "NOT_APPLICABLE", "checks": []})
@@ -410,13 +392,11 @@ def render_markdown(report: dict, full: bool = False) -> str:
         if risk:
             lines.append(f"- Agent-native risk surfaces: {len(risk)}")
 
-    lines.extend(
-        [
-            "",
-            "### Recommended Next Action",
-            "",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Recommended Next Action",
+        "",
+    ])
     if report["status"] == "READY":
         lines.append("- Record the evidence status. Do not treat READY as permission for action.")
     elif report["status"] == "DEGRADED":
@@ -474,7 +454,7 @@ def print_human(results: list[dict], mode: str, root: str, config_path: str | No
                     print()
             else:
                 print(f"  {f['id']}")
-                reason = f.get("stderr", "Checker failed")
+                reason = f.get("stderr") or f.get("stdout") or "Checker failed"
                 print(f"    Reason:  {reason}")
                 print()
 

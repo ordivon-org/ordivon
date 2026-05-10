@@ -225,3 +225,150 @@ Future phases:
 - EG-2: Entropy Budget (module-level quotas)
 - EG-3: Automatic archival (stale docs auto-archived)
 - EG-4: Predictive entropy (ML-based growth forecasting)
+
+## 9. Anti-Mudball Governance Doctrine
+
+> A governance system is not naturally immune to becoming a mudball.
+> Without a control plane, deletion capacity, exception expiry, and
+> metabolic mechanisms, it becomes a higher-order mudball.
+
+### 9.1 The Governance Mudball
+
+What Ordivon guards against is not ordinary code bloat but:
+
+```text
+governance mudball
+```
+
+Characteristics:
+
+```text
+Many checkers, weak control.
+Many docs, unclear current truth.
+Many receipts, weak real closure.
+Many rules, no lifecycle.
+Many reports, no human reading them.
+Many exceptions, no expiry.
+Many scanners, growing noise.
+```
+
+### 9.2 The Mudball Risk Formula
+
+```text
+Governance Mudball Risk =
+  New checkers + New docs + New receipts + New ledgers
+  + New templates + New protocols + New exceptions
+  + New scanner findings
+  -
+  (Core simplicity + generated registry + TTL/tombstone
+   + fixture/archive/tmp exclusion + report compression
+   + current truth routing + hard NO-GO boundaries)
+```
+
+When the top half grows faster than the bottom half, mudball forms.
+
+### 9.3 Small Hard Control Plane, Large Soft Evidence Plane
+
+```text
+Core:
+  Small. Stable. Hard. Changes slowly.
+  Holds only invariants:
+  - Evidence != Approval
+  - READY != Authorization
+  - CandidateRule != Policy
+  - Skill != Permission
+  - Memory != Truth
+  - Trace != Truth
+
+Packs:
+  Medium. Scenario-specific. Replaceable.
+
+Adapters:
+  Many. Volatile. Must not pollute Core.
+
+Reports / receipts / ledgers:
+  Generable. Compressible. Archivable. Tombstonable.
+```
+
+### 9.4 No Immortal Exceptions
+
+Every exception must carry:
+
+```text
+owner
+reason
+scope
+risk_stage
+created_at
+review_date
+expiry
+removal_plan
+evidence_ref
+```
+
+Without these, an exception is governance debt.
+
+### 9.5 Docs Are Maps, Not Walls
+
+Philosophical invariants must not live only in prose. They must become:
+
+```text
+1. Schema constraint
+2. Deterministic checker
+3. Report wording invariant
+4. Lifecycle rule
+5. Registry rule
+6. Test fixture
+7. Closure predicate
+```
+
+Anything that cannot land in one of these 7 forms is commentary,
+not a control surface.
+
+### 9.6 Deletion Is a Positive Capability
+
+Every phase closure receipt must include a Subtraction Receipt:
+
+```text
+Files deprecated
+Rules downgraded
+Artifacts archived
+Exceptions removed
+Duplicate definitions merged
+Old receipts tombstoned
+Current truth reduced
+```
+
+Without deletion/deprecation/tombstone capacity, every governance
+system becomes an accumulation system.
+
+### 9.7 The Four Questions for Every New Governance Object
+
+Before any new object enters Core or becomes an active Pack:
+
+```text
+1. What new control capability does it add?
+2. What entropy does it reduce?
+3. What old burden does it delete?
+4. Does it turn new complexity into long-term debt?
+```
+
+If these four cannot be answered, the object stays in
+candidate / archive / internal dogfood only.
+
+### 9.8 Compression
+
+```text
+Complexity is not failure; unmanaged complexity is failure.
+Every exception must expire.
+Every rule must have a death path.
+Docs cannot substitute for control.
+Detection cannot substitute for prevention.
+History cannot pollute the present.
+Governance expansion must be paired with governance deletion.
+```
+
+> Ordivon's enemy is not complexity — it is un-metabolized complexity.
+> Not exceptions — immortal exceptions.
+> Not documents — documents masquerading as control surfaces.
+> Not detection — detection that cannot trigger feedback closure.

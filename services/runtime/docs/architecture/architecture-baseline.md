@@ -1,3 +1,8 @@
+**BRIDGE DOCUMENT** | DGP-LGC-5A | 2026-05-09
+Not standalone current truth. Contains legacy architecture context.
+For active architecture, see current-system-map and current truth entry map.
+
+---
 # Architecture Baseline
 
 ## Status

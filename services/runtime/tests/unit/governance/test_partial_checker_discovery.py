@@ -315,16 +315,14 @@ class TestManifestBaseline:
         )
         gates = manifest_data["gates"]
         fake_gates = list(gates)
-        fake_gates.append(
-            {
-                "gate_id": "noop_test",
-                "display_name": "Noop test",
-                "layer": "L0",
-                "hardness": "hard",
-                "command": "echo hello",
-                "expected_result_type": "exit_code_0",
-            }
-        )
+        fake_gates.append({
+            "gate_id": "noop_test",
+            "display_name": "Noop test",
+            "layer": "L0",
+            "hardness": "hard",
+            "command": "echo hello",
+            "expected_result_type": "exit_code_0",
+        })
         fake_manifest = dict(manifest_data, gates=fake_gates)
         fake_manifest["gate_count"] = len(fake_gates)
 

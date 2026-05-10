@@ -11,6 +11,12 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
+from ordivon_verify.scanners.skill_boundary import discover_skill_surfaces
+from ordivon_verify.scanners.memory_hygiene import discover_memory_surfaces
+from ordivon_verify.scanners.trace_evidence import discover_trace_surfaces
+from ordivon_verify.metabolic.discover import discover_artifacts
+from ordivon_verify.metabolic.registry import build_registry
+
 SUPPORTED_TEMPLATE_TIERS = {"minimal", "standard", "deep"}
 SUPPORTED_EMIT_FILENAMES = (".json", ".jsonl", ".md")
 
@@ -192,15 +198,13 @@ def _collect_workflows(root: Path) -> list[dict]:
             re.search(r"permissions:\s*(?:\n|.){0,260}(contents|packages|id-" + "to" + r"ken):\s*write", lower)
             or any(marker in lower for marker in ("deploy", "publish", "release", "docker push", "gh release"))
         )
-        workflows.append(
-            {
-                "path": _rel(p, root),
-                "tags": tags,
-                "triggers": triggers,
-                "write_or_deploy_surface": write_surface,
-                "line_count": len(text.splitlines()),
-            }
-        )
+        workflows.append({
+            "path": _rel(p, root),
+            "tags": tags,
+            "triggers": triggers,
+            "write_or_deploy_surface": write_surface,
+            "line_count": len(text.splitlines()),
+        })
     return workflows
 
 
@@ -209,19 +213,17 @@ def _infer_gate_manifest(workflows: list[dict], tests: dict) -> list[dict]:
     for command in tests.get("candidate_commands", []):
         gate_id = command.split("#", 1)[0].strip().split()[0:3]
         gate_type = "test" if "test" in command.lower() or "pytest" in command.lower() else "quality"
-        gates.append(
-            {
-                "gate_id": "-".join(gate_id).replace("/", "-"),
-                "command": command.split("#", 1)[0].strip(),
-                "source": "test-discovery",
-                "gate_type": gate_type,
-                "confidence": "medium",
-                "canonical_confidence": "medium",
-                "requires_owner_confirmation": True,
-                "write_or_deploy_surface": False,
-                "note": "Candidate only; reviewer must confirm this is canonical.",
-            }
-        )
+        gates.append({
+            "gate_id": "-".join(gate_id).replace("/", "-"),
+            "command": command.split("#", 1)[0].strip(),
+            "source": "test-discovery",
+            "gate_type": gate_type,
+            "confidence": "medium",
+            "canonical_confidence": "medium",
+            "requires_owner_confirmation": True,
+            "write_or_deploy_surface": False,
+            "note": "Candidate only; reviewer must confirm this is canonical.",
+        })
     for wf in workflows:
         tags = set(wf.get("tags", []))
         if not tags:
@@ -244,20 +246,18 @@ def _infer_gate_manifest(workflows: list[dict], tests: dict) -> list[dict]:
         if wf.get("write_or_deploy_surface"):
             canonical_confidence = "not_canonical"
             note = "Workflow has deploy/write/release surface; keep separate from verification gates."
-        gates.append(
-            {
-                "gate_id": gate_id,
-                "command": f"github workflow: {wf['path']}",
-                "source": "github-actions",
-                "gate_type": gate_type,
-                "confidence": "medium" if canonical_confidence != "not_canonical" else "low",
-                "canonical_confidence": canonical_confidence,
-                "requires_owner_confirmation": True,
-                "write_or_deploy_surface": bool(wf.get("write_or_deploy_surface")),
-                "trigger_scope": wf.get("triggers", []),
-                "note": note,
-            }
-        )
+        gates.append({
+            "gate_id": gate_id,
+            "command": f"github workflow: {wf['path']}",
+            "source": "github-actions",
+            "gate_type": gate_type,
+            "confidence": "medium" if canonical_confidence != "not_canonical" else "low",
+            "canonical_confidence": canonical_confidence,
+            "requires_owner_confirmation": True,
+            "write_or_deploy_surface": bool(wf.get("write_or_deploy_surface")),
+            "trigger_scope": wf.get("triggers", []),
+            "note": note,
+        })
     seen = set()
     unique = []
     for gate in gates:
@@ -407,31 +407,27 @@ def _build_agent_risk_matrix(agent_surfaces: dict, skills: dict) -> list[dict]:
             risk = "high"
         if surface in ("mcp", "acp") and len(paths) > 5:
             risk = "high"
-        matrix.append(
-            {
-                "surface": surface,
-                "risk": risk,
-                "evidence_count": len(paths),
-                "sample": paths[:5],
-                "boundary": {
-                    "mcp": "Tool availability is not action authorization.",
-                    "acp": "Protocol adapter presence is not permission to execute.",
-                    "approval": "Approval code must separate request, review, and authorization.",
-                    "memory": "Memory presence is not current truth without source and freshness.",
-                    "credential": "Credential surface requires explicit handling boundaries.",
-                }.get(surface, "Evidence presence is not verification."),
-            }
-        )
+        matrix.append({
+            "surface": surface,
+            "risk": risk,
+            "evidence_count": len(paths),
+            "sample": paths[:5],
+            "boundary": {
+                "mcp": "Tool availability is not action authorization.",
+                "acp": "Protocol adapter presence is not permission to execute.",
+                "approval": "Approval code must separate request, review, and authorization.",
+                "memory": "Memory presence is not current truth without source and freshness.",
+                "credential": "Credential surface requires explicit handling boundaries.",
+            }.get(surface, "Evidence presence is not verification."),
+        })
     if skills.get("count", 0):
-        matrix.append(
-            {
-                "surface": "skills",
-                "risk": "high" if skills.get("high_attention") else "medium",
-                "evidence_count": skills["count"],
-                "sample": skills.get("sample", [])[:5],
-                "boundary": "Skill capability is not permission; scripts and credential language need review.",
-            }
-        )
+        matrix.append({
+            "surface": "skills",
+            "risk": "high" if skills.get("high_attention") else "medium",
+            "evidence_count": skills["count"],
+            "sample": skills.get("sample", [])[:5],
+            "boundary": "Skill capability is not permission; scripts and credential language need review.",
+        })
     return matrix
 
 
@@ -691,24 +687,22 @@ def collect_agent_claim_bindings(root: Path) -> dict:
         else:
             signal = "READY_WITHOUT_AUTHORIZATION"
         counts[signal] += 1
-        items.append(
-            {
-                "claim_id": row.get("claim_id") or f"claim-{len(items) + 1:03d}",
-                "claim": claim[:220],
-                "trust_signal": signal,
-                "missing_artifacts": missing_artifacts,
-                "missing_evidence": [
-                    name
-                    for name, value in (
-                        ("test_evidence", test_evidence),
-                        ("receipt", receipt),
-                        ("review_evidence", review_evidence),
-                    )
-                    if not value
-                ],
-                "boundary": "Agent claim binding verifies evidence sufficiency only; it does not authorize action.",
-            }
-        )
+        items.append({
+            "claim_id": row.get("claim_id") or f"claim-{len(items) + 1:03d}",
+            "claim": claim[:220],
+            "trust_signal": signal,
+            "missing_artifacts": missing_artifacts,
+            "missing_evidence": [
+                name
+                for name, value in (
+                    ("test_evidence", test_evidence),
+                    ("receipt", receipt),
+                    ("review_evidence", review_evidence),
+                )
+                if not value
+            ],
+            "boundary": "Agent claim binding verifies evidence sufficiency only; it does not authorize action.",
+        })
     return {
         "binding_file": _rel(selected, root),
         "count": len(items),
@@ -998,6 +992,52 @@ def emit_template_pack(draft: dict, output_dir: Path) -> dict:
                 text += "\n"
         dest.write_text(text, encoding="utf-8")
         written.append(rel_path)
+
+    # Auto-discovery pass: populate generated artifact registry
+    records = discover_artifacts(output_dir)
+    registry = build_registry(records, str(output_dir))
+    registry_path = output_dir / ".ordivon" / "graph" / "generated-artifact-registry.json"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    records_data = []
+    for r in registry.records:
+        records_data.append({
+            "artifact_id": r.artifact_id,
+            "path": r.path,
+            "artifact_type": r.artifact_type,
+            "authority_tier": r.authority_tier.value,
+            "lifecycle_state": r.lifecycle_state.value,
+            "temperature": r.temperature.value,
+            "owner": r.owner,
+            "scope": r.scope,
+            "content_hash": r.content_hash,
+            "last_verified": r.last_verified,
+            "review_date": r.review_date,
+            "supersedes": r.supersedes,
+            "superseded_by": r.superseded_by,
+            "depends_on": r.depends_on,
+            "new_ai_entry": r.new_ai_entry,
+            "current_truth_allowed": r.current_truth_allowed,
+            "notes": r.notes,
+        })
+    findings_data = []
+    for f in registry.findings:
+        findings_data.append({
+            "code": f.code,
+            "status": f.status,
+            "message": f.message,
+            "artifact_id": f.artifact_id,
+            "repair_action": f.repair_action,
+        })
+    registry_json = {
+        "generated_at": registry.generated_at,
+        "repo_root": registry.repo_root,
+        "records": records_data,
+        "findings": findings_data,
+        "note": "Auto-discovered by convention after template emit.",
+    }
+    registry_path.write_text(json.dumps(registry_json, indent=2) + "\n", encoding="utf-8")
+    written.append(".ordivon/graph/generated-artifact-registry.json")
+
     return {
         "output_dir": str(output_dir),
         "written_files": written,
@@ -1064,7 +1104,82 @@ def discover_external_evidence(
     harness_evidence = _collect_harness_evidence(root)
     agent_risk_matrix = _build_agent_risk_matrix(agent_surfaces, skills)
 
+    # Structured skill boundary scan (A2 scanner)
+    skill_findings, skill_records = discover_skill_surfaces(root)
+    skill_boundary = {
+        "discovered_count": len(skill_records),
+        "findings": [
+            {
+                "code": f.code,
+                "status": f.status,
+                "message": f.message,
+                "artifact_id": f.artifact_id,
+                "repair_action": f.repair_action,
+            }
+            for f in skill_findings
+        ],
+        "records_count": len(skill_records),
+        "blocked_count": sum(1 for f in skill_findings if f.status == "BLOCKED"),
+        "degraded_count": sum(1 for f in skill_findings if f.status == "DEGRADED"),
+        "boundary": "Scanner is read-only; no skills/scripts/tools executed. Skill exists != permission.",
+    }
+
+    # Structured memory/content hygiene scan (A3 scanner)
+    memory_findings, memory_records = discover_memory_surfaces(root)
+    memory_hygiene = {
+        "discovered_count": len(memory_records),
+        "findings": [
+            {
+                "code": f.code,
+                "status": f.status,
+                "message": f.message,
+                "artifact_id": f.artifact_id,
+                "repair_action": f.repair_action,
+            }
+            for f in memory_findings
+        ],
+        "records_count": len(memory_records),
+        "blocked_count": sum(1 for f in memory_findings if f.status == "BLOCKED"),
+        "degraded_count": sum(1 for f in memory_findings if f.status == "DEGRADED"),
+        "boundary": "Scanner is read-only; no factual truth judged. Memory source != truth; lesson != policy.",
+    }
+
+    # Structured trace/harness evidence scan (A4 scanner)
+    trace_findings, trace_records = discover_trace_surfaces(root)
+    trace_evidence = {
+        "discovered_count": len(trace_records),
+        "findings": [
+            {
+                "code": f.code,
+                "status": f.status,
+                "message": f.message,
+                "artifact_id": f.artifact_id,
+                "repair_action": f.repair_action,
+            }
+            for f in trace_findings
+        ],
+        "records_count": len(trace_records),
+        "blocked_count": sum(1 for f in trace_findings if f.status == "BLOCKED"),
+        "degraded_count": sum(1 for f in trace_findings if f.status == "DEGRADED"),
+        "boundary": "Scanner is read-only; no trace replay or runtime API calls. Trace is evidence, not truth or authorization.",
+    }
+
     next_actions = []
+    if trace_evidence["blocked_count"]:
+        next_actions.append(
+            f"Trace evidence scanner found {trace_evidence['blocked_count']} BLOCKED finding(s). "
+            "Review trace completeness, authorization claims, and review timing boundaries."
+        )
+    if memory_hygiene["blocked_count"]:
+        next_actions.append(
+            f"Memory hygiene scanner found {memory_hygiene['blocked_count']} BLOCKED finding(s). "
+            "Review memory source, freshness, scope, and policy boundaries."
+        )
+    if skill_boundary["blocked_count"]:
+        next_actions.append(
+            f"Skill boundary scanner found {skill_boundary['blocked_count']} BLOCKED finding(s). "
+            "Review skill allowed-tools, credential language, and authorization claims."
+        )
     if not governance["config"]:
         next_actions.append("Review suggested_config and add an explicit ordivon.verify.json when adopting Ordivon.")
     if not governance["debt_ledger"]:
@@ -1103,6 +1218,9 @@ def discover_external_evidence(
             "gate_manifest_candidates": gate_candidates,
             "governance_files": governance,
             "skills": skills,
+            "skill_boundary": skill_boundary,
+            "memory_hygiene": memory_hygiene,
+            "trace_evidence": trace_evidence,
             "agent_native_surfaces": agent_surfaces,
             "agent_native_risk_matrix": agent_risk_matrix,
             "release_claim_audit": release_claims,
@@ -1131,6 +1249,9 @@ def render_discovery_markdown(report: dict) -> str:
     bindings = inv["agent_claim_bindings"]
     memory = inv["memory_content_hygiene"]
     harness = inv["harness_evidence_import"]
+    skill_bdy = inv.get("skill_boundary", {})
+    mem_bdy = inv.get("memory_hygiene", {})
+    trace_bdy = inv.get("trace_evidence", {})
     lines = [
         "## Ordivon Verify Discovery Report",
         "",
@@ -1171,22 +1292,41 @@ def render_discovery_markdown(report: dict) -> str:
     if not inv["gate_manifest_candidates"]:
         lines.append("| - | - | - | - | - |")
 
-    lines.extend(
-        [
-            "",
-            "### Skill Safety Precheck",
-            "",
-            f"- Broad tool/shell mentions: {skills['risk_summary']['broad_tool_or_shell_count']}",
-            f"- Credential-language mentions: {skills['risk_summary']['credential_language_count']}",
-            f"- Missing frontmatter: {skills['risk_summary']['missing_frontmatter_count']}",
-            f"- Script mentions: {skills['risk_summary']['script_mention_count']}",
-            f"- High-attention overlaps: {skills['risk_summary']['high_attention_count']}",
-            f"- Per-file status: PASS {skills['status_counts']['PASS']} / WARN {skills['status_counts']['WARN']} / FAIL {skills['status_counts']['FAIL']}",
-            "",
-            "| Skill | Status | Risk | Findings |",
-            "|---|---|---|---|",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Skill Safety Precheck",
+        "",
+        f"- Broad tool/shell mentions: {skills['risk_summary']['broad_tool_or_shell_count']}",
+        f"- Credential-language mentions: {skills['risk_summary']['credential_language_count']}",
+        f"- Missing frontmatter: {skills['risk_summary']['missing_frontmatter_count']}",
+        f"- Script mentions: {skills['risk_summary']['script_mention_count']}",
+        f"- High-attention overlaps: {skills['risk_summary']['high_attention_count']}",
+        f"- Per-file status: PASS {skills['status_counts']['PASS']} / WARN {skills['status_counts']['WARN']} / FAIL {skills['status_counts']['FAIL']}",
+        "",
+        "### Skill / Tool Boundary Findings",
+        "",
+        f"- Discovered skill surfaces: {skill_bdy.get('discovered_count', 0)}",
+        f"- Blocked findings: {skill_bdy.get('blocked_count', 0)}",
+        f"- Degraded findings: {skill_bdy.get('degraded_count', 0)}",
+        f"> {skill_bdy.get('boundary', 'Skill scanner is read-only.')}",
+        "",
+        "### Memory / Content Hygiene Findings",
+        "",
+        f"- Discovered memory/content surfaces: {mem_bdy.get('discovered_count', 0)}",
+        f"- Blocked findings: {mem_bdy.get('blocked_count', 0)}",
+        f"- Degraded findings: {mem_bdy.get('degraded_count', 0)}",
+        f"> {mem_bdy.get('boundary', 'Memory scanner is read-only.')}",
+        "",
+        "### Trace / Harness Evidence Findings",
+        "",
+        f"- Discovered trace/checkpoint/review surfaces: {trace_bdy.get('discovered_count', 0)}",
+        f"- Blocked findings: {trace_bdy.get('blocked_count', 0)}",
+        f"- Degraded findings: {trace_bdy.get('degraded_count', 0)}",
+        f"> {trace_bdy.get('boundary', 'Trace scanner is read-only.')}",
+        "",
+        "| Skill | Status | Risk | Findings |",
+        "|---|---|---|---|",
+    ])
     for item in skills.get("items", [])[:20]:
         lines.append(
             f"| `{item['path']}` | {item['status']} | {item['risk']} | {', '.join(item['findings'][:5]) or '-'} |"
@@ -1194,20 +1334,18 @@ def render_discovery_markdown(report: dict) -> str:
     if not skills.get("items"):
         lines.append("| - | - | - | - |")
 
-    lines.extend(
-        [
-            "",
-            "### Release Claim Evidence Map",
-            "",
-            f"- Supported: {release['status_counts']['supported']}",
-            f"- Partial: {release['status_counts']['partial']}",
-            f"- Missing: {release['status_counts']['missing']}",
-            f"- Blocked: {release['status_counts']['blocked']}",
-            "",
-            "| Claim | Signal | Evidence Status | Source | Next Action |",
-            "|---|---|---|---|---|",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Release Claim Evidence Map",
+        "",
+        f"- Supported: {release['status_counts']['supported']}",
+        f"- Partial: {release['status_counts']['partial']}",
+        f"- Missing: {release['status_counts']['missing']}",
+        f"- Blocked: {release['status_counts']['blocked']}",
+        "",
+        "| Claim | Signal | Evidence Status | Source | Next Action |",
+        "|---|---|---|---|---|",
+    ])
     for item in release.get("items", [])[:12]:
         lines.append(
             f"| {item['claim_id']} | {item['trust_signal']} | {item['evidence_status']} | "
@@ -1216,20 +1354,18 @@ def render_discovery_markdown(report: dict) -> str:
     if not release.get("items"):
         lines.append("| - | - | - | - | - |")
 
-    lines.extend(
-        [
-            "",
-            "### Agent Claim Bindings",
-            "",
-            f"- Binding file: `{bindings['binding_file'] or 'not found'}`",
-            f"- READY_WITHOUT_AUTHORIZATION: {bindings['status_counts']['READY_WITHOUT_AUTHORIZATION']}",
-            f"- DEGRADED: {bindings['status_counts']['DEGRADED']}",
-            f"- BLOCKED: {bindings['status_counts']['BLOCKED']}",
-            "",
-            "| Claim | Signal | Missing Evidence |",
-            "|---|---|---|",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Agent Claim Bindings",
+        "",
+        f"- Binding file: `{bindings['binding_file'] or 'not found'}`",
+        f"- READY_WITHOUT_AUTHORIZATION: {bindings['status_counts']['READY_WITHOUT_AUTHORIZATION']}",
+        f"- DEGRADED: {bindings['status_counts']['DEGRADED']}",
+        f"- BLOCKED: {bindings['status_counts']['BLOCKED']}",
+        "",
+        "| Claim | Signal | Missing Evidence |",
+        "|---|---|---|",
+    ])
     for item in bindings.get("items", [])[:12]:
         missing = ", ".join(item["missing_evidence"] + item["missing_artifacts"]) or "-"
         lines.append(f"| {item['claim_id']} | {item['trust_signal']} | {missing} |")
@@ -1239,21 +1375,19 @@ def render_discovery_markdown(report: dict) -> str:
     if report.get("standard_pack_draft"):
         draft = report["standard_pack_draft"]
         files = draft["files"]
-        lines.extend(
-            [
-                "",
-                "### Template Pack Draft",
-                "",
-                f"- Tier: `{draft.get('template_tier', 'standard')}`",
-                f"- Mode: `{draft['mode']}`",
-                f"- Writes files: `{draft['writes_files']}`",
-                "- Template files are project-independent placeholders.",
-                "- Project observations are separated into `governance/discovery-candidates.json`.",
-                "",
-                "| Proposed File | Purpose |",
-                "|---|---|",
-            ]
-        )
+        lines.extend([
+            "",
+            "### Template Pack Draft",
+            "",
+            f"- Tier: `{draft.get('template_tier', 'standard')}`",
+            f"- Mode: `{draft['mode']}`",
+            f"- Writes files: `{draft['writes_files']}`",
+            "- Template files are project-independent placeholders.",
+            "- Project observations are separated into `governance/discovery-candidates.json`.",
+            "",
+            "| Proposed File | Purpose |",
+            "|---|---|",
+        ])
         for name in files:
             purpose = {
                 "ordivon.verify.json": "standard-mode config draft",
@@ -1277,48 +1411,40 @@ def render_discovery_markdown(report: dict) -> str:
         lines.extend(["", "```json", json.dumps(files["ordivon.verify.json"], indent=2), "```"])
     if report.get("template_emit"):
         emit = report["template_emit"]
-        lines.extend(
-            [
-                "",
-                "### Template Export",
-                "",
-                f"- Output directory: `{emit['output_dir']}`",
-                f"- Files written: {emit['file_count']}",
-                "- Target repository was not modified unless this directory was explicitly inside it.",
-                f"- Boundary: {emit['boundary']}",
-            ]
-        )
+        lines.extend([
+            "",
+            "### Template Export",
+            "",
+            f"- Output directory: `{emit['output_dir']}`",
+            f"- Files written: {emit['file_count']}",
+            "- Target repository was not modified unless this directory was explicitly inside it.",
+            f"- Boundary: {emit['boundary']}",
+        ])
 
-    lines.extend(
-        [
-            "",
-            "### Agent-Native Risk Matrix",
-            "",
-            "| Surface | Risk | Evidence Count | Boundary |",
-            "|---|---|---:|---|",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Agent-Native Risk Matrix",
+        "",
+        "| Surface | Risk | Evidence Count | Boundary |",
+        "|---|---|---:|---|",
+    ])
     for item in inv["agent_native_risk_matrix"]:
         lines.append(f"| {item['surface']} | {item['risk']} | {item['evidence_count']} | {item['boundary']} |")
     if not inv["agent_native_risk_matrix"]:
         lines.append("| - | - | 0 | - |")
 
-    lines.extend(
-        [
-            "",
-            "### Next Actions",
-            "",
-        ]
-    )
+    lines.extend([
+        "",
+        "### Next Actions",
+        "",
+    ])
     for action in report["next_actions"]:
         lines.append(f"- {action}")
 
-    lines.extend(
-        [
-            "",
-            f"> {report['disclaimer']}",
-        ]
-    )
+    lines.extend([
+        "",
+        f"> {report['disclaimer']}",
+    ])
     return "\n".join(lines) + "\n"
 
 
@@ -1331,6 +1457,9 @@ def render_discovery_summary(report: dict) -> str:
     bindings = inv["agent_claim_bindings"]
     memory = inv["memory_content_hygiene"]
     harness = inv["harness_evidence_import"]
+    skill_bdy_summary = inv.get("skill_boundary", {})
+    mem_summary = inv.get("memory_hygiene", {})
+    trace_summary = inv.get("trace_evidence", {})
     gates = inv["gate_manifest_candidates"]
     canonical_gates = [gate for gate in gates if gate.get("canonical_confidence") == "high"]
     write_gates = [gate for gate in gates if gate.get("write_or_deploy_surface")]
@@ -1351,6 +1480,9 @@ def render_discovery_summary(report: dict) -> str:
         f"- Agent claim bindings: {bindings['count']} ({bindings['binding_file'] or 'not found'})",
         f"- Memory/content hygiene: {memory['count']} records (DEGRADED {memory['status_counts']['DEGRADED']}, BLOCKED {memory['status_counts']['BLOCKED']})",
         f"- Harness evidence import: {harness['count']} bundles (DEGRADED {harness['status_counts']['DEGRADED']}, BLOCKED {harness['status_counts']['BLOCKED']})",
+        f"- Skill boundary scan: {skill_bdy_summary.get('discovered_count', 0)} surfaces (BLOCKED {skill_bdy_summary.get('blocked_count', 0)}, DEGRADED {skill_bdy_summary.get('degraded_count', 0)})",
+        f"- Memory hygiene scan: {mem_summary.get('discovered_count', 0)} surfaces (BLOCKED {mem_summary.get('blocked_count', 0)}, DEGRADED {mem_summary.get('degraded_count', 0)})",
+        f"- Trace evidence scan: {trace_summary.get('discovered_count', 0)} surfaces (BLOCKED {trace_summary.get('blocked_count', 0)}, DEGRADED {trace_summary.get('degraded_count', 0)})",
         "",
         "### Top Next Actions",
         "",
@@ -1359,34 +1491,28 @@ def render_discovery_summary(report: dict) -> str:
         lines.append(f"- {action}")
     if report.get("standard_pack_draft"):
         draft = report["standard_pack_draft"]
-        lines.extend(
-            [
-                "",
-                "### Template Pack Draft",
-                "",
-                "- Dry-run only; no target files were written.",
-                f"- Tier: `{draft.get('template_tier', 'standard')}`.",
-                "- Template pack: project-independent placeholders; project AI must fill and owner-confirm them.",
-                "- Discovery candidates are separated into `governance/discovery-candidates.json`.",
-                "- Proposed files: " + ", ".join(f"`{name}`" for name in draft["files"].keys()),
-            ]
-        )
+        lines.extend([
+            "",
+            "### Template Pack Draft",
+            "",
+            "- Dry-run only; no target files were written.",
+            f"- Tier: `{draft.get('template_tier', 'standard')}`.",
+            "- Template pack: project-independent placeholders; project AI must fill and owner-confirm them.",
+            "- Discovery candidates are separated into `governance/discovery-candidates.json`.",
+            "- Proposed files: " + ", ".join(f"`{name}`" for name in draft["files"].keys()),
+        ])
     if report.get("template_emit"):
         emit = report["template_emit"]
-        lines.extend(
-            [
-                "",
-                "### Template Export",
-                "",
-                f"- Output directory: `{emit['output_dir']}`.",
-                f"- Files written: {emit['file_count']}.",
-                "- OV wrote only to the explicit output directory.",
-            ]
-        )
-    lines.extend(
-        [
+        lines.extend([
             "",
-            f"> {report['disclaimer']}",
-        ]
-    )
+            "### Template Export",
+            "",
+            f"- Output directory: `{emit['output_dir']}`.",
+            f"- Files written: {emit['file_count']}.",
+            "- OV wrote only to the explicit output directory.",
+        ])
+    lines.extend([
+        "",
+        f"> {report['disclaimer']}",
+    ])
     return "\n".join(lines) + "\n"

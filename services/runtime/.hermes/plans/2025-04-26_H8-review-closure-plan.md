@@ -116,8 +116,8 @@
 ```python
 class ReviewCreateRequest(BaseModel):
     # ... existing fields ...
-    outcome_ref_type: Optional[str] = None    # NEW
-    outcome_ref_id: Optional[str] = None      # NEW
+    outcome_ref_type: Optional[str] = None  # NEW
+    outcome_ref_id: Optional[str] = None  # NEW
 ```
 
 ### Step 2: 扩展 ReviewDetailResponse Schema
@@ -127,8 +127,8 @@ class ReviewCreateRequest(BaseModel):
 ```python
 class ReviewDetailResponse(BaseModel):
     # ... existing fields ...
-    outcome_ref_type: Optional[str] = None    # NEW
-    outcome_ref_id: Optional[str] = None      # NEW
+    outcome_ref_type: Optional[str] = None  # NEW
+    outcome_ref_id: Optional[str] = None  # NEW
 ```
 
 ### Step 3: 扩展 ReviewCapability.create_review()
@@ -143,15 +143,15 @@ def create_review(
     action_context: ActionContext | None,
     review_type: str = "recommendation_postmortem",
     expected_outcome: str | None = None,
-    outcome_ref_type: str | None = None,       # NEW
-    outcome_ref_id: str | None = None,         # NEW
+    outcome_ref_type: str | None = None,  # NEW
+    outcome_ref_id: str | None = None,  # NEW
 ) -> ReviewResult:
     review = Review(
         recommendation_id=recommendation_id,
         review_type=review_type,
         expected_outcome=expected_outcome or "",
-        outcome_ref_type=outcome_ref_type,     # NEW
-        outcome_ref_id=outcome_ref_id,         # NEW
+        outcome_ref_type=outcome_ref_type,  # NEW
+        outcome_ref_id=outcome_ref_id,  # NEW
     )
     row = service.create(review)
     # ... rest unchanged ...
@@ -163,8 +163,8 @@ def create_review(
 
 在 `get_detail()` 返回的 `ReviewDetailResult` 中添加:
 ```python
-outcome_ref_type=review.outcome_ref_type,
-outcome_ref_id=review.outcome_ref_id,
+outcome_ref_type = (review.outcome_ref_type,)
+outcome_ref_id = (review.outcome_ref_id,)
 ```
 
 ### Step 5: 扩展 ReviewCapability 合约

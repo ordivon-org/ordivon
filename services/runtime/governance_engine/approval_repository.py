@@ -42,7 +42,8 @@ class ApprovalRepository:
 
     def latest_for_action(self, action_key: str, *, entity_type: str, entity_id: str) -> ApprovalRecordORM | None:
         return (
-            self.db.query(ApprovalRecordORM)
+            self.db
+            .query(ApprovalRecordORM)
             .filter(
                 ApprovalRecordORM.action_key == action_key,
                 ApprovalRecordORM.entity_type == entity_type,

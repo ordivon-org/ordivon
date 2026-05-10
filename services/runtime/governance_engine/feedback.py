@@ -26,7 +26,8 @@ class GovernanceFeedbackHintConsumer:
         recommendation_ids = [
             row.id
             for row in (
-                self.db.query(RecommendationORM)
+                self.db
+                .query(RecommendationORM)
                 .join(AnalysisORM, AnalysisORM.id == RecommendationORM.analysis_id)
                 .filter(AnalysisORM.symbol == symbol)
                 .order_by(RecommendationORM.created_at.desc())

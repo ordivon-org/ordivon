@@ -7,7 +7,7 @@ Authority: `supporting_evidence` | AI Read Priority: 2
 
 ## Intent
 
-Prevent current truth from being treated as permanent truth, and add a focused
+Prevent current truth from being treated as unchallengeable, and add a focused
 checker for freshness metadata on source-of-truth entries.
 
 ## Constraints

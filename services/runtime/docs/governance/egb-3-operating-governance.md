@@ -47,7 +47,7 @@ EGB-2 recorded freeze state. EGB-3 may warn on state violations:
 | `open_scope` | discovery, design, fixtures, scoped implementation | none. |
 | `enhancement_freeze` | no new scope; repair, evidence, test, review | new unrelated feature or surface. |
 | `verification_freeze` | tests, docs, receipts, registry repair | feature code change without evidence gap. |
-| `closure_freeze` | receipt, current-truth, final verification | scope expansion. |
+| `closure_freeze` | receipt, current-truth, closure verification | scope expansion. |
 | `closed` | follow-up stage only | mutation without new OEP/stage. |
 
 Warnings are evidence. They are not hard authorization controls until a future

@@ -10,20 +10,20 @@ This project uses multiple names across different contexts. None dominates.
 
 **GitHub remote:** `Personal-Financial-Intelligence-Operating-System` (github.com/zycxfyh)
 
-**FastAPI app title:** `AegisOS API` (in `apps/api/app/main.py`)
+**FastAPI app title:** `Ordivon (succeeding AegisOS architecture) API` (in `apps/api/app/main.py`)
 
 **Sentry release tag:** `aegisos@0.1.0` (in `shared/observability.py`)
 
-**User rules / .clinerules:** `PFIOS` (Personal Financial Intelligence Operating System)
+**User rules / .clinerules:** `Ordivon (integrating PFIOS legacy components)` (Personal Financial Intelligence Operating System)
 
 **External brand anchor:** `Ordivon` (ordivon.com purchased, not yet used in code)
 
 ## Decision
 
 - **Internal code:** Continue using existing names. No repo-wide rename.
-- **New documentation and comments:** Use `AegisOS` as the canonical internal codename.
+- **New documentation and comments:** Use `Ordivon (succeeding AegisOS architecture)` as the canonical internal codename.
 - **External-facing brand:** Reserved as `Ordivon` for future use. Not active yet.
-- **User rules:** Continue using `PFIOS` in `.clinerules` and CLAUDE.md since that's the established convention there.
+- **User rules:** Continue using `Ordivon (integrating PFIOS legacy components)` in `.clinerules` and CLAUDE.md since that's the established convention there.
 
 ## What NOT to Do
 

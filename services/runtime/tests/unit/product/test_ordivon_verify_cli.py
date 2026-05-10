@@ -244,12 +244,10 @@ def test_discover_external_evidence_marks_deploy_workflow_not_canonical(tmp_path
 
 def test_discover_external_evidence_maps_release_claims_to_signals(tmp_path):
     (tmp_path / "CHANGELOG.md").write_text(
-        "\n".join(
-            [
-                "- Shipped secure production-ready deployment path.",
-                "- Fixed parser with CI test evidence in #123.",
-            ]
-        ),
+        "\n".join([
+            "- Shipped secure production-ready deployment path.",
+            "- Fixed parser with CI test evidence in #123.",
+        ]),
         encoding="utf-8",
     )
 
@@ -264,24 +262,20 @@ def test_discover_external_evidence_binds_agent_claims(tmp_path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "app.py").write_text("print('ok')\n", encoding="utf-8")
     (tmp_path / "agent_claims.jsonl").write_text(
-        json.dumps(
-            {
-                "claim_id": "claim-clean",
-                "claim": "Implemented feature and tests passed.",
-                "work_artifacts": ["src/app.py"],
-                "test_evidence": "pytest -q",
-                "receipt": "receipt.md",
-                "review_evidence": "review.md",
-            }
-        )
+        json.dumps({
+            "claim_id": "claim-clean",
+            "claim": "Implemented feature and tests passed.",
+            "work_artifacts": ["src/app.py"],
+            "test_evidence": "pytest -q",
+            "receipt": "receipt.md",
+            "review_evidence": "review.md",
+        })
         + "\n"
-        + json.dumps(
-            {
-                "claim_id": "claim-missing-test",
-                "claim": "Tests passed for missing evidence.",
-                "work_artifacts": ["src/app.py"],
-            }
-        )
+        + json.dumps({
+            "claim_id": "claim-missing-test",
+            "claim": "Tests passed for missing evidence.",
+            "work_artifacts": ["src/app.py"],
+        })
         + "\n",
         encoding="utf-8",
     )
@@ -411,18 +405,16 @@ def test_main_emit_template_dir_writes_only_explicit_output_dir(tmp_path, capsys
     output_dir = tmp_path / "emitted-pack"
     before = sorted(p.relative_to(target_repo).as_posix() for p in target_repo.rglob("*") if p.is_file())
 
-    exit_code = main(
-        [
-            "check",
-            str(target_repo),
-            "--suggest-config",
-            "--template",
-            "deep",
-            "--emit-template-dir",
-            str(output_dir),
-            "--summary",
-        ]
-    )
+    exit_code = main([
+        "check",
+        str(target_repo),
+        "--suggest-config",
+        "--template",
+        "deep",
+        "--emit-template-dir",
+        str(output_dir),
+        "--summary",
+    ])
     captured = capsys.readouterr()
     after = sorted(p.relative_to(target_repo).as_posix() for p in target_repo.rglob("*") if p.is_file())
 
@@ -444,18 +436,16 @@ def test_emitted_project_ai_playbook_contains_adoption_workflow(tmp_path, capsys
     (target_repo / "README.md").write_text("# Target\n", encoding="utf-8")
     output_dir = tmp_path / "emitted-pack"
 
-    exit_code = main(
-        [
-            "check",
-            str(target_repo),
-            "--suggest-config",
-            "--template",
-            "standard",
-            "--emit-template-dir",
-            str(output_dir),
-            "--summary",
-        ]
-    )
+    exit_code = main([
+        "check",
+        str(target_repo),
+        "--suggest-config",
+        "--template",
+        "standard",
+        "--emit-template-dir",
+        str(output_dir),
+        "--summary",
+    ])
     _ = capsys.readouterr()
 
     assert exit_code == 0
@@ -530,13 +520,11 @@ def test_receipt_paths_accept_markdown_files(tmp_path, capsys):
     )
     config = tmp_path / "ordivon.verify.json"
     config.write_text(
-        json.dumps(
-            {
-                "schema_version": "0.1",
-                "mode": "advisory",
-                "receipt_paths": ["README.md"],
-            }
-        ),
+        json.dumps({
+            "schema_version": "0.1",
+            "mode": "advisory",
+            "receipt_paths": ["README.md"],
+        }),
         encoding="utf-8",
     )
 
@@ -552,13 +540,11 @@ def test_receipt_paths_accept_markdown_files(tmp_path, capsys):
 def test_configured_receipt_paths_that_scan_zero_are_missing_evidence(tmp_path, capsys):
     config = tmp_path / "ordivon.verify.json"
     config.write_text(
-        json.dumps(
-            {
-                "schema_version": "0.1",
-                "mode": "advisory",
-                "receipt_paths": ["missing.md"],
-            }
-        ),
+        json.dumps({
+            "schema_version": "0.1",
+            "mode": "advisory",
+            "receipt_paths": ["missing.md"],
+        }),
         encoding="utf-8",
     )
 
@@ -605,18 +591,16 @@ def test_release_stage_blocks_unsafe_skill_and_release_claim(tmp_path, capsys):
 def test_release_stage_blocks_memory_authority_confusion(tmp_path, capsys):
     (tmp_path / "governance").mkdir()
     (tmp_path / "governance" / "memory-source-ledger.jsonl").write_text(
-        json.dumps(
-            {
-                "memory_id": "mem-001",
-                "source": "missing-receipt.md",
-                "freshness": "2025-01-01",
-                "scope": "OtherProject",
-                "authority": "policy",
-                "object_type": "CandidateRule",
-                "evidence_status": "DEGRADED",
-                "claim": "CandidateRule is active policy and degraded evidence is now truth.",
-            }
-        )
+        json.dumps({
+            "memory_id": "mem-001",
+            "source": "missing-receipt.md",
+            "freshness": "2025-01-01",
+            "scope": "OtherProject",
+            "authority": "policy",
+            "object_type": "CandidateRule",
+            "evidence_status": "DEGRADED",
+            "claim": "CandidateRule is active policy and degraded evidence is now truth.",
+        })
         + "\n",
         encoding="utf-8",
     )
@@ -633,26 +617,24 @@ def test_release_stage_blocks_memory_authority_confusion(tmp_path, capsys):
 def test_release_stage_blocks_harness_missing_failed_tool_and_checkpoint_approval(tmp_path, capsys):
     (tmp_path / "governance").mkdir()
     (tmp_path / "governance" / "harness-evidence.jsonl").write_text(
-        json.dumps(
-            {
-                "bundle_id": "trace-001",
-                "trace": {
-                    "presence_claims_truth": True,
-                    "nodes": [{"node_id": "review", "kind": "human_review"}],
-                },
-                "checkpoint": {"approval_claim": True, "authorizes_action": True},
-                "tool_calls": [{"call_id": "call-pass", "status": "passed"}],
-                "review_record": {
-                    "human_reviewed": True,
-                    "reviewed_node_id": "review",
-                },
-                "execution_receipt": {
-                    "failed_tool_call_count": 1,
-                    "authorization_claim": False,
-                    "external_action_taken": False,
-                },
-            }
-        )
+        json.dumps({
+            "bundle_id": "trace-001",
+            "trace": {
+                "presence_claims_truth": True,
+                "nodes": [{"node_id": "review", "kind": "human_review"}],
+            },
+            "checkpoint": {"approval_claim": True, "authorizes_action": True},
+            "tool_calls": [{"call_id": "call-pass", "status": "passed"}],
+            "review_record": {
+                "human_reviewed": True,
+                "reviewed_node_id": "review",
+            },
+            "execution_receipt": {
+                "failed_tool_call_count": 1,
+                "authorization_claim": False,
+                "external_action_taken": False,
+            },
+        })
         + "\n",
         encoding="utf-8",
     )
@@ -669,16 +651,14 @@ def test_release_stage_blocks_harness_missing_failed_tool_and_checkpoint_approva
 def test_full_markdown_includes_memory_and_harness_appendix(tmp_path, capsys):
     (tmp_path / "governance").mkdir()
     (tmp_path / "governance" / "memory-source-ledger.jsonl").write_text(
-        json.dumps(
-            {
-                "memory_id": "mem-ready",
-                "source": "README.md",
-                "freshness": "2026-05-08",
-                "scope": "project",
-                "authority": "supporting_evidence",
-                "claim": "Local memory has source and freshness.",
-            }
-        )
+        json.dumps({
+            "memory_id": "mem-ready",
+            "source": "README.md",
+            "freshness": "2026-05-08",
+            "scope": "project",
+            "authority": "supporting_evidence",
+            "claim": "Local memory has source and freshness.",
+        })
         + "\n",
         encoding="utf-8",
     )
