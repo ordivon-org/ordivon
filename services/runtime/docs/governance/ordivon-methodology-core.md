@@ -13,9 +13,9 @@
 **Owner**: `ordivon-core-maintainer`
 **Last verified**: 2026-05-10
 **Stale after**: 90 days
-**Lesson refs**: L-CI-SELFCAL-001, L-CI-SELFCAL-002, L-CI-SELFCAL-003
+**Lesson refs**: L-CI-SELFCAL-001, L-CI-SELFCAL-002, L-CI-SELFCAL-003, L-CI-SELFCAL-004, L-CI-SELFCAL-005, L-CI-SELFCAL-006
 **Derived from**: CI Self-Calibration event (2026-05-10), DGP/LGC governance hardening waves,
-                Ordivon companion governance constitution
+                Ordivon companion governance constitution, AI Governance Observer reflection
 
 ---
 
@@ -35,6 +35,15 @@ that emerged from Ordivon's own governance hardening — particularly the CI
 Self-Calibration event of 2026-05-10, when 8 CI failures across 5 checker jobs
 were not suppressed but systematically classified, fixed, and converted into
 methodology.
+
+**Ordivon optimizes for governed honesty, not cosmetic green.**
+
+```text
+Not clean. Honest.
+```
+
+A green dashboard is not the goal. A system where every issue is correctly
+classified, recorded, constrained, and scheduled for review — that is the goal.
 
 ---
 
@@ -214,6 +223,42 @@ But it must be self-auditing.
    system catches its own drift, the lesson is recorded, classified, and
    feeds back into methodology. This document is a product of such an event.
 
+### AI Governance Observer — Structural Shaping of AI Cognition
+
+Ordivon's object density and feedback loops can shape AI output patterns.
+When AI operates in a context saturated with registry, checker, receipt,
+debt, and lesson objects, its output naturally adopts Ordivon's grammar:
+distinguishing Claim from Evidence, identifying overclaim, applying A1-A4
+classification, and marking READY≠closure.
+
+This is not AI subjectivity. It is **context structure shaping generation
+distribution**. The objects in the context window constrain the output
+space. Dense governance context produces governance-shaped output.
+
+Ordivon can formally define an **AI Observer** role:
+
+```text
+AI Observer may:
+    - Propose findings
+    - Propose lessons
+    - Classify candidate debt
+    - Draft receipts
+    - Red-team claims
+    - Extract methodology from governance events
+
+AI Observer may not:
+    - Approve closure
+    - Activate policy
+    - Suppress checker output
+    - Resolve debt without evidence
+    - Convert candidate lesson into binding rule
+    - Claim READY equals authorization
+```
+
+This role encodes Ordivon's epistemic humility into an operational
+constraint: AI is a powerful observer, recorder, and pattern-extractor,
+but authorization remains with governed human review.
+
 ### Anti-pattern: The Checker Oracle Fallacy
 
 ```text
@@ -359,6 +404,21 @@ Ordivon can audit itself. It cannot prove itself correct.
 Self-auditing produces evidence. Evidence is not proof.
 This document is a methodology framework — it is not a formal
 verification of Ordivon's consistency.
+```
+
+### Red-Team: AI Reflective Output ≠ AI Subjectivity
+
+```text
+Status: Explicit boundary
+AI output that demonstrates governance reasoning (distinguishing
+Claim/Evidence, identifying overclaim, applying A1-A4 classification)
+is evidence of Ordivon's structural shaping — the context window
+density of governance objects constrains the output distribution.
+
+It is NOT evidence of AI consciousness, understanding, or subjective
+judgment. Do not conflate "context-constrained generation" with
+"subjective experience." Do not treat AI reflection as project
+validation or market signal. AI dogfood receipt ≠ external proof.
 ```
 
 ---
