@@ -67,6 +67,11 @@ VALID_DOC_TYPES = {
     "runtime",
     "governance_pack",
     "tooling",
+    # DGP/LGC/RG — phase governance and legacy inventory
+    "boundary",
+    "inventory",
+    "supporting_evidence",
+    "triage",
 }
 
 VALID_STATUSES = {

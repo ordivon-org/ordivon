@@ -35,6 +35,11 @@ VALID_DOC_TYPES = {
     "product",
     "template",
     "tooling",
+    # DGP/LGC/RG — phase governance and legacy inventory
+    "boundary",
+    "inventory",
+    "supporting_evidence",
+    "triage",
 }
 VALID_AUTHORITIES = {
     "source_of_truth",

@@ -194,7 +194,7 @@ These are **design-time prohibitions**. No agent may violate them.
 | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | Gap analysis vs external benchmarks |
 | `docs/ai/external-benchmark-reading-guide.md` | EGB-1 AI reading guide |
 || `scripts/check_document_registry.py` | Document registry checker — 22 invariants, DG-2 |
-|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — 244 entries, DG-7 |
+|| `docs/governance/document-registry.jsonl` | Machine-readable document registry — DG-7 (see document-registry.jsonl for current entry count; generated_view) |
 || `docs/governance/extension-processes.md` | Extension processes: Core/Pack/Adapter/Checker/Test (PEP+RFC+KEP) |
 || `docs/governance/entropy-governance-design.md` | Anti-entropy system design (Lehman's Laws) |
 || `docs/governance/entropy-telemetry.jsonl` | Entropy metrics ledger (timestamped snapshots) |

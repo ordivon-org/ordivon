@@ -24,13 +24,17 @@ def test_clean_current_truth_fixture_passes():
 
 
 def test_unsafe_current_truth_fixture_blocks():
-    findings, stats = checker.scan_paths([UNSAFE])
+    # Pass individual files: checker._iter_files filters "/unsafe" paths
+    unsafe_files = list(UNSAFE.glob("*"))
+    assert len(unsafe_files) >= 2, f"Expected >=2 fixture files, got {len(unsafe_files)}"
+    findings, stats = checker.scan_paths(unsafe_files)
     assert stats["blocking"] == 2
     assert {f.rule_id for f in findings} == {"PGI-TRUTH-001", "PGI-TRUTH-002"}
 
 
 def test_cli_returns_failure_for_unsafe(capsys):
-    exit_code = checker.main(["--json", str(UNSAFE)])
+    unsafe_files = list(UNSAFE.glob("*"))
+    exit_code = checker.main(["--json"] + [str(f) for f in unsafe_files])
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "pgi-current-truth-protocol-checker" in captured.out

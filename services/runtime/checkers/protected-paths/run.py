@@ -61,6 +61,11 @@ SAFE_FILES = {
     "docs/governance/relationship-emotion-boundary-pgi-2.md",
     # AGENTS.md — documents CLOSED audit summary, not live secrets
     "AGENTS.md",
+    # LGC/RG governance docs — define/analyze pyproject.toml references
+    "docs/governance/script-legacy-triage-dgp-lgc-5c.md",
+    "docs/governance/registry-object-model-rg-1.md",
+    # Wiki index — references document titles (e.g. "...Secret...Audit...")
+    "docs/governance/wiki-index.md",
 }
 
 

@@ -72,6 +72,22 @@ SAFE_NEGATIONS = [
     r"not\s+.*execution\b",
 ]
 
+# ── Authoritative governance docs (exempt from agentic pattern rules) ──
+# These documents DEFINE governance concepts (CandidateRule, Policy, etc.).
+# Flagging them would be self-referential: the definition of "CandidateRule"
+# is not the same as an agent prematurely promoting one.
+AUTHORITATIVE_DOC_GLOBS = [
+    "docs/governance/document-authority-model-dgp-3.md",
+]
+
+
+def _is_authoritative_doc(filepath: str) -> bool:
+    """Check if a file is an authoritative governance doc exempt from rules."""
+    for g in AUTHORITATIVE_DOC_GLOBS:
+        if g in filepath:
+            return True
+    return False
+
 
 def _is_safe_context(line: str) -> bool:
     return any(re.search(p, line, re.IGNORECASE) for p in SAFE_NEGATIONS)
@@ -122,6 +138,9 @@ def detect(input_paths: list[Path]) -> tuple[list[Finding], dict]:
             files = _find_text_files(path)
 
         for f in files:
+            # Skip authoritative governance docs — they define concepts, don't violate them
+            if _is_authoritative_doc(str(f)):
+                continue
             files_scanned += 1
             try:
                 lines = f.read_text(encoding="utf-8", errors="replace").split("\n")

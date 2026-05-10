@@ -114,7 +114,7 @@ SAFE_CONTEXTS = [
     r"not\s+(?:a\s+)?(?:public\s+)?(?:release|published|package)",
     r"no\s+(?:broker|API|live|trading|auto\.merge|authorization)",
     r"does\s+not\s+(?:authorize|publish|activate|auto\.merge)",
-    r"(?:legacy|historical)\s+(?:PFIOS|AegisOS|identity)",
+    r"(?:legacy|historical).*?(?:PFIOS|AegisOS|legacy identity)",
     r"(?:blocked|deferred|not\s+yet)",
     r"recommendation only",
     r"proposal",

@@ -65,6 +65,7 @@ SAFE_FILES = {
     "docs/governance/agentic-pattern-source-ledger-adp-1.md",
     "docs/governance/capability-scaled-governance-gov-x.md",
     "docs/governance/document-authority-model-dg-1.md",
+    "docs/governance/document-authority-model-dgp-3.md",
     "docs/architecture/ordivon-current-architecture.md",
     "docs/governance/document-governance-pack-contract.md",
     # Added: normative specs + governance definitions
