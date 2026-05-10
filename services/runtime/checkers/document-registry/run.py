@@ -17,30 +17,12 @@ class CheckerResult:
     stats: dict = field(default_factory=dict)
 
 
-VALID_DOC_TYPES = {
-    "root_context",
-    "ai_onboarding",
-    "phase_boundary",
-    "architecture",
-    "design_spec",
-    "runbook",
-    "receipt",
-    "stage_summit",
-    "red_team",
-    "ledger",
-    "tracker",
-    "schema",
-    "governance_pack",
-    "runtime",
-    "product",
-    "template",
-    "tooling",
-    # DGP/LGC/RG — phase governance and legacy inventory
-    "boundary",
-    "inventory",
-    "supporting_evidence",
-    "triage",
-}
+def _load_valid_doc_types() -> set:
+    """Load valid doc_types from canonical schema (L-CI-SELFCAL-002 fix)."""
+    schema_path = ROOT / "docs/governance/schemas/document-types.json"
+    return set(json.loads(schema_path.read_text())["valid_doc_types"])
+
+VALID_DOC_TYPES = _load_valid_doc_types()
 VALID_AUTHORITIES = {
     "source_of_truth",
     "current_status",
