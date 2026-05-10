@@ -5,14 +5,15 @@ Ordivon is a **governance operating system**, not a trading bot, AI wrapper, or 
 ## Quick Navigation
 
 ```
-docs/ai/new-ai-collaborator-guide.md          New AI collaborator practical guide
-docs/ai/README.md                        AI onboarding start
-docs/ai/ordivon-root-context.md          Identity + governance doctrine
-docs/ai/current-phase-boundaries.md      Active/deferred/NO-GO boundaries
-docs/ai/agent-output-contract.md         Required output shape for every AI task
-docs/ai/current-system-map.md            Current system state overview
-docs/ai/no-go-boundary-map.md            Hard boundaries for AI operation
-docs/ai/new-ai-reading-order.md          9-step mandatory reading path
+docs/ai/ordivon-macro-structure.md         ← Full system architecture (READ THIS FIRST)
+docs/ai/new-ai-collaborator-guide.md       New AI collaborator practical guide
+docs/ai/README.md                     AI onboarding start
+docs/ai/ordivon-root-context.md       Identity + governance doctrine
+docs/ai/current-phase-boundaries.md   Active/deferred/NO-GO boundaries
+docs/ai/agent-output-contract.md      Required output shape for every AI task
+docs/ai/current-system-map.md         Current system state overview
+docs/ai/no-go-boundary-map.md         Hard boundaries for AI operation
+docs/ai/new-ai-reading-order.md       10-step mandatory reading path
 docs/ai/onboarding-protocol-dgp-4.md     Governed AI onboarding protocol
 
 ── Constitution & Philosophy ──
