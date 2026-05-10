@@ -24,33 +24,57 @@
   "files": [
     {
       "path": ".editorconfig",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".env.example",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".gitattributes",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".github/CODEOWNERS",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".github/dependabot.yml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".github/pull_request_template.md",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -79,53 +103,93 @@
     },
     {
       "path": ".gitignore",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".gitleaks.toml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".hermes/plans/2025-04-26_H8-review-closure-plan.md",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".importlinter",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".lighthouserc.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".npmrc",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".vscode/extensions.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".vscode/launch.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".vscode/settings.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": ".vulture.toml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "AGENTS.md",
@@ -139,8 +203,12 @@
     },
     {
       "path": "Makefile",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "README.md",
@@ -237,8 +305,12 @@
     },
     {
       "path": "alembic.ini",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "alembic/README",
@@ -547,8 +619,12 @@
     },
     {
       "path": "apps/api/pyproject.toml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "apps/data/README.md",
@@ -612,28 +688,48 @@
     },
     {
       "path": "apps/web/public/file.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch-application: generated-candidate",
+      "metadata": {
+        "generated_from": "applied via batch generated-candidate",
+        "source_refs": "applied via batch generated-candidate"
+      }
     },
     {
       "path": "apps/web/public/globe.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch-application: generated-candidate",
+      "metadata": {
+        "generated_from": "applied via batch generated-candidate",
+        "source_refs": "applied via batch generated-candidate"
+      }
     },
     {
       "path": "apps/web/public/next.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch-application: generated-candidate",
+      "metadata": {
+        "generated_from": "applied via batch generated-candidate",
+        "source_refs": "applied via batch generated-candidate"
+      }
     },
     {
       "path": "apps/web/public/vercel.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch-application: generated-candidate",
+      "metadata": {
+        "generated_from": "applied via batch generated-candidate",
+        "source_refs": "applied via batch generated-candidate"
+      }
     },
     {
       "path": "apps/web/public/window.svg",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "generated",
+      "source": "batch-application: generated-candidate",
+      "metadata": {
+        "generated_from": "applied via batch generated-candidate",
+        "source_refs": "applied via batch generated-candidate"
+      }
     },
     {
       "path": "apps/web/src/README.md",
@@ -2003,53 +2099,93 @@
     },
     {
       "path": "data/evals/baselines/baseline_v1.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/datasets/core/btc_mixed_signals.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/datasets/core/btc_trend_breakout.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/datasets/core/high_exposure_risk.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/datasets/core/insufficient_data.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/runs/2026-04-17_run_011848.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/runs/2026-04-17_run_011944.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/evals/runs/2026-04-17_run_012001.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/logs/audit/2026-04-17.jsonl",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "data/openapi_snapshot_baseline.json",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: dataset-candidate",
+      "metadata": {
+        "owner": "applied via batch dataset-candidate",
+        "reason": "applied via batch dataset-candidate"
+      }
     },
     {
       "path": "db/pfios_main.duckdb",
@@ -9735,8 +9871,12 @@
     },
     {
       "path": "mypy.ini",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "orchestrator/README.md",
@@ -10028,13 +10168,21 @@
     },
     {
       "path": "pnpm-lock.yaml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "pnpm-workspace.yaml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "policies/README.md",
@@ -10048,8 +10196,12 @@
     },
     {
       "path": "policies/trading_limits.yaml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "prompts/README.md",
@@ -10058,8 +10210,12 @@
     },
     {
       "path": "pyproject.toml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "repomix.config.json",
@@ -14870,8 +15026,12 @@
     },
     {
       "path": "uv.lock",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
+      "coverage_status": "excluded",
+      "source": "batch-application: config-file-candidate",
+      "metadata": {
+        "owner": "applied via batch config-file-candidate",
+        "reason": "applied via batch config-file-candidate"
+      }
     },
     {
       "path": "workflows/README.md",
