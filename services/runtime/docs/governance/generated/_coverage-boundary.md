@@ -8,12 +8,12 @@
 | Status | Count |
 |---|---|
 | governed | 854 |
-| generated | 94 |
-| excluded | 105 |
+| generated | 95 |
+| excluded | 104 |
 | fixture | 215 |
 | legacy | 29 |
 
-**Total files**: 2121
+**Total files**: 2118
 **Blocked**: 0
 
 ## Blocked Files

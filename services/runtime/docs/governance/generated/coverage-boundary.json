@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T23:07:40Z",
+  "generated_at": "2026-05-10T23:21:53Z",
   "authority": "generated_view",
   "source_refs": [
     "git ls-files",
@@ -9,12 +9,12 @@
     "debt ledger (pattern match)"
   ],
   "stats": {
-    "total": 2121,
+    "total": 2118,
     "by_status": {
-      "excluded": 105,
+      "excluded": 104,
       "governed": 854,
-      "debt_or_exclusion_required": 824,
-      "generated": 94,
+      "debt_or_exclusion_required": 821,
+      "generated": 95,
       "legacy": 29,
       "fixture": 215
     },
@@ -2053,11 +2053,6 @@
     },
     {
       "path": "data/evals/runs/2026-04-17_run_012001.json",
-      "coverage_status": "excluded",
-      "source": "batch receipt (GOS-PM-7)"
-    },
-    {
-      "path": "data/logs/audit/2026-04-17.jsonl",
       "coverage_status": "excluded",
       "source": "batch receipt (GOS-PM-7)"
     },
@@ -4368,6 +4363,14 @@
       "source": "governed-exclusions.json",
       "metadata": {
         "reason": "Generated path map — derived view, not a governed doc"
+      }
+    },
+    {
+      "path": "docs/governance/generated/pm-scenarios.dot",
+      "coverage_status": "generated",
+      "source": "path-map classification",
+      "metadata": {
+        "must_not_be_source_of_truth": true
       }
     },
     {
@@ -9880,11 +9883,6 @@
       "source": "non-protected unclassified"
     },
     {
-      "path": "knowledge_state/README.md",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
-    },
-    {
       "path": "mypy.ini",
       "coverage_status": "debt_or_exclusion_required",
       "source": "non-protected unclassified"
@@ -10205,11 +10203,6 @@
     },
     {
       "path": "policies/trading_limits.yaml",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
-    },
-    {
-      "path": "prompts/README.md",
       "coverage_status": "debt_or_exclusion_required",
       "source": "non-protected unclassified"
     },
@@ -15072,11 +15065,6 @@
     },
     {
       "path": "uv.lock",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
-    },
-    {
-      "path": "workflows/README.md",
       "coverage_status": "debt_or_exclusion_required",
       "source": "non-protected unclassified"
     }

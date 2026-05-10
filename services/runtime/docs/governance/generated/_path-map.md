@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T22:36:28Z
+> Generated: 2026-05-10T23:21:53Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2121
+- Tracked files: 2118
 - Governed: 813
-- Generated views: 89
-- Excluded: 75
+- Generated views: 90
+- Excluded: 82
 - Blocked: 0
-- Debt-parked: 1144
+- Debt-parked: 1133
 
 ## Governed Nodes
 ### ai-boundaries
@@ -836,22 +836,17 @@
 
 ## Blocked / Debt-Parked
 - `.editorconfig`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `.env.example`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.gitattributes`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.github/CODEOWNERS`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.github/dependabot.yml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.github/pull_request_template.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.gitignore`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `.gitleaks.toml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.hermes/plans/2025-04-26_H8-review-closure-plan.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `.importlinter`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.lighthouserc.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `.npmrc`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.vscode/extensions.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.vscode/launch.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.vscode/settings.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `.vulture.toml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `Makefile`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `alembic.ini`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `alembic/README`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1015,7 +1010,6 @@
 - `data/evals/runs/2026-04-17_run_011848.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `data/evals/runs/2026-04-17_run_011944.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `data/evals/runs/2026-04-17_run_012001.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `data/logs/audit/2026-04-17.jsonl`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `data/openapi_snapshot_baseline.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `db/pfios_main.duckdb`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `docker-compose.yml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1335,7 +1329,6 @@
 - `knowledge/wiki/service.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `knowledge/wiki/strategies/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `knowledge/wiki/theses/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `knowledge_state/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `mypy.ini`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `orchestrator/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `orchestrator/context/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1358,15 +1351,12 @@
 - `orchestrator/scheduler/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `orchestrator/workflows/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `orchestrator/workflows/analyze.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `package.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `playwright.config.ts`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `playwright.release.config.ts`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `pnpm-lock.yaml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `pnpm-workspace.yaml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `policies/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `policies/constitution.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `policies/trading_limits.yaml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `prompts/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `pyproject.toml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `repomix.config.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1978,4 +1968,3 @@
 - `tools/utils/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `tools/wiki_io/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `uv.lock`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `workflows/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
