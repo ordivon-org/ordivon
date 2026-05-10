@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T22:20:30Z",
+  "generated_at": "2026-05-10T22:21:12Z",
   "authority": "generated_view",
   "source_refs": [
     "git ls-files",
@@ -11,16 +11,15 @@
   "stats": {
     "total": 2108,
     "by_status": {
-      "excluded": 96,
+      "excluded": 99,
       "governed": 851,
       "debt_or_exclusion_required": 826,
       "generated": 88,
       "legacy": 29,
-      "blocked": 3,
       "fixture": 215
     },
-    "blocked": 3,
-    "protected_unknown": 3
+    "blocked": 0,
+    "protected_unknown": 0
   },
   "files": [
     {
@@ -4678,21 +4677,27 @@
     },
     {
       "path": "docs/governance/receipts/coverage-batches/config-file-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/receipts/coverage-batches/dataset-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/receipts/coverage-batches/generated-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
+      "coverage_status": "excluded",
+      "source": "governed-exclusions.json",
+      "metadata": {
+        "reason": ""
+      }
     },
     {
       "path": "docs/governance/red-team-remediation-plan-2026-05-10.md",
@@ -14966,24 +14971,5 @@
       "source": "non-protected unclassified"
     }
   ],
-  "blocked_findings": [
-    {
-      "path": "docs/governance/receipts/coverage-batches/config-file-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
-    {
-      "path": "docs/governance/receipts/coverage-batches/dataset-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    },
-    {
-      "path": "docs/governance/receipts/coverage-batches/generated-candidate.json",
-      "coverage_status": "blocked",
-      "source": "protected path",
-      "finding": "CB-1 UNKNOWN_PROTECTED_FILE"
-    }
-  ]
+  "blocked_findings": []
 }

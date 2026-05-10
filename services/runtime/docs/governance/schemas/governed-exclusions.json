@@ -61,6 +61,9 @@
     "docs/governance/generated/_coverage-resolution-plan.md": "Generated resolution plan view",
     "docs/governance/generated/coverage-boundary.json": "Generated coverage data",
     "docs/governance/generated/coverage-resolution-plan.json": "Generated resolution plan data",
-    "docs/governance/receipts/coverage-batches/": "Batch receipt directory — evidence records"
+    "docs/governance/receipts/coverage-batches/": "Batch receipt directory — evidence records",
+    "docs/governance/receipts/coverage-batches/config-file-candidate.json": "Batch receipt — evidence record",
+    "docs/governance/receipts/coverage-batches/dataset-candidate.json": "Batch receipt — evidence record",
+    "docs/governance/receipts/coverage-batches/generated-candidate.json": "Batch receipt — evidence record"
   }
 }
