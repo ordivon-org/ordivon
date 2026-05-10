@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T20:29:14Z
+> Generated: 2026-05-10T20:45:25Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2077
-- Governed: 806
-- Generated views: 75
+- Tracked files: 2084
+- Governed: 807
+- Generated views: 78
 - Excluded: 67
 - Blocked: 0
-- Debt-parked: 1129
+- Debt-parked: 1132
 
 ## Governed Nodes
 ### ai-boundaries
@@ -178,6 +178,8 @@
 - `docs/runtime/security-external-tooling-closure.md` (document, owner=Governance)
 - `docs/runtime/verify-external-dogfood-hermes-agent-2026-05-07.md` (document, owner=Governance)
 - `docs/runtime/waves-a-e-dogfood-receipt.md` (document, owner=EG)
+### config-and-schemas
+- `docs/governance/schemas/registry-path-reconciliation.schema.json` (schema, owner=-)
 ### governance-core
 - `.github/workflows/ci.yml` (ci_gate, owner=-)
 - `.github/workflows/codeql.yml` (ci_gate, owner=-)
@@ -1397,6 +1399,8 @@
 - `scripts/explain-path-node.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/export_openapi.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-path-map-delta.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-reconciliation-graph.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-reconciliation-report.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate_document_wiki.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9_dogfood_runs.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9c_verification.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1407,6 +1411,7 @@
 - `scripts/ordivon_reconcile.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/ordivon_verify.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/prepare_ordivon_verify_package_context.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/reconcile-registry-path.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/render_repo_governance_report.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/repo_governance_cli.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/repo_governance_github_adapter.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED

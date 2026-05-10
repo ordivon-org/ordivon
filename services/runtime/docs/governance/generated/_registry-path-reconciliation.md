@@ -1,7 +1,7 @@
 # Registry–Path Reconciliation Report
 
 > **GENERATED VIEW — DO NOT EDIT**
-> Generated: 2026-05-10 20:42 UTC
+> Generated: 2026-05-10 20:56 UTC
 > Source: `docs/governance/generated/registry-path-reconciliation.json`
 > Authority: supporting_evidence
 > **Not source of truth. Not raw evidence. Text view only.**
@@ -11,10 +11,10 @@
 ## Summary
 
 - Registry entries: 456
-- Path Map nodes: 2073
+- Path Map nodes: 2084
 - In both: 456
 - Only registry: 0
-- Only path map: 1617
+- Only path map: 1628
 - Findings: 2 BLOCKING, 119 DEGRADED
 
 ---
