@@ -22,7 +22,7 @@ governance is executable code — testable, attestable, replayable.
 
 ```
 438 registered documents · 38 governance checkers · 30 JSON schemas
-10 lessons · 2 debt records · 1,437 tests · ~34.5K LOC
+10 lessons · 2 debt records · 1,437+ tests · ~34.5K LOC
 ```
 
 The governance system and the governed system are made of the same materials
@@ -190,7 +190,8 @@ src/ordivon_verify/          ← Main package
 ci.yml (15 jobs)
 ├── ruff                  ← Format + lint (blocking)
 ├── pr-fast                ← Auto-discovered checker baseline (blocking)
-├── governance-self-check  ← Generated views + dual-checker sync (blocking) [NEW]
+├── governance-self-check  ← Generated views + dual-checker sync (blocking)
+├── atomic-governance       ← Registration completeness (blocking) [NEW]
 ├── verify-native          ← ordivon-verify all → READY (blocking)
 ├── product-tests          ← 737 tests (blocking)
 ├── governance-tests       ← 464 tests (blocking)
@@ -270,7 +271,7 @@ Epoch 3: Self-Calibration (CI-SELFCAL)
   Doc count generator + CI verify gate (K8s hack/verify pattern)
   Methodology Core extracted from the event
   10 lessons, 2 debts, 1 cron job
-  1,437 tests · ordivon-verify → READY (35/35)
+  1,437+ tests · ordivon-verify → READY (35/35)
 ```
 
 ---

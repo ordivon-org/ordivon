@@ -288,11 +288,11 @@ hardening. Each has been observed, classified, and linked to a lesson.
 **Lesson**: L-CI-SELFCAL-002
 **Fix**: A3 — schema-first architecture (single schema, multiple consumers).
 
-### AP-3: Atomic Governance Breakage
+### AP-3: Atomic Governance Breakage — CLOSED (A3)
 **Symptom**: 124 new documents committed; registry, doc_types, reference docs not updated in same commits.
 **Root cause**: Governance update treated as separate from content update.
-**Lesson**: L-CI-SELFCAL-003
-**Fix**: One semantic change = one atomic governance unit.
+**Lesson**: L-CI-SELFCAL-003, L-CI-SELFCAL-007
+**Fix**: Atomic governance gate deployed — `scripts/check_atomic_governance.py` + CI job. 164 governed files verified.
 
 ### AP-4: Silent Ignore
 **Symptom**: Vulnerability suppressed with --ignore-vuln, no debt record.
