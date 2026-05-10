@@ -55,6 +55,7 @@
     "docs/governance/generated/path-map.json": "Generated path map \u2014 derived view, not a governed doc",
     "docs/governance/generated/_path-map.md": "Generated path map markdown \u2014 derived view",
     "docs/governance/generated/path-map.dot": "Generated path map dot \u2014 derived view",
-    "docs/governance/evidence/": "Evidence bundle directory \u2014 raw outputs, not governed docs"
+    "docs/governance/evidence/": "Evidence bundle directory \u2014 raw outputs, not governed docs",
+    "docs/governance/schemas/authority-taxonomy.json": "Authority taxonomy schema \u2014 meta-schema, not a governed doc"
   }
 }
