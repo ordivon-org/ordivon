@@ -208,5 +208,6 @@ These are **design-time prohibitions**. No agent may violate them.
 ||| `checkers/policy-shadow/` | Policy Shadow Runner checker (L8B) |
 ||| `docs/governance/schemas/document-types.json` | Single source of truth for valid doc_types — schema-first architecture (L-CI-SELFCAL-002) |
 ||| `docs/governance/dependency-audit-debts.jsonl` | Dependency audit debt ledger (CVE-2026-3219 NO_FIX_UPSTREAM) |
-||| `docs/governance/lesson-ledger.jsonl` | Governance lessons ledger (8 total, 3 CI self-calibration) |
+||| `docs/governance/lesson-ledger.jsonl` | Governance lessons ledger (9 total, 4 CI self-calibration) |
 ||| `scripts/check_cve_2026_3219.py` | CVE-2026-3219 review script — checks OSV API for fixed version |
+||| `docs/governance/ordivon-methodology-core.md` | L0 methodology — invariants, dual-gate loop, A1-A4 matrix, self-calibration doctrine |
