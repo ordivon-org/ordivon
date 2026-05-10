@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Coverage Admission Policy",
+  "description": "Pre-execution admission gate for coverage mutations. Admission before mutation. ALLOW/BLOCK/SHADOW/A4_REQUIRED/REVIEW_REQUIRED. Pattern: OPA admission control + Kubernetes admission webhooks.",
+  "governed_by": "coverage-admission checker (GOS-PM-9)",
+  "version": "0.1.0",
+  "enforcement_mode": "SHADOW",
+  "rules": [
+    {"id": "CA-1", "name": "NEW_PROTECTED_UNKNOWN_FILE", "trigger": "new_file_in_protected_path_without_classification", "decision": "BLOCK", "message": "New file in protected path must have registry entry, exclusion, generated source_refs, or debt_id"},
+    {"id": "CA-2", "name": "GENERATED_WITHOUT_SOURCE_REFS", "trigger": "generated_status_without_source_refs", "decision": "BLOCK", "message": "Generated file must declare source_refs and generated_from"},
+    {"id": "CA-3", "name": "GENERATED_SOURCE_AUTHORITY_CLAIM", "trigger": "generated_claims_source_authority", "decision": "BLOCK", "message": "Generated file cannot claim doc_source_of_truth, implementation_source, schema_source, or active_policy"},
+    {"id": "CA-4", "name": "EXCLUSION_WITHOUT_REQUIRED_FIELDS", "trigger": "exclusion_missing_owner_reason_review_date", "decision": "BLOCK", "message": "Exclusion requires owner, reason, review_date, removal_condition"},
+    {"id": "CA-5", "name": "DEBT_PARK_WITHOUT_DEBT_ID", "trigger": "debt_parked_without_debt_id", "decision": "BLOCK", "message": "Debt-parked file must reference a valid debt_id in the debt ledger"},
+    {"id": "CA-6", "name": "FIXTURE_WITHOUT_OWNING_TEST", "trigger": "fixture_without_owning_test", "decision": "SHADOW", "message": "Fixture should reference an owning test or checker"},
+    {"id": "CA-7", "name": "AUTHORITY_MUTATION_WITHOUT_REVIEW_ROUTE", "trigger": "authority_change_without_review_route", "decision": "REVIEW_REQUIRED", "message": "Authority domain/role change requires review route"},
+    {"id": "CA-8", "name": "COVERAGE_STATUS_CHANGE_WITHOUT_RECEIPT", "trigger": "coverage_status_changed_without_receipt", "decision": "BLOCK", "message": "Coverage status change requires batch receipt"},
+    {"id": "CA-9", "name": "ADMISSION_REPORT_DRIFT", "trigger": "generated_admission_report_manual_edit", "decision": "BLOCK", "message": "Admission report is generated — manual edit detected"},
+    {"id": "CA-10", "name": "ADMISSION_PASS_OVERCLAIM", "trigger": "admission_report_claims_closure", "decision": "BLOCK", "message": "Admission pass cannot claim full closure"}
+  ]
+}
