@@ -1,22 +1,25 @@
 # Stage Template: Checker Development Stage
 # =============================================================================
-# For creating or modifying a checker. Touches checkers/<name>/, domains/ if
-# adding domain models, and docs/governance/ for ledger updates. Must NOT
-# touch test infrastructure, application code, or ORM models.
+# Updated: GOS-PM-10 (2026-05-11) — incorporates PM-1 through PM-10 gates.
+#
+# For creating or modifying a checker. Touches checkers/<name>/, domains/
+# if adding domain models, and docs/governance/ for ledger updates.
+# Must NOT touch test infrastructure, application code, or ORM models.
 # =============================================================================
 
 template_id: checker-development
-template_version: 1
+template_version: 2
 description: "Create or modify a governance checker — CHECKER.md + run.py, domain models, tests, fixtures, DG registration"
+
+# ── Enforcement semantics (GOS-PM-2S) ───────────────────────────────
+enforcement_semantics:
+  severity_levels: [BLOCKING, DEGRADED, ADVISORY]
+  enforcement_modes: [ENFORCED, SHADOW, NOT_ENFORCED]
+  rule: "BLOCKING + NOT_ENFORCED = state semantics gap — must be resolved"
 
 freeze_protocol:
   state: open_scope
-  allowed_states:
-    - open_scope
-    - enhancement_freeze
-    - verification_freeze
-    - closure_freeze
-    - closed
+  allowed_states: [open_scope, enhancement_freeze, verification_freeze, closure_freeze, closed]
   enforcement: record_only
 
 pre_flight:
@@ -26,7 +29,7 @@ pre_flight:
   - id: current-truth-pre
     command: "uv run python checkers/current-truth/run.py"
     description: "No pre-existing drift"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
 
 allowed_paths:
   - checkers/**
@@ -55,40 +58,70 @@ forbidden_boundaries:
   - environments/**
   - .github/workflows/ci.yml
 
+# ── Verification gates ─────────────────────────────────────────────
 verification:
   - id: pr-fast
     command: "uv run python scripts/run_baseline.py --pr-fast"
     description: "PR-fast hard gates"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
     timeout: 180
 
   - id: unit-tests
     command: "uv run --with pytest python -m pytest tests/unit -q --no-header"
     description: "All unit tests must pass"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
     timeout: 300
 
   - id: document-registry
     command: "uv run python scripts/check_document_registry.py"
     description: "DG registry integrity"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
     timeout: 60
 
   - id: current-truth
     command: "uv run python checkers/current-truth/run.py"
     description: "Cross-doc consistency"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
     timeout: 60
+
+  - id: verify-path-map              # PM-1
+    command: "uv run python scripts/verify-path-map.py"
+    description: "Path map consistent"
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
+    timeout: 60
+
+  - id: verify-coverage-boundary     # PM-5
+    command: "uv run python scripts/verify-coverage-boundary.py"
+    description: "No unknown protected files"
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
+    timeout: 60
+
+  - id: overclaim                    # PM-2S
+    command: "uv run python scripts/detect_overclaim.py docs/"
+    description: "No banned vocabulary"
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
+    timeout: 30
 
   - id: git-diff-check
     command: "git diff --check"
     description: "No whitespace errors"
-    on_failure: BLOCKED
+    on_failure: {severity: BLOCKING, enforcement: ENFORCED}
     timeout: 30
 
 receipt:
   output_dir: docs/runtime
   filename_pattern: "{stage_id}-receipt.md"
+  required_sections:
+    - stage_id
+    - stage_type
+    - timestamp
+    - files_changed
+    - verification_summary
+    - boundary_statement
+    - registry_updates
+    - ai_onboarding_updates
+    - not_claimed
+    - next_handoff
 
 registry:
   - action: register_new_docs
@@ -96,7 +129,13 @@ registry:
   - action: update_freshness
     description: "Update last_verified on modified docs"
   - action: update_manifest
-    description: "If checker is hard/escalation and should be in pr-fast, update verification-gate-manifest.json"
+    description: "If checker is hard/escalation for pr-fast, update verification-gate-manifest.json"
+  - action: update_path_map
+    description: "Regenerate path map after checker addition"
+  - action: update_coverage
+    description: "Regenerate coverage boundary"
+  - action: rehash_ledgers
+    description: "Re-hash ledgers if modified"
 
 ai_onboarding:
   - file: AGENTS.md
@@ -112,3 +151,8 @@ closure:
   receipt_written: true
   registry_updated: true
   tests_pass: true
+  path_map_consistent: true
+  overclaim_check_pass: true
+  coverage_no_blocked: true
+  not_claimed_written: true
+  full_closure_not_claimed: true
