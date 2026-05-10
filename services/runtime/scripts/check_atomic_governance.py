@@ -30,6 +30,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GOVERNED_DIRS = [
     "docs/ai/",
     "docs/governance/",
+    "docs/architecture/",
+    "docs/product/",
+    "docs/decisions/",
 ]
 
 # ── Files in governed dirs that are intentionally not registered ───────

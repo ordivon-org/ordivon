@@ -27,6 +27,26 @@
     "docs/ai/_registry-stats.md": "Generated view — auto-generated from registry",
     "docs/governance/schemas/governed-exclusions.json": "Exclusion schema — meta-schema, loaded by atomic-governance checker",
     "docs/governance/schemas/protected-paths-config.json": "Protected-paths authority config — loaded by checker, not a governed doc",
-    "docs/governance/schemas/agentic-patterns-config.json": "Agentic-patterns authority config — loaded by checker, not a governed doc"
+    "docs/governance/schemas/agentic-patterns-config.json": "Agentic-patterns authority config — loaded by checker, not a governed doc",
+    "docs/architecture/aegisos-design-doctrine.md": "Legacy AegisOS design doctrine — historical reference, excluded from governance",
+    "docs/architecture/aegisos-layer-roadmap.md": "Legacy AegisOS layer roadmap — historical, excluded",
+    "docs/architecture/aegisos-next-round-execution-plan.md": "Legacy AegisOS execution plan — historical, excluded",
+    "docs/architecture/aegisos-overview.md": "Legacy AegisOS overview — historical, excluded",
+    "docs/architecture/aegisos-post-mvp-refinement-execution-plan.md": "Legacy AegisOS post-MVP plan — historical, excluded",
+    "docs/architecture/aegisos-working-identity.md": "Legacy AegisOS working identity — historical, excluded",
+    "docs/architecture/pfios-behavioral-baseline.md": "Legacy PFIOS behavioral baseline — historical, excluded",
+    "docs/architecture/pfios-organizational-baseline.md": "Legacy PFIOS organizational baseline — historical, excluded",
+    "docs/product/aegisos-mvp-brief.md": "Legacy Aegisos MVP brief — historical, excluded",
+    "docs/product/aegisos-mvp-execution-checklist.md": "Legacy Aegisos MVP checklist — historical, excluded",
+    "docs/product/ai-financial-assistant-roadmap.md": "Legacy PFIOS financial assistant roadmap — historical, excluded",
+    "docs/product/legacy-governance-stage-summit-dgp-lgc-s.md": "LGC-S stage summit — already registered elsewhere, excluded from duplicate check",
+    "docs/product/task-template-system.md": "Legacy task template system — historical, excluded",
+    "docs/design/README.md": "Design system README — design docs are governed by design-pack, not document-registry",
+    "docs/decisions/ADR-001-repo-structure.md": "ADR — architecture decision records are self-documenting",
+    "docs/decisions/ADR-002-knowledge-vs-state.md": "ADR — self-documenting",
+    "docs/decisions/ADR-003-python-first-rust-later.md": "ADR — self-documenting",
+    "docs/decisions/ADR-004-governance-layer-mandatory.md": "ADR — self-documenting",
+    "docs/decisions/ADR-005-tool-vs-skill-boundary.md": "ADR — self-documenting",
+    "docs/decisions/ADR-006-pack-policy-binding.md": "ADR — self-documenting"
   }
 }
