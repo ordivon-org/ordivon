@@ -97,6 +97,8 @@ digraph OrdivonPathMap {
   checkers_ownership-manifest_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_paper-dogfood-ledger_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];
   checkers_paper-dogfood-ledger_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
+  checkers_path-map-evidence_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];
+  checkers_path-map-evidence_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_path-map_CHECKER_md [label="CHECKER.md",fillcolor="#a78bfa20",color="#a78bfa"];
   checkers_path-map_run_py [label="run.py",fillcolor="#34d39920",color="#34d399"];
   checkers_pgi-confidence_CHECKER_md [label="CHECKER.md",fillcolor="#34d39920",color="#34d399"];

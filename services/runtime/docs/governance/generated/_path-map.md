@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T20:12:57Z
+> Generated: 2026-05-10T20:29:14Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2073
-- Governed: 804
+- Tracked files: 2077
+- Governed: 806
 - Generated views: 75
 - Excluded: 67
 - Blocked: 0
-- Debt-parked: 1127
+- Debt-parked: 1129
 
 ## Governed Nodes
 ### ai-boundaries
@@ -239,6 +239,8 @@
 - `checkers/ownership-manifest/run.py` (checker, owner=-)
 - `checkers/paper-dogfood-ledger/CHECKER.md` (checker, owner=-)
 - `checkers/paper-dogfood-ledger/run.py` (checker, owner=-)
+- `checkers/path-map-evidence/CHECKER.md` (checker, owner=-)
+- `checkers/path-map-evidence/run.py` (checker, owner=-)
 - `checkers/path-map/CHECKER.md` (document, owner=ordivon-core-maintainer)
 - `checkers/path-map/run.py` (checker, owner=-)
 - `checkers/pgi-confidence/CHECKER.md` (checker, owner=-)
@@ -1394,6 +1396,7 @@
 - `scripts/eval_reasoning_quality.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/explain-path-node.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/export_openapi.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-path-map-delta.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate_document_wiki.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9_dogfood_runs.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9c_verification.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1452,6 +1455,7 @@
 - `scripts/validate_pgi_reversibility_assessment.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_review_to_rule_candidate.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_self_model_entry.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/verify-path-map-evidence.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/app.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/config.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/hermes_runner.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
