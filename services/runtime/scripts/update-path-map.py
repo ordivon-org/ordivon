@@ -91,11 +91,26 @@ def classify(
         "classification_status": "unclassified",
     }
 
-    # 1. Explicit exclusion
-    if filepath in exclusions:
+    # 1. Explicit exclusion (exact path OR directory prefix)
+    is_excluded = filepath in exclusions
+    if not is_excluded:
+        for excl_path in exclusions:
+            if excl_path.endswith("/") and filepath.startswith(excl_path):
+                is_excluded = True
+                break
+    if is_excluded:
         node["kind"] = "explicit_exclusion"
         node["classification_status"] = "excluded"
-        node["reason"] = exclusions[filepath]
+        # Find matching exclusion (exact or directory prefix)
+        if filepath in exclusions:
+            node["reason"] = exclusions[filepath]
+        else:
+            for excl_path, reason in exclusions.items():
+                if excl_path.endswith("/") and filepath.startswith(excl_path):
+                    node["reason"] = reason
+                    break
+            else:
+                node["reason"] = "excluded by directory rule"
         return node
 
     # 2. Generated file

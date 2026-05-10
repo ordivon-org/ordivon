@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — DO NOT EDIT -->
 <!-- Source: docs/governance/document-registry.jsonl -->
 <!-- Generator: scripts/update-registry-stats.py -->
-<!-- Generated: 2026-05-10T19:41:36Z -->
+<!-- Generated: 2026-05-10T20:13:24Z -->
 <!-- Authority: generated_view — not source_of_truth -->
 
 # Document Registry Statistics
@@ -14,7 +14,7 @@
 
 ## Summary
 
-- **Total registered documents**: 453
+- **Total registered documents**: 456
 - **Document types**: 24
 - **Potentially stale**: 433
 
@@ -24,7 +24,7 @@
 |--------|-------|
 | accepted | 10 |
 | closed | 77 |
-| current | 359 |
+| current | 362 |
 | deferred | 1 |
 | proposed | 4 |
 | ready_for_execution | 1 |
@@ -46,7 +46,7 @@
 | phase_boundary | 1 |
 | product | 51 |
 | proposal | 3 |
-| receipt | 121 |
+| receipt | 122 |
 | red_team | 1 |
 | root_context | 1 |
 | runbook | 2 |
@@ -55,7 +55,7 @@
 | stage_summit | 9 |
 | supporting_evidence | 6 |
 | template | 4 |
-| tooling | 6 |
+| tooling | 8 |
 | tracker | 1 |
 | triage | 7 |
 
@@ -65,8 +65,8 @@
 |-------|-------|
 | L0 | 7 |
 | L1 | 25 |
-| L2 | 186 |
-| L3 | 169 |
+| L2 | 188 |
+| L3 | 170 |
 | L4 | 64 |
 | L5 | 2 |
 
@@ -76,7 +76,7 @@
 |-----------|-------|
 | current_status | 88 |
 | proposal | 62 |
-| source_of_truth | 121 |
+| source_of_truth | 124 |
 | supporting_evidence | 182 |
 
 ## Potentially Stale Documents

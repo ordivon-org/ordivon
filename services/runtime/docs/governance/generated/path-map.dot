@@ -694,11 +694,13 @@ digraph OrdivonPathMap {
   packs_finance_trading_discipline_policy_py [label="trading_discipline_policy.py",fillcolor="#94a3b820",color="#94a3b8"];
   scripts_check_artifact_registry_py [label="check_artifact_registry.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_check_atomic_governance_py [label="check_atomic_governance.py",fillcolor="#a78bfa20",color="#a78bfa"];
+  scripts_collect-stage-evidence_py [label="collect-stage-evidence.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_run_baseline_py [label="run_baseline.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_run_stage_py [label="run_stage.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_update-path-map_py [label="update-path-map.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_update-registry-stats_py [label="update-registry-stats.py",fillcolor="#a78bfa20",color="#a78bfa"];
   scripts_verify-path-map_py [label="verify-path-map.py",fillcolor="#a78bfa20",color="#a78bfa"];
+  scripts_verify-stage-evidence_py [label="verify-stage-evidence.py",fillcolor="#a78bfa20",color="#a78bfa"];
   shared_README_md [label="README.md",fillcolor="#94a3b820",color="#94a3b8"];
   shared_config_settings_py [label="settings.py",fillcolor="#94a3b820",color="#94a3b8"];
   shared_enums_domain_py [label="domain.py",fillcolor="#94a3b820",color="#94a3b8"];

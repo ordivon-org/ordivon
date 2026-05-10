@@ -1,15 +1,15 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T20:04:14Z
+> Generated: 2026-05-10T20:12:57Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2046
-- Governed: 802
+- Tracked files: 2073
+- Governed: 804
 - Generated views: 75
-- Excluded: 42
+- Excluded: 67
 - Blocked: 0
 - Debt-parked: 1127
 
@@ -34,6 +34,7 @@
 - `docs/ai/reading-graph.json` (document, owner=Governance)
 - `docs/ai/systems-reference.md` (document, owner=DG)
 - `docs/ai/task-prompt-template.md` (document, owner=AI-Onboarding)
+- `docs/runbooks/newcomer-execution-flow.md` (document, owner=Governance)
 - `docs/runtime/README.md` (document, owner=Governance)
 - `docs/runtime/adp-2r-redteam-remediation.md` (document, owner=ADP-2)
 - `docs/runtime/adp-3-closure-seal.md` (document, owner=ADP-3-S)
@@ -183,6 +184,7 @@
 - `.github/workflows/delivery.yml` (ci_gate, owner=-)
 - `.github/workflows/nightly-regression.yml` (ci_gate, owner=-)
 - `.github/workflows/security.yml` (ci_gate, owner=-)
+- `AGENTS.md` (document, owner=ordivon-core-maintainer)
 - `checkers/.bundled_manifest` (checker, owner=-)
 - `checkers/agent-native-evidence/CHECKER.md` (document, owner=Governance)
 - `checkers/agent-native-evidence/run.py` (checker, owner=-)
@@ -402,9 +404,15 @@
 - `docs/governance/wiki-index.md` (document, owner=Governance)
 - `scripts/check_artifact_registry.py` (document, owner=EG)
 - `scripts/check_atomic_governance.py` (document, owner=ordivon-core-maintainer)
+- `scripts/collect-stage-evidence.py` (document, owner=ordivon-core-maintainer)
+- `scripts/run_baseline.py` (document, owner=DG)
+- `scripts/run_stage.py` (document, owner=EG)
 - `scripts/update-path-map.py` (document, owner=ordivon-core-maintainer)
 - `scripts/update-registry-stats.py` (document, owner=ordivon-core-maintainer)
 - `scripts/verify-path-map.py` (document, owner=ordivon-core-maintainer)
+- `scripts/verify-stage-evidence.py` (document, owner=ordivon-core-maintainer)
+- `stage-templates/checker-development.yaml` (document, owner=EG)
+- `stage-templates/doc-governance.yaml` (document, owner=EG)
 ### knowledge-assets
 - `examples/ordivon-verify/dogfood/clean-ai-task/governance/verification-debt-ledger.jsonl` (knowledge_asset, owner=-)
 - `examples/ordivon-verify/dogfood/false-comfort-ai-task/governance/verification-debt-ledger.jsonl` (knowledge_asset, owner=-)
@@ -815,13 +823,6 @@
 - `state/usage/orm.py` (source_code, owner=-)
 - `state/usage/repository.py` (source_code, owner=-)
 - `state/usage/service.py` (source_code, owner=-)
-### unrouted
-- `AGENTS.md` (document, owner=ordivon-core-maintainer)
-- `docs/runbooks/newcomer-execution-flow.md` (document, owner=Governance)
-- `scripts/run_baseline.py` (document, owner=DG)
-- `scripts/run_stage.py` (document, owner=EG)
-- `stage-templates/checker-development.yaml` (document, owner=EG)
-- `stage-templates/doc-governance.yaml` (document, owner=EG)
 
 ## Blocked / Debt-Parked
 - `.editorconfig`: PM-9 DEBT_OR_EXCLUSION_REQUIRED

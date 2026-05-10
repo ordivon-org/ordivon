@@ -6,7 +6,10 @@
   "governed_by": "path-map checker (GOS-N1A)",
   "version": "0.1.0",
   "status": "proposed",
-  "lesson_refs": ["L-CI-SELFCAL-001", "L-CI-SELFCAL-003"],
+  "lesson_refs": [
+    "L-CI-SELFCAL-001",
+    "L-CI-SELFCAL-003"
+  ],
   "routes": [
     {
       "id": "governance-core",
@@ -23,7 +26,12 @@
           "scripts/review_lessons.py",
           "scripts/detect_overclaim.py",
           "scripts/detect_agentic_patterns.py",
-          ".github/workflows/*.yml"
+          ".github/workflows/*.yml",
+          "scripts/collect-*",
+          "scripts/generate-*",
+          "scripts/run_*.py",
+          "stage-templates/*.yaml",
+          "AGENTS.md"
         ]
       },
       "required": {
@@ -41,7 +49,8 @@
       "match": {
         "paths": [
           "docs/ai/**",
-          "docs/runtime/**"
+          "docs/runtime/**",
+          "docs/runbooks/**"
         ],
         "doc_types": [
           "ai_onboarding",
@@ -187,8 +196,19 @@
   ],
   "ai_classification_policy": {
     "description": "AI may propose classifications for unclassified files. Proposals are advisory — not authoritative. They must be reviewed by a human before being added to a route or exclusion.",
-    "allowed_actions": ["propose_route", "propose_exclusion", "suggest_doc_type", "suggest_owner", "suggest_risk"],
-    "forbidden_actions": ["create_route", "create_exclusion", "classify_silently", "override_schema"],
+    "allowed_actions": [
+      "propose_route",
+      "propose_exclusion",
+      "suggest_doc_type",
+      "suggest_owner",
+      "suggest_risk"
+    ],
+    "forbidden_actions": [
+      "create_route",
+      "create_exclusion",
+      "classify_silently",
+      "override_schema"
+    ],
     "output_format": "candidate_finding in structured receipt format"
   }
 }
