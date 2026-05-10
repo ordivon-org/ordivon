@@ -23,6 +23,7 @@ REGISTRY_PATH = ROOT / "docs/governance/document-registry.jsonl"
 PATH_MAP_PATH = ROOT / "docs/governance/generated/path-map.json"
 RULES_PATH = ROOT / "docs/governance/schemas/path-map-rules.json"
 EXCLUSIONS_PATH = ROOT / "docs/governance/schemas/governed-exclusions.json"
+TAXONOMY_PATH = ROOT / "docs/governance/schemas/authority-taxonomy.json"
 OUTPUT_DIR = ROOT / "docs/governance/generated"
 
 # Authority risk tiers
@@ -68,6 +69,9 @@ def load_rules() -> dict:
 
 def load_exclusions() -> list[str]:
     return list(json.loads(EXCLUSIONS_PATH.read_text()).get("entries", {}).keys())
+
+def load_taxonomy() -> dict:
+    return json.loads(TAXONOMY_PATH.read_text())
 
 
 def reconcile() -> tuple[list[dict], dict]:
@@ -122,6 +126,8 @@ def reconcile() -> tuple[list[dict], dict]:
                     "message": f"Governed path '{path}' has no registry entry",
                 })
 
+    taxonomy = load_taxonomy()
+
     # RPR-3/4/5/8: Check documents that are in both registry and path map
     for path in sorted(in_both):
         reg = registry[path]
@@ -160,18 +166,33 @@ def reconcile() -> tuple[list[dict], dict]:
                 "message": f"doc_type '{reg_doc_type}' may not fit route '{node_route}' (expects: {expected_types})",
             })
 
-        # RPR-4: Authority vs route risk mismatch
-        reg_risk = AUTHORITY_RISK.get(reg_authority, 0)
-        route_risk = ROUTE_RISK.get(node_route, 0)
-        if reg_risk >= 4 and route_risk <= 1:
+        # RPR-4: Authority domain/role vs route compatibility (GOS-PM-3)
+        auth_domain = reg.get("authority_domain", "")
+        auth_role = reg.get("authority_role", "")
+        compatibility = taxonomy.get("compatibility_rules", {})
+
+        # Check domain-role-route compatibility
+        incompatible = False
+        if node.get("kind") == "generated_view" and auth_role in compatibility.get("generated_view_cannot_be", []):
+            incompatible = True
+        elif auth_domain == "implementation" and node_route not in compatibility.get("implementation_source_only_for", []):
+            incompatible = True
+        elif auth_domain == "schema" and node_route not in compatibility.get("schema_source_only_for", []):
+            incompatible = True
+        elif auth_role == "doc_source_of_truth" and node_route not in compatibility.get("doc_source_of_truth_only_for", []):
+            incompatible = True
+        elif auth_role == "active_policy" and node_route not in compatibility.get("active_policy_only_for", []):
+            incompatible = True
+
+        if incompatible:
             findings.append({
                 "code": "RPR-4",
                 "severity": "blocking",
                 "path": path,
-                "registry_claim": {"authority": reg_authority, "risk_tier": reg_risk},
-                "path_observation": {"route": node_route, "risk_tier": route_risk},
+                "registry_claim": {"authority_domain": auth_domain, "authority_role": auth_role},
+                "path_observation": {"route": node_route, "kind": node.get("kind")},
                 "disposition": "A3",
-                "message": f"Authority '{reg_authority}' (risk {reg_risk}) too high for route '{node_route}' (risk {route_risk})",
+                "message": f"Authority domain={auth_domain} role={auth_role} incompatible with route={node_route}",
             })
 
         # RPR-5: Owner claim unsupported

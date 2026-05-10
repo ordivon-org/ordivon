@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — DO NOT EDIT -->
 <!-- Source: docs/governance/document-registry.jsonl -->
 <!-- Generator: scripts/update-registry-stats.py -->
-<!-- Generated: 2026-05-10T21:04:36Z -->
+<!-- Generated: 2026-05-10T21:14:01Z -->
 <!-- Authority: generated_view — not source_of_truth -->
 
 # Document Registry Statistics

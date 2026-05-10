@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-05-10T20:56:43Z",
+  "generated_at": "2026-05-10T21:13:39Z",
   "generator": "scripts/reconcile-registry-path.py",
   "stats": {
-    "registry_entries": 456,
-    "path_map_nodes": 2084,
-    "in_both": 456,
+    "registry_entries": 457,
+    "path_map_nodes": 2089,
+    "in_both": 457,
     "only_registry": 0,
-    "only_path_map": 1628,
-    "findings_total": 121
+    "only_path_map": 1632,
+    "findings_total": 119
   },
   "findings": [
     {
@@ -1556,36 +1556,6 @@
       },
       "disposition": "A2",
       "message": "doc_type 'receipt' may not fit route 'ai-boundaries' (expects: ['ai_onboarding', 'phase_boundary', 'runtime', 'boundary', 'context', 'supporting_evidence', 'architecture', 'design_spec', 'current-system-map', 'knowledge-map', 'reading-graph', 'template', 'tooling'])"
-    },
-    {
-      "code": "RPR-4",
-      "severity": "blocking",
-      "path": "src/ordivon_verify/checker_registry.py",
-      "registry_claim": {
-        "authority": "source_of_truth",
-        "risk_tier": 5
-      },
-      "path_observation": {
-        "route": "source-code",
-        "risk_tier": 1
-      },
-      "disposition": "A3",
-      "message": "Authority 'source_of_truth' (risk 5) too high for route 'source-code' (risk 1)"
-    },
-    {
-      "code": "RPR-4",
-      "severity": "blocking",
-      "path": "src/ordivon_verify/schemas/pgi-evidence-record.schema.json",
-      "registry_claim": {
-        "authority": "source_of_truth",
-        "risk_tier": 5
-      },
-      "path_observation": {
-        "route": "source-code",
-        "risk_tier": 1
-      },
-      "disposition": "A3",
-      "message": "Authority 'source_of_truth' (risk 5) too high for route 'source-code' (risk 1)"
     }
   ]
 }

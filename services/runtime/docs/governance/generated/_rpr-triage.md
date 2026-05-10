@@ -1,7 +1,7 @@
 # RPR Finding Triage
 
 > **GENERATED VIEW — DO NOT EDIT**
-> Generated: 2026-05-10T20:56:43Z
+> Generated: 2026-05-10T21:11:31Z
 > Source: `docs/governance/generated/registry-path-reconciliation.json`
 > This report classifies findings. It does NOT fix them.
 
@@ -25,12 +25,20 @@ This must be resolved — either enforce or reclassify.
 
 ## Summary
 
-- Total findings: 121
-- By severity: {'degraded': 119, 'blocking': 2}
-- By code: {'RPR-3': 119, 'RPR-4': 2}
-- By disposition: {'A1': 0, 'A2': 119, 'A3': 2, 'A4': 0}
+- Total findings: 122
+- By severity: {'blocking': 3, 'degraded': 119}
+- By code: {'RPR-1': 1, 'RPR-3': 119, 'RPR-4': 2}
+- By disposition: {'A1': 1, 'A2': 119, 'A3': 2, 'A4': 0}
 
 ---
+
+## A1 — Fix registry claims — stale owner, wrong doc_type, incorrect
+
+- Count: 1
+
+| Code | Severity | Enforced | Path | Message |
+|---|---|---|---|---|
+| RPR-1 | blocking | no | `docs/product/gos-pm3-authority-taxonomy-plan.md` | Registry claims 'docs/product/gos-pm3-authority-taxonomy-pla |
 
 ## A2 — Refine path-map rules — missing route, narrow coverage, rule
 

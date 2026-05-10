@@ -1,27 +1,43 @@
 {
-  "generated_at": "2026-05-10T20:56:43Z",
+  "generated_at": "2026-05-10T21:11:31Z",
   "stats": {
-    "total": 121,
+    "total": 122,
     "by_severity": {
-      "degraded": 119,
-      "blocking": 2
+      "blocking": 3,
+      "degraded": 119
     },
     "by_code": {
+      "RPR-1": 1,
       "RPR-3": 119,
       "RPR-4": 2
     },
     "by_disposition": {
-      "A1": 0,
+      "A1": 1,
       "A2": 119,
       "A3": 2,
       "A4": 0
     },
     "enforcement": {
+      "RPR-1": "NOT_ENFORCED",
       "RPR-3": "NOT_ENFORCED",
       "RPR-4": "ENFORCED"
     }
   },
   "groups": [
+    {
+      "disposition": "A1",
+      "count": 1,
+      "summary": "Fix registry claims — stale owner, wrong doc_type, incorrect lifecycle",
+      "samples": [
+        {
+          "code": "RPR-1",
+          "path": "docs/product/gos-pm3-authority-taxonomy-plan.md",
+          "message": "Registry claims 'docs/product/gos-pm3-authority-taxonomy-plan.md' exists but path map has no such no",
+          "severity": "blocking",
+          "enforcement": "NOT_ENFORCED"
+        }
+      ]
+    },
     {
       "disposition": "A2",
       "count": 119,

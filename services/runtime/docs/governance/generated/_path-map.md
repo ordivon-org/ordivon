@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T20:45:25Z
+> Generated: 2026-05-10T21:13:39Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2084
-- Governed: 807
-- Generated views: 78
-- Excluded: 67
+- Tracked files: 2089
+- Governed: 808
+- Generated views: 80
+- Excluded: 68
 - Blocked: 0
-- Debt-parked: 1132
+- Debt-parked: 1133
 
 ## Governed Nodes
 ### ai-boundaries
@@ -508,6 +508,7 @@
 - `docs/product/gos-n1a-path-map-design.md` (document, owner=ordivon-core-maintainer)
 - `docs/product/gos-pm1-execution-plan.md` (document, owner=ordivon-core-maintainer)
 - `docs/product/gos-pm1-seal-receipt.md` (document, owner=ordivon-core-maintainer)
+- `docs/product/gos-pm3-authority-taxonomy-plan.md` (document, owner=ordivon-core-maintainer)
 - `docs/product/gov-x-stage-notes.md` (document, owner=GOV-X)
 - `docs/product/hap-2-stage-notes.md` (document, owner=HAP)
 - `docs/product/harness-adapter-protocol-stage-notes-hap-1.md` (document, owner=HAP)
@@ -1435,6 +1436,7 @@
 - `scripts/smoke_test_phase5.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/smoke_test_reasoning_bridge.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/smoke_test_report_builder.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/triage-rpr-findings.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_constitution_boundary_matrix.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_hap_payload.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_ogap_payload.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
