@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T23:21:53Z",
+  "generated_at": "2026-05-10T23:42:50Z",
   "authority": "generated_view",
   "source_refs": [
     "git ls-files",
@@ -9,11 +9,11 @@
     "debt ledger (pattern match)"
   ],
   "stats": {
-    "total": 2118,
+    "total": 2117,
     "by_status": {
       "excluded": 104,
       "governed": 854,
-      "debt_or_exclusion_required": 821,
+      "debt_or_exclusion_required": 820,
       "generated": 95,
       "legacy": 29,
       "fixture": 215
@@ -2060,11 +2060,6 @@
       "path": "data/openapi_snapshot_baseline.json",
       "coverage_status": "excluded",
       "source": "batch receipt (GOS-PM-7)"
-    },
-    {
-      "path": "db/pfios_main.duckdb",
-      "coverage_status": "debt_or_exclusion_required",
-      "source": "non-protected unclassified"
     },
     {
       "path": "docker-compose.yml",

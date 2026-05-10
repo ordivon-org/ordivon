@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T23:21:53Z",
+  "generated_at": "2026-05-10T23:42:36Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,13 +8,13 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T23:21:53Z",
-    "tracked_files": 2118,
+    "generated_at": "2026-05-10T23:42:36Z",
+    "tracked_files": 2117,
     "governed": 813,
     "generated": 90,
     "excluded": 82,
     "blocked": 0,
-    "debt_parked": 1133
+    "debt_parked": 1132
   },
   "nodes": [
     {
@@ -3063,15 +3063,6 @@
     },
     {
       "path": "data/openapi_snapshot_baseline.json",
-      "source_refs": [
-        "git ls-files"
-      ],
-      "classification_status": "debt_parked",
-      "kind": "unclassified",
-      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
-    },
-    {
-      "path": "db/pfios_main.duckdb",
       "source_refs": [
         "git ls-files"
       ],

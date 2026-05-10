@@ -13,7 +13,7 @@
 | fixture | 215 |
 | legacy | 29 |
 
-**Total files**: 2118
+**Total files**: 2117
 **Blocked**: 0
 
 ## Blocked Files

@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T23:21:53Z
+> Generated: 2026-05-10T23:42:36Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2118
+- Tracked files: 2117
 - Governed: 813
 - Generated views: 90
 - Excluded: 82
 - Blocked: 0
-- Debt-parked: 1133
+- Debt-parked: 1132
 
 ## Governed Nodes
 ### ai-boundaries
@@ -1011,7 +1011,6 @@
 - `data/evals/runs/2026-04-17_run_011944.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `data/evals/runs/2026-04-17_run_012001.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `data/openapi_snapshot_baseline.json`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
-- `db/pfios_main.duckdb`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `docker-compose.yml`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `docs/README.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `docs/adr/ADR-008-tooling-adoption-strategy.md`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
