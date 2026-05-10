@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Coverage Resolution Rules",
+  "description": "Bucket rules for debt_or_exclusion_required files. Each rule assigns files to a resolution bucket with required metadata, disposition, and target status. Resolution candidate ≠ resolved.",
+  "governed_by": "coverage-resolution checker (GOS-PM-6)",
+  "version": "0.1.0",
+  "buckets": [
+    {"bucket_id": "generated-candidate", "match_patterns": ["docs/governance/generated/**", "**/_*.md", "**/_*.json", "**/*.dot", "**/*.svg", "docs/**/generated/**"], "target_status": "generated", "required_metadata": ["generated_from", "source_refs"], "disposition": "A2"},
+    {"bucket_id": "fixture-candidate", "match_patterns": ["tests/fixtures/**", "examples/**/fixtures/**", "**/test_fixtures/**"], "target_status": "fixture", "required_metadata": ["owning_test", "scope", "positive_or_negative"], "disposition": "A2"},
+    {"bucket_id": "legacy-candidate", "match_patterns": ["**/legacy/**", "**/archive/**", "**/old/**", "**/deprecated/**"], "target_status": "legacy", "required_metadata": ["legacy_boundary", "routing_decision", "review_trigger"], "disposition": "A4"},
+    {"bucket_id": "external-candidate", "match_patterns": ["**/external/**", "**/third_party/**", "**/benchmarks/**"], "target_status": "external", "required_metadata": ["external_source", "staleness_threshold"], "disposition": "A4"},
+    {"bucket_id": "vendored-candidate", "match_patterns": ["**/vendor/**", "**/vendored/**", "**/node_modules/**"], "target_status": "vendored", "required_metadata": ["upstream_source", "license"], "disposition": "A4"},
+    {"bucket_id": "low-risk-exclusion-candidate", "match_patterns": ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.svg", "*.lock", "*.toml", "*.cfg", "*.ini", ".editorconfig", ".git*", ".env*", "*.txt", "*.md", "*.json", "*.yaml", "*.yml"], "target_status": "excluded", "required_metadata": ["owner", "reason", "review_date", "removal_condition"], "disposition": "A4"},
+    {"bucket_id": "config-file-candidate", "match_patterns": [".*", "packages/*.json", "*.toml", "*.yaml", "*.lock", "Makefile", "Dockerfile*", "*.cfg", "*.ini"], "target_status": "excluded", "required_metadata": ["owner", "reason"], "disposition": "A4"},
+    {"bucket_id": "governance-candidate", "match_patterns": ["docs/governance/**", "docs/ai/**", "docs/architecture/**", "docs/product/**", "checkers/**", ".github/workflows/**"], "target_status": "governed", "required_metadata": ["registry_entry", "owner", "authority_domain", "authority_role", "route"], "disposition": "A2"},
+    {"bucket_id": "dataset-candidate", "match_patterns": ["data/**", "datasets/**", "*.csv", "*.tsv", "*.parquet", "*.sqlite"], "target_status": "excluded", "required_metadata": ["owner", "reason"], "disposition": "A4"}
+  ],
+  "fallback": {"bucket_id": "debt-park-candidate", "target_status": "debt_parked", "required_metadata": ["debt_id", "owner", "review_trigger", "removal_condition"], "disposition": "A4"}
+}
