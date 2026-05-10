@@ -24,6 +24,7 @@ PATH_MAP_PATH = ROOT / "docs/governance/generated/path-map.json"
 RULES_PATH = ROOT / "docs/governance/schemas/path-map-rules.json"
 EXCLUSIONS_PATH = ROOT / "docs/governance/schemas/governed-exclusions.json"
 TAXONOMY_PATH = ROOT / "docs/governance/schemas/authority-taxonomy.json"
+ROUTE_TAXONOMY_PATH = ROOT / "docs/governance/schemas/route-taxonomy.json"
 OUTPUT_DIR = ROOT / "docs/governance/generated"
 
 # Authority risk tiers
@@ -72,6 +73,9 @@ def load_exclusions() -> list[str]:
 
 def load_taxonomy() -> dict:
     return json.loads(TAXONOMY_PATH.read_text())
+
+def load_route_taxonomy() -> dict:
+    return json.loads(ROUTE_TAXONOMY_PATH.read_text())
 
 
 def reconcile() -> tuple[list[dict], dict]:
@@ -143,28 +147,34 @@ def reconcile() -> tuple[list[dict], dict]:
         node_route = node.get("route", "")
         node_kind = node.get("kind", "")
 
-        # RPR-3: Doc type vs route mismatch
-        route_doc_type_map = {
-            "governance-core": ["governance_pack", "methodology", "template", "checker", "tooling", "proposal", "receipt", "ledger", "root_context", "architecture", "design_spec", "schema"],
-            "ai-boundaries": ["ai_onboarding", "phase_boundary", "runtime", "boundary", "context", "supporting_evidence", "architecture", "design_spec", "current-system-map", "knowledge-map", "reading-graph", "template", "tooling"],
-            "product-docs": ["product", "architecture", "design_spec", "stage_summit", "proposal", "runbook", "receipt"],
-            "knowledge-assets": ["ledger", "lesson"],
-            "generated-views": ["generated_view"],
-            "config-and-schemas": ["schema"],
-            "governance-core": ["governance_pack", "methodology", "template", "checker", "tooling", "proposal", "receipt", "ledger", "root_context", "architecture", "design_spec", "schema", "supporting_evidence", "inventory", "triage", "boundary", "red_team", "tracker"],
-        }
+        # RPR-3: Doc-type/route compatibility (PM-4: route taxonomy)
+        route_tax = load_route_taxonomy()
+        route_def = route_tax.get("routes", {}).get(node_route, {})
+        allowed_types = route_def.get("allowed_doc_types", [])
+        forbidden_types = route_def.get("forbidden_doc_types", [])
 
-        expected_types = route_doc_type_map.get(node_route, [])
-        if expected_types and reg_doc_type not in expected_types and node_route != "unrouted":
-            findings.append({
-                "code": "RPR-3",
-                "severity": "degraded",
-                "path": path,
-                "registry_claim": {"doc_type": reg_doc_type},
-                "path_observation": {"route": node_route},
-                "disposition": "A2",
-                "message": f"doc_type '{reg_doc_type}' may not fit route '{node_route}' (expects: {expected_types})",
-            })
+        # Only check if route exists in taxonomy and is not unrouted
+        if node_route in route_tax.get("routes", {}) and node_route != "unrouted":
+            if reg_doc_type and allowed_types and reg_doc_type not in allowed_types:
+                findings.append({
+                    "code": "RPR-3A",
+                    "severity": "degraded",
+                    "path": path,
+                    "registry_claim": {"doc_type": reg_doc_type},
+                    "path_observation": {"route": node_route, "allowed_doc_types": allowed_types},
+                    "disposition": route_def.get("mismatch_disposition", "A2"),
+                    "message": f"doc_type '{reg_doc_type}' not in route '{node_route}' allowed_doc_types",
+                })
+            elif reg_doc_type and forbidden_types and reg_doc_type in forbidden_types:
+                findings.append({
+                    "code": "RPR-3F",
+                    "severity": "blocking" if route_def.get("must_not_be_source_of_truth") else "degraded",
+                    "path": path,
+                    "registry_claim": {"doc_type": reg_doc_type},
+                    "path_observation": {"route": node_route, "forbidden_doc_types": forbidden_types},
+                    "disposition": "A1_OR_A2",
+                    "message": f"doc_type '{reg_doc_type}' is forbidden for route '{node_route}'",
+                })
 
         # RPR-4: Authority domain/role vs route compatibility (GOS-PM-3)
         auth_domain = reg.get("authority_domain", "")
