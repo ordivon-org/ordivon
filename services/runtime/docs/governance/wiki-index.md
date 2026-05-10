@@ -4,7 +4,7 @@
 > **Navigation layer only — not source of truth.**
 > Registry/checker validate consistency; wiki does not authorize action.
 
-**Total registered docs**: 244
+**Total registered docs**: 436
 **Generated**: 2026-04-30 (DG-6)
 
 
@@ -61,7 +61,7 @@
 | [Review-to-Rule Pipeline — PGI-3](../governance/review-to-rule-pipeline-pgi-3.md) | `docs/governance/review-to-rule-pipeline-pgi-3.md` | governance_pack | current | source_of_truth | L1 | 2026-05-04 |
 | [Self-Model Ledger — PGI-3](../governance/self-model-ledger-pgi-3.md) | `docs/governance/self-model-ledger-pgi-3.md` | governance_pack | current | source_of_truth | L1 | 2026-05-04 |
 | [Trust Budget Model (EGB-2)](../governance/trust-budget-model-egb-2.md) | `docs/governance/trust-budget-model-egb-2.md` | governance_pack | current | source_of_truth | L1 | 2026-05-05 |
-| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
+| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-08 |
 | [Alpha Roadmap - Agent Work Trust Flywheel](../product/alpha-roadmap.md) | `docs/product/alpha-roadmap.md` | product | current | source_of_truth | L1 | 2026-05-02 |
 | [Alpha-0 Evidence of Governed Work](../product/alpha-0-evidence-of-governed-work.md) | `docs/product/alpha-0-evidence-of-governed-work.md` | product | current | source_of_truth | L1 | 2026-05-02 |
 | [Coding Trust Adoption Plan](../product/coding-trust-adoption-plan.md) | `docs/product/coding-trust-adoption-plan.md` | product | current | source_of_truth | L1 | 2026-05-08 |
@@ -74,7 +74,6 @@
 | [Philosophical Governance Implementation Roadmap](../product/philosophical-governance-implementation-roadmap.md) | `docs/product/philosophical-governance-implementation-roadmap.md` | product | current | source_of_truth | L1 | 2026-05-03 |
 | [Philosophical Red-Team Suite — PGI-1](../governance/philosophical-redteam-suite-pgi-1.md) | `docs/governance/philosophical-redteam-suite-pgi-1.md` | red_team | current | source_of_truth | L1 | 2026-05-03 |
 | [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
-| [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
@@ -86,11 +85,29 @@
 | [Ordivon Root Context](../ai/ordivon-root-context.md) | `docs/ai/ordivon-root-context.md` | ai_onboarding | current | current_status | L1 | 2026-04-30 |
 | [Ordivon Systems Reference — Commands, Purpose, Substance for AI Agents](../ai/systems-reference.md) | `docs/ai/systems-reference.md` | ai_onboarding | current | current_status | L1 | 2026-05-04 |
 | [Architecture File Map](../ai/architecture-file-map.md) | `docs/ai/architecture-file-map.md` | architecture | current | current_status | L1 | 2026-04-29 |
+| [AI Onboarding Protocol — DGP-4](../ai/onboarding-protocol-dgp-4.md) | `docs/ai/onboarding-protocol-dgp-4.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Active Enforcement Bridge — DGP-E1](../governance/document-governance-active-enforcement-dgp-e1.md) | `docs/governance/document-governance-active-enforcement-dgp-e1.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Document Authority Model — DGP-3](../governance/document-authority-model-dgp-3.md) | `docs/governance/document-authority-model-dgp-3.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Document Governance CI — DGP-9](../governance/document-governance-ci-dgp-9.md) | `docs/governance/document-governance-ci-dgp-9.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Document Lifecycle Governance — DGP-2](../governance/document-lifecycle-governance-dgp-2.md) | `docs/governance/document-lifecycle-governance-dgp-2.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Document Medium Authority — DGP-6](../governance/document-medium-authority-dgp-6.md) | `docs/governance/document-medium-authority-dgp-6.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Document Metabolism — DGP-7](../governance/document-metabolism-dgp-7.md) | `docs/governance/document-metabolism-dgp-7.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [NO-GO Boundary Map](../ai/no-go-boundary-map.md) | `docs/ai/no-go-boundary-map.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Old Registries as Views — RG-9](../governance/old-registries-as-views-rg-9.md) | `docs/governance/old-registries-as-views-rg-9.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Phase Receipt Standard — DGP-5](../governance/phase-receipt-standard-dgp-5.md) | `docs/governance/phase-receipt-standard-dgp-5.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Registry Object Model — RG-1](../governance/registry-object-model-rg-1.md) | `docs/governance/registry-object-model-rg-1.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Stage Summit Standard — DGP-5](../governance/stage-summit-standard-dgp-5.md) | `docs/governance/stage-summit-standard-dgp-5.md` | design_spec | current | current_status | L1 | 2026-05-09 |
+| [Wiki Index Governance — DGP-8](../governance/wiki-index-governance-dgp-8.md) | `docs/governance/wiki-index-governance-dgp-8.md` | design_spec | current | current_status | L1 | 2026-05-09 |
 | [Artifact Registry](../governance/artifact-registry.jsonl) | `docs/governance/artifact-registry.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
+| [Current Truth Entry Map](../governance/current-truth-entry-map.jsonl) | `docs/governance/current-truth-entry-map.jsonl` | ledger | current | current_status | L1 | 2026-05-09 |
 | [External Benchmark Source Registry](../governance/external-benchmark-source-registry.jsonl) | `docs/governance/external-benchmark-source-registry.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
 | [Ownership Manifest](../governance/ownership-manifest.jsonl) | `docs/governance/ownership-manifest.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
+| [Policy Activation Ledger](../governance/policy-activation-ledger.jsonl) | `docs/governance/policy-activation-ledger.jsonl` | ledger | current | current_status | L1 | 2026-05-09 |
 | [Newcomer Execution Flow](../runbooks/newcomer-execution-flow.md) | `docs/runbooks/newcomer-execution-flow.md` | runbook | current | current_status | L1 | 2026-05-06 |
 | [Verification Signal Classification — Classify Before You Fix](../governance/verification-signal-classification.md) | `docs/governance/verification-signal-classification.md` | runbook | current | current_status | L1 | 2026-04-30 |
+| [CTTS-3M Stage Summit — Metabolic Governance Mainline Closure](../product/ctts-3m-stage-summit.md) | `docs/product/ctts-3m-stage-summit.md` | stage_summit | current | current_status | L1 | 2026-05-08 |
+| [Document Governance Pack — Stage Summit (DGP-S)](../product/document-governance-pack-stage-summit.md) | `docs/product/document-governance-pack-stage-summit.md` | stage_summit | current | current_status | L1 | 2026-05-09 |
+| [Current System Map](../ai/current-system-map.md) | `docs/ai/current-system-map.md` | supporting_evidence | current | current_status | L1 | 2026-05-09 |
 | [Auto-Discovery Baseline Runner](../../scripts/run_baseline.py) | `scripts/run_baseline.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
 | [Checker Maturity Domain Model](../../domains/checker_maturity/__init__.py) | `domains/checker_maturity/__init__.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
 | [Checker Registry — Discovery, Manifest, Sync, Usage, Curator](../../src/ordivon_verify/checker_registry.py) | `src/ordivon_verify/checker_registry.py` | architecture | current | source_of_truth | L2 | 2026-05-04 |
@@ -130,17 +147,71 @@
 | [OEP Template (EGB-2)](../governance/oep-template-egb-2.md) | `docs/governance/oep-template-egb-2.md` | template | current | source_of_truth | L2 | 2026-05-05 |
 | [Artifact Registry Checker](../../scripts/check_artifact_registry.py) | `scripts/check_artifact_registry.py` | tooling | current | source_of_truth | L2 | 2026-05-04 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
+| [Adapter Boundary Spec V1](../architecture/adapter-boundary-spec-v1.md) | `docs/architecture/adapter-boundary-spec-v1.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Api Bypass Inventory](../architecture/api-bypass-inventory.md) | `docs/architecture/api-bypass-inventory.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Architecture Diagram](../architecture/architecture-diagram.md) | `docs/architecture/architecture-diagram.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Boundary Map](../architecture/boundary-map.md) | `docs/architecture/boundary-map.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Capability Boundary Spec](../architecture/capability-boundary-spec.md) | `docs/architecture/capability-boundary-spec.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Capability Inventory](../architecture/capability-inventory.md) | `docs/architecture/capability-inventory.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Capability Migration Plan](../architecture/capability-migration-plan.md) | `docs/architecture/capability-migration-plan.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Core Pack Adapter Baseline](../architecture/core-pack-adapter-baseline.md) | `docs/architecture/core-pack-adapter-baseline.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Core Pack Adapter Boundary](../architecture/core-pack-adapter-boundary.md) | `docs/architecture/core-pack-adapter-boundary.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Core Primitives Spec V1](../architecture/core-primitives-spec-v1.md) | `docs/architecture/core-primitives-spec-v1.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Current Code Classification Map V1](../architecture/current-code-classification-map-v1.md) | `docs/architecture/current-code-classification-map-v1.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Current State Report 2026 04 24](../architecture/current-state-report-2026-04-24.md) | `docs/architecture/current-state-report-2026-04-24.md` | architecture | current | current_status | L2 | 2026-05-09 |
 | [Dependabot Governance Checker — Auto-Governed Dependency Updates](../../checkers/dependabot-governance/CHECKER.md) | `checkers/dependabot-governance/CHECKER.md` | architecture | current | current_status | L2 | 2026-05-04 |
+| [Domain Map](../architecture/domain-map.md) | `docs/architecture/domain-map.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Execution Action Catalog](../architecture/execution-action-catalog.md) | `docs/architecture/execution-action-catalog.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Execution Request Receipt Spec](../architecture/execution-request-receipt-spec.md) | `docs/architecture/execution-request-receipt-spec.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Finance Pack Extraction Plan](../architecture/finance-pack-extraction-plan.md) | `docs/architecture/finance-pack-extraction-plan.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Finance Pack Phase2 Ownership Map](../architecture/finance-pack-phase2-ownership-map.md) | `docs/architecture/finance-pack-phase2-ownership-map.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Finance Pack V1 Definition](../architecture/finance-pack-v1-definition.md) | `docs/architecture/finance-pack-v1-definition.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Github Tooling Landscape](../architecture/github-tooling-landscape.md) | `docs/architecture/github-tooling-landscape.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Governance Receipt Review Loop](../architecture/governance-receipt-review-loop.md) | `docs/architecture/governance-receipt-review-loop.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Harness Adapter Boundary](../architecture/harness-adapter-boundary.md) | `docs/architecture/harness-adapter-boundary.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Hermes Model Layer Integration](../architecture/hermes-model-layer-integration.md) | `docs/architecture/hermes-model-layer-integration.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Language](../architecture/LANGUAGE.md) | `docs/architecture/LANGUAGE.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Layer Definition](../architecture/layer-definition.md) | `docs/architecture/layer-definition.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Layer Module Inventory](../architecture/layer-module-inventory.md) | `docs/architecture/layer-module-inventory.md` | architecture | current | current_status | L2 | 2026-05-09 |
 | [Lesson Extraction Checker — Closes the Learning Loop](../../checkers/lesson-extraction/CHECKER.md) | `checkers/lesson-extraction/CHECKER.md` | architecture | current | current_status | L2 | 2026-05-04 |
+| [Migration Map](../architecture/migration-map.md) | `docs/architecture/migration-map.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon Coverage Plane](../architecture/ordivon-coverage-plane.md) | `docs/architecture/ordivon-coverage-plane.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon Current Architecture](../architecture/ordivon-current-architecture.md) | `docs/architecture/ordivon-current-architecture.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon Moat And Product Identity](../architecture/ordivon-moat-and-product-identity.md) | `docs/architecture/ordivon-moat-and-product-identity.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon Platform Map](../architecture/ordivon-platform-map.md) | `docs/architecture/ordivon-platform-map.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon System Definition](../architecture/ordivon-system-definition.md) | `docs/architecture/ordivon-system-definition.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Ordivon Work Grammar](../architecture/ordivon-work-grammar.md) | `docs/architecture/ordivon-work-grammar.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Policy Platform Design](../architecture/policy-platform-design.md) | `docs/architecture/policy-platform-design.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Readme](../architecture/README.md) | `docs/architecture/README.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Repo Governance Baseline](../architecture/repo-governance-baseline.md) | `docs/architecture/repo-governance-baseline.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Repo Governance Pack Architecture](../architecture/repo-governance-pack-architecture.md) | `docs/architecture/repo-governance-pack-architecture.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Review Workflow Gap](../architecture/review-workflow-gap.md) | `docs/architecture/review-workflow-gap.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Runtime Flow](../architecture/runtime-flow.md) | `docs/architecture/runtime-flow.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Security Platform Baseline](../architecture/security-platform-baseline.md) | `docs/architecture/security-platform-baseline.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Side Effect Boundary Inventory](../architecture/side-effect-boundary-inventory.md) | `docs/architecture/side-effect-boundary-inventory.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [State Transition Spec](../architecture/state-transition-spec.md) | `docs/architecture/state-transition-spec.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [State Truth Boundary](../architecture/state-truth-boundary.md) | `docs/architecture/state-truth-boundary.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [State Truth Inventory](../architecture/state-truth-inventory.md) | `docs/architecture/state-truth-inventory.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [System Overview](../architecture/system-overview.md) | `docs/architecture/system-overview.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Systems Engineering Baseline](../architecture/systems-engineering-baseline.md) | `docs/architecture/systems-engineering-baseline.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Verification Platform](../architecture/verification-platform.md) | `docs/architecture/verification-platform.md` | architecture | current | current_status | L2 | 2026-05-09 |
+| [Workflow Run Lineage Spec](../architecture/workflow-run-lineage-spec.md) | `docs/architecture/workflow-run-lineage-spec.md` | architecture | current | current_status | L2 | 2026-05-09 |
 | [AI Onboarding Document Policy](../governance/ai-onboarding-doc-policy.md) | `docs/governance/ai-onboarding-doc-policy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack](../governance/README.md) | `docs/governance/README.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Governance Pack Contract](../governance/document-governance-pack-contract.md) | `docs/governance/document-governance-pack-contract.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Lifecycle](../governance/document-lifecycle.md) | `docs/governance/document-lifecycle.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Registry Schema](../governance/document-registry-schema.md) | `docs/governance/document-registry-schema.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Document Staleness Audit Dg 3](../governance/document-staleness-audit-dg-3.md) | `docs/governance/document-staleness-audit-dg-3.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
 | [Document Taxonomy](../governance/document-taxonomy.md) | `docs/governance/document-taxonomy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Scope Drift Governance Rot Pattern](../governance/scope-drift-governance-rot-pattern.md) | `docs/governance/scope-drift-governance-rot-pattern.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
+| [Vd 005 Post Mortem Known Unknown Quadrant](../governance/vd-005-post-mortem-known-unknown-quadrant.md) | `docs/governance/vd-005-post-mortem-known-unknown-quadrant.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
+| [Verification Debt Policy](../governance/verification-debt-policy.md) | `docs/governance/verification-debt-policy.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
 | [Wiki Architecture](../governance/wiki-architecture.md) | `docs/governance/wiki-architecture.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Wiki Index](../governance/wiki-index.md) | `docs/governance/wiki-index.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
+| [Artifact Medium Map](../governance/artifact-medium-map.jsonl) | `docs/governance/artifact-medium-map.jsonl` | ledger | current | current_status | L2 | 2026-05-09 |
 | [Checker Maturity Ledger](../governance/checker-maturity-ledger.jsonl) | `docs/governance/checker-maturity-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-05 |
 | [Lesson Ledger — Structured Governance Lessons](../governance/lesson-ledger.jsonl) | `docs/governance/lesson-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-04 |
+| [Phase Closure Ledger](../governance/phase-closure-ledger.jsonl) | `docs/governance/phase-closure-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-09 |
 | [Philosophical Governance Gap Ledger](../governance/philosophical-governance-gap-ledger.jsonl) | `docs/governance/philosophical-governance-gap-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-03 |
 | [DG Pack Checker Ecosystem Phase Receipt](../runtime/dg-checker-ecosystem-receipt.md) | `docs/runtime/dg-checker-ecosystem-receipt.md` | receipt | current | current_status | L2 | 2026-05-04 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
@@ -151,7 +222,7 @@
 | [Ordivon Stage Summit — Phase 4 Close](../product/ordivon-stage-summit-phase-4.md) | `docs/product/ordivon-stage-summit-phase-4.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Ordivon Stage Summit — Phase 6 Close](../product/ordivon-stage-summit-phase-6.md) | `docs/product/ordivon-stage-summit-phase-6.md` | stage_summit | closed | current_status | L3 | 2026-04-29 |
 | [Phase 8 Readiness Tracker](../runtime/paper-trades/phase-7p-readiness-tracker.md) | `docs/runtime/paper-trades/phase-7p-readiness-tracker.md` | tracker | deferred | current_status | L3 | 2026-04-29 |
-| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-01 |
+| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-08 |
 
 
 ## 2. AI Onboarding
@@ -159,7 +230,7 @@
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
 | [AI Philosophical Onboarding Addendum — PGI-3](../ai/philosophical-onboarding-addendum-pgi-3.md) | `docs/ai/philosophical-onboarding-addendum-pgi-3.md` | ai_onboarding | current | source_of_truth | L1 | 2026-05-04 |
-| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-01 |
+| [Current Phase Boundaries](../ai/current-phase-boundaries.md) | `docs/ai/current-phase-boundaries.md` | phase_boundary | current | source_of_truth | L1 | 2026-05-08 |
 | [Agent Output Contract](../ai/agent-output-contract.md) | `docs/ai/agent-output-contract.md` | ai_onboarding | accepted | current_status | L1 | 2026-04-30 |
 | [Agent Working Rules](../ai/agent-working-rules.md) | `docs/ai/agent-working-rules.md` | ai_onboarding | current | current_status | L1 | 2026-04-29 |
 | [New AI Collaborator Guide](../ai/new-ai-collaborator-guide.md) | `docs/ai/new-ai-collaborator-guide.md` | ai_onboarding | current | current_status | L1 | 2026-05-02 |
@@ -168,7 +239,7 @@
 | [Ordivon Systems Reference — Commands, Purpose, Substance for AI Agents](../ai/systems-reference.md) | `docs/ai/systems-reference.md` | ai_onboarding | current | current_status | L1 | 2026-05-04 |
 | [External Benchmark Reading Guide](../ai/external-benchmark-reading-guide.md) | `docs/ai/external-benchmark-reading-guide.md` | ai_onboarding | current | current_status | L2 | 2026-05-02 |
 | [Ordivon Source-Doc Consistency Audit and Red-Team Repair Map](../ai/codebase-deep-analysis-2026-05-02.md) | `docs/ai/codebase-deep-analysis-2026-05-02.md` | ai_onboarding | current | supporting_evidence | L2 | 2026-05-02 |
-| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-01 |
+| [Ordivon AI Agent Entry Point](../../AGENTS.md) | `AGENTS.md` | root_context | current | source_of_truth | L0 | 2026-05-08 |
 
 **AI read path**: AGENTS.md (L0) → docs/ai/ (L1) → governance pack (L2) → evidence (L3) → archive (L4)
 
@@ -240,8 +311,13 @@
 | [Document Governance Pack Contract](../governance/document-governance-pack-contract.md) | `docs/governance/document-governance-pack-contract.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Lifecycle](../governance/document-lifecycle.md) | `docs/governance/document-lifecycle.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
 | [Document Registry Schema](../governance/document-registry-schema.md) | `docs/governance/document-registry-schema.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Document Staleness Audit Dg 3](../governance/document-staleness-audit-dg-3.md) | `docs/governance/document-staleness-audit-dg-3.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
 | [Document Taxonomy](../governance/document-taxonomy.md) | `docs/governance/document-taxonomy.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Scope Drift Governance Rot Pattern](../governance/scope-drift-governance-rot-pattern.md) | `docs/governance/scope-drift-governance-rot-pattern.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
+| [Vd 005 Post Mortem Known Unknown Quadrant](../governance/vd-005-post-mortem-known-unknown-quadrant.md) | `docs/governance/vd-005-post-mortem-known-unknown-quadrant.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
+| [Verification Debt Policy](../governance/verification-debt-policy.md) | `docs/governance/verification-debt-policy.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
 | [Wiki Architecture](../governance/wiki-architecture.md) | `docs/governance/wiki-architecture.md` | governance_pack | accepted | current_status | L2 | 2026-04-30 |
+| [Wiki Index](../governance/wiki-index.md) | `docs/governance/wiki-index.md` | governance_pack | current | current_status | L2 | 2026-05-09 |
 | [Agentic Pattern Governance Mapping](../governance/agentic-pattern-governance-mapping-adp-1.md) | `docs/governance/agentic-pattern-governance-mapping-adp-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [Authority Impact Gate Matrix v0 (GOV-X)](../governance/authority-impact-gate-matrix-gov-x.md) | `docs/governance/authority-impact-gate-matrix-gov-x.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [External AI Governance Benchmark Matrix (EGB-1)](../governance/external-ai-governance-benchmark-matrix-egb-1.md) | `docs/governance/external-ai-governance-benchmark-matrix-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
@@ -256,29 +332,57 @@
 | Document | Path | Type | Status | Authority | AI Prio | Freshness |
 |----------|------|------|--------|-----------|---------|-----------|
 | [Ordivon System Summit — OSS-1](../runtime/ordivon-system-summit-oss-1.md) | `docs/runtime/ordivon-system-summit-oss-1.md` | runtime | current | source_of_truth | L1 | 2026-05-02 |
-| [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | source_of_truth | L1 | 2026-05-01 |
 | [Document Governance Pack — Stage Summit (DG-Z Close)](../product/document-governance-stage-summit-dg-z.md) | `docs/product/document-governance-stage-summit-dg-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-04-30 |
 | [OGAP Protocol Foundation Stage Summit (OGAP-Z Close)](../product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md) | `docs/product/ordivon-governance-adapter-protocol-stage-summit-ogap-z.md` | stage_summit | closed | source_of_truth | L1 | 2026-05-01 |
 | [PV-NZ Stage Summit](../product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md) | `docs/product/ordivon-verify-productization-foundation-stage-summit-pv-nz.md` | stage_summit | current | source_of_truth | L1 | 2026-05-01 |
 | [Artifact Registry](../governance/artifact-registry.jsonl) | `docs/governance/artifact-registry.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
+| [Current Truth Entry Map](../governance/current-truth-entry-map.jsonl) | `docs/governance/current-truth-entry-map.jsonl` | ledger | current | current_status | L1 | 2026-05-09 |
 | [External Benchmark Source Registry](../governance/external-benchmark-source-registry.jsonl) | `docs/governance/external-benchmark-source-registry.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
 | [Ownership Manifest](../governance/ownership-manifest.jsonl) | `docs/governance/ownership-manifest.jsonl` | ledger | current | current_status | L1 | 2026-05-05 |
+| [Policy Activation Ledger](../governance/policy-activation-ledger.jsonl) | `docs/governance/policy-activation-ledger.jsonl` | ledger | current | current_status | L1 | 2026-05-09 |
+| [CTTS-3M Stage Summit — Metabolic Governance Mainline Closure](../product/ctts-3m-stage-summit.md) | `docs/product/ctts-3m-stage-summit.md` | stage_summit | current | current_status | L1 | 2026-05-08 |
+| [Document Governance Pack — Stage Summit (DGP-S)](../product/document-governance-pack-stage-summit.md) | `docs/product/document-governance-pack-stage-summit.md` | stage_summit | current | current_status | L1 | 2026-05-09 |
+| [Policy / Alembic Boundary — LGC-5E](../governance/policy-alembic-boundary-dgp-lgc-5e.md) | `docs/governance/policy-alembic-boundary-dgp-lgc-5e.md` | boundary | current | supporting_evidence | L1 | 2026-05-09 |
+| [Policy/Alembic Legacy Boundary — LGC-5E](../governance/policy-alembic-legacy-boundary-dgp-lgc-5e.jsonl) | `docs/governance/policy-alembic-legacy-boundary-dgp-lgc-5e.jsonl` | boundary | current | supporting_evidence | L1 | 2026-05-09 |
+| [Architecture Baseline Bridge Plan — LGC-5A](../governance/architecture-baseline-bridge-plan-dgp-lgc-5a.md) | `docs/governance/architecture-baseline-bridge-plan-dgp-lgc-5a.md` | design_spec | current | supporting_evidence | L1 | 2026-05-09 |
+| [Legacy Cleanup Risk Matrix — LGC-0](../governance/legacy-cleanup-risk-matrix-dgp-lgc-0.md) | `docs/governance/legacy-cleanup-risk-matrix-dgp-lgc-0.md` | design_spec | current | supporting_evidence | L1 | 2026-05-09 |
+| [Legacy Triage Next Actions — LGC-5](../governance/legacy-triage-next-actions-dgp-lgc-5.md) | `docs/governance/legacy-triage-next-actions-dgp-lgc-5.md` | design_spec | current | supporting_evidence | L1 | 2026-05-09 |
 | [CandidateRule Ethics Gate — PGI-3](../governance/candidaterule-ethics-gate-pgi-3.md) | `docs/governance/candidaterule-ethics-gate-pgi-3.md` | governance_pack | current | supporting_evidence | L1 | 2026-05-04 |
+| [Active Docs Terminology Migration — LGC-4](../governance/active-doc-terminology-migration-dgp-lgc-4.md) | `docs/governance/active-doc-terminology-migration-dgp-lgc-4.md` | receipt | current | supporting_evidence | L1 | 2026-05-09 |
+| [Archive Active-Path Historical Docs — LGC-3](../governance/archive-active-path-historical-docs-dgp-lgc-3.md) | `docs/governance/archive-active-path-historical-docs-dgp-lgc-3.md` | receipt | current | supporting_evidence | L1 | 2026-05-09 |
+| [Critical Owner Closure — RG-5](../governance/critical-owner-closure-rg-5.md) | `docs/governance/critical-owner-closure-rg-5.md` | receipt | current | supporting_evidence | L1 | 2026-05-09 |
 | [Foundation Completeness Round 1](../runtime/foundation-completeness-round-1.md) | `docs/runtime/foundation-completeness-round-1.md` | receipt | closed | supporting_evidence | L1 | 2026-05-05 |
+| [Generated View Authority Correction — RG-6](../governance/generated-view-authority-correction-rg-6.md) | `docs/governance/generated-view-authority-correction-rg-6.md` | receipt | current | supporting_evidence | L1 | 2026-05-09 |
 | [Internal Audit Debt Cleanup — 2026-05-08](../runtime/internal-audit-debt-cleanup-2026-05-08.md) | `docs/runtime/internal-audit-debt-cleanup-2026-05-08.md` | receipt | closed | supporting_evidence | L1 | 2026-05-08 |
 | [Ordivon Completeness Red-Team Audit — 2026-05-05](../runtime/ordivon-completeness-redteam-audit-2026-05-05.md) | `docs/runtime/ordivon-completeness-redteam-audit-2026-05-05.md` | receipt | closed | supporting_evidence | L1 | 2026-05-05 |
 | [Ordivon Internal Full Audit Round 2 — 2026-05-08](../runtime/ordivon-internal-full-audit-round-2-2026-05-08.md) | `docs/runtime/ordivon-internal-full-audit-round-2-2026-05-08.md` | receipt | closed | supporting_evidence | L1 | 2026-05-08 |
 | [Ordivon Internal Full Audit — 2026-05-08](../runtime/ordivon-internal-full-audit-2026-05-08.md) | `docs/runtime/ordivon-internal-full-audit-2026-05-08.md` | receipt | closed | supporting_evidence | L1 | 2026-05-08 |
+| [Registry Reality Freeze — RG-0 Baseline](../runtime/registry-reality-freeze-rg-0.md) | `docs/runtime/registry-reality-freeze-rg-0.md` | receipt | current | supporting_evidence | L1 | 2026-05-08 |
+| [data/ Stateful Classification — LGC-2](../governance/data-stateful-classification-dgp-lgc-2.md) | `docs/governance/data-stateful-classification-dgp-lgc-2.md` | receipt | current | supporting_evidence | L1 | 2026-05-09 |
 | [HAP Fixture Dogfood with ADP-1 Scenarios (HAP-2)](../runtime/hap-fixture-dogfood-hap-2.md) | `docs/runtime/hap-fixture-dogfood-hap-2.md` | runtime | current | supporting_evidence | L1 | 2026-05-02 |
 | [Philosophical Governance Implementation Closure Report](../runtime/philosophical-governance-implementation-closure-report.md) | `docs/runtime/philosophical-governance-implementation-closure-report.md` | runtime | closed | supporting_evidence | L1 | 2026-05-04 |
+| [Checker Coverage Manifest](../governance/checker-coverage-manifest.json) | `docs/governance/checker-coverage-manifest.json` | schema | current | supporting_evidence | L1 | 2026-05-01 |
+| [AI Reading Graph](../ai/reading-graph.json) | `docs/ai/reading-graph.json` | supporting_evidence | current | supporting_evidence | L1 | 2026-05-09 |
+| [Current Context Map](../ai/current-context-map.json) | `docs/ai/current-context-map.json` | supporting_evidence | current | supporting_evidence | L1 | 2026-05-09 |
+| [Knowledge Map](../governance/knowledge-map.json) | `docs/governance/knowledge-map.json` | supporting_evidence | current | supporting_evidence | L1 | 2026-05-09 |
+| [New AI Reading Order](../ai/new-ai-reading-order.md) | `docs/ai/new-ai-reading-order.md` | supporting_evidence | current | supporting_evidence | L1 | 2026-05-09 |
+| [Architecture Baseline Bridge Map — LGC-5A](../governance/architecture-baseline-bridge-map-dgp-lgc-5a.jsonl) | `docs/governance/architecture-baseline-bridge-map-dgp-lgc-5a.jsonl` | triage | current | supporting_evidence | L1 | 2026-05-09 |
+| [Architecture Baseline Reference Triage — LGC-5](../governance/architecture-baseline-reference-triage-dgp-lgc-5.jsonl) | `docs/governance/architecture-baseline-reference-triage-dgp-lgc-5.jsonl` | triage | current | supporting_evidence | L1 | 2026-05-09 |
+| [Script Legacy Triage — LGC-5C](../governance/script-legacy-triage-dgp-lgc-5c.md) | `docs/governance/script-legacy-triage-dgp-lgc-5c.md` | triage | current | supporting_evidence | L1 | 2026-05-09 |
+| [Script/Test/Policy Legacy Triage — LGC-5](../governance/script-test-policy-legacy-triage-dgp-lgc-5.jsonl) | `docs/governance/script-test-policy-legacy-triage-dgp-lgc-5.jsonl` | triage | current | supporting_evidence | L1 | 2026-05-09 |
+| [Source Code Legacy Review — LGC-5F](../governance/source-code-legacy-review-dgp-lgc-5f.md) | `docs/governance/source-code-legacy-review-dgp-lgc-5f.md` | triage | current | supporting_evidence | L1 | 2026-05-09 |
+| [Test/E2E Legacy Review — LGC-5D](../governance/test-e2e-legacy-review-dgp-lgc-5d.md) | `docs/governance/test-e2e-legacy-review-dgp-lgc-5d.md` | triage | current | supporting_evidence | L1 | 2026-05-09 |
 | [Constitution Boundary Matrix — PGI-1](../governance/constitution-boundary-matrix-pgi-1.json) | `docs/governance/constitution-boundary-matrix-pgi-1.json` | schema | current | source_of_truth | L2 | 2026-05-03 |
 | [Ordivon Verify Package File Manifest](../product/ordivon-verify-package-file-manifest.json) | `docs/product/ordivon-verify-package-file-manifest.json` | schema | current | source_of_truth | L2 | 2026-05-01 |
 | [PGI Evidence Record Schema](../../src/ordivon_verify/schemas/pgi-evidence-record.schema.json) | `src/ordivon_verify/schemas/pgi-evidence-record.schema.json` | schema | current | source_of_truth | L2 | 2026-05-03 |
+| [Artifact Medium Map](../governance/artifact-medium-map.jsonl) | `docs/governance/artifact-medium-map.jsonl` | ledger | current | current_status | L2 | 2026-05-09 |
 | [Checker Maturity Ledger](../governance/checker-maturity-ledger.jsonl) | `docs/governance/checker-maturity-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-05 |
 | [Lesson Ledger — Structured Governance Lessons](../governance/lesson-ledger.jsonl) | `docs/governance/lesson-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-04 |
+| [Phase Closure Ledger](../governance/phase-closure-ledger.jsonl) | `docs/governance/phase-closure-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-09 |
 | [Philosophical Governance Gap Ledger](../governance/philosophical-governance-gap-ledger.jsonl) | `docs/governance/philosophical-governance-gap-ledger.jsonl` | ledger | current | current_status | L2 | 2026-05-03 |
 | [Alpaca Paper Dogfood Stage Summit (Phase 7P Close)](../product/alpaca-paper-dogfood-stage-summit-phase-7p.md) | `docs/product/alpaca-paper-dogfood-stage-summit-phase-7p.md` | stage_summit | closed | current_status | L2 | 2026-04-29 |
 | [Ordivon Source-Doc Consistency Audit and Red-Team Repair Map](../ai/codebase-deep-analysis-2026-05-02.md) | `docs/ai/codebase-deep-analysis-2026-05-02.md` | ai_onboarding | current | supporting_evidence | L2 | 2026-05-02 |
+| [Architecture Baseline](../architecture/architecture-baseline.md) | `docs/architecture/architecture-baseline.md` | architecture | current | supporting_evidence | L2 | 2026-05-09 |
 | [Core/Pack Loop Restoration Map — CPR-1](../architecture/core-pack-loop-restoration-map-cpr-1.md) | `docs/architecture/core-pack-loop-restoration-map-cpr-1.md` | architecture | current | supporting_evidence | L2 | 2026-05-02 |
 | [Ordivon System Classification Audit — OSS-1](../architecture/ordivon-system-classification-audit-oss-1.md) | `docs/architecture/ordivon-system-classification-audit-oss-1.md` | architecture | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Governance Mapping](../governance/agentic-pattern-governance-mapping-adp-1.md) | `docs/governance/agentic-pattern-governance-mapping-adp-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
@@ -287,10 +391,24 @@
 | [External AI Governance Gap Analysis (EGB-1)](../governance/external-ai-governance-gap-analysis-egb-1.md) | `docs/governance/external-ai-governance-gap-analysis-egb-1.md` | governance_pack | current | supporting_evidence | L2 | 2026-05-02 |
 | [Shadow Evaluation Log](../governance/shadow-evaluation-log.jsonl) | `docs/governance/shadow-evaluation-log.jsonl` | governance_pack | current | supporting_evidence | L2 | 2026-05-03 |
 | [Shadow Evaluation Red-Team Corpus](../../checkers/policy-shadow/fixtures/shadow_cases.json) | `checkers/policy-shadow/fixtures/shadow_cases.json` | governance_pack | current | supporting_evidence | L2 | 2026-05-03 |
+| [Legacy Artifact Inventory — LGC-0](../governance/legacy-artifact-inventory-dgp-lgc-0.jsonl) | `docs/governance/legacy-artifact-inventory-dgp-lgc-0.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [Legacy Directory Inventory — LGC-0](../governance/legacy-directory-inventory-dgp-lgc-0.jsonl) | `docs/governance/legacy-directory-inventory-dgp-lgc-0.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [Legacy Term Inventory — LGC-0](../governance/legacy-term-inventory-dgp-lgc-0.jsonl) | `docs/governance/legacy-term-inventory-dgp-lgc-0.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [Script Legacy Reference Inventory — LGC-5C](../governance/script-legacy-reference-inventory-dgp-lgc-5c.jsonl) | `docs/governance/script-legacy-reference-inventory-dgp-lgc-5c.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [Source Code Legacy Reference Inventory — LGC-5F](../governance/source-code-legacy-reference-inventory-dgp-lgc-5f.jsonl) | `docs/governance/source-code-legacy-reference-inventory-dgp-lgc-5f.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [Test/E2E Legacy Reference Inventory — LGC-5D](../governance/test-e2e-legacy-reference-inventory-dgp-lgc-5d.jsonl) | `docs/governance/test-e2e-legacy-reference-inventory-dgp-lgc-5d.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
+| [data/ Stateful Inventory — LGC-2](../governance/data-stateful-inventory-dgp-lgc-2.jsonl) | `docs/governance/data-stateful-inventory-dgp-lgc-2.jsonl` | inventory | current | supporting_evidence | L2 | 2026-05-09 |
 | [Agent-Native Evidence Red-Team Ledger](../governance/agent-native-evidence-redteam.jsonl) | `docs/governance/agent-native-evidence-redteam.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-06 |
 | [Candidate Rule Drafts — Extracted from Lessons](../governance/candidate-rule-drafts.jsonl) | `docs/governance/candidate-rule-drafts.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-04 |
+| [Document Lifecycle Ledger](../governance/document-lifecycle-ledger.jsonl) | `docs/governance/document-lifecycle-ledger.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
+| [Document Supersession Map](../governance/document-supersession-map.jsonl) | `docs/governance/document-supersession-map.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
+| [Document Tombstone Ledger](../governance/document-tombstone-ledger.jsonl) | `docs/governance/document-tombstone-ledger.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
 | [EGB-3 Operating Governance Red-Team Ledger](../governance/egb3-operating-governance-redteam.jsonl) | `docs/governance/egb3-operating-governance-redteam.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-05 |
 | [Entropy Telemetry Ledger](../governance/entropy-telemetry.jsonl) | `docs/governance/entropy-telemetry.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-03 |
+| [Legacy Term Migration Ledger — LGC-4](../governance/legacy-term-migration-ledger-dgp-lgc-4.jsonl) | `docs/governance/legacy-term-migration-ledger-dgp-lgc-4.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
+| [Pending Registration Triage Ledger — RG-7](../governance/pending-registration-triage-rg-7.jsonl) | `docs/governance/pending-registration-triage-rg-7.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
+| [Registry Degraded Lifecycle Ledger](../governance/registry-degraded-lifecycle.jsonl) | `docs/governance/registry-degraded-lifecycle.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
+| [Safe Doc Rename Ledger — LGC-5B](../governance/safe-doc-rename-ledger-dgp-lgc-5b.jsonl) | `docs/governance/safe-doc-rename-ledger-dgp-lgc-5b.jsonl` | ledger | current | supporting_evidence | L2 | 2026-05-09 |
 | [ADP-2R Red-Team Remediation — Runtime Evidence](../runtime/adp-2r-redteam-remediation.md) | `docs/runtime/adp-2r-redteam-remediation.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [ADP-3 Closure — Structure-Aware + Registry-Aware + PV-Aware Detector Seal](../runtime/adp-3-closure-seal.md) | `docs/runtime/adp-3-closure-seal.md` | receipt | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agent-Native Evidence Import Report Round 1](../runtime/agent-native-evidence-import-report-round-1.md) | `docs/runtime/agent-native-evidence-import-report-round-1.md` | receipt | closed | supporting_evidence | L2 | 2026-05-06 |
@@ -300,18 +418,47 @@
 | [CTTS Closure Seal — Coding Trust Template System Foundation](../runtime/ctts-closure-seal.md) | `docs/runtime/ctts-closure-seal.md` | receipt | closed | supporting_evidence | L2 | 2026-05-08 |
 | [CTTS-2 Template Localization Dogfood Receipt](../runtime/ctts-2-template-localization-dogfood-receipt.md) | `docs/runtime/ctts-2-template-localization-dogfood-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-08 |
 | [CTTS-3 Agent-Native Evidence Pack Receipt](../runtime/ctts-3-agent-native-evidence-pack-receipt.md) | `docs/runtime/ctts-3-agent-native-evidence-pack-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-08 |
+| [Candidate Rule Review Path](../runtime/candidate-rule-review-path.md) | `docs/runtime/candidate-rule-review-path.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Coding Pack Dogfood Evidence](../runtime/coding-pack-dogfood-evidence.md) | `docs/runtime/coding-pack-dogfood-evidence.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Coding Trust Adoption Round 1 Receipt](../runtime/coding-trust-adoption-round-1-receipt.md) | `docs/runtime/coding-trust-adoption-round-1-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-08 |
 | [Coding Trust Adoption — Hermes Dogfood Round 2](../runtime/coding-trust-adoption-hermes-dogfood-round-2.md) | `docs/runtime/coding-trust-adoption-hermes-dogfood-round-2.md` | receipt | closed | supporting_evidence | L2 | 2026-05-08 |
+| [Coverage Aware Governance Cov 1](../runtime/coverage-aware-governance-cov-1.md) | `docs/runtime/coverage-aware-governance-cov-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Cross Pack Dogfood Evidence](../runtime/cross-pack-dogfood-evidence.md) | `docs/runtime/cross-pack-dogfood-evidence.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Db Backed Runtime Evidence Audit](../runtime/db-backed-runtime-evidence-audit.md) | `docs/runtime/db-backed-runtime-evidence-audit.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Demo Full Flow Stage Receipt](../runtime/demo-full-flow-receipt.md) | `docs/runtime/demo-full-flow-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-04 |
 | [EGB-2 Core Implementation Receipt](../runtime/egb-2-core-implementation-receipt.md) | `docs/runtime/egb-2-core-implementation-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-05 |
 | [EGB-3 Operating Governance Round 1](../runtime/egb-3-operating-governance-round-1.md) | `docs/runtime/egb-3-operating-governance-round-1.md` | receipt | closed | supporting_evidence | L2 | 2026-05-05 |
+| [Eval Corpus V1 Plan](../runtime/eval-corpus-v1-plan.md) | `docs/runtime/eval-corpus-v1-plan.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Final Dogfood Stage Receipt (JSON)](../runtime/final-dogfood.receipt.json) | `docs/runtime/final-dogfood.receipt.json` | receipt | closed | supporting_evidence | L2 | 2026-05-04 |
+| [Finance Live Dogfood Operating Plan](../runtime/finance-live-dogfood-operating-plan.md) | `docs/runtime/finance-live-dogfood-operating-plan.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Finance Live Micro Capital Constitution](../runtime/finance-live-micro-capital-constitution.md) | `docs/runtime/finance-live-micro-capital-constitution.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Finance Observation Provider Plan](../runtime/finance-observation-provider-plan.md) | `docs/runtime/finance-observation-provider-plan.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Finance Observation Red Team Closure](../runtime/finance-observation-red-team-closure.md) | `docs/runtime/finance-observation-red-team-closure.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Forward Hardening Sprint Declaration](../runtime/forward-hardening-sprint-declaration.md) | `docs/runtime/forward-hardening-sprint-declaration.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Generated Artifact Quarantine — LGC-1](../governance/generated-artifact-quarantine-dgp-lgc-1.md) | `docs/governance/generated-artifact-quarantine-dgp-lgc-1.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [H9 Evidence Report](../runtime/h9-evidence-report.md) | `docs/runtime/h9-evidence-report.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Legacy Identity Governance Coverage Pv N2H](../runtime/legacy-identity-governance-coverage-pv-n2h.md) | `docs/runtime/legacy-identity-governance-coverage-pv-n2h.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Legacy Identity Hygiene Pv N2H](../runtime/legacy-identity-hygiene-pv-n2h.md) | `docs/runtime/legacy-identity-hygiene-pv-n2h.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [OGAP Foundation Closure — Runtime Evidence (OGAP-Z)](../runtime/ogap-foundation-closure-ogap-z.md) | `docs/runtime/ogap-foundation-closure-ogap-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-1 Closure](../runtime/ogap-1-governance-adapter-protocol-v0.md) | `docs/runtime/ogap-1-governance-adapter-protocol-v0.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-2 Protocol Schemas + Validator](../runtime/ogap-2-protocol-schemas-validator.md) | `docs/runtime/ogap-2-protocol-schemas-validator.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [OGAP-3 Adapter Fixture Dogfood](../runtime/ogap-3-adapter-fixture-dogfood.md) | `docs/runtime/ogap-3-adapter-fixture-dogfood.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [Ordivon Newcomer Red-Team Audit — 2026-05-06](../runtime/ordivon-newcomer-redteam-audit-2026-05-06.md) | `docs/runtime/ordivon-newcomer-redteam-audit-2026-05-06.md` | receipt | closed | supporting_evidence | L2 | 2026-05-06 |
+| [Ordivon Verify Agent Skill Dogfood Pv 6](../runtime/ordivon-verify-agent-skill-dogfood-pv-6.md) | `docs/runtime/ordivon-verify-agent-skill-dogfood-pv-6.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Clean External Ready Pv 7](../runtime/ordivon-verify-clean-external-ready-pv-7.md) | `docs/runtime/ordivon-verify-clean-external-ready-pv-7.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Ordivon Verify External Dogfood — Hermes Agent](../runtime/verify-external-dogfood-hermes-agent-2026-05-07.md) | `docs/runtime/verify-external-dogfood-hermes-agent-2026-05-07.md` | receipt | closed | supporting_evidence | L2 | 2026-05-07 |
+| [Ordivon Verify Github Action Dogfood Pv 9](../runtime/ordivon-verify-github-action-dogfood-pv-9.md) | `docs/runtime/ordivon-verify-github-action-dogfood-pv-9.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Local Build Artifacts Pv N8](../runtime/ordivon-verify-local-build-artifacts-pv-n8.md) | `docs/runtime/ordivon-verify-local-build-artifacts-pv-n8.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Local Public Repo Dryrun Pv N7](../runtime/ordivon-verify-local-public-repo-dryrun-pv-n7.md) | `docs/runtime/ordivon-verify-local-public-repo-dryrun-pv-n7.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Private Package Install Smoke Pv N4](../runtime/ordivon-verify-private-package-install-smoke-pv-n4.md) | `docs/runtime/ordivon-verify-private-package-install-smoke-pv-n4.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Private Package Prototype Pv N1](../runtime/ordivon-verify-private-package-prototype-pv-n1.md) | `docs/runtime/ordivon-verify-private-package-prototype-pv-n1.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Private Package Prototype Pv N1 S Addendum](../runtime/ordivon-verify-private-package-prototype-pv-n1-s-addendum.md) | `docs/runtime/ordivon-verify-private-package-prototype-pv-n1-s-addendum.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Productization Closure Pv Z](../runtime/ordivon-verify-productization-closure-pv-z.md) | `docs/runtime/ordivon-verify-productization-closure-pv-z.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Public Quickstart Dogfood Pv N3](../runtime/ordivon-verify-public-quickstart-dogfood-pv-n3.md) | `docs/runtime/ordivon-verify-public-quickstart-dogfood-pv-n3.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Release Readiness Audit Pv N5](../runtime/ordivon-verify-release-readiness-audit-pv-n5.md) | `docs/runtime/ordivon-verify-release-readiness-audit-pv-n5.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Schema Extraction Pv N2](../runtime/ordivon-verify-schema-extraction-pv-n2.md) | `docs/runtime/ordivon-verify-schema-extraction-pv-n2.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Secret Private Reference Audit Pv N6](../runtime/ordivon-verify-secret-private-reference-audit-pv-n6.md) | `docs/runtime/ordivon-verify-secret-private-reference-audit-pv-n6.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Ordivon Verify Standard External Ready Pv 8](../runtime/ordivon-verify-standard-external-ready-pv-8.md) | `docs/runtime/ordivon-verify-standard-external-ready-pv-8.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [PGI-1 Closure Seal — Reality and Value Substrate](../runtime/pgi-1-closure-seal.md) | `docs/runtime/pgi-1-closure-seal.md` | receipt | closed | supporting_evidence | L2 | 2026-05-03 |
 | [PGI-1.01 Philosophical Surface Inventory](../runtime/pgi-1-01-philosophical-surface-inventory.md) | `docs/runtime/pgi-1-01-philosophical-surface-inventory.md` | receipt | closed | supporting_evidence | L2 | 2026-05-03 |
 | [PGI-1.02 Claim and Argument Model](../runtime/pgi-1-02-claim-argument-model.md) | `docs/runtime/pgi-1-02-claim-argument-model.md` | receipt | closed | supporting_evidence | L2 | 2026-05-03 |
@@ -347,7 +494,28 @@
 | [PV-N12 Release Channel Policy Receipt](../runtime/ordivon-verify-versioning-release-channel-pv-n12.md) | `docs/runtime/ordivon-verify-versioning-release-channel-pv-n12.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-N9 Public Wedge Packaging Separation Receipt](../runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md) | `docs/runtime/ordivon-verify-public-wedge-packaging-separation-pv-n9.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
 | [PV-NZ Closure Receipt](../runtime/ordivon-verify-productization-foundation-closure-pv-nz.md) | `docs/runtime/ordivon-verify-productization-foundation-closure-pv-nz.md` | receipt | current | supporting_evidence | L2 | 2026-05-01 |
+| [Paper Trade Template](../runtime/paper-trades/paper-trade-template.md) | `docs/runtime/paper-trades/paper-trade-template.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Phase 7P B1 Boundary Test Receipt](../runtime/paper-trades/phase-7p-b1-boundary-test-receipt.md) | `docs/runtime/paper-trades/phase-7p-b1-boundary-test-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Phase 7P B1 Hold Reject Cases](../runtime/paper-trades/phase-7p-b1-hold-reject-cases.md) | `docs/runtime/paper-trades/phase-7p-b1-hold-reject-cases.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Phase 7P Cr Pt004 Cancel Review](../runtime/paper-trades/phase-7p-cr-pt004-cancel-review.md) | `docs/runtime/paper-trades/phase-7p-cr-pt004-cancel-review.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Phase 7P H1 Hold Stale Observation](../runtime/paper-trades/phase-7p-h1-hold-stale-observation.md) | `docs/runtime/paper-trades/phase-7p-h1-hold-stale-observation.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Phase 7P N1 Nogo Live Auto](../runtime/paper-trades/phase-7p-n1-nogo-live-auto.md) | `docs/runtime/paper-trades/phase-7p-n1-nogo-live-auto.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Policy Platform Closure Review](../runtime/policy-platform-closure-review.md) | `docs/runtime/policy-platform-closure-review.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Policy Platform Red Team Closure](../runtime/policy-platform-red-team-closure.md) | `docs/runtime/policy-platform-red-team-closure.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Policy Proposal Path](../runtime/policy-proposal-path.md) | `docs/runtime/policy-proposal-path.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Post Dg H2 Close Ruff Preview Debt Receipt](../runtime/post-dg-h2-close-ruff-preview-debt-receipt.md) | `docs/runtime/post-dg-h2-close-ruff-preview-debt-receipt.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Post Dg Hygiene Closure](../runtime/post-dg-hygiene-closure.md) | `docs/runtime/post-dg-hygiene-closure.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Pt 001](../runtime/paper-trades/PT-001.md) | `docs/runtime/paper-trades/PT-001.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Pt 002](../runtime/paper-trades/PT-002.md) | `docs/runtime/paper-trades/PT-002.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Pt 003](../runtime/paper-trades/PT-003.md) | `docs/runtime/paper-trades/PT-003.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Pt 004](../runtime/paper-trades/PT-004.md) | `docs/runtime/paper-trades/PT-004.md` | receipt | closed | supporting_evidence | L2 | 2026-05-09 |
+| [Readme](../runtime/README.md) | `docs/runtime/README.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Repo Governance Cli](../runtime/repo-governance-cli.md) | `docs/runtime/repo-governance-cli.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Repo Governance Failure Semantics](../runtime/repo-governance-failure-semantics.md) | `docs/runtime/repo-governance-failure-semantics.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Runtime Evidence Baseline](../runtime/runtime-evidence-baseline.md) | `docs/runtime/runtime-evidence-baseline.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
+| [Security External Tooling Closure](../runtime/security-external-tooling-closure.md) | `docs/runtime/security-external-tooling-closure.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [Waves A-E Dogfood Stage Receipt](../runtime/waves-a-e-dogfood-receipt.md) | `docs/runtime/waves-a-e-dogfood-receipt.md` | receipt | closed | supporting_evidence | L2 | 2026-05-04 |
+| [data/ Quarantine Boundary — LGC-2A](../governance/data-quarantine-boundary-dgp-lgc-2a.md) | `docs/governance/data-quarantine-boundary-dgp-lgc-2a.md` | receipt | current | supporting_evidence | L2 | 2026-05-09 |
 | [ADP-2 Agentic Pattern Detection](../runtime/adp-pattern-detection-adp-2.md) | `docs/runtime/adp-pattern-detection-adp-2.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Agentic Pattern Runtime Boundaries](../runtime/agentic-pattern-runtime-boundaries-adp-1.md) | `docs/runtime/agentic-pattern-runtime-boundaries-adp-1.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [Alpha-0 Casebook - Governed AI Coding Work](../runtime/alpha-0-casebook.md) | `docs/runtime/alpha-0-casebook.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
@@ -364,6 +532,7 @@
 | [HAP-3 TaskPlan + ReviewRecord Strengthening](../runtime/hap-taskplan-reviewrecord-hap-3.md) | `docs/runtime/hap-taskplan-reviewrecord-hap-3.md` | runtime | current | supporting_evidence | L2 | 2026-05-02 |
 | [PGI-2 Dogfood Summit — Decision and Pack Operating System](../runtime/pgi-2-dogfood-summit.md) | `docs/runtime/pgi-2-dogfood-summit.md` | runtime | closed | supporting_evidence | L2 | 2026-05-03 |
 | [PGI-3 Dogfood Summit — Flywheel, Memory, and Externalization](../runtime/pgi-3-dogfood-summit.md) | `docs/runtime/pgi-3-dogfood-summit.md` | runtime | closed | supporting_evidence | L2 | 2026-05-04 |
+| [Deferred Legacy Term Triage — LGC-5](../governance/deferred-legacy-term-triage-dgp-lgc-5.jsonl) | `docs/governance/deferred-legacy-term-triage-dgp-lgc-5.jsonl` | triage | current | supporting_evidence | L2 | 2026-05-09 |
 | [ADP-3 Structure-Aware + Registry-Aware + PV-Aware Detection](../runtime/adp-3-structure-registry-public-surface-detection.md) | `docs/runtime/adp-3-structure-registry-public-surface-detection.md` | runtime | superseded | historical_record | L2 | 2026-05-02 |
 | [Paper Dogfood Ledger JSONL Schema](../runtime/paper-trades/paper-dogfood-ledger-schema.md) | `docs/runtime/paper-trades/paper-dogfood-ledger-schema.md` | schema | current | source_of_truth | L3 | 2026-04-29 |
 | [Alpaca Paper Execution Boundary](../runtime/alpaca-paper-execution-boundary.md) | `docs/runtime/alpaca-paper-execution-boundary.md` | runtime | current | current_status | L3 | 2026-04-29 |

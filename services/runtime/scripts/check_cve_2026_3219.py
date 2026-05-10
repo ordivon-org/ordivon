@@ -72,10 +72,7 @@ def check_fixed(osv_data: dict) -> dict:
         )
     else:
         result["status"] = "NO_FIX_UPSTREAM"
-        result["action_required"] = (
-            f"No fixed version yet. Keep --ignore-vuln {CVE_ID} in CI. "
-            f"Re-check weekly."
-        )
+        result["action_required"] = f"No fixed version yet. Keep --ignore-vuln {CVE_ID} in CI. Re-check weekly."
 
     return result
 

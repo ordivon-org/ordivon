@@ -344,14 +344,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"BLOCKED={blocked} DEGRADED={degraded} ROUTED={routed}")
             if blocked > 0:
                 print(f"FAIL: {blocked} BLOCKED findings — hard gate failed", file=sys.stderr)
-                print(f"Gate: --check exits nonzero only on BLOCKED > 0.", file=sys.stderr)
-                print(f"      DEGRADED is advisory. Use --strict for degraded gate.", file=sys.stderr)
-                print(f"      This is NOT merge/release/deploy authorization.", file=sys.stderr)
+                print("Gate: --check exits nonzero only on BLOCKED > 0.", file=sys.stderr)
+                print("      DEGRADED is advisory. Use --strict for degraded gate.", file=sys.stderr)
+                print("      This is NOT merge/release/deploy authorization.", file=sys.stderr)
                 return 1
-            print(f"PASS: 0 BLOCKED")
-            print(f"Gate: BLOCKED=0 — hard gate passed.")
+            print("PASS: 0 BLOCKED")
+            print("Gate: BLOCKED=0 — hard gate passed.")
             print(f"      DEGRADED={degraded} (advisory) ROUTED={routed} (by inheritance)")
-            print(f"      This is NOT merge/release/deploy authorization.")
+            print("      This is NOT merge/release/deploy authorization.")
             return 0
 
         # RG-18: --snapshot flag: write index to .ordivon/registry/last-index.json for diff
@@ -421,7 +421,7 @@ def main(argv: list[str] | None = None) -> int:
         is_full = getattr(args, "full", False)
 
         if is_check:
-            print(f"Document Governance Check:")
+            print("Document Governance Check:")
             print(f"  BLOCKED={blocked}  DEGRADED={degraded}  ROUTED={routed}")
             print(f"  DGP layers: {len(dgp_layers)} governed")
             print(f"  Checks active: {total_checks}")
@@ -431,24 +431,24 @@ def main(argv: list[str] | None = None) -> int:
             if blocked > 0:
                 print(f"\nFAIL: {blocked} BLOCKED findings", file=sys.stderr)
                 return 1
-            print(f"\nPASS: 0 BLOCKED")
-            print(f"Gate: --check exits nonzero only on BLOCKED > 0.")
-            print(f"      DEGRADED is advisory unless --strict is used.")
-            print(f"      This is NOT merge/release/deploy authorization.")
+            print("\nPASS: 0 BLOCKED")
+            print("Gate: --check exits nonzero only on BLOCKED > 0.")
+            print("      DEGRADED is advisory unless --strict is used.")
+            print("      This is NOT merge/release/deploy authorization.")
             return 0
         elif is_summary:
             print(f"Document Governance: BLOCKED={blocked} DEGRADED={degraded} ROUTED={routed}")
-            print(f"DGP layers active: DGP-1→DGP-8")
+            print("DGP layers active: DGP-1→DGP-8")
             print(f"Reconciler checks: {total_checks}")
-            print(f"Command: ordivon-verify registry-index --check")
+            print("Command: ordivon-verify registry-index --check")
             return 0
         elif is_full:
-            print(f"=== Document Governance Full Report ===")
+            print("=== Document Governance Full Report ===")
             print(f"BLOCKED: {blocked}")
             print(f"DEGRADED: {degraded}")
             print(f"ROUTED (by inheritance): {routed}")
             print(f"Objects: {index['summary']['total_objects']}")
-            print(f"\nDGP Layers:")
+            print("\nDGP Layers:")
             for layer, desc in dgp_layers.items():
                 print(f"  {layer}: {desc}")
             print(f"\nReconciler checks: {total_checks}")
@@ -456,11 +456,11 @@ def main(argv: list[str] | None = None) -> int:
                 cnt = checks.get(cn, 0)
                 print(f"  {cn}: {cnt} findings")
             if index.get("findings"):
-                print(f"\nTop findings:")
+                print("\nTop findings:")
                 for f in index["findings"][:10]:
                     print(f"  [{f['status']}] {f['invariant']}: {f['message'][:100]}")
-            print(f"\nNon-authorization boundary:")
-            print(f"  Report is generated_view. Not merge/release/deploy authorization.")
+            print("\nNon-authorization boundary:")
+            print("  Report is generated_view. Not merge/release/deploy authorization.")
             return 0
         else:
             print(
