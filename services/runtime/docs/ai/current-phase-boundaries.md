@@ -1,6 +1,6 @@
 # Current Phase Boundaries
 
-Status: **CURRENT** (DGP-S CLOSED; DGP-1→DGP-9 complete)
+Status: **CURRENT** (DGP-S CLOSED; DGP-1→DGP-9 CLOSED)
 Date: 2026-05-09
 Phase: DGP-S / DGP-1→DGP-9
 Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onboarding`, `dgp`, `registry-control-plane`
@@ -9,14 +9,14 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 
 | Phase | Status | Key Outcome |
 |-------|--------|-------------|
-| Phase 1 | COMPLETE | Core Governance Engine |
-| Phase 2 | COMPLETE | CandidateRule, Lessons, Waves 0-5 |
-| Phase 3 | COMPLETE | Multi-pack Eval Framework |
-| Phase 4 | COMPLETE | Dependabot + Security Platform (14 sub-phases) |
-| Phase 5 | COMPLETE | Policy Platform (shadow-ready, enforcement-deferred) |
-| Phase 6 | COMPLETE | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
+| Phase 1 | CLOSED | Core Governance Engine |
+| Phase 2 | CLOSED | CandidateRule, Lessons, Waves 0-5 |
+| Phase 3 | CLOSED | Multi-pack Eval Framework |
+| Phase 4 | CLOSED | Dependabot + Security Platform (14 sub-phases) |
+| Phase 5 | CLOSED | Policy Platform (shadow-ready, enforcement-deferred) |
+| Phase 6 | CLOSED | Design Pack, UI Governance, Finance Observation (16 sub-phases) |
 | **Phase 7P** | **CLOSED** | Alpaca Paper Dogfood — 24 sub-phases, Stage Summit published |
-| **DG-1 through DG-6C** | **COMPLETE** | Document Governance Pack v1 — document lifecycle, registry, staleness, wiki |
+| **DG-1 through DG-6C** | **CLOSED** | Document Governance Pack v1 — document lifecycle, registry, staleness, wiki |
 | **DGP-1 / RCP** | **CLOSED** | Registry Control Plane Foundation — 1220 objects, 6 source adapters, 10 reconciler checks |
 | **DGP-2** | **CLOSED** | Document Lifecycle Governance — lifecycle invariants in reconciler |
 | **DGP-3** | **CLOSED** | Current Truth / Authority Governance — 188 current truth entries, authority-boundary check |
@@ -27,8 +27,8 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **DGP-8** | **CLOSED** | Knowledge Map / Navigation Governance — knowledge map, reading graph, system map |
 | **DGP-9** | **CLOSED** | Document Governance CI / Operationalization — ordivon-verify document-governance --check |
 | **DGP-S** | **CURRENT** | Document Governance Pack Stage Summit — this compression
-| **DG-6D** | **COMPLETE** | Tooling Residue Triage — VD-002/003 closed |
-| **DG-6D-S** | **COMPLETE** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
+| **DG-6D** | **CLOSED** | Tooling Residue Triage — VD-002/003 closed |
+| **DG-6D-S** | **CLOSED** | Ruff Debt Clarification — 4 non-DG F401 out-of-scope |
 | **DG-Z** | **CLOSED** | Document Governance Pack Stage Summit / Closure |
 | **DG-7** | **ACTIVE** | Checker Ecosystem Expansion — 38 checkers, entropy governance, maturity model, owner veto, extension processes |
 | **EG-1** | **ACTIVE** | Entropy Governance — telemetry + gates (Lehman's Laws applied), PEP+RFC+KEP extension design |
@@ -36,10 +36,10 @@ Tags: `boundaries`, `phase`, `status`, `allowed`, `forbidden`, `NO-GO`, `ai-onbo
 | **Post-DG-H2-R** | **CLOSED** | Close VD-001 by reclassification (tool_limitation + command_mismatch) |
 | **Post-DG-H3** | **CLOSED** | Clean 4 non-DG F401 historical imports from governance tests |
 | **PV-1** | **PROPOSAL** | Ordivon Verify CLI product contract (product brief + CLI contract + user journey) |
-| **PV-2** | **COMPLETE** | Ordivon Verify CLI skeleton |
-| **PV-3** | **COMPLETE** | External fixture dogfood + --root/--config/--mode support |
-| **PV-4** | **COMPLETE** | Trust report polish — rich human + JSON output |
-| **PV-5** | **COMPLETE** | Agent skill + CI adoption pack |
+| **PV-2** | **CLOSED** | Ordivon Verify CLI skeleton |
+| **PV-3** | **CLOSED** | External fixture dogfood + --root/--config/--mode support |
+| **PV-4** | **CLOSED** | Trust report polish — rich human + JSON output |
+| **PV-5** | **CLOSED** | Agent skill + CI adoption pack |
 | **OGAP-1** | **CLOSED** | Protocol semantics + object model |
 | **OGAP-2** | **CLOSED** | Schemas + local validator |
 | **OGAP-3** | **CLOSED** | Adapter fixture dogfood |
@@ -74,18 +74,18 @@ Phase 7 is now routed through **Alpaca Paper Trading** before any real-money liv
 
 | Sub-Phase | Status | Key Deliverable |
 |-----------|--------|-----------------|
-| 6A–6C | ✅ COMPLETE | Design Pack baseline, semantic tokens, 10 governance components |
-| 6D | ✅ COMPLETE | Shadow Policy Workbench `/policy-shadow` |
-| 6E | ✅ COMPLETE | Reviews + CandidateRule governance workbench upgrade |
-| 6F | ✅ COMPLETE | `/finance-prep` initial UI (constitution, risk budget, intake, receipt) |
-| 6G | ✅ COMPLETE | Finance observation domain models + ReadOnlyAdapterCapability |
-| 6H | ✅ COMPLETE | Provider selection plan (Alpaca Paper primary, Futu/IB for live) |
-| 6I | ✅ COMPLETE | `AlpacaObservationProvider` (paper, read-only, GET only) |
-| 6I-S | ✅ COMPLETE | Verification baseline recovery (stdout/stderr separation) |
-| 6J | ✅ COMPLETE | `/finance-prep` observation integration (Alpaca Paper labels) |
-| 6J-S | ✅ COMPLETE | Provider status semantics (configured vs connected, account mask) |
-| 6K | ✅ COMPLETE | Server-side health snapshot (`GET /health/finance-observation`) |
-| 6L | ✅ COMPLETE | `/finance-prep` live health fetch + exposure guard |
+| 6A–6C | ✅ CLOSED | Design Pack baseline, semantic tokens, 10 governance components |
+| 6D | ✅ CLOSED | Shadow Policy Workbench `/policy-shadow` |
+| 6E | ✅ CLOSED | Reviews + CandidateRule governance workbench upgrade |
+| 6F | ✅ CLOSED | `/finance-prep` initial UI (constitution, risk budget, intake, receipt) |
+| 6G | ✅ CLOSED | Finance observation domain models + ReadOnlyAdapterCapability |
+| 6H | ✅ CLOSED | Provider selection plan (Alpaca Paper primary, Futu/IB for live) |
+| 6I | ✅ CLOSED | `AlpacaObservationProvider` (paper, read-only, GET only) |
+| 6I-S | ✅ CLOSED | Verification baseline recovery (stdout/stderr separation) |
+| 6J | ✅ CLOSED | `/finance-prep` observation integration (Alpaca Paper labels) |
+| 6J-S | ✅ CLOSED | Provider status semantics (configured vs connected, account mask) |
+| 6K | ✅ CLOSED | Server-side health snapshot (`GET /health/finance-observation`) |
+| 6L | ✅ CLOSED | `/finance-prep` live health fetch + exposure guard |
 
 ## 3. Absolute NO-GO Boundaries
 

@@ -73,7 +73,7 @@ Atomic governance gate (Google presubmit):
   check_atomic_governance.py — 166 governed files verified
   +atomic-governance CI job
 
-'Not clean. Honest.' — methodology slogan codified
+'Not clean. Governed.' — methodology slogan codified (aspirational design principle, not self-claim)
 AI Governance Observer — formal role definition
 Ordivon Macro Structure — AI onboarding map
 ```
@@ -163,7 +163,7 @@ AP-3 Atomic Governance Breakage → A3: registration gate + CI job
 And the methodology itself became a governed artifact:
 
 ```
-Not clean. Honest.
+Not clean. Governed.
 READY ≠ Authorization.
 Governance systems are governable objects.
 ```
@@ -178,7 +178,7 @@ fedb042 fix: ruff
 ab3308c plan: red-team remediation
 317ca08 docs: mark AP-3 CLOSED
 a350ca3 feat: A3 — Atomic Governance Gate
-955059d methodology: 'Not clean. Honest.' + AI Observer
+955059d methodology: 'Not clean. Governed.' + AI Observer
 7475eff docs: Ordivon Macro Structure
 c82ce02 investigate: CI product-tests
 7081cb0 feat: A3 — doc count generator + CI verify

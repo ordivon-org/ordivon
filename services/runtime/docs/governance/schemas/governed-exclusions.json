@@ -47,6 +47,7 @@
     "docs/decisions/ADR-003-python-first-rust-later.md": "ADR — self-documenting",
     "docs/decisions/ADR-004-governance-layer-mandatory.md": "ADR — self-documenting",
     "docs/decisions/ADR-005-tool-vs-skill-boundary.md": "ADR — self-documenting",
-    "docs/decisions/ADR-006-pack-policy-binding.md": "ADR — self-documenting"
+    "docs/decisions/ADR-006-pack-policy-binding.md": "ADR — self-documenting",
+    "docs/governance/schemas/claim-vocabulary.json": "Claim vocabulary schema — meta-schema defining forbidden words, loaded by overclaim detector"
   }
 }

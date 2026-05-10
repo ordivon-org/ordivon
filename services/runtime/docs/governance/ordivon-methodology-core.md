@@ -36,14 +36,15 @@ Self-Calibration event of 2026-05-10, when 8 CI failures across 5 checker jobs
 were not suppressed but systematically classified, fixed, and converted into
 methodology.
 
-**Ordivon optimizes for governed honesty, not cosmetic green.**
+**Ordivon optimizes for governed transparency, not cosmetic green.**
 
 ```text
-Not clean. Honest.
+Not clean. Governed.
 ```
 
 A green dashboard is not the goal. A system where every issue is correctly
 classified, recorded, constrained, and scheduled for review — that is the goal.
+This is an aspirational design principle, not a self-evaluation.
 
 ---
 
