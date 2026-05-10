@@ -1,0 +1,3 @@
+{"id":"mem-001","source_ref":"receipts/audit.md","receipt_ref":"receipts/receipt-001.md","observed_at":"2026-05-08","freshness":"fresh","scope":"project:test"}
+{"id":"mem-002","source_ref":"receipts/audit.md","receipt_ref":"receipts/receipt-002.md","observed_at":"2026-05-08","freshness":"fresh","scope":"project:test"}
+{"id":"cr-001","source_ref":"discovery-candidates.json","observed_at":"2026-05-08","freshness":"fresh","scope":"project:test"}

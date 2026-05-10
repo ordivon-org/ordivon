@@ -1,0 +1,10 @@
+{
+  "run_id": "run-005",
+  "actor": "agent-e",
+  "started_at": "2026-05-08T14:00:00Z",
+  "completed_at": "2026-05-08T14:02:00Z",
+  "status": "completed",
+  "tool_calls": [
+    {"name": "deploy_to_prod", "status": "success", "note": "safe action, production ready"}
+  ]
+}
