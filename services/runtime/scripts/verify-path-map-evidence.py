@@ -84,7 +84,7 @@ def main() -> int:
         print(json.dumps(output, indent=2))
         return 1 if blocked > 0 else 0
 
-    print(f"Path Map Evidence Verification")
+    print("Path Map Evidence Verification")
     print(f"  Nodes: {stats['total_nodes']} (governed: {stats['governed']})")
     print(f"  No source_refs: {stats['no_source_refs']}")
     print(f"  No route source: {stats['no_route_source']}")

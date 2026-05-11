@@ -127,7 +127,7 @@ def main() -> int:
     print(f"Coverage Admission ({enforcement}): {len(files)} files evaluated")
     print(f"  ALLOW: {len(allowed)} · BLOCK: {len(blocked)} · SHADOW: {len(shadow)}")
     if blocked:
-        print(f"\nBLOCKED:")
+        print("\nBLOCKED:")
         for f in blocked:
             print(f"  [{f['code']}] {f['path']}: {f['message']}")
     return 1 if blocked and enforcement != "SHADOW" else 0

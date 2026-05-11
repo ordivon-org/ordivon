@@ -134,12 +134,12 @@ def main() -> int:
         print(json.dumps(output, indent=2, ensure_ascii=False))
         return 0  # Advisory only — does not block CI (yet)
 
-    print(f"Overclaim Detection")
+    print("Overclaim Detection")
     print(f"  Files: {stats['files_scanned']}")
     print(f"  Findings: {stats['findings']}")
 
     if all_findings:
-        print(f"\n  Forbidden claim words found:")
+        print("\n  Forbidden claim words found:")
         for f in all_findings[:20]:
             print(f"    [{f['rule']}] {f['file']}:{f['line']} — '{f['word']}'")
             print(f"      {f['context'][:100]}")

@@ -260,7 +260,7 @@ def main() -> int:
     blocking = [f for f in findings if f["severity"] == "blocking"]
     degraded = [f for f in findings if f["severity"] == "degraded"]
 
-    print(f"Registry–Path Reconciliation")
+    print("Registry–Path Reconciliation")
     print(f"  Registry: {stats['registry_entries']} entries · Path Map: {stats['path_map_nodes']} nodes")
     print(
         f"  In both: {stats['in_both']} · Only registry: {stats['only_registry']} · Only path map: {stats['only_path_map']}"
@@ -268,12 +268,12 @@ def main() -> int:
     print(f"  Findings: {len(blocking)} BLOCKING, {len(degraded)} DEGRADED")
 
     if blocking:
-        print(f"\n❌ BLOCKING:")
+        print("\n❌ BLOCKING:")
         for f in blocking:
             print(f"  [{f['code']}] {f['path']}: {f['message']}")
 
     if degraded:
-        print(f"\n⚠ DEGRADED:")
+        print("\n⚠ DEGRADED:")
         for f in degraded[:10]:
             print(f"  [{f['code']}] {f['path']}: {f['message']}")
 

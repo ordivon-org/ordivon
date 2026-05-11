@@ -153,9 +153,9 @@ def generate_markdown(data: dict) -> str:
     for g in groups:
         disp = g["disposition"]
         lines.append(f"## A{disp[-1]} — {g['summary'][:60]}")
-        lines.append(f"")
+        lines.append("")
         lines.append(f"- Count: {g['count']}")
-        lines.append(f"")
+        lines.append("")
         lines.append("| Code | Severity | Enforced | Path | Message |")
         lines.append("|---|---|---|---|---|")
         for s in g.get("samples", []):

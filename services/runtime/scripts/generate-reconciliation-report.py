@@ -43,10 +43,10 @@ def generate() -> str:
     lines = [
         "# Registry–Path Reconciliation Report",
         "",
-        f"> **GENERATED VIEW — DO NOT EDIT**",
+        "> **GENERATED VIEW — DO NOT EDIT**",
         f"> Generated: {generated_at}",
-        f"> Source: `docs/governance/generated/registry-path-reconciliation.json`",
-        f"> Authority: supporting_evidence",
+        "> Source: `docs/governance/generated/registry-path-reconciliation.json`",
+        "> Authority: supporting_evidence",
         "> **Not source of truth. Not raw evidence. Text view only.**",
         "",
         "---",

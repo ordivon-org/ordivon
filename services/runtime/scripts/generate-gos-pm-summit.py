@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -199,7 +198,7 @@ def generate_dot(summit: dict) -> str:
         lines.append(f'  {sid} [label="{s["stage"]}\\n{s["name"]}\\n{s["status"]}",fillcolor="{color}20",color="{color}"];')
         lines.append(f"  {prev} -> {sid};")
         prev = sid
-    lines.append(f'  summit [label="PM-Summit\\nEvidence+Boundary",fillcolor="#c084fc20",color="#c084fc"];')
+    lines.append('  summit [label="PM-Summit\\nEvidence+Boundary",fillcolor="#c084fc20",color="#c084fc"];')
     lines.append(f"  {prev} -> summit;")
     lines.append("}")
     return "\n".join(lines)

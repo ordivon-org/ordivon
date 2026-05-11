@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — DO NOT EDIT -->
 <!-- Source: docs/governance/document-registry.jsonl -->
 <!-- Generator: scripts/update-registry-stats.py -->
-<!-- Generated: 2026-05-10T23:58:46Z -->
+<!-- Generated: 2026-05-11T00:16:51Z -->
 <!-- Authority: generated_view — not source_of_truth -->
 
 # Document Registry Statistics
@@ -16,7 +16,7 @@
 
 - **Total registered documents**: 457
 - **Document types**: 24
-- **Potentially stale**: 433
+- **Potentially stale**: 441
 
 ## By Status
 

@@ -105,12 +105,12 @@ def main() -> int:
     print(f"Sources:      {', '.join(result['source_refs'])}")
 
     if result["incoming_edges"]:
-        print(f"\nReferenced by:")
+        print("\nReferenced by:")
         for e in result["incoming_edges"]:
             print(f"  ← {e['from']} ({e['type']})")
 
     if result["outgoing_edges"]:
-        print(f"\nReferences:")
+        print("\nReferences:")
         for e in result["outgoing_edges"]:
             print(f"  → {e['to']} ({e['type']})")
 

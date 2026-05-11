@@ -67,14 +67,14 @@ def main() -> int:
         print(json.dumps(output, indent=2))
         return 1 if output["pipeline_status"] == "BLOCKED" else 0
 
-    print(f"Lesson Pipeline Review")
+    print("Lesson Pipeline Review")
     print(f"  Total:     {stats['total']}")
     print(f"  Actioned:  {stats['actioned']}")
     print(f"  Unactioned: {stats['unactioned']}")
     print(f"  Health:    {stats['pipeline_health']}")
 
     if suggestions:
-        print(f"\n  Un-actioned lessons:")
+        print("\n  Un-actioned lessons:")
         for s in suggestions:
             tag = "⚠" if s["severity"] == "high" else "•"
             print(f"    {tag} {s['lesson_id']} [{s['lesson_type']}]")
@@ -83,10 +83,10 @@ def main() -> int:
 
     if stats["pipeline_health"] == "needs_review":
         print(f"\n  ⚠ Lesson pipeline needs review: {stats['unactioned']} un-actioned lessons.")
-        print(f"    Run `python scripts/review_lessons.py` to review.")
+        print("    Run `python scripts/review_lessons.py` to review.")
         return 0  # Advisory — does not block CI
 
-    print(f"\n  ✓ Lesson pipeline active.")
+    print("\n  ✓ Lesson pipeline active.")
     return 0
 
 

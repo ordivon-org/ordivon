@@ -140,23 +140,23 @@ def main() -> int:
     print(f"  Authority upgrades: {delta['stats']['authority_upgrades_requiring_review']}")
 
     if delta["added_nodes"]:
-        print(f"\n  Added nodes:")
+        print("\n  Added nodes:")
         for n in delta["added_nodes"][:10]:
             print(f"    + {n['path']} ({n['kind']}, route={n['route']})")
 
     if delta["removed_nodes"]:
-        print(f"\n  Removed nodes:")
+        print("\n  Removed nodes:")
         for n in delta["removed_nodes"][:10]:
             print(f"    - {n['path']} ({n['kind']})")
 
     if delta["changed_nodes"]:
-        print(f"\n  Changed nodes:")
+        print("\n  Changed nodes:")
         for n in delta["changed_nodes"][:10]:
             for k, v in n["changes"].items():
                 print(f"    ~ {n['path']}: {k} {v['before']} → {v['after']}")
 
     if delta["authority_upgrades"]:
-        print(f"\n  ⚠ Authority upgrades (requires review):")
+        print("\n  ⚠ Authority upgrades (requires review):")
         for n in delta["authority_upgrades"]:
             print(f"    {n['path']}: {n['changes']['authority']['before']} → {n['changes']['authority']['after']}")
 

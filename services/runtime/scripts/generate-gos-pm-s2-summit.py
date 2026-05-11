@@ -10,7 +10,7 @@ Usage:
 
 from __future__ import annotations
 
-import json, subprocess, sys
+import json, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -145,7 +145,7 @@ def main() -> int:
 
     print(f"PM-S2 Summit: {len(STAGES)} stages consolidated")
     print(f"Recommendation: {RECOMMENDATION['decision']}")
-    print(f"Full Closure: NOT CLAIMED")
+    print("Full Closure: NOT CLAIMED")
     return 0
 
 

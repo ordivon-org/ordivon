@@ -286,7 +286,7 @@ def main() -> int:
         "",
         "## Summary",
         "",
-        f"| Status | Count |",
+        "| Status | Count |",
         "|---|---|",
     ]
     for status in rules["coverage_statuses"]:
@@ -294,7 +294,7 @@ def main() -> int:
         if c > 0:
             lines.append(f"| {status} | {c} |")
     lines.extend([
-        f"",
+        "",
         f"**Total files**: {len(files)}",
         f"**Blocked**: {len(blocked)}",
         "",
