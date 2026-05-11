@@ -62,7 +62,7 @@ def scan_file(filepath: Path, forbidden: list[str]) -> list[dict]:
         return findings
 
     for i, line in enumerate(lines, 1):
-        line_lower = line.lower()
+        line.lower()
         for word in forbidden:
             # Use word boundary to avoid matching 'completeness' when checking 'complete'
             pattern = r'\b' + re.escape(word) + r'\b'

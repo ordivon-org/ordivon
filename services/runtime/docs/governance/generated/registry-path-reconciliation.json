@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-05-10T22:36:28Z",
+  "generated_at": "2026-05-11T00:17:43Z",
   "generator": "scripts/reconcile-registry-path.py",
   "stats": {
     "registry_entries": 457,
-    "path_map_nodes": 2121,
+    "path_map_nodes": 2108,
     "in_both": 457,
     "only_registry": 0,
-    "only_path_map": 1664,
+    "only_path_map": 1651,
     "findings_total": 0
   },
   "findings": []

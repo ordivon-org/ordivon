@@ -94,8 +94,7 @@ def verify_bundle(bundle: str) -> tuple[bool, list[dict]]:
                 })
 
         # Check for overclaim
-        allowed = manifest.get("status_terms_allowed", [])
-        not_claimed = manifest.get("not_claimed", [])
+                not_claimed = manifest.get("not_claimed", [])
         for nc in not_claimed:
             # This is informational — we can't machine-check that receipts don't contain forbidden words
             # without running detect_overclaim.py on them, which we should do

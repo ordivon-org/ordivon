@@ -191,7 +191,6 @@ def generate_markdown(data: dict) -> str:
 
 
 def main() -> int:
-    as_json = "--json" in sys.argv
     data = triage()
 
     if "error" in data:
