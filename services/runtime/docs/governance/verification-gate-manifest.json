@@ -4,7 +4,7 @@
   "version": "1.0",
   "status": "current",
   "authority": "derived_from_registry",
-  "gate_count": 38,
+  "gate_count": 40,
   "hard_count": 26,
   "escalation_count": 12,
   "gates": [
@@ -430,13 +430,23 @@
       "gate_id": "path_map",
       "display_name": "Path Map Drift Detection",
       "layer": "L3C",
-      "hardness": "hard"
+      "hardness": "hard",
+      "command": "uv run python scripts/verify-path-map.py",
+      "protects_against": "Stale path map, orphan governance objects",
+      "purpose": "Verify path map matches repo reality",
+      "may_be_removed_only_by": "GOS-PM stage summit",
+      "expected_result_type": "exit_code"
     },
     {
       "gate_id": "path_map_evidence",
       "display_name": "Path Map Evidence Verification",
       "layer": "L3D",
-      "hardness": "hard"
+      "hardness": "hard",
+      "command": "uv run python scripts/verify-path-map-evidence.py",
+      "protects_against": "Governed nodes without evidence references",
+      "purpose": "Verify every governed node has source_refs",
+      "may_be_removed_only_by": "GOS-PM stage summit",
+      "expected_result_type": "exit_code"
     }
   ],
   "_note": "Auto-generated from checkers/ directory. Do not edit manually."

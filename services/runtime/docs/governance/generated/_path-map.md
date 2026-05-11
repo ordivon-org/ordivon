@@ -1,7 +1,7 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-10T23:57:36Z
+> Generated: 2026-05-11T00:00:49Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
