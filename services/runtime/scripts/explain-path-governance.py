@@ -22,7 +22,11 @@ def explain(filepath: str) -> dict:
     pm = json.loads((OUTPUT / "path-map.json").read_text())
     pm_node = next((n for n in pm.get("nodes", []) if n["path"] == filepath), None)
     if pm_node:
-        result["layers"]["path_map"] = {"route": pm_node.get("route"), "kind": pm_node.get("kind"), "classification": pm_node.get("classification_status")}
+        result["layers"]["path_map"] = {
+            "route": pm_node.get("route"),
+            "kind": pm_node.get("kind"),
+            "classification": pm_node.get("classification_status"),
+        }
 
     # Registry
     reg_path = ROOT / "docs/governance/document-registry.jsonl"
@@ -32,7 +36,13 @@ def explain(filepath: str) -> dict:
                 if line.strip():
                     e = json.loads(line)
                     if e["path"] == filepath:
-                        result["layers"]["registry"] = {"doc_type": e.get("doc_type"), "owner": e.get("owner"), "authority_domain": e.get("authority_domain"), "authority_role": e.get("authority_role"), "status": e.get("status")}
+                        result["layers"]["registry"] = {
+                            "doc_type": e.get("doc_type"),
+                            "owner": e.get("owner"),
+                            "authority_domain": e.get("authority_domain"),
+                            "authority_role": e.get("authority_role"),
+                            "status": e.get("status"),
+                        }
                         break
 
     # Coverage

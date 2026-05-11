@@ -20,11 +20,56 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "docs/governance/generated"
 
 STAGES = [
-    {"stage": "PM-1", "name": "Auto-Maintained Path Map", "commit_base": "432e9e8", "claim": "Auto Path Map", "status": "VERIFIED", "key_output": "update-path-map.py + verify-path-map.py + checkers/path-map", "evidence_refs": ["EV-PM1-stage-evidence"], "not_claimed": ["Full closure", "Global file coverage", "External governance"]},
-    {"stage": "PM-2", "name": "Registry–Path Reconciliation", "commit_base": "beed0fa", "claim": "Registry–Path Reconciliation", "status": "VERIFIED_AS_OPERATIONAL", "key_output": "reconcile-registry-path.py + text+graph views + evidence bundle", "evidence_refs": ["EV-PM2-reconciler", "EV-PM2-views"], "not_claimed": ["Findings automatically fixed", "Registry-path sync"]},
-    {"stage": "PM-2S", "name": "Enforcement Semantics", "commit_base": "3af90b9", "claim": "Severity/Enforcement Separation", "status": "VERIFIED", "key_output": "triage-rpr-findings.py + enforcement_status", "evidence_refs": ["EV-PM2S-triage"], "not_claimed": ["All findings resolved"]},
-    {"stage": "PM-3", "name": "Authority Taxonomy", "commit_base": "6a6e832", "claim": "Domain-Aware Authority", "status": "VERIFIED", "key_output": "authority-taxonomy.json + 457 entries migrated", "evidence_refs": ["EV-PM3-taxonomy", "EV-PM3-migration"], "not_claimed": ["Taxonomy final forever"]},
-    {"stage": "PM-4", "name": "Route Taxonomy / Doc-Type Map", "commit_base": "4f9f4e6", "claim": "Doc-Type/Route Compatibility", "status": "VERIFIED", "key_output": "route-taxonomy.json + RPR-3: 119→0", "evidence_refs": ["EV-PM4-route-taxonomy", "EV-PM4-rpr-reduction"], "not_claimed": ["Route taxonomy final"]},
+    {
+        "stage": "PM-1",
+        "name": "Auto-Maintained Path Map",
+        "commit_base": "432e9e8",
+        "claim": "Auto Path Map",
+        "status": "VERIFIED",
+        "key_output": "update-path-map.py + verify-path-map.py + checkers/path-map",
+        "evidence_refs": ["EV-PM1-stage-evidence"],
+        "not_claimed": ["Full closure", "Global file coverage", "External governance"],
+    },
+    {
+        "stage": "PM-2",
+        "name": "Registry–Path Reconciliation",
+        "commit_base": "beed0fa",
+        "claim": "Registry–Path Reconciliation",
+        "status": "VERIFIED_AS_OPERATIONAL",
+        "key_output": "reconcile-registry-path.py + text+graph views + evidence bundle",
+        "evidence_refs": ["EV-PM2-reconciler", "EV-PM2-views"],
+        "not_claimed": ["Findings automatically fixed", "Registry-path sync"],
+    },
+    {
+        "stage": "PM-2S",
+        "name": "Enforcement Semantics",
+        "commit_base": "3af90b9",
+        "claim": "Severity/Enforcement Separation",
+        "status": "VERIFIED",
+        "key_output": "triage-rpr-findings.py + enforcement_status",
+        "evidence_refs": ["EV-PM2S-triage"],
+        "not_claimed": ["All findings resolved"],
+    },
+    {
+        "stage": "PM-3",
+        "name": "Authority Taxonomy",
+        "commit_base": "6a6e832",
+        "claim": "Domain-Aware Authority",
+        "status": "VERIFIED",
+        "key_output": "authority-taxonomy.json + 457 entries migrated",
+        "evidence_refs": ["EV-PM3-taxonomy", "EV-PM3-migration"],
+        "not_claimed": ["Taxonomy final forever"],
+    },
+    {
+        "stage": "PM-4",
+        "name": "Route Taxonomy / Doc-Type Map",
+        "commit_base": "4f9f4e6",
+        "claim": "Doc-Type/Route Compatibility",
+        "status": "VERIFIED",
+        "key_output": "route-taxonomy.json + RPR-3: 119→0",
+        "evidence_refs": ["EV-PM4-route-taxonomy", "EV-PM4-rpr-reduction"],
+        "not_claimed": ["Route taxonomy final"],
+    },
 ]
 
 BOUNDARIES = [
@@ -190,12 +235,21 @@ def generate_dot(summit: dict) -> str:
         "",
         '  repo [label="Repo Reality\\ngit ls-files",fillcolor="#94a3b820",color="#94a3b8"];',
     ]
-    colors = {"PM-1": "#a78bfa", "PM-2": "#34d399", "PM-2S": "#fbbf24", "PM-3": "#fb7185", "PM-4": "#22d3ee", "PM-S": "#c084fc"}
+    colors = {
+        "PM-1": "#a78bfa",
+        "PM-2": "#34d399",
+        "PM-2S": "#fbbf24",
+        "PM-3": "#fb7185",
+        "PM-4": "#22d3ee",
+        "PM-S": "#c084fc",
+    }
     prev = "repo"
     for s in STAGES:
         sid = s["stage"].replace("-", "_")
         color = colors.get(s["stage"], "#94a3b8")
-        lines.append(f'  {sid} [label="{s["stage"]}\\n{s["name"]}\\n{s["status"]}",fillcolor="{color}20",color="{color}"];')
+        lines.append(
+            f'  {sid} [label="{s["stage"]}\\n{s["name"]}\\n{s["status"]}",fillcolor="{color}20",color="{color}"];'
+        )
         lines.append(f"  {prev} -> {sid};")
         prev = sid
     lines.append('  summit [label="PM-Summit\\nEvidence+Boundary",fillcolor="#c084fc20",color="#c084fc"];')
@@ -219,7 +273,9 @@ def main() -> int:
     (OUTPUT_DIR / "gos-pm-summit.dot").write_text(generate_dot(summit) + "\n")
     print("Generated gos-pm-summit.dot")
 
-    print(f"\nStages: {len(STAGES)} · RPR: {summit['current_status']['rpr_blocking']} BLOCKING, {summit['current_status']['rpr_degraded']} DEGRADED")
+    print(
+        f"\nStages: {len(STAGES)} · RPR: {summit['current_status']['rpr_blocking']} BLOCKING, {summit['current_status']['rpr_degraded']} DEGRADED"
+    )
     print("Full Closure: NOT CLAIMED")
     return 0
 

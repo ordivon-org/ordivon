@@ -94,10 +94,8 @@ def verify_bundle(bundle: str) -> tuple[bool, list[dict]]:
                 })
 
         # Check for overclaim
-                not_claimed = manifest.get("not_claimed", [])
+        not_claimed = manifest.get("not_claimed", [])
         for nc in not_claimed:
-            # This is informational — we can't machine-check that receipts don't contain forbidden words
-            # without running detect_overclaim.py on them, which we should do
             pass
 
     if stages_checked == 0:
@@ -125,10 +123,15 @@ def main() -> int:
     passed, findings = verify_bundle(bundle)
 
     if as_json:
-        print(json.dumps({
-            "status": "READY" if passed else "BLOCKED",
-            "findings": findings,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "READY" if passed else "BLOCKED",
+                    "findings": findings,
+                },
+                indent=2,
+            )
+        )
         return 0 if passed else 1
 
     print(f"Evidence Bundle: {bundle}")

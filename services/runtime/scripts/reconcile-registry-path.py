@@ -49,6 +49,7 @@ ROUTE_RISK = {
     "unrouted": 0,
 }
 
+
 def load_registry() -> dict[str, dict]:
     entries = {}
     with open(REGISTRY_PATH) as f:
@@ -58,25 +59,31 @@ def load_registry() -> dict[str, dict]:
                 entries[e["path"]] = e
     return entries
 
+
 def load_path_map() -> list[dict]:
     return json.loads(PATH_MAP_PATH.read_text()).get("nodes", [])
+
 
 def load_rules() -> dict:
     return json.loads(RULES_PATH.read_text())
 
+
 def load_exclusions() -> list[str]:
     return list(json.loads(EXCLUSIONS_PATH.read_text()).get("entries", {}).keys())
+
 
 def load_taxonomy() -> dict:
     return json.loads(TAXONOMY_PATH.read_text())
 
+
 def load_route_taxonomy() -> dict:
     return json.loads(ROUTE_TAXONOMY_PATH.read_text())
+
 
 def reconcile() -> tuple[list[dict], dict]:
     registry = load_registry()
     pm_nodes = {n["path"]: n for n in load_path_map()}
-        
+
     findings = []
     stats = {
         "registry_entries": len(registry),
@@ -142,7 +149,7 @@ def reconcile() -> tuple[list[dict], dict]:
         reg_owner = reg.get("owner", "")
         reg_owner = reg.get("owner", "")
         node_route = node.get("route", "")
-        
+
         # RPR-3: Doc-type/route compatibility (PM-4: route taxonomy)
         route_tax = load_route_taxonomy()
         route_def = route_tax.get("routes", {}).get(node_route, {})
@@ -228,6 +235,7 @@ def reconcile() -> tuple[list[dict], dict]:
     stats["findings_total"] = len(findings)
     return findings, stats
 
+
 def main() -> int:
     as_json = "--json" in sys.argv
     findings, stats = reconcile()
@@ -269,6 +277,7 @@ def main() -> int:
 
     print(f"\nOutput: {json_out}")
     return 1 if blocking else 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

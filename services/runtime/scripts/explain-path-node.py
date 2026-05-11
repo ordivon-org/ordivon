@@ -47,7 +47,10 @@ def explain(target: str) -> dict:
 
     node = nodes.get(target)
     if not node:
-        return {"error": f"Path not found in path map: {target}", "suggestions": [p for p in nodes if target.split("/")[-1] in p][:5]}
+        return {
+            "error": f"Path not found in path map: {target}",
+            "suggestions": [p for p in nodes if target.split("/")[-1] in p][:5],
+        }
 
     # Incoming edges
     incoming = [e for e in edges if e.get("to") == target]

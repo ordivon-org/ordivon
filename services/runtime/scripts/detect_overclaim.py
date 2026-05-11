@@ -65,7 +65,7 @@ def scan_file(filepath: Path, forbidden: list[str]) -> list[dict]:
         line.lower()
         for word in forbidden:
             # Use word boundary to avoid matching 'completeness' when checking 'complete'
-            pattern = r'\b' + re.escape(word) + r'\b'
+            pattern = r"\b" + re.escape(word) + r"\b"
             if re.search(pattern, line, re.IGNORECASE):
                 # Skip if it's a code block or technical reference
                 if line.strip().startswith("```") or line.strip().startswith("$"):
@@ -115,7 +115,11 @@ def main() -> int:
             continue
         # Skip files that define the vocabulary (quote forbidden words as examples)
         rel = str(fp.resolve().relative_to(ROOT))
-        if rel in ("docs/governance/ordivon-methodology-core.md", "docs/governance/assessment-template.md", "docs/governance/schemas/claim-vocabulary.json"):
+        if rel in (
+            "docs/governance/ordivon-methodology-core.md",
+            "docs/governance/assessment-template.md",
+            "docs/governance/schemas/claim-vocabulary.json",
+        ):
             continue
         all_findings.extend(scan_file(fp, forbidden))
 

@@ -48,24 +48,29 @@ def main() -> int:
     expected_exit = int(args.get("expected-exit", "0"))
 
     if not stage or not evidence_id or not command:
-        print("Usage: collect-stage-evidence.py --stage GOS-PM-1-03 --evidence-id EV-... --command '...' [--expected-exit 0]")
+        print(
+            "Usage: collect-stage-evidence.py --stage GOS-PM-1-03 --evidence-id EV-... --command '...' [--expected-exit 0]"
+        )
         return 1
 
     # Create evidence directory
-    stage_dir = EVIDENCE_BASE / "gos-pm-1" / f"{stage[8:]}-stage" if stage.startswith("GOS-PM-1-") else EVIDENCE_BASE / "gos-pm-1" / stage
+    stage_dir = (
+        EVIDENCE_BASE / "gos-pm-1" / f"{stage[8:]}-stage"
+        if stage.startswith("GOS-PM-1-")
+        else EVIDENCE_BASE / "gos-pm-1" / stage
+    )
     raw_dir = stage_dir / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     # Run command
     print(f"Running: {command}")
-    result = subprocess.run(
-        command, shell=True, capture_output=True, text=True,
-        cwd=str(ROOT), timeout=60
-    )
+    result = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=str(ROOT), timeout=60)
 
     # Save raw output
     output_file = raw_dir / f"{evidence_id}.txt"
-    output_content = f"COMMAND: {command}\nEXIT: {result.returncode}\n\nSTDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
+    output_content = (
+        f"COMMAND: {command}\nEXIT: {result.returncode}\n\nSTDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
+    )
     output_file.write_text(output_content)
     sha = hashlib.sha256(output_content.encode()).hexdigest()[:16]
 

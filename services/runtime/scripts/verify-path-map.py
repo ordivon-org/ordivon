@@ -32,7 +32,10 @@ def verify() -> tuple[bool, dict]:
     # STEP 2: Regenerate (this overwrites the file on disk)
     subprocess.run(
         [sys.executable, str(ROOT / "scripts/update-path-map.py")],
-        capture_output=True, text=True, cwd=str(ROOT), timeout=30
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+        timeout=30,
     )
 
     # STEP 3: Read the freshly regenerated version
@@ -87,9 +90,11 @@ def main() -> int:
         return 1
 
     print("✓ Path map consistent with repo reality")
-    print(f"  {info['committed'].get('tracked_files','?')} files → "
-          f"{info['committed'].get('governed','?')} governed, "
-          f"{info['committed'].get('blocked','?')} blocked")
+    print(
+        f"  {info['committed'].get('tracked_files', '?')} files → "
+        f"{info['committed'].get('governed', '?')} governed, "
+        f"{info['committed'].get('blocked', '?')} blocked"
+    )
     return 0
 
 

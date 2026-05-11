@@ -32,9 +32,7 @@ PROTECTED_PATH = SCHEMA_DIR / "protected-paths-config.json"
 
 def git_ls_files() -> list[str]:
     """Get all tracked files."""
-    result = subprocess.run(
-        ["git", "ls-files"], capture_output=True, text=True, cwd=str(ROOT), timeout=15
-    )
+    result = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=str(ROOT), timeout=15)
     return [l for l in result.stdout.strip().split("\n") if l]
 
 
@@ -66,6 +64,7 @@ def load_protected_prefixes() -> list[str]:
 def match_path(filepath: str, patterns: list[str]) -> bool:
     """Simple glob-style matching: ** matches any depth, * matches within segment."""
     import fnmatch
+
     return any(fnmatch.fnmatch(filepath, p) for p in patterns)
 
 
@@ -174,8 +173,15 @@ def classify(
 
     # 7. Source code
     code_prefixes = [
-        "src/", "governance_engine/", "state/", "domains/",
-        "capabilities/", "execution/", "shared/", "packs/", "adapters/",
+        "src/",
+        "governance_engine/",
+        "state/",
+        "domains/",
+        "capabilities/",
+        "execution/",
+        "shared/",
+        "packs/",
+        "adapters/",
     ]
     if any(filepath.startswith(p) for p in code_prefixes):
         node["kind"] = "source_code"
@@ -185,9 +191,7 @@ def classify(
         return node
 
     # 8. Schema file
-    if filepath.startswith("docs/governance/schemas/") or filepath.startswith(
-        "src/ordivon_verify/schemas/"
-    ):
+    if filepath.startswith("docs/governance/schemas/") or filepath.startswith("src/ordivon_verify/schemas/"):
         node["kind"] = "schema"
         node["classification_status"] = "governed"
         node["route"] = "config-and-schemas"
@@ -287,13 +291,23 @@ def generate_markdown(nodes: list[dict], stats: dict) -> str:
 
 def generate_dot(nodes: list[dict], edges: list[dict]) -> str:
     """Generate path-map.dot (Graphviz format)."""
-    lines = ["digraph OrdivonPathMap {", '  rankdir="LR";', '  node [shape=box,style=filled,fontname="JetBrains Mono"];']
+    lines = [
+        "digraph OrdivonPathMap {",
+        '  rankdir="LR";',
+        '  node [shape=box,style=filled,fontname="JetBrains Mono"];',
+    ]
     for n in nodes:
         if n.get("classification_status") != "governed":
             continue
         label = n["path"].split("/")[-1][:40]
-        color = {"document": "#a78bfa", "checker": "#34d399", "ci_gate": "#22d3ee",
-                 "schema": "#fbbf24", "source_code": "#94a3b8", "knowledge_asset": "#fb7185"}.get(n.get("kind", ""), "#94a3b8")
+        color = {
+            "document": "#a78bfa",
+            "checker": "#34d399",
+            "ci_gate": "#22d3ee",
+            "schema": "#fbbf24",
+            "source_code": "#94a3b8",
+            "knowledge_asset": "#fb7185",
+        }.get(n.get("kind", ""), "#94a3b8")
         node_id = n["path"].replace("/", "_").replace(".", "_")
         lines.append(f'  {node_id} [label="{label}",fillcolor="{color}20",color="{color}"];')
     for e in edges[:100]:
@@ -311,8 +325,12 @@ def main() -> int:
     rules = load_rules()
     exclusions = load_exclusions()
     governed_dirs = [
-        "docs/ai", "docs/governance", "docs/architecture",
-        "docs/product", "docs/decisions", "checkers",
+        "docs/ai",
+        "docs/governance",
+        "docs/architecture",
+        "docs/product",
+        "docs/decisions",
+        "checkers",
         ".github/workflows",
     ]
 
@@ -366,10 +384,12 @@ def main() -> int:
     dot_path.write_text(dot_content + "\n")
     print(f"Generated {dot_path}")
 
-    print(f"\nStats: {stats['tracked_files']} files → "
-          f"{stats['governed']} governed, {stats['generated']} generated, "
-          f"{stats['excluded']} excluded, {stats['blocked']} blocked, "
-          f"{stats['debt_parked']} debt-parked")
+    print(
+        f"\nStats: {stats['tracked_files']} files → "
+        f"{stats['governed']} governed, {stats['generated']} generated, "
+        f"{stats['excluded']} excluded, {stats['blocked']} blocked, "
+        f"{stats['debt_parked']} debt-parked"
+    )
 
     return 1 if stats["blocked"] > 0 else 0
 

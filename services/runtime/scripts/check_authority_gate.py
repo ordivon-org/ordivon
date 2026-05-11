@@ -65,7 +65,7 @@ def check() -> tuple[list[dict], dict]:
                 "severity": "blocking",
                 "file": path,
                 "message": f"No owner assigned to '{doc_id}'",
-                "fix": "Assign an owner (person or governed role)"
+                "fix": "Assign an owner (person or governed role)",
             })
 
         # Check 2: Authority
@@ -76,7 +76,7 @@ def check() -> tuple[list[dict], dict]:
                 "severity": "blocking",
                 "file": path,
                 "message": f"Invalid authority '{authority}' for '{doc_id}'",
-                "fix": f"Use one of: {sorted(VALID_AUTHORITIES)}"
+                "fix": f"Use one of: {sorted(VALID_AUTHORITIES)}",
             })
 
         # Check 3: L0 docs must be source_of_truth
@@ -97,11 +97,7 @@ def main() -> int:
     findings, stats = check()
 
     if as_json:
-        output = {
-            "status": "BLOCKED" if findings else "READY",
-            "findings": findings,
-            "stats": stats
-        }
+        output = {"status": "BLOCKED" if findings else "READY", "findings": findings, "stats": stats}
         print(json.dumps(output, indent=2))
         return 1 if findings else 0
 

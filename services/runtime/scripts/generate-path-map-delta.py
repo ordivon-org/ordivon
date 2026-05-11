@@ -25,7 +25,10 @@ def load_path_map(ref: str) -> dict | None:
     try:
         result = subprocess.run(
             ["git", "show", f"{ref}:docs/governance/generated/path-map.json"],
-            capture_output=True, text=True, cwd=str(ROOT), timeout=15
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            timeout=15,
         )
         if result.returncode == 0 and result.stdout.strip():
             return json.loads(result.stdout)
@@ -40,24 +43,15 @@ def compute_delta(base: str, head: str) -> dict:
 
     if not base_map:
         # Regenerate at base ref and retry
+        subprocess.run(["git", "stash"], capture_output=True, cwd=str(ROOT), timeout=10)
+        subprocess.run(["git", "checkout", base], capture_output=True, cwd=str(ROOT), timeout=10)
         subprocess.run(
-            ["git", "stash"], capture_output=True, cwd=str(ROOT), timeout=10
-        )
-        subprocess.run(
-            ["git", "checkout", base], capture_output=True, cwd=str(ROOT), timeout=10
-        )
-        subprocess.run(
-            [sys.executable, str(ROOT / "scripts/update-path-map.py")],
-            capture_output=True, cwd=str(ROOT), timeout=30
+            [sys.executable, str(ROOT / "scripts/update-path-map.py")], capture_output=True, cwd=str(ROOT), timeout=30
         )
         if PATH_MAP.exists():
             base_map = json.loads(PATH_MAP.read_text())
-        subprocess.run(
-            ["git", "checkout", "-"], capture_output=True, cwd=str(ROOT), timeout=10
-        )
-        subprocess.run(
-            ["git", "stash", "pop"], capture_output=True, cwd=str(ROOT), timeout=10
-        )
+        subprocess.run(["git", "checkout", "-"], capture_output=True, cwd=str(ROOT), timeout=10)
+        subprocess.run(["git", "stash", "pop"], capture_output=True, cwd=str(ROOT), timeout=10)
 
     if not head_map:
         head_map = json.loads(PATH_MAP.read_text()) if PATH_MAP.exists() else {"nodes": []}
@@ -90,7 +84,8 @@ def compute_delta(base: str, head: str) -> dict:
 
     # Authority changes that require review (PME-7)
     authority_upgrades = [
-        c for c in changed
+        c
+        for c in changed
         if "authority" in c["changes"]
         and c["changes"]["authority"]["before"] in ("supporting_evidence", "proposal", "")
         and c["changes"]["authority"]["after"] in ("current_status", "source_of_truth")
@@ -105,7 +100,10 @@ def compute_delta(base: str, head: str) -> dict:
             "changed": len(changed),
             "authority_upgrades_requiring_review": len(authority_upgrades),
         },
-        "added_nodes": [{"path": p, "kind": head_nodes[p].get("kind", "?"), "route": head_nodes[p].get("route", "?")} for p in sorted(added)],
+        "added_nodes": [
+            {"path": p, "kind": head_nodes[p].get("kind", "?"), "route": head_nodes[p].get("route", "?")}
+            for p in sorted(added)
+        ],
         "removed_nodes": [{"path": p, "kind": base_nodes[p].get("kind", "?")} for p in sorted(removed)],
         "changed_nodes": changed,
         "authority_upgrades": authority_upgrades,

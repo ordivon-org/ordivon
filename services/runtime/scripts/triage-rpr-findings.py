@@ -33,7 +33,7 @@ ROUTES = {
     "RPR-7": "A2",  # exclusion conflict → refine rules
     "RPR-8": "A2",  # path rule gap → refine rules
     "RPR-9": "A4",  # intentional gap → debt required
-    "RPR-10": "A3", # observation overrides claim → mechanism gap
+    "RPR-10": "A3",  # observation overrides claim → mechanism gap
 }
 
 # Enforcement status per finding code
@@ -41,7 +41,7 @@ ENFORCEMENT = {
     "RPR-1": "NOT_ENFORCED",
     "RPR-2": "NOT_ENFORCED",
     "RPR-3": "NOT_ENFORCED",
-    "RPR-4": "ENFORCED",      # BLOCKING → should be CI-enforced
+    "RPR-4": "ENFORCED",  # BLOCKING → should be CI-enforced
     "RPR-5": "NOT_ENFORCED",
     "RPR-6": "NOT_ENFORCED",
     "RPR-7": "NOT_ENFORCED",
@@ -106,7 +106,11 @@ def triage() -> dict:
         }
         triaged.append(group)
 
-    return {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "stats": stats, "groups": triaged}
+    return {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "stats": stats,
+        "groups": triaged,
+    }
 
 
 def generate_markdown(data: dict) -> str:

@@ -29,7 +29,13 @@ def verify() -> tuple[list[dict], dict]:
     data = json.loads(PATH_MAP.read_text())
     nodes = data.get("nodes", [])
     findings = []
-    stats = {"total_nodes": len(nodes), "governed": 0, "no_source_refs": 0, "no_route_source": 0, "generated_no_source": 0}
+    stats = {
+        "total_nodes": len(nodes),
+        "governed": 0,
+        "no_source_refs": 0,
+        "no_route_source": 0,
+        "generated_no_source": 0,
+    }
 
     for node in nodes:
         status = node.get("classification_status", "")

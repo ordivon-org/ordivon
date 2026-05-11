@@ -38,7 +38,8 @@ def main() -> int:
     i = 0
     while i < len(args):
         if args[i] == "--status":
-            filters["status"] = args[i+1]; i += 2
+            filters["status"] = args[i + 1]
+            i += 2
         elif args[i] == "--count":
             i += 1
             results = query(**filters)

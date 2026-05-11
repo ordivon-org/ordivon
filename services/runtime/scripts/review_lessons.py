@@ -44,8 +44,10 @@ def review() -> tuple[list[dict], dict]:
             "severity": l.get("severity", "medium"),
             "summary": l["body"][:120],
             "suggested_action": (
-                "Create CandidateRule" if l.get("lesson_type") == "rule_candidate"
-                else "Create methodology update" if l.get("lesson_type") == "methodology_extraction"
+                "Create CandidateRule"
+                if l.get("lesson_type") == "rule_candidate"
+                else "Create methodology update"
+                if l.get("lesson_type") == "methodology_extraction"
                 else "Review and classify"
             ),
         }
@@ -62,7 +64,9 @@ def main() -> int:
         output = {
             "stats": stats,
             "unactioned_lessons": suggestions,
-            "pipeline_status": "BLOCKED" if stats["pipeline_health"] == "needs_review" and stats["unactioned"] > 5 else "READY",
+            "pipeline_status": "BLOCKED"
+            if stats["pipeline_health"] == "needs_review" and stats["unactioned"] > 5
+            else "READY",
         }
         print(json.dumps(output, indent=2))
         return 1 if output["pipeline_status"] == "BLOCKED" else 0

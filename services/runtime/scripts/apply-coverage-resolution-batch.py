@@ -45,7 +45,9 @@ def apply(bucket_id: str) -> dict:
     # Select matching files from coverage
     matched = []
     for f in coverage["files"]:
-        if f.get("coverage_status") == "debt_or_exclusion_required" and any(fnmatch.fnmatch(f["path"], p) for p in patterns):
+        if f.get("coverage_status") == "debt_or_exclusion_required" and any(
+            fnmatch.fnmatch(f["path"], p) for p in patterns
+        ):
             matched.append(f)
 
     if not matched:
@@ -87,7 +89,13 @@ def apply(bucket_id: str) -> dict:
     receipt_path = RECEIPTS_DIR / f"{bucket_id}.json"
     receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n")
 
-    return {"status": "APPLIED", "batch_id": bucket_id, "applied_count": updated_count, "target_status": target_status, "receipt": str(receipt_path)}
+    return {
+        "status": "APPLIED",
+        "batch_id": bucket_id,
+        "applied_count": updated_count,
+        "target_status": target_status,
+        "receipt": str(receipt_path),
+    }
 
 
 def main() -> int:

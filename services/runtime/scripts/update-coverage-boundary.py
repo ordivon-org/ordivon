@@ -96,7 +96,7 @@ def classify(
     excl = filepath in exclusions
 
     # Coverage by rule precedence
-    
+
     # 1. Has registry entry
     if reg and node and node.get("classification_status") == "governed":
         return {

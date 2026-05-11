@@ -22,7 +22,9 @@ COVERAGE = OUTPUT_DIR / "coverage-boundary.json"
 ROUTING = SCHEMA_DIR / "coverage-review-routing.json"
 
 
-def derive_owner(path: str, status: str, source: str, reg_owner: str, excl_meta: dict, debt_meta: dict, meta: dict) -> str:
+def derive_owner(
+    path: str, status: str, source: str, reg_owner: str, excl_meta: dict, debt_meta: dict, meta: dict
+) -> str:
     """Derive owner from the coverage object's source."""
     if reg_owner and status == "governed":
         return reg_owner
@@ -82,7 +84,9 @@ def generate() -> dict:
         reviewer = route.get("reviewer_route", "governance-core maintainer")
         approver = route.get("approver_route", "governance-core maintainer")
         requires_review = route.get("mutation_requires_review", False)
-        requires_approver = route.get("authority_mutation_requires_approver", False) or route.get("closing_requires_approver", False)
+        requires_approver = route.get("authority_mutation_requires_approver", False) or route.get(
+            "closing_requires_approver", False
+        )
 
         obj = {
             "path": path,

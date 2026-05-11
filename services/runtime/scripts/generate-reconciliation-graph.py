@@ -48,12 +48,12 @@ def generate() -> str:
         "digraph RegistryPathReconciliation {",
         '  rankdir="TB";',
         '  node [shape=box,style=filled,fontname="JetBrains Mono",fontsize=10];',
-        '  edge [fontsize=8];',
+        "  edge [fontsize=8];",
         "",
         "  // Legend",
-        '  subgraph cluster_legend {',
+        "  subgraph cluster_legend {",
         '    label="Legend";',
-        '    style=filled;',
+        "    style=filled;",
         '    fillcolor="#1e293b20";',
         '    color="#475569";',
         '    registry [label="Registry Claim",fillcolor="#a78bfa20",color="#a78bfa"];',
@@ -82,14 +82,20 @@ def generate() -> str:
         reg_label = "\\n".join([f"{k}: {v}" for k, v in reg.items()][:3]) if isinstance(reg, dict) else str(reg)
         obs_label = "\\n".join([f"{k}: {v}" for k, v in obs.items()][:3]) if isinstance(obs, dict) else str(obs)
 
-        lines.append(f"  // Finding {i+1}: {code} — {path}")
-        lines.append(f'  {reg_id} [label="Registry Claim\\n{reg_label}",fillcolor="{COLORS["registry"]}20",color="{COLORS["registry"]}"];')
-        lines.append(f'  {obs_id} [label="Path Observation\\n{obs_label}",fillcolor="{COLORS["path"]}20",color="{COLORS["path"]}"];')
+        lines.append(f"  // Finding {i + 1}: {code} — {path}")
+        lines.append(
+            f'  {reg_id} [label="Registry Claim\\n{reg_label}",fillcolor="{COLORS["registry"]}20",color="{COLORS["registry"]}"];'
+        )
+        lines.append(
+            f'  {obs_id} [label="Path Observation\\n{obs_label}",fillcolor="{COLORS["path"]}20",color="{COLORS["path"]}"];'
+        )
         lines.append(f'  {find_id} [label="{code}\\n{msg}",fillcolor="{COLORS[sev]}20",color="{COLORS[sev]}"];')
-        lines.append(f'  {disp_id} [label="{disp}",fillcolor="{COLORS.get(disp, "#22d3ee")}20",color="{COLORS.get(disp, "#22d3ee")}"];')
-        lines.append(f"  {reg_id} -> {find_id} [label=\"claim\",color=\"{COLORS['registry']}\"];")
-        lines.append(f"  {obs_id} -> {find_id} [label=\"observation\",color=\"{COLORS['path']}\"];")
-        lines.append(f"  {find_id} -> {disp_id} [label=\"candidate\",color=\"{COLORS[sev]}\"];")
+        lines.append(
+            f'  {disp_id} [label="{disp}",fillcolor="{COLORS.get(disp, "#22d3ee")}20",color="{COLORS.get(disp, "#22d3ee")}"];'
+        )
+        lines.append(f'  {reg_id} -> {find_id} [label="claim",color="{COLORS["registry"]}"];')
+        lines.append(f'  {obs_id} -> {find_id} [label="observation",color="{COLORS["path"]}"];')
+        lines.append(f'  {find_id} -> {disp_id} [label="candidate",color="{COLORS[sev]}"];')
         lines.append("")
 
     lines.append("}")

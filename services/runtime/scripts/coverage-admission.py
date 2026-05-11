@@ -24,8 +24,7 @@ COVERAGE = OUTPUT_DIR / "coverage-boundary.json"
 
 def git_diff_files(base: str = "HEAD~1", head: str = "HEAD") -> list[str]:
     result = subprocess.run(
-        ["git", "diff", "--name-only", base, head],
-        capture_output=True, text=True, cwd=str(ROOT), timeout=15
+        ["git", "diff", "--name-only", base, head], capture_output=True, text=True, cwd=str(ROOT), timeout=15
     )
     return [l for l in result.stdout.strip().split("\n") if l]
 
@@ -40,11 +39,24 @@ def load_coverage() -> dict:
 
 def is_protected(filepath: str) -> bool:
     protected = [
-        "docs/governance/**", "docs/ai/**", "docs/architecture/**", "docs/product/**",
-        "checkers/**", "scripts/check_*", "scripts/generate-*", "scripts/update-*",
-        "scripts/verify-*", "scripts/reconcile*", "scripts/hash_ledger*", "scripts/review_lessons*",
-        "scripts/detect_*", "scripts/triage*", "scripts/explain*", "scripts/collect-*",
-        "scripts/verify-*", ".github/workflows/**"
+        "docs/governance/**",
+        "docs/ai/**",
+        "docs/architecture/**",
+        "docs/product/**",
+        "checkers/**",
+        "scripts/check_*",
+        "scripts/generate-*",
+        "scripts/update-*",
+        "scripts/verify-*",
+        "scripts/reconcile*",
+        "scripts/hash_ledger*",
+        "scripts/review_lessons*",
+        "scripts/detect_*",
+        "scripts/triage*",
+        "scripts/explain*",
+        "scripts/collect-*",
+        "scripts/verify-*",
+        ".github/workflows/**",
     ]
     return any(fnmatch.fnmatch(filepath, p) for p in protected)
 
@@ -57,12 +69,26 @@ def evaluate(filepath: str, is_new: bool, coverage: dict) -> list[dict]:
     meta = cov_entry.get("metadata", {}) if cov_entry else {}
 
     # CA-1: new protected unknown file
-    if is_new and is_protected(filepath) and status not in ("governed", "generated", "excluded", "debt_parked", "fixture", "legacy"):
-        findings.append({"code": "CA-1", "decision": "BLOCK", "path": filepath, "message": "New protected file without classification"})
+    if (
+        is_new
+        and is_protected(filepath)
+        and status not in ("governed", "generated", "excluded", "debt_parked", "fixture", "legacy")
+    ):
+        findings.append({
+            "code": "CA-1",
+            "decision": "BLOCK",
+            "path": filepath,
+            "message": "New protected file without classification",
+        })
 
     # CA-2: generated without source_refs
     if status == "generated" and not meta.get("source_refs"):
-        findings.append({"code": "CA-2", "decision": "BLOCK", "path": filepath, "message": "Generated file without source_refs"})
+        findings.append({
+            "code": "CA-2",
+            "decision": "BLOCK",
+            "path": filepath,
+            "message": "Generated file without source_refs",
+        })
 
     # CA-4: exclusion without required fields
     if status == "excluded" and (not meta.get("reason") or len(str(meta.get("reason", ""))) < 3):
@@ -70,11 +96,21 @@ def evaluate(filepath: str, is_new: bool, coverage: dict) -> list[dict]:
 
     # CA-5: debt_parked without debt_id
     if status == "debt_parked" and not meta.get("debt_id"):
-        findings.append({"code": "CA-5", "decision": "BLOCK", "path": filepath, "message": "Debt-parked without debt_id"})
+        findings.append({
+            "code": "CA-5",
+            "decision": "BLOCK",
+            "path": filepath,
+            "message": "Debt-parked without debt_id",
+        })
 
     # Default: allow
     if not findings:
-        findings.append({"code": "ALLOW", "decision": "ALLOW", "path": filepath, "message": "Coverage admission passed"})
+        findings.append({
+            "code": "ALLOW",
+            "decision": "ALLOW",
+            "path": filepath,
+            "message": "Coverage admission passed",
+        })
 
     return findings
 
@@ -96,7 +132,10 @@ def main() -> int:
         # More accurate: use git diff --diff-filter
         result = subprocess.run(
             ["git", "diff", "--diff-filter=A", "--name-only", base, head],
-            capture_output=True, text=True, cwd=str(ROOT), timeout=10
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+            timeout=10,
         )
         new_files = set(result.stdout.strip().split("\n"))
         is_new = fp in new_files
@@ -109,7 +148,8 @@ def main() -> int:
     report = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "authority": "generated_view",
-        "base": base, "head": head,
+        "base": base,
+        "head": head,
         "enforcement_mode": enforcement,
         "files_evaluated": len(files),
         "summary": {"BLOCK": len(blocked), "SHADOW": len(shadow), "ALLOW": len(allowed)},

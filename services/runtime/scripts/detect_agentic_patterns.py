@@ -79,10 +79,12 @@ SAFE_NEGATIONS = [
 # Loaded from canonical schema (RT-11 fix)
 AUTHORITATIVE_CONFIG = ROOT / "docs/governance/schemas/agentic-patterns-config.json"
 
+
 def _load_authoritative_docs():
     config = json.loads(open(AUTHORITATIVE_CONFIG).read())
     # Use safe_files as authoritative doc globs
     return config.get("safe_files", [])
+
 
 AUTHORITATIVE_DOC_GLOBS = _load_authoritative_docs()
 

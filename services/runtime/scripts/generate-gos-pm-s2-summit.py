@@ -18,11 +18,46 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "docs/governance/generated"
 
 STAGES = [
-    {"stage": "PM-6", "name": "Coverage Resolution Pipeline", "commit": "a1992d9", "status": "VERIFIED", "key_output": "850 CB-12 → 5 resolution buckets", "not_claimed": ["CB-12 fully resolved", "all files governed"]},
-    {"stage": "PM-7", "name": "Coverage Batch Application", "commit": "946e11f", "status": "VERIFIED", "key_output": "3 batches applied, 40 files resolved, receipts generated", "not_claimed": ["all CB-12 resolved", "full closure"]},
-    {"stage": "PM-8", "name": "Coverage Ownership Routing", "commit": "cfba3c5", "status": "VERIFIED", "key_output": "2108 objects with owner/reviewer/approver routes", "not_claimed": ["human identity system", "PolicyActivation"]},
-    {"stage": "PM-9", "name": "Coverage Admission Gate", "commit": "a6b205f", "status": "VERIFIED (SHADOW)", "key_output": "10 CA rules, git diff admission evaluation", "not_claimed": ["production enforcement", "full closure"]},
-    {"stage": "PM-10", "name": "Path Governance Query", "commit": "0ac549a", "status": "VERIFIED", "key_output": "explain + query commands, impact-ready", "not_claimed": ["authorization", "execution plan", "full closure"]},
+    {
+        "stage": "PM-6",
+        "name": "Coverage Resolution Pipeline",
+        "commit": "a1992d9",
+        "status": "VERIFIED",
+        "key_output": "850 CB-12 → 5 resolution buckets",
+        "not_claimed": ["CB-12 fully resolved", "all files governed"],
+    },
+    {
+        "stage": "PM-7",
+        "name": "Coverage Batch Application",
+        "commit": "946e11f",
+        "status": "VERIFIED",
+        "key_output": "3 batches applied, 40 files resolved, receipts generated",
+        "not_claimed": ["all CB-12 resolved", "full closure"],
+    },
+    {
+        "stage": "PM-8",
+        "name": "Coverage Ownership Routing",
+        "commit": "cfba3c5",
+        "status": "VERIFIED",
+        "key_output": "2108 objects with owner/reviewer/approver routes",
+        "not_claimed": ["human identity system", "PolicyActivation"],
+    },
+    {
+        "stage": "PM-9",
+        "name": "Coverage Admission Gate",
+        "commit": "a6b205f",
+        "status": "VERIFIED (SHADOW)",
+        "key_output": "10 CA rules, git diff admission evaluation",
+        "not_claimed": ["production enforcement", "full closure"],
+    },
+    {
+        "stage": "PM-10",
+        "name": "Path Governance Query",
+        "commit": "0ac549a",
+        "status": "VERIFIED",
+        "key_output": "explain + query commands, impact-ready",
+        "not_claimed": ["authorization", "execution plan", "full closure"],
+    },
 ]
 
 BOUNDARIES = [
@@ -69,7 +104,13 @@ def get_state() -> dict:
     except Exception:
         excl_count = "?"
 
-    return {"cb12_open": cb12, "blocked": blocked, "total_files": total, "rpr_blocking": rpr_blocking, "exclusions": excl_count}
+    return {
+        "cb12_open": cb12,
+        "blocked": blocked,
+        "total_files": total,
+        "rpr_blocking": rpr_blocking,
+        "exclusions": excl_count,
+    }
 
 
 def main() -> int:
@@ -84,7 +125,13 @@ def main() -> int:
         "current_state": state,
         "open_boundaries": BOUNDARIES,
         "recommendation": RECOMMENDATION,
-        "not_claimed": ["full closure", "production readiness", "external governance", "PolicyActivation", "harness adapter readiness"],
+        "not_claimed": [
+            "full closure",
+            "production readiness",
+            "external governance",
+            "PolicyActivation",
+            "harness adapter readiness",
+        ],
     }
 
     (OUTPUT_DIR / "gos-pm-s2-summit.json").write_text(json.dumps(summit, indent=2, ensure_ascii=False) + "\n")
@@ -124,7 +171,14 @@ def main() -> int:
     ])
     for b in BOUNDARIES:
         lines.append(f"- {b}")
-    lines.extend(["", "---", "```text", "Path Governance Core: VERIFIED with known boundaries.", "Full Closure: NOT CLAIMED.", "```"])
+    lines.extend([
+        "",
+        "---",
+        "```text",
+        "Path Governance Core: VERIFIED with known boundaries.",
+        "Full Closure: NOT CLAIMED.",
+        "```",
+    ])
     (OUTPUT_DIR / "_gos-pm-s2-summit.md").write_text("\n".join(lines) + "\n")
 
     # DOT
