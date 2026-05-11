@@ -5,7 +5,7 @@
   "status": "current",
   "authority": "derived_from_registry",
   "gate_count": 40,
-  "hard_count": 26,
+  "hard_count": 28,
   "escalation_count": 12,
   "gates": [
     {
