@@ -166,7 +166,7 @@ class TestRG13ConfigSurface:
         assert isinstance(result, RegistryImportResult)
 
     def test_config_surface_imports_from_real_root(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_config_surfaces
 
         result = import_config_surfaces(root)
@@ -209,7 +209,7 @@ class TestRG13ConfigSurface:
 
     def test_config_surface_not_default_t0(self, tmp_path):
         """Config surfaces from importer should be T2, not T0."""
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_config_surfaces
 
         result = import_config_surfaces(root)
@@ -228,15 +228,15 @@ class TestRG14LegacyScope:
     def test_legacy_scope_importer_available(self):
         from ordivon_verify.registry.adapters import import_legacy_scopes
 
-        result = import_legacy_scopes(Path("/root/projects/Ordivon"))
+        result = import_legacy_scopes(Path(__file__).resolve().parents[3])
         assert isinstance(result, RegistryImportResult)
 
     def test_legacy_scope_manifest_exists(self):
-        manifest = Path("/root/projects/Ordivon/docs/governance/legacy-scope-manifest-rg-14.jsonl")
+        manifest = Path(__file__).resolve().parents[3] / "docs/governance/legacy-scope-manifest-rg-14.jsonl"
         assert manifest.exists()
 
     def test_legacy_manifest_has_26_entries(self):
-        manifest = Path("/root/projects/Ordivon/docs/governance/legacy-scope-manifest-rg-14.jsonl")
+        manifest = Path(__file__).resolve().parents[3] / "docs/governance/legacy-scope-manifest-rg-14.jsonl"
         entries = []
         with open(manifest) as f:
             for line in f:
@@ -245,7 +245,7 @@ class TestRG14LegacyScope:
         assert len(entries) == 26
 
     def test_legacy_scope_imports_as_legacy_inactive(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_legacy_scopes
 
         result = import_legacy_scopes(root)
@@ -257,12 +257,12 @@ class TestRG14LegacyScope:
     def test_legacy_scope_not_deleted(self):
         """Legacy code dirs still exist — only identity was added."""
         legacy_dirs = ["apps", "capabilities", "governance_engine", "orchestrator"]
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         for d in legacy_dirs:
             assert (root / d).is_dir(), f"{d} should still exist"
 
     def test_legacy_scope_lifecycle_is_legacy_inactive(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_legacy_scopes
 
         result = import_legacy_scopes(root)
@@ -270,7 +270,7 @@ class TestRG14LegacyScope:
             assert obj.lifecycle_state == LifecycleState.LEGACY_INACTIVE
 
     def test_legacy_scope_authority_is_t6(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_legacy_scopes
 
         result = import_legacy_scopes(root)
@@ -278,7 +278,7 @@ class TestRG14LegacyScope:
             assert obj.authority_tier == AuthorityTier.T6_OUT_OF_SCOPE
 
     def test_legacy_scope_current_truth_allowed_is_false(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_legacy_scopes
 
         result = import_legacy_scopes(root)
@@ -398,7 +398,7 @@ class TestRG15OwnerGapReclassification:
 
     def test_no_mass_owner_fill_for_artifacts(self):
         """RG-15 did not mass-assign owners to artifacts."""
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         from ordivon_verify.registry.adapters import import_artifact_registry
 
         result = import_artifact_registry(root)
@@ -421,7 +421,7 @@ class TestCLIRegistryIndex:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         assert result.returncode == 0, f"stderr: {result.stderr[:200]}"
         data = json.loads(result.stdout)
@@ -435,7 +435,7 @@ class TestCLIRegistryIndex:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         data = json.loads(result.stdout)
         assert len(data["registry_sources"]) == 6
@@ -446,7 +446,7 @@ class TestCLIRegistryIndex:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         data = json.loads(result.stdout)
         assert data["summary"]["total_objects"] > 0
@@ -460,7 +460,7 @@ class TestCLIRegistryIndex:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         data = json.loads(result.stdout)
         assert data["summary"]["blocked_findings"] == 0, (
@@ -474,7 +474,7 @@ class TestCLIRegistryIndex:
             capture_output=True,
             text=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
         data = json.loads(result.stdout)
         assert data["summary"]["degraded_findings"] == 0, (
@@ -484,7 +484,7 @@ class TestCLIRegistryIndex:
     def test_registry_index_dry_run_does_not_mutate_files(self):
         """Running registry-index should not write to any config or source file."""
         before_files = set()
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         for f in root.rglob("*"):
             if f.is_file() and ".git/" not in str(f) and "__pycache__" not in str(f):
                 before_files.add(str(f))
@@ -493,7 +493,7 @@ class TestCLIRegistryIndex:
             [sys.executable, "-m", "ordivon_verify", "registry-index"],
             capture_output=True,
             timeout=30,
-            cwd="/root/projects/Ordivon",
+            cwd=str(Path(__file__).resolve().parents[3]),
         )
 
         after_files = set()
@@ -516,32 +516,32 @@ class TestCurrentRepoSmoke:
     """Smoke test against current Ordivon repository reconciler output."""
 
     def test_current_repo_blocked_is_zero(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         result = reconcile_imported_sources(import_all_registry_sources(root), root=root)
         assert result.summary.blocked_count == 0, f"Expected 0 BLOCKED, got {result.summary.blocked_count}"
 
     def test_current_repo_degraded_is_zero_after_routing(self):
         """RG-18: Path-owner inheritance resolves all DEGRADED."""
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         result = reconcile_imported_sources(import_all_registry_sources(root), root=root)
         assert result.summary.degraded_count == 0, (
             f"Expected 0 DEGRADED after routing, got {result.summary.degraded_count}"
         )
 
     def test_current_repo_all_findings_are_owner_gap(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         result = reconcile_imported_sources(import_all_registry_sources(root), root=root)
         invariants = {f.invariant for f in result.findings}
         # After RG-11→RG-14, only owner-gap should remain
         assert invariants == {"active-decision-object-has-owner"} or len(invariants) <= 1
 
     def test_current_repo_no_referenced_missing(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         result = reconcile_imported_sources(import_all_registry_sources(root), root=root)
         missing = [f for f in result.findings if "referenced" in f.invariant]
         assert len(missing) == 0
 
     def test_current_repo_objects_exceed_1000(self):
-        root = Path("/root/projects/Ordivon")
+        root = Path(__file__).resolve().parents[3]
         result = reconcile_imported_sources(import_all_registry_sources(root), root=root)
         assert result.summary.total_objects > 1000
