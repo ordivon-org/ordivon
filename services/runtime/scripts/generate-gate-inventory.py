@@ -124,8 +124,8 @@ def generate() -> dict:
     for g in gates:
         mode_counts[g["mode"]] = mode_counts.get(g["mode"], 0) + 1
     blocking = [g for g in gates if g["mode"] in ("BLOCKING", "HARD_BLOCKING")]
-    shadow = [g for g in gates if g["mode"] == "SHADOW"]
-    advisory = [g for g in gates if g["mode"] == "ADVISORY"]
+    [g for g in gates if g["mode"] == "SHADOW"]
+    [g for g in gates if g["mode"] == "ADVISORY"]
     blocking_no_ci = [g for g in blocking if not g["ci_job"]]
 
     return {

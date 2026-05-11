@@ -132,7 +132,7 @@ def main() -> int:
     lines.extend(["", "---", "```text", "Full Closure: NOT CLAIMED.", "```"])
     (OUTPUT / "_lifecycle-health.md").write_text("\n".join(lines) + "\n")
 
-    print(f"Lifecycle Health:")
+    print("Lifecycle Health:")
     print(f"  Debts: {data['debts']['total']} ({data['debts']['open']} open, {data['debts']['closed']} closed)")
     print(f"  Lessons: {data['lessons']['total']} ({data['lessons']['actioned']} actioned, {data['lessons']['unactioned']} un-actioned)")
     print(f"  Findings: {data['summary']['total_findings']} ({data['summary']['blocking']} blocking)")

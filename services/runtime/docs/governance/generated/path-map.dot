@@ -3,7 +3,6 @@ digraph OrdivonPathMap {
   node [shape=box,style=filled,fontname="JetBrains Mono"];
   _github_workflows_ci_yml [label="ci.yml",fillcolor="#22d3ee20",color="#22d3ee"];
   _github_workflows_codeql_yml [label="codeql.yml",fillcolor="#22d3ee20",color="#22d3ee"];
-  _github_workflows_delivery_yml [label="delivery.yml",fillcolor="#22d3ee20",color="#22d3ee"];
   _github_workflows_nightly-regression_yml [label="nightly-regression.yml",fillcolor="#22d3ee20",color="#22d3ee"];
   _github_workflows_security_yml [label="security.yml",fillcolor="#22d3ee20",color="#22d3ee"];
   AGENTS_md [label="AGENTS.md",fillcolor="#a78bfa20",color="#a78bfa"];

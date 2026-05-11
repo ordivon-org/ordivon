@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-10T23:57:08Z",
+  "generated_at": "2026-05-11T01:32:37Z",
   "generator": "scripts/update-path-map.py",
   "source_refs": [
     "git ls-files",
@@ -8,13 +8,13 @@
     "docs/governance/schemas/governed-exclusions.json"
   ],
   "stats": {
-    "generated_at": "2026-05-10T23:57:08Z",
-    "tracked_files": 2108,
-    "governed": 807,
+    "generated_at": "2026-05-11T01:32:37Z",
+    "tracked_files": 2119,
+    "governed": 806,
     "generated": 79,
-    "excluded": 99,
+    "excluded": 107,
     "blocked": 0,
-    "debt_parked": 1123
+    "debt_parked": 1127
   },
   "nodes": [
     {
@@ -82,15 +82,6 @@
     },
     {
       "path": ".github/workflows/codeql.yml",
-      "source_refs": [
-        "git ls-files"
-      ],
-      "classification_status": "governed",
-      "kind": "ci_gate",
-      "route": "governance-core"
-    },
-    {
-      "path": ".github/workflows/delivery.yml",
       "source_refs": [
         "git ls-files"
       ],
@@ -5730,7 +5721,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-00-stage/raw/EV-GOS-PM-1-00-002.txt",
@@ -5739,7 +5730,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-00-stage/stage-manifest.json",
@@ -5748,7 +5739,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-01-stage/raw/EV-GOS-PM-1-01-001.txt",
@@ -5757,7 +5748,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-01-stage/raw/EV-GOS-PM-1-01-002.txt",
@@ -5766,7 +5757,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-01-stage/stage-manifest.json",
@@ -5775,7 +5766,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-02-stage/raw/EV-GOS-PM-1-02-001.txt",
@@ -5784,7 +5775,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-02-stage/raw/EV-GOS-PM-1-02-002.txt",
@@ -5793,7 +5784,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-02-stage/stage-manifest.json",
@@ -5802,7 +5793,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-03-stage/raw/EV-GOS-PM-1-03-001.txt",
@@ -5811,7 +5802,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-03-stage/raw/EV-GOS-PM-1-03-002.txt",
@@ -5820,7 +5811,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-03-stage/stage-manifest.json",
@@ -5829,7 +5820,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-04-stage/raw/EV-GOS-PM-1-04-001.txt",
@@ -5838,7 +5829,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-04-stage/raw/EV-GOS-PM-1-04-002.txt",
@@ -5847,7 +5838,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-04-stage/stage-manifest.json",
@@ -5856,7 +5847,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/raw/EV-GOS-PM-1-05-001.txt",
@@ -5865,7 +5856,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/raw/EV-GOS-PM-1-05-002.txt",
@@ -5874,7 +5865,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/raw/EV-GOS-PM-1-05-003.txt",
@@ -5883,7 +5874,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/raw/EV-GOS-PM-1-05-004.txt",
@@ -5892,7 +5883,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/raw/EV-GOS-PM-1-05-005.txt",
@@ -5901,7 +5892,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-05-stage/stage-manifest.json",
@@ -5910,7 +5901,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-06-stage/raw/EV-GOS-PM-1-06-001.txt",
@@ -5919,7 +5910,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-06-stage/raw/EV-GOS-PM-1-06-002.txt",
@@ -5928,7 +5919,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/-06-stage/stage-manifest.json",
@@ -5937,7 +5928,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/evidence/gos-pm-1/stage-evidence-index.jsonl",
@@ -5946,7 +5937,7 @@
       ],
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
-      "reason": "Evidence bundle directory — raw outputs and manifests, not governed docs"
+      "reason": "Evidence file — raw output or manifest"
     },
     {
       "path": "docs/governance/extended-mind-tooling-map-pgi-3.md",
@@ -6130,6 +6121,15 @@
       "reason": "Generated coverage review routing view"
     },
     {
+      "path": "docs/governance/generated/_gate-inventory.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated N2 gate inventory text view"
+    },
+    {
       "path": "docs/governance/generated/_gos-pm-s2-summit.md",
       "source_refs": [
         "git ls-files"
@@ -6146,6 +6146,15 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Generated PM summit text view"
+    },
+    {
+      "path": "docs/governance/generated/_lifecycle-health.md",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated N2 lifecycle health text view"
     },
     {
       "path": "docs/governance/generated/_path-map.md",
@@ -6211,6 +6220,15 @@
       "reason": "Generated coverage review routing data"
     },
     {
+      "path": "docs/governance/generated/gate-inventory.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated N2 gate inventory"
+    },
+    {
       "path": "docs/governance/generated/gos-pm-s2-summit.dot",
       "source_refs": [
         "git ls-files"
@@ -6245,6 +6263,15 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Generated PM summit data"
+    },
+    {
+      "path": "docs/governance/generated/lifecycle-health.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "Generated N2 lifecycle health"
     },
     {
       "path": "docs/governance/generated/path-map.dot",
@@ -6928,6 +6955,15 @@
       "reason": "Authority taxonomy schema — meta-schema, not a governed doc"
     },
     {
+      "path": "docs/governance/schemas/candidate-rule-lifecycle.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "N2 candidate rule lifecycle schema"
+    },
+    {
       "path": "docs/governance/schemas/claim-vocabulary.json",
       "source_refs": [
         "git ls-files"
@@ -6973,6 +7009,15 @@
       "reason": "Coverage review routing schema"
     },
     {
+      "path": "docs/governance/schemas/debt-lifecycle.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "N2 debt lifecycle schema"
+    },
+    {
       "path": "docs/governance/schemas/document-types.json",
       "source_refs": [
         "git ls-files"
@@ -6989,6 +7034,15 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Exclusion schema — meta-schema, loaded by atomic-governance checker"
+    },
+    {
+      "path": "docs/governance/schemas/lesson-lifecycle.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "N2 lesson lifecycle schema"
     },
     {
       "path": "docs/governance/schemas/path-map-edge.schema.json",
@@ -7043,6 +7097,15 @@
       "classification_status": "excluded",
       "kind": "explicit_exclusion",
       "reason": "Route taxonomy schema"
+    },
+    {
+      "path": "docs/governance/schemas/waiver.json",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "excluded",
+      "kind": "explicit_exclusion",
+      "reason": "N2 waiver lifecycle schema"
     },
     {
       "path": "docs/governance/scope-drift-governance-rot-pattern.md",
@@ -15132,6 +15195,15 @@
       "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
     },
     {
+      "path": "scripts/generate-gate-inventory.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
       "path": "scripts/generate-gos-pm-s2-summit.py",
       "source_refs": [
         "git ls-files"
@@ -15142,6 +15214,15 @@
     },
     {
       "path": "scripts/generate-gos-pm-summit.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/generate-lifecycle-health.py",
       "source_refs": [
         "git ls-files"
       ],
@@ -15169,6 +15250,15 @@
     },
     {
       "path": "scripts/generate-reconciliation-report.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/generate-shadow-to-blocking-plan.py",
       "source_refs": [
         "git ls-files"
       ],
@@ -15792,6 +15882,15 @@
     },
     {
       "path": "scripts/verify-coverage-boundary.py",
+      "source_refs": [
+        "git ls-files"
+      ],
+      "classification_status": "debt_parked",
+      "kind": "unclassified",
+      "finding": "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+    },
+    {
+      "path": "scripts/verify-gate-enforcement-matrix.py",
       "source_refs": [
         "git ls-files"
       ],

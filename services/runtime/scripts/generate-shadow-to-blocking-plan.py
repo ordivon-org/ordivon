@@ -110,10 +110,10 @@ def main() -> int:
     lines.extend(["", "---", "```text", "Full Closure: NOT CLAIMED.", "```"])
     (OUTPUT / "_shadow-to-blocking-plan.md").write_text("\n".join(lines) + "\n")
 
-    print(f"Shadow-to-Blocking Plan: {len(candidates)} candidates")
-    print(f"  Dogfood: overclaim + debt_close_evidence")
-    print(f"  Shadow: generated_view_source_authority")
-    print(f"  Already: protected_unknown_path")
+    print(f"Shadow-to-Blocking Plan: {len(data['candidates'])} candidates")
+    print("  Dogfood: overclaim + debt_close_evidence")
+    print("  Shadow: generated_view_source_authority")
+    print("  Already: protected_unknown_path")
     return 0
 
 

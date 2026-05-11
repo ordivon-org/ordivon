@@ -1,17 +1,17 @@
 # Generated Ordivon Path Map
 
 > Status: GENERATED_VIEW
-> Generated: 2026-05-11T00:17:43Z
+> Generated: 2026-05-11T01:32:37Z
 > Source: git ls-files + document-registry.jsonl + path-map-rules.json
 > Do not edit manually.
 
 ## Stats
-- Tracked files: 2108
-- Governed: 807
+- Tracked files: 2119
+- Governed: 806
 - Generated views: 79
-- Excluded: 99
+- Excluded: 107
 - Blocked: 0
-- Debt-parked: 1123
+- Debt-parked: 1127
 
 ## Governed Nodes
 ### ai-boundaries
@@ -181,7 +181,6 @@
 ### governance-core
 - `.github/workflows/ci.yml` (ci_gate, owner=-)
 - `.github/workflows/codeql.yml` (ci_gate, owner=-)
-- `.github/workflows/delivery.yml` (ci_gate, owner=-)
 - `.github/workflows/nightly-regression.yml` (ci_gate, owner=-)
 - `.github/workflows/security.yml` (ci_gate, owner=-)
 - `AGENTS.md` (document, owner=ordivon-core-maintainer)
@@ -1390,11 +1389,14 @@
 - `scripts/export_openapi.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-coverage-resolution-plan.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-coverage-review-routing.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-gate-inventory.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-gos-pm-s2-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-lifecycle-health.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-path-map-delta.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-reconciliation-graph.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate-reconciliation-report.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/generate-shadow-to-blocking-plan.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/generate_document_wiki.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9_dogfood_runs.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/h9c_verification.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
@@ -1458,6 +1460,7 @@
 - `scripts/validate_pgi_review_to_rule_candidate.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/validate_pgi_self_model_entry.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-coverage-boundary.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
+- `scripts/verify-gate-enforcement-matrix.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-gos-pm-summit.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `scripts/verify-path-map-evidence.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED
 - `services/hermes_bridge/app.py`: PM-9 DEBT_OR_EXCLUSION_REQUIRED

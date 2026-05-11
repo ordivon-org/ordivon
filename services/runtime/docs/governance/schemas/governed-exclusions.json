@@ -116,6 +116,14 @@
     "docs/governance/evidence/gos-pm-1/-06-stage/raw/EV-GOS-PM-1-06-001.txt": "Evidence file — raw output or manifest",
     "docs/governance/evidence/gos-pm-1/-04-stage/stage-manifest.json": "Evidence file — raw output or manifest",
     "docs/governance/evidence/gos-pm-1/-04-stage/raw/EV-GOS-PM-1-04-002.txt": "Evidence file — raw output or manifest",
-    "docs/governance/evidence/gos-pm-1/-04-stage/raw/EV-GOS-PM-1-04-001.txt": "Evidence file — raw output or manifest"
+    "docs/governance/evidence/gos-pm-1/-04-stage/raw/EV-GOS-PM-1-04-001.txt": "Evidence file — raw output or manifest",
+    "docs/governance/generated/gate-inventory.json": "Generated N2 gate inventory",
+    "docs/governance/generated/_gate-inventory.md": "Generated N2 gate inventory text view",
+    "docs/governance/generated/lifecycle-health.json": "Generated N2 lifecycle health",
+    "docs/governance/generated/_lifecycle-health.md": "Generated N2 lifecycle health text view",
+    "docs/governance/schemas/debt-lifecycle.json": "N2 debt lifecycle schema",
+    "docs/governance/schemas/lesson-lifecycle.json": "N2 lesson lifecycle schema",
+    "docs/governance/schemas/candidate-rule-lifecycle.json": "N2 candidate rule lifecycle schema",
+    "docs/governance/schemas/waiver.json": "N2 waiver lifecycle schema"
   }
 }
