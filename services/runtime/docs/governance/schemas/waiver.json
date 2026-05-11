@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Waiver Lifecycle State Machine",
+  "description": "Managed lifecycle for governance waivers. REQUESTED → APPROVED → ACTIVE → EXPIRED / REVOKED. Waiver requires expiry + approver. Expired waiver cannot remain active.",
+  "version": "0.1.0",
+  "states": ["REQUESTED", "APPROVED", "ACTIVE", "EXPIRED", "REVOKED", "CLOSED"],
+  "required_fields": ["waiver_id", "gate_id", "subject_refs", "reason", "owner", "approver", "expires_at", "risk_acceptance"],
+  "state_rules": {
+    "ACTIVE": {"requires": ["approver", "expires_at"], "forbidden": []},
+    "EXPIRED": {"requires": ["expiry_receipt"], "forbidden": []},
+    "REVOKED": {"requires": ["revocation_reason"], "forbidden": []}
+  },
+  "blocking_conditions": [
+    "waiver without expires_at → BLOCKED",
+    "waiver without approver → BLOCKED",
+    "waiver used on HARD_BLOCKING gate → BLOCKED",
+    "expired waiver still active → BLOCKED"
+  ],
+  "transitions": [
+    {"from": "REQUESTED", "to": "APPROVED", "requires": "approver_signoff"},
+    {"from": "APPROVED", "to": "ACTIVE", "requires": "activation_receipt"},
+    {"from": "ACTIVE", "to": "EXPIRED", "requires": "expiry_trigger"},
+    {"from": "ACTIVE", "to": "REVOKED", "requires": "revocation_reason"},
+    {"from": "EXPIRED", "to": "CLOSED", "requires": "expiry_receipt"},
+    {"from": "REVOKED", "to": "CLOSED", "requires": "revocation_receipt"}
+  ]
+}

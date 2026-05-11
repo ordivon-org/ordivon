@@ -136,7 +136,7 @@ def main() -> int:
             "stats": stats,
         }
         print(json.dumps(output, indent=2, ensure_ascii=False))
-        return 0  # Advisory only — does not block CI (yet)
+        return 1 if all_findings else 0
 
     print("Overclaim Detection")
     print(f"  Files: {stats['files_scanned']}")
