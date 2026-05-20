@@ -522,6 +522,13 @@ async def _run_reconciliation_locally(trigger: str = "full") -> dict:
     # Publish completion event
     overall = "completed" if all(r.get("status") not in ("failed", "error") for r in results.values()) else "failed"
 
+    # Capture trace
+    try:
+        from scripts.capture_trace import capture_trace
+        capture_trace("reconciliation", {"trigger": trigger, "overall_status": overall, "steps": results})
+    except Exception:
+        pass
+
     await activity_publish_governance_event(
         "ordivon.observation.reconcile_executed",
         {"trigger": trigger, "overall_status": overall, "results": results},
