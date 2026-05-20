@@ -1,10 +1,6 @@
-# Dependabot configuration — Phase 4.10 pnpm/npm minimal enablement.
+# Dependabot configuration — Ordivon
 #
-# GitHub Actions (Phase 4.5) + Python/uv (Phase 4.9) + Node/pnpm (Phase 4.10).
-# bun deferred. No auto-merge. All Dependabot PRs pass through normal CI gates
-# including repo-governance-pr.
-#
-# See: docs/runtime/dependabot-strategy.md
+# Python/uv + GitHub Actions. npm removed (apps/web/ deleted in monorepo cleanup).
 
 version: 2
 updates:
@@ -19,8 +15,6 @@ updates:
     labels:
       - dependencies
       - security/supply-chain
-    commit-message:
-      prefix: deps
 
   - package-ecosystem: uv
     directory: /
@@ -34,21 +28,3 @@ updates:
       - dependencies
       - security/supply-chain
       - python
-    commit-message:
-      prefix: deps
-
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: Asia/Shanghai
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - security/supply-chain
-      - node
-      - pnpm
-    commit-message:
-      prefix: deps
