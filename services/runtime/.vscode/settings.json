@@ -32,7 +32,9 @@
   },
   "ruff.enable": true,
   "ruff.importStrategy": "fromEnvironment",
-  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
+  "ruff.interpreter": [
+    "${workspaceFolder}/.venv/bin/python"
+  ],
   "errorLens.enabled": true,
   "errorLens.excludeBySource": [],
   "files.exclude": {
@@ -50,11 +52,5 @@
     "**/node_modules": true,
     "**/.next": true,
     "**/build": true
-  },
-  "terminal.integrated.env.linux": {
-    "PFIOS_DB_URL": "postgresql://pfios:pfios@127.0.0.1:5432/pfios_test",
-    "PFIOS_ENV": "test",
-    "PFIOS_DEBUG": "false",
-    "PFIOS_REASONING_PROVIDER": "mock"
   }
 }
