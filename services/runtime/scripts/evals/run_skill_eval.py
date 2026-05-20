@@ -58,6 +58,7 @@ def score_response(response_text: str, rubric_text: str) -> dict:
     
     # Parse rubric for pass criteria keywords
     rubric_lower = rubric_text.lower()
+    _ = rubric_lower  # reserved for future heuristic scoring
     
     # Check for common pass indicators
     indicators = {
@@ -159,7 +160,7 @@ def main():
         print(f"Scoring run: {run_name}")
         report = score_run(run_name)
         
-        print(f"\n=== Score Report ===")
+        print("\n=== Score Report ===")
         print(f"Run: {report['run_name']}")
         print(f"Scorer: {report['scorer']}")
         for case_id, result in report["cases"].items():

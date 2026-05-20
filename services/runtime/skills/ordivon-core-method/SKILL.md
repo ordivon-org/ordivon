@@ -136,7 +136,8 @@ All outputs carry `draft: true`. Status upgrades require external gate.
 
 **S1 — Project-Owned.** Versioned. Reviewed. A method capsule.
 
-Not: a system, an authority, a policy engine, a deployment tool, a debt closer, a receipt approver.
+Not: a system, an authority, a policy engine, a deployment tool, a debt closer, a receipt approver, a replacement for real work.
+Not: an authority.
 
 ---
 

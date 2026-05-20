@@ -107,7 +107,7 @@ def generate_wiki(entries: list[dict]) -> str:
     lines.append("> Registry/checker validate consistency; wiki does not authorize action.")
     lines.append("")
     lines.append(f"**Total registered docs**: {len(entries)}")
-    lines.append(f"**Generated**: 2026-04-30 (DG-6)")
+    lines.append("**Generated**: 2026-04-30 (DG-6)")
     lines.append("")
 
     # ── 1. Current Truth ──────────────────────────────────────────────
