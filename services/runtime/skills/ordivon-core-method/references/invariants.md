@@ -1,6 +1,8 @@
-# Ordivon Core Invariants
+# Ordivon Core Invariants (with Governance ≠ Work)
 
-These 10 invariants are non-negotiable cognitive firebreaks.
+These invariants are non-negotiable cognitive firebreaks.
+
+## Foundational Invariants
 
 | # | Invariant | Meaning |
 |---|-----------|---------|
@@ -14,6 +16,31 @@ These 10 invariants are non-negotiable cognitive firebreaks.
 | 8 | Memory ≠ Source | Agent memory is context, not canonical truth. |
 | 9 | Ignore ≠ Resolution | Skipping a problem does not resolve it. |
 | 10 | AI Proposal ≠ Decision | The agent proposes. A human or gate decides. |
+
+## Anti-Bureaucracy Invariants
+
+| # | Invariant | Meaning |
+|---|-----------|---------|
+| 11 | Governance ≠ Work | A receipt, registry, checker, or ledger is not the work itself. Governance objects record real action; they do not substitute for it. |
+| 12 | Governance Object ≠ Governed Reality | A registry entry is not the thing it registers. A receipt is not the action it describes. The map is not the territory. |
+
+## Promotion Gate
+
+No receipt may advance from DRAFT to VALIDATED without:
+
+1. Real input (actual task, actual user request, actual trigger)
+2. Real execution (command output, diff, API call, trace hash)
+3. Real output (artifact, file, state change)
+4. Real evidence (trace, test result, log)
+5. Real verdict (PASS / DEGRADED / BLOCKED with evidence)
+6. Consumer or reviewer (someone who used or reviewed the output)
+
+Without these, the receipt status is capped at:
+```
+DRAFT
+PROVISIONAL
+NON_PRODUCTION
+```
 
 ## Application
 
