@@ -21,6 +21,7 @@ data/logs/
 pfios.egg-info/
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
 .coverage
 coverage.json
 .ipynb_checkpoints/
