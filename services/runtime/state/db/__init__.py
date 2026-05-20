@@ -1,4 +1,3 @@
-from .base import Base
-from .session import SessionLocal, engine, get_db
+"""Ordivon database layer — SQLAlchemy ORM models and session management."""
 
-__all__ = ["Base", "SessionLocal", "engine", "get_db"]
+__all__: list[str] = []

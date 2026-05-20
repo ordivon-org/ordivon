@@ -1,9 +1,0 @@
-{
-  "schema_version": "0.1",
-  "project_name": "ctts2-minimal-fixture",
-  "pack": "coding",
-  "profile": "ai_coding_trust_audit",
-  "risk_stage": "vibe",
-  "mode": "advisory",
-  "receipt_paths": ["receipts/external-audit-receipt.md"]
-}

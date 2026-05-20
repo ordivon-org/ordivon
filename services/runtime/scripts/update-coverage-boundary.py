@@ -47,7 +47,7 @@ def load_exclusions() -> dict:
 def load_batch_receipts() -> dict[str, str]:
     """Load applied batch receipts — status overrides from PM-7."""
     receipts = {}
-    receipt_dir = ROOT / "docs/governance/receipts/coverage-batches"
+    receipt_dir = ROOT / "receipts/governance/coverage-batches"
     if receipt_dir.exists():
         for rf in receipt_dir.glob("*.json"):
             r = json.loads(rf.read_text())

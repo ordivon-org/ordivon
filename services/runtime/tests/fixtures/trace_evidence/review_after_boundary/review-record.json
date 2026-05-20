@@ -1,8 +1,0 @@
-{
-  "reviewer": "human-reviewer",
-  "reviewed_at": "2026-05-08T12:10:00Z",
-  "decision_at": "2026-05-08T12:05:00Z",
-  "merged_at": "2026-05-08T12:05:00Z",
-  "scope": "review",
-  "note": "Review happened after merge decision."
-}

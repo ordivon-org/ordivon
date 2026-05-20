@@ -1,5 +1,21 @@
-# Tools
+# Tools — Phase 0 Mapping
 
-`tools/` contains atomic integrations with the outside world: market feeds, news, storage, notifications, brokers, and export utilities.
+This directory exists per the AI-Native Project Object Model (canonical doc #5).
 
-Tools should be composable and narrow. If something starts mixing prompt logic, governance checks, and persistence side effects, it is no longer a tool.
+**Current state:** Tool scripts live in `scripts/` at the repo root — this is the
+legacy location with ~20 hardcoded path references across `temporal_worker.py`,
+`verify_infrastructure.py`, `AGENTS.md`, and 15+ governance scripts.
+
+**Mapping:**
+
+| Target (Object Model) | Current Location | Reason Not Yet Moved |
+|----------------------|------------------|---------------------|
+| `tools/` | `scripts/` | 20+ hardcoded `scripts/` references in source code |
+| `tools/cli/` | `src/ordivon_verify/cli.py` | CLI is part of the Python package |
+
+**Migration plan:** When the tool registry (`tool-registry.jsonl`) is introduced,
+all scripts will be cataloged with their canonical paths, and hardcoded references
+will be updated to use registry lookups instead of string paths. At that point,
+`scripts/` will be renamed to `tools/scripts/`.
+
+For now, all tool scripts remain accessible via `scripts/`.

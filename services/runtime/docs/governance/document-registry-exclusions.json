@@ -1,173 +1,61 @@
 {
-  "description": "Documents intentionally excluded from document-registry.jsonl governance. Every entry must carry a reason, classification, and owner. Silent exclusions are not allowed.",
+  "description": "Documents intentionally excluded from document-registry.jsonl governance after the 2026-05-17 hard document reset. Exclusions are for generated projections only; source documents must be registered.",
   "entries": [
     {
-      "path": "docs/architecture/aegisos-design-doctrine.md",
-      "reason": "Legacy AegisOS design doctrine — historical reference only, not current Ordivon truth",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/wiki-index.md",
+      "reason": "Generated registry projection. It is not source of truth and may be regenerated from document-registry.jsonl.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/aegisos-layer-roadmap.md",
-      "reason": "Legacy AegisOS layer roadmap — historical, Ordivon has its own architecture docs",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_coverage-boundary.md",
+      "reason": "Generated coverage projection. It is not source of truth and must not carry independent document authority.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/aegisos-next-round-execution-plan.md",
-      "reason": "Legacy AegisOS execution plan — historical, superseded by Ordivon phase line",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_path-map.md",
+      "reason": "Generated path-map projection. It is not source of truth and must not carry independent document authority.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/aegisos-overview.md",
-      "reason": "Legacy AegisOS overview — historical, Ordivon README + architecture docs are current truth",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_registry-path-reconciliation.md",
+      "reason": "Generated reconciliation projection. It is not source of truth and may be absent after hard cleanup.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/aegisos-post-mvp-refinement-execution-plan.md",
-      "reason": "Legacy AegisOS post-MVP plan — historical, PV line is current productization",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_coverage-resolution-plan.md",
+      "reason": "Generated coverage projection. It is not source of truth and may be absent after hard cleanup.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/aegisos-working-identity.md",
-      "reason": "Legacy AegisOS working identity doc — Ordivon is current identity, see docs/architecture/ordivon-moat-and-product-identity.md",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_coverage-review-routing.md",
+      "reason": "Generated coverage projection. It is not source of truth and may be absent after hard cleanup.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/pfios-behavioral-baseline.md",
-      "reason": "Legacy PFIOS behavioral baseline — historical reference",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_gate-inventory.md",
+      "reason": "Generated gate projection. It is not source of truth and may be absent after hard cleanup.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     },
     {
-      "path": "docs/architecture/pfios-organizational-baseline.md",
-      "reason": "Legacy PFIOS organizational baseline — historical reference",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/product/aegisos-mvp-brief.md",
-      "reason": "Legacy Aegisos MVP brief — historical, Ordivon Verify is current product wedge",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/product/aegisos-mvp-execution-checklist.md",
-      "reason": "Legacy Aegisos MVP checklist — historical, PV checklists are current",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/archive/legacy/aegisos-quality-matrix.md",
-      "reason": "Legacy Aegisos quality matrix — historical, pr-fast baseline is current quality gate",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/product/ai-financial-assistant-roadmap.md",
-      "reason": "Legacy PFIOS financial assistant roadmap — historical, Ordivon is governance OS not financial assistant",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/product/task-template-system.md",
-      "reason": "Legacy PFIOS task template system — historical, superseded by agent-output-contract.md",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/dependabot-first-pr-observation.md",
-      "reason": "Historical dependabot observation — archived operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/dependabot-pr3-artifact-validation.md",
-      "reason": "Historical dependabot PR artifact validation — archived operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/dependabot-strategy.md",
-      "reason": "Historical dependabot strategy — archived, current CI uses standard GitHub dependabot",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/codeql-onboarding-plan.md",
-      "reason": "Historical CodeQL onboarding plan — archived, CodeQL is deployed and fixed",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/codeql-findings-triage.md",
-      "reason": "Historical CodeQL findings triage — archived operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/h1-real-model-under-control.md",
-      "reason": "Historical H-1 phase doc — archived PFIOS operational record with legacy PFIOS_* env references",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/h2-to-h5-closure-summary.md",
-      "reason": "Historical H-2 to H-5 closure summary — archived PFIOS operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/h9-dogfood-protocol.md",
-      "reason": "Historical H-9 dogfood protocol — archived PFIOS operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/p4-closure-readiness-review.md",
-      "reason": "Historical P4 closure review — archived PFIOS operational record",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "docs/runtime/verification-ci-gate-plan.md",
-      "reason": "Historical CI gate plan — archived, current CI is in .github/workflows/ci.yml",
-      "classification": "archive_historical",
-      "owner": "PV-N2H",
-      "reviewed_at": "2026-05-01"
-    },
-    {
-      "path": "examples/ordivon-verify/quickstart/README.md",
-      "reason": "PV-N3 quickstart example fixture README — external example, not governed Ordivon doc",
-      "classification": "archive_historical",
-      "owner": "PV-N3",
-      "reviewed_at": "2026-05-01"
+      "path": "docs/governance/generated/_lifecycle-health.md",
+      "reason": "Generated lifecycle projection. It is not source of truth and may be absent after hard cleanup.",
+      "classification": "generated_projection",
+      "owner": "ordivon-core-maintainer",
+      "reviewed_at": "2026-05-17"
     }
   ]
 }

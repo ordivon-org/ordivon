@@ -18,6 +18,8 @@
       "match": {
         "paths": [
           "docs/governance/**",
+          "docs/audits/certification/**",
+          "docs/operations/**",
           "checkers/**",
           "scripts/*governance*",
           "scripts/check_*",
@@ -109,6 +111,7 @@
         ],
         "doc_types": [
           "ai_onboarding",
+          "methodology",
           "phase_boundary",
           "runtime",
           "boundary",
@@ -129,8 +132,9 @@
         ]
       },
       "allowed_doc_types": [
-        "ai_onboarding",
-        "phase_boundary",
+          "ai_onboarding",
+          "methodology",
+          "phase_boundary",
         "runtime",
         "boundary",
         "context",

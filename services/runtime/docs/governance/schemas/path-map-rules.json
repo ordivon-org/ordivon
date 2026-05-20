@@ -18,6 +18,8 @@
       "match": {
         "paths": [
           "docs/governance/**",
+          "docs/audits/certification/**",
+          "docs/operations/**",
           "checkers/**",
           "scripts/check_*",
           "scripts/update-*",
@@ -54,6 +56,7 @@
         ],
         "doc_types": [
           "ai_onboarding",
+          "methodology",
           "phase_boundary",
           "runtime",
           "boundary"

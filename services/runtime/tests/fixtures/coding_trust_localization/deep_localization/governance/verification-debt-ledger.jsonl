@@ -1,1 +1,0 @@
-{"debt_id":"VD-CTTS2-DEEP-001","status":"open","category":"release_evidence_gap","source":"release-claim-001","reason":"Release claim has strong language without enough mapped evidence.","owner":"fixture-owner-role","next_action":"Downgrade release wording or attach evidence.","boundary":"Open debt blocks release-stage trust; it does not authorize release."}

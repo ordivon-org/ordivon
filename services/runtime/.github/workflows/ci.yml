@@ -2,405 +2,90 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  # ── pr-fast: auto-discovered checker baseline ─────────────────────────
-  # Runs every checker with profile "pr-fast". Adding a checker to the
-  # ecosystem (checkers/<name>/CHECKER.md + run.py) automatically includes
-  # it here — no CI edit required.
-  pr-fast:
+  # ── Rust trusted path ────────────────────────────────────────────────
+  rust-kernel:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ordivon
+          POSTGRES_PASSWORD: ordivon
+          POSTGRES_DB: ordivon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ordivon -d ordivon"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ORDIVON_TEST_DATABASE_URL: postgresql://ordivon:ordivon@localhost:5432/ordivon
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Ordivon pr-fast verification baseline (auto-discovered)
-        run: uv run python scripts/run_baseline.py --pr-fast
-
-  # ── manifest consistency: auto-generated manifest must match registry ──
-  # Prevents manual manifest edits that drift from checker registry.
-  manifest-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Verify manifest matches checker registry
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --features postgres-integration,policy-http --all-targets -- -D warnings
+      - name: Reject clippy too_many_arguments escape hatches
         run: |
-          uv run python scripts/run_baseline.py --manifest > /tmp/manifest.json
-          python3 -c "
-          import json, sys
-          with open('/tmp/manifest.json') as f: gen = json.load(f)
-          with open('docs/governance/verification-gate-manifest.json') as f: cur = json.load(f)
-          ok = gen.get('gate_count') == cur.get('gate_count')
-          if not ok:
-              print(f'MANIFEST DRIFT: registry has {gen[\"gate_count\"]} gates, manifest has {cur[\"gate_count\"]}')
-              sys.exit(1)
-          print(f'Manifest consistent: {cur[\"gate_count\"]} gates')
-          "
+          if command -v rg >/dev/null 2>&1; then
+            ! rg "allow\\(clippy::too_many_arguments" crates/ordivon-*
+          else
+            ! grep -R "allow(clippy::too_many_arguments" crates/ordivon-*
+          fi
+      - run: cargo test --workspace
+      - run: cargo test --workspace --features postgres-integration,policy-http
 
-  # ── coding governance: exercises RiskEngine→CodingDisciplinePolicy ────
-  coding-governance:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Coding governance smoke (valid→execute, forbidden→reject)
-        run: uv run python checkers/coding-smoke/run.py
-
-  # ── Python static analysis ─────────────────────────────────────────────
-
+  # ── Python lint ──────────────────────────────────────────────────────
   ruff:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Ruff check
-        run: uv run ruff check src/ scripts/ tests/ docs/ examples/ skills/
-      - name: Ruff format (preview for Markdown)
-        run: uv run ruff format --check --preview src/ scripts/ tests/ docs/ examples/ skills/ AGENTS.md
+      - run: uv run ruff check src/ scripts/ tests/ state/
+      - run: uv run ruff format --check --preview src/ scripts/ tests/ state/
 
-  # ── backend tests ──────────────────────────────────────────────────────
-
-  product-tests:
+  # ── Governance checks ────────────────────────────────────────────────
+  governance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Product tests (incl. ordivon_verify package + schemas)
-        run: uv run pytest tests/unit/product -q --tb=short
+      - name: Document registry consistency
+        run: uv run python scripts/check_document_registry.py
+      - name: Verify document governance
+        run: uv run python -m ordivon_verify document-governance --check
+      - name: Registry index check
+        run: uv run python -m ordivon_verify registry-index --check
 
-  governance-tests:
+  # ── Infrastructure tests ─────────────────────────────────────────────
+  infra-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Governance unit tests
-        run: uv run pytest tests/unit/governance -q
+      - name: NATS + Temporal integration tests
+        run: uv run python tests/test_nats_integration.py
+      - name: OpenFGA + OPA integration tests
+        run: uv run python tests/test_authorization_integration.py
 
-  finance-tests:
+  # ── DB migration check ──────────────────────────────────────────────
+  db-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Finance unit tests
-        run: uv run pytest tests/unit/finance -q
-
-  coding-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Coding pack tests
-        run: uv run pytest tests/unit/packs/ -q
-
-  # ── eval corpus ────────────────────────────────────────────────────────
-
-  evals:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Eval corpus (24 cases)
-        run: uv run python evals/run_evals.py
-
-  # ── Ordivon Verify smoke ───────────────────────────────────────────────
-
-  verify-native:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Native Ordivon Verify
-        run: uv run python scripts/ordivon_verify.py all
-      - name: Native JSON report
-        run: uv run python scripts/ordivon_verify.py all --json
-
-  verify-external-ladder:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Standard external (READY)
-        run: >
-          uv run python scripts/ordivon_verify.py all
-          --root tests/fixtures/ordivon_verify_standard_external_repo
-          --config tests/fixtures/ordivon_verify_standard_external_repo/ordivon.verify.json
-      - name: Clean advisory (DEGRADED, exit 2)
-        run: >
-          EC=0;
-          uv run python scripts/ordivon_verify.py all
-          --root tests/fixtures/ordivon_verify_clean_external_repo
-          --config tests/fixtures/ordivon_verify_clean_external_repo/ordivon.verify.json
-          || EC=$?;
-          if [ "$EC" != "2" ]; then echo "Expected exit 2 (DEGRADED), got $EC"; exit 1; fi
-      - name: Bad external (BLOCKED, exit 1)
-        run: >
-          EC=0;
-          uv run python scripts/ordivon_verify.py all
-          --root tests/fixtures/ordivon_verify_external_repo
-          --config tests/fixtures/ordivon_verify_external_repo/ordivon.verify.json
-          || EC=$?;
-          if [ "$EC" != "1" ]; then echo "Expected exit 1 (BLOCKED), got $EC"; exit 1; fi
-
-  # ── governance self-check: generated views + atomic consistency ──────────
-  # Verifies that generated views match the source of truth (K8s hack/verify).
-  # Any drift → CI fails with auto-fix command in error message.
-
-  governance-self-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Verify generated registry stats are current
-        run: uv run python scripts/update-registry-stats.py --check
-      - name: Verify dual-checker doc_type consistency
-        run: |
-          uv run python -c "
-          import json
-          schema = json.loads(open('docs/governance/schemas/document-types.json').read())
-          types = set(schema['valid_doc_types'])
-          print(f'Schema: {len(types)} valid doc_types')
-          # The schema IS the single source — both checkers load from it.
-          # This test verifies the schema itself is valid.
-          assert len(types) >= 20, f'Too few doc_types: {len(types)}'
-          print('✓ Schema valid, both checkers auto-sync from single source')
-          "
-      - name: Verify authority schema integrity (RT-11 fix)
-        run: |
-          uv run python -c "
-          import json, os
-          schemas_dir = 'docs/governance/schemas'
-          schemas = [f for f in os.listdir(schemas_dir) if f.endswith('.json')]
-          print(f'Authority schemas: {len(schemas)}')
-          for s in sorted(schemas):
-              path = os.path.join(schemas_dir, s)
-              data = json.loads(open(path).read())
-              if 'entries' in data:
-                  count = len(data['entries'])
-                  print(f'  {s}: {count} entries')
-                  assert count >= 1, f'{s} has empty entries'
-              print(f'✓ All {len(schemas)} authority schemas valid')
-          "
-      - name: Verify ledger entry integrity (RT-09 fix)
-        run: uv run python scripts/hash_ledger.py --verify docs/governance/dependency-audit-debts.jsonl docs/governance/lesson-ledger.jsonl
-
-  # ── atomic governance: every governed file must be registered ─────────
-  # Google presubmit / Linux bisectability: adding a file to docs/ai/ or
-  # docs/governance/ without a registry entry is a governance drift.
-  # CI must BLOCK until the file is registered with doc_type, status, authority.
-
-  atomic-governance:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Atomic governance gate
-        run: uv run python scripts/check_atomic_governance.py
-
-  # ── verify path map: generated views must match repo reality ──────────
-  # GOS-PM-1: generated path map is derived from git ls-files, registry,
-  # and path-map-rules. Manual edits to generated files → DRIFT DETECTED.
-
-  verify-path-map:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Verify generated path map matches repo reality
-        run: uv run python scripts/verify-path-map.py
-
-  # ── verify stage evidence: all stage receipts must have raw evidence ──
-
-  verify-stage-evidence:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Verify GOS-PM-1 stage evidence bundle
-        run: uv run python scripts/verify-stage-evidence.py --bundle gos-pm-1
-
-  # ── frontend ───────────────────────────────────────────────────────────
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: "10.33.0"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Lint frontend
-        run: pnpm lint:web
-      - name: Type check frontend
-        run: pnpm typecheck:web
-      - name: Build frontend
-        run: pnpm build:web
-      - name: Frontend component tests
-        run: pnpm --dir apps/web test
-
-  # ── entropy telemetry: measure system size and complexity ────────────
-  # Advisory only — accumulates metrics for entropy gate evaluation.
-  # Runs on every push to maintain historical data.
-  entropy-telemetry:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Entropy telemetry measurement (advisory)
-        run: uv run python checkers/entropy-telemetry/run.py
-
-  # ── policy shadow runner: advisory evaluation of CandidateRules ──────
-  # Runs every draft CandidateRule against red-team governance scenarios.
-  # Always passes (exit 0) — accumulates evidence, never blocks.
-  policy-shadow:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Policy shadow evaluation (advisory only)
-        run: uv run python checkers/policy-shadow/run.py
-
-  # ── repo governance (PR only) ──────────────────────────────────────────
-  # Classifies every PR through the CodingDisciplinePolicy pipeline.
-  # For Dependabot PRs, also runs the Dependabot-specific governance checker
-  # with lockfile/runtime/CI-aware classification.
-
-  repo-governance:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --extra dev
-      - name: Get changed files
-        run: |
-          git diff --name-only \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}" \
-            > changed_files.txt
-          cat changed_files.txt
-      - name: Coding governance classification
-        id: coding-gov
-        run: |
-          EC=0
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            uv run python scripts/repo_governance_cli.py \
-              --task-description "PR changes" \
-              --file-path "$file" \
-              --estimated-impact low \
-              --reasoning "CI automated check" \
-              --test-plan "uv run pytest" \
-              --json || EC=$?
-          done < changed_files.txt
-          if [ "$EC" = "2" ]; then
-            echo "::warning::Coding governance escalated — human review recommended"
-            exit 0
-          elif [ "$EC" != "0" ]; then
-            echo "::error::Coding governance rejected protected path changes"
-            exit $EC
-          fi
-      - name: Dependabot governance classification
-        if: github.actor == 'dependabot[bot]'
-        run: |
-          FILES=$(jq -R -s -c 'split("\n") | map(select(length > 0))' changed_files.txt)
-          jq -n \
-            --argjson files "$FILES" \
-            --arg actor "dependabot" \
-            --arg title "${{ github.event.pull_request.title }}" \
-            '{
-              actor: $actor,
-              changed_files: $files,
-              ci_status: "unknown",
-              is_runtime_dep: false,
-              pr_title: $title,
-              has_test_plan: false
-            }' > pr-context.json
-          uv run python checkers/dependabot-governance/run.py --input pr-context.json
+      - name: Verify migration dry-run
+        run: uv run python scripts/migrate_governance_to_pg.py --dry-run

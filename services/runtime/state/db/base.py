@@ -1,5 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase
+"""SQLAlchemy declarative base for Ordivon governance schema."""
 
+from __future__ import annotations
 
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()

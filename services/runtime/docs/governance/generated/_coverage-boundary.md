@@ -7,13 +7,14 @@
 
 | Status | Count |
 |---|---|
-| governed | 854 |
-| generated | 95 |
-| excluded | 104 |
+| governed | 433 |
+| generated | 84 |
+| excluded | 123 |
+| debt_parked | 488 |
 | fixture | 215 |
 | legacy | 29 |
 
-**Total files**: 2117
+**Total files**: 2119
 **Blocked**: 0
 
 ## Blocked Files

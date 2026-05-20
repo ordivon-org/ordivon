@@ -85,9 +85,16 @@ def _parse_unknown(parser, unknown: list[str], ns) -> None:
             ns.summary = True
         elif u == "--full":
             ns.full = True
+        elif u == "--check":
+            ns.check = True
         else:
             parser.error(f"unrecognized arguments: {u}")
         i += 1
+
+
+def _add_check_arg(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument("--check", action="store_true", help="CI mode: exit non-zero on BLOCKED")
+    return parser
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -95,16 +102,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="ordivon-verify", description="Ordivon Verify — local read-only verification CLI"
     )
     sub = parser.add_subparsers(dest="command", title="commands")
-    sub.add_parser("all", help="Run read-only checks (receipts + debt + gates + docs)")
+    _add_check_arg(sub.add_parser("all", help="Run read-only checks (receipts + debt + gates + docs)"))
     check_parser = sub.add_parser("check", help="Run read-only checks against a target root")
     check_parser.add_argument("target", nargs="?", help="Project root to verify")
+    _add_check_arg(check_parser)
     run_parser = sub.add_parser("run", help="Run a specific checker by gate_id")
     run_parser.add_argument("gate_id", help="Checker gate_id (e.g. receipt_integrity)")
+    _add_check_arg(run_parser)
     # Legacy subcommands
-    sub.add_parser("receipts", help="Scan receipts for contradictions")
-    sub.add_parser("debt", help="Check debt ledger invariants")
-    sub.add_parser("gates", help="Verify gate manifest integrity")
-    sub.add_parser("docs", help="Check document registry + semantic safety")
+    _add_check_arg(sub.add_parser("receipts", help="Scan receipts for contradictions"))
+    _add_check_arg(sub.add_parser("debt", help="Check debt ledger invariants"))
+    _add_check_arg(sub.add_parser("gates", help="Verify gate manifest integrity"))
+    _add_check_arg(sub.add_parser("docs", help="Check document registry + semantic safety"))
     ri_parser = sub.add_parser("registry-index", help="Generate unified registry control plane index (JSON)")
     ri_parser.add_argument("--check", action="store_true", help="Exit non-zero if BLOCKED > 0 (CI gate)")
     ri_parser.add_argument("--snapshot", action="store_true", help="Write index snapshot for future diff")
@@ -538,6 +547,23 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             report = build_report(results, mode, root_str, cfg_str, profile_context, evidence_appendix)
             print(json.dumps(report, indent=2))
+        elif getattr(args, "check", False):
+            blocked = sum(1 for result in results if result["status"] == "FAIL")
+            degraded = sum(1 for result in results if result["status"] == "WARN")
+            print(f"BLOCKED={blocked} DEGRADED={degraded}")
+            if blocked > 0:
+                print(f"FAIL: {blocked} BLOCKED finding(s) — hard gate failed", file=sys.stderr)
+                print("Gate: --check exits nonzero on BLOCKED > 0.", file=sys.stderr)
+                print("      DEGRADED is advisory unless --mode strict is used.", file=sys.stderr)
+                print("      This is NOT merge/release/deploy authorization.", file=sys.stderr)
+                return 1
+            print("PASS: 0 BLOCKED")
+            print("Gate: BLOCKED=0 — hard gate passed.")
+            print(f"      DEGRADED={degraded} (advisory unless --mode strict)")
+            print("      This is NOT merge/release/deploy authorization.")
+            if mode == "strict" and degraded > 0:
+                return 1
+            return 0
         elif args.summary:
             report = build_report(results, mode, root_str, cfg_str, profile_context, evidence_appendix)
             print(render_summary(report), end="")

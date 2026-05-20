@@ -1,2 +1,0 @@
-{"doc_id":"ctts2-standard-receipt","path":"receipts/external-audit-receipt.md","type":"receipt","status":"current","authority":"supporting_evidence","last_verified":"2026-05-08","stale_after_days":90,"description":"Standard localization receipt."}
-{"doc_id":"ctts2-standard-gates","path":"governance/verification-gate-manifest.json","type":"manifest","status":"current","authority":"supporting_evidence","last_verified":"2026-05-08","stale_after_days":90,"description":"Owner-confirmed gate manifest for evidence checking only."}

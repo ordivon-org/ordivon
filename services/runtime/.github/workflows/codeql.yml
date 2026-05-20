@@ -1,8 +1,5 @@
 name: CodeQL
 
-# Phase 4.3: workflow-health hard gate on main branch.
-# Finding severity is NOT a hard gate. Zero-alert baseline Phase 4.2.
-
 on:
   push:
     branches: [main]
@@ -15,9 +12,6 @@ permissions:
   contents: read
   security-events: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -25,31 +19,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - python
-          - javascript-typescript
+        language: [rust, python]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.language == 'rust'
+      - uses: astral-sh/setup-uv@v5
         if: matrix.language == 'python'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
+      - run: uv sync --extra dev
         if: matrix.language == 'python'
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install Python dependencies
-        if: matrix.language == 'python'
-        run: uv sync --extra dev
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@v4

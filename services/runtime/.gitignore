@@ -10,9 +10,13 @@ checkers/.usage.json
 src/checkers/.bundled_manifest
 dist/
 build/
+target/
+artifacts/security/
 .env
 data/*.duckdb
 data/*.db
+data/*.sqlite
+data/backups/
 data/logs/
 pfios.egg-info/
 *.egg-info/

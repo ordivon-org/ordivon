@@ -1,3 +1,0 @@
-{"path": "docs/README.md", "before_pfios": 2, "before_aegisos": 1, "after_pfios": 1, "after_aegisos": 1, "action": "One safe rename only. AegisOS historical context retained.", "deferred": "naming.md reference retained"}
-{"path": "docs/ai/README.md", "before_pfios": 1, "before_aegisos": 1, "after_pfios": 1, "after_aegisos": 1, "action": "no_change_already_qualified", "notes": "Already states PFIOS/AegisOS are historical."}
-{"path": "docs/architecture/hermes-model-layer-integration.md", "before_pfios": 16, "before_aegisos": 0, "after_pfios": 16, "after_aegisos": 0, "action": "keep_architecture_context", "notes": "PFIOS references describe integration with PFIOS model layer. Erasing would break architectural meaning."}

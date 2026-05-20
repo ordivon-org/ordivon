@@ -223,3 +223,132 @@ class AuthorityState:
         if self.policy == PolicyStatus.ADOPTED and self.evidence != EvidenceStatus.SUFFICIENT:
             return True
         return False
+
+
+# ── OPA-backed transition validation (Phase 3) ─────────────────────────────
+# Delegates to OPA Rego policies for validation. Falls back to hardcoded
+# VALID_*_TRANSITIONS dicts when OPA is unavailable.
+
+
+def check_transition_opa(
+    from_evidence: str,
+    from_authorization: str,
+    from_policy: str,
+    from_readiness: str = "ready_for_review",
+    to_evidence: str = "",
+    to_authorization: str = "",
+    to_policy: str = "",
+) -> dict:
+    """Validate a governance authority transition using OPA Rego.
+
+    Args:
+        from_evidence, from_authorization, from_policy: Current states
+        to_evidence, to_authorization, to_policy: Target states (empty = no transition)
+
+    Returns:
+        dict with keys:
+            all_valid: bool
+            evidence_valid: bool
+            authorization_valid: bool
+            policy_valid: bool
+            safe_to_proceed: bool
+            requires_human_approval: bool
+            has_authority_confusion: bool
+            blocked_reasons: list[str]
+            backend: "opa" | "python_fallback"
+    """
+    from ordivon_governance_core.opa_engine import opa_available, _opa_eval
+
+    if opa_available():
+        try:
+            input_data = {
+                "state": {
+                    "evidence": from_evidence,
+                    "readiness": from_readiness,
+                    "authorization": from_authorization,
+                    "policy": from_policy,
+                },
+                "target": {
+                    "evidence": to_evidence,
+                    "authorization": to_authorization,
+                    "policy": to_policy,
+                },
+            }
+            result = _opa_eval(
+                "data.ordivon.authority.validate_transition",
+                input_data,
+                # POLICY_DIR already loads all .rego files — no need for extra data_files
+            )
+            if "error" not in result:
+                for r in result.get("result", []):
+                    for expr in r.get("expressions", []):
+                        val = expr.get("value")
+                        if isinstance(val, dict) and "all_valid" in val:
+                            val["backend"] = "opa"
+                            return val
+        except Exception:
+            pass
+
+    # Python fallback
+    return _check_transition_python(
+        from_evidence,
+        from_authorization,
+        from_policy,
+        from_readiness,
+        to_evidence,
+        to_authorization,
+        to_policy,
+    )
+
+
+def _check_transition_python(
+    from_evidence: str,
+    from_authorization: str,
+    from_policy: str,
+    from_readiness: str = "ready_for_review",
+    to_evidence: str = "",
+    to_authorization: str = "",
+    to_policy: str = "",
+) -> dict:
+    """Fallback transition validation using hardcoded Python dicts."""
+    evidence_valid = True
+    if to_evidence:
+        allowed = VALID_EVIDENCE_TRANSITIONS.get(EvidenceStatus(from_evidence), set())
+        evidence_valid = EvidenceStatus(to_evidence) in allowed
+
+    authorization_valid = True
+    if to_authorization:
+        allowed = VALID_AUTH_TRANSITIONS.get(AuthorizationStatus(from_authorization), set())
+        authorization_valid = AuthorizationStatus(to_authorization) in allowed
+
+    policy_valid = True
+    if to_policy:
+        allowed = VALID_POLICY_TRANSITIONS.get(PolicyStatus(from_policy), set())
+        policy_valid = PolicyStatus(to_policy) in allowed
+
+    state = AuthorityState(
+        evidence=EvidenceStatus(from_evidence),
+        readiness=ReadinessStatus(from_readiness),
+        authorization=AuthorizationStatus(from_authorization),
+        policy=PolicyStatus(from_policy),
+    )
+
+    blocked_reasons = []
+    if not evidence_valid:
+        blocked_reasons.append("evidence_transition_blocked")
+    if not authorization_valid:
+        blocked_reasons.append("authorization_transition_blocked")
+    if not policy_valid:
+        blocked_reasons.append("policy_transition_blocked")
+
+    return {
+        "all_valid": evidence_valid and authorization_valid and policy_valid,
+        "evidence_valid": evidence_valid,
+        "authorization_valid": authorization_valid,
+        "policy_valid": policy_valid,
+        "safe_to_proceed": state.is_safe_to_proceed,
+        "requires_human_approval": state.requires_human_approval,
+        "has_authority_confusion": state.has_authority_confusion,
+        "blocked_reasons": blocked_reasons,
+        "backend": "python_fallback",
+    }

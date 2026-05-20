@@ -2,52 +2,40 @@ name: Security
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   schedule:
     - cron: "0 20 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  security-events: write
 
 jobs:
+  rust-supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust dependency audit
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rust dependency policy
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
   python-security:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Upgrade pip for audit
-        run: uv run python -m pip install --upgrade "pip>=26.1"
-      - name: Run pip-audit
-        # CVE-2026-3219: NO_FIX_UPSTREAM — see DEP-AUDIT-PIP-CVE-2026-3219 in docs/governance/dependency-audit-debts.jsonl
-        # Remove --ignore-vuln when fixed version is published.
-        run: uv run pip-audit --skip-editable --ignore-vuln CVE-2026-3219
-
-  web-security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: "10.33.0"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Production dependency audit
-        run: pnpm audit:web
+      - name: Python dependency audit
+        run: uv run pip-audit --skip-editable
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -57,5 +45,19 @@ jobs:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
         env:
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json

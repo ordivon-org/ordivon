@@ -36,6 +36,15 @@ def git_ls_files() -> list[str]:
     return [l for l in result.stdout.strip().split("\n") if l]
 
 
+def observed_files(registry: dict[str, dict]) -> list[str]:
+    """Get tracked files plus existing registry files not yet tracked."""
+    tracked = set(git_ls_files())
+    registry_existing = {
+        path for path in registry if path not in tracked and (ROOT / path).exists() and (ROOT / path).is_file()
+    }
+    return sorted(tracked | registry_existing)
+
+
 def load_registry() -> dict[str, dict]:
     entries = {}
     with open(REGISTRY_PATH) as f:
@@ -54,6 +63,29 @@ def load_rules() -> dict:
 def load_exclusions() -> dict[str, str]:
     with open(EXCLUSIONS_PATH) as f:
         return json.load(f).get("entries", {})
+
+
+def load_debt_patterns() -> list[dict]:
+    """Load open path-pattern debts that intentionally park coverage gaps."""
+    patterns: list[dict] = []
+    for path in (
+        ROOT / "docs/governance/dependency-audit-debts.jsonl",
+        ROOT / "docs/governance/verification-debt-ledger.jsonl",
+    ):
+        if not path.exists():
+            continue
+        with open(path) as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    debt = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                debt_path = debt.get("path") or debt.get("scope", "")
+                if debt.get("status") == "OPEN" and debt_path and ("*" in debt_path or "**" in debt_path):
+                    patterns.append(debt)
+    return patterns
 
 
 def load_protected_prefixes() -> list[str]:
@@ -81,7 +113,9 @@ def classify(
     registry: dict,
     rules: dict,
     exclusions: dict,
+    debt_patterns: list[dict],
     governed_dirs: list[str],
+    tracked_files: set[str],
 ) -> dict:
     """Classify a single file into a path-map node."""
     node = {
@@ -89,6 +123,8 @@ def classify(
         "source_refs": ["git ls-files"],
         "classification_status": "unclassified",
     }
+    if filepath in registry and filepath not in tracked_files:
+        node["source_refs"] = ["document-registry.jsonl", "working tree"]
 
     # 1. Explicit exclusion (exact path OR directory prefix)
     is_excluded = filepath in exclusions
@@ -190,14 +226,25 @@ def classify(
         node["governed_by"] = "architecture-boundaries checker"
         return node
 
-    # 8. Schema file
+    # 8. Open path-pattern debts. Debt-park before protected-path blocking
+    # so acknowledged A4 gaps remain visible without masquerading as closure.
+    for debt in debt_patterns:
+        if match_path(filepath, [debt.get("path") or debt.get("scope", "")]):
+            node["kind"] = "debt_parked"
+            node["classification_status"] = "debt_parked"
+            node["debt_id"] = debt.get("debt_id", "")
+            node["finding"] = "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
+            node["source_refs"].append("debt ledger")
+            return node
+
+    # 9. Schema file
     if filepath.startswith("docs/governance/schemas/") or filepath.startswith("src/ordivon_verify/schemas/"):
         node["kind"] = "schema"
         node["classification_status"] = "governed"
         node["route"] = "config-and-schemas"
         return node
 
-    # 9. Protected path → BLOCKED
+    # 10. Protected path → BLOCKED
     if is_protected_path(filepath, governed_dirs):
         node["kind"] = "blocked"
         node["classification_status"] = "blocked"
@@ -205,7 +252,7 @@ def classify(
         node["message"] = "File in governed directory with no route and no exclusion"
         return node
 
-    # 10. Non-protected → debt or exclusion required
+    # 11. Non-protected → debt or exclusion required
     node["kind"] = "unclassified"
     node["classification_status"] = "debt_parked"
     node["finding"] = "PM-9 DEBT_OR_EXCLUSION_REQUIRED"
@@ -252,7 +299,9 @@ def generate_markdown(nodes: list[dict], stats: dict) -> str:
         "> Do not edit manually.",
         "",
         "## Stats",
+        f"- Observed files: {stats['observed_files']}",
         f"- Tracked files: {stats['tracked_files']}",
+        f"- Registry working-tree files: {stats['registry_working_tree_files']}",
         f"- Governed: {stats['governed']}",
         f"- Generated views: {stats['generated']}",
         f"- Excluded: {stats['excluded']}",
@@ -320,10 +369,13 @@ def generate_dot(nodes: list[dict], edges: list[dict]) -> str:
 
 def main() -> int:
     print("Reading sources...")
-    files = git_ls_files()
     registry = load_registry()
+    tracked_files = set(git_ls_files())
+    files = observed_files(registry)
+    registry_working_tree_files = len(set(files) - tracked_files)
     rules = load_rules()
     exclusions = load_exclusions()
+    debt_patterns = load_debt_patterns()
     governed_dirs = [
         "docs/ai",
         "docs/governance",
@@ -334,15 +386,17 @@ def main() -> int:
         ".github/workflows",
     ]
 
-    print(f"Classifying {len(files)} tracked files...")
+    print(f"Classifying {len(files)} observed files...")
     nodes = []
     for fp in files:
-        node = classify(fp, registry, rules, exclusions, governed_dirs)
+        node = classify(fp, registry, rules, exclusions, debt_patterns, governed_dirs, tracked_files)
         nodes.append(node)
 
     stats = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "tracked_files": len(files),
+        "observed_files": len(files),
+        "tracked_files": len(tracked_files),
+        "registry_working_tree_files": registry_working_tree_files,
         "governed": sum(1 for n in nodes if n["classification_status"] == "governed"),
         "generated": sum(1 for n in nodes if n["classification_status"] == "generated"),
         "excluded": sum(1 for n in nodes if n["classification_status"] == "excluded"),
@@ -386,6 +440,7 @@ def main() -> int:
 
     print(
         f"\nStats: {stats['tracked_files']} files → "
+        f"{stats['observed_files']} observed, "
         f"{stats['governed']} governed, {stats['generated']} generated, "
         f"{stats['excluded']} excluded, {stats['blocked']} blocked, "
         f"{stats['debt_parked']} debt-parked"

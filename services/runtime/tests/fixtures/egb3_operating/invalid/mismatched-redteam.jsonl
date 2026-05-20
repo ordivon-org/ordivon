@@ -1,1 +1,0 @@
-{"case_id":"EGB3-BAD-01","scenario":"mismatched expected violation","text":"The reviewer approves this OEP for release.","expected_violation":"trust_budget_expansion","notes":"This fixture must fail because the detector should find reviewer_approver_confusion."}

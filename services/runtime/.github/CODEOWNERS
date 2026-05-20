@@ -1,28 +1,32 @@
-# Default owner for the repository.
+# Ordivon — Code Owners
+# Governance OS. Not a trading bot, not an AI wrapper.
+
+# Root identity and governance surfaces.
 * @zycxfyh
 
-# CI and repository policy.
-.github/ @zycxfyh
+# Root-level governance and policy files.
+/policies/ @zycxfyh
+AGENTS.md @zycxfyh
+SECURITY.md @zycxfyh
+CONTRIBUTING.md @zycxfyh
 
-# Product surfaces.
-apps/ @zycxfyh
-apps/api/ @zycxfyh
-apps/web/ @zycxfyh
+# CI, PR template, and repository policy.
+/.github/ @zycxfyh
 
-# Core runtime and orchestration layers.
-adapters/ @zycxfyh
-capabilities/ @zycxfyh
-domains/ @zycxfyh
-execution/ @zycxfyh
-governance/ @zycxfyh
-infra/ @zycxfyh
-intelligence/ @zycxfyh
-orchestrator/ @zycxfyh
-packs/ @zycxfyh
-state/ @zycxfyh
-tools/ @zycxfyh
+# Core governance runtime.
+/src/ordivon_governance_core/ @zycxfyh
 
-# Tests and docs.
-tests/ @zycxfyh
-docs/ @zycxfyh
-knowledge/ @zycxfyh
+# Verification tools (CLI, checkers, scanners, control plane).
+/src/ordivon_verify/ @zycxfyh
+
+# Infrastructure and operational scripts.
+/scripts/ @zycxfyh
+
+# Integration tests.
+/tests/ @zycxfyh
+
+# Documentation and knowledge layer.
+/docs/ @zycxfyh
+
+# State layer (database models, sessions, migrations).
+/state/ @zycxfyh

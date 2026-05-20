@@ -125,10 +125,24 @@ VALID_GOVERNANCE_PLANES = {
 }
 
 NEVER_STALE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
-NEVER_ARCHIVE_TYPES = {"root_context", "phase_boundary", "ai_onboarding"}
+NEVER_ARCHIVE_TYPES: set[str] = set()
 
-# Critical AI doc IDs that must have freshness metadata
-CRITICAL_AI_DOCS = {"agents-md", "ai-readme", "phase-boundaries", "agent-output-contract", "ordivon-root-context"}
+# Canonical markdown documents after the 2026-05-17 document reset.
+# Other docs may route to or support these documents, but they must not claim
+# markdown-document source-of-truth authority.
+CANONICAL_SOURCE_DOC_IDS = {
+    "ordivon-core-refrozen",
+    "ordivon-governance-control-loop",
+    "semantic-firebreak",
+    "runtime-governance-alignment",
+    "ai-native-project-object-model",
+    "ordivon-core-method-skill-scope",
+    "ordivon-flywheel-and-pack-roadmap",
+    "production-security-readiness",
+}
+
+# Critical canonical docs that must have freshness metadata.
+CRITICAL_AI_DOCS = CANONICAL_SOURCE_DOC_IDS
 
 # Documents whose content will be scanned for semantic phrase checks
 # current/accepted/closed status docs are scanned.
@@ -202,19 +216,25 @@ SAFE_NEGATIONS: list[re.Pattern] = [
 
 
 def load_registry(path: Path) -> list[dict]:
-    """Load entries from JSONL."""
-    entries = []
-    with open(path) as f:
-        for i, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entries.append(json.loads(line))
-            except json.JSONDecodeError as e:
-                print(f"ERROR line {i}: invalid JSON: {e}")
-                sys.exit(1)
-    return entries
+    """Load entries from the repo-tracked JSONL registry.
+
+    The document registry is a reviewed declaration, not a live database
+    projection. A stale local PG projection must not preserve retired document
+    authority after a hard document reset.
+    """
+    jsonl_entries: list[dict] = []
+    if path.exists():
+        with open(path) as f:
+            for i, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    jsonl_entries.append(json.loads(line))
+                except json.JSONDecodeError as e:
+                    print(f"ERROR line {i}: invalid JSON: {e}")
+                    sys.exit(1)
+    return jsonl_entries
 
 
 def load_exclusions(path: Path) -> dict:
@@ -464,8 +484,10 @@ def check_inline_date_consistency(entries: list[dict]) -> list[str]:
     last_verified. An older inline date means the document body carries a
     stale timestamp — it was modified but the inline date was not updated.
 
-    Only checks .md files. Docs without inline dates are skipped (no false
-    positives on unannotated documents).
+    Only checks .md files that still carry active/supporting authority. Archived
+    or historical docs preserve their original body dates; their registry
+    last_verified value may represent triage or authority review, not a content
+    refresh. Docs without inline dates are skipped.
     """
     errors: list[str] = []
     # Patterns for inline dates in document bodies
@@ -477,6 +499,13 @@ def check_inline_date_consistency(entries: list[dict]) -> list[str]:
 
     for e in entries:
         did = e.get("doc_id", "")
+        status = e.get("status", "")
+        authority = e.get("authority", "")
+        if status in {"archived", "superseded", "stale"}:
+            continue
+        if authority in {"historical_record", "archive"}:
+            continue
+
         lv = e.get("last_verified")
         if not lv:
             continue
@@ -816,11 +845,15 @@ def check_invariants(entries: list[dict]) -> list[str]:
             if priority not in (0, 1):
                 errors.append(f"{did}: critical AI onboarding doc has priority {priority}, expected 0 or 1")
 
-    # --- current-phase-boundaries must be source_of_truth ---
+    # --- Only the post-reset canonical docs can be markdown source_of_truth ---
     for e in entries:
-        if e.get("doc_id") == "phase-boundaries":
-            if e.get("authority") != "source_of_truth":
-                errors.append("phase-boundaries: must have authority 'source_of_truth'")
+        did = e.get("doc_id", "")
+        path_s = e.get("path", "")
+        if path_s.endswith(".md") and e.get("authority") == "source_of_truth" and did not in CANONICAL_SOURCE_DOC_IDS:
+            errors.append(
+                f"{did}: markdown source_of_truth is reserved for the post-reset canonical document set; "
+                "downgrade this document to supporting_evidence, historical_record, or archive"
+            )
 
     # --- Semantic phrase checks on file contents ---
     phrase_errors = check_semantic_phrases(entries)

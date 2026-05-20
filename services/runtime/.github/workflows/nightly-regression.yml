@@ -8,58 +8,37 @@ on:
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  full-python-tests:
+  rust-kernel-red-team:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ordivon
+          POSTGRES_PASSWORD: ordivon
+          POSTGRES_DB: ordivon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ordivon -d ordivon"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ORDIVON_TEST_DATABASE_URL: postgresql://ordivon:ordivon@localhost:5432/ordivon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --features postgres-integration,policy-http --all-targets -- -D warnings
+      - run: cargo test --workspace --features postgres-integration,policy-http
+
+  governance-reporting:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --extra dev
-      - name: Full product tests
-        run: uv run pytest tests/unit/product -q
-      - name: Full governance tests
-        run: uv run pytest tests/unit/governance -q
-      - name: Full finance tests
-        run: uv run pytest tests/unit/finance -q
-      - name: Eval corpus
-        run: uv run python evals/run_evals.py
-      - name: pr-fast baseline
-        run: uv run python scripts/run_verification_baseline.py --profile pr-fast
-      - name: Architecture check
-        run: uv run python scripts/check_architecture.py
-      - name: Runtime evidence check
-        run: uv run python scripts/check_runtime_evidence.py
-      - name: Document governance checkers
-        run: |
-          uv run python scripts/check_receipt_integrity.py
-          uv run python scripts/check_verification_debt.py
-          uv run python scripts/check_verification_manifest.py
-          uv run python scripts/check_document_registry.py
-          uv run python scripts/check_paper_dogfood_ledger.py
-
-  frontend-regression:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: "10.33.0"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Lint
-        run: pnpm lint:web
-      - name: Type check
-        run: pnpm typecheck:web
-      - name: Build
-        run: pnpm build:web
-      - name: Component tests
-        run: pnpm --dir apps/web test
+      - run: uv run pytest -q
+      - run: uv run python scripts/check_document_registry.py
