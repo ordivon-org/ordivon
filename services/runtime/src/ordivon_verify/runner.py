@@ -144,22 +144,29 @@ def run_check(gate_id: str, root: Path | None = None) -> dict:
         script = entry.file_path
         label = entry.display_name
     elif gate_id == "receipts":
-        # Backward compat: gate_id from old CLI
         entry = entries.get("receipt_integrity")
         if entry and entry.file_path:
             script = entry.file_path
             label = entry.display_name
         else:
-            script = str(ROOT / "scripts" / "check_receipt_integrity.py")
+            script = str(ROOT / "checkers" / "receipt-integrity" / "run.py")
             label = "Receipt Integrity"
     elif gate_id == "debt":
         entry = entries.get("verification_debt")
-        script = entry.file_path if entry else str(ROOT / "scripts" / "check_verification_debt.py")
-        label = entry.display_name if entry else "Verification Debt"
+        if entry and entry.file_path:
+            script = entry.file_path
+            label = entry.display_name
+        else:
+            script = str(ROOT / "checkers" / "receipt-integrity" / "run.py")
+            label = "Verification Debt (via receipt-integrity)"
     elif gate_id == "gates":
         entry = entries.get("gate_manifest")
-        script = entry.file_path if entry else str(ROOT / "scripts" / "check_verification_manifest.py")
-        label = entry.display_name if entry else "Gate Manifest"
+        if entry and entry.file_path:
+            script = entry.file_path
+            label = entry.display_name
+        else:
+            script = str(ROOT / "checkers" / "receipt-integrity" / "run.py")
+            label = "Gate Manifest (via receipt-integrity)"
     elif gate_id == "docs":
         entry = entries.get("document_registry")
         script = entry.file_path if entry else str(ROOT / "scripts" / "check_document_registry.py")
