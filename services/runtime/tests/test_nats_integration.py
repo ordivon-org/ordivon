@@ -251,23 +251,6 @@ def test_temporal_server_connect() -> None:
             print(f"  ⏭ test_temporal_server_connect SKIPPED (server not available: {e})")
 
     asyncio.run(_run())
-
-
-def test_opa_primary_backend() -> None:
-    """Verify check_transition_opa uses OPA backend, not Python fallback."""
-    from ordivon_verify.control.authority_state import check_transition_opa
-    from ordivon_governance_core.opa_engine import opa_available
-
-    if not opa_available():
-        print("  ⏭ test_opa_primary_backend SKIPPED (OPA CLI not installed)")
-        return
-
-    result = check_transition_opa("partial", "not_requested", "candidate", to_evidence="sufficient")
-    assert result["backend"] == "opa", f"Expected backend=opa, got {result['backend']}"
-    assert result["all_valid"] is True
-    print("  ✓ test_opa_primary_backend PASSED (backend=opa)")
-
-
 def main() -> int:
     print("=== Phase 2 Integration Tests ===\n")
 

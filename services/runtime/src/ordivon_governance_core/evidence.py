@@ -16,16 +16,6 @@ def hash_file(path: Path) -> str:
     return sha256_hex(path.read_text())
 
 
-def hash_bytes(data: bytes) -> str:
-    """SHA256 hash of bytes, truncated."""
-    return hashlib.sha256(data).hexdigest()[:16]
-
-
-def verify_hash(path: Path, expected_hash: str) -> bool:
-    """Verify that a file's SHA256 matches expected."""
-    return hash_file(path) == expected_hash
-
-
 def make_evidence_record(
     evidence_id: str,
     command: str,

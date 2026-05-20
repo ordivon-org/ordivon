@@ -116,3 +116,48 @@ def opa_available() -> bool:
         return proc.returncode == 0 and POLICY_DIR.exists()
     except FileNotFoundError:
         return False
+
+
+def check_transition_opa(state: dict, target: dict) -> dict:
+    """Validate a state transition via OPA authority policies.
+    
+    Calls data.ordivon.authority.validate_transition with state + target input.
+    Returns the full OPA validation result dict.
+    """
+    return _opa_eval(
+        "data.ordivon.authority.validate_transition",
+        {"state": state, "target": target},
+    )
+
+
+# Backward-compat: old API from deleted control/authority_state.py
+def _check_transition_opa_compat(
+    from_evidence: str = "",
+    from_authorization: str = "",
+    from_policy: str = "",
+    to_evidence: str = "",
+    to_authorization: str = "",
+    to_policy: str = "",
+) -> dict:
+    """Compatibility wrapper — matches old control/authority_state.check_transition_opa API."""
+    state = {}
+    target = {}
+    if from_evidence: state["evidence"] = from_evidence
+    if from_authorization: state["authorization"] = from_authorization
+    if from_policy: state["policy"] = from_policy
+    if to_evidence: target["evidence"] = to_evidence
+    if to_authorization: target["authorization"] = to_authorization
+    if to_policy: target["policy"] = to_policy
+    
+    raw = check_transition_opa(state, target)
+    if "error" in raw:
+        return {"all_valid": False, "safe_to_proceed": False, "error": raw["error"]}
+    
+    # Parse OPA result — extract the validate_transition value
+    for r in raw.get("result", []):
+        for expr in r.get("expressions", []):
+            val = expr.get("value")
+            if isinstance(val, dict):
+                return val
+    
+    return {"all_valid": False, "safe_to_proceed": False, "error": "no result"}
