@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/governance/gate-promotion.schema.json",
+  "title": "AOS Gate Promotion Record Object",
+  "description": "Declarative promotion submission. Records a maturity class promotion with gate evidence and deferred gap acceptance.",
+  "type": "object",
+  "required": ["object_id", "object_kind", "promotion_id", "target_class", "gate_assessment_refs", "authority_boundary", "not_claimed"],
+  "properties": {
+    "object_id": {"type": "string", "pattern": "^aos:promotion:GatePromotionRecord:[a-z0-9_.-]+$"},
+    "object_kind": {"type": "string", "enum": ["GatePromotionRecord"]},
+    "promotion_id": {"type": "string"},
+    "target_class": {"type": "string", "enum": ["P1", "P2", "P3", "P4", "P5"]},
+    "gate_assessment_refs": {"type": "array", "items": {"type": "string"}},
+    "deferred_gap_acceptance_refs": {"type": "array", "items": {"type": "string"}},
+    "authority_boundary": {"type": "string", "minLength": 1},
+    "not_claimed": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+  }
+}

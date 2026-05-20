@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/governance/governance-result.schema.json",
+  "title": "Governance Result Schema",
+  "description": "Unified result format for all Ordivon governance tools. Every tool that produces a governance-relevant output must conform to this schema.",
+  "generated_at": "2026-05-12",
+  "governed_by": "AOS-STRUCTURAL-GAP-1 / Unified Result Schema",
+
+  "type": "object",
+  "required": ["tool", "run_id", "status", "exit_code"],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "description": "Name of the governance tool that produced this result"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for this execution run"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Governance trace identifier linking spans across tools"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PASS", "PASS_WITH_WARNINGS", "DEGRADED", "BLOCKING"],
+      "description": "Overall status of this tool execution"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable one-line summary"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "severity", "description"],
+        "properties": {
+          "finding_id": {"type": "string"},
+          "severity": {"type": "string", "enum": ["PASS", "WARN", "DEGRADED", "BLOCKING"]},
+          "description": {"type": "string"},
+          "affected_surface": {"type": "string"},
+          "evidence_ref": {"type": "string"}
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "evidence_id": {"type": "string"},
+          "path": {"type": "string"},
+          "sha256": {"type": "string"},
+          "command": {"type": "string"}
+        }
+      }
+    },
+    "known_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "gap_id": {"type": "string"},
+          "description": {"type": "string"},
+          "severity": {"type": "string"},
+          "resolution": {"type": "string"}
+        }
+      }
+    },
+    "authority_impact": {
+      "type": "string",
+      "enum": ["none", "supporting_evidence", "current_status", "source_of_truth_candidate", "policy_candidate"],
+      "description": "Whether this result changes governance authority"
+    },
+    "promotion_impact": {
+      "type": "string",
+      "enum": ["none", "p1", "p2", "p3_plus"],
+      "description": "Whether this result affects promotion readiness"
+    },
+    "exit_code": {
+      "type": "integer",
+      "description": "Process exit code (0 = pass, non-zero = failure or warnings)"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Execution duration in milliseconds"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "command": {
+      "type": "string",
+      "description": "The command that was executed"
+    },
+    "working_directory": {
+      "type": "string"
+    }
+  }
+}

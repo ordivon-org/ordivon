@@ -1,0 +1,9 @@
+.hermes/**
+adapters/**
+apps/**
+capabilities/**
+checkers/**
+docs/archive/**
+examples/**
+tests/**
+scripts/**
