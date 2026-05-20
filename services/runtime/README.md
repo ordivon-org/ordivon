@@ -1,52 +1,41 @@
 # Ordivon
 
-Ordivon is an execution-grade governance kernel for agentic AI.
+Ordivon is an executable epistemology governance system for the AI era.
+It prevents AI-generated fluency from becoming unearned authority.
 
-After the 2026-05-17 document reset, canonical authority is intentionally small:
+## Canonical Documents
 
-1. [Core thesis](docs/ai/ordivon-core-thesis.md)
-2. [Governance control loop](docs/architecture/ordivon-governance-control-loop.md)
-3. [Semantic firebreak](docs/architecture/semantic-firebreak.md)
-4. [Runtime governance alignment](docs/architecture/runtime-governance-alignment.md)
-5. [Flywheel and pack roadmap](docs/product/ordivon-flywheel-and-pack-roadmap.md)
-6. [Production security readiness](docs/audits/certification/production-security-readiness.md)
+1. [Ordivon Core — Refrozen](docs/ai/ordivon-core-refrozen.md)
+2. [Governance Control Loop](docs/architecture/ordivon-governance-control-loop.md)
+3. [Semantic Firebreak](docs/architecture/semantic-firebreak.md)
+4. [Runtime Governance Alignment](docs/architecture/runtime-governance-alignment.md)
+5. [AI-Native Project Object Model](docs/architecture/ai-native-project-object-model.md)
+6. [Skill Scope Freeze](docs/architecture/ordivon-core-method-skill-scope.md)
+7. [Flywheel and Pack Roadmap](docs/product/ordivon-flywheel-and-pack-roadmap.md)
+8. [Production Security Readiness](docs/audits/certification/production-security-readiness.md)
 
-Other files are supporting evidence, machine records, receipts, schemas, or
-operational material. If they conflict with the documents above, the canonical
-documents win unless a newer signed receipt says otherwise.
+## Core Method
 
-## Current Direction
+[ordivon-core-method](skills/ordivon-core-method/SKILL.md) — a governance skill that
+teaches AI agents to separate claims from evidence, frame execution, classify debt,
+and draft honest receipts. Status: ACTIVATED.
 
-Ordivon is not a chat product, trading bot, generic dashboard, or model wrapper.
-It is a control plane for high-consequence actions:
-
-```text
-Reality -> Declaration -> Object -> Evidence -> Authority -> Gate
-        -> Execution -> Receipt -> Reconciliation -> Debt/Policy
-```
-
-Core commitments:
-
-- No Receipt, No Done.
-- No Authority, No Side Effect.
-- Text must not directly move state.
-- AI_WRITTEN never upgrades itself to SYSTEM_OBSERVED.
-- Append-only governance ledger is the canonical history.
-- PostgreSQL carries ledger/projections; NATS is transport, not audit truth.
-- Comparator verdicts are deterministic; LLMs may explain, not judge.
-
-## Working Commands
+## Verification
 
 ```bash
+# Python
 uv sync --extra dev
-PYTHONPATH=.:src .venv/bin/python -m pytest -q
-PYTHONPATH=.:src .venv/bin/python scripts/verify_infrastructure.py
+PYTHONPATH=.:src .venv/bin/python -m pytest -q tests/
 PYTHONPATH=.:src .venv/bin/python scripts/check_document_registry.py
 PYTHONPATH=.:src .venv/bin/python -m ordivon_verify all --check
+PYTHONPATH=.:src .venv/bin/python scripts/verify_infrastructure.py
+
+# Rust
 cargo test --workspace
-ORDIVON_TEST_DATABASE_URL=postgresql://ordivon:ordivon@localhost:5432/ordivon \
-  cargo test --workspace --features postgres-integration,policy-http
+
+# Infrastructure
+docker compose -f docker-compose.infrastructure.yml up -d
 ```
 
 `READY`, `PASS`, or `CLOSED` never authorizes merge, release, deployment,
-policy activation, broker writes, or external action.
+policy activation, or external action.
