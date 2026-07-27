@@ -1,0 +1,30 @@
+# JavaScript / TypeScript
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# Environment and local state
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.db
+artifacts/
+replays/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
