@@ -229,3 +229,137 @@ export interface TeamProjection {
   authorityDecisions: AuthorityDecision[];
   authorityGrants: AuthorityGrant[];
 }
+
+
+export type TeamProposalStatus = "proposed" | "selected" | "rejected" | "executed" | "verified";
+export type TeamRoundStatus = "collecting" | "planned" | "dispatched" | "observed" | "completed" | "blocked";
+export type TeamEffectStatus = "prepared" | "dispatched" | "succeeded" | "rejected";
+export type TeamDispatchStatus = "pending" | "unknown" | "succeeded" | "rejected";
+
+export interface TeamProviderDecision {
+  providerId: string;
+  contextId: string;
+  selectedActionCandidateId: string | null;
+  confidence: number;
+  rationale: string;
+}
+
+export interface ResourceClaim {
+  kind: "actor" | "mutable-target" | "inventory";
+  resourceId: string;
+  quantity: number;
+}
+
+export interface ActionProposal {
+  proposalId: string;
+  roundId: string;
+  runId: string;
+  actorId: string;
+  actorTaskId: string;
+  actorTaskRevision: number;
+  contextId: string;
+  contextDigest: string;
+  worldDigest: string;
+  worldRevision: number;
+  actionCandidateId: string;
+  command: PrimitiveWorldCommand;
+  objectiveIds: string[];
+  authorityDecisionId: string;
+  authorityOutcome: AuthorityOutcome;
+  resourceClaims: ResourceClaim[];
+  providerId: string;
+  confidence: number;
+  rationale: string;
+  status: TeamProposalStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamTickPlan {
+  tickPlanId: string;
+  roundId: string;
+  runId: string;
+  worldRevision: number;
+  worldDigest: string;
+  selectedProposalIds: string[];
+  rejectedProposalIds: string[];
+  commands: PrimitiveWorldCommand[];
+  policyDecisionRefs: string[];
+  createdAt: string;
+}
+
+export interface TeamEffect {
+  effectId: string;
+  roundId: string;
+  runId: string;
+  tickPlanId: string;
+  requiredWorldRevision: number;
+  requiredWorldDigest: string;
+  status: TeamEffectStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamDispatch {
+  dispatchId: string;
+  effectId: string;
+  roundId: string;
+  runId: string;
+  tickPlanId: string;
+  commandId: string;
+  status: TeamDispatchStatus;
+  worldEventId: string | null;
+  commandSequence: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamObservation {
+  observationId: string;
+  dispatchId: string;
+  effectId: string;
+  roundId: string;
+  runId: string;
+  commandId: string;
+  commandSequence: number;
+  worldEventId: string;
+  worldAfterDigest: string;
+  intentCommandIds: string[];
+  verifiedIntentCommandIds: string[];
+  facts: WorldFact[];
+  verificationSuccess: boolean;
+  createdAt: string;
+}
+
+export interface TeamContextReference {
+  contextId: string;
+  roundId: string;
+  runId: string;
+  actorId: string;
+  taskId: string;
+  taskRevision: number;
+  worldRevision: number;
+  worldDigest: string;
+  artifactDigest: string;
+  createdAt: string;
+}
+
+export interface TeamRound {
+  roundId: string;
+  runId: string;
+  worldRevision: number;
+  worldDigest: string;
+  status: TeamRoundStatus;
+  contextIds: string[];
+  resolvedActorIds: string[];
+  proposalIds: string[];
+  tickPlanId: string | null;
+  effectId: string | null;
+  dispatchId: string | null;
+  observationId: string | null;
+  blocker: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

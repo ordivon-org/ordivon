@@ -109,6 +109,6 @@ export function evaluateAuthority(
   };
 }
 
-export function candidateAllowed(candidate: TeamActionCandidate, granted: boolean): boolean {
+export function candidateAllowed(candidate: Pick<TeamActionCandidate, "authorityOutcome">, granted: boolean): boolean {
   return candidate.authorityOutcome === "permit" || (candidate.authorityOutcome === "require-human" && granted);
 }
