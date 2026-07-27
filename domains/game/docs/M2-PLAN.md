@@ -19,3 +19,13 @@ Every PR must preserve the frozen M1 digests and the M1.5 coverage gates.
 - fresh HostStore reconstruction and tamper detection.
 
 No Provider is called and no Host operation can mutate the world in PR1.
+
+## PR2 status — implemented
+
+- strategic Operation frontier instead of primitive model actions;
+- deterministic path, pickup, repair, power, sealing, medical, signal, and wait Skills;
+- projected terminal resource and hazard outcomes for every candidate;
+- canonical bounded Agent Context with exact world and task identity;
+- Context and Operation staleness admission;
+- deterministic Recovery Operation Provider baseline;
+- 10 strategic decisions reproduce the frozen 25-Tick victory exactly.

@@ -157,3 +157,15 @@ M2 stores Host state in the same SQLite database as the world for local atomicit
 ## D-033 — Models choose Operations, not primitive Commands
 
 A Provider selects one exact strategic Operation. The Host compiles that Operation into deterministic movement, pickup, and action steps. This bounds model latency and cost while preserving the World Kernel as the only command authority.
+
+## D-034 — Compiled Context is semantic state, not transcript replay
+
+The M2 Context contains exact Run and Task identity, current world binding, bounded Agent observation, recent verified Facts, and the admitted Operation frontier. Provider sessions, chat history, hidden reasoning, Tool history, and complete world state are excluded. Canonical Context is capped at 16 KiB and drops recent Facts before failing closed.
+
+## D-035 — Strategic Operations expand into deterministic Skills
+
+Providers choose exact strategic Operation identities. The Host deterministically compiles paths, item collection, and primitive actions from the current world. Each primitive step is re-materialized against the latest world revision; a stale Operation or Skill Plan is rejected rather than repaired implicitly.
+
+## D-036 — Routine logistics may anticipate known task requirements
+
+When an admitted Skill already enters Storage, the deterministic controller may collect other finite supplies whose future need is directly implied by the fixed Goal and current damaged objectives. This is routine logistics, not a new strategic model decision, and remains subject to world inventory conservation and replay.
