@@ -124,7 +124,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2 execution core is implemented.** Durable Goal/Task/Attempt state, strategic Operations, isolated Codex/Hermes cognition, stable Effects and Dispatches, verified Observations, and fresh-process recovery now form a complete single-Agent loop. API/UI integration and live Provider evaluation remain.
+**M2 product loop is implemented.** The persistent Engineer can be initialized, stepped, run autonomously, inspected, and switched between Fixture, Codex, Hermes, or fallback Providers through HTTP and the browser. Live real-Provider evaluation and final receipts remain.
 
 ## License
 

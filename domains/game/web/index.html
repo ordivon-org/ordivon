@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Station Zero — M1</title>
+    <title>Station Zero — M2</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main>
       <header>
         <div>
-          <p class="eyebrow">ORDIVON GAME · M1</p>
+          <p class="eyebrow">ORDIVON GAME · M2</p>
           <h1>Station Zero</h1>
-          <p class="lede">Stabilize the station, preserve the crew, and transmit a verified rescue signal.</p>
+          <p class="lede">A persistent Engineer Agent plans strategic Operations while the deterministic world verifies every effect.</p>
         </div>
         <span id="mission-status" class="status">LOADING</span>
       </header>
@@ -21,6 +21,32 @@
 
       <section class="layout">
         <div>
+          <section class="panel agent-control">
+            <div class="panel-heading">
+              <div><p class="eyebrow">PERSISTENT AGENT</p><h2>Engineer Host</h2></div>
+              <span id="agent-phase" class="chip">NOT INITIALIZED</span>
+            </div>
+            <div class="agent-toolbar">
+              <label>Provider
+                <select id="agent-provider">
+                  <option value="fixture">Fixture baseline</option>
+                  <option value="codex">Codex</option>
+                  <option value="hermes">Hermes / DeepSeek</option>
+                  <option value="codex-hermes">Codex → Hermes fallback</option>
+                  <option value="hermes-codex">Hermes → Codex fallback</option>
+                </select>
+              </label>
+              <button id="agent-initialize" class="secondary">Initialize</button>
+              <button id="agent-step">Agent step</button>
+              <button id="agent-run">Autonomous run</button>
+            </div>
+            <div id="agent-summary" class="agent-summary"><p>Initialize the Host to create a durable Goal and Task.</p></div>
+            <div>
+              <p class="eyebrow">HOST TIMELINE</p>
+              <div id="agent-timeline" class="timeline"></div>
+            </div>
+          </section>
+
           <section class="panel">
             <div class="panel-heading"><div><p class="eyebrow">STATION</p><h2>Room graph</h2></div><span id="location" class="chip"></span></div>
             <div id="rooms" class="rooms"></div>
@@ -41,12 +67,12 @@
           </section>
 
           <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">COMMAND</p><h2>Available actions</h2></div><button id="suggest" class="secondary">Suggest</button></div>
+            <div class="panel-heading"><div><p class="eyebrow">MANUAL COMMAND</p><h2>Available actions</h2></div><button id="suggest" class="secondary">Suggest</button></div>
             <div id="actions" class="actions"></div>
           </section>
 
           <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2>Latest event</h2></div><button id="replay" class="secondary">Replay</button></div>
+            <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2>Latest receipt</h2></div><button id="replay" class="secondary">Replay</button></div>
             <pre id="output">Loading persisted world…</pre>
           </section>
         </aside>

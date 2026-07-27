@@ -189,3 +189,15 @@ A successful world write alone does not advance Skill progress. The Host retains
 ## D-041 — Provider cognition is outside replay and deterministic continuation
 
 After a Decision and Skill Plan are retained, execution and interruption recovery require no Provider call. World replay consumes only the World Command Journal. Host continuation consumes persistent Host projections, Artifacts, Effects, Dispatches, Observations, and current world state.
+
+## D-042 — Agent control APIs are synchronous and bounded
+
+M2 exposes initialize, step, and run operations as explicit HTTP requests. `run` is a bounded synchronous loop rather than a hidden background scheduler. Long-lived or recurring orchestration remains outside the game Host until measured demand requires it.
+
+## D-043 — Provider selection may change between Host steps
+
+A request selects the cognition Provider for that invocation, but Goal, Task, Attempt, Context, Decision, Effect, and world identity remain persistent. Switching Codex and Hermes does not fork the Engineer or discard prior semantic state.
+
+## D-044 — Manual and autonomous control share the same World Kernel
+
+Manual Commands and Agent Dispatches use the same versioned Run, Command admission, Tick reducer, journal, Facts, and Verification. Manual intervention may make a pending Context or Effect stale; the Host must reject or reconcile it rather than claim exclusive ownership of the world.

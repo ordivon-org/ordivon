@@ -19,3 +19,17 @@ dl { display:grid; gap:10px; margin:0; }dl div { border-top:1px solid #252d3c; p
 pre { min-height:180px; max-height:340px; margin:0; padding:14px; border-radius:11px; overflow:auto; background:#07090d; color:#bdc8d8; font-size:11px; line-height:1.5; }
 @media (max-width:900px) { .layout { grid-template-columns:1fr; }.metrics { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:620px) { main { padding-top:34px; }header { flex-direction:column; }.rooms { grid-template-columns:repeat(2,1fr); }.metrics { grid-template-columns:1fr 1fr; }.system { flex-direction:column; }.system-values { align-items:flex-start; } }
+.agent-control { display:grid; gap:18px; }
+.agent-toolbar { display:flex; align-items:flex-end; flex-wrap:wrap; gap:9px; }
+.agent-toolbar label { display:grid; gap:6px; color:#77859a; font-size:10px; text-transform:uppercase; letter-spacing:.1em; min-width:230px; }
+select { border:1px solid #39455a; border-radius:10px; background:#111722; color:#e7ecf4; padding:10px 12px; font:inherit; }
+.agent-summary { border-top:1px solid #252d3c; padding-top:13px; }
+.agent-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.agent-grid div { min-width:0; }.agent-grid dd { overflow-wrap:anywhere; }
+.timeline { display:grid; gap:7px; max-height:300px; overflow:auto; margin-top:10px; }
+.timeline-event { display:grid; grid-template-columns:42px 1fr; gap:3px 10px; border:1px solid #283244; border-radius:10px; padding:10px; background:#0b0f17; }
+.timeline-event span { grid-row:1/3; color:#657187; font-size:10px; font-weight:800; }.timeline-event strong { font-size:12px; text-transform:capitalize; }.timeline-event small { color:#768399; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.empty { margin:0; color:#657187; font-size:12px; }
+#agent-phase[data-state="succeeded"] { border-color:#287252; color:#83dfae; }
+#agent-phase[data-state="failed"],#agent-phase[data-state="blocked"] { border-color:#803a47; color:#f19aa8; }
+@media (max-width:720px) { .agent-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.agent-toolbar>* { width:100%; }.agent-toolbar label { min-width:0; } }

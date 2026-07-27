@@ -4,7 +4,13 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "./digest.ts";
+import { AgentHost } from "./host/engine.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
+import { CodexCliProvider } from "./providers/codex-cli.ts";
+import { ProviderChain } from "./providers/chain.ts";
+import { RecoveryOperationProvider } from "./providers/fixture.ts";
+import { HermesCliProvider } from "./providers/hermes-cli.ts";
+import type { OperationProvider } from "./providers/types.ts";
 import { GameStore, StorageError } from "./storage.ts";
 import { listAvailableActions, parseWorldCommand } from "./world.ts";
 
@@ -34,13 +40,43 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
     if (length > 64 * 1024) throw new Error("request body exceeds 64 KiB");
     chunks.push(buffer);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const text = Buffer.concat(chunks).toString("utf8");
+  return text ? JSON.parse(text) : {};
+}
+
+export type AgentProviderName = "fixture" | "codex" | "hermes" | "codex-hermes" | "hermes-codex";
+export type AgentProviderFactory = (name: AgentProviderName) => OperationProvider;
+
+function defaultAgentProviderFactory(name: AgentProviderName): OperationProvider {
+  switch (name) {
+    case "fixture": return new RecoveryOperationProvider();
+    case "codex": return new CodexCliProvider();
+    case "hermes": return new HermesCliProvider();
+    case "codex-hermes": return new ProviderChain([new CodexCliProvider(), new HermesCliProvider()]);
+    case "hermes-codex": return new ProviderChain([new HermesCliProvider(), new CodexCliProvider()]);
+  }
+}
+
+function parseProviderName(value: unknown): AgentProviderName {
+  const name = value ?? "fixture";
+  if (["fixture", "codex", "hermes", "codex-hermes", "hermes-codex"].includes(String(name))) {
+    return name as AgentProviderName;
+  }
+  throw new TypeError("unsupported Agent Provider");
+}
+
+function bodyRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("request body must be a JSON object");
+  }
+  return value as Record<string, unknown>;
 }
 
 export interface GameServerOptions {
   dbPath?: string;
   webRoot?: string;
   provider?: CognitionProvider;
+  agentProviderFactory?: AgentProviderFactory;
 }
 
 export interface GameServer {
@@ -65,10 +101,31 @@ function stateEnvelope(store: GameStore, runId: string): unknown {
   };
 }
 
+function agentEnvelope(store: GameStore, provider: OperationProvider, runId: string): unknown {
+  const agent = new AgentHost(store, provider);
+  try {
+    const projection = agent.projection(runId);
+    return {
+      initialized: true,
+      runId,
+      projection,
+      effects: agent.execution.listEffects(runId),
+      dispatches: agent.execution.listDispatches(runId),
+      timeline: agent.host.listJournal(runId).slice(-40),
+    };
+  } catch (error) {
+    if (error instanceof Error && /not initialized/.test(error.message)) {
+      return { initialized: false, runId, projection: null, effects: [], dispatches: [], timeline: [] };
+    }
+    throw error;
+  }
+}
+
 export function createGameServer(options: GameServerOptions = {}): GameServer {
   const store = new GameStore(options.dbPath ?? defaultDbPath);
   const webRoot = options.webRoot ?? defaultWebRoot;
   const provider = options.provider ?? new FixtureProvider();
+  const agentProviderFactory = options.agentProviderFactory ?? defaultAgentProviderFactory;
 
   const server = createServer(async (request, response) => {
     try {
@@ -123,6 +180,79 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, 200, { runId, context, decision, admitted });
         return;
       }
+
+      if (request.method === "GET" && url.pathname === "/api/agent/state") {
+        const selected = parseProviderName(url.searchParams.get("provider") ?? "fixture");
+        sendJson(response, 200, agentEnvelope(store, agentProviderFactory(selected), runId));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/agent/initialize") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const operationProvider = agentProviderFactory(selected);
+        const agent = new AgentHost(store, operationProvider);
+        const projection = agent.initialize(runId, [operationProvider.providerId]);
+        sendJson(response, 201, { runId, provider: selected, projection });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/agent/step") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const operationProvider = agentProviderFactory(selected);
+        const agent = new AgentHost(store, operationProvider);
+        const receipt = await agent.step(runId);
+        sendJson(response, 200, {
+          provider: selected,
+          receipt,
+          agent: agentEnvelope(store, operationProvider, runId),
+          world: stateEnvelope(store, runId),
+        });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/agent/run") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const maximumSteps = body.maximumSteps === undefined ? 256 : Number(body.maximumSteps);
+        if (!Number.isSafeInteger(maximumSteps) || maximumSteps < 1 || maximumSteps > 512) {
+          sendJson(response, 400, { error: "invalid_step_budget", message: "maximumSteps must be an integer from 1 to 512" });
+          return;
+        }
+        const operationProvider = agentProviderFactory(selected);
+        const agent = new AgentHost(store, operationProvider);
+        const receipt = await agent.run(runId, maximumSteps);
+        sendJson(response, 200, {
+          provider: selected,
+          receipt,
+          agent: agentEnvelope(store, operationProvider, runId),
+          world: stateEnvelope(store, runId),
+        });
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/agent/timeline") {
+        const operationProvider = agentProviderFactory("fixture");
+        const agent = new AgentHost(store, operationProvider);
+        try {
+          sendJson(response, 200, { runId, timeline: agent.host.listJournal(runId) });
+        } catch (error) {
+          if (error instanceof Error && /not initialized/.test(error.message)) {
+            sendJson(response, 200, { runId, timeline: [] });
+          } else throw error;
+        }
+        return;
+      }
+      if (request.method === "GET" && url.pathname.startsWith("/api/agent/artifacts/")) {
+        const digest = decodeURIComponent(url.pathname.slice("/api/agent/artifacts/".length));
+        const agent = new AgentHost(store, agentProviderFactory("fixture"));
+        try {
+          sendJson(response, 200, agent.host.getArtifact(digest));
+        } catch (error) {
+          if (error instanceof Error && /unknown Host Artifact/.test(error.message)) {
+            sendJson(response, 404, { error: "artifact_not_found", message: error.message });
+          } else throw error;
+        }
+        return;
+      }
+
       const staticFile = staticFiles[url.pathname];
       if (request.method === "GET" && staticFile) {
         const body = await readFile(resolve(webRoot, staticFile.file));
@@ -141,6 +271,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           error: error.code,
           message: error.message,
         });
+        return;
+      }
+      if (error instanceof TypeError || error instanceof SyntaxError) {
+        sendJson(response, 400, { error: "invalid_request", message: error.message });
         return;
       }
       sendJson(response, 500, {
@@ -168,7 +302,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const port = Number(process.env.PORT ?? 4173);
   const game = createGameServer({ dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath });
   game.server.listen(port, "127.0.0.1", () => {
-    console.log(`Station Zero M1.5 running at http://127.0.0.1:${port}`);
+    console.log(`Station Zero M2 running at http://127.0.0.1:${port}`);
   });
   const shutdown = () => game.close().finally(() => process.exit(0));
   process.on("SIGINT", shutdown);

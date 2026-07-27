@@ -48,3 +48,12 @@ No Provider is called and no Host operation can mutate the world in PR1.
 - atomic Goal/Task/Attempt projection updates;
 - seven interruption fault points across cognition, dispatch, world commit, observation, and advancement;
 - fresh-process convergence to one 25-Effect verified world history.
+
+## PR5 status — implemented
+
+- Agent initialize, state, step, bounded run, timeline, and Artifact APIs;
+- explicit Fixture, Codex, Hermes, and fallback-chain Provider selection;
+- browser Agent panel with Goal, Task, Attempt, Provider, Skill, Effect, Dispatch, and timeline state;
+- Provider switching without Agent identity loss;
+- multi-Run Host isolation through the HTTP boundary;
+- coexistence of manual world actions and autonomous Agent execution.
