@@ -169,3 +169,11 @@ Providers choose exact strategic Operation identities. The Host deterministicall
 ## D-036 — Routine logistics may anticipate known task requirements
 
 When an admitted Skill already enters Storage, the deterministic controller may collect other finite supplies whose future need is directly implied by the fixed Goal and current damaged objectives. This is routine logistics, not a new strategic model decision, and remains subject to world inventory conservation and replay.
+
+## D-037 — CLI Providers run as isolated cognition, not local Agents
+
+Codex receives an ephemeral read-only empty work directory, ignores user configuration and rules, and must satisfy a JSON Schema. Hermes receives invocation-scoped HOME and HERMES_HOME, only the selected Provider credential, no toolsets, MCP, memory, user profile, rules, skills, or retained session. Neither CLI can inspect or mutate the game repository or world database.
+
+## D-038 — Provider fallback handles technical invalidity only
+
+A Provider Chain advances after timeout, unavailable executable, non-zero exit, malformed output, wrong Context identity, invented Operation identity, or invalid usage evidence. A valid admitted strategic choice is never retried merely because another model might choose differently.

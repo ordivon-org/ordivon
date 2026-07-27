@@ -62,3 +62,68 @@ export function admitOperationDecision(
   }
   return candidate;
 }
+
+export type ProviderAdapterErrorCode =
+  | "unavailable"
+  | "timeout"
+  | "process_failed"
+  | "invalid_output"
+  | "invalid_usage";
+
+export class ProviderAdapterError extends Error {
+  readonly code: ProviderAdapterErrorCode;
+  constructor(code: ProviderAdapterErrorCode, message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "ProviderAdapterError";
+    this.code = code;
+  }
+}
+
+interface ModelDecisionOutput {
+  contextId: string;
+  selectedOperationCandidateId: string | null;
+  riskLevel: DecisionRiskLevel;
+  confidence: number;
+  rationale: string;
+}
+
+export function parseModelDecisionOutput(
+  context: CompiledAgentContext,
+  value: unknown,
+  providerId: string,
+): OperationDecision {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ProviderAdapterError("invalid_output", "Provider Decision must be one JSON object");
+  }
+  const record = value as Record<string, unknown>;
+  const expected = ["confidence", "contextId", "rationale", "riskLevel", "selectedOperationCandidateId"];
+  if (Object.keys(record).sort().join("|") !== expected.join("|")) {
+    throw new ProviderAdapterError("invalid_output", "Provider Decision fields differ from the contract");
+  }
+  const risks: DecisionRiskLevel[] = ["low", "medium", "high", "critical"];
+  if (
+    typeof record.contextId !== "string" ||
+    (record.selectedOperationCandidateId !== null && typeof record.selectedOperationCandidateId !== "string") ||
+    typeof record.riskLevel !== "string" || !risks.includes(record.riskLevel as DecisionRiskLevel) ||
+    typeof record.confidence !== "number" ||
+    typeof record.rationale !== "string"
+  ) {
+    throw new ProviderAdapterError("invalid_output", "Provider Decision field types are invalid");
+  }
+  const output = record as unknown as ModelDecisionOutput;
+  const decision: OperationDecision = { providerId, ...output };
+  try { validateOperationDecision(decision); }
+  catch (error) { throw new ProviderAdapterError("invalid_output", "Provider Decision values are invalid", { cause: error }); }
+  if (decision.contextId !== context.contextId) {
+    throw new ProviderAdapterError("invalid_output", "Provider copied another Context identity");
+  }
+  if (
+    decision.selectedOperationCandidateId !== null &&
+    !context.payload.allowedOperations.some(
+      (candidate) => candidate.operationCandidateId === decision.selectedOperationCandidateId,
+    )
+  ) {
+    throw new ProviderAdapterError("invalid_output", "Provider invented an Operation identity");
+  }
+  return decision;
+}

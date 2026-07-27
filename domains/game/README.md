@@ -110,7 +110,7 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`src/host/store.ts`](src/host/store.ts) — independent Host Journal, content-addressed Artifacts, and materialized projections.
 - [`src/host/operations.ts`](src/host/operations.ts) — strategic Operation frontier and deterministic Skill compilation.
 - [`src/host/context.ts`](src/host/context.ts) — canonical bounded Agent Context without transcript replay.
-- [`src/providers/`](src/providers/) — exact Operation Decision contracts and deterministic baseline provider.
+- [`src/providers/`](src/providers/) — exact Operation contracts, fixture baseline, ephemeral Codex, isolated Hermes, process limits, and technical fallback.
 - [`src/provider.ts`](src/provider.ts) — bounded M1 candidate interface pending replacement by M2 Operation providers.
 - [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
 - [`web/`](web/) — dependency-free mission-control surface.
@@ -122,7 +122,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2 implementation is underway.** Durable Host state and a bounded strategic Operation frontier are now implemented. Ten high-level recovery decisions expand deterministically into the frozen 25-Tick winning world trajectory. External Provider invocation and durable Dispatch execution remain the next layers.
+**M2 implementation is underway.** Durable Host state, strategic Operations, and isolated Codex/Hermes Provider adapters are implemented. External cognition can now return only exact admitted Operation identities. Durable Effect/Dispatch execution and process continuation remain the next layer.
 
 ## License
 
