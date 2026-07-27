@@ -452,7 +452,7 @@ export class TeamStore {
     return rows.map((row) => parse<AuthorityGrant>(row.value_json, "Authority Grant"));
   }
 
-  projection(runId = this.game.activeRunId): TeamProjection {
+  projection(runId = this.game.activeRunId, refreshMessages = true): TeamProjection {
     const state = this.game.loadState(runId);
     return {
       goal: this.getGoal(runId),
@@ -460,7 +460,7 @@ export class TeamStore {
       tasks: this.listTasks(runId),
       objectives: TEAM_OBJECTIVE_GRAPH,
       objectiveStatus: objectiveStatus(state),
-      messages: this.refreshMessages(runId),
+      messages: refreshMessages ? this.refreshMessages(runId) : this.listMessages(runId),
       authorityDecisions: this.listAuthorityDecisions(runId),
       authorityGrants: this.listAuthorityGrants(runId),
     };

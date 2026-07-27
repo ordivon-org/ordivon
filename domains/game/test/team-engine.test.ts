@@ -324,3 +324,37 @@ test("TeamHost validates the run step budget and technical Provider failure shap
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("player Task redirect supersedes a prepared Context before Provider admission", async () => {
+  const { directory, game } = fixture("run:team-task-redirect");
+  try {
+    const provider = new ActionProvider({
+      [ENGINEER_ID]: "move:power-junction",
+      [MEDIC_ID]: "move:power-junction",
+      [SECURITY_ID]: "move:power-junction",
+    });
+    const host = new TeamHost(game, provider);
+    assert.equal((await host.step()).status, "initialized");
+    assert.equal((await host.step()).status, "contexts_prepared");
+    const engineerTask = host.team.listTasks().find((task) => task.actorId === ENGINEER_ID)!;
+    host.team.transitionTask(engineerTask.taskId, {
+      state: "ready",
+      activeObjectiveId: "communications-operational",
+      preparedContextDigest: null,
+      admittedProposalId: null,
+      wait: null,
+    }, "team.task-test-redirected", { objectiveId: "communications-operational" });
+    assert.equal((await host.step()).status, "proposals_recorded");
+    const round = host.execution.listRounds(game.activeRunId)[0]!;
+    const proposals = host.execution.listProposals(round.roundId);
+    assert.ok(!proposals.some((proposal) => proposal.actorId === ENGINEER_ID));
+    assert.ok(proposals.some((proposal) => proposal.actorId === MEDIC_ID));
+    assert.ok(proposals.some((proposal) => proposal.actorId === SECURITY_ID));
+    const redirected = host.team.getTask(engineerTask.taskId);
+    assert.equal(redirected.wait?.kind, "replan");
+    assert.match(redirected.wait?.reason ?? "", /Task changed after Context preparation/);
+  } finally {
+    game.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

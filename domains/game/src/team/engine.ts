@@ -3,7 +3,7 @@ import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "../providers/types.ts";
 import type { GameStore } from "../storage.ts";
 import { applyWorldTickV3 } from "../world.ts";
-import { candidateAllowed, evaluateAuthority } from "./authority.ts";
+import { authorityTargetId, candidateAllowed, evaluateAuthority } from "./authority.ts";
 import { compileTeamContext } from "./context.ts";
 import { TeamExecutionStore } from "./execution-store.ts";
 import type {
@@ -110,19 +110,6 @@ function resourceClaims(command: PrimitiveWorldCommand, state: WorldState): Reso
   return claims;
 }
 
-function targetId(command: PrimitiveWorldCommand): string {
-  switch (command.kind) {
-    case "move": return command.targetRoomId;
-    case "pickup_item": return command.itemId;
-    case "repair_system":
-    case "set_power":
-    case "send_distress": return command.targetSystemId;
-    case "seal_hull":
-    case "contain_hazard": return command.targetHazardId;
-    case "stabilize_crew": return command.targetCrewId;
-    case "wait": return "simulation-clock";
-  }
-}
 
 export class TeamHost {
   readonly game: GameStore;
@@ -347,6 +334,15 @@ export class TeamHost {
       if (!profile) throw new Error(`Team Profile missing for ${reference.actorId}`);
       resolvedActorIds.push(reference.actorId);
       const task = this.team.getTask(reference.taskId);
+      if (task.revision !== reference.taskRevision + 1 || task.preparedContextDigest !== reference.artifactDigest) {
+        this.team.setWait(task.taskId, {
+          kind: "replan",
+          subjectId: reference.contextId,
+          reason: "Actor Task changed after Context preparation",
+          sinceTick: stateBefore.turn,
+        });
+        continue;
+      }
       if (result.status === "rejected") {
         const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
         this.team.setWait(task.taskId, { kind: "provider", subjectId: reference.contextId, reason, sinceTick: stateBefore.turn });
@@ -445,7 +441,7 @@ export class TeamHost {
       grant.contextDigest === proposal.contextId &&
       grant.worldDigest === proposal.worldDigest &&
       grant.operationKind === proposal.command.kind &&
-      grant.targetId === targetId(proposal.command) &&
+      grant.targetId === authorityTargetId(proposal.command) &&
       grant.consumedAtTick === null &&
       tick <= grant.expiresAtTick
     ) ?? null;
@@ -473,8 +469,12 @@ export class TeamHost {
 
   private prepareTickPlan(runId: string, round: TeamRound, proposals: ActionProposal[]): TeamHostStepReceipt {
     const legal = this.legalSubsets(runId, round, proposals);
-    if (legal.length === 0) {
-      const authorityPending = proposals.some((proposal) => proposal.authorityOutcome === "require-human");
+    const state = this.game.loadState(runId);
+    const grants = this.team.listAuthorityGrants(runId);
+    const authorityPending = proposals.some((proposal) =>
+      proposal.authorityOutcome === "require-human" && this.validGrant(proposal, grants, state.turn) === null);
+    const productiveLegal = legal.filter((subset) => subset.some((proposal) => proposal.command.kind !== "wait"));
+    if (legal.length === 0 || (authorityPending && productiveLegal.length === 0)) {
       const updated = this.execution.saveRound({
         ...round,
         status: "blocked",
@@ -484,6 +484,7 @@ export class TeamHost {
       return this.receipt(runId, authorityPending ? "authority_required" : "blocked", updated.blocker ?? "blocked", updated);
     }
     legal.sort((left, right) =>
+      right.filter((proposal) => proposal.command.kind !== "wait").length - left.filter((proposal) => proposal.command.kind !== "wait").length ||
       right.length - left.length ||
       left.map((proposal) => proposal.proposalId).sort().join("|").localeCompare(right.map((proposal) => proposal.proposalId).sort().join("|"))
     );

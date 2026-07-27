@@ -12,6 +12,15 @@ import { RecoveryOperationProvider } from "./providers/fixture.ts";
 import { HermesCliProvider } from "./providers/hermes-cli.ts";
 import type { OperationProvider } from "./providers/types.ts";
 import { GameStore, StorageError } from "./storage.ts";
+import { authorityTargetId } from "./team/authority.ts";
+import { TeamCodexCliProvider } from "./team/codex-cli.ts";
+import { TeamHost } from "./team/engine.ts";
+import { TeamHermesCliProvider } from "./team/hermes-cli.ts";
+import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "./team/model.ts";
+import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "./team/objectives.ts";
+import { TeamProviderChain } from "./team/provider-chain.ts";
+import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
+import { TeamStoreError } from "./team/store.ts";
 import { listAvailableActions, parseWorldCommand } from "./world.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
@@ -46,6 +55,8 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 
 export type AgentProviderName = "fixture" | "codex" | "hermes" | "codex-hermes" | "hermes-codex";
 export type AgentProviderFactory = (name: AgentProviderName) => OperationProvider;
+export type TeamProviderName = AgentProviderName;
+export type TeamProviderFactory = (name: TeamProviderName) => TeamDecisionProvider;
 
 function defaultAgentProviderFactory(name: AgentProviderName): OperationProvider {
   switch (name) {
@@ -57,12 +68,45 @@ function defaultAgentProviderFactory(name: AgentProviderName): OperationProvider
   }
 }
 
+function defaultTeamProviderFactory(name: TeamProviderName): TeamDecisionProvider {
+  switch (name) {
+    case "fixture": return new FixtureTeamProvider();
+    case "codex": return new TeamCodexCliProvider();
+    case "hermes": return new TeamHermesCliProvider();
+    case "codex-hermes": return new TeamProviderChain([new TeamCodexCliProvider(), new TeamHermesCliProvider()]);
+    case "hermes-codex": return new TeamProviderChain([new TeamHermesCliProvider(), new TeamCodexCliProvider()]);
+  }
+}
+
 function parseProviderName(value: unknown): AgentProviderName {
   const name = value ?? "fixture";
   if (["fixture", "codex", "hermes", "codex-hermes", "hermes-codex"].includes(String(name))) {
     return name as AgentProviderName;
   }
   throw new TypeError("unsupported Agent Provider");
+}
+
+function parseAuthorityPolicy(value: unknown): AuthorityPolicyMode {
+  const policy = value ?? "autonomous";
+  if (["autonomous", "supervised", "locked"].includes(String(policy))) return policy as AuthorityPolicyMode;
+  throw new TypeError("unsupported Team authority policy");
+}
+
+function parseMessageKind(value: unknown): MessageKind {
+  const kind = requiredString(value, "message kind");
+  if (["fact-share", "help-request", "task-offer", "task-accept", "intent-announce", "blocker-notice", "status-update"].includes(kind)) return kind as MessageKind;
+  throw new TypeError("unsupported Team message kind");
+}
+
+function parseMessageChannel(value: unknown): MessageChannel {
+  const channel = requiredString(value, "message channel");
+  if (["local", "station-radio"].includes(channel)) return channel as MessageChannel;
+  throw new TypeError("unsupported Team message channel");
+}
+
+function requiredString(value: unknown, label: string): string {
+  if (typeof value !== "string" || !value.trim()) throw new TypeError(`${label} must be a non-empty string`);
+  return value;
 }
 
 function bodyRecord(value: unknown): Record<string, unknown> {
@@ -77,6 +121,7 @@ export interface GameServerOptions {
   webRoot?: string;
   provider?: CognitionProvider;
   agentProviderFactory?: AgentProviderFactory;
+  teamProviderFactory?: TeamProviderFactory;
 }
 
 export interface GameServer {
@@ -121,11 +166,48 @@ function agentEnvelope(store: GameStore, provider: OperationProvider, runId: str
   }
 }
 
+function teamTablesExist(store: GameStore): boolean {
+  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_goals'").get() as { name?: string } | undefined;
+  return row?.name === "team_goals";
+}
+
+function teamEnvelope(
+  store: GameStore,
+  provider: TeamDecisionProvider,
+  runId: string,
+  policyMode: AuthorityPolicyMode,
+): unknown {
+  if (!teamTablesExist(store)) {
+    return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
+  }
+  const goal = store.db.prepare("SELECT goal_id FROM team_goals WHERE run_id = ?").get(runId) as { goal_id?: string } | undefined;
+  if (!goal?.goal_id) {
+    return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
+  }
+  const team = new TeamHost(store, provider, { policyMode });
+  const projection = team.team.projection(runId, false);
+  const rounds = team.execution.listRounds(runId);
+  const proposals = rounds.flatMap((round) => team.execution.listProposals(round.roundId));
+  const latestRound = rounds.at(-1) ?? null;
+  const latestTickPlan = latestRound?.tickPlanId ? team.execution.getTickPlan(latestRound.tickPlanId) : null;
+  return {
+    initialized: true,
+    runId,
+    policyMode,
+    projection,
+    rounds,
+    proposals,
+    latestTickPlan,
+    timeline: team.team.host.listJournal(runId).slice(-80),
+  };
+}
+
 export function createGameServer(options: GameServerOptions = {}): GameServer {
   const store = new GameStore(options.dbPath ?? defaultDbPath);
   const webRoot = options.webRoot ?? defaultWebRoot;
   const provider = options.provider ?? new FixtureProvider();
   const agentProviderFactory = options.agentProviderFactory ?? defaultAgentProviderFactory;
+  const teamProviderFactory = options.teamProviderFactory ?? defaultTeamProviderFactory;
 
   const server = createServer(async (request, response) => {
     try {
@@ -253,6 +335,143 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
+      if (request.method === "GET" && url.pathname === "/api/team/state") {
+        const selected = parseProviderName(url.searchParams.get("provider") ?? "fixture");
+        const policyMode = parseAuthorityPolicy(url.searchParams.get("policyMode") ?? "autonomous");
+        sendJson(response, 200, teamEnvelope(store, teamProviderFactory(selected), runId, policyMode));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/team/initialize") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const policyMode = parseAuthorityPolicy(body.policyMode);
+        const team = new TeamHost(store, teamProviderFactory(selected), { policyMode });
+        const projection = team.initialize(runId);
+        sendJson(response, 201, { runId, provider: selected, policyMode, projection, team: teamEnvelope(store, teamProviderFactory(selected), runId, policyMode) });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/team/step") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const policyMode = parseAuthorityPolicy(body.policyMode);
+        const team = new TeamHost(store, teamProviderFactory(selected), { policyMode });
+        const receipt = await team.step(runId);
+        sendJson(response, 200, {
+          provider: selected,
+          policyMode,
+          receipt,
+          team: teamEnvelope(store, teamProviderFactory(selected), runId, policyMode),
+          world: stateEnvelope(store, runId),
+        });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/team/run") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const policyMode = parseAuthorityPolicy(body.policyMode);
+        const maximumSteps = body.maximumSteps === undefined ? 512 : Number(body.maximumSteps);
+        if (!Number.isSafeInteger(maximumSteps) || maximumSteps < 1 || maximumSteps > 1024) {
+          sendJson(response, 400, { error: "invalid_step_budget", message: "maximumSteps must be an integer from 1 to 1024" });
+          return;
+        }
+        const team = new TeamHost(store, teamProviderFactory(selected), { policyMode });
+        const receipt = await team.run(runId, maximumSteps);
+        sendJson(response, 200, {
+          provider: selected,
+          policyMode,
+          receipt,
+          team: teamEnvelope(store, teamProviderFactory(selected), runId, policyMode),
+          world: stateEnvelope(store, runId),
+        });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/team/input") {
+        const body = bodyRecord(await readJson(request));
+        const selected = parseProviderName(body.provider);
+        const policyMode = parseAuthorityPolicy(body.policyMode);
+        const action = requiredString(body.action, "Team input action");
+        const team = new TeamHost(store, teamProviderFactory(selected), { policyMode });
+        team.initialize(runId);
+        let result: unknown;
+        if (action === "approve") {
+          const proposalId = requiredString(body.proposalId, "proposalId");
+          const proposal = team.execution.getProposal(proposalId);
+          if (proposal.runId !== runId || proposal.authorityOutcome !== "require-human") throw new TeamStoreError("team_conflict", "Proposal is not awaiting human authority");
+          const state = store.loadState(runId);
+          const expiresAtTick = body.expiresAtTick === undefined ? state.turn + 2 : Number(body.expiresAtTick);
+          if (!Number.isSafeInteger(expiresAtTick) || expiresAtTick < state.turn) throw new TypeError("expiresAtTick must be a current or future integer Tick");
+          result = team.team.issueGrant({
+            actorId: proposal.actorId,
+            proposalId: proposal.proposalId,
+            actionCandidateId: proposal.actionCandidateId,
+            contextDigest: proposal.contextId,
+            worldDigest: proposal.worldDigest,
+            policyRevision: 1,
+            operationKind: proposal.command.kind,
+            targetId: authorityTargetId(proposal.command),
+            expiresAtTick,
+            issuedBy: typeof body.issuedBy === "string" && body.issuedBy.trim() ? body.issuedBy : "player:http",
+          }, runId);
+        } else if (action === "deny") {
+          const proposalId = requiredString(body.proposalId, "proposalId");
+          const proposal = team.execution.getProposal(proposalId);
+          if (proposal.runId !== runId) throw new TeamStoreError("team_conflict", "Proposal belongs to another Run");
+          const updatedAt = new Date().toISOString();
+          result = team.execution.saveProposal({ ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt }, "team.proposal-player-denied");
+          team.team.transitionTask(proposal.actorTaskId, {
+            state: "blocked",
+            admittedProposalId: proposal.proposalId,
+            wait: { kind: "authority", subjectId: proposal.proposalId, reason: "Player denied authority", sinceTick: store.loadState(runId).turn },
+          }, "team.task-player-denied", { proposalId });
+        } else if (action === "send-message") {
+          result = team.team.sendMessage({
+            senderActorId: requiredString(body.senderActorId, "senderActorId"),
+            recipientActorIds: Array.isArray(body.recipientActorIds) ? body.recipientActorIds.map((value) => requiredString(value, "recipientActorId")) : [],
+            kind: parseMessageKind(body.kind),
+            referencedFactIds: Array.isArray(body.referencedFactIds) ? body.referencedFactIds.map((value) => requiredString(value, "Fact identity")) : [],
+            referencedArtifactDigests: Array.isArray(body.referencedArtifactDigests) ? body.referencedArtifactDigests.map((value) => requiredString(value, "Artifact digest")) : [],
+            boundedSummary: requiredString(body.boundedSummary, "boundedSummary"),
+            channel: parseMessageChannel(body.channel),
+            ...(body.ttlTicks === undefined ? {} : { ttlTicks: Number(body.ttlTicks) }),
+          }, runId);
+        } else if (action === "redirect-objective") {
+          const actorId = requiredString(body.actorId, "actorId");
+          const objectiveId = requiredString(body.objectiveId, "objectiveId");
+          const profile = team.team.getProfile(actorId, runId);
+          if (!TEAM_OBJECTIVE_GRAPH.nodes.some((node) => node.objectiveId === objectiveId)) throw new TypeError("unknown Objective");
+          if (!objectivesForRole(profile.role).includes(objectiveId)) throw new TeamStoreError("team_conflict", "Objective is outside the Actor role mandate");
+          const task = team.team.listTasks(runId).find((candidate) => candidate.actorId === actorId);
+          if (!task) throw new Error(`Actor Task missing: ${actorId}`);
+          result = team.team.transitionTask(task.taskId, {
+            state: "ready",
+            activeObjectiveId: objectiveId,
+            preparedContextDigest: null,
+            admittedProposalId: null,
+            wait: null,
+            lastWorldRevision: store.loadState(runId).revision,
+          }, "team.task-player-redirected", { actorId, objectiveId });
+        } else if (action === "pause" || action === "cancel") {
+          const actorId = typeof body.actorId === "string" && body.actorId.trim() ? body.actorId : null;
+          const tasks = team.team.listTasks(runId).filter((task) => task.actorId && (!actorId || task.actorId === actorId));
+          if (tasks.length === 0) throw new TypeError("no matching Actor Task");
+          result = tasks.map((task) => team.team.transitionTask(task.taskId, {
+            state: action === "cancel" ? "cancelled" : "waiting",
+            preparedContextDigest: null,
+            admittedProposalId: null,
+            wait: action === "pause" ? { kind: "replan", subjectId: "player:http", reason: "Player paused Actor", sinceTick: store.loadState(runId).turn } : null,
+          }, action === "cancel" ? "team.task-player-cancelled" : "team.task-player-paused", { actorId: task.actorId }));
+        } else {
+          throw new TypeError("unsupported Team input action");
+        }
+        sendJson(response, 200, {
+          action,
+          result,
+          team: teamEnvelope(store, teamProviderFactory(selected), runId, policyMode),
+          world: stateEnvelope(store, runId),
+        });
+        return;
+      }
+
       const staticFile = staticFiles[url.pathname];
       if (request.method === "GET" && staticFile) {
         const body = await readFile(resolve(webRoot, staticFile.file));
@@ -266,6 +485,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       sendJson(response, 404, { error: "not_found" });
     } catch (error) {
+      if (error instanceof TeamStoreError) {
+        sendJson(response, error.code === "team_corrupt" ? 500 : 409, { error: error.code, message: error.message });
+        return;
+      }
       if (error instanceof StorageError) {
         sendJson(response, error.code === "storage_busy" ? 503 : 500, {
           error: error.code,
@@ -302,7 +525,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const port = Number(process.env.PORT ?? 4173);
   const game = createGameServer({ dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath });
   game.server.listen(port, "127.0.0.1", () => {
-    console.log(`Station Zero M2 running at http://127.0.0.1:${port}`);
+    console.log(`Station Zero M3 running at http://127.0.0.1:${port}`);
   });
   const shutdown = () => game.close().finally(() => process.exit(0));
   process.on("SIGINT", shutdown);

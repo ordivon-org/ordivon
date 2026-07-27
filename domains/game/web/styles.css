@@ -33,3 +33,18 @@ select { border:1px solid #39455a; border-radius:10px; background:#111722; color
 #agent-phase[data-state="succeeded"] { border-color:#287252; color:#83dfae; }
 #agent-phase[data-state="failed"],#agent-phase[data-state="blocked"] { border-color:#803a47; color:#f19aa8; }
 @media (max-width:720px) { .agent-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.agent-toolbar>* { width:100%; }.agent-toolbar label { min-width:0; } }
+
+.team-detail { margin-top: 1rem; }
+.team-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.team-card, .proposal { border: 1px solid var(--line); border-radius: 12px; padding: .75rem; background: rgba(255,255,255,.025); display: grid; gap: .3rem; }
+.team-card strong { text-transform: uppercase; letter-spacing: .08em; }
+.team-card span, .team-card small, .proposal small { color: var(--muted); }
+.team-columns { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 1rem; }
+.team-columns h3 { margin: 0 0 .6rem; font-size: .9rem; text-transform: uppercase; letter-spacing: .08em; }
+.objective-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .35rem; }
+.objective-list li { color: var(--muted); font-size: .85rem; }
+.objective-list li.done { color: var(--online); }
+.proposal { grid-template-columns: 1fr auto; align-items: center; margin-bottom: .5rem; }
+.proposal div { display: flex; gap: .5rem; flex-wrap: wrap; }
+.approve-proposal { grid-row: 1 / span 2; grid-column: 2; padding: .45rem .7rem; }
+@media (max-width: 760px) { .team-grid, .team-columns { grid-template-columns: 1fr; } }

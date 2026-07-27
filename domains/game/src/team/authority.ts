@@ -23,6 +23,10 @@ function target(command: PrimitiveWorldCommand): AuthorityAttributes["target"] {
   }
 }
 
+export function authorityTargetId(command: PrimitiveWorldCommand): string {
+  return target(command).objectId;
+}
+
 function riskTags(command: PrimitiveWorldCommand): string[] {
   switch (command.kind) {
     case "set_power": return command.enabled ? ["power-change"] : ["power-change", "shutdown"];

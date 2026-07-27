@@ -5,7 +5,12 @@ const elements = {
   output: $("#output"), suggest: $("#suggest"), replay: $("#replay"), provider: $("#agent-provider"),
   initialize: $("#agent-initialize"), step: $("#agent-step"), run: $("#agent-run"),
   agentPhase: $("#agent-phase"), agentSummary: $("#agent-summary"), timeline: $("#agent-timeline"),
+  teamProvider: $("#team-provider"), teamPolicy: $("#team-policy"), teamInitialize: $("#team-initialize"),
+  teamStep: $("#team-step"), teamRun: $("#team-run"), teamPhase: $("#team-phase"),
+  teamSummary: $("#team-summary"), teamDetail: $("#team-detail"),
 };
+
+let teamRunId = null;
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
@@ -37,6 +42,7 @@ function factText(fact) {
     case "system_repaired": return `${fact.systemId} repaired to ${Math.round(fact.afterIntegrity * 100)}%`;
     case "power_state_changed": return `${fact.systemId} power ${fact.powered ? "enabled" : "disabled"}`;
     case "hull_breach_sealed": return `${fact.hazardId} sealed`;
+    case "hazard_contained": return `${fact.hazardId} contained by ${fact.actorId}`;
     case "crew_stabilized": return `${fact.crewId} stabilized`;
     case "distress_signal_sent": return "distress signal sent";
     case "battery_consumed": return `${fact.amount} battery consumed`;
@@ -125,13 +131,90 @@ function renderAgent(envelope) {
     </article>`).join("") || "<p class=\"empty\">No Host events.</p>";
 }
 
+function renderTeam(envelope) {
+  if (!envelope?.initialized) {
+    elements.teamPhase.textContent = "NOT INITIALIZED";
+    elements.teamPhase.dataset.state = "none";
+    elements.teamSummary.innerHTML = "<p>Create a Scenario v2 / Ruleset v3 Run. Each specialist owns an independent durable Task.</p>";
+    elements.teamDetail.innerHTML = '<p class="empty">No Team events.</p>';
+    return;
+  }
+  const projection = envelope.projection;
+  const latest = envelope.rounds.at(-1) ?? null;
+  elements.teamPhase.textContent = (latest?.status ?? projection.goal.status).toUpperCase();
+  elements.teamPhase.dataset.state = latest?.status ?? projection.goal.status;
+  elements.teamSummary.innerHTML = `<div class="team-grid">${projection.profiles.map((profile) => {
+    const task = projection.tasks.find((candidate) => candidate.actorId === profile.actorId);
+    return `<article class="team-card"><strong>${escapeHtml(profile.role)}</strong><span>${escapeHtml(profile.actorId)}</span><small>${escapeHtml(task?.state ?? "missing")} · rev ${task?.revision ?? "—"}</small><small>${escapeHtml(task?.activeObjectiveId ?? "No active objective")}</small></article>`;
+  }).join("")}</div>`;
+  const objectives = projection.objectiveStatus.filter((objective) => objective.visible).map((objective) => `<li class="${objective.satisfied ? "done" : ""}">${objective.satisfied ? "✓" : "○"} ${escapeHtml(objective.objectiveId)}</li>`).join("");
+  const proposals = envelope.proposals.slice(-12).reverse().map((proposal) => {
+    const approval = proposal.authorityOutcome === "require-human" && proposal.status === "proposed"
+      ? `<button class="approve-proposal" data-proposal-id="${escapeHtml(proposal.proposalId)}">Approve</button>` : "";
+    return `<article class="proposal"><div><strong>${escapeHtml(proposal.actorId)}</strong><span>${escapeHtml(proposal.command.kind)}</span></div><small>${escapeHtml(proposal.status)} · ${escapeHtml(proposal.authorityOutcome)}</small>${approval}</article>`;
+  }).join("") || '<p class="empty">No proposals yet.</p>';
+  elements.teamDetail.innerHTML = `<div class="team-columns"><div><h3>Objectives</h3><ul class="objective-list">${objectives}</ul></div><div><h3>Recent proposals</h3>${proposals}</div></div>`;
+  for (const button of document.querySelectorAll(".approve-proposal")) {
+    button.addEventListener("click", () => teamInput("approve", { proposalId: button.dataset.proposalId }));
+  }
+}
+
+function teamQuery() {
+  const params = new URLSearchParams({ provider: elements.teamProvider.value, policyMode: elements.teamPolicy.value });
+  if (teamRunId) params.set("runId", teamRunId);
+  return params.toString();
+}
+
+async function loadTeam() {
+  const envelope = await request(`/api/team/state?${teamQuery()}`);
+  renderTeam(envelope);
+  return envelope;
+}
+
+async function createTeamRun() {
+  const runId = `run:web-team:${Date.now()}:${crypto.randomUUID()}`;
+  await post("/api/runs", { runId, scenarioVersion: 2, rulesetVersion: 3 });
+  teamRunId = runId;
+  const result = await post(`/api/team/initialize?${teamQuery()}`, { provider: elements.teamProvider.value, policyMode: elements.teamPolicy.value });
+  renderTeam(result.team);
+  show({ runId, provider: result.provider, policyMode: result.policyMode, goal: result.projection.goal });
+}
+
+async function teamAction(path, extra = {}) {
+  if (!teamRunId) return createTeamRun();
+  elements.teamStep.disabled = true;
+  elements.teamRun.disabled = true;
+  elements.teamInitialize.disabled = true;
+  try {
+    const result = await post(`${path}?${teamQuery()}`, { provider: elements.teamProvider.value, policyMode: elements.teamPolicy.value, ...extra });
+    show(result.receipt ?? result);
+    if (result.team) renderTeam(result.team);
+    if (result.world) renderWorld(result.world);
+  } catch (error) { show({ error: String(error) }); }
+  finally {
+    elements.teamStep.disabled = false;
+    elements.teamRun.disabled = false;
+    elements.teamInitialize.disabled = false;
+  }
+}
+
+async function teamInput(action, extra = {}) {
+  if (!teamRunId) return;
+  try {
+    const result = await post(`/api/team/input?${teamQuery()}`, { provider: elements.teamProvider.value, policyMode: elements.teamPolicy.value, action, ...extra });
+    show(result.result ?? result);
+    renderTeam(result.team);
+    if (result.world) renderWorld(result.world);
+  } catch (error) { show({ error: String(error) }); }
+}
+
 async function loadWorld() { const world = await request("/api/state"); renderWorld(world); return world; }
 async function loadAgent() {
   const envelope = await request(`/api/agent/state?provider=${encodeURIComponent(elements.provider.value)}`);
   renderAgent(envelope);
   return envelope;
 }
-async function refresh() { await Promise.all([loadWorld(), loadAgent()]); }
+async function refresh() { await Promise.all([loadWorld(), loadAgent(), loadTeam()]); }
 
 async function execute(action) {
   try {
@@ -158,6 +241,12 @@ async function agentAction(path, extra = {}) {
     elements.initialize.disabled = false;
   }
 }
+
+elements.teamInitialize.addEventListener("click", () => createTeamRun().catch((error) => show({ error: String(error) })));
+elements.teamStep.addEventListener("click", () => teamAction("/api/team/step"));
+elements.teamRun.addEventListener("click", () => teamAction("/api/team/run", { maximumSteps: 512 }));
+elements.teamProvider.addEventListener("change", () => loadTeam().catch((error) => show({ error: String(error) })));
+elements.teamPolicy.addEventListener("change", () => loadTeam().catch((error) => show({ error: String(error) })));
 
 elements.initialize.addEventListener("click", () => agentAction("/api/agent/initialize"));
 elements.step.addEventListener("click", () => agentAction("/api/agent/step"));
