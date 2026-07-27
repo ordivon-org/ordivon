@@ -1,6 +1,6 @@
 import type { ApplyResult, ApplyTickResult, TickBatch, WorldCommand, WorldState } from "./model.ts";
-import { initialWorld } from "./scenario.ts";
-import { applyWorldCommand, applyWorldCommandV2, applyWorldTick, applyWorldTickV2 } from "./world.ts";
+import { initialTeamWorld, initialWorld } from "./scenario.ts";
+import { applyWorldCommand, applyWorldCommandV2, applyWorldCommandV3, applyWorldTick, applyWorldTickV2, applyWorldTickV3 } from "./world.ts";
 
 export class UnsupportedVersionError extends Error {
   readonly code: "unsupported_scenario_version" | "unknown_ruleset_version";
@@ -35,6 +35,16 @@ const scenarioV1: ScenarioDefinition = {
   },
 };
 
+const scenarioV2: ScenarioDefinition = {
+  id: "station-zero",
+  version: 2,
+  create(seed) {
+    const state = initialTeamWorld();
+    if (seed) state.seed = seed;
+    return state;
+  },
+};
+
 const rulesetV1: RulesetDefinition = {
   id: "station-zero-core",
   version: 1,
@@ -50,10 +60,21 @@ const rulesetV2: RulesetDefinition = {
   applyTick: applyWorldTickV2,
 };
 
-const scenarios = new Map([[`${scenarioV1.id}@${scenarioV1.version}`, scenarioV1]]);
+const rulesetV3: RulesetDefinition = {
+  id: "station-zero-core",
+  version: 3,
+  apply: applyWorldCommandV3,
+  applyTick: applyWorldTickV3,
+};
+
+const scenarios = new Map([
+  [`${scenarioV1.id}@${scenarioV1.version}`, scenarioV1],
+  [`${scenarioV2.id}@${scenarioV2.version}`, scenarioV2],
+]);
 const rulesets = new Map([
   [`${rulesetV1.id}@${rulesetV1.version}`, rulesetV1],
   [`${rulesetV2.id}@${rulesetV2.version}`, rulesetV2],
+  [`${rulesetV3.id}@${rulesetV3.version}`, rulesetV3],
 ]);
 
 export function resolveScenario(id: string, version: number): ScenarioDefinition {

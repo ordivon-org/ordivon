@@ -57,3 +57,27 @@ test("tick and intent revisions must agree", () => {
   assert.equal(result.status, "rejected");
   assert.equal(result.status === "rejected" ? result.code : null, "stale_revision");
 });
+
+
+test("legacy Tick rejects empty identity and invalid command sequence", () => {
+  const state = initialWorld();
+  const action = listAvailableActions(state).find((candidate) => candidate.actionId === "move:power-junction");
+  assert.ok(action);
+  const command = materializeAction(action, "tick-invalid-shape");
+  const emptyId = applyWorldTick(state, {
+    tickId: "",
+    expectedWorldRevision: 0,
+    intents: [{ commandSequence: 0, command }],
+  });
+  assert.equal(emptyId.status, "rejected");
+  assert.equal(emptyId.status === "rejected" ? emptyId.code : null, "invalid_tick");
+
+  const invalidSequence = applyWorldTick(state, {
+    tickId: "tick:test:invalid-sequence",
+    expectedWorldRevision: 0,
+    intents: [{ commandSequence: -1, command }],
+  });
+  assert.equal(invalidSequence.status, "rejected");
+  assert.equal(invalidSequence.status === "rejected" ? invalidSequence.code : null, "invalid_tick");
+  assert.equal(state.revision, 0);
+});

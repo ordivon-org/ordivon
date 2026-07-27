@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "./digest.ts";
-import type { ApplyResult, JournalEvent, WorldCommand, WorldEvent, WorldState } from "./model.ts";
+import type { ApplyResult, JournalEvent, PrimitiveWorldCommand, TickBatch, WorldCommand, WorldEvent, WorldState } from "./model.ts";
 import { resolveRuleset, resolveScenario } from "./registry.ts";
 import {
   CURRENT_BUILD,
@@ -513,6 +513,49 @@ export class GameStore {
 
   loadState(runId = this.activeRunId): WorldState {
     return this.recover(runId).state;
+  }
+
+  applyTeamTick(batch: TickBatch, runId = this.activeRunId): PersistedApplyResult {
+    const metadata = this.getRun(runId);
+    if (metadata.rulesetVersion < 3) {
+      return {
+        idempotent: false,
+        runId,
+        commandSequence: this.eventCount(runId),
+        result: {
+          status: "rejected",
+          state: this.loadState(runId),
+          code: "invalid_command",
+          reason: "multi-Actor TickBatch requires station-zero-core@3",
+        },
+      };
+    }
+    const commands: PrimitiveWorldCommand[] = [];
+    for (const intent of batch.intents) {
+      if (intent.command.kind === "team_tick") {
+        return {
+          idempotent: false,
+          runId,
+          commandSequence: this.eventCount(runId),
+          result: {
+            status: "rejected",
+            state: this.loadState(runId),
+            code: "invalid_command",
+            reason: "nested team_tick is invalid",
+          },
+        };
+      }
+      commands.push(intent.command);
+    }
+    const command: WorldCommand = {
+      kind: "team_tick",
+      commandId: `team-tick:${batch.tickId}`,
+      actorId: "team-coordinator",
+      expectedRevision: batch.expectedWorldRevision,
+      tickId: batch.tickId,
+      intents: commands,
+    };
+    return this.apply(command, runId);
   }
 
   apply(command: WorldCommand, runId = this.activeRunId): PersistedApplyResult {

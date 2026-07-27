@@ -2,6 +2,8 @@ import { ITEM_IDS, inventory, type ItemId, type WorldState } from "./model.ts";
 
 export const POWER_JUNCTION_ID = "power-junction";
 export const ENGINEER_ID = "engineer-01";
+export const MEDIC_ID = "medic-01";
+export const SECURITY_ID = "security-01";
 
 export function initialWorld(): WorldState {
   const initialItems = inventory({
@@ -158,6 +160,46 @@ export function initialWorld(): WorldState {
   };
 }
 
+
+export function initialTeamWorld(): WorldState {
+  const state = initialWorld();
+  state.scenarioId = "station-zero-m3";
+  state.seed = "station-zero-team-fixed-seed-01";
+  state.mission.turnLimit = 18;
+  const engineer = state.agents[ENGINEER_ID];
+  if (!engineer) throw new Error("engineer missing from team genesis");
+  engineer.capabilities = [
+    "move",
+    "pickup_item",
+    "repair_system",
+    "set_power",
+    "seal_hull",
+    "send_distress",
+    "wait",
+  ];
+  state.agents[MEDIC_ID] = {
+    id: MEDIC_ID,
+    name: "Medic Reyes",
+    location: "command-center",
+    health: 100,
+    capabilities: ["move", "pickup_item", "basic_first_aid", "wait"],
+    inventory: inventory(),
+  };
+  state.agents[SECURITY_ID] = {
+    id: SECURITY_ID,
+    name: "Security Chen",
+    location: "command-center",
+    health: 100,
+    capabilities: ["move", "pickup_item", "contain_hazard", "wait"],
+    inventory: inventory(),
+  };
+  const breach = state.hazards["maintenance-breach"];
+  if (!breach) throw new Error("breach missing from team genesis");
+  breach.contained = false;
+  assertWorldInvariants(state);
+  return state;
+}
+
 export function isOperational(integrity: number): boolean {
   return integrity >= 0.8;
 }
@@ -277,7 +319,7 @@ export function advanceEnvironment(state: WorldState): void {
 
   const oxygenDelta =
     -2 +
-    (breach.sealed ? 0 : -2) +
+    ((breach.sealed || breach.contained) ? 0 : -2) +
     (lifeSupport.powered && isOperational(lifeSupport.integrity) ? 5 : 0);
   state.resources.oxygen = clamp(state.resources.oxygen + oxygenDelta, 0, 100);
 
@@ -316,12 +358,16 @@ export function evaluateMission(state: WorldState): void {
   if (state.resources.reactorHeat >= 100) return fail("reactor_meltdown");
   if (state.resources.oxygen <= 0) return fail("station_asphyxiation");
   if (casualty.health <= 0) return fail("crew_lost");
-  if (engineer.health <= 0) return fail("engineer_incapacitated");
+  if (state.scenarioId === "station-zero-m1") {
+    if (engineer.health <= 0) return fail("engineer_incapacitated");
+  } else if (Object.values(state.agents).every((agent) => agent.health <= 0)) {
+    return fail("team_incapacitated");
+  }
 
   const victory =
     state.mission.distressSent &&
     casualty.stabilized &&
-    breach.sealed &&
+    (breach.sealed || breach.contained === true) &&
     isOperational(cooling.integrity) &&
     isOperational(lifeSupport.integrity) &&
     lifeSupport.powered &&

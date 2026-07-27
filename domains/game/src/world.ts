@@ -5,6 +5,7 @@ import {
   type ApplyResult,
   type AvailableAction,
   type ItemId,
+  type PrimitiveWorldCommand,
   type RejectionCode,
   type ScalarValue,
   type StateChange,
@@ -103,6 +104,18 @@ export function parseWorldCommand(input: unknown): WorldCommand {
       return { ...base, kind: "seal_hull", targetHazardId: readString(value, "targetHazardId") };
     case "stabilize_crew":
       return { ...base, kind: "stabilize_crew", targetCrewId: readString(value, "targetCrewId") };
+    case "contain_hazard":
+      return { ...base, kind: "contain_hazard", targetHazardId: readString(value, "targetHazardId") };
+    case "team_tick": {
+      const raw = value.intents;
+      if (!Array.isArray(raw) || raw.length < 1) throw new TypeError("team_tick intents must be a non-empty array");
+      const intents = raw.map((entry) => {
+        const parsed = parseWorldCommand(entry);
+        if (parsed.kind === "team_tick") throw new TypeError("nested team_tick is not supported");
+        return parsed;
+      });
+      return { ...base, kind: "team_tick", tickId: readString(value, "tickId"), intents };
+    }
     case "send_distress":
       return { ...base, kind: "send_distress", targetSystemId: readString(value, "targetSystemId") };
     case "wait":
@@ -112,7 +125,7 @@ export function parseWorldCommand(input: unknown): WorldCommand {
   }
 }
 
-function capabilityFor(command: WorldCommand): string {
+function capabilityFor(command: PrimitiveWorldCommand): string {
   if (command.kind === "stabilize_crew") return "basic_first_aid";
   return command.kind;
 }
@@ -129,6 +142,10 @@ export function validateWorldCommand(
       code: "stale_revision",
       reason: `expected revision ${command.expectedRevision}, current revision is ${state.revision}`,
     };
+  }
+
+  if (command.kind === "team_tick") {
+    return { code: "invalid_command", reason: "team_tick must be admitted through Ruleset v3" };
   }
 
   const actor = state.agents[command.actorId];
@@ -212,6 +229,17 @@ export function validateWorldCommand(
       if (actor.inventory.medkit < 1) return { code: "item_missing", reason: "medkit is required" };
       return null;
     }
+    case "contain_hazard": {
+      const hazard = state.hazards[command.targetHazardId];
+      if (!hazard) return { code: "unknown_target", reason: `unknown hazard: ${command.targetHazardId}` };
+      if (actor.location !== hazard.roomId) {
+        return { code: "wrong_location", reason: `actor must be in ${hazard.roomId}` };
+      }
+      if (hazard.sealed || hazard.contained) {
+        return { code: "already_complete", reason: `${hazard.id} is already controlled` };
+      }
+      return null;
+    }
     case "send_distress": {
       const system = state.systems[command.targetSystemId];
       if (!system) return { code: "unknown_target", reason: `unknown system: ${command.targetSystemId}` };
@@ -284,6 +312,14 @@ function applyActionMutation(state: WorldState, command: WorldCommand): void {
       crew.health = Math.min(100, crew.health + 12);
       break;
     }
+    case "contain_hazard": {
+      const hazard = state.hazards[command.targetHazardId];
+      if (!hazard) throw new Error("validated hazard disappeared");
+      hazard.contained = true;
+      break;
+    }
+    case "team_tick":
+      throw new Error("team_tick cannot be applied as a primitive mutation");
     case "send_distress":
       state.mission.distressSent = true;
       break;
@@ -399,6 +435,7 @@ export function listAvailableActions(state: WorldState, actorId = ENGINEER_ID): 
   for (const hazard of Object.values(state.hazards)) {
     if (hazard.roomId === actor.location) {
       add(`seal:${hazard.id}`, `Seal ${hazard.name}`, draft({ ...base, kind: "seal_hull", targetHazardId: hazard.id }));
+      add(`contain:${hazard.id}`, `Contain ${hazard.name}`, draft({ ...base, kind: "contain_hazard", targetHazardId: hazard.id }));
     }
   }
   for (const crew of Object.values(state.crew)) {
@@ -493,6 +530,201 @@ export function applyWorldTick(
       },
     ],
   };
+}
+
+
+function mutableTarget(command: PrimitiveWorldCommand): string | null {
+  switch (command.kind) {
+    case "repair_system":
+    case "set_power":
+      return `system:${command.targetSystemId}`;
+    case "seal_hull":
+    case "contain_hazard":
+      return `hazard:${command.targetHazardId}`;
+    case "stabilize_crew":
+      return `crew:${command.targetCrewId}`;
+    case "send_distress":
+      return "mission:distress";
+    case "move":
+    case "pickup_item":
+    case "wait":
+      return null;
+  }
+}
+
+function teamConflict(state: WorldState, commands: PrimitiveWorldCommand[]): string | null {
+  const actors = new Set<string>();
+  const commandIds = new Set<string>();
+  const targets = new Set<string>();
+  const pickupClaims = new Map<string, number>();
+  for (const command of commands) {
+    if (actors.has(command.actorId)) return `actor ${command.actorId} proposed more than one intent`;
+    actors.add(command.actorId);
+    if (commandIds.has(command.commandId)) return `commandId ${command.commandId} is duplicated`;
+    commandIds.add(command.commandId);
+    const target = mutableTarget(command);
+    if (target && targets.has(target)) return `mutable target ${target} has conflicting intents`;
+    if (target) targets.add(target);
+    if (command.kind === "pickup_item") {
+      const roomId = state.agents[command.actorId]?.location ?? "unknown";
+      const key = `${roomId}:${command.itemId}`;
+      pickupClaims.set(key, (pickupClaims.get(key) ?? 0) + command.quantity);
+    }
+  }
+  for (const [key, quantity] of pickupClaims) {
+    const separator = key.lastIndexOf(":");
+    const roomId = key.slice(0, separator);
+    const itemId = key.slice(separator + 1) as ItemId;
+    if ((state.rooms[roomId]?.inventory[itemId] ?? 0) < quantity) {
+      return `shared inventory claim exceeds ${roomId}:${itemId}`;
+    }
+  }
+  return null;
+}
+
+export function applyWorldTickV3(
+  state: WorldState,
+  batch: import("./model.ts").TickBatch,
+): import("./model.ts").ApplyTickResult {
+  assertWorldInvariants(state);
+  if (typeof batch.tickId !== "string" || batch.tickId.length === 0 || batch.intents.length < 1) {
+    return { status: "rejected", state, code: "invalid_tick", reason: "Ruleset v3 requires a non-empty TickBatch" };
+  }
+  if (batch.expectedWorldRevision !== state.revision) {
+    return {
+      status: "rejected",
+      state,
+      code: "stale_revision",
+      reason: `expected world revision ${batch.expectedWorldRevision}, current revision is ${state.revision}`,
+    };
+  }
+  const outerSequence = Math.min(...batch.intents.map((intent) => intent.commandSequence));
+  const synthetic = batch.intents.length === 1 && batch.intents[0]?.command.kind === "team_tick"
+    ? batch.intents[0].command
+    : null;
+  if (synthetic && synthetic.expectedRevision !== batch.expectedWorldRevision) {
+    return { status: "rejected", state, code: "stale_revision", reason: "team_tick revision does not match the tick revision" };
+  }
+  const sourceIntents = synthetic
+    ? synthetic.intents.map((command, index) => ({ commandSequence: index, command }))
+    : batch.intents;
+  const sequences = new Set<number>();
+  const commands: PrimitiveWorldCommand[] = [];
+  for (const intent of sourceIntents) {
+    if (!Number.isSafeInteger(intent.commandSequence) || intent.commandSequence < 0 || sequences.has(intent.commandSequence)) {
+      return { status: "rejected", state, code: "invalid_tick", reason: "commandSequence values must be unique non-negative integers" };
+    }
+    sequences.add(intent.commandSequence);
+    if (intent.command.kind === "team_tick") {
+      return { status: "rejected", state, code: "invalid_tick", reason: "nested team_tick command is invalid" };
+    }
+    if (intent.command.expectedRevision !== batch.expectedWorldRevision) {
+      return { status: "rejected", state, code: "stale_revision", reason: "intent revision does not match the tick revision" };
+    }
+    const validation = validateWorldCommand(state, intent.command);
+    if (validation) return { status: "rejected", state, ...validation };
+    commands.push(intent.command);
+  }
+  const conflict = teamConflict(state, commands);
+  if (conflict) {
+    return { status: "rejected", state, code: "conflicting_intents", reason: conflict };
+  }
+
+  const beforeDigest = sha256(state);
+  const next = structuredClone(state);
+  const ordered = [...commands].sort((left, right) =>
+    left.actorId.localeCompare(right.actorId) || left.commandId.localeCompare(right.commandId));
+  for (const command of ordered) applyActionMutation(next, command);
+  next.revision += 1;
+  next.turn += 1;
+  advanceEnvironment(next);
+  evaluateMission(next);
+  assertWorldInvariants(next);
+  const afterDigest = sha256(next);
+
+  const factMap = new Map<string, import("./model.ts").WorldFact>();
+  const intentReceipts = ordered.map((command) => {
+    const primitiveEvent: WorldEvent = {
+      eventId: `event:${command.commandId}`,
+      commandId: command.commandId,
+      commandKind: command.kind,
+      actorId: command.actorId,
+      worldRevision: next.revision,
+      turn: next.turn,
+      beforeDigest,
+      afterDigest,
+      changes: [],
+      missionStatus: next.mission.status,
+      missionReason: next.mission.reason,
+    };
+    const enriched = enrichWorldEvent(state, next, command, primitiveEvent);
+    for (const fact of enriched.facts ?? []) factMap.set(JSON.stringify(fact), fact);
+    if (!enriched.verification) throw new Error("Ruleset v3 primitive verification is missing");
+    return {
+      commandId: command.commandId,
+      actorId: command.actorId,
+      commandKind: command.kind,
+      facts: enriched.facts ?? [],
+      verification: enriched.verification,
+    };
+  });
+  const coordinatorCommandId = synthetic?.commandId ?? `team-tick:${batch.tickId}`;
+  const event: WorldEvent = {
+    eventId: `event:${coordinatorCommandId}`,
+    commandId: coordinatorCommandId,
+    commandKind: "team_tick",
+    actorId: "team-coordinator",
+    worldRevision: next.revision,
+    turn: next.turn,
+    beforeDigest,
+    afterDigest,
+    changes: diffState(state, next),
+    missionStatus: next.mission.status,
+    missionReason: next.mission.reason,
+    facts: [...factMap.values()],
+    verification: {
+      effectKind: "team_tick",
+      success: intentReceipts.every((receipt) => receipt.verification.success),
+      checks: [
+        { name: "world_revision_advanced_once", passed: next.revision === state.revision + 1, expected: state.revision + 1, observed: next.revision },
+        { name: "simulation_tick_advanced_once", passed: next.turn === state.turn + 1, expected: state.turn + 1, observed: next.turn },
+        { name: "all_intents_verified", passed: intentReceipts.every((receipt) => receipt.verification.success), expected: true, observed: intentReceipts.every((receipt) => receipt.verification.success) },
+      ],
+    },
+    intentReceipts,
+  };
+  return {
+    status: "accepted",
+    state: next,
+    journalEvents: [{
+      tickId: batch.tickId,
+      commandSequence: outerSequence,
+      simulationTick: next.turn,
+      worldRevision: next.revision,
+      event,
+    }],
+  };
+}
+
+export function applyWorldCommandV3(state: WorldState, command: WorldCommand): ApplyResult {
+  const commands = command.kind === "team_tick" ? command.intents : [command];
+  const tickId = command.kind === "team_tick" ? command.tickId : `tick:${command.commandId}`;
+  const result = applyWorldTickV3(state, {
+    tickId,
+    expectedWorldRevision: command.expectedRevision,
+    intents: commands.map((intent, index) => ({ commandSequence: index, command: intent })),
+  });
+  if (result.status === "rejected") {
+    return {
+      status: "rejected",
+      state,
+      code: result.code === "invalid_tick" ? "invalid_command" : result.code,
+      reason: result.reason,
+    };
+  }
+  const event = result.journalEvents[0]?.event;
+  if (!event) return { status: "rejected", state, code: "invalid_command", reason: "Ruleset v3 produced no TickEvent" };
+  return { status: "accepted", state: result.state, event };
 }
 
 

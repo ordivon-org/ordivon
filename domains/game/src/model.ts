@@ -60,6 +60,7 @@ export interface HazardState {
   name: string;
   roomId: string;
   sealed: boolean;
+  contained?: boolean;
 }
 
 export interface StationResources {
@@ -132,6 +133,11 @@ export interface StabilizeCrewCommand extends CommandBase {
   targetCrewId: string;
 }
 
+export interface ContainHazardCommand extends CommandBase {
+  kind: "contain_hazard";
+  targetHazardId: string;
+}
+
 export interface SendDistressCommand extends CommandBase {
   kind: "send_distress";
   targetSystemId: string;
@@ -141,18 +147,27 @@ export interface WaitCommand extends CommandBase {
   kind: "wait";
 }
 
-export type WorldCommand =
+export type PrimitiveWorldCommand =
   | MoveCommand
   | PickupCommand
   | RepairSystemCommand
   | SetPowerCommand
   | SealHullCommand
   | StabilizeCrewCommand
+  | ContainHazardCommand
   | SendDistressCommand
   | WaitCommand;
 
-export type WorldCommandDraft = WorldCommand extends infer Command
-  ? Command extends WorldCommand
+export interface TeamTickCommand extends CommandBase {
+  kind: "team_tick";
+  tickId: string;
+  intents: PrimitiveWorldCommand[];
+}
+
+export type WorldCommand = PrimitiveWorldCommand | TeamTickCommand;
+
+export type WorldCommandDraft = PrimitiveWorldCommand extends infer Command
+  ? Command extends PrimitiveWorldCommand
     ? Omit<Command, "commandId">
     : never
   : never;
@@ -180,6 +195,7 @@ export type WorldFact =
   | { kind: "system_repaired"; systemId: string; beforeIntegrity: number; afterIntegrity: number }
   | { kind: "power_state_changed"; systemId: string; powered: boolean }
   | { kind: "hull_breach_sealed"; hazardId: string }
+  | { kind: "hazard_contained"; hazardId: string; actorId: string }
   | { kind: "crew_stabilized"; crewId: string; health: number }
   | { kind: "distress_signal_sent"; systemId: string }
   | { kind: "battery_consumed"; amount: number; poweredSystems: string[] }
@@ -202,6 +218,14 @@ export interface VerificationReceipt {
   checks: VerificationCheck[];
 }
 
+export interface ActorIntentReceipt {
+  commandId: string;
+  actorId: string;
+  commandKind: PrimitiveWorldCommand["kind"];
+  facts: WorldFact[];
+  verification: VerificationReceipt;
+}
+
 export interface WorldEvent {
   eventId: string;
   commandId: string;
@@ -216,6 +240,7 @@ export interface WorldEvent {
   missionReason: string | null;
   facts?: WorldFact[];
   verification?: VerificationReceipt;
+  intentReceipts?: ActorIntentReceipt[];
 }
 
 export type RejectionCode =
@@ -231,7 +256,8 @@ export type RejectionCode =
   | "wrong_location"
   | "already_complete"
   | "system_damaged"
-  | "insufficient_power";
+  | "insufficient_power"
+  | "conflicting_intents";
 
 export type ApplyResult =
   | {
