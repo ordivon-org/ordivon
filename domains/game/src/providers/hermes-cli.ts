@@ -62,7 +62,7 @@ export class HermesCliProvider implements OperationProvider {
       const prompt = [
         "You are one replaceable cognitive step inside a persistent game Agent Host.",
         "Use only the canonical Context below. Choose exactly one allowed Operation and copy its operationCandidateId and contextId exactly.",
-        "Return exactly one JSON object with contextId, selectedOperationCandidateId, riskLevel, confidence, rationale.",
+        "Return exactly one JSON object with: contextId as a string; selectedOperationCandidateId as a string or null; riskLevel as exactly low, medium, high, or critical; confidence as a JSON number from 0 to 1; rationale as a non-empty string.",
         "Do not call tools or use memory, rules, skills, MCP, prior sessions, or markdown.",
         "",
         canonicalJson(context.payload),

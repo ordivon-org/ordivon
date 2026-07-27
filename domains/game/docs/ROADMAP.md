@@ -74,7 +74,7 @@ Implemented before cognition:
 
 Exit condition: M2 can persist Agent cognition above the world without redefining world identity, time, replay, evidence, or transaction semantics.
 
-## M2 — Single-Agent Host path
+## M2 — Single-Agent Host path — complete
 
 Integrate one Engineer Agent:
 
@@ -94,6 +94,8 @@ Acceptance criteria:
 - a completed repair requires independent world verification;
 - provider session loss does not erase mission continuity;
 - all admitted actions can be replayed.
+
+Receipt: [`M2-RECEIPT.md`](M2-RECEIPT.md). Live evaluation: [`M2-EVALUATION.json`](M2-EVALUATION.json). Goal-directed strategy improvement continues in Issue #20 and does not invalidate the Host acceptance above.
 
 ## M3 — Multi-Agent team and authority
 

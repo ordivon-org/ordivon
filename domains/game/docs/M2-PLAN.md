@@ -57,3 +57,12 @@ No Provider is called and no Host operation can mutate the world in PR1.
 - Provider switching without Agent identity loss;
 - multi-Run Host isolation through the HTTP boundary;
 - coexistence of manual world actions and autonomous Agent execution.
+
+## PR6 status — implemented
+
+- real Codex-only, Hermes-only, and Codex → Hermes mission evaluations;
+- exact raw Job Artifact identities and digests retained;
+- canonical normalized evaluation evidence with replay and count consistency;
+- provider-switch continuity demonstrated after five completed Attempts;
+- honest separation of Host acceptance from unresolved strategy quality;
+- final M2 receipt and dedicated strategy follow-up Issue #20.

@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.m2-evaluation",
+  "sourceRevision": "62fb6d00136baaa6f5c95293529377358aa12d66",
+  "evaluatedAt": "2026-07-27T17:59:12.589Z",
+  "acceptance": {
+    "durableGoalAndTask": true,
+    "boundedCanonicalContext": true,
+    "exactCandidateAdmission": true,
+    "staleDecisionRejected": true,
+    "independentWorldVerification": true,
+    "freshProcessContinuation": true,
+    "providerInterchangeability": true,
+    "providerSessionsExcludedFromContinuity": true,
+    "worldReplayExcludesProvider": true,
+    "issue4Passed": true
+  },
+  "automatedEvidence": {
+    "fixtureBaseline": {
+      "providerDecisions": 10,
+      "attemptsSucceeded": 10,
+      "worldEvents": 25,
+      "effects": 25,
+      "dispatches": 25,
+      "observations": 25,
+      "missionStatus": "victory",
+      "missionReason": "rescue_signal_verified",
+      "turn": 25,
+      "terminalDigest": "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2"
+    },
+    "interruptionFaultPoints": [
+      "after_context_artifact",
+      "after_provider_call",
+      "after_decision_artifact",
+      "after_dispatch_prepare",
+      "after_world_apply",
+      "after_observation",
+      "before_attempt_advance"
+    ],
+    "allInterruptionRunsConverged": true
+  },
+  "liveRuns": [
+    {
+      "runId": "codex-only-20260727",
+      "mode": "codex",
+      "rawArtifact": {
+        "jobId": "job-019fa41c-3c9c-7020-b40a-a0348d341cc1",
+        "artifactId": "attempt-019fa41c-3c9c-7020-b40a-a04ab86ebc6d.stdout",
+        "digest": "sha256:d0e9b620283904c5586e6fb8ec2d87a9697b720bc65559563367248bedb0dfdd"
+      },
+      "providerCallCounts": { "codex": 13, "hermes": 0 },
+      "providerCalls": 13,
+      "hostSteps": 93,
+      "elapsedMs": 570276.166,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "allProviderOutputsStructured": true,
+      "allDecisionsAdmitted": true,
+      "allEffectsVerified": true,
+      "operationTrace": [
+        "repair_system:cooling",
+        "set_power:cooling:on",
+        "stabilize_crew:crew-01",
+        "seal_hazard:maintenance-breach",
+        "repair_system:life-support",
+        "set_power:life-support:on",
+        "repair_system:communications",
+        "set_power:communications:on",
+        "set_power:cooling:off",
+        "set_power:life-support:off",
+        "set_power:communications:off",
+        "wait",
+        "set_power:life-support:on"
+      ],
+      "terminal": {
+        "missionStatus": "failure",
+        "missionReason": "power_exhausted",
+        "turn": 27,
+        "worldDigest": "ed9422d56198faee98ceae685c26305234862cfa3c841558aef668fbf43bfb9a",
+        "score": 989
+      },
+      "evidence": {
+        "worldEvents": 27,
+        "effects": 27,
+        "dispatches": 27,
+        "observations": 27,
+        "hostJournalEvents": 203,
+        "hostJournalTerminalDigest": "a08af486b9fe09e2d99970ac5ed0cac11efc8fafcfebba544f3d3b67aa8a1694",
+        "replayVerified": true,
+        "replayDigest": "ed9422d56198faee98ceae685c26305234862cfa3c841558aef668fbf43bfb9a",
+        "maximumContextBytes": 11654,
+        "reportedEstimatedCostUsd": null
+      },
+      "assessment": "Host execution passed; policy entered a power-toggle survival loop instead of sending distress."
+    },
+    {
+      "runId": "hermes-only-20260727",
+      "mode": "hermes",
+      "rawArtifact": {
+        "jobId": "job-019fa425-9b37-7cd3-8f36-c62fd1d26074",
+        "artifactId": "attempt-019fa425-9b37-7cd3-8f36-c63ec71b013a.stdout",
+        "digest": "sha256:87af19808e34ea52c6a6d7b9549a18392d91e100cdfe15ac1fc56cec216a74ca"
+      },
+      "providerCallCounts": { "codex": 0, "hermes": 6 },
+      "providerCalls": 6,
+      "hostSteps": 38,
+      "elapsedMs": 329572.75,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "allProviderOutputsStructured": true,
+      "allDecisionsAdmitted": true,
+      "allEffectsVerified": true,
+      "operationTrace": [
+        "repair_system:communications",
+        "set_power:communications:on",
+        "send_distress",
+        "wait",
+        "wait",
+        "repair_system:cooling"
+      ],
+      "terminal": {
+        "missionStatus": "failure",
+        "missionReason": "reactor_meltdown",
+        "turn": 10,
+        "worldDigest": "32e7f319024b4fd3a9bf1144efe9642788a4617bcdcd676d306c186e00a98b84",
+        "score": 735
+      },
+      "evidence": {
+        "worldEvents": 10,
+        "effects": 10,
+        "dispatches": 10,
+        "observations": 10,
+        "hostJournalEvents": 80,
+        "hostJournalTerminalDigest": "ead8758cb43b4587a99477764a424df9d91d875fd0fd86b1ae12cb867429e7fd",
+        "replayVerified": true,
+        "replayDigest": "32e7f319024b4fd3a9bf1144efe9642788a4617bcdcd676d306c186e00a98b84",
+        "maximumContextBytes": 10554,
+        "reportedEstimatedCostUsd": 0.0758118
+      },
+      "assessment": "Host execution passed; policy rushed communications and distress before cooling, then lost to reactor heat."
+    },
+    {
+      "runId": "codex-hermes-switch-20260727",
+      "mode": "codex-hermes",
+      "rawArtifact": {
+        "jobId": "job-019fa4b1-e1b1-78a2-b6dc-de7a3e561b5a",
+        "artifactId": "attempt-019fa4b1-e1b1-78a2-b6dc-de812b7547a7.stdout",
+        "digest": "sha256:4072e68e3a0b13f8b21cb5d7fe4a663b452a1ce95c983934bf27c6d96ddf38ba"
+      },
+      "providerCallCounts": { "codex": 5, "hermes": 9 },
+      "providerCalls": 14,
+      "hostSteps": 98,
+      "elapsedMs": 603425.337,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "allProviderOutputsStructured": true,
+      "allDecisionsAdmitted": true,
+      "allEffectsVerified": true,
+      "providerSwitchAfterCompletedAttempts": 5,
+      "operationTrace": [
+        "repair_system:cooling",
+        "set_power:cooling:on",
+        "stabilize_crew:crew-01",
+        "seal_hazard:maintenance-breach",
+        "repair_system:life-support",
+        "set_power:life-support:on",
+        "repair_system:communications",
+        "set_power:communications:on",
+        "set_power:communications:off",
+        "set_power:cooling:off",
+        "set_power:life-support:off",
+        "wait",
+        "wait",
+        "set_power:life-support:on"
+      ],
+      "terminal": {
+        "missionStatus": "failure",
+        "missionReason": "engineer_incapacitated",
+        "turn": 28,
+        "worldDigest": "8f1eadf9993bafb8b3ac0e3edc2df3da3757dffb9215dcd0dc3d63f97f4e0e84",
+        "score": 979
+      },
+      "evidence": {
+        "worldEvents": 28,
+        "effects": 28,
+        "dispatches": 28,
+        "observations": 28,
+        "hostJournalEvents": 212,
+        "hostJournalTerminalDigest": "c6f8afbc239ba57280a4e4127f6bc3d45f407526061e16d45cb8a7d5b1cb529b",
+        "replayVerified": true,
+        "replayDigest": "8f1eadf9993bafb8b3ac0e3edc2df3da3757dffb9215dcd0dc3d63f97f4e0e84",
+        "maximumContextBytes": 11594,
+        "reportedEstimatedCostUsd": { "hermes": 0.11519902, "codex": null }
+      },
+      "assessment": "Fresh-provider continuation passed without transcript or session transfer; the combined policy later regressed completed objectives and exhausted the engineer."
+    }
+  ],
+  "conclusions": {
+    "m2HostVerticalPathPassed": true,
+    "providerInterchangeabilityPassed": true,
+    "realProviderVictoryObserved": false,
+    "strategyQualityBlocksIssue4": false,
+    "strategyFollowUpIssue": 20,
+    "primaryFinding": "The Host preserves authority, identity, verification, replay, and continuation even when the model policy is strategically wrong.",
+    "strategyFinding": "One-step non-terminal projections encourage objective regression and power-toggle loops near the goal."
+  }
+}

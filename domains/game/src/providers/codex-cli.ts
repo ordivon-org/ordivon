@@ -80,10 +80,21 @@ export class CodexCliProvider implements OperationProvider {
       try { value = JSON.parse(readFileSync(outputPath, "utf8")); }
       catch (error) { throw new ProviderAdapterError("invalid_output", "Codex did not write valid structured output", { cause: error }); }
       const decision = parseModelDecisionOutput(context, value, this.providerId);
+      const events = result.stdout.split(/\r?\n/).filter(Boolean).flatMap((line) => {
+        try { return [JSON.parse(line) as Record<string, unknown>]; }
+        catch { return []; }
+      });
+      const completed = [...events].reverse().find((event) => event.type === "turn.completed");
+      const usage = completed?.usage && typeof completed.usage === "object"
+        ? completed.usage as Record<string, unknown>
+        : null;
       this.lastEvidence = {
         adapterId: this.providerId,
         model: this.model,
         elapsedMs: Number(result.elapsedMs.toFixed(3)),
+        inputTokens: usage ? Number(usage.input_tokens ?? 0) : null,
+        cachedInputTokens: usage ? Number(usage.cached_input_tokens ?? 0) : null,
+        outputTokens: usage ? Number(usage.output_tokens ?? 0) : null,
         ephemeral: true,
         sandbox: "read-only",
         isolatedWorkingDirectory: true,

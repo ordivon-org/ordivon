@@ -124,7 +124,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2 product loop is implemented.** The persistent Engineer can be initialized, stepped, run autonomously, inspected, and switched between Fixture, Codex, Hermes, or fallback Providers through HTTP and the browser. Live real-Provider evaluation and final receipts remain.
+**M2 is complete.** The persistent Engineer can be initialized, stepped, run autonomously, inspected, recovered, and switched between Codex and Hermes without transferring provider sessions. See [`docs/M2-RECEIPT.md`](docs/M2-RECEIPT.md) and [`docs/M2-EVALUATION.json`](docs/M2-EVALUATION.json). Real providers preserved all Host guarantees but did not yet achieve victory; strategy quality is tracked in Issue #20.
 
 ## License
 
