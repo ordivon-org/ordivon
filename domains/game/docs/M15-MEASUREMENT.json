@@ -1,0 +1,258 @@
+{
+  "measurementVersion": 1,
+  "scenario": {
+    "id": "station-zero",
+    "version": 1
+  },
+  "ruleset": {
+    "id": "station-zero-core",
+    "version": 2
+  },
+  "fixedAt": "2026-07-27",
+  "baselines": [
+    {
+      "policy": "recovery",
+      "status": "victory",
+      "reason": "rescue_signal_verified",
+      "turn": 25,
+      "digest": "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2",
+      "score": {
+        "total": 2203,
+        "components": {
+          "verifiedVictory": 1000,
+          "objectiveProgress": 700,
+          "crewHealth": 56,
+          "engineerHealth": 76,
+          "oxygenReserve": 70,
+          "batteryReserve": 12,
+          "reactorSafety": 34,
+          "operationalSystems": 225,
+          "turnEfficiency": 30
+        }
+      }
+    },
+    {
+      "policy": "communications-first",
+      "status": "failure",
+      "reason": "reactor_meltdown",
+      "turn": 10,
+      "digest": "4db74d8a1d2f4583031d5ba7f2fbe9310ef89ef3f57847d803eb70edab737ac1",
+      "score": {
+        "total": 735,
+        "components": {
+          "verifiedVictory": 0,
+          "objectiveProgress": 200,
+          "crewHealth": 60,
+          "engineerHealth": 94,
+          "oxygenReserve": 38,
+          "batteryReserve": 88,
+          "reactorSafety": 0,
+          "operationalSystems": 75,
+          "turnEfficiency": 180
+        }
+      }
+    }
+  ],
+  "random": {
+    "runs": 1000,
+    "initialSeed": 20260727,
+    "terminalReasons": {
+      "reactor_meltdown": 992,
+      "crew_lost": 8
+    },
+    "score": {
+      "minimum": 448,
+      "maximum": 811,
+      "average": 565.067
+    },
+    "best": {
+      "seed": 20260815,
+      "score": 811,
+      "reason": "reactor_meltdown",
+      "digest": "7f1fdf37afc6031100897803e1eb30c7fe0a4d806164fd8a3345042615587816"
+    }
+  },
+  "perturbation": {
+    "totalAlternatives": 103,
+    "recoverableAlternatives": 64,
+    "recoverableRate": 0.6213592233009708,
+    "firstZeroRecoveryTurn": null,
+    "turns": [
+      {
+        "turn": 0,
+        "chosenAction": "move:power-junction",
+        "alternatives": 1,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 1,
+        "chosenAction": "move:reactor",
+        "alternatives": 6,
+        "recoverableVictories": 6,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 2,
+        "chosenAction": "repair:cooling",
+        "alternatives": 2,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 3,
+        "chosenAction": "move:power-junction",
+        "alternatives": 1,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 4,
+        "chosenAction": "power:cooling:true",
+        "alternatives": 7,
+        "recoverableVictories": 7,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 5,
+        "chosenAction": "move:storage",
+        "alternatives": 7,
+        "recoverableVictories": 7,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 6,
+        "chosenAction": "pickup:spare-parts:2",
+        "alternatives": 4,
+        "recoverableVictories": 4,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 7,
+        "chosenAction": "pickup:sealant:1",
+        "alternatives": 3,
+        "recoverableVictories": 3,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 8,
+        "chosenAction": "move:maintenance",
+        "alternatives": 2,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 9,
+        "chosenAction": "seal:maintenance-breach",
+        "alternatives": 3,
+        "recoverableVictories": 3,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 10,
+        "chosenAction": "move:life-support",
+        "alternatives": 2,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 11,
+        "chosenAction": "repair:life-support",
+        "alternatives": 3,
+        "recoverableVictories": 3,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 12,
+        "chosenAction": "move:power-junction",
+        "alternatives": 2,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 13,
+        "chosenAction": "power:life-support:true",
+        "alternatives": 8,
+        "recoverableVictories": 8,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 14,
+        "chosenAction": "power:cooling:false",
+        "alternatives": 8,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 15,
+        "chosenAction": "move:medical-bay",
+        "alternatives": 8,
+        "recoverableVictories": 2,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 16,
+        "chosenAction": "pickup:medkit:1",
+        "alternatives": 2,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 17,
+        "chosenAction": "stabilize:crew-01",
+        "alternatives": 2,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 18,
+        "chosenAction": "move:power-junction",
+        "alternatives": 1,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 19,
+        "chosenAction": "move:communications",
+        "alternatives": 8,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 20,
+        "chosenAction": "repair:communications",
+        "alternatives": 2,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 21,
+        "chosenAction": "move:power-junction",
+        "alternatives": 1,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 22,
+        "chosenAction": "power:communications:true",
+        "alternatives": 9,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 23,
+        "chosenAction": "move:communications",
+        "alternatives": 9,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      },
+      {
+        "turn": 24,
+        "chosenAction": "distress:communications",
+        "alternatives": 2,
+        "recoverableVictories": 1,
+        "alreadyIrrecoverable": false
+      }
+    ]
+  }
+}

@@ -112,10 +112,12 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`test/`](test/) — world, resource, policy, persistence, provider, and HTTP conformance.
 - [`docs/M0-RECEIPT.md`](docs/M0-RECEIPT.md) — minimal executable-boundary evidence.
 - [`docs/M1-RECEIPT.md`](docs/M1-RECEIPT.md) — deterministic scenario evidence.
+- [`docs/M15-RECEIPT.md`](docs/M15-RECEIPT.md) — versioning, replay, evidence, fault, property-test, and measurement evidence.
+- [`docs/M15-MEASUREMENT.json`](docs/M15-MEASUREMENT.json) — machine-readable fixed-seed strategy measurement.
 
 ## Current status
 
-**M1 is implemented and under review.** The next milestone is M2: introduce durable Goal and Task state for the Engineer, persist bounded Context before cognition, admit only exact current candidates, and continue correctly across provider or process interruption.
+**M1.5 is complete.** Run identity, semantic versions, Tick coordinates, sparse recovery, full verification replay, hash-chained history, typed Facts, transaction-fault semantics, generated validation, coverage gates, and strategy measurement are now established. The next milestone is M2: add durable Goal and Task state above this fixed world boundary.
 
 ## License
 

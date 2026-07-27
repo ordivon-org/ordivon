@@ -129,3 +129,19 @@ Each retained Command and Journal Event records the previous record digest and i
 ## D-026 — Raw state diff and domain facts coexist
 
 `WorldEvent.changes` remains the low-level audit and replay diagnostic. `WorldEvent.facts` is the stable player/Host-facing semantic layer. `WorldEvent.verification` records command-specific checks and must succeed independently of model claims.
+
+## D-027 — Generated tests protect the state machine
+
+Example tests remain the readable contract, while `fast-check` properties exercise arbitrary legal sequences, stale decisions, pure/persisted/recovered equivalence, and an independent movement reference model. Generated failures must shrink to a reproducible counterexample.
+
+## D-028 — Transaction fault points are explicit test seams
+
+The storage adapter exposes development-only fault injection points around transaction begin, Command insert, Event insert, Snapshot write, and commit. Pre-commit faults must leave no effect. An after-commit uncertainty must converge through the same `runId + commandId` idempotency identity.
+
+## D-029 — Mission score is a read-only evaluation projection
+
+Mission scoring is derived from terminal WorldState and never participates in authoritative rules, victory, replay, or persistence. It exists to distinguish partial progress, resource quality, and safety outcomes before Agent evaluation begins.
+
+## D-030 — Coverage thresholds protect the whole executable core
+
+CI requires at least 95% line coverage, 90% branch coverage, and 95% function coverage across loaded source modules. Core achieved branch coverage is separately reviewed for `scenario.ts`, `world.ts`, and `storage.ts`; global coverage does not justify leaving a critical reducer untested.

@@ -85,10 +85,22 @@ export interface ReplayResult {
   verified: true;
 }
 
+export type StorageFaultPoint =
+  | "before_begin"
+  | "after_begin"
+  | "before_command_insert"
+  | "after_command_insert"
+  | "after_event_insert"
+  | "before_snapshot"
+  | "after_snapshot"
+  | "before_commit"
+  | "after_commit";
+
 export interface StoreOptions {
   activeRunId?: string;
   snapshotInterval?: number;
   busyTimeoutMs?: number;
+  faultInjector?: (point: StorageFaultPoint) => void;
 }
 
 function metadataFromRow(row: RunRow): RunMetadata {
@@ -117,10 +129,15 @@ function mapStorageError(error: unknown): never {
   if (code.includes("BUSY") || code.includes("LOCKED") || message.includes("database is locked") || message.includes("database is busy")) {
     throw new StorageError("storage_busy", "storage is temporarily busy", { cause: error });
   }
-  if (code.includes("CONSTRAINT")) {
+  if (code.includes("CONSTRAINT") || message.includes("constraint failed")) {
     throw new StorageError("storage_constraint", "storage constraint rejected the write", { cause: error });
   }
-  if (code.includes("CORRUPT") || code.includes("NOTADB")) {
+  if (
+    code.includes("CORRUPT") ||
+    code.includes("NOTADB") ||
+    message.includes("file is not a database") ||
+    message.includes("database disk image is malformed")
+  ) {
     throw new StorageError("storage_corrupt", "storage is corrupt", { cause: error });
   }
   throw error;
@@ -168,6 +185,7 @@ export class GameStore {
   readonly db: DatabaseSync;
   readonly dbPath: string;
   readonly snapshotInterval: number;
+  readonly faultInjector: ((point: StorageFaultPoint) => void) | undefined;
   activeRunId: string;
 
   constructor(dbPath: string, options: StoreOptions | string = {}) {
@@ -175,6 +193,7 @@ export class GameStore {
     this.dbPath = dbPath;
     this.activeRunId = normalized.activeRunId ?? DEFAULT_RUN_ID;
     this.snapshotInterval = normalized.snapshotInterval ?? DEFAULT_SNAPSHOT_INTERVAL;
+    this.faultInjector = normalized.faultInjector;
     if (!Number.isSafeInteger(this.snapshotInterval) || this.snapshotInterval < 1) {
       throw new TypeError("snapshotInterval must be a positive integer");
     }
@@ -198,6 +217,10 @@ export class GameStore {
     } catch (error) {
       mapStorageError(error);
     }
+  }
+
+  private inject(point: StorageFaultPoint): void {
+    this.faultInjector?.(point);
   }
 
   private createSchema(): void {
@@ -518,7 +541,9 @@ export class GameStore {
         };
       }
 
+      this.inject("before_begin");
       this.db.exec("BEGIN IMMEDIATE");
+      this.inject("after_begin");
       try {
         const state = this.loadState(runId);
         const sequenceRow = this.db.prepare("SELECT COALESCE(MAX(command_sequence), -1) + 1 AS sequence FROM commands WHERE run_id = ?")
@@ -552,11 +577,13 @@ export class GameStore {
           previous_digest: previousCommand?.record_digest ?? "",
         };
         const commandRecordDigest = commandDigest(runId, commandBase);
+        this.inject("before_command_insert");
         this.db.prepare(`INSERT INTO commands
           (run_id, command_sequence, command_id, command_json, before_digest, after_digest, previous_digest, record_digest)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(runId, sequence, command.commandId, commandBase.command_json, commandBase.before_digest,
             commandBase.after_digest, commandBase.previous_digest, commandRecordDigest);
+        this.inject("after_command_insert");
 
         const previousEvent = this.db.prepare("SELECT record_digest FROM events WHERE run_id = ? ORDER BY event_sequence DESC LIMIT 1")
           .get(runId) as { record_digest: string } | undefined;
@@ -574,14 +601,21 @@ export class GameStore {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(runId, sequence, command.commandId, eventBase.event_json, eventBase.before_digest,
             eventBase.after_digest, eventBase.previous_digest, eventRecordDigest);
+        this.inject("after_event_insert");
 
         const shouldSnapshot = result.state.revision % this.snapshotInterval === 0 || result.state.mission.status !== "running";
-        if (shouldSnapshot) this.persistSnapshot(runId, result.state, sequence);
+        if (shouldSnapshot) {
+          this.inject("before_snapshot");
+          this.persistSnapshot(runId, result.state, sequence);
+          this.inject("after_snapshot");
+        }
         this.db.prepare("UPDATE runs SET status = ? WHERE run_id = ?").run(result.state.mission.status, runId);
+        this.inject("before_commit");
         this.db.exec("COMMIT");
+        this.inject("after_commit");
         return { result, idempotent: false, runId, commandSequence: sequence };
       } catch (error) {
-        this.db.exec("ROLLBACK");
+        try { this.db.exec("ROLLBACK"); } catch {}
         throw error;
       }
     } catch (error) {

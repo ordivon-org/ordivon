@@ -7,6 +7,8 @@ M0 repository baseline
         ↓
 M1 deterministic world kernel
         ↓
+M1.5 architecture hardening
+        ↓
 M2 single-Agent vertical path
         ↓
 M3 multi-Agent team and authority
@@ -54,6 +56,23 @@ Acceptance criteria:
 - replay reaches the identical world digest;
 - the scenario contains at least two meaningful resource trade-offs;
 - the deterministic game is understandable before any LLM is connected.
+
+## M1.5 — Architecture hardening — implemented
+
+Evidence: [`M15-RECEIPT.md`](M15-RECEIPT.md).
+
+Implemented before cognition:
+
+- versioned multi-Run identity;
+- separate Command Sequence, World Revision, and Simulation Tick;
+- sparse recovery and full verification replay;
+- Command/Event hash chains and typed storage errors;
+- ruleset-v2 typed Facts and Verification;
+- transaction fault injection;
+- property-based and independent model-based validation;
+- coverage gates and fixed-seed strategy measurement.
+
+Exit condition: M2 can persist Agent cognition above the world without redefining world identity, time, replay, evidence, or transaction semantics.
 
 ## M2 — Single-Agent Host path
 

@@ -11,14 +11,18 @@
     "start": "node src/server.ts",
     "demo": "node scripts/demo.ts",
     "test": "node --test test/*.test.ts",
-    "check": "pnpm typecheck && node --check web/app.js && node --test test/*.test.ts",
+    "check": "pnpm typecheck && node --check web/app.js && pnpm coverage",
     "receipt": "node scripts/receipt.ts",
     "typecheck": "tsc --noEmit",
-    "fixture:generate": "node scripts/generate-m1-fixture.ts"
+    "fixture:generate": "node scripts/generate-m1-fixture.ts",
+    "coverage": "node --experimental-test-coverage --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 --test test/*.test.ts",
+    "measure": "node scripts/measure.ts",
+    "measure:write": "node scripts/measure.ts --write"
   },
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "fast-check": "^4.9.0",
     "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@10.33.2"

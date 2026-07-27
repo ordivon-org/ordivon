@@ -62,3 +62,19 @@ Implemented:
 - successful and failing v2 Fact coverage.
 
 New Runs default to ruleset v2. Existing v1 Runs and the frozen M1 Fixture remain unchanged.
+
+## PR5 status
+
+Implemented:
+
+- `fast-check` property tests over arbitrary legal and stale command sequences;
+- independent model-based movement and environment validation;
+- pure / persisted / recovered / verified execution equivalence;
+- nine transaction fault-injection boundaries;
+- explicit SQLite constraint, corruption, busy, legacy, and stream-divergence tests;
+- 95% line / 90% branch / 95% function CI coverage gates;
+- read-only mission scoring;
+- fixed-seed random-policy and recovery-path perturbation measurement;
+- final M1.5 receipt and clean-checkout evidence.
+
+M1.5 is complete. The deterministic world can now be treated as the stable lower boundary for M2.
