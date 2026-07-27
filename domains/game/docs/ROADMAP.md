@@ -122,7 +122,9 @@ Acceptance evidence:
 
 Receipt: [`M21-RECEIPT.md`](M21-RECEIPT.md). Evaluation: [`M21-EVALUATION.json`](M21-EVALUATION.json).
 
-## M3 — Multi-Agent team and authority
+## M3 — Multi-Agent team and authority — design ready
+
+Design: [`M3-DESIGN.md`](M3-DESIGN.md). Implementation plan: [`M3-PLAN.md`](M3-PLAN.md).
 
 Add Medic and Security specialist:
 

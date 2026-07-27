@@ -124,7 +124,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2.1 is complete.** The persistent Engineer now receives an explicit Goal dependency graph, threat horizons, regression annotations, safe power-control semantics, transparent strategic ranks, and bounded one-Operation lookahead. Codex-only and Codex → Hermes achieved verified victory without changing World rules or overriding model choices. See [`docs/M21-RECEIPT.md`](docs/M21-RECEIPT.md) and [`docs/M21-EVALUATION.json`](docs/M21-EVALUATION.json).
+**M2.1 is complete and M3 design is ready.** The persistent Engineer now receives an explicit Goal dependency graph, threat horizons, regression annotations, safe power-control semantics, transparent strategic ranks, and bounded one-Operation lookahead. Codex-only and Codex → Hermes achieved verified victory without changing World rules or overriding model choices. M3 will add independent Engineer, Medic, and Security specialists through a shared Task DAG, typed limited communication, player-configured authority, deterministic conflict resolution, and interleaved single-writer execution. See [`docs/M21-RECEIPT.md`](docs/M21-RECEIPT.md), [`docs/M3-DESIGN.md`](docs/M3-DESIGN.md), and [`docs/M3-PLAN.md`](docs/M3-PLAN.md).
 
 ## License
 

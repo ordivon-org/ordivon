@@ -217,3 +217,19 @@ For each Candidate, the Host may compile one additional frontier and report whet
 ## D-048 — Power-off meaning depends on Goal and safety state
 
 Power-off Operations are neither universally removed nor treated as equivalent. Cooling shutdown is beneficial when the reactor remains within the victory heat threshold over the optimistic remaining Goal horizon. Communications power is a prerequisite only until distress transmission. Life-support power remains a terminal requirement. These semantics are exposed to the Provider and tested without changing World rules.
+
+## D-049 — M3 uses independent specialists without a manager model
+
+Engineer, Medic, and Security each own persistent actor-scoped Tasks, Attempts, Contexts, Proposals, and replaceable Providers under one shared Team Goal. The Host compiles public task, authority, communication, conflict, and scheduling semantics but does not add a hidden manager model that chooses the team plan.
+
+## D-050 — Multi-Agent cognition may be concurrent while World mutation remains serialized
+
+M3 may invoke bounded specialist Providers concurrently and may retain multiple non-conflicting active Attempts. The authoritative World still commits exactly one primitive Command per simulation Tick. Interleaving provides independent progress without redefining Command/Event replay, environment advancement, or partial multi-intent retry semantics.
+
+## D-051 — Team coordination is represented by explicit graphs and typed waits
+
+M3 uses an AND/OR Team Task DAG, a time-varying communication graph, and a per-round Proposal conflict graph. Waiting is persisted with typed dependency, message, authority, conflict, replan, or Provider reasons so one blocked specialist cannot implicitly block unrelated work.
+
+## D-052 — Communication and authority remain separate bounded protocols
+
+Agent communication uses typed delivery-limited Messages that reference immutable Facts and Artifacts. Restricted Operations require stale-sensitive, single-use Authority Grants bound to the exact Proposal, Context, actor, and World digest. A Message can request authority but cannot provide it.
