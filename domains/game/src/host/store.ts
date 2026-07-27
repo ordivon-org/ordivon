@@ -139,8 +139,8 @@ export class HostStore {
         .run(run.runId, goal.goalId, goal.status, goal.revision, canonicalJson(goal));
       this.db.prepare("INSERT INTO host_tasks (run_id, task_id, phase, revision, value_json) VALUES (?, ?, ?, ?, ?)")
         .run(run.runId, task.taskId, task.phase, task.revision, canonicalJson(task));
-      this.appendInTransaction(run.runId, "goal_created", `host-event:${goal.goalId}:created`, goal, now);
-      this.appendInTransaction(run.runId, "task_created", `host-event:${task.taskId}:created`, task, now);
+      this.appendEventInTransaction(run.runId, "goal_created", `host-event:${goal.goalId}:created`, goal, now);
+      this.appendEventInTransaction(run.runId, "task_created", `host-event:${task.taskId}:created`, task, now);
       this.db.exec("COMMIT");
     } catch (error) {
       try { this.db.exec("ROLLBACK"); } catch {}
@@ -206,46 +206,113 @@ export class HostStore {
   }
 
   saveGoal(goal: AgentGoal, eventType: string, eventId: string, payload: unknown = goal): HostJournalEvent {
-    return this.transaction(goal.runId, () => {
+    return this.withTransaction(goal.runId, () => {
       this.db.prepare("UPDATE host_goals SET status = ?, revision = ?, value_json = ? WHERE run_id = ?")
         .run(goal.status, goal.revision, canonicalJson(goal), goal.runId);
-      return this.appendInTransaction(goal.runId, eventType, eventId, payload, goal.updatedAt);
+      return this.appendEventInTransaction(goal.runId, eventType, eventId, payload, goal.updatedAt);
     });
   }
 
   saveTask(task: AgentTask, eventType: string, eventId: string, payload: unknown = task): HostJournalEvent {
-    return this.transaction(task.runId, () => {
+    return this.withTransaction(task.runId, () => {
       this.db.prepare("UPDATE host_tasks SET phase = ?, revision = ?, value_json = ? WHERE run_id = ?")
         .run(task.phase, task.revision, canonicalJson(task), task.runId);
-      return this.appendInTransaction(task.runId, eventType, eventId, payload, task.updatedAt);
+      return this.appendEventInTransaction(task.runId, eventType, eventId, payload, task.updatedAt);
     });
   }
 
   createAttempt(attempt: AgentAttempt, eventType = "attempt_created"): HostJournalEvent {
-    return this.transaction(attempt.runId, () => {
+    return this.withTransaction(attempt.runId, () => {
       this.db.prepare(`INSERT INTO host_attempts
         (attempt_id, run_id, task_id, attempt_number, status, revision, value_json)
         VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .run(attempt.attemptId, attempt.runId, attempt.taskId, attempt.attemptNumber,
           attempt.status, attempt.revision, canonicalJson(attempt));
-      return this.appendInTransaction(attempt.runId, eventType,
+      return this.appendEventInTransaction(attempt.runId, eventType,
         `host-event:${attempt.attemptId}:created`, attempt, attempt.createdAt);
     });
   }
 
   saveAttempt(attempt: AgentAttempt, eventType: string, eventId: string, payload: unknown = attempt): HostJournalEvent {
-    return this.transaction(attempt.runId, () => {
+    return this.withTransaction(attempt.runId, () => {
       this.db.prepare("UPDATE host_attempts SET status = ?, revision = ?, value_json = ? WHERE attempt_id = ?")
         .run(attempt.status, attempt.revision, canonicalJson(attempt), attempt.attemptId);
-      return this.appendInTransaction(attempt.runId, eventType, eventId, payload, attempt.updatedAt);
+      return this.appendEventInTransaction(attempt.runId, eventType, eventId, payload, attempt.updatedAt);
+    });
+  }
+
+
+  activateAttempt(task: AgentTask, attempt: AgentAttempt): HostJournalEvent {
+    return this.withTransaction(task.runId, () => {
+      this.db.prepare(`INSERT INTO host_attempts
+        (attempt_id, run_id, task_id, attempt_number, status, revision, value_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .run(attempt.attemptId, attempt.runId, attempt.taskId, attempt.attemptNumber,
+          attempt.status, attempt.revision, canonicalJson(attempt));
+      this.db.prepare("UPDATE host_tasks SET phase = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(task.phase, task.revision, canonicalJson(task), task.runId);
+      return this.appendEventInTransaction(task.runId, "attempt_activated",
+        `host-event:${attempt.attemptId}:activated`, { task, attempt }, attempt.createdAt);
+    });
+  }
+
+  saveTaskAndAttempt(
+    task: AgentTask,
+    attempt: AgentAttempt,
+    eventType: string,
+    eventId: string,
+    payload: unknown = { task, attempt },
+  ): HostJournalEvent {
+    return this.withTransaction(task.runId, () => {
+      this.db.prepare("UPDATE host_tasks SET phase = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(task.phase, task.revision, canonicalJson(task), task.runId);
+      this.db.prepare("UPDATE host_attempts SET status = ?, revision = ?, value_json = ? WHERE attempt_id = ?")
+        .run(attempt.status, attempt.revision, canonicalJson(attempt), attempt.attemptId);
+      return this.appendEventInTransaction(task.runId, eventType, eventId, payload, attempt.updatedAt);
+    });
+  }
+
+
+  saveGoalTaskAndAttempt(
+    goal: AgentGoal,
+    task: AgentTask,
+    attempt: AgentAttempt,
+    eventType: string,
+    eventId: string,
+    payload: unknown = { goal, task, attempt },
+  ): HostJournalEvent {
+    return this.withTransaction(goal.runId, () => {
+      this.db.prepare("UPDATE host_goals SET status = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(goal.status, goal.revision, canonicalJson(goal), goal.runId);
+      this.db.prepare("UPDATE host_tasks SET phase = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(task.phase, task.revision, canonicalJson(task), task.runId);
+      this.db.prepare("UPDATE host_attempts SET status = ?, revision = ?, value_json = ? WHERE attempt_id = ?")
+        .run(attempt.status, attempt.revision, canonicalJson(attempt), attempt.attemptId);
+      return this.appendEventInTransaction(goal.runId, eventType, eventId, payload, attempt.updatedAt);
+    });
+  }
+
+  saveGoalAndTask(
+    goal: AgentGoal,
+    task: AgentTask,
+    eventType: string,
+    eventId: string,
+    payload: unknown = { goal, task },
+  ): HostJournalEvent {
+    return this.withTransaction(goal.runId, () => {
+      this.db.prepare("UPDATE host_goals SET status = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(goal.status, goal.revision, canonicalJson(goal), goal.runId);
+      this.db.prepare("UPDATE host_tasks SET phase = ?, revision = ?, value_json = ? WHERE run_id = ?")
+        .run(task.phase, task.revision, canonicalJson(task), task.runId);
+      return this.appendEventInTransaction(goal.runId, eventType, eventId, payload, task.updatedAt);
     });
   }
 
   appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): HostJournalEvent {
-    return this.transaction(runId, () => this.appendInTransaction(runId, eventType, eventId, payload, new Date().toISOString()));
+    return this.withTransaction(runId, () => this.appendEventInTransaction(runId, eventType, eventId, payload, new Date().toISOString()));
   }
 
-  private transaction<T>(runId: string, operation: () => T): T {
+  withTransaction<T>(runId: string, operation: () => T): T {
     const run = this.db.prepare("SELECT 1 AS present FROM runs WHERE run_id = ?").get(runId) as { present: number } | undefined;
     if (!run) throw new Error(`unknown run: ${runId}`);
     this.db.exec("BEGIN IMMEDIATE");
@@ -259,7 +326,7 @@ export class HostStore {
     }
   }
 
-  private appendInTransaction(runId: string, eventType: string, eventId: string, payload: unknown, createdAt: string): HostJournalEvent {
+  appendEventInTransaction(runId: string, eventType: string, eventId: string, payload: unknown, createdAt: string): HostJournalEvent {
     const payloadJson = canonicalJson(payload);
     const existing = this.db.prepare("SELECT * FROM host_journal WHERE run_id = ? AND event_id = ?")
       .get(runId, eventId) as JournalRow | undefined;

@@ -78,6 +78,8 @@ test("Attempts survive a fresh HostStore process", () => {
       providerId: null,
       contextDigest: null,
       decisionDigest: null,
+      planDigest: null,
+      providerEvidenceDigest: null,
       operationCandidateId: null,
       skillStepIndex: 0,
       skillStepCount: 0,
@@ -140,7 +142,7 @@ test("Goal, Task, and Attempt projection revisions persist with journal evidence
     const attempt: AgentAttempt = {
       attemptId: newAttemptId(game.activeRunId), taskId: task.taskId, runId: game.activeRunId,
       attemptNumber: 1, revision: 1, status: "context_pending", providerId: null,
-      contextDigest: null, decisionDigest: null, operationCandidateId: null,
+      contextDigest: null, decisionDigest: null, planDigest: null, providerEvidenceDigest: null, operationCandidateId: null,
       skillStepIndex: 0, skillStepCount: 0, blocker: null, createdAt: now, updatedAt: now,
     };
     host.createAttempt(attempt);

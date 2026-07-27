@@ -38,3 +38,13 @@ No Provider is called and no Host operation can mutate the world in PR1.
 - bounded subprocess execution, timeout, output, and unavailable classification;
 - technical-failure Provider Chain with retained attempt evidence;
 - fake executable conformance tests for every isolation and failure mode.
+
+## PR4 status — implemented
+
+- durable Effect, Dispatch, and Observation projections;
+- stable `Effect → Dispatch → Command` identity per Attempt step;
+- exact retained Command lookup before retry;
+- Observation and World Verification before Skill advancement;
+- atomic Goal/Task/Attempt projection updates;
+- seven interruption fault points across cognition, dispatch, world commit, observation, and advancement;
+- fresh-process convergence to one 25-Effect verified world history.

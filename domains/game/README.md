@@ -110,6 +110,8 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`src/host/store.ts`](src/host/store.ts) — independent Host Journal, content-addressed Artifacts, and materialized projections.
 - [`src/host/operations.ts`](src/host/operations.ts) — strategic Operation frontier and deterministic Skill compilation.
 - [`src/host/context.ts`](src/host/context.ts) — canonical bounded Agent Context without transcript replay.
+- [`src/host/execution-store.ts`](src/host/execution-store.ts) — durable Effects, Dispatches, and Observations.
+- [`src/host/engine.ts`](src/host/engine.ts) — persistent Agent step/run loop, reconciliation, verification, and interruption recovery.
 - [`src/providers/`](src/providers/) — exact Operation contracts, fixture baseline, ephemeral Codex, isolated Hermes, process limits, and technical fallback.
 - [`src/provider.ts`](src/provider.ts) — bounded M1 candidate interface pending replacement by M2 Operation providers.
 - [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
@@ -122,7 +124,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2 implementation is underway.** Durable Host state, strategic Operations, and isolated Codex/Hermes Provider adapters are implemented. External cognition can now return only exact admitted Operation identities. Durable Effect/Dispatch execution and process continuation remain the next layer.
+**M2 execution core is implemented.** Durable Goal/Task/Attempt state, strategic Operations, isolated Codex/Hermes cognition, stable Effects and Dispatches, verified Observations, and fresh-process recovery now form a complete single-Agent loop. API/UI integration and live Provider evaluation remain.
 
 ## License
 

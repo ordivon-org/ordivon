@@ -58,6 +58,8 @@ export interface AgentAttempt {
   providerId: string | null;
   contextDigest: string | null;
   decisionDigest: string | null;
+  planDigest: string | null;
+  providerEvidenceDigest: string | null;
   operationCandidateId: string | null;
   skillStepIndex: number;
   skillStepCount: number;

@@ -623,6 +623,28 @@ export class GameStore {
     }
   }
 
+
+  commandReceipt(commandId: string, runId = this.activeRunId): {
+    commandSequence: number;
+    command: WorldCommand;
+    journalEvent: JournalEvent;
+  } | null {
+    this.getRun(runId);
+    const row = this.db.prepare(`SELECT c.command_sequence, c.command_json, e.event_json
+      FROM commands c JOIN events e
+        ON e.run_id = c.run_id AND e.event_sequence = c.command_sequence
+      WHERE c.run_id = ? AND c.command_id = ?`)
+      .get(runId, commandId) as
+      { command_sequence: number; command_json: string; event_json: string } | undefined;
+    if (!row) return null;
+    const sequence = Number(row.command_sequence);
+    return {
+      commandSequence: sequence,
+      command: JSON.parse(row.command_json) as WorldCommand,
+      journalEvent: parseJournalEvent(runId, sequence, row.event_json),
+    };
+  }
+
   journalEvents(runId = this.activeRunId): JournalEvent[] {
     this.getRun(runId);
     const rows = this.db.prepare("SELECT event_sequence, event_json FROM events WHERE run_id = ? ORDER BY event_sequence")

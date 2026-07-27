@@ -177,3 +177,15 @@ Codex receives an ephemeral read-only empty work directory, ignores user configu
 ## D-038 — Provider fallback handles technical invalidity only
 
 A Provider Chain advances after timeout, unavailable executable, non-zero exit, malformed output, wrong Context identity, invented Operation identity, or invalid usage evidence. A valid admitted strategic choice is never retried merely because another model might choose differently.
+
+## D-039 — Effect, Dispatch, and Command identities are stable across interruption
+
+Each Skill step binds a deterministic Effect, Dispatch, and World Command identity derived from the persistent Attempt and step index. A retry uses the same Command ID. The Host first queries retained world history and observes an existing result before considering redispatch.
+
+## D-040 — Observation and Verification advance an Attempt
+
+A successful world write alone does not advance Skill progress. The Host retains the corresponding Journal Event as an Observation and requires the World Kernel Verification receipt to succeed before it marks the Dispatch, Effect, and Skill step complete.
+
+## D-041 — Provider cognition is outside replay and deterministic continuation
+
+After a Decision and Skill Plan are retained, execution and interruption recovery require no Provider call. World replay consumes only the World Command Journal. Host continuation consumes persistent Host projections, Artifacts, Effects, Dispatches, Observations, and current world state.
