@@ -191,7 +191,7 @@ export class AgentHost {
       projection,
       this.game.recentJournalEvents(12, runId),
     );
-    const artifact = this.host.putArtifact("agent-context-v1", context.payload);
+    const artifact = this.host.putArtifact("agent-context-v2", context.payload);
     this.inject("after_context_artifact");
     const createdAt = now();
     const attempt: AgentAttempt = {

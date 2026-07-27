@@ -11,6 +11,8 @@ M1.5 architecture hardening
         ↓
 M2 single-Agent vertical path
         ↓
+M2.1 goal-directed strategy semantics
+        ↓
 M3 multi-Agent team and authority
         ↓
 M4 player control surface
@@ -95,7 +97,30 @@ Acceptance criteria:
 - provider session loss does not erase mission continuity;
 - all admitted actions can be replayed.
 
-Receipt: [`M2-RECEIPT.md`](M2-RECEIPT.md). Live evaluation: [`M2-EVALUATION.json`](M2-EVALUATION.json). Goal-directed strategy improvement continues in Issue #20 and does not invalidate the Host acceptance above.
+Receipt: [`M2-RECEIPT.md`](M2-RECEIPT.md). Live evaluation: [`M2-EVALUATION.json`](M2-EVALUATION.json).
+
+## M2.1 — Goal-directed strategy semantics — complete
+
+Expose the consequences needed for real Providers to sustain the terminal Goal:
+
+- explicit victory requirements and distress prerequisites;
+- finite threat horizons;
+- persistent objective regression;
+- resource and power-control meaning;
+- optimistic Goal lower bounds;
+- advisory strategic rank;
+- exactly one subsequent-Operation lookahead.
+
+Acceptance evidence:
+
+- the original M1/M2 Fixture digest remains frozen;
+- a public rank-one baseline wins without Fixture or Provider calls;
+- Codex-only reaches verified victory;
+- Codex → Hermes reaches verified victory without session transfer;
+- Hermes-only variance remains honestly recorded;
+- no hidden policy override changes a valid Provider Decision.
+
+Receipt: [`M21-RECEIPT.md`](M21-RECEIPT.md). Evaluation: [`M21-EVALUATION.json`](M21-EVALUATION.json).
 
 ## M3 — Multi-Agent team and authority
 

@@ -102,7 +102,7 @@ test("Agent HTTP control surface initializes, steps, runs, exposes timeline, and
     const contextDigest = state.body.projection.attempts[0].contextDigest;
     const artifact = await json(base, `/api/agent/artifacts/${encodeURIComponent(contextDigest)}`);
     assert.equal(artifact.status, 200);
-    assert.equal(artifact.body.kind, "agent-context-v1");
+    assert.equal(artifact.body.kind, "agent-context-v2");
     assert.equal(artifact.body.digest, contextDigest);
     assert.ok(providers.some((provider) => provider.providerId === "test-provider:hermes" && provider.calls === 1));
   } finally {

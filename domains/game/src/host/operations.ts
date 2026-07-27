@@ -2,6 +2,7 @@ import { sha256 } from "../digest.ts";
 import type { ItemId, MissionStatus, WorldCommand, WorldFact, WorldState } from "../model.ts";
 import { ENGINEER_ID, isOperational, POWER_JUNCTION_ID } from "../scenario.ts";
 import { applyWorldCommandV2, shortestPath } from "../world.ts";
+import { analyzeOperationStrategy, type OperationStrategyAnalysis } from "./strategy.ts";
 
 export type OperationKind =
   | "repair_system"
@@ -68,6 +69,7 @@ export interface OperationCandidate {
   planPreview: string[];
   projected: OperationProjection;
   projectedTerminalFailure: boolean;
+  strategy: OperationStrategyAnalysis;
 }
 
 interface OperationSpec {
@@ -273,6 +275,7 @@ function compileSpec(state: WorldState, spec: OperationSpec): { candidate: Opera
     planPreview: steps.map((step) => step.label),
     projected: projection(current),
     projectedTerminalFailure: current.mission.status === "failure",
+    strategy: analyzeOperationStrategy(state, current, steps.length),
   };
   return { candidate, plan, projectedState: current };
 }
@@ -337,14 +340,53 @@ function specs(state: WorldState): OperationSpec[] {
 }
 
 export function compileOperationFrontier(state: WorldState): OperationCandidate[] {
-  const candidates: OperationCandidate[] = [];
+  const compiled: Array<{ candidate: OperationCandidate; projectedState: WorldState }> = [];
   for (const spec of specs(state)) {
-    try { candidates.push(compileSpec(state, spec).candidate); }
+    try { compiled.push(compileSpec(state, spec)); }
     catch (error) {
       if (!(error instanceof OperationCompileError)) throw error;
     }
   }
-  return candidates.sort((left, right) => left.operationCandidateId.localeCompare(right.operationCandidateId));
+  const candidates = compiled.map(({ candidate, projectedState }) => {
+    const continuations: OperationCandidate[] = [];
+    if (projectedState.mission.status === "running") {
+      for (const continuationSpec of specs(projectedState)) {
+        try { continuations.push(compileSpec(projectedState, continuationSpec).candidate); }
+        catch (error) {
+          if (!(error instanceof OperationCompileError)) throw error;
+        }
+      }
+    }
+    const preferred = [...continuations].sort((left, right) =>
+      left.strategy.strategicScore - right.strategy.strategicScore ||
+      left.operationCandidateId.localeCompare(right.operationCandidateId))[0] ?? null;
+    const projectedVictory = continuations.find((continuation) => continuation.strategy.projectedVictory) ?? null;
+    const lookaheadBonus = projectedVictory ? 400_000 : 0;
+    return {
+      ...candidate,
+      strategy: {
+        ...candidate.strategy,
+        strategicScore: candidate.strategy.strategicScore - lookaheadBonus,
+        oneStepLookahead: {
+          projectedVictoryOperationId: projectedVictory?.operationCandidateId ?? null,
+          projectedVictoryLabel: projectedVictory?.label ?? null,
+          preferredContinuationOperationId: preferred?.operationCandidateId ?? null,
+          preferredContinuationLabel: preferred?.label ?? null,
+        },
+        summary: projectedVictory
+          ? `This Operation enables projected victory on the next strategic Operation: ${projectedVictory.label}.`
+          : candidate.strategy.summary,
+      },
+    };
+  });
+  return candidates
+    .sort((left, right) =>
+      left.strategy.strategicScore - right.strategy.strategicScore ||
+      left.operationCandidateId.localeCompare(right.operationCandidateId))
+    .map((candidate, index) => ({
+      ...candidate,
+      strategy: { ...candidate.strategy, strategicRank: index + 1 },
+    }));
 }
 
 export function compileSkillPlan(state: WorldState, candidate: OperationCandidate): SkillPlan {

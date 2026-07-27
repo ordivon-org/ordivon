@@ -201,3 +201,19 @@ A request selects the cognition Provider for that invocation, but Goal, Task, At
 ## D-044 — Manual and autonomous control share the same World Kernel
 
 Manual Commands and Agent Dispatches use the same versioned Run, Command admission, Tick reducer, journal, Facts, and Verification. Manual intervention may make a pending Context or Effect stale; the Host must reject or reconcile it rather than claim exclusive ownership of the world.
+
+## D-045 — Goal semantics are explicit Host data
+
+The Host derives a public dependency graph for terminal victory requirements and distress prerequisites. Models are not expected to reconstruct the mission graph solely from booleans and prose. The graph annotates Decisions but does not grant world authority.
+
+## D-046 — Strategic rank is advisory, not admission policy
+
+Every current Operation remains selectable unless the existing world and identity admission rejects it. The Host may sort and annotate Candidates using Goal progress, threat horizons, regression, resource use, and optimistic lower bounds. It does not silently replace a valid Provider choice with rank one.
+
+## D-047 — Lookahead is bounded to one subsequent Operation
+
+For each Candidate, the Host may compile one additional frontier and report whether projected victory is available on the next strategic decision. Full state-space search was measured and rejected because it exceeded the latency and complexity budget of the thin Host.
+
+## D-048 — Power-off meaning depends on Goal and safety state
+
+Power-off Operations are neither universally removed nor treated as equivalent. Cooling shutdown is beneficial when the reactor remains within the victory heat threshold over the optimistic remaining Goal horizon. Communications power is a prerequisite only until distress transmission. Life-support power remains a terminal requirement. These semantics are exposed to the Provider and tested without changing World rules.

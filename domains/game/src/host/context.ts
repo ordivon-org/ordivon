@@ -4,11 +4,12 @@ import type { RunMetadata } from "../run.ts";
 import { ENGINEER_ID, isOperational } from "../scenario.ts";
 import type { AgentProjection } from "./model.ts";
 import { compileOperationFrontier, type OperationCandidate } from "./operations.ts";
+import { analyzeGoalStrategy, type GoalStrategyAnalysis } from "./strategy.ts";
 
 export const MAX_AGENT_CONTEXT_BYTES = 16 * 1024;
 
 export interface AgentContextPayload {
-  schemaVersion: 1;
+  schemaVersion: 2;
   kind: "ordivon.game.agent-context";
   contextId: string;
   run: {
@@ -66,6 +67,10 @@ export interface AgentContextPayload {
     communicationsPowered: boolean;
     distressSent: boolean;
   };
+  strategy: {
+    goal: GoalStrategyAnalysis;
+    decisionPolicy: string[];
+  };
   recentFacts: WorldFact[];
   allowedOperations: OperationCandidate[];
   instruction: string;
@@ -105,7 +110,7 @@ function basePayload(
   const lifeSupport = state.systems["life-support"];
   const communications = state.systems.communications;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "ordivon.game.agent-context",
     run: {
       runId: run.runId,
@@ -162,9 +167,19 @@ function basePayload(
       communicationsPowered: communications?.powered ?? false,
       distressSent: state.mission.distressSent,
     },
+    strategy: {
+      goal: analyzeGoalStrategy(state),
+      decisionPolicy: [
+        "If any allowed Operation has strategy.projectedVictory=true, choose that Operation immediately.",
+        "Never choose immediate_failure or time_infeasible while a time-feasible alternative exists.",
+        "Avoid goal_regression while a non-regressive alternative exists; preserve satisfied victory requirements and distress prerequisites.",
+        "Address the shortest active threat horizon and prefer Operations that advance its mitigation requirements.",
+        "Use strategicRank as the transparent default ordering; deviate only when the Context provides a concrete reason.",
+      ],
+    },
     recentFacts: recentFacts(events, factLimit),
     allowedOperations: compileOperationFrontier(state),
-    instruction: "Choose exactly one allowed Operation by copying its operationCandidateId. Never invent objects, Commands, paths, Effects, or completion claims.",
+    instruction: "Choose exactly one allowed Operation by copying its operationCandidateId. Apply strategy.decisionPolicy in order. Never invent objects, Commands, paths, Effects, or completion claims.",
   };
 }
 
