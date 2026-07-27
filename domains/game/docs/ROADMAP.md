@@ -16,7 +16,9 @@ M4 player control surface
 M5 replay, evaluation, and first playable
 ```
 
-## M0 — Repository baseline
+## M0 — Repository baseline — implemented
+
+Evidence: [`M0-RECEIPT.md`](M0-RECEIPT.md).
 
 Deliverables:
 

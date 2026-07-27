@@ -43,3 +43,21 @@ Every admitted world command, relevant context identity, provider decision, resu
 ## D-010 — No premature platform extraction
 
 Do not create `ordivon-world`, a general workflow DSL, a modding SDK, or a universal multi-Agent scheduler before the first playable demonstrates repeated use.
+
+## D-011 — M0 implementation stack
+
+Use one Node.js 26 process for the first executable slice:
+
+- TypeScript source executed through Node's native type stripping;
+- strict TypeScript 7 static checking in development and CI;
+- Node's built-in `node:http`, `node:test`, cryptography, and `node:sqlite` modules;
+- one SQLite database for admitted commands, immutable events, and world snapshots;
+- a dependency-free HTML, CSS, and browser JavaScript surface;
+- one typed provider interface with a deterministic fixture implementation;
+- source modules under `src/` rather than premature workspace packages or services.
+
+The runtime has no third-party dependencies. `typescript` and `@types/node` are development-only dependencies.
+
+The spike falsified unrestricted native TypeScript: Node's strip-only execution rejects syntax that requires transformation, such as constructor parameter properties. Production source therefore uses erasable TypeScript syntax and CI performs a separate strict type check.
+
+React, a bundler, independent services, and reusable packages remain deferred until actual UI or deployment pressure requires them.

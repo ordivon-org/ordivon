@@ -1,0 +1,24 @@
+{
+  "name": "ordivon-game",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Agent-native game experiments built on deterministic world state and Ordivon semantics.",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "demo": "node scripts/demo.ts",
+    "test": "node --test test/*.test.ts",
+    "check": "pnpm typecheck && node --check web/app.js && node --test test/*.test.ts",
+    "receipt": "node scripts/receipt.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  },
+  "packageManager": "pnpm@10.33.2"
+}
