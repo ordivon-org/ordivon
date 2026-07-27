@@ -3,55 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Station Zero — M0</title>
+    <title>Station Zero — M1</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main>
       <header>
-        <p class="eyebrow">ORDIVON GAME · M0</p>
-        <h1>Station Zero</h1>
-        <p class="lede">A deterministic room-state transition with durable recovery and replay.</p>
+        <div>
+          <p class="eyebrow">ORDIVON GAME · M1</p>
+          <h1>Station Zero</h1>
+          <p class="lede">Stabilize the station, preserve the crew, and transmit a verified rescue signal.</p>
+        </div>
+        <span id="mission-status" class="status">LOADING</span>
       </header>
 
-      <section class="grid" aria-label="Mission state">
-        <article class="panel room-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">ROOM</p>
-              <h2 id="room-name">Loading…</h2>
-            </div>
-            <span id="power-badge" class="badge">UNKNOWN</span>
-          </div>
-          <dl>
-            <div><dt>Oxygen</dt><dd id="oxygen">—</dd></div>
-            <div><dt>Integrity</dt><dd id="integrity">—</dd></div>
-            <div><dt>Turn</dt><dd id="turn">—</dd></div>
-            <div><dt>Revision</dt><dd id="revision">—</dd></div>
-          </dl>
-        </article>
+      <section id="resources" class="metrics" aria-label="Critical resources"></section>
 
-        <article class="panel">
-          <p class="eyebrow">CONTROL</p>
-          <h2>Mission action</h2>
-          <p>Engineer Imani can restore power using the breaker key. The world kernel verifies capability, tool, target, and revision.</p>
-          <div class="actions">
-            <button id="suggest">Request proposal</button>
-            <button id="restore" class="primary">Restore power</button>
-            <button id="replay">Verify replay</button>
-          </div>
-        </article>
-      </section>
+      <section class="layout">
+        <div>
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">STATION</p><h2>Room graph</h2></div><span id="location" class="chip"></span></div>
+            <div id="rooms" class="rooms"></div>
+          </section>
 
-      <section class="panel log-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">EVIDENCE</p>
-            <h2>Latest result</h2>
-          </div>
-          <span id="event-count" class="badge">0 EVENTS</span>
+          <section class="panel">
+            <p class="eyebrow">SYSTEMS</p>
+            <h2>Critical infrastructure</h2>
+            <div id="systems" class="systems"></div>
+          </section>
         </div>
-        <pre id="output" aria-live="polite">Loading persisted world…</pre>
+
+        <aside>
+          <section class="panel">
+            <p class="eyebrow">ENGINEER</p>
+            <h2 id="agent-name">Engineer</h2>
+            <div id="agent"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">COMMAND</p><h2>Available actions</h2></div><button id="suggest" class="secondary">Suggest</button></div>
+            <div id="actions" class="actions"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2>Latest event</h2></div><button id="replay" class="secondary">Replay</button></div>
+            <pre id="output">Loading persisted world…</pre>
+          </section>
+        </aside>
       </section>
     </main>
     <script type="module" src="/app.js"></script>

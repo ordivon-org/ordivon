@@ -2,34 +2,33 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { sha256 } from "../src/digest.ts";
-import { compileProviderContext, FixtureProvider, admitProviderDecision } from "../src/provider.ts";
+import { communicationsFirstPolicy, recoveryPolicy, runPolicy } from "../src/policies.ts";
+import { assertWorldInvariants, initialWorld } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
+import { materializeAction } from "../src/world.ts";
 
-const directory = mkdtempSync(join(tmpdir(), "ordivon-game-receipt-"));
+const success = runPolicy(recoveryPolicy);
+const failure = runPolicy(communicationsFirstPolicy);
+assertWorldInvariants(success.state);
+assertWorldInvariants(failure.state);
+
+const directory = mkdtempSync(join(tmpdir(), "ordivon-game-m1-receipt-"));
 const dbPath = join(directory, "world.sqlite3");
-
 try {
-  const first = new GameStore(dbPath);
-  const initial = first.loadState();
-  const context = compileProviderContext(initial);
-  const provider = new FixtureProvider();
-  const decision = await provider.decide(context);
-  const candidate = admitProviderDecision(context, decision);
-  if (!candidate) {
-    throw new Error("provider did not return an admitted candidate");
-  }
-
+  const store = new GameStore(dbPath, initialWorld());
+  let state = store.loadState();
+  let step = 0;
   const startedAt = performance.now();
-  const applied = first.apply({
-    kind: candidate.kind,
-    commandId: "receipt-restore-power",
-    actorId: candidate.actorId,
-    targetId: candidate.targetId,
-    expectedRevision: candidate.expectedRevision,
-  });
-  const applyMs = performance.now() - startedAt;
-  first.close();
+  while (state.mission.status === "running") {
+    const action = recoveryPolicy.choose(state);
+    if (!action) throw new Error("recovery policy produced no action");
+    const result = store.apply(materializeAction(action, `receipt:${step}:${action.actionId}`));
+    if (result.result.status !== "accepted") throw new Error(result.result.reason);
+    state = result.result.state;
+    step += 1;
+  }
+  const executeMs = performance.now() - startedAt;
+  store.close();
 
   const reopened = new GameStore(dbPath);
   const recovered = reopened.loadState();
@@ -43,16 +42,30 @@ try {
       {
         node: process.version,
         platform: `${process.platform}/${process.arch}`,
-        provider: decision.provider,
-        candidate: candidate.actionId,
-        applyStatus: applied.result.status,
-        initialDigest: sha256(initial),
-        recoveredDigest: sha256(recovered),
-        replayDigest: replay.digest,
-        eventCount: replay.eventCount,
-        replayVerified: replay.verified,
-        applyMs: Number(applyMs.toFixed(3)),
-        replayMs: Number(replayMs.toFixed(3)),
+        successfulPolicy: {
+          status: success.state.mission.status,
+          reason: success.state.mission.reason,
+          turn: success.state.turn,
+          digest: success.digest,
+          batteryRemaining: success.state.resources.batteryCharge,
+          oxygen: success.state.resources.oxygen,
+          reactorHeat: success.state.resources.reactorHeat,
+        },
+        failingPolicy: {
+          status: failure.state.mission.status,
+          reason: failure.state.mission.reason,
+          turn: failure.state.turn,
+          digest: failure.digest,
+        },
+        persistedReplay: {
+          recoveredDigest: replay.digest,
+          matchesPurePolicy: replay.digest === success.digest,
+          recoveredStatus: recovered.mission.status,
+          eventCount: replay.eventCount,
+          verified: replay.verified,
+          executeMs: Number(executeMs.toFixed(3)),
+          replayMs: Number(replayMs.toFixed(3)),
+        },
       },
       null,
       2,

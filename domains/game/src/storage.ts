@@ -3,14 +3,9 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "./digest.ts";
-import {
-  applyWorldCommand,
-  initialWorld,
-  type ApplyResult,
-  type WorldCommand,
-  type WorldEvent,
-  type WorldState,
-} from "./world.ts";
+import type { ApplyResult, WorldCommand, WorldEvent, WorldState } from "./model.ts";
+import { assertWorldInvariants, initialWorld } from "./scenario.ts";
+import { applyWorldCommand } from "./world.ts";
 
 interface EventRow {
   command_json: string;
@@ -42,9 +37,7 @@ export class GameStore {
 
   constructor(dbPath: string, genesis: WorldState = initialWorld()) {
     this.dbPath = dbPath;
-    if (dbPath !== ":memory:") {
-      mkdirSync(dirname(dbPath), { recursive: true });
-    }
+    if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
 
     this.db = new DatabaseSync(dbPath);
     this.db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;");
@@ -68,12 +61,12 @@ export class GameStore {
     `);
 
     const row = this.db.prepare("SELECT COUNT(*) AS count FROM snapshots").get() as { count: number };
-    if (Number(row.count) === 0) {
-      this.persistSnapshot(genesis);
-    }
+    if (Number(row.count) === 0) this.persistSnapshot(genesis);
+    else this.loadState();
   }
 
   private persistSnapshot(state: WorldState): void {
+    assertWorldInvariants(state);
     this.db
       .prepare("INSERT INTO snapshots (revision, state_json, digest) VALUES (?, ?, ?)")
       .run(state.revision, canonicalJson(state), sha256(state));
@@ -83,12 +76,12 @@ export class GameStore {
     const row = this.db
       .prepare("SELECT state_json, digest FROM snapshots ORDER BY revision DESC LIMIT 1")
       .get() as SnapshotRow | undefined;
-
-    if (!row) {
-      throw new Error("world state is missing");
-    }
-
+    if (!row) throw new Error("world state is missing");
     const state = JSON.parse(row.state_json) as WorldState;
+    if (state.schemaVersion !== 2) {
+      throw new Error("incompatible world schema; remove the old local database and restart");
+    }
+    assertWorldInvariants(state);
     const actualDigest = sha256(state);
     if (actualDigest !== row.digest) {
       throw new Error(`snapshot digest mismatch: expected ${row.digest}, got ${actualDigest}`);
@@ -98,9 +91,7 @@ export class GameStore {
 
   apply(command: WorldCommand): PersistedApplyResult {
     const existing = this.db
-      .prepare(
-        "SELECT command_json, event_json, before_digest, after_digest FROM events WHERE command_id = ?",
-      )
+      .prepare("SELECT command_json, event_json, before_digest, after_digest FROM events WHERE command_id = ?")
       .get(command.commandId) as EventRow | undefined;
 
     if (existing) {
@@ -115,7 +106,6 @@ export class GameStore {
           },
         };
       }
-
       return {
         idempotent: true,
         result: {
@@ -134,7 +124,6 @@ export class GameStore {
         this.db.exec("ROLLBACK");
         return { result, idempotent: false };
       }
-
       this.db
         .prepare(
           `INSERT INTO events
@@ -157,49 +146,36 @@ export class GameStore {
     }
   }
 
+  events(): WorldEvent[] {
+    const rows = this.db.prepare("SELECT event_json FROM events ORDER BY sequence ASC").all() as unknown as Array<{ event_json: string }>;
+    return rows.map((row) => JSON.parse(row.event_json) as WorldEvent);
+  }
+
   replay(): ReplayResult {
     const genesisRow = this.db
       .prepare("SELECT state_json, digest FROM snapshots ORDER BY revision ASC LIMIT 1")
       .get() as SnapshotRow | undefined;
-    if (!genesisRow) {
-      throw new Error("genesis snapshot is missing");
-    }
-
+    if (!genesisRow) throw new Error("genesis snapshot is missing");
     let state = JSON.parse(genesisRow.state_json) as WorldState;
-    if (sha256(state) !== genesisRow.digest) {
-      throw new Error("genesis snapshot digest mismatch");
-    }
+    assertWorldInvariants(state);
+    if (sha256(state) !== genesisRow.digest) throw new Error("genesis snapshot digest mismatch");
 
     const rows = this.db
-      .prepare(
-        "SELECT command_json, event_json, before_digest, after_digest FROM events ORDER BY sequence ASC",
-      )
+      .prepare("SELECT command_json, event_json, before_digest, after_digest FROM events ORDER BY sequence ASC")
       .all() as unknown as EventRow[];
-
     for (const row of rows) {
-      if (sha256(state) !== row.before_digest) {
-        throw new Error("replay before-digest mismatch");
-      }
+      if (sha256(state) !== row.before_digest) throw new Error("replay before-digest mismatch");
       const command = JSON.parse(row.command_json) as WorldCommand;
       const replayed = applyWorldCommand(state, command);
-      if (replayed.status !== "accepted") {
-        throw new Error(`replay command was rejected: ${replayed.reason}`);
-      }
-      if (replayed.event.afterDigest !== row.after_digest) {
-        throw new Error("replay after-digest mismatch");
-      }
-      if (canonicalJson(replayed.event) !== row.event_json) {
-        throw new Error("replayed event differs from retained event");
-      }
+      if (replayed.status !== "accepted") throw new Error(`replay command rejected: ${replayed.reason}`);
+      if (replayed.event.afterDigest !== row.after_digest) throw new Error("replay after-digest mismatch");
+      if (canonicalJson(replayed.event) !== row.event_json) throw new Error("replayed event differs from retained event");
       state = replayed.state;
     }
 
     const current = this.loadState();
     const replayDigest = sha256(state);
-    if (replayDigest !== sha256(current)) {
-      throw new Error("replay terminal state differs from persisted state");
-    }
-
+    if (replayDigest !== sha256(current)) throw new Error("replay terminal state differs from persisted state");
     return { state, digest: replayDigest, eventCount: rows.length, verified: true };
   }
 

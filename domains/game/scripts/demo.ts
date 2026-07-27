@@ -1,36 +1,25 @@
 import { resolve } from "node:path";
 
-import { sha256 } from "../src/digest.ts";
+import { recoveryPolicy } from "../src/policies.ts";
 import { GameStore } from "../src/storage.ts";
+import { materializeAction } from "../src/world.ts";
 
 const dbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const store = new GameStore(dbPath);
-const before = store.loadState();
-const applied = store.apply({
-  kind: "restore_power",
-  commandId: "m0-demo-restore-power",
-  actorId: "engineer-01",
-  targetId: "life-support",
-  expectedRevision: 0,
-});
+let state = store.loadState();
+let step = store.eventCount();
+
+while (state.mission.status === "running") {
+  const action = recoveryPolicy.choose(state);
+  if (!action) throw new Error("recovery policy produced no action");
+  const result = store.apply(materializeAction(action, `demo:${step}:${action.actionId}`));
+  if (result.result.status !== "accepted") {
+    throw new Error(`${result.result.code}: ${result.result.reason}`);
+  }
+  state = result.result.state;
+  step += 1;
+}
+
+const replay = store.replay();
 store.close();
-
-const recoveredStore = new GameStore(dbPath);
-const recovered = recoveredStore.loadState();
-const replay = recoveredStore.replay();
-recoveredStore.close();
-
-console.log(
-  JSON.stringify(
-    {
-      dbPath,
-      beforeDigest: sha256(before),
-      applyStatus: applied.result.status,
-      idempotent: applied.idempotent,
-      recoveredDigest: sha256(recovered),
-      replay,
-    },
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify({ dbPath, status: state.mission, turn: state.turn, digest: replay.digest, replay }, null, 2));

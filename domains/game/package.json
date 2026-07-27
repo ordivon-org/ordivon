@@ -1,12 +1,10 @@
 {
   "name": "ordivon-game",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Agent-native game experiments built on deterministic world state and Ordivon semantics.",
-  "engines": {
-    "node": ">=26.0.0"
-  },
+  "engines": { "node": ">=26.0.0" },
   "scripts": {
     "start": "node src/server.ts",
     "demo": "node scripts/demo.ts",

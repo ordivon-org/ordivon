@@ -189,3 +189,79 @@ packages/simulation
 ```
 
 Do not split into network services until measured workload or independent deployment demands it.
+
+## M1 concrete world contract
+
+M1 implements the authoritative world as one immutable input state plus one admitted command producing one new state and one event:
+
+```text
+WorldState(revision N)
++ WorldCommand(expectedRevision N)
+→ validate without mutation
+→ clone
+→ apply direct action effect
+→ advance one environmental turn
+→ evaluate mission outcome
+→ verify invariants
+→ WorldState(revision N+1) + WorldEvent
+```
+
+The scenario owns eight rooms, one Engineer, one casualty, three critical systems, one hull breach, and a fixed seed. Every accepted command consumes exactly one turn and one revision.
+
+### Resource ledgers
+
+Items are never silently deleted. Repair parts, sealant, and medkits move into a typed consumed-items ledger. For every item kind:
+
+```text
+room inventory
++ Agent inventory
++ consumed quantity
+= initial quantity
+```
+
+Battery power follows the same rule:
+
+```text
+battery charge + consumed energy = initial battery energy
+```
+
+Every admitted state is rejected by invariant checks if either equation fails.
+
+### Environmental order
+
+After the direct command effect:
+
+1. powered systems request battery draw;
+2. an insufficient battery causes deterministic brownout;
+3. life support and the hull breach change oxygen;
+4. reactor cooling changes heat;
+5. low oxygen and untreated injury change health;
+6. terminal failure or victory is evaluated.
+
+This ordering is part of the replay contract.
+
+### M1 action surface
+
+```text
+move
+pickup_item
+repair_system
+set_power
+seal_hull
+stabilize_crew
+send_distress
+wait
+```
+
+The browser receives only commands already admitted against the current state. Direct HTTP callers are independently parsed and revalidated.
+
+### Persistence boundary
+
+SQLite stores:
+
+- the exact canonical command;
+- the exact resulting event;
+- before and after world digests;
+- one immutable snapshot per accepted revision.
+
+A repeated identical command identity is idempotent. Reusing the identity for different command content fails closed. Replay starts at the genesis snapshot and applies the retained commands through the same world transition function.

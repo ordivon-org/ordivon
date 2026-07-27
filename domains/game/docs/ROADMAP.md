@@ -31,9 +31,11 @@ Deliverables:
 
 Exit condition: contributors can explain what the first playable is, what it is not, and which layer owns every critical state transition.
 
-## M1 — Deterministic world kernel
+## M1 — Deterministic world kernel — implemented
 
-Implement without model calls:
+Evidence: [`M1-RECEIPT.md`](M1-RECEIPT.md).
+
+Implemented without model calls:
 
 - station graph and room state;
 - turn/event clock;

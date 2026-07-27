@@ -61,3 +61,27 @@ The runtime has no third-party dependencies. `typescript` and `@types/node` are 
 The spike falsified unrestricted native TypeScript: Node's strip-only execution rejects syntax that requires transformation, such as constructor parameter properties. Production source therefore uses erasable TypeScript syntax and CI performs a separate strict type check.
 
 React, a bundler, independent services, and reusable packages remain deferred until actual UI or deployment pressure requires them.
+
+## D-012 — One controllable Agent in M1
+
+M1 keeps one Engineer as the only acting Agent. The casualty is a world entity rather than an autonomous Agent.
+
+Reason: M1 must establish deterministic gameplay, conservation, failure progression, and replay before M3 introduces independent observations, communication, authority conflict, and concurrent Agent intent.
+
+## D-013 — Every accepted command advances the world
+
+Movement, pickup, repair, switching power, medical stabilization, sealing, signalling, and waiting each consume one turn. Environmental hazards advance after every accepted command.
+
+Reason: time becomes a common scarce resource across navigation, repair, rescue, and power management. Routine actions therefore participate in the strategy rather than existing outside the world clock.
+
+## D-014 — Explicit conservation ledgers
+
+Finite battery energy and consumable items use visible initial, remaining, and consumed quantities. World invariants check conservation after every accepted command and during recovery.
+
+Reason: a deterministic strategy game requires stronger guarantees than narrative plausibility. Resources must not be created or erased by model output, UI behavior, retries, or replay.
+
+## D-015 — Scripted policies are scenario proofs, not production AI
+
+The recovery policy proves one feasible winning trajectory. The communications-first policy proves that an individually reasonable local objective can cause global failure through reactor escalation.
+
+They are executable acceptance witnesses and regression tools. They are not intended to become the player's final autonomous team logic.

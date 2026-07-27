@@ -4,18 +4,15 @@
 
 Ordivon Game explores games in which autonomous Agents are not decorative dialogue systems. They hold persistent goals, receive bounded observations, act through explicit capabilities, produce verifiable world effects, cooperate, fail, recover, and remain understandable to the player.
 
-## First playable: Station Zero
+## Station Zero
 
-The first vertical slice is a small, turn-based mission game:
+The first product is a turn-based Agent Operations game with Arena-style constraints:
 
 - the player leads a remote mission-control team;
-- three specialist Agents operate inside a damaged space station;
+- specialists operate inside a damaged space station;
 - the player assigns goals, tools, authority, and risk limits;
-- Agents plan and act autonomously inside a deterministic world;
-- the player approves dangerous actions, changes priorities, or cancels work;
-- the mission ends with an evidence-backed outcome and a complete replay.
-
-The intended experience combines:
+- Agents eventually plan and act autonomously inside a deterministic world;
+- every accepted action produces durable, replayable evidence.
 
 ```text
 Agent Operations: delegation, authority, diagnosis, recovery
@@ -23,23 +20,25 @@ Agent Operations: delegation, authority, diagnosis, recovery
 Agent Arena: bounded rules, team construction, scoring, replay
 ```
 
-## M0 executable slice
+## Current executable: M1 deterministic scenario
 
-The repository now contains the first executable boundary:
+M1 is a complete deterministic mission without model calls. It contains:
 
-```text
-browser
-→ local HTTP service
-→ typed restore_power command
-→ deterministic world transition
-→ SQLite event and snapshot commit
-→ process restart
-→ digest-verified replay
-```
+- 8 connected rooms;
+- one Engineer with location, health, capabilities, and inventory;
+- one deteriorating crew casualty;
+- reactor cooling, life support, and communications systems;
+- a hull breach;
+- finite battery energy, oxygen, reactor heat, tools, spare parts, sealant, and a medkit;
+- 8 typed command kinds;
+- linked environmental escalation after every accepted action;
+- explicit victory and failure conditions;
+- one winning scripted policy and one strategically plausible failing policy;
+- SQLite persistence, process recovery, immutable events, snapshots, and deterministic replay.
 
-The current slice has one room and one Engineer. A fixture cognition adapter may select only an action already admitted by the current world context; it cannot mutate world state.
+The current winning path restores cooling, collects supplies, seals the breach, restores life support, stabilizes the casualty, repairs communications, manages limited power, and sends a verified rescue signal in 25 turns.
 
-### Run
+## Run
 
 Requirements:
 
@@ -55,53 +54,63 @@ pnpm start
 
 Open `http://127.0.0.1:4173`.
 
+M1 uses world schema version 2. A database created by the M0 spike intentionally fails closed; remove `data/station-zero.sqlite3` before starting M1.
+
 Useful commands:
 
 ```bash
-pnpm demo      # persist, close, reopen, and replay one transition
-pnpm check     # strict type check, browser syntax check, and tests
-pnpm receipt   # isolated executable evidence receipt
+pnpm demo      # run and persist the deterministic recovery policy
+pnpm check     # strict type check, browser syntax check, and conformance tests
+pnpm receipt   # compare winning, failing, persisted, recovered, and replayed paths
 ```
 
-Runtime dependencies remain zero; TypeScript and Node type definitions are development-only checks.
+Runtime dependencies remain zero. TypeScript and Node type definitions are development-only checks.
 
-## System boundary
+## Authority boundary
 
 ```text
 Player and Web Client
-        ↓
+        ↓ proposes one admitted command
 Deterministic Game World Kernel
-        ↓
-Ordivon Host adapter
+        ↓ resolves action + environmental tick
+SQLite Event and Snapshot Journal
+        ↓ supports restart and replay
+Future Ordivon Host adapter
 Goal / Task / Context / Decision admission
         ↓
-Ordivon semantic boundary
-Effect / Dispatch / Observation / Verification / Fact
-        ↓
-Runtime and provider adapters
-long work / model calls / artifacts / recovery
+Future model and Runtime adapters
 ```
 
-The model proposes high-level decisions. The authoritative world kernel owns maps, time, inventory, resources, movement, equipment requirements, damage, success conditions, and all final state transitions.
+The authoritative world owns:
+
+- maps and adjacency;
+- time and revision ordering;
+- inventory and item conservation;
+- battery-energy conservation;
+- oxygen, heat, health, and damage;
+- action legality and capability checks;
+- success and failure;
+- final state transitions.
+
+A model may later select or propose actions. It never directly mutates this state.
 
 ## Repository map
 
-- [`src/world.ts`](src/world.ts) — authoritative deterministic transition.
-- [`src/storage.ts`](src/storage.ts) — SQLite events, snapshots, recovery, and replay.
-- [`src/provider.ts`](src/provider.ts) — structured cognition boundary and candidate admission.
-- [`src/server.ts`](src/server.ts) — one local HTTP process and API.
-- [`web/`](web/) — dependency-free browser control surface.
-- [`test/`](test/) — world, persistence, provider, and HTTP conformance tests.
-- [`docs/PRODUCT.md`](docs/PRODUCT.md) — player experience and first-slice scope.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — component boundaries and execution flow.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestone graph and acceptance criteria.
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — architectural decisions.
-- [`docs/M0-RECEIPT.md`](docs/M0-RECEIPT.md) — executable M0 evidence.
-- [`AGENTS.md`](AGENTS.md) — operating rules for contributors and coding Agents.
+- [`src/model.ts`](src/model.ts) — typed state, commands, events, and rejection contracts.
+- [`src/scenario.ts`](src/scenario.ts) — Station Zero genesis, environmental progression, mission evaluation, and invariants.
+- [`src/world.ts`](src/world.ts) — parsing, admission, atomic execution, state diffs, and available actions.
+- [`src/policies.ts`](src/policies.ts) — deterministic winning and failing policies.
+- [`src/storage.ts`](src/storage.ts) — SQLite events, snapshots, recovery, idempotency, and replay.
+- [`src/provider.ts`](src/provider.ts) — bounded candidate interface retained for M2.
+- [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
+- [`web/`](web/) — dependency-free mission-control surface.
+- [`test/`](test/) — world, resource, policy, persistence, provider, and HTTP conformance.
+- [`docs/M0-RECEIPT.md`](docs/M0-RECEIPT.md) — minimal executable-boundary evidence.
+- [`docs/M1-RECEIPT.md`](docs/M1-RECEIPT.md) — deterministic scenario evidence.
 
 ## Current status
 
-**M0 is implemented and under review.** The next milestone is M1: expand the one-room proof into a deterministic station scenario with resource trade-offs, additional actions, immutable event semantics, and scripted winning and failing policies—still without an LLM in the authoritative loop.
+**M1 is implemented and under review.** The next milestone is M2: introduce durable Goal and Task state for the Engineer, persist bounded Context before cognition, admit only exact current candidates, and continue correctly across provider or process interruption.
 
 ## License
 

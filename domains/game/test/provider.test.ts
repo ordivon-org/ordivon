@@ -1,26 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  admitProviderDecision,
-  compileProviderContext,
-  FixtureProvider,
-} from "../src/provider.ts";
-import { initialWorld } from "../src/world.ts";
+import { admitProviderDecision, compileProviderContext, FixtureProvider } from "../src/provider.ts";
+import { initialWorld } from "../src/scenario.ts";
 
-test("provider returns only an admitted structured candidate", async () => {
+test("provider may select only a current admitted action", async () => {
   const context = compileProviderContext(initialWorld());
   const decision = await new FixtureProvider().decide(context);
   const action = admitProviderDecision(context, decision);
-
   assert.equal(decision.contextId, context.contextId);
-  assert.equal(action?.actionId, "restore-life-support-power");
-  assert.equal(action?.kind, "restore_power");
+  assert.equal(action?.command.kind, "move");
+  assert.equal(action?.command.kind === "move" ? action.command.targetRoomId : null, "power-junction");
 });
 
-test("invented provider actions and stale contexts are rejected", () => {
+test("invented actions and stale contexts are rejected", () => {
   const context = compileProviderContext(initialWorld());
-
   assert.throws(
     () =>
       admitProviderDecision(context, {
@@ -31,7 +25,6 @@ test("invented provider actions and stale contexts are rejected", () => {
       }),
     /outside the admitted candidate set/,
   );
-
   assert.throws(
     () =>
       admitProviderDecision(context, {

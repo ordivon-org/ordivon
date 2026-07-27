@@ -147,3 +147,19 @@ The vertical slice is successful when:
 6. A failed run exposes at least one understandable decision or coordination error.
 7. A player can improve subsequent performance through configuration changes.
 8. The experience is interesting before visual polish or large content volume is added.
+
+## M1 playable proof
+
+The first deterministic scenario now makes three pressures advance together:
+
+- reactor heat rises unless repaired cooling receives power;
+- oxygen falls until the hull breach is sealed and life support is restored;
+- an injured crew member loses health until stabilized.
+
+The Engineer has exactly three spare parts across the station, one sealant charge, one medkit, and a finite battery. Repairing or powering one system does not pause the other hazards.
+
+The intended strategic lesson is visible without an LLM:
+
+> Completing communications first is locally sensible but globally fatal. The player must control the hazard frontier, collect finite supplies, decide when cooling can be switched off, and preserve enough energy to transmit the final signal.
+
+This is the first evidence that Station Zero contains an actual management problem rather than only an Agent integration demonstration.
