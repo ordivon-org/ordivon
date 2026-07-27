@@ -1,6 +1,6 @@
-import type { ApplyResult, WorldCommand, WorldState } from "./model.ts";
+import type { ApplyResult, ApplyTickResult, TickBatch, WorldCommand, WorldState } from "./model.ts";
 import { initialWorld } from "./scenario.ts";
-import { applyWorldCommand } from "./world.ts";
+import { applyWorldCommand, applyWorldTick } from "./world.ts";
 
 export class UnsupportedVersionError extends Error {
   readonly code: "unsupported_scenario_version" | "unknown_ruleset_version";
@@ -22,6 +22,7 @@ export interface RulesetDefinition {
   id: string;
   version: number;
   apply(state: WorldState, command: WorldCommand): ApplyResult;
+  applyTick(state: WorldState, batch: TickBatch): ApplyTickResult;
 }
 
 const scenarioV1: ScenarioDefinition = {
@@ -38,6 +39,7 @@ const rulesetV1: RulesetDefinition = {
   id: "station-zero-core",
   version: 1,
   apply: applyWorldCommand,
+  applyTick: applyWorldTick,
 };
 
 const scenarios = new Map([[`${scenarioV1.id}@${scenarioV1.version}`, scenarioV1]]);

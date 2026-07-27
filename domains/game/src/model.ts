@@ -212,3 +212,35 @@ export type ApplyResult =
       code: RejectionCode;
       reason: string;
     };
+
+export interface TickIntent {
+  commandSequence: number;
+  command: WorldCommand;
+}
+
+export interface TickBatch {
+  tickId: string;
+  expectedWorldRevision: number;
+  intents: TickIntent[];
+}
+
+export interface JournalEvent {
+  tickId: string;
+  commandSequence: number;
+  simulationTick: number;
+  worldRevision: number;
+  event: WorldEvent;
+}
+
+export type ApplyTickResult =
+  | {
+      status: "accepted";
+      state: WorldState;
+      journalEvents: JournalEvent[];
+    }
+  | {
+      status: "rejected";
+      state: WorldState;
+      code: "invalid_tick" | "stale_revision" | RejectionCode;
+      reason: string;
+    };

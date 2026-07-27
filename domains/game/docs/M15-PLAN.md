@@ -20,3 +20,16 @@ Implemented:
 - exact version rejection tests.
 
 The M1 winning and failing world digests remain unchanged.
+
+## PR2 status
+
+Implemented:
+
+- typed `TickBatch` and `TickIntent`;
+- separate command sequence, world revision, and simulation tick coordinates;
+- journal envelopes retaining Tick identity around the unchanged M1 domain event;
+- storage and replay through the versioned Ruleset Tick API;
+- fail-closed multi-intent batches until M3 conflict semantics exist;
+- compatibility parsing for PR1-era raw Event rows.
+
+The frozen M1 v1 WorldEvent and terminal state digests remain byte-stable.

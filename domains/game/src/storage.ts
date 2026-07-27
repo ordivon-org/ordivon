@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "./digest.ts";
-import type { ApplyResult, WorldCommand, WorldEvent, WorldState } from "./model.ts";
+import type { ApplyResult, JournalEvent, WorldCommand, WorldEvent, WorldState } from "./model.ts";
 import { resolveRuleset, resolveScenario } from "./registry.ts";
 import {
   CURRENT_BUILD,
@@ -15,6 +15,7 @@ import {
 import { assertWorldInvariants } from "./scenario.ts";
 
 interface EventRow {
+  command_sequence?: number;
   command_json: string;
   event_json: string;
   before_digest: string;
@@ -275,15 +276,26 @@ export class GameStore {
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const state = this.loadState(runId);
-      const result = resolveRuleset(metadata.rulesetId, metadata.rulesetVersion).apply(state, command);
-      if (result.status === "rejected") {
-        this.db.exec("ROLLBACK");
-        return { result, idempotent: false, runId, commandSequence: this.eventCount(runId) };
-      }
       const row = this.db
         .prepare("SELECT COALESCE(MAX(command_sequence), -1) + 1 AS sequence FROM commands WHERE run_id = ?")
         .get(runId) as { sequence: number };
       const sequence = Number(row.sequence);
+      const tick = resolveRuleset(metadata.rulesetId, metadata.rulesetVersion).applyTick(state, {
+        tickId: `tick:${runId}:${state.turn + 1}`,
+        expectedWorldRevision: state.revision,
+        intents: [{ commandSequence: sequence, command }],
+      });
+      if (tick.status === "rejected") {
+        this.db.exec("ROLLBACK");
+        return { result: tick as ApplyResult, idempotent: false, runId, commandSequence: sequence };
+      }
+      const journalEvent = tick.journalEvents[0];
+      if (!journalEvent) throw new Error("accepted tick produced no journal event");
+      const result: Extract<ApplyResult, { status: "accepted" }> = {
+        status: "accepted",
+        state: tick.state,
+        event: journalEvent.event,
+      };
       this.db
         .prepare(`INSERT INTO commands
           (run_id, command_sequence, command_id, command_json, before_digest, after_digest)
@@ -304,7 +316,7 @@ export class GameStore {
           runId,
           sequence,
           command.commandId,
-          canonicalJson(result.event),
+          canonicalJson(journalEvent),
           result.event.beforeDigest,
           result.event.afterDigest,
         );
@@ -318,12 +330,26 @@ export class GameStore {
     }
   }
 
-  events(runId = this.activeRunId): WorldEvent[] {
+  journalEvents(runId = this.activeRunId): JournalEvent[] {
     this.getRun(runId);
     const rows = this.db
-      .prepare("SELECT event_json FROM events WHERE run_id = ? ORDER BY event_sequence ASC")
-      .all(runId) as unknown as Array<{ event_json: string }>;
-    return rows.map((row) => JSON.parse(row.event_json) as WorldEvent);
+      .prepare("SELECT event_sequence, event_json FROM events WHERE run_id = ? ORDER BY event_sequence ASC")
+      .all(runId) as unknown as Array<{ event_sequence: number; event_json: string }>;
+    return rows.map((row) => {
+      const parsed = JSON.parse(row.event_json) as JournalEvent | WorldEvent;
+      if ("event" in parsed) return parsed;
+      return {
+        tickId: `legacy:${runId}:${row.event_sequence}`,
+        commandSequence: Number(row.event_sequence),
+        simulationTick: parsed.turn,
+        worldRevision: parsed.worldRevision,
+        event: parsed,
+      };
+    });
+  }
+
+  events(runId = this.activeRunId): WorldEvent[] {
+    return this.journalEvents(runId).map((record) => record.event);
   }
 
   replay(runId = this.activeRunId): ReplayResult {
@@ -337,7 +363,7 @@ export class GameStore {
     if (sha256(state) !== genesisRow.digest) throw new Error("genesis snapshot digest mismatch");
 
     const rows = this.db
-      .prepare(`SELECT c.command_json, e.event_json, c.before_digest, c.after_digest
+      .prepare(`SELECT c.command_sequence, c.command_json, e.event_json, c.before_digest, c.after_digest
         FROM commands c JOIN events e
           ON e.run_id = c.run_id AND e.event_sequence = c.command_sequence
         WHERE c.run_id = ? ORDER BY c.command_sequence ASC`)
@@ -346,10 +372,20 @@ export class GameStore {
     for (const row of rows) {
       if (sha256(state) !== row.before_digest) throw new Error("replay before-digest mismatch");
       const command = JSON.parse(row.command_json) as WorldCommand;
-      const replayed = ruleset.apply(state, command);
+      const sequence = Number(row.command_sequence ?? 0);
+      const replayed = ruleset.applyTick(state, {
+        tickId: `tick:${runId}:${state.turn + 1}`,
+        expectedWorldRevision: state.revision,
+        intents: [{ commandSequence: sequence, command }],
+      });
       if (replayed.status !== "accepted") throw new Error(`replay command rejected: ${replayed.reason}`);
-      if (replayed.event.afterDigest !== row.after_digest) throw new Error("replay after-digest mismatch");
-      if (canonicalJson(replayed.event) !== row.event_json) throw new Error("replayed event differs from retained event");
+      const actualRecord = replayed.journalEvents[0];
+      if (!actualRecord) throw new Error("replayed tick produced no journal event");
+      if (actualRecord.event.afterDigest !== row.after_digest) throw new Error("replay after-digest mismatch");
+      const retained = JSON.parse(row.event_json) as JournalEvent | WorldEvent;
+      const retainedIsJournal = "event" in retained;
+      const actualJson = retainedIsJournal ? canonicalJson(actualRecord) : canonicalJson(actualRecord.event);
+      if (actualJson !== row.event_json) throw new Error("replayed event differs from retained event");
       state = replayed.state;
     }
 

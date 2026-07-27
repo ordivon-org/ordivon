@@ -435,3 +435,61 @@ export function shortestPath(state: WorldState, start: string, target: string): 
   }
   return null;
 }
+
+export function applyWorldTick(
+  state: WorldState,
+  batch: import("./model.ts").TickBatch,
+): import("./model.ts").ApplyTickResult {
+  if (typeof batch.tickId !== "string" || batch.tickId.length === 0) {
+    return { status: "rejected", state, code: "invalid_tick", reason: "tickId must be non-empty" };
+  }
+  if (batch.expectedWorldRevision !== state.revision) {
+    return {
+      status: "rejected",
+      state,
+      code: "stale_revision",
+      reason: `expected world revision ${batch.expectedWorldRevision}, current revision is ${state.revision}`,
+    };
+  }
+  if (batch.intents.length !== 1) {
+    return {
+      status: "rejected",
+      state,
+      code: "invalid_tick",
+      reason: "station-zero-core v1 accepts exactly one intent per simulation tick",
+    };
+  }
+  const intent = batch.intents[0];
+  if (!intent || !Number.isSafeInteger(intent.commandSequence) || intent.commandSequence < 0) {
+    return {
+      status: "rejected",
+      state,
+      code: "invalid_tick",
+      reason: "intent commandSequence must be a non-negative integer",
+    };
+  }
+  if (intent.command.expectedRevision !== batch.expectedWorldRevision) {
+    return {
+      status: "rejected",
+      state,
+      code: "stale_revision",
+      reason: "intent revision does not match the tick revision",
+    };
+  }
+
+  const result = applyWorldCommand(state, intent.command);
+  if (result.status === "rejected") return result;
+  return {
+    status: "accepted",
+    state: result.state,
+    journalEvents: [
+      {
+        tickId: batch.tickId,
+        commandSequence: intent.commandSequence,
+        simulationTick: result.state.turn,
+        worldRevision: result.state.revision,
+        event: result.event,
+      },
+    ],
+  };
+}

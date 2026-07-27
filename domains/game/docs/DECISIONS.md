@@ -97,3 +97,11 @@ Every Run binds `scenarioId + scenarioVersion`, `rulesetId + rulesetVersion`, `s
 ## D-018 — M1 v1 is a frozen compatibility fixture
 
 `fixtures/m1-v1` retains genesis, successful and failing command journals, events, per-step digests, and a manifest bound to the M1 source commit. Later architecture work must execute this fixture byte-for-byte or declare an explicit migration.
+
+## D-019 — Command sequence, world revision, and simulation tick are distinct
+
+`commandSequence` orders accepted commands inside one Run. `worldRevision` protects optimistic concurrency. `simulationTick` advances environmental time. M1.5 still admits exactly one intent per Tick, so their numeric values often coincide, but they are separate contracts and are persisted separately in the journal envelope.
+
+## D-020 — Multi-intent Tick batches fail closed until conflict resolution exists
+
+The kernel accepts a typed `TickBatch`, but station-zero-core v1 requires exactly one intent. This preserves the future multi-Agent shape without inventing ordering, collision, or shared-resource rules before M3.
