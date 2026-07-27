@@ -15,7 +15,7 @@ assertWorldInvariants(failure.state);
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-m1-receipt-"));
 const dbPath = join(directory, "world.sqlite3");
 try {
-  const store = new GameStore(dbPath, initialWorld());
+  const store = new GameStore(dbPath);
   let state = store.loadState();
   let step = 0;
   const startedAt = performance.now();

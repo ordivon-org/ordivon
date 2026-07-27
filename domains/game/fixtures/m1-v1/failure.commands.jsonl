@@ -1,0 +1,10 @@
+{"actorId":"engineer-01","commandId":"failure:0:move:power-junction","expectedRevision":0,"kind":"move","targetRoomId":"power-junction"}
+{"actorId":"engineer-01","commandId":"failure:1:move:communications","expectedRevision":1,"kind":"move","targetRoomId":"communications"}
+{"actorId":"engineer-01","commandId":"failure:2:repair:communications","expectedRevision":2,"kind":"repair_system","targetSystemId":"communications"}
+{"actorId":"engineer-01","commandId":"failure:3:move:power-junction","expectedRevision":3,"kind":"move","targetRoomId":"power-junction"}
+{"actorId":"engineer-01","commandId":"failure:4:power:communications:true","enabled":true,"expectedRevision":4,"kind":"set_power","targetSystemId":"communications"}
+{"actorId":"engineer-01","commandId":"failure:5:move:communications","expectedRevision":5,"kind":"move","targetRoomId":"communications"}
+{"actorId":"engineer-01","commandId":"failure:6:distress:communications","expectedRevision":6,"kind":"send_distress","targetSystemId":"communications"}
+{"actorId":"engineer-01","commandId":"failure:7:wait","expectedRevision":7,"kind":"wait"}
+{"actorId":"engineer-01","commandId":"failure:8:wait","expectedRevision":8,"kind":"wait"}
+{"actorId":"engineer-01","commandId":"failure:9:wait","expectedRevision":9,"kind":"wait"}

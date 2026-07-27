@@ -49,14 +49,19 @@ export interface GameServer {
   close(): Promise<void>;
 }
 
-function stateEnvelope(store: GameStore): unknown {
-  const state = store.loadState();
+function requestedRunId(url: URL, store: GameStore): string {
+  return url.searchParams.get("runId") ?? store.activeRunId;
+}
+
+function stateEnvelope(store: GameStore, runId: string): unknown {
+  const state = store.loadState(runId);
   return {
+    run: store.getRun(runId),
     state,
     digest: sha256(state),
-    eventCount: store.eventCount(),
+    eventCount: store.eventCount(runId),
     availableActions: listAvailableActions(state),
-    recentEvents: store.events().slice(-8),
+    recentEvents: store.events(runId).slice(-8),
   };
 }
 
@@ -68,12 +73,28 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url ?? "/", "http://localhost");
+      const runId = requestedRunId(url, store);
+
+      if (request.method === "GET" && url.pathname === "/api/runs") {
+        sendJson(response, 200, { activeRunId: store.activeRunId, runs: store.listRuns() });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/runs") {
+        const input = await readJson(request);
+        if (input !== null && typeof input !== "object") {
+          sendJson(response, 400, { error: "invalid_run", message: "run input must be an object" });
+          return;
+        }
+        const run = store.createRun((input ?? {}) as Record<string, never>);
+        sendJson(response, 201, { run, state: store.loadState(run.runId) });
+        return;
+      }
       if (request.method === "GET" && url.pathname === "/api/state") {
-        sendJson(response, 200, stateEnvelope(store));
+        sendJson(response, 200, stateEnvelope(store, runId));
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/events") {
-        sendJson(response, 200, { events: store.events() });
+        sendJson(response, 200, { runId, events: store.events(runId) });
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/actions") {
@@ -87,19 +108,19 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           });
           return;
         }
-        const applied = store.apply(command);
+        const applied = store.apply(command, runId);
         sendJson(response, applied.result.status === "accepted" ? 200 : 409, applied);
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/replay") {
-        sendJson(response, 200, store.replay());
+        sendJson(response, 200, store.replay(runId));
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/suggestion") {
-        const context = compileProviderContext(store.loadState());
+        const context = compileProviderContext(store.loadState(runId));
         const decision = await provider.decide(context);
         const admitted = admitProviderDecision(context, decision);
-        sendJson(response, 200, { context, decision, admitted });
+        sendJson(response, 200, { runId, context, decision, admitted });
         return;
       }
       const staticFile = staticFiles[url.pathname];
@@ -140,7 +161,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const port = Number(process.env.PORT ?? 4173);
   const game = createGameServer({ dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath });
   game.server.listen(port, "127.0.0.1", () => {
-    console.log(`Station Zero M1 running at http://127.0.0.1:${port}`);
+    console.log(`Station Zero M1.5 running at http://127.0.0.1:${port}`);
   });
   const shutdown = () => game.close().finally(() => process.exit(0));
   process.on("SIGINT", shutdown);

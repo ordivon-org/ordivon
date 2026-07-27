@@ -66,6 +66,8 @@ pnpm receipt   # compare winning, failing, persisted, recovered, and replayed pa
 
 Runtime dependencies remain zero. TypeScript and Node type definitions are development-only checks.
 
+Each persisted execution is an independent `Run` bound to an explicit scenario version, ruleset version, state schema, seed, and creating build. One SQLite database can hold several isolated Runs; unknown versions fail closed.
+
 ## Authority boundary
 
 ```text
@@ -100,7 +102,9 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`src/scenario.ts`](src/scenario.ts) — Station Zero genesis, environmental progression, mission evaluation, and invariants.
 - [`src/world.ts`](src/world.ts) — parsing, admission, atomic execution, state diffs, and available actions.
 - [`src/policies.ts`](src/policies.ts) — deterministic winning and failing policies.
-- [`src/storage.ts`](src/storage.ts) — SQLite events, snapshots, recovery, idempotency, and replay.
+- [`src/run.ts`](src/run.ts) — stable Run identity and version-bound execution metadata.
+- [`src/registry.ts`](src/registry.ts) — scenario and ruleset version registry.
+- [`src/storage.ts`](src/storage.ts) — multi-Run SQLite commands, events, snapshots, recovery, idempotency, and replay.
 - [`src/provider.ts`](src/provider.ts) — bounded candidate interface retained for M2.
 - [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
 - [`web/`](web/) — dependency-free mission-control surface.

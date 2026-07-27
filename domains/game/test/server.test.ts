@@ -21,7 +21,12 @@ test("browser API exposes the station and applies an admitted action", async () 
     const page = await fetch(`${base}/`).then((response) => response.text());
     assert.match(page, /Station Zero/);
 
+    const runs = await fetch(`${base}/api/runs`).then((response) => response.json());
+    assert.equal(runs.runs.length, 1);
+    assert.equal(runs.runs[0].rulesetVersion, 1);
+
     const initial = await fetch(`${base}/api/state`).then((response) => response.json());
+    assert.equal(initial.run.runId, "run:default");
     assert.equal(Object.keys(initial.state.rooms).length, 8);
     const move = initial.availableActions.find((action: { actionId: string }) => action.actionId === "move:power-junction");
     assert.ok(move);

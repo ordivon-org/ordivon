@@ -4,14 +4,17 @@
   "private": true,
   "type": "module",
   "description": "Agent-native game experiments built on deterministic world state and Ordivon semantics.",
-  "engines": { "node": ">=26.0.0" },
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "scripts": {
     "start": "node src/server.ts",
     "demo": "node scripts/demo.ts",
     "test": "node --test test/*.test.ts",
     "check": "pnpm typecheck && node --check web/app.js && node --test test/*.test.ts",
     "receipt": "node scripts/receipt.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fixture:generate": "node scripts/generate-m1-fixture.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

@@ -85,3 +85,15 @@ Reason: a deterministic strategy game requires stronger guarantees than narrativ
 The recovery policy proves one feasible winning trajectory. The communications-first policy proves that an individually reasonable local objective can cause global failure through reactor escalation.
 
 They are executable acceptance witnesses and regression tools. They are not intended to become the player's final autonomous team logic.
+
+## D-016 — Run is the durable execution boundary
+
+One `Run` identifies one independent game-world execution. Commands, events, snapshots, idempotency, recovery, and replay are scoped by `runId`. A database may contain several Runs without sharing command identity or world state.
+
+## D-017 — Scenario, ruleset, and state-schema versions are distinct
+
+Every Run binds `scenarioId + scenarioVersion`, `rulesetId + rulesetVersion`, `stateSchemaVersion`, seed, and creating build. Opening or replaying a Run resolves these exact versions through registries and fails closed when a version is unavailable.
+
+## D-018 — M1 v1 is a frozen compatibility fixture
+
+`fixtures/m1-v1` retains genesis, successful and failing command journals, events, per-step digests, and a manifest bound to the M1 source commit. Later architecture work must execute this fixture byte-for-byte or declare an explicit migration.
