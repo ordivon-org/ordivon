@@ -145,3 +145,15 @@ Mission scoring is derived from terminal WorldState and never participates in au
 ## D-030 — Coverage thresholds protect the whole executable core
 
 CI requires at least 95% line coverage, 90% branch coverage, and 95% function coverage across loaded source modules. Core achieved branch coverage is separately reviewed for `scenario.ts`, `world.ts`, and `storage.ts`; global coverage does not justify leaving a critical reducer untested.
+
+## D-031 — Provider sessions do not identify the Engineer
+
+The Engineer is represented by persistent Goal, Task, Attempt, semantic history, and current world binding. Codex and Hermes are replaceable cognitive calls. Their sessions, memories, tools, and transcripts never enter task continuity.
+
+## D-032 — Host and World journals share SQLite but not authority
+
+M2 stores Host state in the same SQLite database as the world for local atomicity and deployment simplicity. Host Journal, projections, and Artifacts use independent tables and an independent hash chain. Host records are not replay inputs for the deterministic World Kernel.
+
+## D-033 — Models choose Operations, not primitive Commands
+
+A Provider selects one exact strategic Operation. The Host compiles that Operation into deterministic movement, pickup, and action steps. This bounds model latency and cost while preserving the World Kernel as the only command authority.

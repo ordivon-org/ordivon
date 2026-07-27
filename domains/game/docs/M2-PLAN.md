@@ -1,0 +1,21 @@
+# M2 implementation plan
+
+1. Durable Host Core — independent Host Journal, Goal, Task, Attempt, and Artifact projections.
+2. Operation Frontier — bounded observations, strategic candidates, deterministic Skill plans, Context digest.
+3. Provider Adapters — fixture, Codex CLI, isolated Hermes CLI, fallback and evidence.
+4. Execution Semantics — Effect, Dispatch, Observation, Verification, reconciliation and interruption faults.
+5. Control Surface — Agent step/run/pause API, browser timeline, fresh-process continuation.
+6. Live Evaluation — Codex, Hermes, provider switching, receipts, latency/token/cost and mission outcomes.
+
+Every PR must preserve the frozen M1 digests and the M1.5 coverage gates.
+
+## PR1 status — implemented
+
+- independent hash-chained Host Journal;
+- durable Goal, root Task, Attempt projections;
+- content-addressed immutable Host Artifacts;
+- one SQLite deployment with separate Host and World authority;
+- multi-Run isolation and idempotent initialization;
+- fresh HostStore reconstruction and tamper detection.
+
+No Provider is called and no Host operation can mutate the world in PR1.

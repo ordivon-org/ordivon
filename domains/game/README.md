@@ -106,7 +106,9 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`src/run.ts`](src/run.ts) — stable Run identity and version-bound execution metadata.
 - [`src/registry.ts`](src/registry.ts) — scenario and ruleset version registry.
 - [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, sparse Snapshots, recovery, verification replay, idempotency, and SQLite error mapping.
-- [`src/provider.ts`](src/provider.ts) — bounded candidate interface retained for M2.
+- [`src/host/model.ts`](src/host/model.ts) — durable Goal, Task, Attempt, Artifact, and Host Journal contracts.
+- [`src/host/store.ts`](src/host/store.ts) — independent Host Journal, content-addressed Artifacts, and materialized projections.
+- [`src/provider.ts`](src/provider.ts) — bounded M1 candidate interface pending replacement by M2 Operation providers.
 - [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
 - [`web/`](web/) — dependency-free mission-control surface.
 - [`test/`](test/) — world, resource, policy, persistence, provider, and HTTP conformance.
@@ -117,7 +119,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M1.5 is complete.** Run identity, semantic versions, Tick coordinates, sparse recovery, full verification replay, hash-chained history, typed Facts, transaction-fault semantics, generated validation, coverage gates, and strategy measurement are now established. The next milestone is M2: add durable Goal and Task state above this fixed world boundary.
+**M2 implementation is underway.** The first Host layer now persists Engineer Goal, root Task, Attempts, immutable Artifacts, and an independent hash-chained Host Journal above the unchanged M1.5 world boundary. Provider cognition and world execution remain deliberately disconnected until later M2 PRs.
 
 ## License
 
