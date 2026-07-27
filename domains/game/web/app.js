@@ -18,6 +18,31 @@ async function request(path, options) {
 }
 
 function show(value) { elements.output.textContent = JSON.stringify(value, null, 2); }
+function factText(fact) {
+  switch (fact.kind) {
+    case "agent_moved": return `${fact.actorId} moved: ${fact.fromRoomId} → ${fact.toRoomId}`;
+    case "agent_waited": return `${fact.actorId} waited`;
+    case "item_picked_up": return `${fact.actorId} picked up ${fact.quantity} × ${fact.itemId}`;
+    case "item_consumed": return `${fact.quantity} × ${fact.itemId} consumed`;
+    case "system_repaired": return `${fact.systemId} repaired to ${Math.round(fact.afterIntegrity * 100)}%`;
+    case "power_state_changed": return `${fact.systemId} power ${fact.powered ? "enabled" : "disabled"}`;
+    case "hull_breach_sealed": return `${fact.hazardId} sealed`;
+    case "crew_stabilized": return `${fact.crewId} stabilized`;
+    case "distress_signal_sent": return `distress signal sent`;
+    case "battery_consumed": return `${fact.amount} battery consumed`;
+    case "oxygen_changed": return `oxygen ${fact.before} → ${fact.after}`;
+    case "reactor_heat_changed": return `reactor heat ${fact.before} → ${fact.after}`;
+    case "health_changed": return `${fact.subjectId} health ${fact.before} → ${fact.after}`;
+    case "mission_succeeded": return `MISSION SUCCEEDED · ${fact.reason}`;
+    case "mission_failed": return `MISSION FAILED · ${fact.reason}`;
+    default: return fact.kind;
+  }
+}
+function showEvent(event) {
+  if (!event?.facts?.length) return show(event);
+  const verification = event.verification?.success ? "VERIFIED" : "UNVERIFIED";
+  elements.output.textContent = [`${event.commandKind} · ${verification}`, "", ...event.facts.map(factText)].join("\n");
+}
 function metric(label, value, warning = false) {
   return `<article class="metric ${warning ? "warning" : ""}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
 }
@@ -59,7 +84,7 @@ function render(next) {
     button.addEventListener("click", () => execute(action));
     elements.actions.append(button);
   }
-  if (next.recentEvents.length > 0) show(next.recentEvents.at(-1));
+  if (next.recentEvents.length > 0) showEvent(next.recentEvents.at(-1));
   else show({ recovered: true, digest: next.digest, scenario: state.scenarioId });
 }
 

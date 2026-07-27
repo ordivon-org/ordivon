@@ -1,4 +1,5 @@
 import { sha256 } from "./digest.ts";
+import { enrichWorldEvent } from "./facts.ts";
 import {
   ITEM_IDS,
   type ApplyResult,
@@ -489,6 +490,40 @@ export function applyWorldTick(
         simulationTick: result.state.turn,
         worldRevision: result.state.revision,
         event: result.event,
+      },
+    ],
+  };
+}
+
+
+export function applyWorldCommandV2(state: WorldState, command: WorldCommand): ApplyResult {
+  const result = applyWorldCommand(state, command);
+  if (result.status !== "accepted") return result;
+  return {
+    status: "accepted",
+    state: result.state,
+    event: enrichWorldEvent(state, result.state, command, result.event),
+  };
+}
+
+export function applyWorldTickV2(
+  state: WorldState,
+  batch: import("./model.ts").TickBatch,
+): import("./model.ts").ApplyTickResult {
+  const result = applyWorldTick(state, batch);
+  if (result.status !== "accepted") return result;
+  const intent = batch.intents[0];
+  const record = result.journalEvents[0];
+  if (!intent || !record) {
+    return { status: "rejected", state, code: "invalid_tick", reason: "accepted v1 tick lacked one intent or event" };
+  }
+  return {
+    status: "accepted",
+    state: result.state,
+    journalEvents: [
+      {
+        ...record,
+        event: enrichWorldEvent(state, result.state, intent.command, record.event),
       },
     ],
   };

@@ -28,7 +28,7 @@ test("one database isolates multiple version-bound runs", () => {
     const second = store.createRun({ runId: "run:failure", seed: "station-zero-fixed-seed-02" });
     assert.equal(store.listRuns().length, 2);
     assert.equal(second.scenarioVersion, 1);
-    assert.equal(second.rulesetVersion, 1);
+    assert.equal(second.rulesetVersion, 2);
 
     const firstState = store.loadState("run:default");
     const secondState = store.loadState("run:failure");

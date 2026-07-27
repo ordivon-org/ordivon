@@ -121,3 +121,11 @@ The default policy retains Genesis, every eighth accepted revision, and the term
 ## D-024 — Command and Event streams are hash chained
 
 Each retained Command and Journal Event records the previous record digest and its own canonical digest. Existing PR2 rows are backfilled only when integrity metadata is missing; already-populated hashes are never silently recomputed.
+
+## D-025 — Ruleset v2 enriches evidence without changing world state
+
+`station-zero-core@1` remains the frozen M1 compatibility reducer. `station-zero-core@2` wraps the same deterministic state transition and adds typed Facts plus a Verification receipt. New Runs default to v2; existing Runs replay with their bound version.
+
+## D-026 — Raw state diff and domain facts coexist
+
+`WorldEvent.changes` remains the low-level audit and replay diagnostic. `WorldEvent.facts` is the stable player/Host-facing semantic layer. `WorldEvent.verification` records command-specific checks and must succeed independently of model claims.

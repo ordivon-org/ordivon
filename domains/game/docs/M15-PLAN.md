@@ -48,3 +48,17 @@ Implemented:
 - tamper, Snapshot deletion, and writer-contention tests.
 
 A PR2 database with 26 Snapshots migrated to 5 Snapshots and retained the exact terminal digest.
+
+## PR4 status
+
+Implemented:
+
+- `station-zero-core@2` with state-equivalent evidence enrichment;
+- typed action, resource, hazard, health, and terminal Facts;
+- command-specific Verification checks;
+- retained raw state diff for low-level audit;
+- readable browser Evidence rendering from Facts;
+- v1/v2 state-digest equivalence tests;
+- successful and failing v2 Fact coverage.
+
+New Runs default to ruleset v2. Existing v1 Runs and the frozen M1 Fixture remain unchanged.

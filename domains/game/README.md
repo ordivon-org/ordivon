@@ -94,13 +94,14 @@ The authoritative world owns:
 - success and failure;
 - final state transitions.
 
-A model may later select or propose actions. It never directly mutates this state.
+A model may later select or propose actions. It never directly mutates this state. New Runs use `station-zero-core@2`, whose Events contain typed Facts and command-specific Verification while preserving the v1 WorldState trajectory.
 
 ## Repository map
 
 - [`src/model.ts`](src/model.ts) — typed state, commands, events, and rejection contracts.
 - [`src/scenario.ts`](src/scenario.ts) — Station Zero genesis, environmental progression, mission evaluation, and invariants.
-- [`src/world.ts`](src/world.ts) — parsing, admission, atomic execution, state diffs, and available actions.
+- [`src/world.ts`](src/world.ts) — parsing, admission, atomic execution, state diffs, versioned Tick reducers, and available actions.
+- [`src/facts.ts`](src/facts.ts) — typed domain Facts, Verification receipts, and readable evidence summaries.
 - [`src/policies.ts`](src/policies.ts) — deterministic winning and failing policies.
 - [`src/run.ts`](src/run.ts) — stable Run identity and version-bound execution metadata.
 - [`src/registry.ts`](src/registry.ts) — scenario and ruleset version registry.

@@ -171,6 +171,37 @@ export interface StateChange {
   after: ScalarValue;
 }
 
+
+export type WorldFact =
+  | { kind: "agent_moved"; actorId: string; fromRoomId: string; toRoomId: string }
+  | { kind: "agent_waited"; actorId: string }
+  | { kind: "item_picked_up"; actorId: string; roomId: string; itemId: ItemId; quantity: number }
+  | { kind: "item_consumed"; actorId: string; itemId: ItemId; quantity: number; purpose: string }
+  | { kind: "system_repaired"; systemId: string; beforeIntegrity: number; afterIntegrity: number }
+  | { kind: "power_state_changed"; systemId: string; powered: boolean }
+  | { kind: "hull_breach_sealed"; hazardId: string }
+  | { kind: "crew_stabilized"; crewId: string; health: number }
+  | { kind: "distress_signal_sent"; systemId: string }
+  | { kind: "battery_consumed"; amount: number; poweredSystems: string[] }
+  | { kind: "oxygen_changed"; before: number; after: number; causes: string[] }
+  | { kind: "reactor_heat_changed"; before: number; after: number; causes: string[] }
+  | { kind: "health_changed"; subjectType: "agent" | "crew"; subjectId: string; before: number; after: number; causes: string[] }
+  | { kind: "mission_succeeded"; reason: string }
+  | { kind: "mission_failed"; reason: string };
+
+export interface VerificationCheck {
+  name: string;
+  passed: boolean;
+  expected: ScalarValue;
+  observed: ScalarValue;
+}
+
+export interface VerificationReceipt {
+  effectKind: WorldCommand["kind"];
+  success: boolean;
+  checks: VerificationCheck[];
+}
+
 export interface WorldEvent {
   eventId: string;
   commandId: string;
@@ -183,6 +214,8 @@ export interface WorldEvent {
   changes: StateChange[];
   missionStatus: MissionStatus;
   missionReason: string | null;
+  facts?: WorldFact[];
+  verification?: VerificationReceipt;
 }
 
 export type RejectionCode =

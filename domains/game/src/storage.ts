@@ -339,7 +339,7 @@ export class GameStore {
       const scenarioId = input.scenarioId ?? "station-zero";
       const scenarioVersion = input.scenarioVersion ?? 1;
       const rulesetId = input.rulesetId ?? "station-zero-core";
-      const rulesetVersion = input.rulesetVersion ?? 1;
+      const rulesetVersion = input.rulesetVersion ?? 2;
       const scenario = resolveScenario(scenarioId, scenarioVersion);
       resolveRuleset(rulesetId, rulesetVersion);
       const genesis = input.genesis ?? scenario.create(input.seed);

@@ -23,7 +23,7 @@ test("browser API exposes the station and applies an admitted action", async () 
 
     const runs = await fetch(`${base}/api/runs`).then((response) => response.json());
     assert.equal(runs.runs.length, 1);
-    assert.equal(runs.runs[0].rulesetVersion, 1);
+    assert.equal(runs.runs[0].rulesetVersion, 2);
 
     const initial = await fetch(`${base}/api/state`).then((response) => response.json());
     assert.equal(initial.run.runId, "run:default");
@@ -41,6 +41,8 @@ test("browser API exposes the station and applies an admitted action", async () 
     const terminal = await fetch(`${base}/api/state`).then((response) => response.json());
     assert.equal(terminal.state.agents["engineer-01"].location, "power-junction");
     assert.equal(terminal.eventCount, 1);
+    assert.equal(terminal.recentEvents[0].verification.success, true);
+    assert.ok(terminal.recentEvents[0].facts.some((fact: { kind: string }) => fact.kind === "agent_moved"));
     const replay = await fetch(`${base}/api/replay`).then((response) => response.json());
     assert.equal(replay.verified, true);
     assert.equal(replay.digest, terminal.digest);
