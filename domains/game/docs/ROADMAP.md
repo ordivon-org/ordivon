@@ -122,9 +122,25 @@ Acceptance evidence:
 
 Receipt: [`M21-RECEIPT.md`](M21-RECEIPT.md). Evaluation: [`M21-EVALUATION.json`](M21-EVALUATION.json).
 
-## M3 — Multi-Agent team and authority — design ready
+## M3.0 — Cross-stack correction — design ready
 
-Design: [`M3-DESIGN.md`](M3-DESIGN.md). Implementation plan: [`M3-PLAN.md`](M3-PLAN.md).
+Design: [`M30-DESIGN.md`](M30-DESIGN.md). Revised implementation entry: [`M30-PLAN.md`](M30-PLAN.md).
+
+M3.0 freezes the boundary before implementation:
+
+- reuse Ordivon Host Event streams, checked projections, leases, graph state, and token-budget Contexts;
+- keep Game World, Objective predicates, observation rules, and Tick semantics domain-owned;
+- replace sequential one-Command-per-Tick interleaving with atomic multi-Actor TickBatch execution;
+- use Actor Knowledge rather than omniscient candidate advice;
+- replace the authority ladder with minimal attribute-based policy;
+- map one selected Team Tick to the existing Effect → Dispatch → Observation → Verification chain;
+- select embedded conformance adapter versus local Host sidecar before coding.
+
+M3.0 is design-only and does not satisfy Issue #5.
+
+## M3 — Multi-Agent team and authority — implementation pending
+
+The original [`M3-DESIGN.md`](M3-DESIGN.md) and [`M3-PLAN.md`](M3-PLAN.md) are retained as superseded design history. Implementation follows the corrected M3.0 contracts.
 
 Add Medic and Security specialist:
 

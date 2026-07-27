@@ -1,7 +1,9 @@
 # M3 design — multi-Agent team, communication, authority, and conflict
 
-Status: proposed for Issue #5  
-Design baseline: `main@b5e3db64c38c93c22a75ca54020ff3bc33d9eef6`  
+> **Superseded historical design.** M3.0 replaced the implementation architecture after a first-principles and cross-stack audit. The original product goals remain useful, but its one-Command-per-Tick execution, duplicate Team Task DAG, authority ladder, generic conflict resolver, fixed M3 Context limit, and Game-private Host projections are not implementation contracts. See [`M30-DESIGN.md`](M30-DESIGN.md) and [`M30-PLAN.md`](M30-PLAN.md).
+
+Status: superseded by M3.0; retained for design history
+Design baseline: `main@b5e3db64c38c93c22a75ca54020ff3bc33d9eef6`
 Prerequisites: M2 persistent Host and M2.1 public goal-directed strategy semantics
 
 ## 1. Decision summary

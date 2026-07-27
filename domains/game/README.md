@@ -124,7 +124,7 @@ A model may later select or propose actions. It never directly mutates this stat
 
 ## Current status
 
-**M2.1 is complete and M3 design is ready.** The persistent Engineer now receives an explicit Goal dependency graph, threat horizons, regression annotations, safe power-control semantics, transparent strategic ranks, and bounded one-Operation lookahead. Codex-only and Codex → Hermes achieved verified victory without changing World rules or overriding model choices. M3 will add independent Engineer, Medic, and Security specialists through a shared Task DAG, typed limited communication, player-configured authority, deterministic conflict resolution, and interleaved single-writer execution. See [`docs/M21-RECEIPT.md`](docs/M21-RECEIPT.md), [`docs/M3-DESIGN.md`](docs/M3-DESIGN.md), and [`docs/M3-PLAN.md`](docs/M3-PLAN.md).
+**M2.1 is complete and M3.0 cross-stack design is ready.** The first M3 design was superseded after a first-principles audit. M3 will reuse Ordivon Host Event/projection/lease/Context contracts, keep Game-specific Objective and observation semantics local, and introduce an atomic multi-Actor TickBatch so compatible specialists act in one simulation Tick while environment advances once. M3.0 is design-only; Issue #5 implementation remains open. See [`docs/M21-RECEIPT.md`](docs/M21-RECEIPT.md), [`docs/M30-DESIGN.md`](docs/M30-DESIGN.md), and [`docs/M30-PLAN.md`](docs/M30-PLAN.md).
 
 ## License
 

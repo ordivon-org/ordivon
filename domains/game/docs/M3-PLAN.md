@@ -1,6 +1,8 @@
 # M3 implementation plan
 
-Issue: #5 — multi-Agent team, communication, and authority  
+> **Superseded historical plan.** Do not implement PR1–PR7 from this document. The cross-stack correction in [`M30-DESIGN.md`](M30-DESIGN.md) and revised sequence in [`M30-PLAN.md`](M30-PLAN.md) replace this plan.
+
+Issue: #5 — multi-Agent team, communication, and authority
 Design: [`M3-DESIGN.md`](M3-DESIGN.md)
 
 ## Strategy

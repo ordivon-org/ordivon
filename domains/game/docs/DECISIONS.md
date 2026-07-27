@@ -233,3 +233,43 @@ M3 uses an AND/OR Team Task DAG, a time-varying communication graph, and a per-r
 ## D-052 — Communication and authority remain separate bounded protocols
 
 Agent communication uses typed delivery-limited Messages that reference immutable Facts and Artifacts. Restricted Operations require stale-sensitive, single-use Authority Grants bound to the exact Proposal, Context, actor, and World digest. A Message can request authority but cannot provide it.
+
+## D-053 — M3.0 is a cross-stack correction, not a feature milestone
+
+M3.0 freezes ownership, time, state, observation, authority, and deployment contracts before specialist implementation. It changes no World rules or executable code and does not satisfy Issue #5. The first M3 documents remain as superseded design history.
+
+## D-054 — The Team Coordinator is an Ordivon Host workload, not a new Kernel
+
+Goal and Task continuity, Host Events, checked projections, leases, Context compilation, Provider turns, candidate admission, waiting, and outcomes follow `ordivon-host` contracts. Game supplies Objective predicates, actor-visible observations, candidate semantics, message reachability, conflict predicates, and World execution. A conformance-backed embedded adapter may precede extraction, but Game does not define a second permanent Host architecture.
+
+## D-055 — Atomic multi-Actor TickBatch supersedes serialized one-Command-per-Tick M3 execution
+
+D-050 is superseded for M3. Compatible actors may contribute at most one primitive Intent each to one atomic TickBatch. All preconditions bind the same before-state, shared resources are reserved across the batch, environment advances once, mission evaluates once, and one TickEvent carries per-Intent receipts. Ruleset v1/v2 remain unchanged.
+
+## D-056 — One Game Objective Graph supersedes a separate Team Task dependency graph
+
+D-051's separate Team Task DAG is superseded. Game owns one Objective Graph with AND/OR satisfaction predicates and visibility. Host Tasks represent durable actor claims, attempts, and coordination state for Objectives; they do not duplicate Objective dependencies.
+
+## D-057 — Multi-Agent strategy is bounded by Actor Knowledge
+
+Physical admission may use authoritative World truth, but actor Context, candidate annotations, Tasks, and advisory ranks may use only public alarms, local observations, delivered Messages, and visible verified Facts. M2.1's omniscient strategic score cannot become the team scheduler or leak hidden state.
+
+## D-058 — Attribute-based policy replaces the M3 authority ladder
+
+Authority is decided from subject, action, target, environment, and player policy attributes. The result is permit, require-human, or deny. Capability and authority remain distinct. A Grant is single-use and binds the exact actor, proposal, Context, World, policy revision, target, operation, and expiry.
+
+## D-059 — Three-actor proposal selection enumerates legal subsets
+
+With at most three actor Proposals, the Team Coordinator enumerates at most eight subsets, rejects stale, unauthorized, and conflicting combinations, and selects one through public deterministic control criteria. M3 does not implement a general maximal-independent-set engine or use hidden model judgment.
+
+## D-060 — One Team Tick is one semantic Effect and one Game Dispatch
+
+Action Proposals are cognition records, not independent external Effects. After authority and compatibility selection, the Coordinator forms one semantic Effect to advance one admitted Team Tick and binds it to one MultiActorTickBatch Dispatch. One TickEvent Observation and Verification contain per-Intent receipts that advance actor Tasks independently. No generic EffectGroup is introduced.
+
+## D-061 — M3 Context uses Host token budgets rather than a new fixed byte constant
+
+The 16 KiB contract remains part of frozen M2 compatibility. M3 actor Contexts use required/optional typed Context Blocks, source digests, freshness, priorities, token budgets, and selected/omitted manifests from Ordivon Host semantics. Byte and message limits are measured scenario policy, not universal architecture constants.
+
+## D-062 — Deployment begins with a measured embedded-versus-sidecar choice
+
+The target ownership is an Ordivon Host Team Coordinator workload with a Game World adapter. The first executable slice defaults to a conformance-backed in-process TypeScript adapter unless a local Python Host sidecar experiment proves lower total complexity or a required independent-Host capability. Implementation does not begin before this choice is reviewed.
