@@ -32,9 +32,13 @@ try {
 
   const reopened = new GameStore(dbPath);
   const recovered = reopened.loadState();
+  const recoveryStartedAt = performance.now();
+  const recovery = reopened.recover();
+  const recoveryMs = performance.now() - recoveryStartedAt;
   const replayStartedAt = performance.now();
-  const replay = reopened.replay();
+  const replay = reopened.verifyReplay();
   const replayMs = performance.now() - replayStartedAt;
+  const snapshotCount = reopened.snapshotCount();
   reopened.close();
 
   console.log(
@@ -58,12 +62,16 @@ try {
           digest: failure.digest,
         },
         persistedReplay: {
-          recoveredDigest: replay.digest,
-          matchesPurePolicy: replay.digest === success.digest,
+          recoveredDigest: recovery.digest,
+          matchesPurePolicy: replay.digest === success.digest && recovery.digest === success.digest,
           recoveredStatus: recovered.mission.status,
           eventCount: replay.eventCount,
-          verified: replay.verified,
+          snapshotCount,
+          recoveryReplayedCommands: recovery.replayedCommandCount,
+          verifyReplayedCommands: replay.replayedCommandCount,
+          verified: replay.verified && recovery.verified,
           executeMs: Number(executeMs.toFixed(3)),
+          recoveryMs: Number(recoveryMs.toFixed(3)),
           replayMs: Number(replayMs.toFixed(3)),
         },
       },

@@ -33,3 +33,18 @@ Implemented:
 - compatibility parsing for PR1-era raw Event rows.
 
 The frozen M1 v1 WorldEvent and terminal state digests remain byte-stable.
+
+## PR3 status
+
+Implemented:
+
+- Genesis / interval-8 / terminal Snapshot policy;
+- Recovery Replay from the newest Snapshot and Verify Replay from Genesis;
+- independent Command and Event hash chains;
+- PR2 database migration, hash backfill, and Snapshot pruning;
+- typed `storage_busy`, `storage_corrupt`, and `storage_constraint` errors;
+- SQLite busy timeout and HTTP error mapping;
+- indexed recent-event tail reads;
+- tamper, Snapshot deletion, and writer-contention tests.
+
+A PR2 database with 26 Snapshots migrated to 5 Snapshots and retained the exact terminal digest.

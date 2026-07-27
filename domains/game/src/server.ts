@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { sha256 } from "./digest.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
-import { GameStore } from "./storage.ts";
+import { GameStore, StorageError } from "./storage.ts";
 import { listAvailableActions, parseWorldCommand } from "./world.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
@@ -61,7 +61,7 @@ function stateEnvelope(store: GameStore, runId: string): unknown {
     digest: sha256(state),
     eventCount: store.eventCount(runId),
     availableActions: listAvailableActions(state),
-    recentEvents: store.events(runId).slice(-8),
+    recentEvents: store.recentJournalEvents(8, runId).map((record) => record.event),
   };
 }
 
@@ -136,6 +136,13 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       sendJson(response, 404, { error: "not_found" });
     } catch (error) {
+      if (error instanceof StorageError) {
+        sendJson(response, error.code === "storage_busy" ? 503 : 500, {
+          error: error.code,
+          message: error.message,
+        });
+        return;
+      }
       sendJson(response, 500, {
         error: "internal_error",
         message: error instanceof Error ? error.message : String(error),

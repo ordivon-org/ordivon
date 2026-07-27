@@ -105,3 +105,19 @@ Every Run binds `scenarioId + scenarioVersion`, `rulesetId + rulesetVersion`, `s
 ## D-020 — Multi-intent Tick batches fail closed until conflict resolution exists
 
 The kernel accepts a typed `TickBatch`, but station-zero-core v1 requires exactly one intent. This preserves the future multi-Agent shape without inventing ordering, collision, or shared-resource rules before M3.
+
+## D-021 — Command Journal is the replay input
+
+Run metadata, Genesis, the accepted Command Journal, and the bound Ruleset reproduce the world. Journal Events are execution receipts checked during verification. Snapshots are disposable recovery caches rather than an independent source of truth.
+
+## D-022 — Recovery and verification replay are separate
+
+Recovery starts from the newest valid Snapshot and replays only the command tail. Verification starts from Genesis and compares every reproduced Journal Event and digest with retained history.
+
+## D-023 — Snapshot cadence is sparse and explicit
+
+The default policy retains Genesis, every eighth accepted revision, and the terminal state. Old per-revision Snapshot databases are pruned during migration without deleting the Command/Event journal.
+
+## D-024 — Command and Event streams are hash chained
+
+Each retained Command and Journal Event records the previous record digest and its own canonical digest. Existing PR2 rows are backfilled only when integrity metadata is missing; already-populated hashes are never silently recomputed.

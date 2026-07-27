@@ -104,7 +104,7 @@ A model may later select or propose actions. It never directly mutates this stat
 - [`src/policies.ts`](src/policies.ts) — deterministic winning and failing policies.
 - [`src/run.ts`](src/run.ts) — stable Run identity and version-bound execution metadata.
 - [`src/registry.ts`](src/registry.ts) — scenario and ruleset version registry.
-- [`src/storage.ts`](src/storage.ts) — multi-Run SQLite commands, events, snapshots, recovery, idempotency, and replay.
+- [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, sparse Snapshots, recovery, verification replay, idempotency, and SQLite error mapping.
 - [`src/provider.ts`](src/provider.ts) — bounded candidate interface retained for M2.
 - [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
 - [`web/`](web/) — dependency-free mission-control surface.
