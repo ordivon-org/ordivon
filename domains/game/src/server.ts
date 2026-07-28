@@ -277,6 +277,14 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, applied.result.status === "accepted" ? 200 : 409, applied);
         return;
       }
+      if (request.method === "GET" && url.pathname === "/api/replay/state") {
+        const rawRevision = url.searchParams.get("revision");
+        if (rawRevision === null || !rawRevision.trim()) {
+          throw new TypeError("revision is required");
+        }
+        sendJson(response, 200, store.stateAtRevision(Number(rawRevision), runId));
+        return;
+      }
       if (request.method === "GET" && url.pathname === "/api/replay") {
         sendJson(response, 200, store.replay(runId));
         return;

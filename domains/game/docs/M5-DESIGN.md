@@ -1,6 +1,6 @@
 # M5 design — replay, diagnosis, comparison, experiments, and first playable release
 
-Status: accepted design; M5.0 identity, catalog, and paging contracts are implemented
+Status: accepted design; M5.0 and PR2A verified point-in-time replay are implemented
 Tracking: Issue #7
 Depends on: M4 closeout at `main@2427aad4d35e76ffb3ab479f60be8c2239f5c9c8`
 Audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md)
@@ -431,7 +431,13 @@ The existing local-versus-radio failure becomes one release comparison fixture.
 
 ## 9. Point-in-time replay kernel
 
-Add a verified point-in-time operation:
+Implementation status: complete in PR2A. The executable read contract is:
+
+```text
+GET /api/replay/state?runId=...&revision=...
+```
+
+The old `/api/replay` remains a full-from-Genesis verification compatibility API. Add a verified point-in-time operation:
 
 ```ts
 interface PointInTimeReplayResult {
@@ -843,6 +849,7 @@ Proposed minimal APIs:
 ```text
 GET  /api/mission-control/catalog
 
+GET  /api/replay/state?runId=...&revision=...
 GET  /api/replay/summary?runId=...
 GET  /api/replay/frame?runId=...&revision=...
 GET  /api/replay/timeline?runId=...&beforeRevision=...&limit=...

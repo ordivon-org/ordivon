@@ -148,7 +148,15 @@ pause
 cancel
 ```
 
-M2 single-Engineer endpoints remain available for older Runs.
+Verified replay reads:
+
+```text
+GET /api/replay/state?runId=...&revision=...
+GET /api/replay/timeline?runId=...&beforeRevision=...&limit=...
+GET /api/replay                                      # full verification compatibility API
+```
+
+Point-in-time replay selects the nearest retained Snapshot at or before the requested World revision, verifies Command/Event chains and identities, replays only the required tail, and writes no World or Host record. M2 single-Engineer endpoints remain available for older Runs.
 
 ## Repository map
 
@@ -159,7 +167,8 @@ M2 single-Engineer endpoints remain available for older Runs.
 - [`src/world.ts`](src/world.ts) — parsing, admission, Ruleset reducers, atomic TickBatch, diffs, and available Actions.
 - [`src/facts.ts`](src/facts.ts) — typed domain Facts and Verification receipts.
 - [`src/registry.ts`](src/registry.ts) — Scenario and Ruleset version registry.
-- [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, snapshots, recovery, verification replay, and idempotency.
+- [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, Snapshot caches, recovery, full verification, point-in-time reconstruction, and idempotency.
+- [`src/replay/model.ts`](src/replay/model.ts) — read-only point-in-time replay result contract.
 
 ### Host and team
 
@@ -188,11 +197,11 @@ M2 single-Engineer endpoints remain available for older Runs.
 
 ## Current status
 
-**M4 is complete. M5 implementation is in progress; M5.0 identity and paging hardening is complete.**
+**M4 is complete. M5 implementation is in progress; M5.0 and PR2A verified point-in-time replay are complete.**
 
 M4 turns the verified M3 Team system into a bounded playable Mission Control product. The Fixture team wins in 18 verified Ticks through Mission Control APIs, the terminal view remains 16,465 bytes, player controls and pending review survive process replacement, intervention changes the admitted path, and the main product contains no primitive World controls or raw Host logs.
 
-M5 closes the remaining play → replay → diagnose → compare → reconfigure → release loop. The first implementation slice now replaces label-only seed semantics with deterministic Scenario Cases, binds every new Run to Case, Genesis, build, and evaluated-input identity, exposes one backend product catalog, and pages the complete retained Team timeline by World revision. Point-in-time World replay and the Evidence Graph remain the next implementation frontier.
+M5 closes the remaining play → replay → diagnose → compare → reconfigure → release loop. M5.0 provides deterministic Scenario Cases, truthful Run/evaluated-input identity, one backend product catalog, and complete revision paging. PR2A now reconstructs and verifies every retained World revision through a read-only API while preserving Snapshot-as-cache semantics. The typed Run Evidence Graph and Replay Frames remain the next implementation frontier.
 
 See [`docs/M5-DESIGN.md`](docs/M5-DESIGN.md), [`docs/M5-PLAN.md`](docs/M5-PLAN.md), and [`docs/M1-M4-DEBT-AUDIT.md`](docs/M1-M4-DEBT-AUDIT.md). M3 remains the canonical live Codex/Hermes evaluation unless a future M5 study explicitly changes cognition semantics and receives a separate budget.
 

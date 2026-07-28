@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { canonicalJson, sha256 } from "./digest.ts";
 import type { ApplyResult, JournalEvent, PrimitiveWorldCommand, TickBatch, WorldCommand, WorldEvent, WorldState } from "./model.ts";
 import { listRulesetContracts, listScenarioContracts, resolveRuleset, resolveScenario } from "./registry.ts";
+import type { PointInTimeReplayResult } from "./replay/model.ts";
 import { createEvaluatedInputManifest } from "./release/inputs.ts";
 import {
   CURRENT_BUILD,
@@ -159,9 +160,36 @@ function mapStorageError(error: unknown): never {
   throw error;
 }
 
+function parseStoredJson<T>(json: string, label: string): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch (error) {
+    throw new StorageError("storage_corrupt", `${label} JSON is invalid`, { cause: error });
+  }
+}
+
+function parseStoredWorldState(json: string, label: string): WorldState {
+  try {
+    const state = parseStoredJson<WorldState>(json, label);
+    assertWorldInvariants(state);
+    return state;
+  } catch (error) {
+    if (error instanceof StorageError) throw error;
+    throw new StorageError("storage_corrupt", `${label} World state is invalid`, { cause: error });
+  }
+}
+
 function parseJournalEvent(runId: string, sequence: number, json: string): JournalEvent {
-  const parsed = JSON.parse(json) as JournalEvent | WorldEvent;
-  if ("event" in parsed) return parsed;
+  const parsed = parseStoredJson<JournalEvent | WorldEvent>(json, "retained Event");
+  if (parsed && typeof parsed === "object" && "event" in parsed) {
+    if (!parsed.event || typeof parsed.event !== "object") {
+      throw new StorageError("storage_corrupt", "retained Event envelope is invalid");
+    }
+    return parsed;
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new StorageError("storage_corrupt", "retained Event shape is invalid");
+  }
   return {
     tickId: `legacy:${runId}:${sequence}`,
     commandSequence: sequence,
@@ -474,17 +502,52 @@ export class GameStore {
     const row = this.db.prepare(`SELECT revision, command_sequence, state_json, digest FROM snapshots
       WHERE run_id = ? ORDER BY revision ${direction} LIMIT 1`).get(runId) as SnapshotRow | undefined;
     if (!row) throw new StorageError("storage_corrupt", `snapshot is missing for run: ${runId}`);
-    const state = JSON.parse(row.state_json) as WorldState;
-    assertWorldInvariants(state);
-    if (sha256(state) !== row.digest) throw new StorageError("storage_corrupt", "snapshot digest mismatch");
     return row;
+  }
+
+  private readSnapshotAtOrBefore(runId: string, revision: number): SnapshotRow {
+    const row = this.db.prepare(`SELECT revision, command_sequence, state_json, digest FROM snapshots
+      WHERE run_id = ? AND revision <= ? ORDER BY revision DESC LIMIT 1`).get(runId, revision) as SnapshotRow | undefined;
+    if (!row) throw new StorageError("storage_corrupt", `snapshot is missing at or before revision ${revision}`);
+    return row;
+  }
+
+  private snapshotState(runId: string, snapshot: SnapshotRow, metadata: RunMetadata): WorldState {
+    const state = parseStoredWorldState(snapshot.state_json, "Snapshot");
+    if (sha256(state) !== snapshot.digest) {
+      throw new StorageError("storage_corrupt", "Snapshot digest mismatch");
+    }
+    const revision = Number(snapshot.revision);
+    const commandSequence = Number(snapshot.command_sequence ?? revision - 1);
+    if (state.revision !== revision) {
+      throw new StorageError("storage_corrupt", "Snapshot revision differs from retained World state");
+    }
+    if (commandSequence !== revision - 1) {
+      throw new StorageError("storage_corrupt", "Snapshot command sequence does not match its revision");
+    }
+    if (revision === 0) {
+      if (snapshot.digest !== metadata.genesisDigest) {
+        throw new StorageError("storage_corrupt", "Genesis Snapshot digest differs from Run metadata");
+      }
+      return state;
+    }
+    const command = this.db.prepare("SELECT after_digest FROM commands WHERE run_id = ? AND command_sequence = ?")
+      .get(runId, commandSequence) as { after_digest: string } | undefined;
+    if (!command || command.after_digest !== snapshot.digest) {
+      throw new StorageError("storage_corrupt", "Snapshot digest is not anchored to its retained Command");
+    }
+    return state;
   }
 
   verifyStream(runId = this.activeRunId): void {
     this.getRun(runId);
     const commands = this.db.prepare("SELECT * FROM commands WHERE run_id = ? ORDER BY command_sequence").all(runId) as unknown as CommandRow[];
     let previous = "";
-    for (const row of commands) {
+    for (let index = 0; index < commands.length; index += 1) {
+      const row = commands[index];
+      if (!row || Number(row.command_sequence) !== index) {
+        throw new StorageError("storage_corrupt", "command sequence is not contiguous");
+      }
       if ((row.previous_digest ?? "") !== previous || row.record_digest !== commandDigest(runId, row)) {
         throw new StorageError("storage_corrupt", "command hash chain mismatch");
       }
@@ -492,7 +555,11 @@ export class GameStore {
     }
     const events = this.db.prepare("SELECT * FROM events WHERE run_id = ? ORDER BY event_sequence").all(runId) as unknown as EventRow[];
     previous = "";
-    for (const row of events) {
+    for (let index = 0; index < events.length; index += 1) {
+      const row = events[index];
+      if (!row || Number(row.event_sequence) !== index) {
+        throw new StorageError("storage_corrupt", "event sequence is not contiguous");
+      }
       if ((row.previous_digest ?? "") !== previous || row.record_digest !== eventDigest(runId, row)) {
         throw new StorageError("storage_corrupt", "event hash chain mismatch");
       }
@@ -502,31 +569,69 @@ export class GameStore {
     for (let index = 0; index < commands.length; index += 1) {
       const command = commands[index];
       const event = events[index];
-      if (!command || !event || command.command_sequence !== event.event_sequence || command.command_id !== event.command_id) {
+      if (
+        !command ||
+        !event ||
+        command.command_sequence !== event.event_sequence ||
+        command.command_id !== event.command_id ||
+        command.before_digest !== event.before_digest ||
+        command.after_digest !== event.after_digest
+      ) {
         throw new StorageError("storage_corrupt", "command and event streams are misaligned");
+      }
+      const retainedCommand = parseStoredJson<WorldCommand>(command.command_json, "retained Command");
+      const retainedEvent = parseJournalEvent(runId, index, event.event_json);
+      if (
+        !retainedCommand ||
+        typeof retainedCommand !== "object" ||
+        retainedCommand.commandId !== command.command_id ||
+        retainedEvent.commandSequence !== index ||
+        retainedEvent.worldRevision !== retainedEvent.event.worldRevision ||
+        retainedEvent.event.commandId !== event.command_id ||
+        retainedEvent.event.beforeDigest !== event.before_digest ||
+        retainedEvent.event.afterDigest !== event.after_digest
+      ) {
+        throw new StorageError("storage_corrupt", "retained Command or Event identity is inconsistent");
       }
     }
   }
 
-  private replayFromSnapshot(runId: string, snapshot: SnapshotRow, mode: ReplayResult["mode"]): ReplayResult {
+  private replayStateFromSnapshot(
+    runId: string,
+    snapshot: SnapshotRow,
+    targetRevision?: number,
+  ): PointInTimeReplayResult {
     const metadata = this.getRun(runId);
     this.verifyStream(runId);
-    let state = JSON.parse(snapshot.state_json) as WorldState;
+    const terminalRevision = this.eventCount(runId);
+    const revision = targetRevision ?? terminalRevision;
+    if (!Number.isSafeInteger(revision) || revision < 0 || revision > terminalRevision) {
+      throw new TypeError(`revision must be an integer from 0 to ${terminalRevision}`);
+    }
+    if (Number(snapshot.revision) > revision) {
+      throw new StorageError("storage_corrupt", "selected Snapshot is newer than the target revision");
+    }
+    let state = this.snapshotState(runId, snapshot, metadata);
     const startSequence = Number(snapshot.command_sequence ?? snapshot.revision - 1);
     const rows = this.db.prepare(`SELECT c.command_sequence, c.command_id, c.command_json,
       c.before_digest, c.after_digest, c.previous_digest, c.record_digest, e.event_json
       FROM commands c JOIN events e ON e.run_id = c.run_id AND e.event_sequence = c.command_sequence
-      WHERE c.run_id = ? AND c.command_sequence > ? ORDER BY c.command_sequence`)
-      .all(runId, startSequence) as unknown as Array<CommandRow & { event_json: string }>;
+      WHERE c.run_id = ? AND c.command_sequence > ? AND c.command_sequence < ? ORDER BY c.command_sequence`)
+      .all(runId, startSequence, revision) as unknown as Array<CommandRow & { event_json: string }>;
     const ruleset = resolveRuleset(metadata.rulesetId, metadata.rulesetVersion);
     for (const row of rows) {
       if (sha256(state) !== row.before_digest) throw new StorageError("storage_corrupt", "replay before-digest mismatch");
-      const command = JSON.parse(row.command_json) as WorldCommand;
-      const replayed = ruleset.applyTick(state, {
-        tickId: `tick:${runId}:${state.turn + 1}`,
-        expectedWorldRevision: state.revision,
-        intents: [{ commandSequence: Number(row.command_sequence), command }],
-      });
+      const command = parseStoredJson<WorldCommand>(row.command_json, "retained Command");
+      let replayed;
+      try {
+        replayed = ruleset.applyTick(state, {
+          tickId: `tick:${runId}:${state.turn + 1}`,
+          expectedWorldRevision: state.revision,
+          intents: [{ commandSequence: Number(row.command_sequence), command }],
+        });
+      } catch (error) {
+        throw new StorageError("storage_corrupt", "retained Command cannot be replayed", { cause: error });
+      }
       if (replayed.status !== "accepted") throw new StorageError("storage_corrupt", `replay command rejected: ${replayed.reason}`);
       const actual = replayed.journalEvents[0];
       if (!actual || actual.event.afterDigest !== row.after_digest) {
@@ -538,16 +643,22 @@ export class GameStore {
       }
       state = replayed.state;
     }
+    if (state.revision !== revision) {
+      throw new StorageError("storage_corrupt", "replay did not reach the requested revision");
+    }
     const digest = sha256(state);
-    const latest = this.db.prepare("SELECT after_digest FROM commands WHERE run_id = ? ORDER BY command_sequence DESC LIMIT 1")
-      .get(runId) as { after_digest: string } | undefined;
-    if (latest && latest.after_digest !== digest) throw new StorageError("storage_corrupt", "terminal command digest mismatch");
+    const expectedDigest = revision === 0
+      ? metadata.genesisDigest
+      : (this.db.prepare("SELECT after_digest FROM commands WHERE run_id = ? AND command_sequence = ?")
+          .get(runId, revision - 1) as { after_digest?: string } | undefined)?.after_digest;
+    if (!expectedDigest || expectedDigest !== digest) {
+      throw new StorageError("storage_corrupt", "point-in-time digest differs from retained evidence");
+    }
     return {
       runId,
-      mode,
+      revision,
       state,
       digest,
-      eventCount: this.eventCount(runId),
       replayedCommandCount: rows.length,
       snapshotRevision: Number(snapshot.revision),
       verified: true,
@@ -556,7 +667,18 @@ export class GameStore {
 
   recover(runId = this.activeRunId): ReplayResult {
     try {
-      return this.replayFromSnapshot(runId, this.readSnapshot(runId, true), "recovery");
+      this.getRun(runId);
+      const replay = this.replayStateFromSnapshot(runId, this.readSnapshot(runId, true));
+      return {
+        runId: replay.runId,
+        mode: "recovery",
+        state: replay.state,
+        digest: replay.digest,
+        eventCount: this.eventCount(runId),
+        replayedCommandCount: replay.replayedCommandCount,
+        snapshotRevision: replay.snapshotRevision,
+        verified: true,
+      };
     } catch (error) {
       mapStorageError(error);
     }
@@ -564,7 +686,30 @@ export class GameStore {
 
   verifyReplay(runId = this.activeRunId): ReplayResult {
     try {
-      return this.replayFromSnapshot(runId, this.readSnapshot(runId, false), "verify");
+      this.getRun(runId);
+      const replay = this.replayStateFromSnapshot(runId, this.readSnapshot(runId, false));
+      return {
+        runId: replay.runId,
+        mode: "verify",
+        state: replay.state,
+        digest: replay.digest,
+        eventCount: this.eventCount(runId),
+        replayedCommandCount: replay.replayedCommandCount,
+        snapshotRevision: replay.snapshotRevision,
+        verified: true,
+      };
+    } catch (error) {
+      mapStorageError(error);
+    }
+  }
+
+  stateAtRevision(revision: number, runId = this.activeRunId): PointInTimeReplayResult {
+    try {
+      if (!Number.isSafeInteger(revision) || revision < 0) {
+        throw new TypeError("revision must be a non-negative integer");
+      }
+      this.getRun(runId);
+      return this.replayStateFromSnapshot(runId, this.readSnapshotAtOrBefore(runId, revision), revision);
     } catch (error) {
       mapStorageError(error);
     }

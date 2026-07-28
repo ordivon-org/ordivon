@@ -1,6 +1,6 @@
 # M5 plan — implementation graph for the first playable release
 
-Status: implementation in progress; PR1 M5.0 complete
+Status: implementation in progress; PR1 M5.0 and PR2A point-in-time replay complete
 Design: [`M5-DESIGN.md`](M5-DESIGN.md)
 Debt audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md)
 Tracking: Issue #7
@@ -8,14 +8,15 @@ Base revision: `2427aad4d35e76ffb3ab479f60be8c2239f5c9c8`
 
 ## 1. Delivery graph
 
-M5 is implemented in seven bounded slices:
+M5 is implemented through bounded review slices. PR2 was split after measurement showed that point-in-time World reconstruction is a small storage-kernel extension while a complete Evidence Graph must normalize hundreds of Host records per Run:
 
 ```text
 PR1 M5.0 identity, catalog, and paging hardening
- ├─→ PR2 verified point-in-time replay and Evidence Graph
- │    └─→ PR3 key turns, curves, and diagnosis
- └─→ PR4 Scenario Cases, deployment manifests, and comparison
-       └──────────────┬──────────────────────────────┘
+ ├─→ PR2A verified point-in-time World replay
+ │      └─→ PR2B typed Run Evidence Graph and Replay Frames
+ │              └─→ PR3 key turns, curves, and diagnosis
+ └─→ PR4 deployment manifests, loadouts, and comparison
+          └───────────┬──────────────────────────────┘
                       ▼
              PR5 experiments and Runtime cell contract
                       ▼
@@ -24,7 +25,7 @@ PR1 M5.0 identity, catalog, and paging hardening
              PR7 release evidence and closeout
 ```
 
-PR2 and PR4 may proceed in parallel after PR1 if the actual file boundaries remain independent. PR3 requires replay frames. PR5 requires immutable deployment inputs and comparison metrics. PR6 requires replay/diagnosis/compare APIs. PR7 requires every prior exit gate.
+PR2B and PR4 may proceed in parallel after PR2A if the actual file boundaries remain independent. PR3 requires Replay Frames. PR5 requires immutable deployment inputs and comparison metrics. PR6 requires replay/diagnosis/compare APIs. PR7 requires every prior exit gate.
 
 The graph is a review boundary, not an instruction to preserve an inefficient order. Any changed path must retain the same contracts and be explained in the PR receipt.
 
@@ -90,59 +91,92 @@ test/m5-hardening.test.ts           new
 - M1–M4 evidence remains green;
 - exact Case values either freeze with evidence or remain hidden from product until validated.
 
-## 3. PR2 — verified point-in-time replay and Evidence Graph
+## 3. PR2A — verified point-in-time World replay — complete
 
 ### Goal
 
-Reconstruct any retained World revision and join all evidence needed for later explanation.
+Reconstruct any retained World revision exactly without adding a second history store or replay authority.
 
-### Likely code areas
+### Implemented code areas
 
 ```text
 src/storage.ts
-src/replay/model.ts       new
-src/replay/store.ts       new
-src/replay/evidence.ts    new
-src/replay/frames.ts      new
+src/replay/model.ts
 src/server.ts
-test/replay-store.test.ts new
-test/replay-graph.test.ts new
+test/replay-store.test.ts
 ```
 
-### Work
+### Implemented work
 
-1. add nearest-Snapshot lookup at or before one target revision;
-2. implement `stateAtRevision(runId, revision)` with full digest/Event verification;
-3. expose exact Genesis through terminal revision;
-4. define `RunEvidenceGraph` nodes and edges;
-5. join World Tick/Intent/Fact identities to Team Round, Proposal, TickPlan, Effect, Dispatch, and Observation;
-6. join Authority, player control, Message, Context, and Provider replacement evidence;
-7. construct deterministic graph digest;
-8. implement `ReplayFrame` for each World revision;
-9. implement true pageable replay timeline;
-10. expose summary/frame/timeline APIs;
-11. retain old `/api/replay` as debug compatibility;
-12. fail closed when a required retained identity is corrupt or missing.
+1. select the nearest retained Snapshot at or before one target revision;
+2. implement `stateAtRevision(revision, runId)` with Command/Event hash-chain and identity verification;
+3. bind Genesis Snapshot digest to Run metadata and later Snapshots to the corresponding retained Command digest;
+4. require contiguous zero-based Command/Event sequences and aligned before/after digests;
+5. replay only the Command tail after the selected Snapshot through the target revision;
+6. compare every replayed Event exactly with retained Event evidence;
+7. expose Genesis through current terminal revision at `GET /api/replay/state`;
+8. retain old `/api/replay` response shape and full verification semantics;
+9. map malformed retained JSON and invariant violations to `storage_corrupt`;
+10. produce zero World, Host, Team, or Artifact writes during reads.
 
-### Tests
+### Verified tests
 
-- every revision 0–18 for containment reconstructs exactly;
-- every revision 0–22 for sealing reconstructs exactly;
+- every revision 0–18 for Fixture containment reconstructs exactly;
+- every revision 0–22 for Fixture sealing reconstructs exactly;
 - terminal point-in-time digest equals `verifyReplay()`;
-- reconstruction from different eligible Snapshots converges;
-- frame before/after digests equal retained Event digests;
-- selected Intents and verified Facts equal retained Tick Event receipts;
-- evidence graph construction is deterministic under query order;
-- every edge references an existing node;
-- no wall-clock timestamp affects graph order or digest;
-- repeated graph/frame reads append zero records;
-- command/event corruption fails closed;
-- invalid/out-of-range revision fails typed validation;
-- page cursor has no gaps or duplicates.
+- reconstruction from Snapshots 16, 8, and Genesis converges;
+- deleting non-Genesis Snapshot caches does not change reconstructed state;
+- repeated reads preserve World, Host, Team, Snapshot, and Artifact counts;
+- validly rehashed malformed Command/Event JSON fails closed;
+- sequence gaps, cross-stream digest mismatch, missing Snapshot, invalid Snapshot revision/sequence, and broken Snapshot anchoring fail closed;
+- invalid, missing, fractional, negative, and out-of-range revisions return typed validation errors;
+- HTTP corruption maps to `storage_corrupt` rather than a client syntax error.
 
 ### Exit gate
 
-A Node/fetch client can scrub a complete Fixture Run without Web changes and inspect every evidence reference.
+A Node/fetch client can scrub a complete Fixture Run from Genesis through terminal without Web changes. Snapshot caches reduce replay tails but never replace Command/Event authority.
+
+## 3B. PR2B — typed Run Evidence Graph and Replay Frames — pending
+
+### Goal
+
+Join the retained World, Team, player-control, Message, authority, and Provider evidence needed for later explanation without persisting a second graph authority.
+
+### Measured boundary
+
+One 22-Tick Fixture sealing Run already retains 834 Host Journal Events across 25 event types, 67 Host Artifacts, 66 Contexts, 66 Proposals, 66 Authority Decisions, and 22 each of Rounds, TickPlans, Effects, Dispatches, and Observations. This is intentionally separate from the small PR2A storage-kernel change.
+
+### Planned code areas
+
+```text
+src/replay/evidence.ts    new
+src/replay/frames.ts      new
+src/replay/model.ts
+src/server.ts
+test/replay-graph.test.ts new
+```
+
+### Planned work
+
+1. define `RunEvidenceGraph` nodes and edges;
+2. join World Tick/Intent/Fact identities to Team Round, Proposal, TickPlan, Effect, Dispatch, and Observation;
+3. join Authority, player control, Message, Context, and Provider replacement evidence through selective typed adapters;
+4. construct a deterministic graph digest independent of timestamps and query order;
+5. implement one `ReplayFrame` per World revision using PR2A states;
+6. expose summary/frame APIs while retaining the existing revision timeline;
+7. fail the affected explanation when a required identity is missing rather than inventing an edge;
+8. persist no graph table for the first playable.
+
+### Planned tests
+
+- frame before/after digests equal retained World evidence;
+- selected Intents and verified Facts equal retained Tick Event receipts;
+- graph construction is deterministic under query order;
+- every edge references an existing node;
+- wall-clock timestamps affect neither order nor digest;
+- repeated graph/frame reads append zero records;
+- dangling required identities fail closed;
+- complete timeline remains gap-free and revision ordered.
 
 ## 4. PR3 — key turns, curves, and bounded diagnosis
 

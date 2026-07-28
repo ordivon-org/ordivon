@@ -198,7 +198,7 @@ Acceptance evidence:
 
 Design: [`M5-DESIGN.md`](M5-DESIGN.md). Implementation graph: [`M5-PLAN.md`](M5-PLAN.md). Entry audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md).
 
-M5.0 is implemented: deterministic Scenario Cases, Run Genesis/evaluated-input identity, a backend-owned product catalog, legacy Run migration, and true revision-based Team timeline paging are now executable contracts. Point-in-time World replay remains next.
+M5.0 and PR2A are implemented: deterministic Scenario Cases, truthful Run/evaluated-input identity, a backend-owned product catalog, legacy migration, true revision paging, and verified point-in-time World reconstruction are executable contracts. The typed Run Evidence Graph and Replay Frames remain next.
 
 M5 closes the learn–configure–run–diagnose loop without reopening the M1–M4 kernels:
 
