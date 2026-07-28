@@ -28,8 +28,13 @@ const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const staticFiles: Record<string, { file: string; contentType: string }> = {
   "/": { file: "index.html", contentType: "text/html; charset=utf-8" },
-  "/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
+  "/debug.html": { file: "debug.html", contentType: "text/html; charset=utf-8" },
   "/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/debug.css": { file: "debug.css", contentType: "text/css; charset=utf-8" },
+  ...Object.fromEntries([
+    "app.js", "api.js", "store.js", "render-utils.js", "render-map.js", "render-actors.js",
+    "render-inbox.js", "render-objectives.js", "render-timeline.js", "render-shell.js", "debug.js",
+  ].map((file) => [`/${file}`, { file, contentType: "text/javascript; charset=utf-8" }])),
 };
 
 function sendJson(response: ServerResponse, statusCode: number, value: unknown): void {

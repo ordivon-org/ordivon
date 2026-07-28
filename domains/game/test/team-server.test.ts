@@ -62,10 +62,14 @@ test("Team HTTP API initializes, switches Providers, and completes the 18-round 
 
     const html = await fetch(`${base}/`).then((response) => response.text());
     const script = await fetch(`${base}/app.js`).then((response) => response.text());
-    assert.match(html, /Station Zero Specialists/);
-    assert.match(html, /team-provider/);
-    assert.match(script, /\/api\/team\/state/);
-    assert.match(script, /approve-proposal/);
+    const debugHtml = await fetch(`${base}/debug.html`).then((response) => response.text());
+    const debugScript = await fetch(`${base}/debug.js`).then((response) => response.text());
+    assert.match(html, /Mission Control/);
+    assert.match(script, /advanceMission|mission-control/);
+    assert.match(debugHtml, /Station Zero Specialists/);
+    assert.match(debugHtml, /team-provider/);
+    assert.match(debugScript, /\/api\/team\/state/);
+    assert.match(debugScript, /approve-proposal/);
 
     const created = await post(base, "/api/runs", { runId: "run:http-team", scenarioVersion: 2, rulesetVersion: 3 });
     assert.equal(created.status, 201);

@@ -109,6 +109,9 @@ function station(state: WorldState): StationRoomView[] {
     crewIds: Object.values(state.crew).filter((crew) => crew.location === room.id).map((crew) => crew.id).sort(),
     systemIds: Object.values(state.systems).filter((system) => system.roomId === room.id).map((system) => system.id).sort(),
     hazardIds: Object.values(state.hazards).filter((hazard) => hazard.roomId === room.id).map((hazard) => hazard.id).sort(),
+    systems: Object.values(state.systems).filter((system) => system.roomId === room.id).map((system) => ({ systemId: system.id, name: system.name, integrity: system.integrity, powered: system.powered })),
+    hazards: Object.values(state.hazards).filter((hazard) => hazard.roomId === room.id).map((hazard) => ({ hazardId: hazard.id, name: hazard.name, controlled: Boolean(hazard.sealed || hazard.contained) })),
+    crew: Object.values(state.crew).filter((crew) => crew.location === room.id).map((crew) => ({ crewId: crew.id, name: crew.name, health: crew.health, stabilized: crew.stabilized })),
   })).sort((a, b) => a.y - b.y || a.x - b.x || a.roomId.localeCompare(b.roomId));
 }
 

@@ -3,114 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Station Zero — M3</title>
+    <meta name="color-scheme" content="dark" />
+    <title>Station Zero — Mission Control</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main>
-      <header>
-        <div>
-          <p class="eyebrow">ORDIVON GAME · M3</p>
-          <h1>Station Zero</h1>
-          <p class="lede">Three persistent specialists coordinate through bounded knowledge, authority, and one verified multi-Actor Tick.</p>
-        </div>
-        <span id="mission-status" class="status">LOADING</span>
-      </header>
-
-      <section id="resources" class="metrics" aria-label="Critical resources"></section>
-
-      <section class="layout">
-        <div>
-          <section class="panel team-control">
-            <div class="panel-heading">
-              <div><p class="eyebrow">PERSISTENT TEAM</p><h2>Station Zero Specialists</h2></div>
-              <span id="team-phase" class="chip">NOT INITIALIZED</span>
-            </div>
-            <div class="agent-toolbar">
-              <label>Provider
-                <select id="team-provider">
-                  <option value="fixture">Fixture baseline</option>
-                  <option value="codex">Codex</option>
-                  <option value="hermes">Hermes / DeepSeek</option>
-                  <option value="codex-hermes">Codex → Hermes fallback</option>
-                  <option value="hermes-codex">Hermes → Codex fallback</option>
-                </select>
-              </label>
-              <label>Authority
-                <select id="team-policy">
-                  <option value="autonomous">Autonomous</option>
-                  <option value="supervised">Supervised</option>
-                  <option value="locked">Locked</option>
-                </select>
-              </label>
-              <button id="team-initialize" class="secondary">New team run</button>
-              <button id="team-step">Team step</button>
-              <button id="team-run">Team run</button>
-            </div>
-            <div id="team-summary" class="agent-summary"><p>Create a Scenario v2 / Ruleset v3 Run to activate Engineer, Medic, and Security.</p></div>
-            <div>
-              <p class="eyebrow">OBJECTIVES · PROPOSALS · AUTHORITY</p>
-              <div id="team-detail" class="team-detail"></div>
-            </div>
-          </section>
-
-          <section class="panel agent-control">
-            <div class="panel-heading">
-              <div><p class="eyebrow">PERSISTENT AGENT</p><h2>Engineer Host</h2></div>
-              <span id="agent-phase" class="chip">NOT INITIALIZED</span>
-            </div>
-            <div class="agent-toolbar">
-              <label>Provider
-                <select id="agent-provider">
-                  <option value="fixture">Fixture baseline</option>
-                  <option value="codex">Codex</option>
-                  <option value="hermes">Hermes / DeepSeek</option>
-                  <option value="codex-hermes">Codex → Hermes fallback</option>
-                  <option value="hermes-codex">Hermes → Codex fallback</option>
-                </select>
-              </label>
-              <button id="agent-initialize" class="secondary">Initialize</button>
-              <button id="agent-step">Agent step</button>
-              <button id="agent-run">Autonomous run</button>
-            </div>
-            <div id="agent-summary" class="agent-summary"><p>Initialize the Host to create a durable Goal and Task.</p></div>
-            <div>
-              <p class="eyebrow">HOST TIMELINE</p>
-              <div id="agent-timeline" class="timeline"></div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">STATION</p><h2>Room graph</h2></div><span id="location" class="chip"></span></div>
-            <div id="rooms" class="rooms"></div>
-          </section>
-
-          <section class="panel">
-            <p class="eyebrow">SYSTEMS</p>
-            <h2>Critical infrastructure</h2>
-            <div id="systems" class="systems"></div>
-          </section>
-        </div>
-
-        <aside>
-          <section class="panel">
-            <p class="eyebrow">ENGINEER</p>
-            <h2 id="agent-name">Engineer</h2>
-            <div id="agent"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">MANUAL COMMAND</p><h2>Available actions</h2></div><button id="suggest" class="secondary">Suggest</button></div>
-            <div id="actions" class="actions"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2>Latest receipt</h2></div><button id="replay" class="secondary">Replay</button></div>
-            <pre id="output">Loading persisted world…</pre>
-          </section>
-        </aside>
-      </section>
-    </main>
+    <div id="app" aria-live="polite">
+      <main class="boot-shell">
+        <p class="eyebrow">ORDIVON GAME · MISSION CONTROL</p>
+        <h1>Connecting to Station Zero…</h1>
+      </main>
+    </div>
     <script type="module" src="/app.js"></script>
   </body>
 </html>

@@ -25,6 +25,9 @@ export interface StationRoomView {
   crewIds: string[];
   systemIds: string[];
   hazardIds: string[];
+  systems: Array<{ systemId: string; name: string; integrity: number; powered: boolean }>;
+  hazards: Array<{ hazardId: string; name: string; controlled: boolean }>;
+  crew: Array<{ crewId: string; name: string; health: number; stabilized: boolean }>;
 }
 
 export interface EvidenceView {

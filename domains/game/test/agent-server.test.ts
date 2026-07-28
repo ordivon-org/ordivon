@@ -191,9 +191,14 @@ test("Agent projections remain isolated across HTTP Runs and manual actions coex
     assert.equal(invalidRun.status, 400);
     const app = await fetch(`${base}/app.js`);
     assert.equal(app.status, 200);
-    assert.match(await app.text(), /Autonomous run|agent\/run/);
+    assert.match(await app.text(), /advanceMission|mission-control/);
+    const debugApp = await fetch(`${base}/debug.js`);
+    assert.equal(debugApp.status, 200);
+    assert.match(await debugApp.text(), /Autonomous run|agent\/run/);
     const styles = await fetch(`${base}/styles.css`);
     assert.equal(styles.status, 200);
+    const debugStyles = await fetch(`${base}/debug.css`);
+    assert.equal(debugStyles.status, 200);
   } finally {
     await game.close();
     rmSync(directory, { recursive: true, force: true });
