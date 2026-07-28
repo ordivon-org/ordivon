@@ -294,3 +294,27 @@ The Team Host may reject malformed, stale, unauthorized, conflicting, or invente
 ## D-067 — Resource negotiation remains explicit follow-up work
 
 M3 exposes inventory, Messages, Objectives, Tasks, and waiting state but adds no hidden resource manager or automatic inter-actor transfer. All-Hermes and replacement runs show that one specialist may collect spare parts another needs. M4 should make resource ownership and task negotiation legible to player and Agents before considering a new transfer Command or coordination protocol.
+
+## D-068 — Player control is persistent state separate from Task lifecycle
+
+Pause, resume, and cancellation are explicit Task control modes rather than transient Task-state labels. Context compilation, Provider eligibility, Proposal selection, and Round verification respect the control mode. Pause may resume explicitly; cancellation is irreversible within the Run. Control changes do not advance World time.
+
+## D-069 — Mission Control is a pure bounded projection, not a second truth store
+
+The product derives one `MissionControlView` from authoritative World, Host, Team, Context Artifact, Proposal, TickPlan, and Observation records. Reads must not refresh Messages, transition Tasks, append semantic events, or retain an independent product database. The terminal encoded response is bounded to at most 64 KiB.
+
+## D-070 — Product execution stops at Proposal review and verified Tick boundaries
+
+The player API exposes `proposal-review` before World mutation and `tick-verified` after at most one admitted atomic Team Tick has been observed and verified. Internal Host steps may be folded into these boundaries, but primitive World Commands, raw Effects, and intermediate infrastructure phases are not product controls.
+
+## D-071 — Resolved OR branches are explicit superseded Objectives
+
+An Objective branch not chosen after an alternative satisfies the parent is neither satisfied nor still required. Mission Control marks it `superseded` and counts it as resolved path structure. World predicates and score semantics remain unchanged. This prevents a verified victory from appearing as an incomplete required mission.
+
+## D-072 — The root Web is the player product; raw controls live on an explicit debug surface
+
+The root page exposes deployment, bounded state, semantic evidence, intervention, Proposal review, and verified Tick control. M1 manual Commands, M2 single-Agent controls, M3 raw Team controls, identifiers, receipts, and replay remain available at `/debug.html`. Product simplification does not delete engineering observability.
+
+## D-073 — M4 reuses M3 live Provider evidence
+
+M4 changes durable control, bounded projection, HTTP boundaries, and Web presentation without changing Codex/Hermes cognition contracts or hidden-correcting valid model choices. Live Provider runs are therefore not repeated for M4 closeout; M3 remains the canonical live Provider evaluation. Fixture, persistence, intervention, recovery, and product evidence are re-evaluated directly.

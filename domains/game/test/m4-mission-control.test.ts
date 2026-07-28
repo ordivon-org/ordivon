@@ -69,6 +69,9 @@ test("Mission Control completes the Fixture mission with bounded pure state read
     assert.equal(view.run.status, "victory");
     assert.equal(view.generatedFrom.worldRevision, 18);
     assert.ok(view.mission.score && view.mission.score > 1_000);
+    assert.deepEqual(view.mission.objectiveProgress, { resolved: 12, satisfied: 11, superseded: 1, total: 12 });
+    assert.equal(view.objectives.find((objective) => objective.objectiveId === "breach-sealed")?.status, "superseded");
+    assert.equal(view.objectives.find((objective) => objective.objectiveId === "breach-contained")?.status, "satisfied");
     assert.ok(view.actors.every((actor) => actor.evidence.some((entry) => entry.stage === "verified")));
     assert.ok(missionControlEncodedSize(view) <= 64 * 1024, missionControlEncodedSize(view).toString());
 

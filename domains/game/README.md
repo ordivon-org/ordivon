@@ -176,21 +176,23 @@ M2 single-Engineer endpoints remain available for older Runs.
 
 ### Product and evidence
 
-- [`src/server.ts`](src/server.ts) — local HTTP service and control API.
-- [`web/`](web/) — dependency-free mission-control surface.
-- [`test/`](test/) — world, persistence, Host, provider, Team, HTTP, fault, property, and evidence conformance.
-- [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md) — M3 implementation and acceptance evidence.
-- [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json) — normalized machine-readable Fixture and live Provider evidence.
+- [`src/mission-control/`](src/mission-control/) — bounded product read model, deterministic intervention rules, and player-semantic execution service.
+- [`src/server.ts`](src/server.ts) — local HTTP service, Mission Control API, and retained engineering APIs.
+- [`web/`](web/) — dependency-free playable Mission Control product plus explicit `/debug.html` engineering surface.
+- [`test/`](test/) — world, persistence, Host, provider, Team, Mission Control, HTTP, Web, fault, property, and evidence conformance.
+- [`docs/M4-RECEIPT.md`](docs/M4-RECEIPT.md) — M4 implementation and acceptance evidence.
+- [`docs/M4-EVALUATION.json`](docs/M4-EVALUATION.json) — frozen machine-readable Mission Control, recovery, intervention, and Web evidence.
+- [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md) and [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json) — canonical multi-Agent and live Provider evidence.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestone dependency graph.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — architectural decisions and supersessions.
 
 ## Current status
 
-**M3 is complete. M4 is next.**
+**M4 is complete. M5 is next.**
 
-M3 proves two deterministic valid plans, a communication-dependent outcome, exact authority enforcement, failure isolation, all-Codex and mixed real-Provider victories, and Provider replacement continuity. All-Hermes and Codex-to-Hermes replacement failures remain recorded because continuity does not imply strategy equivalence or guaranteed victory.
+M4 turns the verified M3 Team system into a bounded playable Mission Control product. The Fixture team wins in 18 verified Ticks through Mission Control APIs, the terminal view remains 16,465 bytes, player controls and pending review survive process replacement, intervention changes the admitted path, and the main product contains no primitive World controls or raw Host logs.
 
-See [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md), [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json), and the historical M3.0 entry contracts in [`docs/M30-DESIGN.md`](docs/M30-DESIGN.md) and [`docs/M30-PLAN.md`](docs/M30-PLAN.md).
+See [`docs/M4-RECEIPT.md`](docs/M4-RECEIPT.md), [`docs/M4-EVALUATION.json`](docs/M4-EVALUATION.json), and the reviewed design contracts in [`docs/M4-DESIGN.md`](docs/M4-DESIGN.md) and [`docs/M4-PLAN.md`](docs/M4-PLAN.md). M3 remains the canonical live Codex/Hermes evaluation because M4 changes control, projection, and presentation rather than cognition semantics.
 
 ## License
 

@@ -166,11 +166,11 @@ Acceptance evidence:
 - all-Codex and mixed Codex/Hermes teams reach verified victory;
 - all-Hermes and Codex-to-Hermes replacement failures remain exact, replayable counterexamples rather than being hidden-corrected.
 
-## M4 — Playable mission-control interface — designed, implementation pending
+## M4 — Playable mission-control interface — complete
 
-Design: [`M4-DESIGN.md`](M4-DESIGN.md). Implementation plan: [`M4-PLAN.md`](M4-PLAN.md).
+Receipt: [`M4-RECEIPT.md`](M4-RECEIPT.md). Evaluation: [`M4-EVALUATION.json`](M4-EVALUATION.json). Design: [`M4-DESIGN.md`](M4-DESIGN.md). Implementation plan: [`M4-PLAN.md`](M4-PLAN.md).
 
-M4 converts the M3 engineering panel into a truthful player product:
+M4 converted the M3 engineering panel into a truthful player product:
 
 - make pause, resume, cancel, deny, Provider assignment, and authority configuration durable and enforced;
 - add one bounded mission-control read model rather than exposing raw Team history;
@@ -182,16 +182,17 @@ M4 converts the M3 engineering panel into a truthful player product:
 - move M1/M2/manual/raw controls to an explicit debug surface;
 - show a clear terminal outcome without implementing M5 replay.
 
-Acceptance criteria:
+Acceptance evidence:
 
-- the player can complete the Fixture mission using only mission-control APIs and UI;
+- the Fixture team reaches verified victory in 18 Ticks through Mission Control APIs only;
 - every requested approval explains deterministic consequence and urgency;
-- player intervention changes the admitted action path;
-- pause, resume, cancel, and deny survive process and page reload;
-- the interface distinguishes observation, unverified assessment, proposal, execution, and verified fact;
-- a terminal 22-Round state response remains at most 64 KiB;
+- Proposal denial changes the admitted action path;
+- pause, resume, cancel, Provider, authority, and pending review survive process replacement and reload;
+- the interface distinguishes observation, unverified assessment, Proposal, execution, and verified Fact;
+- the terminal response is 16,465 bytes, below the 64 KiB target;
 - repeated state reads create no semantic event;
-- no runtime dependency, hidden manager model, or primitive World control is added to the main product.
+- the Security spare-parts mismatch is detected before commit;
+- the main product adds no runtime dependency, hidden manager model, framework, primitive World control, or raw Host log.
 
 ## M5 — Replay, evaluation, and first playable
 

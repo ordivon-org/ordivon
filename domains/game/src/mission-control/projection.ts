@@ -182,6 +182,15 @@ function actors(state: WorldState, projection: TeamProjection, execution: TeamEx
 
 function objectives(projection: TeamProjection): ObjectiveMissionView[] {
   const status = new Map(projection.objectiveStatus.map((entry) => [entry.objectiveId, entry]));
+  const superseded = new Set<string>();
+  for (const parent of projection.objectives.nodes) {
+    if (status.get(parent.objectiveId)?.satisfied !== true || parent.anyOf.length === 0) continue;
+    const alternatives = parent.anyOf.flat();
+    if (!alternatives.some((id) => status.get(id)?.satisfied === true)) continue;
+    for (const objectiveId of alternatives) {
+      if (status.get(objectiveId)?.satisfied !== true) superseded.add(objectiveId);
+    }
+  }
   return projection.objectives.nodes.map((node) => {
     const satisfied = status.get(node.objectiveId)?.satisfied === true;
     const dependenciesSatisfied = node.allOf.every((id) => status.get(id)?.satisfied) && node.anyOf.every((group) => group.some((id) => status.get(id)?.satisfied));
@@ -190,7 +199,7 @@ function objectives(projection: TeamProjection): ObjectiveMissionView[] {
       objectiveId: node.objectiveId,
       label: node.label,
       priority: node.priorityClass,
-      status: satisfied ? "satisfied" : assigned.length ? "active" : dependenciesSatisfied ? "available" : "blocked",
+      status: satisfied ? "satisfied" : superseded.has(node.objectiveId) ? "superseded" : assigned.length ? "active" : dependenciesSatisfied ? "available" : "blocked",
       dependencies: [...node.allOf],
       alternatives: node.anyOf.map((group) => [...group]),
       actorIds: assigned,
@@ -385,7 +394,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
       generatedFrom: { worldRevision: state.revision, worldDigest: digest, goalRevision: 0, configurationRevision: 0 },
       run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, rulesetVersion: metadata.rulesetVersion, turn: state.turn, turnLimit: state.mission.turnLimit, status: "setup" },
       configuration: null,
-      mission: { title: "Station Zero", reason: null, turnsRemaining: state.mission.turnLimit - state.turn, objectiveProgress: { satisfied: 0, total: 12 }, urgency: urgency(state), score: null, scoreComponents: null },
+      mission: { title: "Station Zero", reason: null, turnsRemaining: state.mission.turnLimit - state.turn, objectiveProgress: { resolved: 0, satisfied: 0, superseded: 0, total: 12 }, urgency: urgency(state), score: null, scoreComponents: null },
       resources: baseResources,
       station: { rooms: station(state), communicationAvailable: false },
       actors: [], objectives: [], currentRound: null, inbox: [], timeline: [],
@@ -398,6 +407,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
   const latestProposals = latestRound ? execution.listProposals(latestRound.roundId) : [];
   const objectiveViews = objectives(projection);
   const satisfied = objectiveViews.filter((objective) => objective.status === "satisfied").length;
+  const superseded = objectiveViews.filter((objective) => objective.status === "superseded").length;
   const score = state.mission.status === "running" ? null : scoreMission(state);
   const roundView = currentRound(execution, rounds);
   return {
@@ -406,7 +416,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
     generatedFrom: { worldRevision: state.revision, worldDigest: digest, goalRevision: projection.goal.revision, configurationRevision: projection.configuration.revision },
     run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, rulesetVersion: metadata.rulesetVersion, turn: state.turn, turnLimit: state.mission.turnLimit, status: state.mission.status },
     configuration: { authorityPolicyMode: projection.configuration.authorityPolicyMode },
-    mission: { title: "Station Zero emergency response", reason: state.mission.reason, turnsRemaining: Math.max(0, state.mission.turnLimit - state.turn), objectiveProgress: { satisfied, total: objectiveViews.length }, urgency: urgency(state), score: score?.total ?? null, scoreComponents: score?.components ?? null },
+    mission: { title: "Station Zero emergency response", reason: state.mission.reason, turnsRemaining: Math.max(0, state.mission.turnLimit - state.turn), objectiveProgress: { resolved: satisfied + superseded, satisfied, superseded, total: objectiveViews.length }, urgency: urgency(state), score: score?.total ?? null, scoreComponents: score?.components ?? null },
     resources: baseResources,
     station: { rooms: station(state), communicationAvailable: Boolean(state.systems.communications?.powered && state.systems.communications.integrity >= 0.8) },
     actors: actors(state, projection, execution, team, rounds),

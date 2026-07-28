@@ -102,7 +102,7 @@ dt { color: var(--quiet); font-size: .62rem; text-transform: uppercase; letter-s
 .objective-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .55rem; }
 .objective { border: 1px solid var(--line); border-radius: 12px; padding: .75rem; background: var(--surface-3); }
 .objective header { display: flex; gap: .45rem; }.objective header span { color: var(--quiet); }.objective small, .objective p { color: var(--quiet); font-size: .67rem; }.objective p { margin: .4rem 0 0; }
-.objective.satisfied { border-color: #315f4c; }.objective.satisfied header span { color: var(--online); }.objective.active { border-color: #456a9c; }
+.objective.satisfied { border-color: #315f4c; }.objective.satisfied header span { color: var(--online); }.objective.superseded { opacity: .66; border-style: dashed; }.objective.superseded header span { color: var(--quiet); }.objective.active { border-color: #456a9c; }
 .actor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
 .actor-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-3); padding: .9rem; }
 .actor-card > header { display: flex; justify-content: space-between; gap: .75rem; }.task-state { color: var(--quiet); font-size: .68rem; }

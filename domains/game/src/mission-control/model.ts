@@ -58,7 +58,7 @@ export interface ObjectiveMissionView {
   objectiveId: string;
   label: string;
   priority: string;
-  status: "satisfied" | "active" | "available" | "blocked";
+  status: "satisfied" | "superseded" | "active" | "available" | "blocked";
   dependencies: string[];
   alternatives: string[][];
   actorIds: string[];
@@ -148,7 +148,7 @@ export interface MissionControlView {
     title: string;
     reason: string | null;
     turnsRemaining: number;
-    objectiveProgress: { satisfied: number; total: number };
+    objectiveProgress: { resolved: number; satisfied: number; superseded: number; total: number };
     urgency: string;
     score: number | null;
     scoreComponents: Record<string, number> | null;

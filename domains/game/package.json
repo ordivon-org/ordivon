@@ -13,6 +13,7 @@
     "test": "node --test test/*.test.ts",
     "check": "pnpm typecheck && pnpm webcheck && pnpm coverage",
     "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs",
+    "m4:evaluate": "node scripts/m4-evaluation.ts --write",
     "receipt": "node scripts/receipt.ts",
     "typecheck": "tsc --noEmit",
     "fixture:generate": "node scripts/generate-m1-fixture.ts",
