@@ -166,25 +166,32 @@ Acceptance evidence:
 - all-Codex and mixed Codex/Hermes teams reach verified victory;
 - all-Hermes and Codex-to-Hermes replacement failures remain exact, replayable counterexamples rather than being hidden-corrected.
 
-## M4 — Player control surface
+## M4 — Playable mission-control interface — designed, implementation pending
 
-Build the playable Web interface:
+Design: [`M4-DESIGN.md`](M4-DESIGN.md). Implementation plan: [`M4-PLAN.md`](M4-PLAN.md).
 
-- station map;
-- mission and resource status;
-- Agent cards and current intent;
-- task graph and requests for approval;
-- configure team, tools, risk, and authority;
-- approve, deny, redirect, pause, and cancel;
-- readable event timeline;
-- clear terminal outcome.
+M4 converts the M3 engineering panel into a truthful player product:
+
+- make pause, resume, cancel, deny, Provider assignment, and authority configuration durable and enforced;
+- add one bounded mission-control read model rather than exposing raw Team history;
+- expose player-visible Proposal-review and one-Tick-verified frontiers;
+- render the station map, all specialists, resources, Objective dependencies, and inventory ownership;
+- distinguish observed, assessed, proposed, executing, and verified information;
+- explain authority, urgency, waiting, communication, conflict, redundancy, and resource mismatch;
+- support approve, deny, redirect, pause, resume, cancel, and Provider replacement;
+- move M1/M2/manual/raw controls to an explicit debug surface;
+- show a clear terminal outcome without implementing M5 replay.
 
 Acceptance criteria:
 
-- the player can operate without reading raw logs;
-- every requested approval explains consequence and urgency;
+- the player can complete the Fixture mission using only mission-control APIs and UI;
+- every requested approval explains deterministic consequence and urgency;
 - player intervention changes the admitted action path;
-- the interface distinguishes observation, belief, proposal, execution, and verified fact.
+- pause, resume, cancel, and deny survive process and page reload;
+- the interface distinguishes observation, unverified assessment, proposal, execution, and verified fact;
+- a terminal 22-Round state response remains at most 64 KiB;
+- repeated state reads create no semantic event;
+- no runtime dependency, hidden manager model, or primitive World control is added to the main product.
 
 ## M5 — Replay, evaluation, and first playable
 
