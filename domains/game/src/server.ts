@@ -450,16 +450,30 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
             wait: null,
             lastWorldRevision: store.loadState(runId).revision,
           }, "team.task-player-redirected", { actorId, objectiveId });
-        } else if (action === "pause" || action === "cancel") {
+        } else if (action === "pause" || action === "resume" || action === "cancel") {
           const actorId = typeof body.actorId === "string" && body.actorId.trim() ? body.actorId : null;
           const tasks = team.team.listTasks(runId).filter((task) => task.actorId && (!actorId || task.actorId === actorId));
           if (tasks.length === 0) throw new TypeError("no matching Actor Task");
-          result = tasks.map((task) => team.team.transitionTask(task.taskId, {
-            state: action === "cancel" ? "cancelled" : "waiting",
-            preparedContextDigest: null,
-            admittedProposalId: null,
-            wait: action === "pause" ? { kind: "replan", subjectId: "player:http", reason: "Player paused Actor", sinceTick: store.loadState(runId).turn } : null,
-          }, action === "cancel" ? "team.task-player-cancelled" : "team.task-player-paused", { actorId: task.actorId }));
+          const tick = store.loadState(runId).turn;
+          result = tasks.map((task) => {
+            if (task.control.mode === "cancelled" && action !== "cancel") throw new TeamStoreError("team_conflict", "Cancelled Actor Task cannot resume");
+            const mode = action === "pause" ? "paused" : action === "cancel" ? "cancelled" : "active";
+            return team.team.transitionTask(task.taskId, {
+              state: mode === "cancelled" ? "cancelled" : mode === "paused" ? "waiting" : "ready",
+              control: { mode, reason: mode === "active" ? null : `Player ${action}d Actor`, issuedBy: "player:http", issuedAtTick: tick },
+              preparedContextDigest: null,
+              admittedProposalId: null,
+              wait: mode === "paused" ? { kind: "replan", subjectId: "player:http", reason: "Player paused Actor", sinceTick: tick } : null,
+            }, `team.task-player-${action}d`, { actorId: task.actorId });
+          });
+        } else if (action === "set-provider") {
+          const actorId = requiredString(body.actorId, "actorId");
+          const provider = parseProviderName(body.provider);
+          const task = team.team.listTasks(runId).find((candidate) => candidate.actorId === actorId);
+          if (!task) throw new TypeError("no matching Actor Task");
+          result = team.team.transitionTask(task.taskId, { providerOrder: [provider] }, "team.task-provider-updated", { actorId, provider });
+        } else if (action === "set-authority-policy") {
+          result = team.team.saveConfiguration(parseAuthorityPolicy(body.policyMode), runId);
         } else {
           throw new TypeError("unsupported Team input action");
         }

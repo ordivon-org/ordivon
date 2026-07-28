@@ -2,6 +2,7 @@ import type { PrimitiveWorldCommand, WorldFact } from "../model.ts";
 
 export type ActorRole = "engineer" | "medic" | "security" | "coordinator";
 export type TeamTaskState = "ready" | "running" | "waiting" | "completed" | "blocked" | "failed" | "cancelled";
+export type TeamTaskControlMode = "active" | "paused" | "cancelled";
 export type TeamWaitKind = "message" | "authority" | "conflict" | "provider" | "dependency" | "replan";
 export type AuthorityPolicyMode = "autonomous" | "supervised" | "locked";
 export type AuthorityOutcome = "permit" | "require-human" | "deny";
@@ -68,6 +69,22 @@ export interface TeamWaitRecord {
   sinceTick: number;
 }
 
+export interface TeamTaskControl {
+  mode: TeamTaskControlMode;
+  reason: string | null;
+  issuedBy: string;
+  issuedAtTick: number;
+}
+
+export interface TeamRunConfiguration {
+  schemaVersion: 1;
+  runId: string;
+  authorityPolicyMode: AuthorityPolicyMode;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TeamTaskProjection {
   taskId: string;
   goalId: string;
@@ -75,6 +92,7 @@ export interface TeamTaskProjection {
   actorId: string | null;
   role: ActorRole;
   state: TeamTaskState;
+  control: TeamTaskControl;
   revision: number;
   activeObjectiveId: string | null;
   preparedContextDigest: string | null;
@@ -221,6 +239,7 @@ export interface CompiledTeamContext {
 
 export interface TeamProjection {
   goal: TeamGoal;
+  configuration: TeamRunConfiguration;
   profiles: ActorProfile[];
   tasks: TeamTaskProjection[];
   objectives: ObjectiveGraph;

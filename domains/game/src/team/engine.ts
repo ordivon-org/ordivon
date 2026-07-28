@@ -220,7 +220,11 @@ export class TeamHost {
       return this.receipt(runId, "initialized", "Created Team Round", round);
     }
 
-    const eligibleProfiles = projection.profiles.filter((profile) => (state.agents[profile.actorId]?.health ?? 0) > 0);
+    const tasksByActor = new Map(projection.tasks.filter((task) => task.actorId).map((task) => [task.actorId!, task]));
+    const eligibleProfiles = projection.profiles.filter((profile) => {
+      const task = tasksByActor.get(profile.actorId);
+      return Boolean(task && task.control.mode === "active" && !["completed", "failed", "cancelled"].includes(task.state) && (state.agents[profile.actorId]?.health ?? 0) > 0);
+    });
     const contexts = this.execution.listContexts(round.roundId);
     if (contexts.length < eligibleProfiles.length) return this.prepareContexts(runId, round, eligibleProfiles);
     const proposals = this.execution.listProposals(round.roundId);
@@ -265,6 +269,7 @@ export class TeamHost {
       const lease = this.team.acquireLease(task.taskId, this.ownerId);
       try {
         const currentTask = this.team.getTask(task.taskId);
+        if (currentTask.control.mode !== "active" || ["completed", "failed", "cancelled"].includes(currentTask.state)) continue;
         const context = compileTeamContext({
           store: this.game,
           runId,
@@ -450,10 +455,13 @@ export class TeamHost {
   private legalSubsets(runId: string, round: TeamRound, proposals: ActionProposal[]): ActionProposal[][] {
     const state = this.game.loadState(runId);
     const grants = this.team.listAuthorityGrants(runId);
-    const eligible = proposals.filter((proposal) => candidateAllowed(
-      { authorityOutcome: proposal.authorityOutcome },
-      this.validGrant(proposal, grants, state.turn) !== null,
-    ));
+    const eligible = proposals.filter((proposal) => {
+      const task = this.team.getTask(proposal.actorTaskId);
+      return proposal.status === "proposed" && task.control.mode === "active" && candidateAllowed(
+        { authorityOutcome: proposal.authorityOutcome },
+        this.validGrant(proposal, grants, state.turn) !== null,
+      );
+    });
     const subsets: ActionProposal[][] = [];
     for (let mask = 1; mask < (1 << eligible.length); mask += 1) {
       const subset = eligible.filter((_, index) => (mask & (1 << index)) !== 0);
@@ -471,8 +479,11 @@ export class TeamHost {
     const legal = this.legalSubsets(runId, round, proposals);
     const state = this.game.loadState(runId);
     const grants = this.team.listAuthorityGrants(runId);
-    const authorityPending = proposals.some((proposal) =>
-      proposal.authorityOutcome === "require-human" && this.validGrant(proposal, grants, state.turn) === null);
+    const authorityPending = proposals.some((proposal) => {
+      const task = this.team.getTask(proposal.actorTaskId);
+      return proposal.status === "proposed" && task.control.mode === "active" &&
+        proposal.authorityOutcome === "require-human" && this.validGrant(proposal, grants, state.turn) === null;
+    });
     const productiveLegal = legal.filter((subset) => subset.some((proposal) => proposal.command.kind !== "wait"));
     if (legal.length === 0 || (authorityPending && productiveLegal.length === 0)) {
       const updated = this.execution.saveRound({
@@ -490,7 +501,7 @@ export class TeamHost {
     );
     const selected = legal[0] ?? [];
     const selectedIds = new Set(selected.map((proposal) => proposal.proposalId));
-    const rejected = proposals.filter((proposal) => !selectedIds.has(proposal.proposalId));
+    const rejected = proposals.filter((proposal) => proposal.status === "proposed" && !selectedIds.has(proposal.proposalId));
     const createdAt = now();
     const identity = {
       roundId: round.roundId,
@@ -640,12 +651,14 @@ export class TeamHost {
       }, success ? "team.proposal-verified" : "team.proposal-not-executed");
       const task = this.team.getTask(proposal.actorTaskId);
       const profile = this.team.getProfile(proposal.actorId, runId);
+      const terminalState = state.mission.status === "running" ? null : state.mission.status === "victory" ? "completed" : "failed";
+      const controlledState = task.control.mode === "cancelled" ? "cancelled" : task.control.mode === "paused" ? "waiting" : terminalState ?? "ready";
       this.team.transitionTask(task.taskId, {
-        state: state.mission.status === "running" ? "ready" : state.mission.status === "victory" ? "completed" : "failed",
+        state: controlledState,
         activeObjectiveId: nextObjectiveForRole(state, profile.role),
         preparedContextDigest: null,
         admittedProposalId: null,
-        wait: null,
+        wait: task.control.mode === "paused" ? task.wait : null,
         lastWorldRevision: state.revision,
       }, "team.task-round-verified", { roundId: round.roundId, proposalId: proposal.proposalId, success });
     }

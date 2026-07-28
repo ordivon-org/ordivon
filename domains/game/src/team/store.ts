@@ -8,12 +8,15 @@ import type { GameStore } from "../storage.ts";
 import type {
   ActorProfile,
   AuthorityDecision,
+  AuthorityPolicyMode,
   AuthorityGrant,
   MessageChannel,
   MessageKind,
   TeamGoal,
   TeamMessage,
   TeamProjection,
+  TeamRunConfiguration,
+  TeamTaskControl,
   TeamTaskLease,
   TeamTaskProjection,
   TeamTaskState,
@@ -70,6 +73,10 @@ function profilesFor(state: WorldState): ActorProfile[] {
   ];
 }
 
+function activeControl(state: WorldState): TeamTaskControl {
+  return { mode: "active", reason: null, issuedBy: "system:initialize", issuedAtTick: state.turn };
+}
+
 function terminalState(state: WorldState): TeamTaskState {
   if (state.mission.status === "victory") return "completed";
   if (state.mission.status === "failure") return "failed";
@@ -113,6 +120,13 @@ export class TeamStore {
       CREATE TABLE IF NOT EXISTS team_goals (
         run_id TEXT PRIMARY KEY,
         goal_id TEXT NOT NULL UNIQUE,
+        head_event_id TEXT NOT NULL,
+        value_json TEXT NOT NULL,
+        FOREIGN KEY (run_id) REFERENCES runs(run_id)
+      );
+      CREATE TABLE IF NOT EXISTS team_run_configurations (
+        run_id TEXT PRIMARY KEY,
+        revision INTEGER NOT NULL,
         head_event_id TEXT NOT NULL,
         value_json TEXT NOT NULL,
         FOREIGN KEY (run_id) REFERENCES runs(run_id)
@@ -190,23 +204,31 @@ export class TeamStore {
       status: state.mission.status === "victory" ? "succeeded" : state.mission.status === "failure" ? "failed" : "active",
       revision: 1, createdAt: now, updatedAt: now,
     };
+    const configuration: TeamRunConfiguration = {
+      schemaVersion: 1, runId, authorityPolicyMode: "autonomous", revision: 1,
+      createdAt: now, updatedAt: now,
+    };
     const profiles = profilesFor(state);
     const tasks: TeamTaskProjection[] = profiles.map((profile) => ({
       taskId: actorTaskId(runId, profile.actorId), goalId: goal.goalId, runId,
-      actorId: profile.actorId, role: profile.role, state: terminalState(state), revision: 1,
+      actorId: profile.actorId, role: profile.role, state: terminalState(state), control: activeControl(state), revision: 1,
       activeObjectiveId: nextObjectiveForRole(state, profile.role), preparedContextDigest: null,
       admittedProposalId: null, wait: null, lastWorldRevision: state.revision,
       providerOrder: [...profile.providerOrder], createdAt: now, updatedAt: now,
     }));
     tasks.push({
       taskId: coordinatorTaskId(runId), goalId: goal.goalId, runId, actorId: null,
-      role: "coordinator", state: terminalState(state), revision: 1,
+      role: "coordinator", state: terminalState(state), control: activeControl(state), revision: 1,
       activeObjectiveId: nextObjectiveForRole(state, "coordinator"), preparedContextDigest: null,
       admittedProposalId: null, wait: null, lastWorldRevision: state.revision,
       providerOrder: [], createdAt: now, updatedAt: now,
     });
 
     this.host.withTransaction(runId, () => {
+      const configurationEventId = `host-event:team-configuration:${runId}:revision:1`;
+      this.db.prepare("INSERT INTO team_run_configurations (run_id, revision, head_event_id, value_json) VALUES (?, ?, ?, ?)")
+        .run(runId, configuration.revision, configurationEventId, canonicalJson(configuration));
+      this.host.appendEventInTransaction(runId, "team.configuration-created", configurationEventId, { configuration }, now);
       const goalEventId = `host-event:${goal.goalId}:team-created`;
       this.db.prepare("INSERT INTO team_goals (run_id, goal_id, head_event_id, value_json) VALUES (?, ?, ?, ?)")
         .run(runId, goal.goalId, goalEventId, canonicalJson(goal));
@@ -251,7 +273,16 @@ export class TeamStore {
   getTask(taskId: string): TeamTaskProjection {
     const row = this.db.prepare("SELECT task_id, head_event_id, value_json FROM team_tasks WHERE task_id = ?").get(taskId) as TaskRow | undefined;
     if (!row) throw new Error(`unknown Team Task: ${taskId}`);
-    const task = parse<TeamTaskProjection>(row.value_json, "Team Task");
+    const parsed = parse<TeamTaskProjection>(row.value_json, "Team Task");
+    const task: TeamTaskProjection = parsed.control ? parsed : {
+      ...parsed,
+      control: {
+        mode: parsed.state === "cancelled" ? "cancelled" : "active",
+        reason: parsed.state === "cancelled" ? "Legacy cancelled Task" : null,
+        issuedBy: "system:legacy-normalization",
+        issuedAtTick: parsed.lastWorldRevision,
+      },
+    };
     const event = this.db.prepare("SELECT payload_json FROM host_journal WHERE run_id = ? AND event_id = ?").get(task.runId, row.head_event_id) as { payload_json: string } | undefined;
     const payload = event ? parse<{ task: TeamTaskProjection }>(event.payload_json, "Team Task event") : null;
     if (!payload || canonicalJson(payload.task) !== canonicalJson(task)) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");
@@ -281,7 +312,7 @@ export class TeamStore {
 
   transitionTask(
     taskId: string,
-    values: Partial<Pick<TeamTaskProjection, "state" | "activeObjectiveId" | "preparedContextDigest" | "admittedProposalId" | "wait" | "lastWorldRevision" | "providerOrder">>,
+    values: Partial<Pick<TeamTaskProjection, "state" | "control" | "activeObjectiveId" | "preparedContextDigest" | "admittedProposalId" | "wait" | "lastWorldRevision" | "providerOrder">>,
     eventType: string,
     eventData: Record<string, unknown> = {},
   ): TeamTaskProjection {
@@ -452,10 +483,49 @@ export class TeamStore {
     return rows.map((row) => parse<AuthorityGrant>(row.value_json, "Authority Grant"));
   }
 
+  getConfiguration(runId = this.game.activeRunId): TeamRunConfiguration {
+    const row = this.db.prepare("SELECT head_event_id, value_json FROM team_run_configurations WHERE run_id = ?").get(runId) as { head_event_id: string; value_json: string } | undefined;
+    if (!row) {
+      const goal = this.db.prepare("SELECT goal_id FROM team_goals WHERE run_id = ?").get(runId) as { goal_id?: string } | undefined;
+      if (!goal?.goal_id) throw new Error(`Team Goal is not initialized: ${runId}`);
+      const createdAt = this.game.getRun(runId).createdAt;
+      return { schemaVersion: 1, runId, authorityPolicyMode: "autonomous", revision: 0, createdAt, updatedAt: createdAt };
+    }
+    const configuration = parse<TeamRunConfiguration>(row.value_json, "Team Run Configuration");
+    const event = this.db.prepare("SELECT payload_json FROM host_journal WHERE run_id = ? AND event_id = ?").get(runId, row.head_event_id) as { payload_json: string } | undefined;
+    const payload = event ? parse<{ configuration: TeamRunConfiguration }>(event.payload_json, "Team Run Configuration event") : null;
+    if (!payload || canonicalJson(payload.configuration) !== canonicalJson(configuration)) throw new TeamStoreError("team_corrupt", "Team Run Configuration differs from event head");
+    return configuration;
+  }
+
+  saveConfiguration(authorityPolicyMode: AuthorityPolicyMode, runId = this.game.activeRunId): TeamRunConfiguration {
+    const current = this.getConfiguration(runId);
+    if (current.authorityPolicyMode === authorityPolicyMode && current.revision > 0) return current;
+    const updatedAt = new Date().toISOString();
+    const next: TeamRunConfiguration = {
+      schemaVersion: 1, runId, authorityPolicyMode, revision: current.revision + 1,
+      createdAt: current.createdAt, updatedAt,
+    };
+    const eventId = `host-event:team-configuration:${runId}:revision:${next.revision}`;
+    this.host.withTransaction(runId, () => {
+      if (current.revision === 0) {
+        this.db.prepare("INSERT INTO team_run_configurations (run_id, revision, head_event_id, value_json) VALUES (?, ?, ?, ?)")
+          .run(runId, next.revision, eventId, canonicalJson(next));
+      } else {
+        const result = this.db.prepare("UPDATE team_run_configurations SET revision = ?, head_event_id = ?, value_json = ? WHERE run_id = ? AND revision = ?")
+          .run(next.revision, eventId, canonicalJson(next), runId, current.revision);
+        if (Number(result.changes) !== 1) throw new TeamStoreError("team_conflict", "Team Run Configuration revision was superseded");
+      }
+      this.host.appendEventInTransaction(runId, "team.configuration-updated", eventId, { configuration: next }, updatedAt);
+    });
+    return this.getConfiguration(runId);
+  }
+
   projection(runId = this.game.activeRunId, refreshMessages = true): TeamProjection {
     const state = this.game.loadState(runId);
     return {
       goal: this.getGoal(runId),
+      configuration: this.getConfiguration(runId),
       profiles: this.listProfiles(runId),
       tasks: this.listTasks(runId),
       objectives: TEAM_OBJECTIVE_GRAPH,
