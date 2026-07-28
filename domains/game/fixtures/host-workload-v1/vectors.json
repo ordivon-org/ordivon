@@ -1,0 +1,873 @@
+{
+  "cases": [
+    {
+      "caseId": "validate-task-descriptor",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:2a19cdb1bd421651f028b3789c872d8cff7e4fba0d26106ee4ab490dc951c9c7"
+      },
+      "input": {
+        "assigneeRef": "actor:engineer-01",
+        "configurationDigests": [
+          "sha256:232549bb4e41aca0899fec612dcc14427c65f61a930700503343bc5d003057ff"
+        ],
+        "domainRef": "game-run:run:station-zero",
+        "goalId": "goal:station-zero:rescue",
+        "kind": "ordivon.host-task-descriptor",
+        "providerPolicyRef": "provider-policy:fixture-team-v1",
+        "schemaVersion": 1,
+        "taskId": "task:station-zero:actor:engineer-01",
+        "workloadId": "ordivon.game.actor-turn.v1"
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-compiled-context",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:84632840cf303b00b2db4d9a2404e17bcd29c68c85e002123e88da76b5068f72"
+      },
+      "input": {
+        "byteLength": 1590,
+        "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+        "kind": "ordivon.compiled-context-envelope",
+        "manifest": {
+          "estimatedTokens": 256,
+          "omittedBlockIds": [],
+          "selectedBlockIds": [
+            "context-block:station-zero:engineer:world"
+          ],
+          "tokenBudget": 1024
+        },
+        "payload": {
+          "blocks": [
+            {
+              "blockId": "context-block:station-zero:engineer:world",
+              "freshness": "current",
+              "kind": "world",
+              "payload": {
+                "mission": "running",
+                "revision": 7
+              },
+              "priority": 100,
+              "required": true,
+              "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+              "sourceOwner": "domain",
+              "sourceRef": "game-world:run:station-zero:r7",
+              "trust": "authoritative",
+              "validityRefs": [
+                {
+                  "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                  "ref": "game-world:run:station-zero"
+                }
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "candidateId": "candidate:station-zero:engineer:move-power",
+              "dispatchId": null,
+              "effectId": null,
+              "kind": "domain-action",
+              "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+              "requiredStateRefs": [
+                {
+                  "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                  "ref": "game-world:run:station-zero"
+                }
+              ],
+              "summary": "Move to the power junction"
+            },
+            {
+              "candidateId": "candidate:station-zero:engineer:wait",
+              "dispatchId": null,
+              "effectId": null,
+              "kind": "wait",
+              "proposalDigest": null,
+              "requiredStateRefs": [
+                {
+                  "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                  "ref": "game-world:run:station-zero"
+                }
+              ],
+              "summary": "Wait for one world tick"
+            }
+          ],
+          "completedEffectIds": [],
+          "instruction": "Choose one exact candidate identity.",
+          "kind": "ordivon.compiled-context",
+          "schemaVersion": 1,
+          "stateRefs": [
+            {
+              "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+              "ref": "game-world:run:station-zero"
+            }
+          ],
+          "taskId": "task:station-zero:actor:engineer-01",
+          "unresolvedDispatchIds": [],
+          "workloadId": "ordivon.game.actor-turn.v1"
+        },
+        "schemaVersion": 1
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-model-invocation-intent",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:26e2b3a868b98554a219f1f125b1447374ad9fb4c71f9905de228b6c34b58362"
+      },
+      "input": {
+        "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+        "contextObjectDigest": "sha256:84632840cf303b00b2db4d9a2404e17bcd29c68c85e002123e88da76b5068f72",
+        "invocationId": "invocation:station-zero:engineer:r7",
+        "kind": "ordivon.model-invocation-intent",
+        "providerPolicyRef": "provider-policy:fixture-team-v1",
+        "schemaVersion": 1,
+        "taskId": "task:station-zero:actor:engineer-01"
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-model-decision",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:0e48f7e11488f152b88cd6b83ee49e72821762a76c05477b6d44c40c01147c94"
+      },
+      "input": {
+        "candidateId": "candidate:station-zero:engineer:move-power",
+        "confidencePermille": 1000,
+        "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+        "invocationId": "invocation:station-zero:engineer:r7",
+        "kind": "ordivon.model-decision",
+        "providerId": "provider:fixture-team-policy-v1",
+        "rationale": "The power junction is the next admitted move.",
+        "schemaVersion": 1
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-admitted-decision",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:d58b716727d5b5b8db2c3688def3c5db53e60e3268cd9c6d639e06c9d2e6584f"
+      },
+      "input": {
+        "candidate": {
+          "candidateId": "candidate:station-zero:engineer:move-power",
+          "dispatchId": null,
+          "effectId": null,
+          "kind": "domain-action",
+          "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+          "requiredStateRefs": [
+            {
+              "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+              "ref": "game-world:run:station-zero"
+            }
+          ],
+          "summary": "Move to the power junction"
+        },
+        "confidencePermille": 1000,
+        "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+        "kind": "ordivon.admitted-decision",
+        "providerId": "provider:fixture-team-policy-v1",
+        "rationale": "The power junction is the next admitted move.",
+        "schemaVersion": 1
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-dispatch-envelope",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:aaf8794ff8ffa3bd1a3ddd344adf628e98278ab94f7433629ecf8f8bab536337"
+      },
+      "input": {
+        "dispatchId": "dispatch:station-zero:r7",
+        "effectId": "effect:station-zero:r7",
+        "executorId": "executor:game-world-v1",
+        "expectedObservationKind": "ordivon.game.world-event-observation.v1",
+        "idempotencyKey": "command:station-zero:r7:engineer",
+        "kind": "ordivon.dispatch-envelope",
+        "requestDigest": "sha256:4eadf35d19e73e1c8af0183e1633182f4db43e042a71acfe2b7aa50c58599297",
+        "requiredStateRefs": [
+          {
+            "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "schemaVersion": 1
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-observation-envelope",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:7a9424eac779588977b1637aaa31b1a7717450fb5e737fa116c5bf879d1e5c02"
+      },
+      "input": {
+        "dispatchId": "dispatch:station-zero:r7",
+        "evidenceRefs": [
+          {
+            "digest": "sha256:bc8e79bba250f4f118bfbbe5b51919bde06d279c7178445413781c8dfcf59cf1",
+            "kind": "game-world-event",
+            "ref": "world-event:station-zero:r8"
+          }
+        ],
+        "executorId": "executor:game-world-v1",
+        "kind": "ordivon.observation-envelope",
+        "payloadDigest": "sha256:bc8e79bba250f4f118bfbbe5b51919bde06d279c7178445413781c8dfcf59cf1",
+        "schemaVersion": 1,
+        "status": "succeeded"
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-verification-receipt",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:81d30de796b3107f96133b59506ec153a4430780259f3c42d32929538c6bd215"
+      },
+      "input": {
+        "accepted": true,
+        "dispatchId": "dispatch:station-zero:r7",
+        "kind": "ordivon.verification-receipt",
+        "method": "game-world-event.v1",
+        "observationDigest": "sha256:7a9424eac779588977b1637aaa31b1a7717450fb5e737fa116c5bf879d1e5c02",
+        "resultItems": [
+          {
+            "decisionDigest": "sha256:d58b716727d5b5b8db2c3688def3c5db53e60e3268cd9c6d639e06c9d2e6584f",
+            "evidenceDigest": "sha256:bc8e79bba250f4f118bfbbe5b51919bde06d279c7178445413781c8dfcf59cf1",
+            "reason": null,
+            "status": "succeeded",
+            "subjectRef": "task:station-zero:actor:engineer-01"
+          }
+        ],
+        "schemaVersion": 1
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "validate-task-outcome",
+      "expected": {
+        "accepted": true,
+        "digest": "sha256:4c0807964aaf9238537bea49736b713550105d3040dfebb0118c433ce05165f8"
+      },
+      "input": {
+        "artifactRefs": [
+          {
+            "digest": "sha256:2ceccedb69a647354fdedad0d0fee008658321eed14afd480b7dcd145ee2d201",
+            "kind": "game-result",
+            "ref": "artifact:station-zero:r8"
+          }
+        ],
+        "goalId": "goal:station-zero:rescue",
+        "kind": "ordivon.task-outcome",
+        "schemaVersion": 1,
+        "status": "completed",
+        "taskId": "task:station-zero:actor:engineer-01",
+        "verificationDigest": "sha256:81d30de796b3107f96133b59506ec153a4430780259f3c42d32929538c6bd215"
+      },
+      "operation": "validate"
+    },
+    {
+      "caseId": "reject-invalid-task-descriptor-digest",
+      "expected": {
+        "accepted": false,
+        "code": "invalid_object"
+      },
+      "input": {
+        "assigneeRef": "actor:engineer-01",
+        "configurationDigests": [
+          "sha256:ABC"
+        ],
+        "domainRef": "game-run:run:station-zero",
+        "goalId": "goal:station-zero:rescue",
+        "kind": "ordivon.host-task-descriptor",
+        "providerPolicyRef": "provider-policy:fixture-team-v1",
+        "schemaVersion": 1,
+        "taskId": "task:station-zero:actor:engineer-01",
+        "workloadId": "ordivon.game.actor-turn.v1"
+      },
+      "operation": "validate"
+    },
+    {
+      "arguments": {
+        "completedEffectIds": [],
+        "context": {
+          "byteLength": 1590,
+          "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.compiled-context-envelope",
+          "manifest": {
+            "estimatedTokens": 256,
+            "omittedBlockIds": [],
+            "selectedBlockIds": [
+              "context-block:station-zero:engineer:world"
+            ],
+            "tokenBudget": 1024
+          },
+          "payload": {
+            "blocks": [
+              {
+                "blockId": "context-block:station-zero:engineer:world",
+                "freshness": "current",
+                "kind": "world",
+                "payload": {
+                  "mission": "running",
+                  "revision": 7
+                },
+                "priority": 100,
+                "required": true,
+                "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "sourceOwner": "domain",
+                "sourceRef": "game-world:run:station-zero:r7",
+                "trust": "authoritative",
+                "validityRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ]
+              }
+            ],
+            "candidates": [
+              {
+                "candidateId": "candidate:station-zero:engineer:move-power",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "domain-action",
+                "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Move to the power junction"
+              },
+              {
+                "candidateId": "candidate:station-zero:engineer:wait",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "wait",
+                "proposalDigest": null,
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Wait for one world tick"
+              }
+            ],
+            "completedEffectIds": [],
+            "instruction": "Choose one exact candidate identity.",
+            "kind": "ordivon.compiled-context",
+            "schemaVersion": 1,
+            "stateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "taskId": "task:station-zero:actor:engineer-01",
+            "unresolvedDispatchIds": [],
+            "workloadId": "ordivon.game.actor-turn.v1"
+          },
+          "schemaVersion": 1
+        },
+        "currentStateRefs": [
+          {
+            "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "decision": {
+          "candidateId": "candidate:station-zero:engineer:move-power",
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "invocationId": "invocation:station-zero:engineer:r7",
+          "kind": "ordivon.model-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "unresolvedDispatchIds": []
+      },
+      "caseId": "admit-domain-action",
+      "expected": {
+        "accepted": true,
+        "admitted": {
+          "candidate": {
+            "candidateId": "candidate:station-zero:engineer:move-power",
+            "dispatchId": null,
+            "effectId": null,
+            "kind": "domain-action",
+            "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+            "requiredStateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "summary": "Move to the power junction"
+          },
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.admitted-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "digest": "sha256:d58b716727d5b5b8db2c3688def3c5db53e60e3268cd9c6d639e06c9d2e6584f"
+      },
+      "operation": "admit-decision"
+    },
+    {
+      "arguments": {
+        "completedEffectIds": [],
+        "context": {
+          "byteLength": 1590,
+          "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.compiled-context-envelope",
+          "manifest": {
+            "estimatedTokens": 256,
+            "omittedBlockIds": [],
+            "selectedBlockIds": [
+              "context-block:station-zero:engineer:world"
+            ],
+            "tokenBudget": 1024
+          },
+          "payload": {
+            "blocks": [
+              {
+                "blockId": "context-block:station-zero:engineer:world",
+                "freshness": "current",
+                "kind": "world",
+                "payload": {
+                  "mission": "running",
+                  "revision": 7
+                },
+                "priority": 100,
+                "required": true,
+                "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "sourceOwner": "domain",
+                "sourceRef": "game-world:run:station-zero:r7",
+                "trust": "authoritative",
+                "validityRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ]
+              }
+            ],
+            "candidates": [
+              {
+                "candidateId": "candidate:station-zero:engineer:move-power",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "domain-action",
+                "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Move to the power junction"
+              },
+              {
+                "candidateId": "candidate:station-zero:engineer:wait",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "wait",
+                "proposalDigest": null,
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Wait for one world tick"
+              }
+            ],
+            "completedEffectIds": [],
+            "instruction": "Choose one exact candidate identity.",
+            "kind": "ordivon.compiled-context",
+            "schemaVersion": 1,
+            "stateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "taskId": "task:station-zero:actor:engineer-01",
+            "unresolvedDispatchIds": [],
+            "workloadId": "ordivon.game.actor-turn.v1"
+          },
+          "schemaVersion": 1
+        },
+        "currentStateRefs": [
+          {
+            "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "decision": {
+          "candidateId": "candidate:station-zero:engineer:move-power",
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "invocationId": "invocation:station-zero:engineer:r7",
+          "kind": "ordivon.model-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "unresolvedDispatchIds": []
+      },
+      "caseId": "reject-wrong-context",
+      "expected": {
+        "accepted": false,
+        "code": "wrong_context"
+      },
+      "operation": "admit-decision"
+    },
+    {
+      "arguments": {
+        "completedEffectIds": [],
+        "context": {
+          "byteLength": 1590,
+          "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.compiled-context-envelope",
+          "manifest": {
+            "estimatedTokens": 256,
+            "omittedBlockIds": [],
+            "selectedBlockIds": [
+              "context-block:station-zero:engineer:world"
+            ],
+            "tokenBudget": 1024
+          },
+          "payload": {
+            "blocks": [
+              {
+                "blockId": "context-block:station-zero:engineer:world",
+                "freshness": "current",
+                "kind": "world",
+                "payload": {
+                  "mission": "running",
+                  "revision": 7
+                },
+                "priority": 100,
+                "required": true,
+                "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "sourceOwner": "domain",
+                "sourceRef": "game-world:run:station-zero:r7",
+                "trust": "authoritative",
+                "validityRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ]
+              }
+            ],
+            "candidates": [
+              {
+                "candidateId": "candidate:station-zero:engineer:move-power",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "domain-action",
+                "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Move to the power junction"
+              },
+              {
+                "candidateId": "candidate:station-zero:engineer:wait",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "wait",
+                "proposalDigest": null,
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Wait for one world tick"
+              }
+            ],
+            "completedEffectIds": [],
+            "instruction": "Choose one exact candidate identity.",
+            "kind": "ordivon.compiled-context",
+            "schemaVersion": 1,
+            "stateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "taskId": "task:station-zero:actor:engineer-01",
+            "unresolvedDispatchIds": [],
+            "workloadId": "ordivon.game.actor-turn.v1"
+          },
+          "schemaVersion": 1
+        },
+        "currentStateRefs": [
+          {
+            "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "decision": {
+          "candidateId": "candidate:station-zero:invented",
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "invocationId": "invocation:station-zero:engineer:r7",
+          "kind": "ordivon.model-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "unresolvedDispatchIds": []
+      },
+      "caseId": "reject-invented-candidate",
+      "expected": {
+        "accepted": false,
+        "code": "invented_candidate"
+      },
+      "operation": "admit-decision"
+    },
+    {
+      "arguments": {
+        "completedEffectIds": [],
+        "context": {
+          "byteLength": 1590,
+          "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.compiled-context-envelope",
+          "manifest": {
+            "estimatedTokens": 256,
+            "omittedBlockIds": [],
+            "selectedBlockIds": [
+              "context-block:station-zero:engineer:world"
+            ],
+            "tokenBudget": 1024
+          },
+          "payload": {
+            "blocks": [
+              {
+                "blockId": "context-block:station-zero:engineer:world",
+                "freshness": "current",
+                "kind": "world",
+                "payload": {
+                  "mission": "running",
+                  "revision": 7
+                },
+                "priority": 100,
+                "required": true,
+                "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "sourceOwner": "domain",
+                "sourceRef": "game-world:run:station-zero:r7",
+                "trust": "authoritative",
+                "validityRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ]
+              }
+            ],
+            "candidates": [
+              {
+                "candidateId": "candidate:station-zero:engineer:move-power",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "domain-action",
+                "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Move to the power junction"
+              },
+              {
+                "candidateId": "candidate:station-zero:engineer:wait",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "wait",
+                "proposalDigest": null,
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Wait for one world tick"
+              }
+            ],
+            "completedEffectIds": [],
+            "instruction": "Choose one exact candidate identity.",
+            "kind": "ordivon.compiled-context",
+            "schemaVersion": 1,
+            "stateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "taskId": "task:station-zero:actor:engineer-01",
+            "unresolvedDispatchIds": [],
+            "workloadId": "ordivon.game.actor-turn.v1"
+          },
+          "schemaVersion": 1
+        },
+        "currentStateRefs": [
+          {
+            "digest": "sha256:d08f1535f40b9db623b76e31af7463fb67fe75c47d2dce9fb97fe6d42720f601",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "decision": {
+          "candidateId": "candidate:station-zero:engineer:move-power",
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "invocationId": "invocation:station-zero:engineer:r7",
+          "kind": "ordivon.model-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "unresolvedDispatchIds": []
+      },
+      "caseId": "reject-stale-state",
+      "expected": {
+        "accepted": false,
+        "code": "stale_state"
+      },
+      "operation": "admit-decision"
+    },
+    {
+      "arguments": {
+        "completedEffectIds": [],
+        "context": {
+          "byteLength": 1590,
+          "digest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "kind": "ordivon.compiled-context-envelope",
+          "manifest": {
+            "estimatedTokens": 256,
+            "omittedBlockIds": [],
+            "selectedBlockIds": [
+              "context-block:station-zero:engineer:world"
+            ],
+            "tokenBudget": 1024
+          },
+          "payload": {
+            "blocks": [
+              {
+                "blockId": "context-block:station-zero:engineer:world",
+                "freshness": "current",
+                "kind": "world",
+                "payload": {
+                  "mission": "running",
+                  "revision": 7
+                },
+                "priority": 100,
+                "required": true,
+                "sourceDigest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "sourceOwner": "domain",
+                "sourceRef": "game-world:run:station-zero:r7",
+                "trust": "authoritative",
+                "validityRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ]
+              }
+            ],
+            "candidates": [
+              {
+                "candidateId": "candidate:station-zero:engineer:move-power",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "domain-action",
+                "proposalDigest": "sha256:f7110842b11d628b2c36b4d70436e4ce9fc630fbcc116d9b97f908e6e8a3bcdc",
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Move to the power junction"
+              },
+              {
+                "candidateId": "candidate:station-zero:engineer:wait",
+                "dispatchId": null,
+                "effectId": null,
+                "kind": "wait",
+                "proposalDigest": null,
+                "requiredStateRefs": [
+                  {
+                    "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                    "ref": "game-world:run:station-zero"
+                  }
+                ],
+                "summary": "Wait for one world tick"
+              }
+            ],
+            "completedEffectIds": [],
+            "instruction": "Choose one exact candidate identity.",
+            "kind": "ordivon.compiled-context",
+            "schemaVersion": 1,
+            "stateRefs": [
+              {
+                "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+                "ref": "game-world:run:station-zero"
+              }
+            ],
+            "taskId": "task:station-zero:actor:engineer-01",
+            "unresolvedDispatchIds": [],
+            "workloadId": "ordivon.game.actor-turn.v1"
+          },
+          "schemaVersion": 1
+        },
+        "currentStateRefs": [
+          {
+            "digest": "sha256:27df7120c9f17f6ad3970078cfef52fd3100933411e4d96fb61f4eb783134329",
+            "ref": "game-world:run:station-zero"
+          }
+        ],
+        "decision": {
+          "candidateId": "candidate:station-zero:engineer:move-power",
+          "confidencePermille": 1000,
+          "contextDigest": "sha256:440f84e70d4fd645d8339d91128e62eaf1f6cb35908a56470116b91e0949954a",
+          "invocationId": "invocation:station-zero:engineer:r7",
+          "kind": "ordivon.model-decision",
+          "providerId": "provider:fixture-team-policy-v1",
+          "rationale": "The power junction is the next admitted move.",
+          "schemaVersion": 1
+        },
+        "unresolvedDispatchIds": [
+          "dispatch:station-zero:previous"
+        ]
+      },
+      "caseId": "reject-new-progress-with-unresolved-dispatch",
+      "expected": {
+        "accepted": false,
+        "code": "unresolved_dispatch"
+      },
+      "operation": "admit-decision"
+    }
+  ],
+  "kind": "ordivon.host-workload-conformance-vectors",
+  "profile": "host-workload-v1",
+  "schemaVersion": 1
+}

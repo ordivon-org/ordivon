@@ -1,0 +1,9 @@
+{
+  "kind": "ordivon.game.host-workload-fixture-manifest",
+  "protocolVersion": "0.3.0",
+  "schemaVersion": 1,
+  "sourcePath": "packages/ordivon-protocol/src/ordivon_protocol/vectors/host-workload-vectors-v1.json",
+  "sourceRepository": "https://github.com/zycxfyh/ordivon-computing",
+  "sourceRevision": "5c6e225b90f25d4a0e8e0f99bf7590ecbd7ce1a5",
+  "vectorFileDigest": "sha256:e28c7670064e0f2c1aee676f5bb7a6669fa1c7cdac68fb90fa5e6de1decbeea7"
+}

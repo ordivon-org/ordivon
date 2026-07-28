@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.host-convergence-p0-p2-evaluation",
+  "capturedAt": "2026-07-29",
+  "protocol": {
+    "profile": "host-workload-v1",
+    "version": "0.3.0",
+    "sourceRevision": "5c6e225b90f25d4a0e8e0f99bf7590ecbd7ce1a5"
+  },
+  "singleActor": {
+    "worldRevision": 25,
+    "worldDigest": "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2",
+    "runMs": 4799,
+    "contractSyncMs": 32,
+    "transcriptEntries": 192,
+    "contexts": 10,
+    "decisions": 10,
+    "dispatches": 25,
+    "observations": 25,
+    "verifications": 25,
+    "outcomes": 1
+  },
+  "team": {
+    "worldRevision": 18,
+    "worldDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+    "runMs": 7481,
+    "contractSyncMs": 79,
+    "transcriptEntries": 350,
+    "taskDescriptors": 4,
+    "contexts": 54,
+    "decisions": 54,
+    "goalSnapshots": 18,
+    "effects": 18,
+    "dispatches": 18,
+    "observations": 18,
+    "verifications": 18,
+    "resultItemsPerVerification": 3,
+    "outcomes": 4
+  },
+  "recovery": {
+    "faultPoint": "after_world_apply",
+    "freshProcess": true,
+    "worldEvents": 18,
+    "dispatches": 18,
+    "observations": 18,
+    "verifications": 18,
+    "duplicateWorldTicks": 0
+  },
+  "gates": {
+    "tests": {
+      "passed": 214,
+      "failed": 0
+    },
+    "coverage": {
+      "linesPercent": 98.61,
+      "branchesPercent": 90.13,
+      "functionsPercent": 98.52
+    },
+    "typecheck": "passed",
+    "webcheck": "passed",
+    "diffCheck": "passed",
+    "crossLanguageVectors": "passed"
+  },
+  "decision": {
+    "deploymentForm": "conformance-backed-embedded-typescript",
+    "syncCadence": "once-per-run-close",
+    "sidecarDeferred": true,
+    "reason": "The embedded adapter preserves exact cross-language semantics with 32 ms single-Actor and 79 ms Team synchronization cost while avoiding a new process, transport, and cross-database failure boundary."
+  }
+}

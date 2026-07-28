@@ -229,4 +229,10 @@ export class HostExecutionStore {
       .all(runId) as unknown as JsonRow[];
     return rows.map((row) => JSON.parse(row.value_json) as HostDispatch);
   }
+
+  listObservations(runId: string): HostObservation[] {
+    const rows = this.db.prepare("SELECT value_json FROM host_observations WHERE run_id = ? ORDER BY rowid")
+      .all(runId) as unknown as JsonRow[];
+    return rows.map((row) => JSON.parse(row.value_json) as HostObservation);
+  }
 }

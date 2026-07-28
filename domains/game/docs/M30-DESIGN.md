@@ -181,9 +181,11 @@ M3.0 therefore forbids adding a new collection of Game-private team projection t
 
 M3.0 maps each specialist cognition Task to this mechanism instead of inventing an Actor lease table in Game.
 
-### 4.3 Graph-shaped Task frontier
+### 4.3 Task-local frontier and Goal-scoped revision references
 
-`ordivon-host` already stores Task nodes, edges, one active node, and a Ready Frontier. M3.0 uses this as the generic coordination substrate. Game-specific Objective semantics remain domain Artifacts and predicates rather than a second generic DAG engine.
+The active `ordivon-host` implementation stores one checked `TaskProjection` with a Task-local active node token, Ready Frontier, revision, and state. Historical `task_nodes`, `task_edges`, `wakeups`, and `runtime_links` tables are explicitly legacy-unused and are not the current coordination substrate.
+
+Multi-Actor coordination therefore uses multiple independent Tasks sharing one Goal, plus exact Task revision and head-digest references retained by one ordinary Coordinator Task. Game-specific Objective semantics remain domain Artifacts and predicates; no generic DAG or scheduler is introduced.
 
 ### 4.4 Token-budget Context compiler
 
@@ -758,30 +760,30 @@ Game-specific Objective predicates, observation rules, message reachability, spe
 
 ## 17. Persistence design
 
-M3.0 rejects the original plan to add ten independent team projection tables as primary state.
+M3.0 rejects the original plan to add a second generic scheduler or Task graph as primary state.
 
-The preferred logical storage remains:
+The implemented P0–P2 logical storage is:
 
 ```text
-Host:
-  immutable objects
-  Host Event streams
-  checked Task projections
-  task graph indexes
-  Runtime/domain links
-  wakeups
-  leases
+Host contract semantics:
+  immutable TaskDescriptor / Context / Decision objects
+  Host Contract journal events
+  Task-local revision and frontier semantics
+  Goal-scoped Task revision snapshots
+  Effect / Dispatch / Observation / Verification / Outcome objects
+  short Task leases in the independent Ordivon Host
 
-Game:
+Game domain truth:
   Run metadata
   World command/TickBatch journal
   TickEvent journal
   sparse World snapshots
+  domain proposals, authority, Messages, and compatibility policy
 ```
 
-Actor Profiles and scenario policy may be immutable configuration Artifacts referenced by the Goal/Task streams.
+The embedded convergence adapter currently stores protocol objects in the existing Game `host_artifacts` and `host_journal` tables. Legacy `team_*` tables remain as executable compatibility projections during dual-run validation; they are not claimed as the final cross-project Host authority.
 
-Query views for UI may be ordinary rebuildable projections. They are not independent semantic authorities.
+The completed implementation and measured boundary are recorded in [`HOST-CONVERGENCE-P0-P2.md`](HOST-CONVERGENCE-P0-P2.md).
 
 ## 18. API target
 

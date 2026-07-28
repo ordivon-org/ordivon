@@ -1,6 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "../digest.ts";
+import {
+  protocolCanonicalJson,
+  protocolDigest,
+  validateProtocolJson,
+} from "../host-contract/canonical.ts";
 import type { WorldState } from "../model.ts";
 import type { RunMetadata } from "../run.ts";
 import {
@@ -173,6 +178,35 @@ export class HostStore {
     const content = parse<T>(row.content_json, "Host Artifact");
     if (sha256({ kind: row.kind, content }) !== row.digest) {
       throw new HostStoreError("host_corrupt", "Host Artifact digest mismatch");
+    }
+    return { digest: row.digest, kind: row.kind, content, byteLength: Number(row.byte_length), createdAt: row.created_at };
+  }
+
+  putProtocolArtifact<T>(kind: string, content: T, createdAt = new Date().toISOString()): HostArtifact<T> {
+    if (!kind || kind !== kind.trim()) throw new TypeError("artifact kind must be non-empty and trimmed");
+    validateProtocolJson(content);
+    const contentJson = protocolCanonicalJson(content);
+    const digest = protocolDigest(content);
+    const existing = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
+    if (existing) {
+      if (existing.kind !== kind || existing.content_json !== contentJson) {
+        throw new HostStoreError("host_corrupt", "Protocol Artifact digest is bound to different content or kind");
+      }
+      return { digest, kind, content, byteLength: Number(existing.byte_length), createdAt: existing.created_at };
+    }
+    const byteLength = Buffer.byteLength(contentJson);
+    this.db.prepare("INSERT INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(digest, kind, contentJson, byteLength, createdAt);
+    return { digest, kind, content, byteLength, createdAt };
+  }
+
+  getProtocolArtifact<T>(digest: string): HostArtifact<T> {
+    const row = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
+    if (!row) throw new Error(`unknown Protocol Artifact: ${digest}`);
+    const content = parse<T>(row.content_json, "Protocol Artifact");
+    validateProtocolJson(content);
+    if (protocolDigest(content) !== row.digest) {
+      throw new HostStoreError("host_corrupt", "Protocol Artifact digest mismatch");
     }
     return { digest: row.digest, kind: row.kind, content, byteLength: Number(row.byte_length), createdAt: row.created_at };
   }
