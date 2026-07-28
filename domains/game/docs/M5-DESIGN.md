@@ -1,6 +1,6 @@
 # M5 design — replay, diagnosis, comparison, experiments, and first playable release
 
-Status: design only; no M5 runtime or Web implementation is authorized by this document
+Status: accepted design; M5.0 identity, catalog, and paging contracts are implemented
 Tracking: Issue #7
 Depends on: M4 closeout at `main@2427aad4d35e76ffb3ab479f60be8c2239f5c9c8`
 Audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md)

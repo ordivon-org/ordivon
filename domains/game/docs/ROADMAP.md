@@ -194,9 +194,11 @@ Acceptance evidence:
 - the Security spare-parts mismatch is detected before commit;
 - the main product adds no runtime dependency, hidden manager model, framework, primitive World control, or raw Host log.
 
-## M5 — Replay, diagnosis, comparison, experiments, and first playable — designed, implementation pending
+## M5 — Replay, diagnosis, comparison, experiments, and first playable — implementation in progress
 
 Design: [`M5-DESIGN.md`](M5-DESIGN.md). Implementation graph: [`M5-PLAN.md`](M5-PLAN.md). Entry audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md).
+
+M5.0 is implemented: deterministic Scenario Cases, Run Genesis/evaluated-input identity, a backend-owned product catalog, legacy Run migration, and true revision-based Team timeline paging are now executable contracts. Point-in-time World replay remains next.
 
 M5 closes the learn–configure–run–diagnose loop without reopening the M1–M4 kernels:
 

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { createMissionControlCatalog } from "../src/mission-control/catalog.ts";
 import { MissionControlService } from "../src/mission-control/service.ts";
 import { GameStore } from "../src/storage.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
@@ -16,7 +17,8 @@ try {
   const runId = "run:web-smoke";
   service.initialize({ runId, authorityPolicyMode: "autonomous" });
   const review = await service.advance(runId, "proposal-review");
-  const mission = renderMission(review.view);
+  const catalog = createMissionControlCatalog();
+  const mission = renderMission(review.view, { catalog });
   assert.match(mission, /Station Zero/);
   assert.match(mission, /Engineer Imani/);
   assert.match(mission, /Medic Reyes/);
@@ -32,13 +34,14 @@ try {
   terminalView.mission.reason = "rescue_signal_verified";
   terminalView.mission.score = 2200;
   terminalView.mission.scoreComponents = { verifiedVictory: 1000, objectiveProgress: 700 };
-  assert.match(renderMission(terminalView), /Verified terminal outcome/i);
-  assert.match(renderMission(terminalView), /Score 2200/);
+  assert.match(renderMission(terminalView, { catalog }), /Verified terminal outcome/i);
+  assert.match(renderMission(terminalView, { catalog }), /Score 2200/);
 
   const runs = compatibleRuns(game.listRuns());
-  const deployment = renderDeployment(runs);
+  const deployment = renderDeployment(runs, null, null, catalog);
   assert.match(deployment, /Team configuration/);
-  assert.match(deployment, /Engineer/);
+  assert.match(deployment, /Engineer Imani/);
+  assert.match(deployment, /Power constrained/);
   assert.match(deployment, /Resume mission/);
 
   assert.equal(runIdFromUrl("https://example.test/?runId=run%3Aone"), "run:one");

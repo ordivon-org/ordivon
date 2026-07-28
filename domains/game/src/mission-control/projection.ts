@@ -361,8 +361,8 @@ function currentRound(execution: TeamExecutionStore, rounds: TeamRound[]): Coord
   };
 }
 
-function timeline(execution: TeamExecutionStore, rounds: TeamRound[], limit = 12): MissionTimelineItem[] {
-  return rounds.slice(-limit).map((round) => {
+export function missionTimelineItems(execution: TeamExecutionStore, rounds: TeamRound[]): MissionTimelineItem[] {
+  return rounds.map((round) => {
     const proposals = execution.listProposals(round.roundId);
     const observation = execution.findObservationForRound(round.roundId);
     const facts = (observation?.facts ?? []).slice(-8).map(factSummary);
@@ -376,7 +376,7 @@ function timeline(execution: TeamExecutionStore, rounds: TeamRound[], limit = 12
       actorActions: proposals.map((proposal) => `${proposal.actorId}: ${commandLabel(proposal.command)} · ${proposal.status}`),
       facts,
     };
-  }).reverse();
+  });
 }
 
 export function createMissionControlView(store: GameStore, runId = store.activeRunId): MissionControlView {
@@ -392,7 +392,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
     return {
       schemaVersion: 1, initialized: false,
       generatedFrom: { worldRevision: state.revision, worldDigest: digest, goalRevision: 0, configurationRevision: 0 },
-      run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, rulesetVersion: metadata.rulesetVersion, turn: state.turn, turnLimit: state.mission.turnLimit, status: "setup" },
+      run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, scenarioCaseId: metadata.scenarioCaseId, rulesetVersion: metadata.rulesetVersion, genesisDigest: metadata.genesisDigest, evaluatedInputsDigest: metadata.evaluatedInputsDigest, createdWithBuild: metadata.createdWithBuild, turn: state.turn, turnLimit: state.mission.turnLimit, status: "setup" },
       configuration: null,
       mission: { title: "Station Zero", reason: null, turnsRemaining: state.mission.turnLimit - state.turn, objectiveProgress: { resolved: 0, satisfied: 0, superseded: 0, total: 12 }, urgency: urgency(state), score: null, scoreComponents: null },
       resources: baseResources,
@@ -414,7 +414,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
     schemaVersion: 1,
     initialized: true,
     generatedFrom: { worldRevision: state.revision, worldDigest: digest, goalRevision: projection.goal.revision, configurationRevision: projection.configuration.revision },
-    run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, rulesetVersion: metadata.rulesetVersion, turn: state.turn, turnLimit: state.mission.turnLimit, status: state.mission.status },
+    run: { runId, scenarioId: metadata.scenarioId, scenarioVersion: metadata.scenarioVersion, scenarioCaseId: metadata.scenarioCaseId, rulesetVersion: metadata.rulesetVersion, genesisDigest: metadata.genesisDigest, evaluatedInputsDigest: metadata.evaluatedInputsDigest, createdWithBuild: metadata.createdWithBuild, turn: state.turn, turnLimit: state.mission.turnLimit, status: state.mission.status },
     configuration: { authorityPolicyMode: projection.configuration.authorityPolicyMode },
     mission: { title: "Station Zero emergency response", reason: state.mission.reason, turnsRemaining: Math.max(0, state.mission.turnLimit - state.turn), objectiveProgress: { resolved: satisfied + superseded, satisfied, superseded, total: objectiveViews.length }, urgency: urgency(state), score: score?.total ?? null, scoreComponents: score?.components ?? null },
     resources: baseResources,
@@ -423,7 +423,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
     objectives: objectiveViews,
     currentRound: roundView,
     inbox: deriveInterventions(state, projection, latestProposals),
-    timeline: timeline(execution, rounds),
+    timeline: missionTimelineItems(execution, rounds.slice(-12).reverse()),
     controls: {
       canPrepare: state.mission.status === "running" && (!roundView || roundView.phase === "verified" || roundView.phase === "blocked"),
       canCommit: state.mission.status === "running" && Boolean(roundView && ["proposal-review", "authority", "committing"].includes(roundView.phase)),

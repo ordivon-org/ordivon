@@ -1,6 +1,6 @@
 # M5 plan — implementation graph for the first playable release
 
-Status: design only
+Status: implementation in progress; PR1 M5.0 complete
 Design: [`M5-DESIGN.md`](M5-DESIGN.md)
 Debt audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md)
 Tracking: Issue #7

@@ -281,4 +281,29 @@ export class TeamExecutionStore {
     const rows = this.db.prepare("SELECT value_json FROM team_rounds WHERE run_id = ? ORDER BY world_revision").all(runId) as unknown as JsonRow[];
     return rows.map((row) => parse<TeamRound>(row.value_json, "Team Round"));
   }
+
+  listRoundsPage(
+    runId: string,
+    beforeRevision: number | null,
+    limit: number,
+  ): { rounds: TeamRound[]; nextBeforeRevision: number | null } {
+    if (beforeRevision !== null && (!Number.isSafeInteger(beforeRevision) || beforeRevision < 0)) {
+      throw new TypeError("beforeRevision must be a non-negative integer");
+    }
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
+      throw new TypeError("timeline limit must be an integer from 1 to 50");
+    }
+    const rows = (beforeRevision === null
+      ? this.db.prepare("SELECT world_revision, value_json FROM team_rounds WHERE run_id = ? ORDER BY world_revision DESC LIMIT ?")
+          .all(runId, limit + 1)
+      : this.db.prepare("SELECT world_revision, value_json FROM team_rounds WHERE run_id = ? AND world_revision < ? ORDER BY world_revision DESC LIMIT ?")
+          .all(runId, beforeRevision, limit + 1)) as unknown as Array<{ world_revision: number; value_json: string }>;
+    const hasMore = rows.length > limit;
+    const selected = rows.slice(0, limit);
+    const rounds = selected.map((row) => parse<TeamRound>(row.value_json, "Team Round"));
+    return {
+      rounds,
+      nextBeforeRevision: hasMore ? Number(selected.at(-1)?.world_revision ?? 0) : null,
+    };
+  }
 }

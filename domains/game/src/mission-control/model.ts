@@ -136,7 +136,11 @@ export interface MissionControlView {
     runId: string;
     scenarioId: string;
     scenarioVersion: number;
+    scenarioCaseId: string;
     rulesetVersion: number;
+    genesisDigest: string;
+    evaluatedInputsDigest: string;
+    createdWithBuild: string;
     turn: number;
     turnLimit: number;
     status: "setup" | "running" | "victory" | "failure";

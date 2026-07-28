@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "./digest.ts";
+import { createMissionControlCatalog, isMissionProviderName } from "./mission-control/catalog.ts";
 import { MissionControlService, type MissionControlCommand, type MissionProviderName } from "./mission-control/service.ts";
 import { AgentHost } from "./host/engine.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
@@ -86,9 +87,7 @@ function defaultTeamProviderFactory(name: TeamProviderName): TeamDecisionProvide
 
 function parseProviderName(value: unknown): AgentProviderName {
   const name = value ?? "fixture";
-  if (["fixture", "codex", "hermes", "codex-hermes", "hermes-codex"].includes(String(name))) {
-    return name as AgentProviderName;
-  }
+  if (isMissionProviderName(name)) return name;
   throw new TypeError("unsupported Agent Provider");
 }
 
@@ -362,6 +361,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
+      if (request.method === "GET" && url.pathname === "/api/mission-control/catalog") {
+        sendJson(response, 200, createMissionControlCatalog());
+        return;
+      }
       if (request.method === "GET" && url.pathname === "/api/mission-control/state") {
         const service = new MissionControlService(store, teamProviderFactory);
         sendJson(response, 200, service.state(runId));
@@ -373,7 +376,12 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         const rawProviders = body.providers && typeof body.providers === "object" && !Array.isArray(body.providers) ? body.providers as Record<string, unknown> : {};
         const providers = Object.fromEntries(Object.entries(rawProviders).map(([actorId, provider]) => [actorId, parseProviderName(provider)]));
         const service = new MissionControlService(store, teamProviderFactory);
-        sendJson(response, 201, service.initialize({ runId: selectedRunId, authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode), providers }));
+        sendJson(response, 201, service.initialize({
+          runId: selectedRunId,
+          ...(typeof body.scenarioCaseId === "string" ? { scenarioCaseId: body.scenarioCaseId } : {}),
+          authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode),
+          providers,
+        }));
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/mission-control/advance") {
@@ -392,14 +400,17 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, 200, { result, view: service.state(runId) });
         return;
       }
-      if (request.method === "GET" && url.pathname === "/api/mission-control/timeline") {
+      if (request.method === "GET" && (url.pathname === "/api/mission-control/timeline" || url.pathname === "/api/replay/timeline")) {
         const limit = url.searchParams.get("limit") === null ? 12 : Number(url.searchParams.get("limit"));
         if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new TypeError("timeline limit must be an integer from 1 to 50");
-        const before = url.searchParams.get("before") === null ? null : Number(url.searchParams.get("before"));
-        if (before !== null && !Number.isSafeInteger(before)) throw new TypeError("timeline before cursor must be an integer World revision");
+        const rawBefore = url.searchParams.get("beforeRevision") ?? url.searchParams.get("before");
+        const beforeRevision = rawBefore === null ? null : Number(rawBefore);
+        if (beforeRevision !== null && (!Number.isSafeInteger(beforeRevision) || beforeRevision < 0)) {
+          throw new TypeError("beforeRevision must be a non-negative integer World revision");
+        }
         const service = new MissionControlService(store, teamProviderFactory);
-        const items = service.state(runId).timeline.filter((item) => before === null || item.worldRevision < before).slice(0, limit);
-        sendJson(response, 200, { runId, items, nextBefore: items.at(-1)?.worldRevision ?? null });
+        const page = service.timeline(runId, beforeRevision, limit);
+        sendJson(response, 200, { ...page, nextBefore: page.nextBeforeRevision });
         return;
       }
 

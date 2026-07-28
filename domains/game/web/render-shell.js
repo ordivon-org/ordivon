@@ -3,7 +3,6 @@ import { renderInbox } from "./render-inbox.js";
 import { renderMap } from "./render-map.js";
 import { renderObjectives } from "./render-objectives.js";
 import { renderTimeline } from "./render-timeline.js";
-import { TEAM_ACTORS } from "./store.js";
 import { bandClass, escapeHtml, humanize, providerOptions } from "./render-utils.js";
 
 function errorBanner(error) {
@@ -19,9 +18,13 @@ function runCards(runs) {
     </article>`).join("");
 }
 
-export function renderDeployment(runs, error = null, selectedRunId = null) {
-  const actorFields = TEAM_ACTORS.map((actor) => `
-    <label class="provider-field"><span>${escapeHtml(actor.role)}</span><select name="${escapeHtml(actor.actorId)}">${providerOptions(actor.defaultProvider)}</select></label>`).join("");
+export function renderDeployment(runs, error = null, selectedRunId = null, catalog = null) {
+  const actorFields = (catalog?.actors ?? []).map((actor) => `
+    <label class="provider-field"><span>${escapeHtml(actor.name)} · ${escapeHtml(humanize(actor.role))}</span><select name="${escapeHtml(actor.actorId)}">${providerOptions(catalog?.providers, actor.defaultProvider)}</select></label>`).join("");
+  const caseOptions = (catalog?.cases ?? []).map((scenarioCase) => `
+    <option value="${escapeHtml(scenarioCase.caseId)}">${escapeHtml(scenarioCase.label)}</option>`).join("");
+  const authorityOptions = (catalog?.authorityPolicies ?? []).map((policy) => `
+    <option value="${escapeHtml(policy.policyMode)}">${escapeHtml(policy.label)}</option>`).join("");
   return `
     <main class="deployment-shell">
       <nav class="top-nav"><span>ORDIVON GAME</span><a href="/debug.html">Engineering debug</a></nav>
@@ -34,8 +37,9 @@ export function renderDeployment(runs, error = null, selectedRunId = null) {
       <section class="deployment-grid">
         <form id="deployment-form" class="panel deployment-form">
           <div class="section-heading"><div><p class="eyebrow">NEW DEPLOYMENT</p><h2>Team configuration</h2></div><span>Scenario v2 · Ruleset v3</span></div>
+          <label class="authority-field"><span>Scenario Case</span><select name="scenarioCaseId">${caseOptions}</select></label>
           <div class="provider-grid">${actorFields}</div>
-          <label class="authority-field"><span>Authority policy</span><select name="authorityPolicyMode"><option value="autonomous">Autonomous</option><option value="supervised">Supervised</option><option value="locked">Locked</option></select></label>
+          <label class="authority-field"><span>Authority policy</span><select name="authorityPolicyMode">${authorityOptions}</select></label>
           <div class="configuration-note">
             <strong>Fixed first-playable loadout</strong>
             <p>Engineer carries tools and one spare part; Medic begins near the medkit; Security can contain the breach. Risk preferences and equipment are visible but not cosmetic controls.</p>
@@ -90,13 +94,13 @@ function terminalSummary(view) {
     </section>`;
 }
 
-export function renderMission(view, { busy = false, error = null } = {}) {
+export function renderMission(view, { busy = false, error = null, catalog = null } = {}) {
   return `
     <main class="mission-shell ${busy ? "busy" : ""}">
       <nav class="top-nav"><span>ORDIVON GAME · MISSION CONTROL</span><div><button class="text-button" data-new-mission>New deployment</button><a href="/debug.html">Engineering debug</a></div></nav>
       ${errorBanner(error)}
       <header class="mission-header">
-        <div><p class="eyebrow">${escapeHtml(humanize(view.configuration?.authorityPolicyMode ?? "unconfigured"))} AUTHORITY</p><h1>Station Zero</h1><p>${escapeHtml(view.mission.urgency)}</p></div>
+        <div><p class="eyebrow">${escapeHtml(humanize(view.configuration?.authorityPolicyMode ?? "unconfigured"))} AUTHORITY · ${escapeHtml(humanize(view.run.scenarioCaseId))}</p><h1>Station Zero</h1><p>${escapeHtml(view.mission.urgency)}</p></div>
         <div class="mission-state ${escapeHtml(view.run.status)}"><strong>${escapeHtml(humanize(view.run.status))}</strong><span>Tick ${view.run.turn} / ${view.run.turnLimit}</span></div>
       </header>
       <section class="resource-strip">${resourceCards(view)}</section>
@@ -104,7 +108,7 @@ export function renderMission(view, { busy = false, error = null } = {}) {
       <section class="primary-grid">${renderMap(view)}${renderInbox(view)}</section>
       ${roundReview(view)}
       ${renderObjectives(view)}
-      ${renderActors(view)}
+      ${renderActors(view, catalog)}
       ${renderTimeline(view)}
       ${busy ? '<div class="busy-overlay"><span></span><strong>Provider cognition or verified execution in progress…</strong></div>' : ""}
     </main>`;

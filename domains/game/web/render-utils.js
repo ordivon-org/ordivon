@@ -1,5 +1,3 @@
-import { PROVIDERS } from "./store.js";
-
 export function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
@@ -14,8 +12,8 @@ export function commandAttribute(command) {
   return encodeURIComponent(JSON.stringify(command));
 }
 
-export function providerOptions(selected = "fixture") {
-  return PROVIDERS.map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+export function providerOptions(providers, selected = "fixture") {
+  return (providers ?? []).map((provider) => `<option value="${escapeHtml(provider.providerId)}" ${provider.providerId === selected ? "selected" : ""}>${escapeHtml(provider.label)}</option>`).join("");
 }
 
 export function inventorySummary(inventory) {

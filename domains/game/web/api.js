@@ -22,6 +22,10 @@ function query(runId) {
   return `?runId=${encodeURIComponent(runId)}`;
 }
 
+export function loadCatalog() {
+  return request("/api/mission-control/catalog");
+}
+
 export function listRuns() {
   return request("/api/runs");
 }

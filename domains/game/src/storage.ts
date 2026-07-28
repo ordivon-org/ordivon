@@ -4,7 +4,8 @@ import { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "./digest.ts";
 import type { ApplyResult, JournalEvent, PrimitiveWorldCommand, TickBatch, WorldCommand, WorldEvent, WorldState } from "./model.ts";
-import { resolveRuleset, resolveScenario } from "./registry.ts";
+import { listRulesetContracts, listScenarioContracts, resolveRuleset, resolveScenario } from "./registry.ts";
+import { createEvaluatedInputManifest } from "./release/inputs.ts";
 import {
   CURRENT_BUILD,
   DEFAULT_RUN_ID,
@@ -15,6 +16,15 @@ import {
 import { assertWorldInvariants } from "./scenario.ts";
 
 export const DEFAULT_SNAPSHOT_INTERVAL = 8;
+let cachedEvaluatedInputsDigest: string | null = null;
+
+function currentEvaluatedInputsDigest(): string {
+  cachedEvaluatedInputsDigest ??= createEvaluatedInputManifest({
+    scenarioContracts: listScenarioContracts(),
+    rulesetContracts: listRulesetContracts(),
+  }).evaluatedInputsDigest;
+  return cachedEvaluatedInputsDigest;
+}
 export type StorageErrorCode = "storage_busy" | "storage_corrupt" | "storage_constraint";
 
 export class StorageError extends Error {
@@ -58,10 +68,13 @@ interface RunRow {
   run_id: string;
   scenario_id: string;
   scenario_version: number;
+  scenario_case_id: string | null;
   ruleset_id: string;
   ruleset_version: number;
   state_schema_version: number;
   seed: string;
+  genesis_digest: string | null;
+  evaluated_inputs_digest: string | null;
   status: RunMetadata["status"];
   created_at: string;
   created_with_build: string;
@@ -108,10 +121,13 @@ function metadataFromRow(row: RunRow): RunMetadata {
     runId: row.run_id,
     scenarioId: row.scenario_id,
     scenarioVersion: Number(row.scenario_version),
+    scenarioCaseId: row.scenario_case_id ?? (Number(row.scenario_version) >= 2 ? "baseline" : "legacy-fixed"),
     rulesetId: row.ruleset_id,
     rulesetVersion: Number(row.ruleset_version),
     stateSchemaVersion: Number(row.state_schema_version),
     seed: row.seed,
+    genesisDigest: row.genesis_digest ?? "legacy:unknown-genesis",
+    evaluatedInputsDigest: row.evaluated_inputs_digest ?? "legacy:unbound",
     status: row.status,
     createdAt: row.created_at,
     createdWithBuild: row.created_with_build,
@@ -209,6 +225,7 @@ export class GameStore {
       `);
       this.createSchema();
       this.migrateSchema();
+      this.backfillRunIdentityMetadata();
       this.backfillIntegrityMetadata();
       this.pruneSnapshots();
       if (this.listRuns().length === 0) this.createRun({ runId: this.activeRunId });
@@ -229,10 +246,13 @@ export class GameStore {
         run_id TEXT PRIMARY KEY,
         scenario_id TEXT NOT NULL,
         scenario_version INTEGER NOT NULL,
+        scenario_case_id TEXT NOT NULL,
         ruleset_id TEXT NOT NULL,
         ruleset_version INTEGER NOT NULL,
         state_schema_version INTEGER NOT NULL,
         seed TEXT NOT NULL,
+        genesis_digest TEXT NOT NULL,
+        evaluated_inputs_digest TEXT NOT NULL,
         status TEXT NOT NULL,
         created_at TEXT NOT NULL,
         created_with_build TEXT NOT NULL
@@ -284,12 +304,46 @@ export class GameStore {
   }
 
   private migrateSchema(): void {
+    if (!this.hasColumn("runs", "scenario_case_id")) this.db.exec("ALTER TABLE runs ADD COLUMN scenario_case_id TEXT");
+    if (!this.hasColumn("runs", "genesis_digest")) this.db.exec("ALTER TABLE runs ADD COLUMN genesis_digest TEXT");
+    if (!this.hasColumn("runs", "evaluated_inputs_digest")) this.db.exec("ALTER TABLE runs ADD COLUMN evaluated_inputs_digest TEXT");
     if (!this.hasColumn("commands", "previous_digest")) this.db.exec("ALTER TABLE commands ADD COLUMN previous_digest TEXT");
     if (!this.hasColumn("commands", "record_digest")) this.db.exec("ALTER TABLE commands ADD COLUMN record_digest TEXT");
     if (!this.hasColumn("events", "previous_digest")) this.db.exec("ALTER TABLE events ADD COLUMN previous_digest TEXT");
     if (!this.hasColumn("events", "record_digest")) this.db.exec("ALTER TABLE events ADD COLUMN record_digest TEXT");
     if (!this.hasColumn("snapshots", "command_sequence")) this.db.exec("ALTER TABLE snapshots ADD COLUMN command_sequence INTEGER");
     this.db.exec("UPDATE snapshots SET command_sequence = revision - 1 WHERE command_sequence IS NULL");
+  }
+
+  private backfillRunIdentityMetadata(): void {
+    const rows = this.db.prepare("SELECT run_id, scenario_id, scenario_version, scenario_case_id, genesis_digest, evaluated_inputs_digest FROM runs")
+      .all() as unknown as Array<{
+        run_id: string;
+        scenario_id: string;
+        scenario_version: number;
+        scenario_case_id: string | null;
+        genesis_digest: string | null;
+        evaluated_inputs_digest: string | null;
+      }>;
+    for (const row of rows) {
+      const snapshot = this.db.prepare("SELECT state_json, digest FROM snapshots WHERE run_id = ? AND revision = 0")
+        .get(row.run_id) as { state_json?: string; digest?: string } | undefined;
+      let scenarioCaseId = row.scenario_case_id;
+      if (scenarioCaseId === null) {
+        const scenario = resolveScenario(row.scenario_id, Number(row.scenario_version));
+        const retained = snapshot?.state_json ? JSON.parse(snapshot.state_json) as WorldState : null;
+        const defaultGenesis = retained
+          ? scenario.create({ caseId: scenario.defaultCaseId, seed: retained.seed })
+          : null;
+        scenarioCaseId = retained && defaultGenesis && canonicalJson(retained) === canonicalJson(defaultGenesis)
+          ? scenario.defaultCaseId
+          : "legacy-custom-genesis";
+      }
+      const genesisDigest = row.genesis_digest ?? snapshot?.digest ?? "legacy:unknown-genesis";
+      const evaluatedInputsDigest = row.evaluated_inputs_digest ?? "legacy:unbound";
+      this.db.prepare("UPDATE runs SET scenario_case_id = ?, genesis_digest = ?, evaluated_inputs_digest = ? WHERE run_id = ?")
+        .run(scenarioCaseId, genesisDigest, evaluatedInputsDigest, row.run_id);
+    }
   }
 
   private backfillIntegrityMetadata(): void {
@@ -365,16 +419,25 @@ export class GameStore {
       const rulesetVersion = input.rulesetVersion ?? 2;
       const scenario = resolveScenario(scenarioId, scenarioVersion);
       resolveRuleset(rulesetId, rulesetVersion);
-      const genesis = input.genesis ?? scenario.create(input.seed);
+      if (input.genesis && input.scenarioCaseId && input.scenarioCaseId !== "custom-genesis") {
+        throw new TypeError("custom Genesis must use scenarioCaseId custom-genesis");
+      }
+      const scenarioCaseId = input.scenarioCaseId ?? (input.genesis ? "custom-genesis" : scenario.defaultCaseId);
+      const genesis = input.genesis ?? scenario.create({ caseId: scenarioCaseId, ...(input.seed ? { seed: input.seed } : {}) });
       assertWorldInvariants(genesis);
+      const genesisDigest = sha256(genesis);
+      const evaluatedInputsDigest = input.evaluatedInputsDigest ?? currentEvaluatedInputsDigest();
       const metadata: RunMetadata = {
         runId: input.runId ?? newRunId(),
         scenarioId,
         scenarioVersion,
+        scenarioCaseId,
         rulesetId,
         rulesetVersion,
         stateSchemaVersion: genesis.schemaVersion,
         seed: genesis.seed,
+        genesisDigest,
+        evaluatedInputsDigest,
         status: genesis.mission.status,
         createdAt: new Date().toISOString(),
         createdWithBuild: input.createdWithBuild ?? CURRENT_BUILD,
@@ -382,12 +445,12 @@ export class GameStore {
       this.db.exec("BEGIN IMMEDIATE");
       try {
         this.db.prepare(`INSERT INTO runs
-          (run_id, scenario_id, scenario_version, ruleset_id, ruleset_version,
-           state_schema_version, seed, status, created_at, created_with_build)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(metadata.runId, metadata.scenarioId, metadata.scenarioVersion, metadata.rulesetId,
-            metadata.rulesetVersion, metadata.stateSchemaVersion, metadata.seed, metadata.status,
-            metadata.createdAt, metadata.createdWithBuild);
+          (run_id, scenario_id, scenario_version, scenario_case_id, ruleset_id, ruleset_version,
+           state_schema_version, seed, genesis_digest, evaluated_inputs_digest, status, created_at, created_with_build)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(metadata.runId, metadata.scenarioId, metadata.scenarioVersion, metadata.scenarioCaseId, metadata.rulesetId,
+            metadata.rulesetVersion, metadata.stateSchemaVersion, metadata.seed, metadata.genesisDigest,
+            metadata.evaluatedInputsDigest, metadata.status, metadata.createdAt, metadata.createdWithBuild);
         this.persistSnapshot(metadata.runId, genesis, -1);
         this.db.exec("COMMIT");
       } catch (error) {

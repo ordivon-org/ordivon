@@ -1,20 +1,21 @@
 import type { GameStore } from "../storage.ts";
+import { TeamExecutionStore } from "../team/execution-store.ts";
 import { authorityTargetId } from "../team/authority.ts";
 import { TeamHost } from "../team/engine.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
 import type { TeamDecisionProvider } from "../team/providers.ts";
 import { TeamStore, TeamStoreError } from "../team/store.ts";
-import type { MissionControlAdvanceResult, MissionControlView } from "./model.ts";
-import { createMissionControlView } from "./projection.ts";
+import { isMissionProviderName, type MissionProviderName } from "./catalog.ts";
+import type { MissionControlAdvanceResult, MissionControlView, MissionTimelineItem } from "./model.ts";
+import { createMissionControlView, missionTimelineItems } from "./projection.ts";
 
-export type MissionProviderName = "fixture" | "codex" | "hermes" | "codex-hermes" | "hermes-codex";
+export type { MissionProviderName } from "./catalog.ts";
 export type MissionProviderFactory = (name: MissionProviderName) => TeamDecisionProvider;
-
-const PROVIDERS: MissionProviderName[] = ["fixture", "codex", "hermes", "codex-hermes", "hermes-codex"];
 
 export interface MissionControlInitializeInput {
   runId: string;
+  scenarioCaseId?: string;
   authorityPolicyMode?: AuthorityPolicyMode;
   providers?: Record<string, MissionProviderName>;
 }
@@ -29,7 +30,7 @@ export type MissionControlCommand =
   | { action: "send-message"; senderActorId: string; recipientActorIds: string[]; kind: MessageKind; boundedSummary: string; channel: MessageChannel; ttlTicks?: number };
 
 function providerName(value: string | undefined): MissionProviderName {
-  return PROVIDERS.includes(value as MissionProviderName) ? value as MissionProviderName : "fixture";
+  return isMissionProviderName(value) ? value : "fixture";
 }
 
 function providerForOrder(order: string[], factory: MissionProviderFactory): TeamDecisionProvider {
@@ -71,9 +72,12 @@ export class MissionControlService {
   initialize(input: MissionControlInitializeInput): MissionControlView {
     if (!input.runId?.trim()) throw new TypeError("runId must be non-empty");
     if (!this.store.listRuns().some((run) => run.runId === input.runId)) {
-      this.store.createRun({ runId: input.runId, scenarioVersion: 2, rulesetVersion: 3 });
+      this.store.createRun({ runId: input.runId, scenarioVersion: 2, scenarioCaseId: input.scenarioCaseId ?? "baseline", rulesetVersion: 3 });
     }
     const metadata = this.store.getRun(input.runId);
+    if (input.scenarioCaseId && metadata.scenarioCaseId !== input.scenarioCaseId) {
+      throw new TeamStoreError("team_conflict", "Scenario Case differs from the retained Run");
+    }
     if (metadata.scenarioVersion < 2 || metadata.rulesetVersion < 3) throw new TeamStoreError("team_conflict", "Mission Control requires Scenario v2 and Ruleset v3");
     const team = this.teamStore();
     team.initialize(input.runId);
@@ -109,6 +113,24 @@ export class MissionControlService {
       }
     }
     return { boundary: "step-limit", steps, view: this.state(runId) };
+  }
+
+
+  timeline(
+    runId: string,
+    beforeRevision: number | null = null,
+    limit = 12,
+  ): { runId: string; items: MissionTimelineItem[]; nextBeforeRevision: number | null } {
+    const goal = this.store.db.prepare("SELECT goal_id FROM team_goals WHERE run_id = ?").get(runId) as { goal_id?: string } | undefined;
+    if (!goal?.goal_id) return { runId, items: [], nextBeforeRevision: null };
+    const team = this.teamStore();
+    const execution = new TeamExecutionStore(team);
+    const page = execution.listRoundsPage(runId, beforeRevision, limit);
+    return {
+      runId,
+      items: missionTimelineItems(execution, page.rounds),
+      nextBeforeRevision: page.nextBeforeRevision,
+    };
   }
 
   command(runId: string, command: MissionControlCommand): unknown {
@@ -177,7 +199,7 @@ export class MissionControlService {
         }, `team.task-player-${command.action}d`, { actorId: command.actorId });
       }
       case "set-provider": {
-        if (!PROVIDERS.includes(command.provider)) throw new TypeError("unsupported Team Provider");
+        if (!isMissionProviderName(command.provider)) throw new TypeError("unsupported Team Provider");
         const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
         if (!task) throw new TypeError("no matching Actor Task");
         return team.transitionTask(task.taskId, { providerOrder: [command.provider], preparedContextDigest: null }, "team.task-provider-updated", { actorId: command.actorId, provider: command.provider });

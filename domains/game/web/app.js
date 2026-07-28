@@ -1,9 +1,10 @@
-import { advanceMission, initializeMission, issueCommand, listRuns, loadMission } from "./api.js";
+import { advanceMission, initializeMission, issueCommand, listRuns, loadCatalog, loadMission } from "./api.js";
 import { renderDeployment, renderFatal, renderMission } from "./render-shell.js";
 import { compatibleRuns, createRunId, runIdFromUrl, urlForRun } from "./store.js";
 
 const root = document.querySelector("#app");
 let runs = [];
+let catalog = null;
 let view = null;
 let busy = false;
 let error = null;
@@ -11,8 +12,8 @@ let currentRunId = runIdFromUrl(window.location.href);
 
 function draw() {
   if (!root) return;
-  if (view?.initialized) root.innerHTML = renderMission(view, { busy, error });
-  else root.innerHTML = renderDeployment(runs, error, currentRunId);
+  if (view?.initialized) root.innerHTML = renderMission(view, { busy, error, catalog });
+  else root.innerHTML = renderDeployment(runs, error, currentRunId, catalog);
 }
 
 function setRunId(runId) {
@@ -42,6 +43,7 @@ async function refreshRuns() {
 
 async function boot() {
   try {
+    catalog = await loadCatalog();
     await refreshRuns();
     if (currentRunId) view = await loadMission(currentRunId);
     draw();
@@ -56,9 +58,14 @@ root.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(event.target);
   const runId = String(form.get("runId") || currentRunId || createRunId());
-  const providers = Object.fromEntries(["engineer-01", "medic-01", "security-01"].map((actorId) => [actorId, String(form.get(actorId) || "fixture")]));
+  const providers = Object.fromEntries((catalog?.actors ?? []).map((actor) => [actor.actorId, String(form.get(actor.actorId) || actor.defaultProvider)]));
   perform(async () => {
-    view = await initializeMission({ runId, authorityPolicyMode: String(form.get("authorityPolicyMode") || "autonomous"), providers });
+    view = await initializeMission({
+      runId,
+      scenarioCaseId: String(form.get("scenarioCaseId") || "baseline"),
+      authorityPolicyMode: String(form.get("authorityPolicyMode") || "autonomous"),
+      providers,
+    });
     setRunId(runId);
     await refreshRuns();
   });

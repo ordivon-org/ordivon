@@ -1,5 +1,5 @@
 import type { ApplyResult, ApplyTickResult, TickBatch, WorldCommand, WorldState } from "./model.ts";
-import { initialTeamWorld, initialWorld } from "./scenario.ts";
+import { createScenarioCaseWorld, listScenarioCases } from "./scenario-cases.ts";
 import { applyWorldCommand, applyWorldCommandV2, applyWorldCommandV3, applyWorldTick, applyWorldTickV2, applyWorldTickV3 } from "./world.ts";
 
 export class UnsupportedVersionError extends Error {
@@ -12,10 +12,17 @@ export class UnsupportedVersionError extends Error {
   }
 }
 
+export interface ScenarioCreateInput {
+  caseId?: string;
+  seed?: string;
+}
+
 export interface ScenarioDefinition {
   id: string;
   version: number;
-  create(seed?: string): WorldState;
+  defaultCaseId: string;
+  caseIds: string[];
+  create(input?: ScenarioCreateInput | string): WorldState;
 }
 
 export interface RulesetDefinition {
@@ -25,25 +32,21 @@ export interface RulesetDefinition {
   applyTick(state: WorldState, batch: TickBatch): ApplyTickResult;
 }
 
-const scenarioV1: ScenarioDefinition = {
-  id: "station-zero",
-  version: 1,
-  create(seed) {
-    const state = initialWorld();
-    if (seed) state.seed = seed;
-    return state;
-  },
-};
+function scenario(id: string, version: number, defaultCaseId: string): ScenarioDefinition {
+  return {
+    id,
+    version,
+    defaultCaseId,
+    caseIds: listScenarioCases(id, version).map((definition) => definition.caseId),
+    create(input = {}) {
+      const normalized = typeof input === "string" ? { seed: input } : input;
+      return createScenarioCaseWorld(id, version, normalized.caseId ?? defaultCaseId, normalized.seed).state;
+    },
+  };
+}
 
-const scenarioV2: ScenarioDefinition = {
-  id: "station-zero",
-  version: 2,
-  create(seed) {
-    const state = initialTeamWorld();
-    if (seed) state.seed = seed;
-    return state;
-  },
-};
+const scenarioV1 = scenario("station-zero", 1, "legacy-fixed");
+const scenarioV2 = scenario("station-zero", 2, "baseline");
 
 const rulesetV1: RulesetDefinition = {
   id: "station-zero-core",
@@ -51,7 +54,6 @@ const rulesetV1: RulesetDefinition = {
   apply: applyWorldCommand,
   applyTick: applyWorldTick,
 };
-
 
 const rulesetV2: RulesetDefinition = {
   id: "station-zero-core",
@@ -78,23 +80,31 @@ const rulesets = new Map([
 ]);
 
 export function resolveScenario(id: string, version: number): ScenarioDefinition {
-  const scenario = scenarios.get(`${id}@${version}`);
-  if (!scenario) {
+  const definition = scenarios.get(`${id}@${version}`);
+  if (!definition) {
     throw new UnsupportedVersionError(
       "unsupported_scenario_version",
       `unsupported scenario version: ${id}@${version}`,
     );
   }
-  return scenario;
+  return definition;
 }
 
 export function resolveRuleset(id: string, version: number): RulesetDefinition {
-  const ruleset = rulesets.get(`${id}@${version}`);
-  if (!ruleset) {
+  const definition = rulesets.get(`${id}@${version}`);
+  if (!definition) {
     throw new UnsupportedVersionError(
       "unknown_ruleset_version",
       `unknown ruleset version: ${id}@${version}`,
     );
   }
-  return ruleset;
+  return definition;
+}
+
+export function listScenarioContracts(): Array<{ id: string; version: number }> {
+  return [...scenarios.values()].map(({ id, version }) => ({ id, version }));
+}
+
+export function listRulesetContracts(): Array<{ id: string; version: number }> {
+  return [...rulesets.values()].map(({ id, version }) => ({ id, version }));
 }

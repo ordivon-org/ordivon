@@ -15,6 +15,7 @@
     "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs",
     "m4:evaluate": "node scripts/m4-evaluation.ts --write",
     "receipt": "node scripts/receipt.ts",
+    "release:inputs": "node scripts/release-inputs.ts",
     "typecheck": "tsc --noEmit",
     "fixture:generate": "node scripts/generate-m1-fixture.ts",
     "coverage": "node --experimental-test-coverage --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 --test test/*.test.ts",

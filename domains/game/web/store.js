@@ -1,27 +1,3 @@
-export const TEAM_ACTORS = [
-  { actorId: "engineer-01", role: "Engineer", defaultProvider: "fixture" },
-  { actorId: "medic-01", role: "Medic", defaultProvider: "fixture" },
-  { actorId: "security-01", role: "Security", defaultProvider: "fixture" },
-];
-
-export const PROVIDERS = [
-  ["fixture", "Fixture baseline"],
-  ["codex", "Codex"],
-  ["hermes", "Hermes / DeepSeek"],
-  ["codex-hermes", "Codex → Hermes"],
-  ["hermes-codex", "Hermes → Codex"],
-];
-
-export const OBJECTIVES_BY_ROLE = {
-  engineer: [
-    "cooling-operational", "cooling-powered", "breach-sealed",
-    "life-support-operational", "life-support-powered",
-    "communications-operational", "communications-powered", "distress-sent",
-  ],
-  medic: ["crew-stabilized"],
-  security: ["breach-contained"],
-};
-
 export function runIdFromUrl(href) {
   return new URL(href).searchParams.get("runId");
 }
