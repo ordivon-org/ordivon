@@ -318,3 +318,32 @@ The root page exposes deployment, bounded state, semantic evidence, intervention
 ## D-073 — M4 reuses M3 live Provider evidence
 
 M4 changes durable control, bounded projection, HTTP boundaries, and Web presentation without changing Codex/Hermes cognition contracts or hidden-correcting valid model choices. Live Provider runs are therefore not repeated for M4 closeout; M3 remains the canonical live Provider evaluation. Fixture, persistence, intervention, recovery, and product evidence are re-evaluated directly.
+
+
+## D-074 — Scenario Cases supersede label-only seed semantics for M5
+
+A release-comparable environment is identified by a deterministic Scenario Case and Genesis specification digest. The legacy seed field remains compatibility metadata until an actual Scenario RNG consumes it. M5 does not add randomness merely to make a seed label appear meaningful.
+
+## D-075 — M5 replay and diagnosis are pure projections over existing evidence
+
+Point-in-time state, Replay Frames, curves, key turns, diagnosis, and comparison derive from existing World Commands, Events, Snapshots, Host/Team records, and Artifacts. M5 adds no replay truth table or analytics database. World revision and Host sequence define authoritative order; wall-clock timestamps are metadata.
+
+## D-076 — Diagnosis uses explicit evidence classes rather than model-generated causality
+
+M5 distinguishes verified direct mechanism, verified contributor, bounded counterfactual sensitivity, and context-only information. Every non-context diagnosis statement references retained evidence. A contributor is not presented as the unique cause, and model prose cannot upgrade an evidence class.
+
+## D-077 — Deployment manifests freeze initial comparison inputs without replacing live Task routing
+
+Every M5 comparison Run records one immutable manifest containing Scenario Case, Genesis digest, loadout, initial Actor Provider mapping, authority policy, coordination profile, and evaluated-input digest. Later Provider changes remain existing Task Events. This supplies experiment provenance without migrating current Host routing ownership.
+
+## D-078 — Ordivon Runtime executes experiment cells but does not become Game state
+
+Game defines Experiment Specs, cell commands, semantic metrics, and result digests. Runtime owns Job/Attempt/process/cancellation/artifact truth. Runtime failures remain executor failures and cannot be converted into fabricated Game mission outcomes. Game adds no Runtime Job tables or embedded Runtime dependency.
+
+## D-079 — First-playable evidence binds evaluated inputs and a release artifact
+
+M5 release claims bind a canonical manifest of executable source, Web, lockfile, Scenario/Ruleset contracts, and release tests. Git commit/tree metadata and GitHub artifact attestations are additional provenance, not the sole identity. This survives squash merges and remains locally verifiable from a clean source release.
+
+## D-080 — One Chromium journey is the browser release gate
+
+M5 adds Playwright as a development-only dependency for one end-to-end deployment → play → terminal → replay → comparison journey. CI uses one worker and one Chromium headless browser with trace retention on failure. This closes M4's browser-evidence gap without creating a broad cross-browser test program.

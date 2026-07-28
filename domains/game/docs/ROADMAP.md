@@ -194,28 +194,36 @@ Acceptance evidence:
 - the Security spare-parts mismatch is detected before commit;
 - the main product adds no runtime dependency, hidden manager model, framework, primitive World control, or raw Host log.
 
-## M5 — Replay, evaluation, and first playable
+## M5 — Replay, diagnosis, comparison, experiments, and first playable — designed, implementation pending
 
-Complete the game loop:
+Design: [`M5-DESIGN.md`](M5-DESIGN.md). Implementation graph: [`M5-PLAN.md`](M5-PLAN.md). Entry audit: [`M1-M4-DEBT-AUDIT.md`](M1-M4-DEBT-AUDIT.md).
 
-- mission replay;
-- key-turn identification;
-- resource and system curves;
-- decision and authority audit;
-- outcome verification summary;
-- configurable team loadout;
-- several fixed scenario seeds;
-- batch simulation through Ordivon Runtime;
-- regression and conformance suite.
+M5 closes the learn–configure–run–diagnose loop without reopening the M1–M4 kernels:
+
+- replace fake seed semantics with deterministic Scenario Cases and Genesis digests;
+- freeze one immutable deployment manifest for Case, loadout, Providers, authority, coordination, and evaluated inputs;
+- reconstruct and verify every World revision from existing Snapshots, Commands, and Events;
+- join World, Team, player, Message, authority, and Provider evidence in one derived Run Evidence Graph;
+- expose true revision paging, Replay Frames, resource/system curves, and deterministic key turns;
+- distinguish verified terminal mechanism, verified contributors, bounded counterfactual sensitivity, and context-only notes;
+- compare only compatible Runs and label cross-Case comparisons descriptive-only;
+- prove one meaningful configuration improvement while conserving finite items;
+- execute a bounded <=16-cell matrix locally and as external Ordivon Runtime Jobs;
+- add Replay/Compare Web surfaces and one Chromium first-playable journey;
+- bind release evidence to a stable evaluated-input manifest and exact source-playable artifact.
 
 Acceptance criteria:
 
-- a failed run exposes a concrete causal chain;
-- players can improve outcomes by changing configuration;
-- multiple viable strategies exist;
-- the game remains bounded in model cost and latency;
-- a clean checkout can run the full vertical slice;
-- the repository contains an exact reproducible release receipt.
+- every revision from Genesis to terminal reconstructs to the retained digest;
+- a deterministic failure exposes an evidence-linked explanation chain without model-generated causal claims;
+- containment and sealing remain viable baseline strategies;
+- one retained configuration change turns failure into victory or materially improves a verified outcome;
+- timeline paging reaches revisions older than the latest 12 without gaps or duplicates;
+- local and Runtime experiment execution produce the same semantic cell results;
+- one browser journey proves deployment → play → terminal → replay → comparison;
+- the deterministic experiment contains at most 16 cells and never infers missing Provider cost/token data;
+- clean checkout verifies M1–M5 evidence, evaluated inputs, and the release artifact;
+- runtime dependencies remain zero and no second World/Host/replay authority is added.
 
 ## Deferred branches
 
