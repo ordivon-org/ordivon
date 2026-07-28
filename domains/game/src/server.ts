@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "./digest.ts";
+import { MissionControlService, type MissionControlCommand, type MissionProviderName } from "./mission-control/service.ts";
 import { AgentHost } from "./host/engine.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
 import { CodexCliProvider } from "./providers/codex-cli.ts";
@@ -114,6 +115,27 @@ function bodyRecord(value: unknown): Record<string, unknown> {
     throw new TypeError("request body must be a JSON object");
   }
   return value as Record<string, unknown>;
+}
+
+function parseMissionControlCommand(body: Record<string, unknown>): MissionControlCommand {
+  const action = requiredString(body.action, "Mission Control action");
+  switch (action) {
+    case "approve": return { action, proposalId: requiredString(body.proposalId, "proposalId"), ...(typeof body.issuedBy === "string" ? { issuedBy: body.issuedBy } : {}), ...(body.expiresAtTick === undefined ? {} : { expiresAtTick: Number(body.expiresAtTick) }) };
+    case "deny": return { action, proposalId: requiredString(body.proposalId, "proposalId") };
+    case "redirect-objective": return { action, actorId: requiredString(body.actorId, "actorId"), objectiveId: requiredString(body.objectiveId, "objectiveId") };
+    case "pause":
+    case "resume":
+    case "cancel": return { action, actorId: requiredString(body.actorId, "actorId") };
+    case "set-provider": return { action, actorId: requiredString(body.actorId, "actorId"), provider: parseProviderName(body.provider) as MissionProviderName };
+    case "set-authority-policy": return { action, policyMode: parseAuthorityPolicy(body.policyMode) };
+    case "send-message": return {
+      action, senderActorId: requiredString(body.senderActorId, "senderActorId"),
+      recipientActorIds: Array.isArray(body.recipientActorIds) ? body.recipientActorIds.map((value) => requiredString(value, "recipientActorId")) : [],
+      kind: parseMessageKind(body.kind), boundedSummary: requiredString(body.boundedSummary, "boundedSummary"),
+      channel: parseMessageChannel(body.channel), ...(body.ttlTicks === undefined ? {} : { ttlTicks: Number(body.ttlTicks) }),
+    };
+    default: throw new TypeError("unsupported Mission Control action");
+  }
 }
 
 export interface GameServerOptions {
@@ -332,6 +354,47 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
             sendJson(response, 404, { error: "artifact_not_found", message: error.message });
           } else throw error;
         }
+        return;
+      }
+
+      if (request.method === "GET" && url.pathname === "/api/mission-control/state") {
+        const service = new MissionControlService(store, teamProviderFactory);
+        sendJson(response, 200, service.state(runId));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/mission-control/initialize") {
+        const body = bodyRecord(await readJson(request));
+        const selectedRunId = typeof body.runId === "string" && body.runId.trim() ? body.runId : runId;
+        const rawProviders = body.providers && typeof body.providers === "object" && !Array.isArray(body.providers) ? body.providers as Record<string, unknown> : {};
+        const providers = Object.fromEntries(Object.entries(rawProviders).map(([actorId, provider]) => [actorId, parseProviderName(provider)]));
+        const service = new MissionControlService(store, teamProviderFactory);
+        sendJson(response, 201, service.initialize({ runId: selectedRunId, authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode), providers }));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/mission-control/advance") {
+        const body = bodyRecord(await readJson(request));
+        const until = requiredString(body.until, "advance boundary");
+        if (until !== "proposal-review" && until !== "tick-verified") throw new TypeError("unsupported advance boundary");
+        const maximumInternalSteps = body.maximumInternalSteps === undefined ? 16 : Number(body.maximumInternalSteps);
+        const service = new MissionControlService(store, teamProviderFactory);
+        sendJson(response, 200, await service.advance(runId, until, maximumInternalSteps));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/mission-control/command") {
+        const body = bodyRecord(await readJson(request));
+        const service = new MissionControlService(store, teamProviderFactory);
+        const result = service.command(runId, parseMissionControlCommand(body));
+        sendJson(response, 200, { result, view: service.state(runId) });
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/mission-control/timeline") {
+        const limit = url.searchParams.get("limit") === null ? 12 : Number(url.searchParams.get("limit"));
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new TypeError("timeline limit must be an integer from 1 to 50");
+        const before = url.searchParams.get("before") === null ? null : Number(url.searchParams.get("before"));
+        if (before !== null && !Number.isSafeInteger(before)) throw new TypeError("timeline before cursor must be an integer World revision");
+        const service = new MissionControlService(store, teamProviderFactory);
+        const items = service.state(runId).timeline.filter((item) => before === null || item.worldRevision < before).slice(0, limit);
+        sendJson(response, 200, { runId, items, nextBefore: items.at(-1)?.worldRevision ?? null });
         return;
       }
 
