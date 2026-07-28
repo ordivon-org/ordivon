@@ -92,7 +92,7 @@ test("Team HTTP API initializes, switches Providers, and completes the 18-round 
     assert.equal(completed.status, 200);
     assert.equal(completed.body.world.state.mission.status, "victory");
     assert.equal(completed.body.world.state.revision, 18);
-    assert.equal(completed.body.world.digest, "8e1581f15bbf15fc6df85ac4669b763ade3d75f83637b1d68a9f2f43d21aed66");
+    assert.equal(completed.body.world.digest, "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7");
     assert.equal(completed.body.receipt.rounds.length, 18);
     assert.ok(completed.body.receipt.rounds.every((round: { status: string }) => round.status === "completed"));
     assert.equal(completed.body.team.projection.goal.status, "succeeded");

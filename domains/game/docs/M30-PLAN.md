@@ -1,9 +1,9 @@
 # M3.0 plan — cross-stack architecture correction
 
-Status: design-only milestone
+Status: implemented historical plan
 Design: [`M30-DESIGN.md`](M30-DESIGN.md)
 Tracking: Issue #24
-Parent milestone: Issue #5 remains open
+Parent milestone: Issue #5 completed by M3
 
 ## 1. Purpose
 
@@ -18,7 +18,17 @@ M3.0 exists because the first M3 plan would otherwise:
 - use an authority ladder where an attribute-based policy is required;
 - add a general conflict-graph algorithm for only three actors.
 
-No source implementation, migration, new Runtime dependency, specialist, command, or API is part of M3.0.
+No source implementation was part of M3.0 itself. Its corrected sequence was later implemented as:
+
+```text
+PR #26  Ruleset v3 atomic Team Tick
+PR #27  Host-conformant Team state, knowledge, Messages, and ABAC
+PR #28  Proposal → Team Effect → Dispatch → Observation loop
+PR #29  Team APIs, Web controls, and real Provider adapters
+final PR  alternative plans, communication outcome, live evaluation, and receipt
+```
+
+The implementation chose the embedded TypeScript option and retained zero runtime dependencies. See [`M3-RECEIPT.md`](M3-RECEIPT.md).
 
 ## 2. Design deliverables
 
@@ -278,7 +288,7 @@ Before merging M3.0 documentation:
 - no file under `src/`, `test/`, `scripts/`, or `web/` changes;
 - current 100 tests and coverage gates remain unchanged;
 - `pnpm check`, current receipts, and current measurement continue to pass;
-- Issue #5 remains open;
+- Issue #5 remained open until the subsequent M3 implementation and evaluation merged;
 - old M3 documents are retained but clearly marked superseded;
 - all new stack claims bind exact inspected repository revisions;
 - mature external references are primary-source documentation;

@@ -165,7 +165,7 @@ export function initialTeamWorld(): WorldState {
   const state = initialWorld();
   state.scenarioId = "station-zero-m3";
   state.seed = "station-zero-team-fixed-seed-01";
-  state.mission.turnLimit = 18;
+  state.mission.turnLimit = 22;
   const engineer = state.agents[ENGINEER_ID];
   if (!engineer) throw new Error("engineer missing from team genesis");
   engineer.capabilities = [

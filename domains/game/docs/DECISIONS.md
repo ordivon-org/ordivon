@@ -273,3 +273,24 @@ The 16 KiB contract remains part of frozen M2 compatibility. M3 actor Contexts u
 ## D-062 — Deployment begins with a measured embedded-versus-sidecar choice
 
 The target ownership is an Ordivon Host Team Coordinator workload with a Game World adapter. The first executable slice defaults to a conformance-backed in-process TypeScript adapter unless a local Python Host sidecar experiment proves lower total complexity or a required independent-Host capability. Implementation does not begin before this choice is reviewed.
+
+
+## D-063 — M3 uses an embedded Host-conformant Team adapter
+
+The first executable Team Coordinator remains inside the TypeScript Game process and shares the existing SQLite deployment. It conforms to Host Event, checked projection, revision, lease, Context, Effect, Dispatch, Observation, and Verification semantics. A Python sidecar was rejected because it would add startup, protocol, packaging, and split-recovery boundaries without supplying a capability required by the three-specialist scenario.
+
+## D-064 — Communication reachability is authoritative gameplay state
+
+A Message is visible to an actor only after the Game delivery graph admits it. Local delivery, unavailable station radio, later delivery, and expiry are persistent Host evidence. The same containment task offer produces an 18-Tick victory when delivered locally and `power_exhausted` when radio delivery arrives too late. Communication is therefore part of strategy and cannot be simulated by a shared transcript.
+
+## D-065 — Provider replacement guarantees continuity, not strategy equivalence
+
+Changing Codex and Hermes mappings preserves Run, Team Goal, actor Tasks, Objective Graph, World and Host journals, Context/Proposal history, and recovery identity. It does not guarantee that the replacement model will choose an equivalent plan or win. M3 records a continuous Codex-to-Hermes trajectory that completes every verified Tick but times out strategically.
+
+## D-066 — Valid live Provider choices are never hidden-corrected
+
+The Team Host may reject malformed, stale, unauthorized, conflicting, or invented identities. It may not replace a valid admitted Action because Fixture or another Provider would choose better. All-Hermes failure and redundant mixed-team sealing/containment remain canonical evidence. Real Provider evaluation measures cognition as delivered, not a policy secretly repaired by the Host.
+
+## D-067 — Resource negotiation remains explicit follow-up work
+
+M3 exposes inventory, Messages, Objectives, Tasks, and waiting state but adds no hidden resource manager or automatic inter-actor transfer. All-Hermes and replacement runs show that one specialist may collect spare parts another needs. M4 should make resource ownership and task negotiation legible to player and Agents before considering a new transfer Command or coordination protocol.

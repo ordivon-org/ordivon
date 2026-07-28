@@ -92,7 +92,7 @@ export interface FixtureTeamProviderOptions {
   failActors?: string[];
 }
 
-const ENGINEER_SCHEDULE = new Map<number, string>([
+const ENGINEER_CONTAIN_SCHEDULE = new Map<number, string>([
   [0, "move:power-junction"],
   [1, "move:reactor"],
   [2, "repair:cooling"],
@@ -111,6 +111,31 @@ const ENGINEER_SCHEDULE = new Map<number, string>([
   [15, "power:communications:true"],
   [16, "move:communications"],
   [17, "distress:communications"],
+]);
+
+const ENGINEER_SEAL_SCHEDULE = new Map<number, string>([
+  [0, "move:power-junction"],
+  [1, "move:reactor"],
+  [2, "repair:cooling"],
+  [3, "move:power-junction"],
+  [4, "power:cooling:true"],
+  [5, "move:storage"],
+  [6, "pickup:spare-parts:2"],
+  [7, "pickup:sealant:1"],
+  [8, "move:maintenance"],
+  [9, "seal:maintenance-breach"],
+  [10, "move:storage"],
+  [11, "move:power-junction"],
+  [12, "move:life-support"],
+  [13, "repair:life-support"],
+  [14, "move:power-junction"],
+  [15, "power:life-support:true"],
+  [16, "move:communications"],
+  [17, "repair:communications"],
+  [18, "move:power-junction"],
+  [19, "power:communications:true"],
+  [20, "move:communications"],
+  [21, "distress:communications"],
 ]);
 
 const MEDIC_SCHEDULE = new Map<number, string>([
@@ -157,9 +182,8 @@ export class FixtureTeamProvider implements TeamDecisionProvider {
 
   private desiredAction(context: CompiledTeamContext): string {
     if (context.actorId === "engineer-01") {
-      if (this.breachStrategy === "engineer-seal" && context.worldRevision === 7) return "move:maintenance";
-      if (this.breachStrategy === "engineer-seal" && context.worldRevision === 8) return "seal:maintenance-breach";
-      return ENGINEER_SCHEDULE.get(context.worldRevision) ?? "wait";
+      const schedule = this.breachStrategy === "engineer-seal" ? ENGINEER_SEAL_SCHEDULE : ENGINEER_CONTAIN_SCHEDULE;
+      return schedule.get(context.worldRevision) ?? "wait";
     }
     if (context.actorId === "medic-01") return MEDIC_SCHEDULE.get(context.worldRevision) ?? "wait";
     if (context.actorId === "security-01") {

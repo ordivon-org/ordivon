@@ -1,18 +1,19 @@
 # Ordivon Game
 
-**Agent-native games built on Ordivon Computing, Ordivon Host, and Ordivon Runtime.**
+**Agent-native games built on Ordivon Computing, Ordivon Host, and Ordivon Runtime semantics.**
 
-Ordivon Game explores games in which autonomous Agents are not decorative dialogue systems. They hold persistent goals, receive bounded observations, act through explicit capabilities, produce verifiable world effects, cooperate, fail, recover, and remain understandable to the player.
+Ordivon Game explores games in which autonomous Agents are not decorative dialogue systems. They hold persistent goals, receive bounded observations, act through explicit capabilities, communicate under world constraints, request authority, produce independently verified effects, fail, recover, and remain understandable to the player.
 
 ## Station Zero
 
-The first product is a turn-based Agent Operations game with Arena-style constraints:
+Station Zero is a turn-based Agent Operations game:
 
 - the player leads a remote mission-control team;
-- specialists operate inside a damaged space station;
-- the player assigns goals, tools, authority, and risk limits;
-- Agents eventually plan and act autonomously inside a deterministic world;
-- every accepted action produces durable, replayable evidence.
+- Engineer, Medic, and Security operate inside a damaged space station;
+- the player assigns Objectives, authority policy, Messages, and interventions;
+- specialist Providers may differ or change during one Run;
+- compatible specialist Intents execute in one atomic simulation Tick;
+- every accepted Tick produces durable, replayable World and Host evidence.
 
 ```text
 Agent Operations: delegation, authority, diagnosis, recovery
@@ -20,23 +21,27 @@ Agent Operations: delegation, authority, diagnosis, recovery
 Agent Arena: bounded rules, team construction, scoring, replay
 ```
 
-## Current executable: M1 deterministic scenario
+## Current executable: M3 multi-Agent team
 
-M1 is a complete deterministic mission without model calls. It contains:
+M3 includes:
 
-- 8 connected rooms;
-- one Engineer with location, health, capabilities, and inventory;
-- one deteriorating crew casualty;
-- reactor cooling, life support, and communications systems;
-- a hull breach;
-- finite battery energy, oxygen, reactor heat, tools, spare parts, sealant, and a medkit;
-- 8 typed command kinds;
-- linked environmental escalation after every accepted action;
-- explicit victory and failure conditions;
-- one winning scripted policy and one strategically plausible failing policy;
-- SQLite persistence, process recovery, immutable events, snapshots, and deterministic replay.
+- 8 connected rooms and one deteriorating emergency;
+- persistent Engineer, Medic, and Security identities;
+- specialist-exclusive capabilities;
+- one shared Mission Goal and Game Objective Graph;
+- independent Host Tasks, actor-local Contexts, Proposals, and verification;
+- typed local/radio Messages whose reachability can change the outcome;
+- attribute-based `permit | require-human | deny` authority;
+- exact, expiring, single-use player Grants;
+- deterministic legal-subset selection for up to three specialist Proposals;
+- one atomic Ruleset-v3 TickBatch with one environment advance;
+- one Team Effect, Dispatch, TickEvent Observation, and per-Intent receipts;
+- isolated Codex and Hermes cognition adapters;
+- provider failure isolation and mid-Run Provider replacement;
+- process recovery, immutable hash-chained journals, snapshots, and exact replay;
+- synchronous Team APIs and a dependency-free browser mission-control panel.
 
-The current winning path restores cooling, collects supplies, seals the breach, restores life support, stabilizes the casualty, repairs communications, manages limited power, and sends a verified rescue signal in 25 turns.
+M1, M1.5, M2, and M2.1 remain executable under their version-bound Scenario and Ruleset contracts.
 
 ## Run
 
@@ -54,77 +59,138 @@ pnpm start
 
 Open `http://127.0.0.1:4173`.
 
-M1 uses world schema version 2. A database created by the M0 spike intentionally fails closed; remove `data/station-zero.sqlite3` before starting M1.
+The browser can create an M3 Run bound to:
+
+```text
+station-zero@2
+station-zero-core@3
+```
+
+One SQLite database may hold several isolated Runs. Unknown Scenario or Ruleset versions fail closed.
 
 Useful commands:
 
 ```bash
-pnpm demo      # run and persist the deterministic recovery policy
-pnpm check     # strict type check, browser syntax check, and conformance tests
-pnpm receipt   # compare winning, failing, persisted, recovered, and replayed paths
+pnpm demo                  # deterministic M1 recovery policy
+pnpm check                 # type check, browser syntax, tests, coverage gates
+pnpm receipt               # frozen deterministic compatibility evidence
+pnpm measure               # fixed-seed strategy measurements
+pnpm m3:evaluate -- --mode fixture-security
+pnpm m3:evaluate -- --mode fixture-engineer
+pnpm m3:evaluate -- --mode codex
+pnpm m3:evaluate -- --mode mixed
+pnpm m3:evaluate -- --mode hermes
+pnpm m3:evaluate -- --mode codex-hermes-switch
 ```
 
 Runtime dependencies remain zero. TypeScript and Node type definitions are development-only checks.
 
-Each persisted execution is an independent `Run` bound to an explicit scenario version, ruleset version, state schema, seed, and creating build. One SQLite database can hold several isolated Runs; unknown versions fail closed.
-
 ## Authority boundary
 
 ```text
-Player and Web Client
-        ↓ proposes one admitted command
+Player / Browser
+        ↓ Messages, Objectives, approvals, pause, cancel
+Host-conformant Team Coordinator
+        ↓ actor Tasks, Contexts, Proposals, ABAC, legal subset
+Replaceable specialist cognition
+        ↓ exact Action candidate identity only
+Team Tick Effect and stable Dispatch
+        ↓ one atomic multi-Actor TickBatch
 Deterministic Game World Kernel
-        ↓ resolves action + environmental tick
-SQLite Event and Snapshot Journal
-        ↓ supports restart and replay
-Future Ordivon Host adapter
-Goal / Task / Context / Decision admission
-        ↓
-Future model and Runtime adapters
+        ↓ Facts, per-Intent Verification, terminal outcome
+SQLite World + Host journals
+        ↓ recovery, audit, exact replay
 ```
 
-The authoritative world owns:
+The authoritative World owns:
 
-- maps and adjacency;
-- time and revision ordering;
+- maps, adjacency, actor location and health;
+- simulation Tick and World revision;
 - inventory and item conservation;
 - battery-energy conservation;
-- oxygen, heat, health, and damage;
+- oxygen, heat, health, damage, and mission result;
 - action legality and capability checks;
-- success and failure;
-- final state transitions.
+- atomic Tick conflict and shared-resource admission;
+- success, failure, and final state transitions.
 
-A model may later select or propose actions. It never directly mutates this state. New Runs use `station-zero-core@2`, whose Events contain typed Facts and command-specific Verification while preserving the v1 WorldState trajectory.
+The Host layer owns continuity and coordination:
+
+- Team Goal and actor Tasks;
+- checked projections and short leases;
+- bounded Context compilation;
+- Provider invocation and exact Decision admission;
+- typed Messages and delivery state;
+- authority Decisions and Grants;
+- Proposals, TickPlans, Effects, Dispatches, Observations, and waiting state.
+
+A model cannot directly mutate World or Host state, invent an Actor, Action, target, Message delivery, Grant, or completion claim.
+
+## API
+
+M3 Team control:
+
+```text
+GET  /api/team/state
+POST /api/team/initialize
+POST /api/team/step
+POST /api/team/run
+POST /api/team/input
+```
+
+Player input actions:
+
+```text
+approve
+deny
+send-message
+redirect-objective
+pause
+cancel
+```
+
+M2 single-Engineer endpoints remain available for older Runs.
 
 ## Repository map
 
-- [`src/model.ts`](src/model.ts) — typed state, commands, events, and rejection contracts.
-- [`src/scenario.ts`](src/scenario.ts) — Station Zero genesis, environmental progression, mission evaluation, and invariants.
-- [`src/world.ts`](src/world.ts) — parsing, admission, atomic execution, state diffs, versioned Tick reducers, and available actions.
-- [`src/facts.ts`](src/facts.ts) — typed domain Facts, Verification receipts, and readable evidence summaries.
-- [`src/policies.ts`](src/policies.ts) — deterministic winning and failing policies.
-- [`src/run.ts`](src/run.ts) — stable Run identity and version-bound execution metadata.
-- [`src/registry.ts`](src/registry.ts) — scenario and ruleset version registry.
-- [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, sparse Snapshots, recovery, verification replay, idempotency, and SQLite error mapping.
-- [`src/host/model.ts`](src/host/model.ts) — durable Goal, Task, Attempt, Artifact, and Host Journal contracts.
-- [`src/host/store.ts`](src/host/store.ts) — independent Host Journal, content-addressed Artifacts, and materialized projections.
-- [`src/host/operations.ts`](src/host/operations.ts) — strategic Operation frontier and deterministic Skill compilation.
-- [`src/host/context.ts`](src/host/context.ts) — canonical bounded Agent Context without transcript replay.
-- [`src/host/execution-store.ts`](src/host/execution-store.ts) — durable Effects, Dispatches, and Observations.
-- [`src/host/engine.ts`](src/host/engine.ts) — persistent Agent step/run loop, reconciliation, verification, and interruption recovery.
-- [`src/providers/`](src/providers/) — exact Operation contracts, fixture baseline, ephemeral Codex, isolated Hermes, process limits, and technical fallback.
-- [`src/provider.ts`](src/provider.ts) — bounded M1 candidate interface pending replacement by M2 Operation providers.
-- [`src/server.ts`](src/server.ts) — local HTTP service and browser API.
+### World
+
+- [`src/model.ts`](src/model.ts) — state, primitive Commands, Team Tick, Events, Facts, and rejection contracts.
+- [`src/scenario.ts`](src/scenario.ts) — versioned genesis, specialists, environment, mission evaluation, and invariants.
+- [`src/world.ts`](src/world.ts) — parsing, admission, Ruleset reducers, atomic TickBatch, diffs, and available Actions.
+- [`src/facts.ts`](src/facts.ts) — typed domain Facts and Verification receipts.
+- [`src/registry.ts`](src/registry.ts) — Scenario and Ruleset version registry.
+- [`src/storage.ts`](src/storage.ts) — multi-Run Command/Event hash chains, snapshots, recovery, verification replay, and idempotency.
+
+### Host and team
+
+- [`src/host/`](src/host/) — M2 Goal, Task, Artifact, Journal, strategic Operation, Skill, Effect, Dispatch, and Observation path.
+- [`src/team/model.ts`](src/team/model.ts) — M3 Team Goal, actor Task, Message, ABAC, Proposal, Round, TickPlan, and execution contracts.
+- [`src/team/store.ts`](src/team/store.ts) — Host-conformant Team projections, leases, Messages, Decisions, and Grants.
+- [`src/team/context.ts`](src/team/context.ts) — actor-visible knowledge and token-budget Context Blocks.
+- [`src/team/authority.ts`](src/team/authority.ts) — attribute-based authority evaluation.
+- [`src/team/providers.ts`](src/team/providers.ts) — strict Team Provider contract and deterministic Fixture policies.
+- [`src/team/codex-cli.ts`](src/team/codex-cli.ts) — ephemeral read-only Codex cognition.
+- [`src/team/hermes-cli.ts`](src/team/hermes-cli.ts) — isolated Hermes/DeepSeek cognition.
+- [`src/team/execution-store.ts`](src/team/execution-store.ts) — Rounds, Context references, Proposals, TickPlans, Effects, Dispatches, and Observations.
+- [`src/team/engine.ts`](src/team/engine.ts) — durable Team step/run loop, conflict selection, reconciliation, and verification.
+
+### Product and evidence
+
+- [`src/server.ts`](src/server.ts) — local HTTP service and control API.
 - [`web/`](web/) — dependency-free mission-control surface.
-- [`test/`](test/) — world, resource, policy, persistence, provider, and HTTP conformance.
-- [`docs/M0-RECEIPT.md`](docs/M0-RECEIPT.md) — minimal executable-boundary evidence.
-- [`docs/M1-RECEIPT.md`](docs/M1-RECEIPT.md) — deterministic scenario evidence.
-- [`docs/M15-RECEIPT.md`](docs/M15-RECEIPT.md) — versioning, replay, evidence, fault, property-test, and measurement evidence.
-- [`docs/M15-MEASUREMENT.json`](docs/M15-MEASUREMENT.json) — machine-readable fixed-seed strategy measurement.
+- [`test/`](test/) — world, persistence, Host, provider, Team, HTTP, fault, property, and evidence conformance.
+- [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md) — M3 implementation and acceptance evidence.
+- [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json) — normalized machine-readable Fixture and live Provider evidence.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestone dependency graph.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — architectural decisions and supersessions.
 
 ## Current status
 
-**M2.1 is complete and M3.0 cross-stack design is ready.** The first M3 design was superseded after a first-principles audit. M3 will reuse Ordivon Host Event/projection/lease/Context contracts, keep Game-specific Objective and observation semantics local, and introduce an atomic multi-Actor TickBatch so compatible specialists act in one simulation Tick while environment advances once. M3.0 is design-only; Issue #5 implementation remains open. See [`docs/M21-RECEIPT.md`](docs/M21-RECEIPT.md), [`docs/M30-DESIGN.md`](docs/M30-DESIGN.md), and [`docs/M30-PLAN.md`](docs/M30-PLAN.md).
+**M3 is complete. M4 is next.**
+
+M3 proves two deterministic valid plans, a communication-dependent outcome, exact authority enforcement, failure isolation, all-Codex and mixed real-Provider victories, and Provider replacement continuity. All-Hermes and Codex-to-Hermes replacement failures remain recorded because continuity does not imply strategy equivalence or guaranteed victory.
+
+See [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md), [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json), and the historical M3.0 entry contracts in [`docs/M30-DESIGN.md`](docs/M30-DESIGN.md) and [`docs/M30-PLAN.md`](docs/M30-PLAN.md).
 
 ## License
 

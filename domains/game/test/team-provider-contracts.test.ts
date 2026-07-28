@@ -138,10 +138,12 @@ test("Fixture Team Provider covers scheduled, failed, waiting, fallback, and alt
     assert.match(none.rationale, /No admitted action/);
 
     const sealProvider = new FixtureTeamProvider({ breachStrategy: "engineer-seal" });
+    const pickupSealant = { ...fixture.context.allowedActions[0]!, actionCandidateId: "team-action:pickup-sealant", actionId: "pickup:sealant:1" };
     const moveMaintenance = { ...fixture.context.allowedActions[0]!, actionCandidateId: "team-action:move-maintenance", actionId: "move:maintenance" };
     const seal = { ...fixture.context.allowedActions[0]!, actionCandidateId: "team-action:seal", actionId: "seal:maintenance-breach" };
-    assert.equal((await sealProvider.decide({ ...fixture.context, worldRevision: 7, allowedActions: [moveMaintenance] })).selectedActionCandidateId, moveMaintenance.actionCandidateId);
-    assert.equal((await sealProvider.decide({ ...fixture.context, worldRevision: 8, allowedActions: [seal] })).selectedActionCandidateId, seal.actionCandidateId);
+    assert.equal((await sealProvider.decide({ ...fixture.context, worldRevision: 7, allowedActions: [pickupSealant] })).selectedActionCandidateId, pickupSealant.actionCandidateId);
+    assert.equal((await sealProvider.decide({ ...fixture.context, worldRevision: 8, allowedActions: [moveMaintenance] })).selectedActionCandidateId, moveMaintenance.actionCandidateId);
+    assert.equal((await sealProvider.decide({ ...fixture.context, worldRevision: 9, allowedActions: [seal] })).selectedActionCandidateId, seal.actionCandidateId);
     assert.equal((await sealProvider.decide({ ...fixture.context, actorId: "medic-01", worldRevision: 50 })).selectedActionCandidateId,
       fixture.context.allowedActions.find((entry) => entry.actionId === "wait")?.actionCandidateId);
     assert.equal((await sealProvider.decide({ ...fixture.context, actorId: "security-01", worldRevision: 3 })).selectedActionCandidateId,

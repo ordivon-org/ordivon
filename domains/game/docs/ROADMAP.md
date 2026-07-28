@@ -122,43 +122,49 @@ Acceptance evidence:
 
 Receipt: [`M21-RECEIPT.md`](M21-RECEIPT.md). Evaluation: [`M21-EVALUATION.json`](M21-EVALUATION.json).
 
-## M3.0 — Cross-stack correction — design ready
+## M3.0 — Cross-stack correction — complete historical entry contract
 
-Design: [`M30-DESIGN.md`](M30-DESIGN.md). Revised implementation entry: [`M30-PLAN.md`](M30-PLAN.md).
+Design: [`M30-DESIGN.md`](M30-DESIGN.md). Implementation entry: [`M30-PLAN.md`](M30-PLAN.md).
 
-M3.0 freezes the boundary before implementation:
+M3.0 corrected the first M3 architecture before implementation:
 
-- reuse Ordivon Host Event streams, checked projections, leases, graph state, and token-budget Contexts;
-- keep Game World, Objective predicates, observation rules, and Tick semantics domain-owned;
-- replace sequential one-Command-per-Tick interleaving with atomic multi-Actor TickBatch execution;
-- use Actor Knowledge rather than omniscient candidate advice;
-- replace the authority ladder with minimal attribute-based policy;
-- map one selected Team Tick to the existing Effect → Dispatch → Observation → Verification chain;
-- select embedded conformance adapter versus local Host sidecar before coding.
+- reused Host Event, checked-projection, lease, and token-budget Context semantics;
+- kept World, Objective predicates, actor observation, and Tick semantics Game-owned;
+- replaced serialized one-Command interleaving with atomic multi-Actor TickBatch execution;
+- constrained strategy to Actor Knowledge rather than omniscient World advice;
+- replaced an authority ladder with attribute-based policy;
+- mapped one selected Team Tick to Effect → Dispatch → Observation → Verification;
+- selected an embedded conformance-backed TypeScript adapter instead of a sidecar.
 
-M3.0 is design-only and does not satisfy Issue #5.
+The documents remain the reviewed historical contract against which M3 was implemented.
 
-## M3 — Multi-Agent team and authority — implementation pending
+## M3 — Multi-Agent team and authority — complete
 
-The original [`M3-DESIGN.md`](M3-DESIGN.md) and [`M3-PLAN.md`](M3-PLAN.md) are retained as superseded design history. Implementation follows the corrected M3.0 contracts.
+Receipt: [`M3-RECEIPT.md`](M3-RECEIPT.md). Evaluation: [`M3-EVALUATION.json`](M3-EVALUATION.json).
 
-Add Medic and Security specialist:
+Implemented:
 
-- independent observations;
-- distinct goals, capabilities, and risk preferences;
-- limited typed communication;
-- team task dependencies;
-- player-defined authority thresholds;
-- conflicting proposals and explicit resolution;
-- no duplicate or contradictory world mutation.
+- persistent Engineer, Medic, and Security identities;
+- specialist-exclusive capabilities;
+- independent actor-local observations and token-budget Contexts;
+- typed local/radio Messages with delivery and expiry;
+- one shared Objective Graph and independent actor Tasks;
+- attribute-based player authority and exact single-use Grants;
+- explicit Proposal conflict and waiting semantics;
+- atomic multi-Actor Ruleset-v3 TickBatch execution;
+- durable Team Rounds, Effects, Dispatches, Observations, and fresh-process recovery;
+- isolated Codex and Hermes cognition and mid-Run Provider replacement;
+- synchronous Team APIs and an engineering browser panel.
 
-Acceptance criteria:
+Acceptance evidence:
 
-- each specialist has at least one exclusive capability;
-- the same emergency can produce different valid plans;
-- restricted actions require correct authority;
-- communication limits materially affect coordination;
-- one Agent can continue while another waits or fails.
+- Security containment and Engineer sealing are two verified victory plans on the same seed;
+- supervised high-risk Actions stop for exact authority;
+- the same task Message produces victory over local delivery and `power_exhausted` when radio delivery is delayed;
+- one Provider failure leaves unrelated specialist Proposals intact;
+- eight interruption boundaries converge without duplicate effects;
+- all-Codex and mixed Codex/Hermes teams reach verified victory;
+- all-Hermes and Codex-to-Hermes replacement failures remain exact, replayable counterexamples rather than being hidden-corrected.
 
 ## M4 — Player control surface
 

@@ -1,0 +1,516 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.m3-evaluation",
+  "sourceRevision": "835c11a25fd27d5fbd9cd1c495a82b8c1e7dd9f3",
+  "evaluatedAt": "2026-07-28T00:28:40.448389Z",
+  "contextSchemaVersion": 1,
+  "implementation": {
+    "scenarioVersion": 2,
+    "rulesetVersion": 3,
+    "specialistCount": 3,
+    "maximumIntentsPerTick": 3,
+    "atomicMultiActorTick": true,
+    "environmentAdvancesOncePerTick": true,
+    "actorScopedContext": true,
+    "typedDeliveryLimitedMessages": true,
+    "attributeBasedAuthority": true,
+    "singleUseAuthorityGrants": true,
+    "legalProposalSubsetsEnumerated": true,
+    "hiddenManagerModelAdded": false,
+    "providerSessionsRetained": false,
+    "runtimeDependenciesAdded": 0,
+    "m2CompatibilityPreserved": true
+  },
+  "automatedEvidence": {
+    "tests": 159,
+    "testsPassed": 159,
+    "coverage": {
+      "lines": 98.69,
+      "branches": 90.57,
+      "functions": 98.17
+    },
+    "fixturePlans": [
+      {
+        "mode": "fixture-security",
+        "missionStatus": "victory",
+        "missionReason": "rescue_signal_verified",
+        "turn": 18,
+        "terminalDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+        "score": 2264,
+        "oxygen": 71,
+        "batteryCharge": 8,
+        "hazardSealed": false,
+        "hazardContained": true,
+        "providerCalls": 54,
+        "worldEvents": 18,
+        "rounds": 18,
+        "effects": 18,
+        "dispatches": 18,
+        "observations": 18,
+        "replayVerified": true,
+        "replayDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+        "maximumContextTokens": 3687,
+        "rawEvaluationFileDigest": "sha256:5fef7ec8e9fd24c26a75ff8b43306897d984daf5a4c0286a9c1d22e77bde33f8"
+      },
+      {
+        "mode": "fixture-engineer",
+        "missionStatus": "victory",
+        "missionReason": "rescue_signal_verified",
+        "turn": 22,
+        "terminalDigest": "0913c9cacb05af3e1dc1bab3a43e3a3a36efd5277da127c18182d05166939bf4",
+        "score": 2255,
+        "oxygen": 51,
+        "batteryCharge": 0,
+        "hazardSealed": true,
+        "hazardContained": false,
+        "providerCalls": 66,
+        "worldEvents": 22,
+        "rounds": 22,
+        "effects": 22,
+        "dispatches": 22,
+        "observations": 22,
+        "replayVerified": true,
+        "replayDigest": "0913c9cacb05af3e1dc1bab3a43e3a3a36efd5277da127c18182d05166939bf4",
+        "maximumContextTokens": 3585,
+        "rawEvaluationFileDigest": "sha256:05dcb463848b9804b2edc533edceb9f3fb4748a6b84353ae5d2f8ee8e65dec32"
+      }
+    ],
+    "interruptionFaultPoints": [
+      "after_context_persisted",
+      "after_provider_call",
+      "after_proposal_persisted",
+      "after_tick_plan_persisted",
+      "after_dispatch_prepared",
+      "after_world_apply",
+      "after_observation_persisted",
+      "before_task_advance"
+    ],
+    "allInterruptionRunsConverged": true,
+    "communicationComparison": {
+      "message": "Security: contain the maintenance breach now.",
+      "local": {
+        "initialStatus": "delivered",
+        "finalStatus": "delivered",
+        "missionStatus": "victory",
+        "missionReason": "rescue_signal_verified",
+        "turn": 18,
+        "worldDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7"
+      },
+      "unavailableRadio": {
+        "initialStatus": "pending",
+        "finalStatus": "delivered",
+        "missionStatus": "failure",
+        "missionReason": "power_exhausted",
+        "turn": 20,
+        "worldDigest": "6cdcff809b8deb4829accbfc59e63218a9149ef22dbf98c8a0211775d3eb3c8c"
+      },
+      "outcomeChanged": true,
+      "reason": "The same task offer arrived immediately over local delivery but too late over radio after communications recovery."
+    },
+    "authority": {
+      "supervisedHighRiskProposalWaits": true,
+      "exactGrantRequired": true,
+      "grantSingleUse": true,
+      "staleGrantRejected": true,
+      "unrelatedProductiveWorkMayContinue": true
+    },
+    "failureIsolation": {
+      "oneProviderFailureLeavesOtherActorProposals": true,
+      "oneActorIncapacitationIsNotImmediateTeamFailure": true
+    },
+    "conflictResolution": {
+      "engineerSealAndSecurityContainConflict": true,
+      "exactlyOneConflictingHazardMutationAdmitted": true,
+      "inputOrderIndependent": true
+    }
+  },
+  "liveRuns": [
+    {
+      "mode": "codex",
+      "sourceRevision": "835c11a25fd27d5fbd9cd1c495a82b8c1e7dd9f3",
+      "rawArtifact": {
+        "jobId": "job-019fa5f3-df5b-79e3-bf41-fa5e173807e4",
+        "artifactId": "attempt-019fa5f3-df5b-79e3-bf41-fa6af876cc54.stdout",
+        "digest": "sha256:201c08b63cf0a0ff7c9afde0ee3d299d4d866b7b913140904b3810701ff8a94d"
+      },
+      "rawEvaluationFileDigest": "sha256:dee07e66484db7711e4c450cc71b78a2dade37b47211cdf9b9437e9371ac6007",
+      "providerCallCounts": {
+        "codex": 60,
+        "hermes": 0,
+        "fixture": 0
+      },
+      "providerCallCount": 60,
+      "providerCallsSucceeded": 60,
+      "providerCallsFailed": 0,
+      "allProviderOutputsJsonStructured": true,
+      "allDecisionsAdmitted": true,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "hiddenFixtureFallback": false,
+      "hiddenManagerModel": false,
+      "firstPhase": null,
+      "elapsedMs": 373193.146,
+      "operationTrace": {
+        "medic-01": [
+          "r2:pickup:medkit:1",
+          "r3:stabilize:crew-01"
+        ],
+        "engineer-01": [
+          "r2:repair:cooling",
+          "r4:power:cooling:true",
+          "r8:pickup:spare-parts:2",
+          "r11:repair:life-support",
+          "r13:power:life-support:true",
+          "r15:repair:communications",
+          "r17:power:communications:true",
+          "r19:distress:communications"
+        ],
+        "security-01": [
+          "r2:pickup:sealant:1",
+          "r4:contain:maintenance-breach"
+        ]
+      },
+      "terminal": {
+        "missionStatus": "victory",
+        "missionReason": "rescue_signal_verified",
+        "turn": 20,
+        "worldDigest": "3a223193d4dc569e9b885f3728d7d6500acf409ec8f0a77864f72f7469b775b9",
+        "score": 2227,
+        "oxygen": 65,
+        "batteryCharge": 4,
+        "reactorHeat": 0,
+        "engineerHealth": 97,
+        "crewHealth": 56,
+        "hazardSealed": false,
+        "hazardContained": true,
+        "lifeSupportOperational": true,
+        "communicationsOperational": true
+      },
+      "evidence": {
+        "worldEvents": 20,
+        "rounds": 20,
+        "completedRounds": 20,
+        "contexts": 60,
+        "proposals": 60,
+        "verifiedProposals": 60,
+        "effects": 20,
+        "dispatches": 20,
+        "observations": 20,
+        "hostJournalEvents": 766,
+        "hostJournalDigest": "06f5321a755124bdf042310f805bfc4be7e7843633dd7ee2784388c112ee10c5",
+        "replayVerified": true,
+        "replayDigest": "3a223193d4dc569e9b885f3728d7d6500acf409ec8f0a77864f72f7469b775b9",
+        "allRoundsCompleted": true,
+        "allEffectsVerified": true,
+        "allDispatchesSucceeded": true,
+        "maximumContextBytes": 18383,
+        "maximumContextTokens": 3636
+      },
+      "usage": {
+        "reportedInputTokens": 1195887,
+        "reportedCachedInputTokens": 367616,
+        "reportedOutputTokens": 10690,
+        "reportedReasoningTokens": 0,
+        "reportedTotalTokens": 0,
+        "reportedEstimatedCostUsd": null
+      }
+    },
+    {
+      "mode": "mixed",
+      "sourceRevision": "835c11a25fd27d5fbd9cd1c495a82b8c1e7dd9f3",
+      "rawArtifact": {
+        "jobId": "job-019fa5f9-cf1d-7e81-91b7-94306230d2e1",
+        "artifactId": "attempt-019fa5f9-cf1d-7e81-91b7-94444440b635.stdout",
+        "digest": "sha256:9e46a058e8893a6eb2ddc3cf212bb4e8b1bceb57a23be3dac76d4286c9afba38"
+      },
+      "rawEvaluationFileDigest": "sha256:c5a32e43418982d5503d475cf388aad715d17d360e924af2620b5a073c1e478a",
+      "providerCallCounts": {
+        "codex": 20,
+        "hermes": 40,
+        "fixture": 0
+      },
+      "providerCallCount": 60,
+      "providerCallsSucceeded": 60,
+      "providerCallsFailed": 0,
+      "allProviderOutputsJsonStructured": true,
+      "allDecisionsAdmitted": true,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "hiddenFixtureFallback": false,
+      "hiddenManagerModel": false,
+      "firstPhase": null,
+      "elapsedMs": 552452.276,
+      "operationTrace": {
+        "engineer-01": [
+          "r2:repair:cooling",
+          "r4:power:cooling:true",
+          "r6:pickup:sealant:1",
+          "r7:pickup:spare-parts:2",
+          "r9:seal:maintenance-breach",
+          "r11:repair:life-support",
+          "r13:power:life-support:true",
+          "r15:repair:communications",
+          "r17:power:communications:true",
+          "r19:distress:communications"
+        ],
+        "medic-01": [
+          "r2:pickup:medkit:1",
+          "r3:stabilize:crew-01"
+        ],
+        "security-01": [
+          "r5:contain:maintenance-breach"
+        ]
+      },
+      "terminal": {
+        "missionStatus": "victory",
+        "missionReason": "rescue_signal_verified",
+        "turn": 20,
+        "worldDigest": "0c18406fecff7d3835f386baef761064b8ce1347d80ecb24287adaf427dfac2b",
+        "score": 2322,
+        "oxygen": 63,
+        "batteryCharge": 4,
+        "reactorHeat": 0,
+        "engineerHealth": 94,
+        "crewHealth": 56,
+        "hazardSealed": true,
+        "hazardContained": true,
+        "lifeSupportOperational": true,
+        "communicationsOperational": true
+      },
+      "evidence": {
+        "worldEvents": 20,
+        "rounds": 20,
+        "completedRounds": 20,
+        "contexts": 60,
+        "proposals": 60,
+        "verifiedProposals": 60,
+        "effects": 20,
+        "dispatches": 20,
+        "observations": 20,
+        "hostJournalEvents": 766,
+        "hostJournalDigest": "4f9022f75f584b3c39ddc077b3cb37eff16d8e0e5f3b27a06ab442d7f10dc69d",
+        "replayVerified": true,
+        "replayDigest": "0c18406fecff7d3835f386baef761064b8ce1347d80ecb24287adaf427dfac2b",
+        "allRoundsCompleted": true,
+        "allEffectsVerified": true,
+        "allDispatchesSucceeded": true,
+        "maximumContextBytes": 18192,
+        "maximumContextTokens": 3618
+      },
+      "usage": {
+        "reportedInputTokens": 609562,
+        "reportedCachedInputTokens": 221952,
+        "reportedOutputTokens": 39369,
+        "reportedReasoningTokens": 29656,
+        "reportedTotalTokens": 254868,
+        "reportedEstimatedCostUsd": 0.48826766
+      }
+    },
+    {
+      "mode": "hermes",
+      "sourceRevision": "835c11a25fd27d5fbd9cd1c495a82b8c1e7dd9f3",
+      "rawArtifact": {
+        "jobId": "job-019fa60d-a341-7850-94ee-b445ebf1a14c",
+        "artifactId": "attempt-019fa60d-a341-7850-94ee-b458271d6b0d.stdout",
+        "digest": "sha256:92101b7980c0c80f9a1b0f11109849e8ad6431bd096a97289ab3db172a535566"
+      },
+      "rawEvaluationFileDigest": "sha256:be206ab2e7e23f2f74b5482f04a19758485e67888d40b5b3d0e918ab47fee6ec",
+      "providerCallCounts": {
+        "codex": 0,
+        "hermes": 66,
+        "fixture": 0
+      },
+      "providerCallCount": 66,
+      "providerCallsSucceeded": 66,
+      "providerCallsFailed": 0,
+      "allProviderOutputsJsonStructured": true,
+      "allDecisionsAdmitted": true,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "hiddenFixtureFallback": false,
+      "hiddenManagerModel": false,
+      "firstPhase": null,
+      "elapsedMs": 791280.077,
+      "operationTrace": {
+        "engineer-01": [
+          "r2:repair:cooling",
+          "r4:power:cooling:true",
+          "r6:pickup:sealant:1",
+          "r8:seal:maintenance-breach"
+        ],
+        "medic-01": [
+          "r2:pickup:medkit:1",
+          "r3:stabilize:crew-01"
+        ],
+        "security-01": [
+          "r3:contain:maintenance-breach"
+        ]
+      },
+      "terminal": {
+        "missionStatus": "failure",
+        "missionReason": "mission_timeout",
+        "turn": 22,
+        "worldDigest": "12b863f1d3fe6a3eae402d958ce1420736c88e656cfc69780082216607c40f4e",
+        "score": 723,
+        "oxygen": 28,
+        "batteryCharge": 20,
+        "reactorHeat": 0,
+        "engineerHealth": 68,
+        "crewHealth": 56,
+        "hazardSealed": true,
+        "hazardContained": true,
+        "lifeSupportOperational": false,
+        "communicationsOperational": false
+      },
+      "evidence": {
+        "worldEvents": 22,
+        "rounds": 22,
+        "completedRounds": 22,
+        "contexts": 66,
+        "proposals": 66,
+        "verifiedProposals": 66,
+        "effects": 22,
+        "dispatches": 22,
+        "observations": 22,
+        "hostJournalEvents": 842,
+        "hostJournalDigest": "6350acaf1c49d252a58117588fe6f7d89a9564360239e27067cc3400f1d78329",
+        "replayVerified": true,
+        "replayDigest": "12b863f1d3fe6a3eae402d958ce1420736c88e656cfc69780082216607c40f4e",
+        "allRoundsCompleted": true,
+        "allEffectsVerified": true,
+        "allDispatchesSucceeded": true,
+        "maximumContextBytes": 18276,
+        "maximumContextTokens": 3609
+      },
+      "usage": {
+        "reportedInputTokens": 367030,
+        "reportedCachedInputTokens": 0,
+        "reportedOutputTokens": 61787,
+        "reportedReasoningTokens": 50388,
+        "reportedTotalTokens": 433681,
+        "reportedEstimatedCostUsd": 0.85372149
+      }
+    },
+    {
+      "mode": "codex-hermes-switch",
+      "sourceRevision": "835c11a25fd27d5fbd9cd1c495a82b8c1e7dd9f3",
+      "rawArtifact": {
+        "jobId": "job-019fa602-7bcf-7c72-9f92-25e483e09b15",
+        "artifactId": "attempt-019fa602-7bcf-7c72-9f92-25ff6d0aaaf6.stdout",
+        "digest": "sha256:528d0309a17218dfa14c646781479946201cef09d65cd9976cfd87a5216c3e1f"
+      },
+      "rawEvaluationFileDigest": "sha256:018edc49c4ff593a82d2cd9b6ef2b1ac3d91eff04cbf41378e6f4b81470ee108",
+      "providerCallCounts": {
+        "codex": 12,
+        "hermes": 54,
+        "fixture": 0
+      },
+      "providerCallCount": 66,
+      "providerCallsSucceeded": 65,
+      "providerCallsFailed": 1,
+      "allProviderOutputsJsonStructured": true,
+      "allDecisionsAdmitted": false,
+      "humanCorrections": 0,
+      "originalTranscriptLoaded": false,
+      "hiddenFixtureFallback": false,
+      "hiddenManagerModel": false,
+      "firstPhase": {
+        "worldRevision": 4,
+        "worldDigest": "eee837b212112e5af3fa6a43317ad5924985e18f20e1c2137dbf64e5b082790e",
+        "rounds": 4
+      },
+      "elapsedMs": 674912.165,
+      "operationTrace": {
+        "engineer-01": [
+          "r2:repair:cooling",
+          "r4:power:cooling:true",
+          "r6:pickup:sealant:1",
+          "r8:seal:maintenance-breach"
+        ],
+        "medic-01": [
+          "r2:pickup:medkit:1",
+          "r3:stabilize:crew-01",
+          "r7:REJECTED:invalid_output:Team Provider invented an Action identity"
+        ],
+        "security-01": [
+          "r3:contain:maintenance-breach",
+          "r11:pickup:spare-parts:2"
+        ]
+      },
+      "terminal": {
+        "missionStatus": "failure",
+        "missionReason": "mission_timeout",
+        "turn": 22,
+        "worldDigest": "f300479e5e9f26b0c20e069b305b1a5a8bfb0f488446e6694270c539cbb0a73c",
+        "score": 723,
+        "oxygen": 28,
+        "batteryCharge": 20,
+        "reactorHeat": 0,
+        "engineerHealth": 68,
+        "crewHealth": 56,
+        "hazardSealed": true,
+        "hazardContained": true,
+        "lifeSupportOperational": false,
+        "communicationsOperational": false
+      },
+      "evidence": {
+        "worldEvents": 22,
+        "rounds": 22,
+        "completedRounds": 22,
+        "contexts": 66,
+        "proposals": 65,
+        "verifiedProposals": 65,
+        "effects": 22,
+        "dispatches": 22,
+        "observations": 22,
+        "hostJournalEvents": 837,
+        "hostJournalDigest": "f77e28d5d5f0ecd848de1934d2d0df2df3573e8c8876b82304b6ea04d37ca9e3",
+        "replayVerified": true,
+        "replayDigest": "f300479e5e9f26b0c20e069b305b1a5a8bfb0f488446e6694270c539cbb0a73c",
+        "allRoundsCompleted": true,
+        "allEffectsVerified": true,
+        "allDispatchesSucceeded": true,
+        "maximumContextBytes": 18685,
+        "maximumContextTokens": 3680
+      },
+      "usage": {
+        "reportedInputTokens": 538575,
+        "reportedCachedInputTokens": 130560,
+        "reportedOutputTokens": 56782,
+        "reportedReasoningTokens": 45521,
+        "reportedTotalTokens": 382806,
+        "reportedEstimatedCostUsd": 0.73676739
+      }
+    }
+  ],
+  "acceptance": {
+    "specialistExclusiveCapabilities": true,
+    "independentBoundedObservations": true,
+    "typedLimitedCommunication": true,
+    "sharedObjectiveDependencies": true,
+    "playerDefinedAuthorityThresholds": true,
+    "conflictAndWaitingSemantics": true,
+    "multipleValidPlansReachVerifiedVictory": true,
+    "restrictedActionsRequireAuthority": true,
+    "communicationLimitsChangeOutcome": true,
+    "oneAgentProgressesWhileAnotherWaitsOrFails": true,
+    "allWorldEffectsUniqueAndReplayExact": true,
+    "realProviderVictoryObserved": true,
+    "providerReplacementPreservesContinuity": true,
+    "noHiddenManagerOrFixtureCorrection": true
+  },
+  "conclusions": {
+    "m3Issue5AcceptancePassed": true,
+    "realVictories": [
+      "codex",
+      "mixed"
+    ],
+    "providerReplacementContinuityPassed": true,
+    "providerReplacementVictoryObserved": false,
+    "remainingFailureModes": {
+      "hermes": "All-Hermes completed every verified Tick but failed to collect the remaining spare parts, leaving life support and communications damaged until mission timeout.",
+      "codex-hermes-switch": "The replacement preserved Goal, Tasks, World, and Journal after four Codex Rounds. Hermes then produced one invented Action identity and failed to coordinate spare-part ownership, causing mission timeout without duplicate effects."
+    },
+    "nextMilestone": "M4 player control surface and explicit resource/task negotiation UX"
+  }
+}

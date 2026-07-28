@@ -19,7 +19,8 @@
     "measure": "node scripts/measure.ts",
     "measure:write": "node scripts/measure.ts --write",
     "m2:evaluate": "node scripts/m2-live-evaluation.ts",
-    "m21:evaluate": "node scripts/m2-live-evaluation.ts"
+    "m21:evaluate": "node scripts/m2-live-evaluation.ts",
+    "m3:evaluate": "node scripts/m3-live-evaluation.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

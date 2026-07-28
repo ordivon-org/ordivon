@@ -1,8 +1,8 @@
 # M3.0 design — cross-stack correction before multi-Agent implementation
 
-Status: design only; no M3 implementation is authorized by this document
+Status: implemented historical entry contract
 Tracking: Issue #24
-Parent milestone: Issue #5 remains open
+Parent milestone: Issue #5 completed by M3
 Game baseline: `ordivon-game@9b9281c8b15beb61a0173a7eca157e292a4d71f5`
 Computing baseline: `ordivon-computing@67360093631bdffd9f9ad00fcae0f3a755ba2245`
 Host baseline: `ordivon-host@a536b01c0672e7f74ff5b22829f951e17f58fc3f`
@@ -28,7 +28,21 @@ Ordivon Host semantics
 + exact Effect / Dispatch / Verification continuity
 ```
 
-M3.0 produces design contracts only. It does not add Runtime dependencies, World Commands, database migrations, specialists, service processes, or player UI.
+M3.0 originally produced design contracts only. The reviewed contracts were subsequently implemented through PRs #26–#29 and the final M3 evaluation PR. The implementation selected the embedded TypeScript form, added no runtime dependency or sidecar, and is evidenced by [`M3-RECEIPT.md`](M3-RECEIPT.md).
+
+### Implementation outcome
+
+```text
+embedded Host-conformant Team adapter
++ Scenario v2 / Ruleset v3
++ atomic multi-Actor TickBatch
++ actor-visible Context and typed Messages
++ ABAC and exact Grants
++ bounded legal-subset selection
++ Team Effect / Dispatch / Observation / Verification
+```
+
+The document remains the architectural entry contract and design history; it is no longer the current implementation status page.
 
 ## 2. First-principles constraints
 
@@ -835,7 +849,7 @@ M3.0 is complete when the design repository records all of the following:
 7. multi-Agent time uses atomic multi-Intent TickBatch semantics;
 8. Team Tick maps to existing Effect/Dispatch/Observation/Verification semantics without a new generic EffectGroup;
 9. implementation begins only after the embedded-versus-sidecar deployment experiment is selected;
-10. original M3 design is marked superseded and Issue #5 remains open.
+10. original M3 design is marked superseded; Issue #5 remained open until the subsequent M3 implementation and evaluation merged.
 
 ## 22. Mature reference sources
 
