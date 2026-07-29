@@ -1,7 +1,6 @@
 import { sha256 } from "../digest.ts";
 import type { JournalEvent, WorldEvent, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
-import { TeamExecutionStore } from "../team/execution-store.ts";
 import type {
   ActionProposal,
   AuthorityDecision,
@@ -42,17 +41,6 @@ function semanticValue(value: unknown): unknown {
 
 function payloadDigest(value: unknown): string {
   return sha256(semanticValue(value));
-}
-
-function teamTablesExist(store: GameStore): boolean {
-  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'").get() as { name?: string } | undefined;
-  return row?.name === "team_actor_sessions";
-}
-
-function teamInitialized(store: GameStore, runId: string): boolean {
-  if (!teamTablesExist(store)) return false;
-  const row = store.db.prepare("SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { present?: number } | undefined;
-  return row?.present === 1;
 }
 
 function proposalRevision(proposal: ActionProposal): number {
