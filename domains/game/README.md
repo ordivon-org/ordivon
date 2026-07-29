@@ -237,11 +237,11 @@ Point-in-time replay selects the nearest retained Snapshot at or before the requ
 
 ## Current status
 
-**M4 is complete. M5 implementation is in progress; M5.0 and PR2A verified point-in-time replay are complete.**
+**M4 is complete. M5 first-playable implementation is in progress; M5.0 and verified point-in-time replay are complete.**
 
 M4 turns the verified M3 Team system into a bounded playable Mission Control product. The Fixture team wins in 18 verified Ticks through Mission Control APIs, the terminal view remains 16,465 bytes, player controls and pending review survive process replacement, intervention changes the admitted path, and the main product contains no primitive World controls or raw Host logs.
 
-M5 closes the remaining play → replay → diagnose → compare → reconfigure → release loop. M5.0 provides deterministic Scenario Cases, truthful Run/evaluated-input identity, one backend product catalog, and complete revision paging. PR2A now reconstructs and verifies every retained World revision through a read-only API while preserving Snapshot-as-cache semantics. The typed Run Evidence Graph and Replay Frames remain the next implementation frontier.
+M5 closes the remaining play → replay → diagnose → compare → reconfigure → release loop for `v0.1.0-alpha.1`. M5.0 provides deterministic Scenario Cases, truthful Run/evaluated-input identity, one backend product catalog, and complete revision paging. Point-in-time replay reconstructs and verifies every retained World revision while preserving Snapshot-as-cache semantics. The remaining release path is Evidence Graph/Frames, deterministic diagnosis, immutable deployment comparison, a real Chromium player journey, and a clean-verifiable source archive. Equal-budget experiments, Runtime matrices, and final Host convergence are post-alpha rather than release blockers.
 
 See [`docs/M5-DESIGN.md`](docs/M5-DESIGN.md), [`docs/M5-PLAN.md`](docs/M5-PLAN.md), and [`docs/M1-M4-DEBT-AUDIT.md`](docs/M1-M4-DEBT-AUDIT.md). M3 remains the canonical live Codex/Hermes evaluation unless a future M5 study explicitly changes cognition semantics and receives a separate budget.
 

@@ -11,6 +11,8 @@ import { admitProviderDecision, compileProviderContext, FixtureProvider, type Co
 import { CodexCliProvider } from "./providers/codex-cli.ts";
 import { ProviderChain } from "./providers/chain.ts";
 import { RecoveryOperationProvider } from "./providers/fixture.ts";
+import { ReplayEvidenceError } from "./replay/evidence.ts";
+import { replayFrame, replayFramesPage, replaySummary } from "./replay/frames.ts";
 import { HermesCliProvider } from "./providers/hermes-cli.ts";
 import type { OperationProvider } from "./providers/types.ts";
 import { GameStore, StorageError } from "./storage.ts";
@@ -279,6 +281,22 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         }
         const applied = store.apply(command, runId);
         sendJson(response, applied.result.status === "accepted" ? 200 : 409, applied);
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/replay/summary") {
+        sendJson(response, 200, replaySummary(store, runId));
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/replay/frames") {
+        const fromRevision = url.searchParams.get("fromRevision") === null ? 0 : Number(url.searchParams.get("fromRevision"));
+        const limit = url.searchParams.get("limit") === null ? 20 : Number(url.searchParams.get("limit"));
+        sendJson(response, 200, replayFramesPage(store, runId, fromRevision, limit));
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/replay/frame") {
+        const rawRevision = url.searchParams.get("revision");
+        if (rawRevision === null || !rawRevision.trim()) throw new TypeError("revision is required");
+        sendJson(response, 200, replayFrame(store, runId, Number(rawRevision)));
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/replay/state") {
@@ -590,6 +608,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       sendJson(response, 404, { error: "not_found" });
     } catch (error) {
+      if (error instanceof ReplayEvidenceError) {
+        sendJson(response, 500, { error: error.code, message: error.message });
+        return;
+      }
       if (error instanceof TeamStoreError) {
         sendJson(response, error.code === "team_corrupt" ? 500 : 409, { error: error.code, message: error.message });
         return;
