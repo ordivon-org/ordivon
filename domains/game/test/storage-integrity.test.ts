@@ -7,7 +7,7 @@ import test from "node:test";
 import { sha256 } from "../src/digest.ts";
 import { recoveryPolicy } from "../src/policies.ts";
 import { GameStore, StorageError } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { listAvailableActions, materializeAction } from "../src/world.ts";
 
 function directory(): string {
   return mkdtempSync(join(tmpdir(), "ordivon-game-integrity-"));
@@ -134,6 +134,38 @@ test("SQLite writer contention maps to storage_busy without duplicate effects", 
     try { first.db.exec("ROLLBACK"); } catch {}
     first.close();
     second.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+test("Ruleset v3 primitive command recovers through its synthetic Tick intent receipt", () => {
+  const dir = directory();
+  const path = join(dir, "world.sqlite3");
+  const runId = "run:integrity-v3-primitive";
+  try {
+    let store = new GameStore(path);
+    store.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
+    store.setActiveRun(runId);
+    const before = store.verifyReplay(runId);
+    const action = listAvailableActions(before.state)[0];
+    assert.ok(action);
+    const command = materializeAction(action, "command:integrity-v3-primitive:r0");
+    const applied = store.apply(command, runId);
+    assert.equal(applied.result.status, "accepted");
+    assert.equal(store.eventCount(runId), 1);
+    store.close();
+
+    store = new GameStore(path, { activeRunId: runId });
+    const recovered = store.verifyReplay(runId);
+    assert.equal(recovered.state.revision, 1);
+    assert.equal(recovered.eventCount, 1);
+    const receipt = store.commandReceipt(command.commandId, runId);
+    assert.ok(receipt);
+    assert.equal(receipt.command.commandId, command.commandId);
+    assert.equal(receipt.journalEvent.event.intentReceipts?.some((item) => item.commandId === command.commandId), true);
+    store.close();
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });

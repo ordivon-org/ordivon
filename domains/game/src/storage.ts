@@ -581,13 +581,17 @@ export class GameStore {
       }
       const retainedCommand = parseStoredJson<WorldCommand>(command.command_json, "retained Command");
       const retainedEvent = parseJournalEvent(runId, index, event.event_json);
+      const eventBindsCommand = retainedEvent.event.commandId === event.command_id || (
+        retainedEvent.event.commandKind === "team_tick" &&
+        retainedEvent.event.intentReceipts?.some((receipt) => receipt.commandId === event.command_id) === true
+      );
       if (
         !retainedCommand ||
         typeof retainedCommand !== "object" ||
         retainedCommand.commandId !== command.command_id ||
         retainedEvent.commandSequence !== index ||
         retainedEvent.worldRevision !== retainedEvent.event.worldRevision ||
-        retainedEvent.event.commandId !== event.command_id ||
+        !eventBindsCommand ||
         retainedEvent.event.beforeDigest !== event.before_digest ||
         retainedEvent.event.afterDigest !== event.after_digest
       ) {
