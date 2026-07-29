@@ -3,26 +3,15 @@ import type { GameStore } from "../storage.ts";
 import { replayCurvesFromFrames, replayKeyTurnsFromFrames } from "./analysis.ts";
 import { buildRunEvidenceGraph } from "./evidence.ts";
 import { buildReplayFrames } from "./frames.ts";
-import type { PointInTimeReplayResult, ReplayProjection } from "./model.ts";
+import type { ReplayProjection } from "./model.ts";
 import { loadReplayTeamData } from "./team-data.ts";
-
-function replayStates(
-  store: GameStore,
-  runId: string,
-  terminalRevision: number,
-): PointInTimeReplayResult[] {
-  return Array.from(
-    { length: terminalRevision + 1 },
-    (_, revision) => store.stateAtRevision(revision, runId),
-  );
-}
 
 export function buildReplayProjection(
   store: GameStore,
   runId = store.activeRunId,
 ): ReplayProjection {
-  const terminal = store.loadState(runId);
-  const replays = replayStates(store, runId, terminal.revision);
+  const replays = store.statesAtEveryRevision(runId);
+  const terminal = replays.at(-1)!.state;
   const journal: JournalEvent[] = store.journalEvents(runId);
   const teamData = loadReplayTeamData(store, runId);
   const graph = buildRunEvidenceGraph(store, runId, {

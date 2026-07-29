@@ -1,4 +1,7 @@
 import type { GameStore } from "../storage.ts";
+import type { DeploymentProviderOptions } from "../deployment/model.ts";
+import { resolveCoordinationProfile } from "../deployment/profiles.ts";
+import { DeploymentStore } from "../deployment/store.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
 import { authorityTargetId } from "../team/authority.ts";
 import { TeamHost } from "../team/engine.ts";
@@ -11,13 +14,14 @@ import type { MissionControlAdvanceResult, MissionControlView, MissionTimelineIt
 import { createMissionControlView, missionTimelineItems } from "./projection.ts";
 
 export type { MissionProviderName } from "./catalog.ts";
-export type MissionProviderFactory = (name: MissionProviderName) => TeamDecisionProvider;
+export type MissionProviderFactory = (name: MissionProviderName, options?: DeploymentProviderOptions) => TeamDecisionProvider;
 
 export interface MissionControlInitializeInput {
   runId: string;
   scenarioCaseId?: string;
   authorityPolicyMode?: AuthorityPolicyMode;
   providers?: Record<string, MissionProviderName>;
+  coordinationProfileId?: string;
 }
 
 export type MissionControlCommand =
@@ -33,12 +37,12 @@ function providerName(value: string | undefined): MissionProviderName {
   return isMissionProviderName(value) ? value : "fixture";
 }
 
-function providerForOrder(order: string[], factory: MissionProviderFactory): TeamDecisionProvider {
+function providerForOrder(order: string[], factory: MissionProviderFactory, options: DeploymentProviderOptions): TeamDecisionProvider {
   if (order.length >= 2) {
     const pair = `${order[0]}-${order[1]}`;
-    if (pair === "codex-hermes" || pair === "hermes-codex") return factory(pair);
+    if (pair === "codex-hermes" || pair === "hermes-codex") return factory(pair, options);
   }
-  return factory(providerName(order[0]));
+  return factory(providerName(order[0]), options);
 }
 
 export class MissionControlService {
@@ -58,9 +62,11 @@ export class MissionControlService {
     const team = this.teamStore();
     team.initialize(runId);
     const configuration = team.getConfiguration(runId);
+    const deployment = new DeploymentStore(this.store).get(runId);
+    const providerOptions = { coordinationProfileId: deployment?.coordinationProfileId ?? "specialist-containment" } as const;
     const providers: Record<string, TeamDecisionProvider> = {};
     for (const task of team.listTasks(runId).filter((candidate) => candidate.actorId)) {
-      providers[task.actorId!] = providerForOrder(task.providerOrder, this.providerFactory);
+      providers[task.actorId!] = providerForOrder(task.providerOrder, this.providerFactory, providerOptions);
     }
     return new TeamHost(this.store, providers, { policyMode: configuration.authorityPolicyMode });
   }
@@ -81,11 +87,29 @@ export class MissionControlService {
     if (metadata.scenarioVersion < 2 || metadata.rulesetVersion < 3) throw new TeamStoreError("team_conflict", "Mission Control requires Scenario v2 and Ruleset v3");
     const team = this.teamStore();
     team.initialize(input.runId);
-    team.saveConfiguration(input.authorityPolicyMode ?? "autonomous", input.runId);
-    for (const task of team.listTasks(input.runId).filter((candidate) => candidate.actorId)) {
-      const selected = providerName(input.providers?.[task.actorId!]);
-      if (task.providerOrder.length !== 1 || task.providerOrder[0] !== selected) {
-        team.transitionTask(task.taskId, { providerOrder: [selected] }, "team.task-provider-updated", { actorId: task.actorId, provider: selected });
+    const deployments = new DeploymentStore(this.store);
+    const retained = deployments.get(input.runId);
+    const tasks = team.listTasks(input.runId).filter((candidate) => candidate.actorId);
+    const authorityPolicyMode = input.authorityPolicyMode ?? retained?.authorityPolicyMode ?? "autonomous";
+    const coordinationProfileId = resolveCoordinationProfile(
+      input.coordinationProfileId ?? retained?.coordinationProfileId,
+    );
+    const actors = tasks.map((task) => {
+      const retainedActor = retained?.actors.find((actor) => actor.actorId === task.actorId);
+      const selected = input.providers?.[task.actorId!] ?? retainedActor?.providerOrder[0] ?? providerName(task.providerOrder[0]);
+      return { actorId: task.actorId!, providerOrder: [selected] };
+    });
+    const manifest = deployments.bind({
+      runId: input.runId,
+      coordinationProfileId,
+      authorityPolicyMode,
+      actors,
+    });
+    team.saveConfiguration(manifest.authorityPolicyMode, input.runId);
+    for (const task of tasks) {
+      const desired = manifest.actors.find((actor) => actor.actorId === task.actorId)!.providerOrder;
+      if (JSON.stringify(task.providerOrder) !== JSON.stringify(desired)) {
+        team.transitionTask(task.taskId, { providerOrder: [...desired] }, "team.task-provider-updated", { actorId: task.actorId, providerOrder: desired });
       }
     }
     return this.state(input.runId);

@@ -4,6 +4,10 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "./digest.ts";
+import { compareRuns, ComparisonError } from "./comparison/compare.ts";
+import type { DeploymentProviderOptions } from "./deployment/model.ts";
+import { deploymentCatalog } from "./deployment/profiles.ts";
+import { DeploymentError, DeploymentStore } from "./deployment/store.ts";
 import { createMissionControlCatalog, isMissionProviderName } from "./mission-control/catalog.ts";
 import { MissionControlService, type MissionControlCommand, type MissionProviderName } from "./mission-control/service.ts";
 import { AgentHost } from "./host/engine.ts";
@@ -68,7 +72,7 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 export type AgentProviderName = "fixture" | "codex" | "hermes" | "codex-hermes" | "hermes-codex";
 export type AgentProviderFactory = (name: AgentProviderName) => OperationProvider;
 export type TeamProviderName = AgentProviderName;
-export type TeamProviderFactory = (name: TeamProviderName) => TeamDecisionProvider;
+export type TeamProviderFactory = (name: TeamProviderName, options?: DeploymentProviderOptions) => TeamDecisionProvider;
 
 function defaultAgentProviderFactory(name: AgentProviderName): OperationProvider {
   switch (name) {
@@ -80,9 +84,9 @@ function defaultAgentProviderFactory(name: AgentProviderName): OperationProvider
   }
 }
 
-function defaultTeamProviderFactory(name: TeamProviderName): TeamDecisionProvider {
+function defaultTeamProviderFactory(name: TeamProviderName, options?: DeploymentProviderOptions): TeamDecisionProvider {
   switch (name) {
-    case "fixture": return new FixtureTeamProvider();
+    case "fixture": return new FixtureTeamProvider({ breachStrategy: options?.coordinationProfileId === "engineer-seal" ? "engineer-seal" : "security-contain" });
     case "codex": return new TeamCodexCliProvider();
     case "hermes": return new TeamHermesCliProvider();
     case "codex-hermes": return new TeamProviderChain([new TeamCodexCliProvider(), new TeamHermesCliProvider()]);
@@ -411,6 +415,18 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
+      if (request.method === "GET" && url.pathname === "/api/deployments/catalog") { sendJson(response, 200, deploymentCatalog()); return; }
+      if (request.method === "GET" && url.pathname === "/api/deployments/manifest") {
+        const manifest = new DeploymentStore(store).get(runId);
+        sendJson(response, manifest ? 200 : 404, manifest ?? { error: "deployment_not_found" });
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/compare") {
+        const leftRunId = requiredString(url.searchParams.get("leftRunId"), "leftRunId");
+        const rightRunId = requiredString(url.searchParams.get("rightRunId"), "rightRunId");
+        sendJson(response, 200, compareRuns(store, leftRunId, rightRunId));
+        return;
+      }
       if (request.method === "GET" && url.pathname === "/api/mission-control/catalog") {
         sendJson(response, 200, createMissionControlCatalog());
         return;
@@ -431,6 +447,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           ...(typeof body.scenarioCaseId === "string" ? { scenarioCaseId: body.scenarioCaseId } : {}),
           authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode),
           providers,
+          ...(typeof body.coordinationProfileId === "string" ? { coordinationProfileId: body.coordinationProfileId } : {}),
         }));
         return;
       }
@@ -628,6 +645,8 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       sendJson(response, 404, { error: "not_found" });
     } catch (error) {
+      if (error instanceof DeploymentError) { sendJson(response, error.code === "deployment_corrupt" ? 500 : 409, { error: error.code, message: error.message }); return; }
+      if (error instanceof ComparisonError) { sendJson(response, 409, { error: error.code, message: error.message }); return; }
       if (error instanceof ReplayEvidenceError) {
         sendJson(response, 500, { error: error.code, message: error.message });
         return;
