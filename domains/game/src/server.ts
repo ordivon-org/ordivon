@@ -172,6 +172,10 @@ function stateEnvelope(store: GameStore, runId: string): unknown {
   };
 }
 
+function productTimeline(events: ReturnType<AgentHost["host"]["listJournal"]>): ReturnType<AgentHost["host"]["listJournal"]> {
+  return events.filter((event) => !event.eventType.startsWith("host-contract."));
+}
+
 function agentEnvelope(store: GameStore, provider: OperationProvider, runId: string): unknown {
   const agent = new AgentHost(store, provider);
   try {
@@ -182,7 +186,7 @@ function agentEnvelope(store: GameStore, provider: OperationProvider, runId: str
       projection,
       effects: agent.execution.listEffects(runId),
       dispatches: agent.execution.listDispatches(runId),
-      timeline: agent.host.listJournal(runId).slice(-40),
+      timeline: productTimeline(agent.host.listJournal(runId)).slice(-40),
     };
   } catch (error) {
     if (error instanceof Error && /not initialized/.test(error.message)) {
@@ -224,7 +228,7 @@ function teamEnvelope(
     rounds,
     proposals,
     latestTickPlan,
-    timeline: team.team.host.listJournal(runId).slice(-80),
+    timeline: productTimeline(team.team.host.listJournal(runId)).slice(-80),
   };
 }
 
@@ -348,7 +352,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         const operationProvider = agentProviderFactory("fixture");
         const agent = new AgentHost(store, operationProvider);
         try {
-          sendJson(response, 200, { runId, timeline: agent.host.listJournal(runId) });
+          sendJson(response, 200, { runId, timeline: productTimeline(agent.host.listJournal(runId)) });
         } catch (error) {
           if (error instanceof Error && /not initialized/.test(error.message)) {
             sendJson(response, 200, { runId, timeline: [] });

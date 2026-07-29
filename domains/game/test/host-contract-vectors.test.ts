@@ -52,7 +52,7 @@ const manifest = JSON.parse(readFileSync(new URL("manifest.json", fixtureRoot), 
 
 test("frozen Host workload vectors are bound to the promoted Computing revision", () => {
   assert.equal(manifest.protocolVersion, "0.3.0");
-  assert.equal(manifest.sourceRevision, "5c6e225b90f25d4a0e8e0f99bf7590ecbd7ce1a5");
+  assert.equal(manifest.sourceRevision, "ca5af401eda77d1081487c2df07ce9d94003719e");
   assert.equal(
     `sha256:${createHash("sha256").update(vectorsBytes).digest("hex")}`,
     manifest.vectorFileDigest,
