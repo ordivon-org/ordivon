@@ -185,3 +185,47 @@ test("expired delivered Messages remain historical and leave current Context", (
   assert.deepEqual(messages, []);
   game.close();
 });
+
+
+test("Team Context prevents mission-critical items from being stranded on incapable Actors", () => {
+  const { game, team } = setup("run:team-critical-item-claim");
+  const apply = (tickId: string, actionIds: Record<string, string>): void => {
+    const state = game.loadState();
+    const commands = [ENGINEER_ID, MEDIC_ID, SECURITY_ID].map((actorId, index) => {
+      const action = listAvailableActions(state, actorId).find((entry) => entry.actionId === actionIds[actorId]);
+      assert.ok(action, `${actorId} missing ${actionIds[actorId]}`);
+      const command = materializeAction(action, `${tickId}:${index}`);
+      if (command.kind === "team_tick") throw new Error("unexpected team action");
+      return { commandSequence: state.revision * 3 + index, command };
+    });
+    const result = game.applyTeamTick({ tickId, expectedWorldRevision: state.revision, intents: commands });
+    assert.equal(result.result.status, "accepted");
+  };
+
+  apply("critical-items:0", {
+    [ENGINEER_ID]: "move:power-junction",
+    [MEDIC_ID]: "move:power-junction",
+    [SECURITY_ID]: "move:power-junction",
+  });
+  apply("critical-items:1", {
+    [ENGINEER_ID]: "move:storage",
+    [MEDIC_ID]: "move:medical-bay",
+    [SECURITY_ID]: "move:storage",
+  });
+
+  const engineer = contextFor(team, ENGINEER_ID);
+  const medic = contextFor(team, MEDIC_ID);
+  const security = contextFor(team, SECURITY_ID);
+  const actionIds = (context: ReturnType<typeof contextFor>) => context.allowedActions.map((entry) => entry.actionId);
+
+  assert.ok(actionIds(engineer).includes("pickup:sealant:1"));
+  assert.ok(actionIds(engineer).includes("pickup:spare-parts:2"));
+  assert.ok(actionIds(medic).includes("pickup:medkit:1"));
+  assert.ok(!actionIds(security).includes("pickup:sealant:1"));
+  assert.ok(!actionIds(security).includes("pickup:spare-parts:2"));
+
+  const primitiveSecurityActions = listAvailableActions(game.loadState(), SECURITY_ID).map((entry) => entry.actionId);
+  assert.ok(primitiveSecurityActions.includes("pickup:sealant:1"));
+  assert.ok(primitiveSecurityActions.includes("pickup:spare-parts:2"));
+  game.close();
+});
