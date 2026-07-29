@@ -3,10 +3,72 @@ import type { JournalEvent, WorldFact, WorldState } from "../model.ts";
 import type { RunMetadata } from "../run.ts";
 import { ENGINEER_ID, isOperational } from "../scenario.ts";
 import type { AgentProjection } from "./model.ts";
-import { compileOperationFrontier, type OperationCandidate } from "./operations.ts";
-import { analyzeGoalStrategy, type GoalStrategyAnalysis } from "./strategy.ts";
+import {
+  compileOperationFrontier,
+  type OperationCandidate,
+  type OperationCandidateCore,
+  type OperationProjection,
+} from "./operations.ts";
+import {
+  analyzeGoalStrategy,
+  type GoalStrategyAnalysis,
+  type OperationStrategyAnalysis,
+} from "./strategy.ts";
 
 export const MAX_AGENT_CONTEXT_BYTES = 16 * 1024;
+
+export type ContextOperationStrategy = Pick<OperationStrategyAnalysis,
+  | "classification"
+  | "strategicRank"
+  | "selectionClass"
+  | "projectedVictory"
+  | "lowerBoundTimeFeasible"
+  | "optimisticStepSlack"
+  | "newlySatisfied"
+  | "regressed"
+  | "urgentMitigationsAdvanced"
+  | "controlAdvantages"
+  | "oneStepLookahead"
+  | "summary"
+>;
+
+export interface ContextOperationCandidate extends OperationCandidateCore {
+  planPreview: string[];
+  projected: OperationProjection;
+  projectedTerminalFailure: boolean;
+  strategy: ContextOperationStrategy;
+}
+
+function projectOperationCandidate(candidate: OperationCandidate): ContextOperationCandidate {
+  return {
+    operationCandidateId: candidate.operationCandidateId,
+    kind: candidate.kind,
+    target: candidate.target,
+    label: candidate.label,
+    successCondition: candidate.successCondition,
+    requiredWorldRevision: candidate.requiredWorldRevision,
+    requiredWorldDigest: candidate.requiredWorldDigest,
+    planId: candidate.planId,
+    estimatedPrimitiveSteps: candidate.estimatedPrimitiveSteps,
+    planPreview: candidate.planPreview,
+    projected: candidate.projected,
+    projectedTerminalFailure: candidate.projectedTerminalFailure,
+    strategy: {
+      classification: candidate.strategy.classification,
+      strategicRank: candidate.strategy.strategicRank,
+      selectionClass: candidate.strategy.selectionClass,
+      projectedVictory: candidate.strategy.projectedVictory,
+      lowerBoundTimeFeasible: candidate.strategy.lowerBoundTimeFeasible,
+      optimisticStepSlack: candidate.strategy.optimisticStepSlack,
+      newlySatisfied: candidate.strategy.newlySatisfied,
+      regressed: candidate.strategy.regressed,
+      urgentMitigationsAdvanced: candidate.strategy.urgentMitigationsAdvanced,
+      controlAdvantages: candidate.strategy.controlAdvantages,
+      oneStepLookahead: candidate.strategy.oneStepLookahead,
+      summary: candidate.strategy.summary,
+    },
+  };
+}
 
 export interface AgentContextPayload {
   schemaVersion: 2;
@@ -72,7 +134,7 @@ export interface AgentContextPayload {
     decisionPolicy: string[];
   };
   recentFacts: WorldFact[];
-  allowedOperations: OperationCandidate[];
+  allowedOperations: ContextOperationCandidate[];
   instruction: string;
 }
 
@@ -170,16 +232,16 @@ function basePayload(
     strategy: {
       goal: analyzeGoalStrategy(state),
       decisionPolicy: [
-        "If any allowed Operation has strategy.projectedVictory=true, choose that Operation immediately.",
-        "Never choose immediate_failure or time_infeasible while a time-feasible alternative exists.",
-        "Avoid goal_regression while a non-regressive alternative exists; preserve satisfied victory requirements and distress prerequisites.",
-        "Address the shortest active threat horizon and prefer Operations that advance its mitigation requirements.",
-        "Use strategicRank as the transparent default ordering; deviate only when the Context provides a concrete reason.",
+        "Choose the sole Operation with strategy.selectionClass=preferred unless the Context contains concrete contradictory evidence.",
+        "Never choose selectionClass=blocked while preferred or viable exists.",
+        "Defer selectionClass=defer while preferred exists; do not reinterpret a longer mission deadline as more urgent than a shorter survival threat.",
+        "Treat urgentMitigationsAdvanced as transitive dependency evidence: repairing or powering a dependency advances the threatened safety requirement.",
+        "Preserve satisfied victory requirements and distress prerequisites; a power shutdown marked goal_regression is not ordinary battery optimization.",
       ],
     },
     recentFacts: recentFacts(events, factLimit),
-    allowedOperations: compileOperationFrontier(state),
-    instruction: "Choose exactly one allowed Operation by copying its operationCandidateId. Apply strategy.decisionPolicy in order. Never invent objects, Commands, paths, Effects, or completion claims.",
+    allowedOperations: compileOperationFrontier(state).map(projectOperationCandidate),
+    instruction: "Choose exactly one allowed Operation by copying its operationCandidateId. Apply strategy.decisionPolicy in order, beginning with selectionClass=preferred. Never invent objects, Commands, paths, Effects, or completion claims.",
   };
 }
 

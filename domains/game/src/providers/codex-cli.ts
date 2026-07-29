@@ -55,7 +55,7 @@ export class CodexCliProvider implements OperationProvider {
       }, null, 2) + "\n");
       const prompt = [
         "You are one replaceable cognitive step inside a persistent game Agent Host.",
-        "Use only the canonical Context below. Apply strategy.decisionPolicy in order, inspect each candidate strategy, and choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
+        "Use only the canonical Context below. Apply strategy.decisionPolicy in order. Start from the sole strategy.selectionClass=preferred Operation; never choose blocked or defer while preferred exists. Choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
         "Never invent Commands, objects, paths, Effects, completion claims, or another Operation. Return JSON only.",
         "",
         canonicalJson(context.payload),

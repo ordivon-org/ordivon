@@ -1,7 +1,6 @@
 import { sha256 } from "../digest.ts";
 import type { WorldState } from "../model.ts";
-import type { CompiledAgentContext } from "../host/context.ts";
-import type { OperationCandidate } from "../host/operations.ts";
+import type { CompiledAgentContext, ContextOperationCandidate } from "../host/context.ts";
 
 export type DecisionRiskLevel = "low" | "medium" | "high" | "critical";
 
@@ -42,7 +41,7 @@ export function admitOperationDecision(
   context: CompiledAgentContext,
   currentState: WorldState,
   decision: OperationDecision,
-): OperationCandidate | null {
+): ContextOperationCandidate | null {
   validateOperationDecision(decision);
   if (decision.contextId !== context.contextId) {
     throw new DecisionAdmissionError("wrong_context", "Provider Decision targets another Context");

@@ -10,13 +10,12 @@ import type {
   TaskOutcome,
   VerificationReceipt,
 } from "../host-contract/model.ts";
-import type { AgentContextPayload, CompiledAgentContext } from "./context.ts";
+import type { AgentContextPayload, CompiledAgentContext, ContextOperationCandidate } from "./context.ts";
 import { compileAgentContext } from "./context.ts";
 import {
   compileSkillPlan,
   materializeSkillStep,
   operationSucceeded,
-  type OperationCandidate,
   type SkillPlan,
 } from "./operations.ts";
 import {
@@ -341,7 +340,7 @@ export class AgentHost {
     const evidenceArtifact = evidence ? this.host.putArtifact("provider-evidence-v1", evidence) : null;
     const decisionArtifact = this.host.putArtifact("operation-decision-v1", decision);
     this.inject("after_decision_artifact");
-    let candidate: OperationCandidate | null;
+    let candidate: ContextOperationCandidate | null;
     try {
       candidate = admitOperationDecision(context, this.game.loadState(runId), decision);
     } catch (error) {

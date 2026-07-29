@@ -1,11 +1,10 @@
-import type { CompiledAgentContext } from "../host/context.ts";
-import type { OperationCandidate } from "../host/operations.ts";
+import type { CompiledAgentContext, ContextOperationCandidate } from "../host/context.ts";
 import type { OperationDecision, OperationProvider } from "./types.ts";
 
 function find(
   context: CompiledAgentContext,
-  predicate: (candidate: OperationCandidate) => boolean,
-): OperationCandidate | null {
+  predicate: (candidate: ContextOperationCandidate) => boolean,
+): ContextOperationCandidate | null {
   return context.payload.allowedOperations.find(predicate) ?? null;
 }
 
@@ -14,7 +13,7 @@ export class RecoveryOperationProvider implements OperationProvider {
 
   async decide(context: CompiledAgentContext): Promise<OperationDecision> {
     const { objectives, telemetry } = context.payload;
-    let selected: OperationCandidate | null = null;
+    let selected: ContextOperationCandidate | null = null;
     if (!objectives.coolingOperational) {
       selected = find(context, (candidate) => candidate.kind === "repair_system" && candidate.target.id === "cooling");
     } else if (!objectives.coolingPowered && telemetry.reactorHeat > (objectives.lifeSupportPowered ? 70 : 20)) {
