@@ -1,3 +1,4 @@
+import { deploymentCatalog } from "../deployment/profiles.ts";
 import { listScenarioCases } from "../scenario-cases.ts";
 import { initialTeamWorld } from "../scenario.ts";
 import type { ActorRole, AuthorityPolicyMode } from "../team/model.ts";
@@ -36,8 +37,8 @@ export interface MissionControlCatalog {
     seedSemantics: "compatibility-label";
   };
   cases: ReturnType<typeof listScenarioCases>;
-  loadouts: Array<{ profileId: "baseline"; label: string; configurable: false }>;
-  coordinationProfiles: Array<{ profileId: "baseline"; label: string; configurable: false }>;
+  fixedLoadout: ReturnType<typeof deploymentCatalog>["fixedLoadout"];
+  coordinationProfiles: ReturnType<typeof deploymentCatalog>["coordination"];
   actors: Array<{
     actorId: string;
     name: string;
@@ -73,6 +74,7 @@ export function createMissionControlCatalog(): MissionControlCatalog {
       objectiveIds: objectivesForRole(role),
     };
   });
+  const deployment = deploymentCatalog();
   return {
     schemaVersion: 1,
     scenario: {
@@ -83,8 +85,8 @@ export function createMissionControlCatalog(): MissionControlCatalog {
       seedSemantics: "compatibility-label",
     },
     cases: listScenarioCases("station-zero", 2),
-    loadouts: [{ profileId: "baseline", label: "Baseline item placement", configurable: false }],
-    coordinationProfiles: [{ profileId: "baseline", label: "No initial coordination message", configurable: false }],
+    fixedLoadout: deployment.fixedLoadout,
+    coordinationProfiles: deployment.coordination,
     actors,
     providers: MISSION_PROVIDER_OPTIONS.map((option) => ({ ...option })),
     authorityPolicies: AUTHORITY_POLICY_OPTIONS.map((option) => ({ ...option })),

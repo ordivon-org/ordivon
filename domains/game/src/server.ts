@@ -14,6 +14,7 @@ import { AgentHost } from "./host/engine.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
 import { CodexCliProvider } from "./providers/codex-cli.ts";
 import { ProviderChain } from "./providers/chain.ts";
+import { providerPreflight } from "./providers/preflight.ts";
 import { RecoveryOperationProvider } from "./providers/fixture.ts";
 import { buildRunEvidenceGraph, ReplayEvidenceError } from "./replay/evidence.ts";
 import { diagnoseRun } from "./replay/diagnosis.ts";
@@ -43,7 +44,9 @@ const staticFiles: Record<string, { file: string; contentType: string }> = {
   "/debug.css": { file: "debug.css", contentType: "text/css; charset=utf-8" },
   ...Object.fromEntries([
     "app.js", "api.js", "store.js", "render-utils.js", "render-map.js", "render-actors.js",
-    "render-inbox.js", "render-objectives.js", "render-timeline.js", "render-shell.js", "debug.js",
+    "render-inbox.js", "render-objectives.js", "render-timeline.js", "render-shell.js",
+    "render-navigation.js", "render-curves.js", "render-replay.js", "render-diagnosis.js",
+    "render-compare.js", "debug.js",
   ].map((file) => [`/${file}`, { file, contentType: "text/javascript; charset=utf-8" }])),
 };
 
@@ -415,7 +418,14 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
-      if (request.method === "GET" && url.pathname === "/api/deployments/catalog") { sendJson(response, 200, deploymentCatalog()); return; }
+      if (request.method === "GET" && url.pathname === "/api/providers/preflight") {
+        sendJson(response, 200, providerPreflight());
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/deployments/catalog") {
+        sendJson(response, 200, deploymentCatalog());
+        return;
+      }
       if (request.method === "GET" && url.pathname === "/api/deployments/manifest") {
         const manifest = new DeploymentStore(store).get(runId);
         sendJson(response, manifest ? 200 : 404, manifest ?? { error: "deployment_not_found" });

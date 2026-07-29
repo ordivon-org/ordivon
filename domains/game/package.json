@@ -12,7 +12,7 @@
     "demo": "node scripts/demo.ts",
     "test": "node --test test/*.test.ts",
     "check": "pnpm typecheck && pnpm webcheck && pnpm coverage",
-    "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs",
+    "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs && node scripts/check-m5-web.mjs",
     "m4:evaluate": "node scripts/m4-evaluation.ts --write",
     "receipt": "node scripts/receipt.ts",
     "release:inputs": "node scripts/release-inputs.ts",
@@ -24,13 +24,15 @@
     "measure:write": "node scripts/measure.ts --write",
     "m2:evaluate": "node scripts/m2-live-evaluation.ts",
     "m21:evaluate": "node scripts/m2-live-evaluation.ts",
-    "m3:evaluate": "node scripts/m3-live-evaluation.ts"
+    "m3:evaluate": "node scripts/m3-live-evaluation.ts",
+    "e2e": "node scripts/e2e-first-playable.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^26.1.1",
     "fast-check": "^4.9.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "playwright": "1.62.0"
   },
   "packageManager": "pnpm@10.33.2"
 }
