@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { compareRuns, ComparisonError } from "../src/comparison/compare.ts";
-import { deploymentCatalog } from "../src/deployment/profiles.ts";
+import { compareRuns, comparisonCompatibility, ComparisonError } from "../src/comparison/compare.ts";
+import { deploymentCatalog, resolveCoordinationProfile, resolveLoadoutProfile } from "../src/deployment/profiles.ts";
 import { DeploymentError, DeploymentStore } from "../src/deployment/store.ts";
 import { MissionControlService, type MissionProviderFactory } from "../src/mission-control/service.ts";
 import { createGameServer } from "../src/server.ts";
@@ -19,3 +19,32 @@ test("same power-constrained Case proves a coordination-only failure-to-victory 
 test("cross-Case comparison is descriptive-only and incompatible contracts fail closed",async()=>{const store=new GameStore(":memory:"),service=new MissionControlService(store,factory);try{service.initialize({runId:"run:compare:baseline",scenarioCaseId:"baseline"});service.initialize({runId:"run:compare:oxygen",scenarioCaseId:"oxygen-constrained"});await finish(service,"run:compare:baseline");await finish(service,"run:compare:oxygen");assert.equal(compareRuns(store,"run:compare:baseline","run:compare:oxygen").mode,"descriptive-only");store.createRun({runId:"run:compare:other-inputs",scenarioVersion:2,scenarioCaseId:"baseline",rulesetVersion:3,evaluatedInputsDigest:"sha256:different"});const team=new TeamHost(store,new FixtureTeamProvider());team.initialize("run:compare:other-inputs");const tasks=team.team.listTasks("run:compare:other-inputs").filter(t=>t.actorId).map(t=>({actorId:t.actorId!,providerOrder:["fixture"]}));new DeploymentStore(store).bind({runId:"run:compare:other-inputs",authorityPolicyMode:"autonomous",actors:tasks});assert.throws(()=>compareRuns(store,"run:compare:baseline","run:compare:other-inputs"),e=>e instanceof ComparisonError&&/Evaluated input/.test(e.message));assert.throws(()=>compareRuns(store,"run:compare:baseline","run:compare:baseline"),/two different Runs/);}finally{store.close();}});
 test("Deployment cannot be added after cognition or World execution",async()=>{const store=new GameStore(":memory:"),runId="run:deployment:late";try{store.createRun({runId,scenarioVersion:2,scenarioCaseId:"baseline",rulesetVersion:3});const team=new TeamHost(store,new FixtureTeamProvider());await team.run(runId,8);assert.ok(store.loadState(runId).revision>0);assert.throws(()=>new DeploymentStore(store).bind({runId,authorityPolicyMode:"autonomous",actors:team.team.listTasks(runId).filter(t=>t.actorId).map(t=>({actorId:t.actorId!,providerOrder:["fixture"]}))}),e=>e instanceof DeploymentError&&/before World execution/.test(e.message));}finally{store.close();}});
 test("Deployment and comparison HTTP APIs expose typed release inputs",async()=>{const dir=mkdtempSync(join(tmpdir(),"ordivon-compare-http-"));const game=createGameServer({dbPath:join(dir,"world.sqlite3"),teamProviderFactory:factory});try{const base=await listen(game);const catalog=await (await fetch(`${base}/api/deployments/catalog`)).json() as any;assert.deepEqual(catalog, deploymentCatalog());for(const [runId,profile] of [["run:http:short","specialist-containment"],["run:http:long","engineer-seal"]] as const){const response=await fetch(`${base}/api/mission-control/initialize`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,scenarioCaseId:"power-constrained",coordinationProfileId:profile,providers:{"engineer-01":"fixture","medic-01":"fixture","security-01":"fixture"}})});assert.equal(response.status,201);const service=new MissionControlService(game.store,factory);await finish(service,runId);}const manifest=await fetch(`${base}/api/deployments/manifest?runId=run:http:short`);assert.equal(manifest.status,200);assert.equal((await manifest.json() as any).coordinationProfileId,"specialist-containment");const comparison=await fetch(`${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:long`);assert.equal(comparison.status,200);assert.equal((await comparison.json() as any).mode,"exact");assert.equal((await fetch(`${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:short`)).status,400);assert.equal((await fetch(`${base}/api/deployments/manifest?runId=run:missing`)).status,404);}finally{await game.close();rmSync(dir,{recursive:true,force:true});}});
+
+
+test("profile and compatibility contracts fail closed across unsupported release inputs", () => {
+  assert.throws(() => resolveLoadoutProfile("unbounded-loadout"), /unsupported loadout/);
+  assert.throws(() => resolveCoordinationProfile("generic-coordinator"), /unsupported coordination/);
+  assert.equal(resolveLoadoutProfile(undefined), "standard-loadout");
+  assert.equal(resolveCoordinationProfile(undefined), "specialist-containment");
+  const store = new GameStore(":memory:");
+  try {
+    const service = new MissionControlService(store, factory);
+    service.initialize({ runId: "run:compatibility:base", scenarioCaseId: "baseline" });
+    const base = new DeploymentStore(store).get("run:compatibility:base")!;
+    assert.throws(() => comparisonCompatibility(base, { ...base, runId: "other", scenarioId: "other-scenario" }), /Scenario contracts/);
+    assert.throws(() => comparisonCompatibility(base, { ...base, runId: "other", scenarioVersion: base.scenarioVersion + 1 }), /Scenario contracts/);
+    assert.throws(() => comparisonCompatibility(base, { ...base, runId: "other", rulesetId: "other-ruleset" }), /Ruleset contracts/);
+    assert.throws(() => comparisonCompatibility(base, { ...base, runId: "other", rulesetVersion: base.rulesetVersion + 1 }), /Ruleset contracts/);
+    assert.throws(() => comparisonCompatibility(base, { ...base, runId: "other", evaluatedInputsDigest: "sha256:other" }), /Evaluated input contracts/);
+  } finally { store.close(); }
+});
+
+test("corrupt deployment bindings fail closed before comparison", () => {
+  const store = new GameStore(":memory:");
+  const runId = "run:deployment:corrupt";
+  try {
+    new MissionControlService(store, factory).initialize({ runId, scenarioCaseId: "baseline" });
+    store.db.prepare("UPDATE host_journal SET payload_json = ? WHERE run_id = ? AND event_type = ?").run("{}", runId, "game.deployment-bound");
+    assert.throws(() => new DeploymentStore(store).get(runId), (error) => error instanceof DeploymentError && error.code === "deployment_corrupt" && /incomplete/.test(error.message));
+  } finally { store.close(); }
+});
