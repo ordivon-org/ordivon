@@ -1,0 +1,85 @@
+{
+  "capturedAt": "2026-07-29",
+  "decision": {
+    "deploymentForm": "conformance-backed-embedded-typescript",
+    "reason": "The embedded adapter preserves exact cross-language semantics with 32 ms single-Actor and 79 ms Team synchronization cost while avoiding a new process, transport, and cross-database failure boundary.",
+    "sidecarDeferred": true,
+    "syncCadence": "once-per-run-close"
+  },
+  "gates": {
+    "coverage": {
+      "branchesPercent": 90.13,
+      "functionsPercent": 98.52,
+      "linesPercent": 98.61
+    },
+    "crossLanguageVectors": "passed",
+    "diffCheck": "passed",
+    "tests": {
+      "failed": 0,
+      "passed": 214
+    },
+    "typecheck": "passed",
+    "webcheck": "passed"
+  },
+  "host": {
+    "capabilities": [
+      "open-action-proposal",
+      "domain-neutral-workload-lifecycle",
+      "goal-task-revision-snapshots",
+      "multi-result-verification"
+    ],
+    "sourceRevision": "0cd52c0d7b6b7884fd5e633906c2379a78da9863"
+  },
+  "integration": {
+    "authorityMode": "legacy-exec-contract-reconstruction",
+    "gameBranchBase": "d3080829264983ad6ecc25e3c6b100604b0d5560",
+    "legacyTimelineFiltersContractEvents": true,
+    "uniqueAuthorityCutover": false
+  },
+  "kind": "ordivon.game.host-convergence-p0-p2-evaluation",
+  "protocol": {
+    "profile": "host-workload-v1",
+    "sourceRevision": "ca5af401eda77d1081487c2df07ce9d94003719e",
+    "version": "0.3.0"
+  },
+  "recovery": {
+    "dispatches": 18,
+    "duplicateWorldTicks": 0,
+    "faultPoint": "after_world_apply",
+    "freshProcess": true,
+    "observations": 18,
+    "verifications": 18,
+    "worldEvents": 18
+  },
+  "schemaVersion": 1,
+  "singleActor": {
+    "contexts": 10,
+    "contractSyncMs": 32,
+    "decisions": 10,
+    "dispatches": 25,
+    "observations": 25,
+    "outcomes": 1,
+    "runMs": 4799,
+    "transcriptEntries": 192,
+    "verifications": 25,
+    "worldDigest": "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2",
+    "worldRevision": 25
+  },
+  "team": {
+    "contexts": 54,
+    "contractSyncMs": 79,
+    "decisions": 54,
+    "dispatches": 18,
+    "effects": 18,
+    "goalSnapshots": 18,
+    "observations": 18,
+    "outcomes": 4,
+    "resultItemsPerVerification": 3,
+    "runMs": 7481,
+    "taskDescriptors": 4,
+    "transcriptEntries": 350,
+    "verifications": 18,
+    "worldDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+    "worldRevision": 18
+  }
+}

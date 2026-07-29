@@ -1,4 +1,5 @@
 import { canonicalJson, sha256 } from "../digest.ts";
+import { SingleActorHostContractAdapter } from "../host-contract/adapters.ts";
 import type { AgentContextPayload, CompiledAgentContext } from "./context.ts";
 import { compileAgentContext } from "./context.ts";
 import {
@@ -81,6 +82,7 @@ export class AgentHost {
   readonly provider: OperationProvider;
   readonly host: HostStore;
   readonly execution: HostExecutionStore;
+  readonly contract: SingleActorHostContractAdapter;
   readonly faultInjector: ((point: HostFaultPoint) => void) | undefined;
 
   constructor(game: GameStore, provider: OperationProvider, options: AgentHostOptions = {}) {
@@ -88,11 +90,18 @@ export class AgentHost {
     this.provider = provider;
     this.host = new HostStore(game.db);
     this.execution = new HostExecutionStore(game.db, this.host);
+    this.contract = new SingleActorHostContractAdapter(game, this.host, this.execution);
     this.faultInjector = options.faultInjector;
   }
 
   initialize(runId = this.game.activeRunId, providerOrder = [this.provider.providerId]): AgentProjection {
-    return this.host.initializeRun(this.game.getRun(runId), this.game.loadState(runId), providerOrder);
+    const projection = this.host.initializeRun(this.game.getRun(runId), this.game.loadState(runId), providerOrder);
+    this.contract.syncDescriptor(runId);
+    return projection;
+  }
+
+  syncContract(runId = this.game.activeRunId): void {
+    this.contract.sync(runId);
   }
 
   projection(runId = this.game.activeRunId): AgentProjection {
@@ -173,6 +182,7 @@ export class AgentHost {
       const projection = this.host.getProjection(runId);
       if (["blocked", "succeeded", "failed", "cancelled"].includes(projection.task.phase)) break;
     }
+    this.contract.sync(runId);
     const state = this.game.loadState(runId);
     return {
       runId,
