@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.host-authority-cutover-p3-p6",
+  "baselineRevisions": {
+    "protocol": "ca5af401eda77d1081487c2df07ce9d94003719e",
+    "host": "0cd52c0d7b6b7884fd5e633906c2379a78da9863",
+    "game": "652abfbe8d034608725cede13b2eb677faba1159"
+  },
+  "implementationRevisions": {
+    "rulesetV3RecoveryFix": "cafd023400c3b2a78e79557677e0eb0ab728719c",
+    "authorityCutover": "98508b13a08db1da47b0cbaa8d354b497de81b5f"
+  },
+  "authority": {
+    "genericTaskEffectTruth": "EmbeddedHostAuthority",
+    "worldTruth": "GameStore",
+    "genericAuthorityTables": ["host_artifacts", "host_journal"],
+    "dualWrite": false,
+    "compareMode": false,
+    "reconstructionAdapters": false
+  },
+  "p3Decision": {
+    "selected": "embedded-typescript-authority",
+    "rejected": "python-jsonl-stdio-sidecar",
+    "samples": 20,
+    "noProvider": true,
+    "sidecar": {
+      "startupMs": 196.120,
+      "lifecycleP50Ms": 259.260,
+      "lifecycleP95Ms": 286.873,
+      "productionLines": 879,
+      "operationP95Ms": {"ensure": 43.752, "prepare": 85.182, "observe": 60.001, "verify": 56.961, "complete": 57.102}
+    },
+    "embedded": {
+      "startupMs": 36.896,
+      "lifecycleP50Ms": 96.567,
+      "lifecycleP95Ms": 111.843,
+      "productionLines": 212,
+      "operationP95Ms": {"ensure": 17.780, "prepare": 30.256, "observe": 19.803, "verify": 22.535, "complete": 24.437}
+    },
+    "sidecarMerged": false
+  },
+  "singleActor": {
+    "deterministic": {
+      "decisions": 10,
+      "taskDescriptors": 25,
+      "dispatches": 25,
+      "observations": 25,
+      "verifications": 25,
+      "outcomes": 25,
+      "finalWorldRevision": 25,
+      "finalWorldDigest": "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2"
+    },
+    "liveCodex": {
+      "providerCalls": 10,
+      "hostSteps": 138,
+      "effects": 27,
+      "dispatches": 27,
+      "observations": 27,
+      "finalMission": "victory",
+      "finalWorldRevision": 27,
+      "finalWorldDigest": "fa6a3a7f17973cc3dec0bd6b179e94bc03f0ee591e977c545508c831f9fb9439",
+      "replayDigest": "fa6a3a7f17973cc3dec0bd6b179e94bc03f0ee591e977c545508c831f9fb9439",
+      "elapsedMs": 217054.143,
+      "inputTokens": 196371,
+      "cachedInputTokens": 13056,
+      "outputTokens": 1575,
+      "receiptDigest": "sha256:415db02ad832bdd9e5f64c3293d48d8bc591b4bacfb63543b099e38b469b5073"
+    }
+  },
+  "team": {
+    "rounds": 18,
+    "contexts": 54,
+    "proposals": 54,
+    "taskDescriptors": 18,
+    "dispatches": 18,
+    "observations": 18,
+    "verifications": 18,
+    "resultItems": 54,
+    "outcomes": 18,
+    "duplicateTicks": 0,
+    "finalWorldRevision": 18,
+    "finalWorldDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+    "replayDigest": "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7",
+    "receiptDigest": "sha256:24c76b71caab985a2713a65b02368baef84f55d2f2fe3eaf51ddc5a8e6cb6cd6"
+  },
+  "deletedDuplicateTables": [
+    "host_goals", "host_tasks", "host_attempts", "host_effects", "host_dispatches", "host_observations",
+    "team_goals", "team_tasks", "team_task_leases", "team_context_refs", "team_effects", "team_dispatches", "team_observations"
+  ],
+  "retainedDomainTables": [
+    "game_agent_sessions", "team_actor_sessions", "team_actor_leases", "team_profiles", "team_run_configurations",
+    "team_messages", "team_authority_decisions", "team_authority_grants", "team_rounds", "team_round_contexts",
+    "team_proposals", "team_tick_plans"
+  ],
+  "validation": {
+    "testsPassed": 213,
+    "testsFailed": 0,
+    "lineCoveragePercent": 98.10,
+    "branchCoveragePercent": 90.05,
+    "functionCoveragePercent": 98.23,
+    "typecheck": true,
+    "webcheck": true,
+    "diffCheck": true,
+    "missionControl": true,
+    "pointInTimeReplay": true
+  },
+  "diffAgainstP0P2Baseline": {"linesAdded": 1466, "linesDeleted": 2107, "netLines": -641},
+  "historicalDatabaseMigration": false
+}

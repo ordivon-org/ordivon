@@ -900,3 +900,14 @@ three persistent specialists
 ```
 
 M3 does not need a polished game UI. It must deliver the trustworthy team substrate that M4 can expose to the player.
+
+
+---
+
+## Successor note: P3–P6 authority cutover
+
+This document records the design that produced M3. Its sections describing generalized `host_*` and `team_*` Task/Effect tables are historical.
+
+The production successor deletes those duplicate generic stores. `EmbeddedHostAuthority` now owns TaskDescriptor, Dispatch, Observation, VerificationReceipt, and TaskOutcome for both single-Actor Effects and Team Rounds. Team storage retains only domain sessions, Messages, authority, Rounds, Context references, Proposals, and TickPlans.
+
+See `HOST-AUTHORITY-CUTOVER-P3-P6.md` for the final boundary and evidence.

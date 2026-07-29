@@ -253,3 +253,24 @@ P0–P2 deliberately do not:
 - rewrite historical World or Host events.
 
 Deletion should begin only after the embedded contract path is used as the executable authority for a bounded workload and the removable legacy code is measured directly. A sidecar should be reconsidered only if independent Host operation or a second non-TypeScript deployment proves that process separation removes more complexity than it adds.
+
+
+## Successor status: unique authority cutover
+
+The P0–P2 adapters documented above were migration scaffolding. They have now been deleted.
+
+The production path is:
+
+```text
+Agent or Team domain cognition/session
+→ EmbeddedHostAuthority
+→ TaskDescriptor / Dispatch / Observation / Verification / TaskOutcome
+→ GameWorldExecutor
+→ authoritative Game World event
+```
+
+Single-Actor execution creates one Host workload Task per primitive World Effect. Team execution creates one Host workload Task per atomic Team Round. Game retains only domain sessions, authority, proposals, Tick plans, messages, and World truth.
+
+A Python JSONL sidecar was tested as a competing hypothesis and rejected: its five-stage no-Provider lifecycle p95 was 286.873 ms with 879 production lines and a 196.120 ms startup, versus 111.843 ms, 212 lines, and 36.896 ms for the embedded authority. The sidecar code was not merged.
+
+See `HOST-AUTHORITY-CUTOVER-P3-P6.md` and `HOST-AUTHORITY-CUTOVER-P3-P6.json`.
