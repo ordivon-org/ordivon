@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { buildKeyTurns, buildReplayCurves } from "../src/replay/analysis.ts";
-import { boundedFinalRoundSensitivity, diagnoseRun } from "../src/replay/diagnosis.ts";
+import { boundedFinalRoundSensitivity, diagnoseRun, diagnosisDirectExplanation } from "../src/replay/diagnosis.ts";
 import { buildRunEvidenceGraph } from "../src/replay/evidence.ts";
 import { createGameServer } from "../src/server.ts";
 import { GameStore } from "../src/storage.ts";
@@ -18,3 +18,17 @@ test("power exhaustion reports direct predicate and verified battery contributor
 test("oxygen-constrained failure reports health and oxygen contributors",async()=>{const{store,runId}=await run("oxygen-constrained","engineer-seal");try{const diagnosis=diagnoseRun(store,runId);assert.equal(diagnosis.terminal.reason,"team_incapacitated");assert.ok(diagnosis.claims.some(c=>/Oxygen loss/.test(c.title)));assert.ok(diagnosis.claims.some(c=>/lost health/.test(c.title)));assert.ok(diagnosis.keyTurns.some(turn=>turn.kind==="health-threshold"));}finally{store.close();}});
 test("running mission diagnosis never invents a terminal failure",()=>{const store=new GameStore(":memory:");try{const diagnosis=diagnoseRun(store);assert.equal(diagnosis.terminal.status,"running");assert.equal(diagnosis.claims.some(c=>c.evidenceClass==="VERIFIED_DIRECT"),false);assert.ok(diagnosis.claims.some(claim=>/Mission remains active/.test(claim.title)));}finally{store.close();}});
 test("analysis and diagnosis HTTP APIs are read-only",async()=>{const directory=mkdtempSync(join(tmpdir(),"ordivon-diagnosis-http-"));const game=createGameServer({dbPath:join(directory,"world.sqlite3"),teamProviderFactory:()=>new FixtureTeamProvider()});try{const runId="run:diagnosis:http";game.store.createRun({runId,scenarioVersion:2,scenarioCaseId:"baseline",rulesetVersion:3});await new TeamHost(game.store,new FixtureTeamProvider()).run(runId,512);const before=game.store.eventCount(runId),base=await listen(game);const analysis=await fetch(`${base}/api/replay/analysis?runId=${runId}`);assert.equal(analysis.status,200);const a=await analysis.json() as any;assert.equal(a.curves.revisions.length,19);assert.ok(a.keyTurns.length<=12);const response=await fetch(`${base}/api/replay/diagnosis?runId=${runId}`);assert.equal(response.status,200);const diagnosis=await response.json() as any;assert.equal(diagnosis.terminal.status,"victory");assert.equal(game.store.eventCount(runId),before);}finally{await game.close();rmSync(directory,{recursive:true,force:true});}});
+
+
+test("direct terminal explanations cover every retained mission reason without upgrading evidence", () => {
+  const expectations = new Map<string | null, RegExp>([
+    ["power_exhausted", /Battery/], ["engineer_incapacitated", /Engineer/], ["team_incapacitated", /Team/],
+    ["crew_lost", /crew/], ["reactor_meltdown", /Reactor/], ["mission_timeout", /turn limit/],
+    ["rescue_signal_verified", /Rescue/], ["unknown_reason", /Terminal World/], [null, /Terminal World/],
+  ]);
+  for (const [reason, pattern] of expectations) {
+    const [title, explanation] = diagnosisDirectExplanation(reason);
+    assert.match(title, pattern);
+    assert.ok(explanation.length > 20);
+  }
+});
