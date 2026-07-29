@@ -5,10 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { MissionControlService } from "../src/mission-control/service.ts";
-import { buildRunEvidenceGraph, ReplayEvidenceError } from "../src/replay/evidence.ts";
+import { assertEvidenceLinkIntegrity, buildRunEvidenceGraph, ReplayEvidenceError } from "../src/replay/evidence.ts";
 import { MAX_REPLAY_FRAME_BYTES, replayFrame, replayFramesPage, replaySummary } from "../src/replay/frames.ts";
 import { createGameServer } from "../src/server.ts";
 import { GameStore } from "../src/storage.ts";
+import { TeamHost } from "../src/team/engine.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
 
 async function finish(strategy: "security-contain" | "engineer-seal", store = new GameStore(":memory:")) {
@@ -94,8 +95,11 @@ test("Replay Frame paging reaches a 22-revision history without gaps or duplicat
     assert.deepEqual(revisions, Array.from({ length: 23 }, (_, revision) => revision));
     assert.equal(new Set(revisions).size, revisions.length);
     assert.throws(() => replayFramesPage(store, runId, -1, 5), /fromRevision/);
+    assert.throws(() => replayFramesPage(store, runId, 0.5, 5), /fromRevision/);
     assert.throws(() => replayFramesPage(store, runId, 23, 5), /0 to 22/);
     assert.throws(() => replayFramesPage(store, runId, 0, 0), /frame limit/);
+    assert.throws(() => replayFramesPage(store, runId, 0, 50.5), /frame limit/);
+    assert.throws(() => replayFramesPage(store, runId, 0, 51), /frame limit/);
   } finally { store.close(); }
 });
 
@@ -128,7 +132,7 @@ test("player interventions appear in the exact revision Frame", async () => {
     service.initialize({ runId, scenarioCaseId: "baseline" });
     service.command(runId, { action: "pause", actorId: "medic-01" });
     const frame = replayFrame(store, runId, 0);
-    assert.ok(frame.playerInterventions.some((entry) => /player-paused/.test(entry.summary)));
+    assert.ok(frame.playerInterventions.some((entry) => /player paused/.test(entry.summary)));
     assert.ok(frame.evidenceNodeIds.includes(`world-state:${runId}:0`));
   } finally { store.close(); }
 });
@@ -189,4 +193,103 @@ test("Replay summary, frame, and paged-frame HTTP APIs are read-only and typed",
     await game.close();
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+
+test("Message and player configuration evidence remain visible before the first World Tick", () => {
+  const store = new GameStore(":memory:");
+  const runId = "run:replay-graph:message-config";
+  const service = new MissionControlService(store, () => new FixtureTeamProvider());
+  try {
+    service.initialize({ runId, scenarioCaseId: "baseline", authorityPolicyMode: "supervised" });
+    service.command(runId, { action: "set-provider", actorId: "engineer-01", provider: "codex-hermes" });
+    service.command(runId, {
+      action: "send-message", senderActorId: "engineer-01", recipientActorIds: ["security-01"],
+      kind: "help-request", boundedSummary: "Reserve the maintenance route.", channel: "station-radio", ttlTicks: 3,
+    });
+    const graph = buildRunEvidenceGraph(store, runId);
+    const message = graph.nodes.find((node) => node.kind === "team-message");
+    assert.ok(message);
+    assert.equal(message.worldRevision, 0);
+    assert.ok(graph.edges.some((edge) => edge.kind === "sent-by" && edge.toNodeId === message.nodeId));
+    assert.ok(graph.edges.some((edge) => edge.kind === "addressed-to" && edge.fromNodeId === message.nodeId));
+    const hostEvents = graph.nodes.filter((node) => node.kind === "host-event");
+    assert.ok(hostEvents.some((node) => /configuration updated/.test(node.summary)));
+    assert.ok(hostEvents.some((node) => /provider updated/.test(node.summary)));
+    const frame = replayFrame(store, runId, 0, graph);
+    assert.equal(frame.messages.length, 1);
+    assert.ok(frame.playerInterventions.length >= 2);
+  } finally { store.close(); }
+});
+
+test("fresh Replay reads a Dispatch-prepared Round before the World advances", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-replay-dispatch-"));
+  const path = join(directory, "world.sqlite3");
+  const runId = "run:replay-graph:dispatch-pending";
+  let store = new GameStore(path);
+  try {
+    const service = new MissionControlService(store, () => new FixtureTeamProvider());
+    service.initialize({ runId, scenarioCaseId: "baseline" });
+    const host = new TeamHost(store, new FixtureTeamProvider());
+    const statuses: string[] = [];
+    for (let index = 0; index < 5; index += 1) statuses.push((await host.step(runId)).status);
+    assert.deepEqual(statuses, ["initialized", "contexts_prepared", "proposals_recorded", "tick_plan_prepared", "dispatch_prepared"]);
+    assert.equal(store.loadState(runId).revision, 0);
+    store.close();
+
+    store = new GameStore(path, { activeRunId: runId });
+    const graph = buildRunEvidenceGraph(store, runId);
+    assert.equal(graph.nodes.filter((node) => node.kind === "effect").length, 1);
+    assert.equal(graph.nodes.filter((node) => node.kind === "dispatch").length, 1);
+    assert.equal(graph.nodes.filter((node) => node.kind === "observation").length, 0);
+    const frame = replayFrame(store, runId, 0, graph);
+    assert.equal(frame.round?.status, "dispatched");
+    assert.equal(frame.effect?.status, "dispatched");
+    assert.equal(frame.dispatch?.status, "pending");
+    assert.equal(frame.observation, null);
+    assert.equal(frame.digest, store.getRun(runId).genesisDigest);
+  } finally {
+    try { store.close(); } catch {}
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("supervised authority Grant is linked before and after exact consumption", async () => {
+  const store = new GameStore(":memory:");
+  const runId = "run:replay-graph:grant";
+  const service = new MissionControlService(store, () => new FixtureTeamProvider());
+  try {
+    service.initialize({ runId, scenarioCaseId: "baseline", authorityPolicyMode: "supervised" });
+    let authorityProposalId: string | null = null;
+    for (let tick = 0; tick < 12 && authorityProposalId === null; tick += 1) {
+      await service.advance(runId, "proposal-review");
+      const result = await service.advance(runId, "tick-verified");
+      if (result.boundary === "authority") {
+        authorityProposalId = result.view.inbox.find((card) => card.kind === "authority-request")?.commands.find((command) => command.action === "approve")?.proposalId ?? null;
+      }
+    }
+    assert.ok(authorityProposalId);
+    const issued = service.command(runId, { action: "approve", proposalId: authorityProposalId, issuedBy: "player:replay-test" }) as { grantId: string };
+    const issuedGraph = buildRunEvidenceGraph(store, runId);
+    const issuedNode = issuedGraph.nodes.find((node) => node.nodeId === `authority-grant:${issued.grantId}`);
+    assert.ok(issuedNode);
+    assert.match(issuedNode.summary, /issued/);
+    assert.ok(issuedGraph.edges.some((edge) => edge.kind === "granted-for" && edge.fromNodeId === issuedNode.nodeId));
+    await service.advance(runId, "tick-verified");
+    const consumedGraph = buildRunEvidenceGraph(store, runId);
+    assert.match(consumedGraph.nodes.find((node) => node.nodeId === issuedNode.nodeId)?.summary ?? "", /consumed/);
+  } finally { store.close(); }
+});
+
+
+test("Evidence link integrity rejects required dangling identities and permits optional references", () => {
+  const nodes = [{ nodeId: "node:a" }, { nodeId: "node:b" }];
+  assert.doesNotThrow(() => assertEvidenceLinkIntegrity(nodes, [
+    { edgeId: "edge:required", kind: "records", fromNodeId: "node:a", toNodeId: "node:b", required: true },
+    { edgeId: "edge:optional", kind: "references", fromNodeId: "node:a", toNodeId: "artifact:external", required: false },
+  ]));
+  assert.throws(
+    () => assertEvidenceLinkIntegrity(nodes, [{ edgeId: "edge:missing", kind: "records", fromNodeId: "node:a", toNodeId: "node:missing", required: true }]),
+    (error) => error instanceof ReplayEvidenceError && /dangling/.test(error.message),
+  );
 });

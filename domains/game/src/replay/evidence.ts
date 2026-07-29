@@ -86,6 +86,19 @@ function inferHostRevision(payload: unknown, proposals: Map<string, ActionPropos
   return visit(payload);
 }
 
+
+export function assertEvidenceLinkIntegrity(
+  nodes: Iterable<Pick<EvidenceNode, "nodeId">>,
+  edges: Iterable<EvidenceEdge>,
+): void {
+  const nodeIds = new Set([...nodes].map((node) => node.nodeId));
+  for (const edge of edges) {
+    if (edge.required && (!nodeIds.has(edge.fromNodeId) || !nodeIds.has(edge.toNodeId))) {
+      throw new ReplayEvidenceError(`Required Evidence edge is dangling: ${edge.edgeId}`);
+    }
+  }
+}
+
 function eventSummary(event: WorldEvent): string {
   if (event.missionStatus !== "running") return `World revision ${event.worldRevision}: ${event.missionStatus} · ${event.missionReason ?? "terminal"}`;
   const intents = event.intentReceipts?.length ?? 1;
@@ -251,19 +264,16 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
 
     const hostJournal = team.host.listJournal(runId);
     for (const event of hostJournal.filter((entry) => !entry.eventType.startsWith("host-contract."))) {
-      const revision = inferHostRevision(event.payload, proposalMap, roundMap);
+      const inferredRevision = inferHostRevision(event.payload, proposalMap, roundMap);
       const playerVisible = /player|configuration-updated|task-provider-updated/.test(event.eventType);
       if (!playerVisible) continue;
+      const revision = inferredRevision ?? 0;
       const nodeId = `host-event:${event.eventId}`;
-      addNode({ nodeId, kind: "host-event", worldRevision: revision, sequence: event.sequence, actorId: null, roundId: null, subjectId: event.eventId, payload: { eventType: event.eventType, payload: event.payload }, summary: event.eventType.replaceAll(".", " ") });
+      addNode({ nodeId, kind: "host-event", worldRevision: revision, sequence: event.sequence, actorId: null, roundId: null, subjectId: event.eventId, payload: { eventType: event.eventType, payload: event.payload }, summary: event.eventType.replaceAll(".", " ").replaceAll("-", " ") });
     }
   }
 
-  for (const edge of edges.values()) {
-    if (edge.required && (!nodes.has(edge.fromNodeId) || !nodes.has(edge.toNodeId))) {
-      throw new ReplayEvidenceError(`Required Evidence edge is dangling: ${edge.edgeId}`);
-    }
-  }
+  assertEvidenceLinkIntegrity(nodes.values(), edges.values());
   const orderedNodes = [...nodes.values()].sort((a, b) => a.nodeId.localeCompare(b.nodeId));
   const orderedEdges = [...edges.values()].sort((a, b) => a.edgeId.localeCompare(b.edgeId));
   const graphBase = { schemaVersion: 1, kind: "ordivon.game.run-evidence-graph", runId, terminalRevision: terminal.revision, nodes: orderedNodes, edges: orderedEdges } as const;

@@ -29,8 +29,11 @@ function reference(graph: RunEvidenceGraph, nodeId: string | null): ReplayEviden
 }
 
 function frameRound(rounds: TeamRound[], revision: number): TeamRound | null {
-  if (revision === 0) return null;
-  return rounds.find((round) => round.worldRevision === revision - 1) ?? null;
+  const advancing = revision === 0
+    ? null
+    : rounds.find((round) => round.worldRevision === revision - 1) ?? null;
+  if (advancing) return advancing;
+  return rounds.find((round) => round.worldRevision === revision && round.status !== "completed") ?? null;
 }
 
 export function replayFrame(store: GameStore, runId: string, revision: number, graph = buildRunEvidenceGraph(store, runId)): ReplayFrame {
