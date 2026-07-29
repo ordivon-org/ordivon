@@ -447,7 +447,6 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           ...(typeof body.scenarioCaseId === "string" ? { scenarioCaseId: body.scenarioCaseId } : {}),
           authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode),
           providers,
-          ...(typeof body.loadoutProfileId === "string" ? { loadoutProfileId: body.loadoutProfileId } : {}),
           ...(typeof body.coordinationProfileId === "string" ? { coordinationProfileId: body.coordinationProfileId } : {}),
         }));
         return;

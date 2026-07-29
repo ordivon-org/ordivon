@@ -1,6 +1,6 @@
 import type { GameStore } from "../storage.ts";
 import type { DeploymentProviderOptions } from "../deployment/model.ts";
-import { resolveCoordinationProfile, resolveLoadoutProfile } from "../deployment/profiles.ts";
+import { resolveCoordinationProfile } from "../deployment/profiles.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
 import { authorityTargetId } from "../team/authority.ts";
@@ -21,7 +21,6 @@ export interface MissionControlInitializeInput {
   scenarioCaseId?: string;
   authorityPolicyMode?: AuthorityPolicyMode;
   providers?: Record<string, MissionProviderName>;
-  loadoutProfileId?: string;
   coordinationProfileId?: string;
 }
 
@@ -92,14 +91,20 @@ export class MissionControlService {
     const retained = deployments.get(input.runId);
     const tasks = team.listTasks(input.runId).filter((candidate) => candidate.actorId);
     const authorityPolicyMode = input.authorityPolicyMode ?? retained?.authorityPolicyMode ?? "autonomous";
-    const loadoutProfileId = resolveLoadoutProfile(input.loadoutProfileId ?? retained?.loadoutProfileId);
-    const coordinationProfileId = resolveCoordinationProfile(input.coordinationProfileId ?? retained?.coordinationProfileId);
+    const coordinationProfileId = resolveCoordinationProfile(
+      input.coordinationProfileId ?? retained?.coordinationProfileId,
+    );
     const actors = tasks.map((task) => {
       const retainedActor = retained?.actors.find((actor) => actor.actorId === task.actorId);
       const selected = input.providers?.[task.actorId!] ?? retainedActor?.providerOrder[0] ?? providerName(task.providerOrder[0]);
       return { actorId: task.actorId!, providerOrder: [selected] };
     });
-    const manifest = deployments.bind({ runId: input.runId, loadoutProfileId, coordinationProfileId, authorityPolicyMode, actors });
+    const manifest = deployments.bind({
+      runId: input.runId,
+      coordinationProfileId,
+      authorityPolicyMode,
+      actors,
+    });
     team.saveConfiguration(manifest.authorityPolicyMode, input.runId);
     for (const task of tasks) {
       const desired = manifest.actors.find((actor) => actor.actorId === task.actorId)!.providerOrder;

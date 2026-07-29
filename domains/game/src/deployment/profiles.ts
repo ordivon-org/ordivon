@@ -1,6 +1,43 @@
-import type { CoordinationProfileId, DeploymentCatalog, LoadoutProfileId } from "./model.ts";
-const LOADOUTS=[{profileId:"standard-loadout" as const,label:"Standard emergency loadout",description:"Preserves the verified Station Zero Genesis item totals and locations."}];
-const COORDINATION=[{profileId:"specialist-containment" as const,label:"Specialist containment",description:"Security contains the breach while Engineer follows the shorter repair route."},{profileId:"engineer-seal" as const,label:"Engineer sealing route",description:"Engineer acquires sealant and seals the breach; Security waits. Longer but independently verifiable."}];
-export function deploymentCatalog():DeploymentCatalog{return{schemaVersion:1,kind:"ordivon.game.deployment-catalog",loadouts:structuredClone(LOADOUTS),coordination:structuredClone(COORDINATION)};}
-export function resolveLoadoutProfile(id:string|undefined):LoadoutProfileId{const selected=id??"standard-loadout";if(!LOADOUTS.some(p=>p.profileId===selected))throw new TypeError(`unsupported loadout profile: ${selected}`);return selected as LoadoutProfileId;}
-export function resolveCoordinationProfile(id:string|undefined):CoordinationProfileId{const selected=id??"specialist-containment";if(!COORDINATION.some(p=>p.profileId===selected))throw new TypeError(`unsupported coordination profile: ${selected}`);return selected as CoordinationProfileId;}
+import {
+  STANDARD_LOADOUT_PROFILE_ID,
+  type CoordinationProfileId,
+  type DeploymentCatalog,
+} from "./model.ts";
+
+const FIXED_LOADOUT = {
+  profileId: STANDARD_LOADOUT_PROFILE_ID,
+  label: "Standard emergency loadout",
+  description: "Preserves the verified Station Zero Genesis item totals and locations.",
+} as const;
+
+const COORDINATION = [
+  {
+    profileId: "specialist-containment" as const,
+    label: "Specialist containment",
+    description: "Security contains the breach while Engineer follows the shorter repair route.",
+  },
+  {
+    profileId: "engineer-seal" as const,
+    label: "Engineer sealing route",
+    description: "Engineer acquires sealant and seals the breach; Security waits. Longer but independently verifiable.",
+  },
+];
+
+export function deploymentCatalog(): DeploymentCatalog {
+  return {
+    schemaVersion: 1,
+    kind: "ordivon.game.deployment-catalog",
+    fixedLoadout: structuredClone(FIXED_LOADOUT),
+    coordination: structuredClone(COORDINATION),
+  };
+}
+
+export function resolveCoordinationProfile(
+  profileId: string | undefined,
+): CoordinationProfileId {
+  const selected = profileId ?? "specialist-containment";
+  if (!COORDINATION.some((profile) => profile.profileId === selected)) {
+    throw new TypeError(`unsupported coordination profile: ${selected}`);
+  }
+  return selected as CoordinationProfileId;
+}
