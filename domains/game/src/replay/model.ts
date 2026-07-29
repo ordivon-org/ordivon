@@ -169,3 +169,24 @@ export interface RunDiagnosis {
   graphDigest: string; curvesDigest: string; keyTurns: ReplayKeyTurn[]; claims: DiagnosisClaim[];
   unsupportedCounterfactualReason: string | null; diagnosisDigest: string;
 }
+
+
+export interface ReplayProjection {
+  schemaVersion: 1;
+  kind: "ordivon.game.replay-projection";
+  runId: string;
+  graph: RunEvidenceGraph;
+  frames: ReplayFrame[];
+  curves: ReplayCurves;
+  keyTurns: ReplayKeyTurn[];
+}
+
+export interface ReplayReport {
+  schemaVersion: 1;
+  kind: "ordivon.game.replay-report";
+  runId: string;
+  summary: ReplaySummary;
+  curves: ReplayCurves;
+  keyTurns: ReplayKeyTurn[];
+  diagnosis: RunDiagnosis;
+}

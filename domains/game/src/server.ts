@@ -12,8 +12,9 @@ import { CodexCliProvider } from "./providers/codex-cli.ts";
 import { ProviderChain } from "./providers/chain.ts";
 import { RecoveryOperationProvider } from "./providers/fixture.ts";
 import { buildRunEvidenceGraph, ReplayEvidenceError } from "./replay/evidence.ts";
-import { buildKeyTurns, buildReplayCurves } from "./replay/analysis.ts";
 import { diagnoseRun } from "./replay/diagnosis.ts";
+import { buildReplayProjection } from "./replay/projection.ts";
+import { buildReplayReport } from "./replay/report.ts";
 import { replayFrame, replayFramesPage, replaySummary } from "./replay/frames.ts";
 import { HermesCliProvider } from "./providers/hermes-cli.ts";
 import type { OperationProvider } from "./providers/types.ts";
@@ -286,9 +287,16 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/replay/analysis") {
-        const graph = buildRunEvidenceGraph(store, runId);
-        const curves = buildReplayCurves(store, runId, graph);
-        sendJson(response, 200, { runId, curves, keyTurns: buildKeyTurns(store, runId, graph, curves) });
+        const projection = buildReplayProjection(store, runId);
+        sendJson(response, 200, {
+          runId,
+          curves: projection.curves,
+          keyTurns: projection.keyTurns,
+        });
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/replay/report") {
+        sendJson(response, 200, buildReplayReport(store, runId));
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/replay/diagnosis") {
