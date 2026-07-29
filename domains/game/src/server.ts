@@ -184,8 +184,8 @@ function agentEnvelope(store: GameStore, provider: OperationProvider, runId: str
       initialized: true,
       runId,
       projection,
-      effects: agent.execution.listEffects(runId),
-      dispatches: agent.execution.listDispatches(runId),
+      effects: agent.authority.listEffects(runId),
+      dispatches: agent.authority.listDispatches(runId),
       timeline: productTimeline(agent.host.listJournal(runId)).slice(-40),
     };
   } catch (error) {
@@ -197,8 +197,8 @@ function agentEnvelope(store: GameStore, provider: OperationProvider, runId: str
 }
 
 function teamTablesExist(store: GameStore): boolean {
-  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_goals'").get() as { name?: string } | undefined;
-  return row?.name === "team_goals";
+  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'").get() as { name?: string } | undefined;
+  return row?.name === "team_actor_sessions";
 }
 
 function teamEnvelope(
@@ -210,7 +210,7 @@ function teamEnvelope(
   if (!teamTablesExist(store)) {
     return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
   }
-  const goal = store.db.prepare("SELECT goal_id FROM team_goals WHERE run_id = ?").get(runId) as { goal_id?: string } | undefined;
+  const goal = store.db.prepare("SELECT task_id AS goal_id FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { goal_id?: string } | undefined;
   if (!goal?.goal_id) {
     return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
   }

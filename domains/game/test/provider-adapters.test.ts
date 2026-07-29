@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { compileAgentContext, type CompiledAgentContext } from "../src/host/context.ts";
-import { HostStore } from "../src/host/store.ts";
+import { initialAgentProjection } from "../src/host/model.ts";
 import { CodexCliProvider } from "../src/providers/codex-cli.ts";
 import { ProviderChain } from "../src/providers/chain.ts";
 import { RecoveryOperationProvider } from "../src/providers/fixture.ts";
@@ -22,8 +22,7 @@ import { GameStore } from "../src/storage.ts";
 function fixtureContext(): { directory: string; game: GameStore; context: CompiledAgentContext } {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-provider-test-"));
   const game = new GameStore(join(directory, "world.sqlite3"));
-  const host = new HostStore(game.db);
-  const projection = host.initializeRun(game.getRun(), game.loadState());
+  const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
   return { directory, game, context: compileAgentContext(game.getRun(), game.loadState(), projection) };
 }
 

@@ -96,8 +96,9 @@ test("Agent HTTP control surface initializes, steps, runs, exposes timeline, and
     assert.equal(state.body.timeline.at(-1).eventType, "task_succeeded");
 
     const timeline = await json(base, "/api/agent/timeline");
-    assert.ok(timeline.body.timeline.length > 100);
-    assert.ok(timeline.body.timeline.some((event: { eventType: string }) => event.eventType === "observation_recorded"));
+    assert.ok(timeline.body.timeline.length >= 45);
+    assert.ok(timeline.body.timeline.some((event: { eventType: string }) => event.eventType === "skill_step_verified"));
+    assert.ok(timeline.body.timeline.every((event: { eventType: string }) => !event.eventType.startsWith("host-contract.")));
 
     const contextDigest = state.body.projection.attempts[0].contextDigest;
     const artifact = await json(base, `/api/agent/artifacts/${encodeURIComponent(contextDigest)}`);

@@ -164,9 +164,9 @@ try {
     },
     evidence: {
       worldEventCount: game.eventCount(),
-      effectCount: agent.execution.listEffects(game.activeRunId).length,
-      dispatchCount: agent.execution.listDispatches(game.activeRunId).length,
-      observationCount: Number((game.db.prepare("SELECT COUNT(*) AS count FROM host_observations").get() as { count: number }).count),
+      effectCount: agent.authority.listEffects(game.activeRunId).length,
+      dispatchCount: agent.authority.listDispatches(game.activeRunId).length,
+      observationCount: agent.authority.listObservations(game.activeRunId).length,
       hostJournalCount: agent.host.listJournal(game.activeRunId).length,
       hostJournalTerminalDigest: agent.host.listJournal(game.activeRunId).at(-1)?.recordDigest ?? null,
       replayVerified: replay.verified,

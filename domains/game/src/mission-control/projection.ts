@@ -385,7 +385,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
   const digest = sha256(state);
   const team = new TeamStore(store);
   const execution = new TeamExecutionStore(team);
-  const goal = store.db.prepare("SELECT goal_id FROM team_goals WHERE run_id = ?").get(runId) as { goal_id?: string } | undefined;
+  const goal = store.db.prepare("SELECT task_id AS goal_id FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { goal_id?: string } | undefined;
   const initialized = Boolean(goal?.goal_id);
   const baseResources = resources(store, runId, state);
   if (!initialized) {

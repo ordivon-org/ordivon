@@ -34,7 +34,7 @@ function validateWireEntries(entries: Array<{ contractKind: string; object: unkn
   }
 }
 
-test("single-Actor legacy execution reconstructs one complete Host workload transcript", async () => {
+test("single-Actor execution writes one authoritative Host lifecycle per primitive World Effect", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-host-contract-single-"));
   const game = new GameStore(join(directory, "world.sqlite3"));
   try {
@@ -46,15 +46,16 @@ test("single-Actor legacy execution reconstructs one complete Host workload tran
     agent.syncContract();
     const first = agent.contract.contracts.transcript(game.activeRunId);
     validateWireEntries(first);
-    assert.equal(count(first, "ordivon.host-task-descriptor"), 1);
-    assert.equal(count(first, "ordivon.compiled-context-envelope"), 10);
-    assert.equal(count(first, "ordivon.model-invocation-intent"), 10);
-    assert.equal(count(first, "ordivon.model-decision"), 10);
-    assert.equal(count(first, "ordivon.admitted-decision"), 10);
+    assert.equal(count(first, "ordivon.host-task-descriptor"), 25);
+    assert.equal(count(first, "ordivon.compiled-context-envelope"), 0);
+    assert.equal(count(first, "ordivon.model-invocation-intent"), 0);
+    assert.equal(count(first, "ordivon.model-decision"), 0);
+    assert.equal(count(first, "ordivon.admitted-decision"), 0);
     assert.equal(count(first, "ordivon.dispatch-envelope"), 25);
     assert.equal(count(first, "ordivon.observation-envelope"), 25);
     assert.equal(count(first, "ordivon.verification-receipt"), 25);
-    assert.equal(count(first, "ordivon.task-outcome"), 1);
+    assert.equal(count(first, "ordivon.task-outcome"), 25);
+    assert.equal(game.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get("host_tasks"), undefined);
 
     agent.syncContract();
     const second = agent.contract.contracts.transcript(game.activeRunId);
@@ -70,7 +71,7 @@ test("single-Actor legacy execution reconstructs one complete Host workload tran
   }
 });
 
-test("three Actor Tasks and one Coordinator reconstruct 18 joint Effects with per-Actor results", async () => {
+test("Team writes 18 authoritative joint Effect lifecycles with per-Actor results", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-host-contract-team-"));
   const runId = "run:host-contract-team";
   const game = new GameStore(join(directory, "world.sqlite3"));
@@ -86,17 +87,21 @@ test("three Actor Tasks and one Coordinator reconstruct 18 joint Effects with pe
     team.syncContract(runId);
     const first = team.contract.contracts.transcript(runId);
     validateWireEntries(first);
-    assert.equal(count(first, "ordivon.host-task-descriptor"), 4);
-    assert.equal(count(first, "ordivon.compiled-context-envelope"), 54);
-    assert.equal(count(first, "ordivon.model-invocation-intent"), 54);
-    assert.equal(count(first, "ordivon.model-decision"), 54);
-    assert.equal(count(first, "ordivon.admitted-decision"), 54);
-    assert.equal(count(first, "ordivon.goal-task-snapshot"), 18);
-    assert.equal(count(first, "ordivon.game.team-tick-effect"), 18);
+    assert.equal(count(first, "ordivon.host-task-descriptor"), 18);
+    assert.equal(count(first, "ordivon.compiled-context-envelope"), 0);
+    assert.equal(count(first, "ordivon.model-invocation-intent"), 0);
+    assert.equal(count(first, "ordivon.model-decision"), 0);
+    assert.equal(count(first, "ordivon.admitted-decision"), 0);
+    assert.equal(count(first, "ordivon.goal-task-snapshot"), 0);
+    assert.equal(count(first, "ordivon.game.team-tick-effect"), 0);
     assert.equal(count(first, "ordivon.dispatch-envelope"), 18);
     assert.equal(count(first, "ordivon.observation-envelope"), 18);
     assert.equal(count(first, "ordivon.verification-receipt"), 18);
-    assert.equal(count(first, "ordivon.task-outcome"), 4);
+    assert.equal(count(first, "ordivon.task-outcome"), 18);
+    for (const table of ["team_goals", "team_tasks", "team_task_leases", "team_context_refs", "team_effects", "team_dispatches", "team_observations"]) {
+      const row = game.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table) as { name?: string } | undefined;
+      assert.equal(row, undefined, table);
+    }
 
     const verifications = first
       .filter((entry) => entry.contractKind === "ordivon.verification-receipt")

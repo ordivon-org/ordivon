@@ -1,5 +1,4 @@
 import { canonicalJson, sha256 } from "../digest.ts";
-import { TeamHostContractAdapter } from "../host-contract/adapters.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "../providers/types.ts";
 import type { GameStore } from "../storage.ts";
@@ -116,7 +115,7 @@ export class TeamHost {
   readonly game: GameStore;
   readonly team: TeamStore;
   readonly execution: TeamExecutionStore;
-  readonly contract: TeamHostContractAdapter;
+  readonly contract: { contracts: TeamExecutionStore["authority"]["contracts"] };
   readonly policyMode: AuthorityPolicyMode;
   readonly ownerId: string;
   readonly tokenBudget: number;
@@ -131,7 +130,7 @@ export class TeamHost {
     this.game = game;
     this.team = new TeamStore(game);
     this.execution = new TeamExecutionStore(this.team);
-    this.contract = new TeamHostContractAdapter(game, this.team, this.execution);
+    this.contract = { contracts: this.execution.authority.contracts };
     this.providers = providers;
     this.policyMode = options.policyMode ?? "autonomous";
     this.ownerId = options.ownerId ?? `team-host:${process.pid}`;
@@ -140,13 +139,11 @@ export class TeamHost {
   }
 
   initialize(runId = this.game.activeRunId): TeamProjection {
-    const projection = this.team.initialize(runId);
-    this.contract.syncDescriptors(runId);
-    return projection;
+    return this.team.initialize(runId);
   }
 
   syncContract(runId = this.game.activeRunId): void {
-    this.contract.sync(runId);
+    this.execution.authority.verify(runId);
   }
 
   private providerFor(actorId: string): TeamDecisionProvider {
@@ -255,7 +252,7 @@ export class TeamHost {
       if (state.mission.status !== "running" && (receipt.status === "round_verified" || receipt.status === "terminal")) break;
       if (receipt.status === "authority_required" || receipt.status === "blocked") break;
     }
-    this.contract.sync(runId);
+    this.execution.authority.verify(runId);
     const state = this.game.loadState(runId);
     return {
       runId,

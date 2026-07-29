@@ -48,7 +48,7 @@ test("TeamStore rejects legacy Runs and detects checked-projection drift", () =>
   const { game, team } = setup("run:team-corrupt");
   const taskId = actorTaskId(game.activeRunId, ENGINEER_ID);
   const task = team.getTask(taskId);
-  game.db.prepare("UPDATE team_tasks SET value_json = ? WHERE task_id = ?")
+  game.db.prepare("UPDATE team_actor_sessions SET value_json = ? WHERE task_id = ?")
     .run(JSON.stringify({ ...task, state: "completed" }), taskId);
   assert.throws(() => team.getTask(taskId), (error: unknown) => error instanceof TeamStoreError && error.code === "team_corrupt");
   game.close();

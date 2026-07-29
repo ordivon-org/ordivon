@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { canonicalJson, sha256 } from "../src/digest.ts";
 import { AgentContextError, compileAgentContext } from "../src/host/context.ts";
-import { HostStore } from "../src/host/store.ts";
+import { initialAgentProjection } from "../src/host/model.ts";
 import {
   compileOperationFrontier,
   compileSkillPlan,
@@ -19,7 +19,7 @@ import { RecoveryOperationProvider } from "../src/providers/fixture.ts";
 import { admitOperationDecision, DecisionAdmissionError } from "../src/providers/types.ts";
 import { GameStore } from "../src/storage.ts";
 
-function withStores(run: (game: GameStore, host: HostStore) => Promise<void> | void): Promise<void> | void {
+function withStores(run: (game: GameStore) => Promise<void> | void): Promise<void> | void {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-operations-"));
   const game = new GameStore(join(directory, "world.sqlite3"));
   const cleanup = () => {
@@ -27,7 +27,7 @@ function withStores(run: (game: GameStore, host: HostStore) => Promise<void> | v
     rmSync(directory, { recursive: true, force: true });
   };
   try {
-    const result = run(game, new HostStore(game.db));
+    const result = run(game);
     if (result instanceof Promise) return result.finally(cleanup);
     cleanup();
   } catch (error) {
@@ -77,8 +77,8 @@ test("initial frontier exposes strategic Operations with deterministic Skill pla
 });
 
 test("Provider Context is deterministic, bounded, and contains no primitive Command authority", () => {
-  withStores((game, host) => {
-    const projection = host.initializeRun(game.getRun(), game.loadState(), ["codex", "hermes"]);
+  withStores((game) => {
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status, ["codex", "hermes"]);
     const first = compileAgentContext(game.getRun(), game.loadState(), projection, game.journalEvents());
     const second = compileAgentContext(game.getRun(), game.loadState(), projection, game.journalEvents());
     assert.deepEqual(second, first);
@@ -97,8 +97,8 @@ test("Provider Context is deterministic, bounded, and contains no primitive Comm
 });
 
 test("stale Operations and invented Decisions fail without world effects", async () => {
-  await withStores(async (game, host) => {
-    const projection = host.initializeRun(game.getRun(), game.loadState());
+  await withStores(async (game) => {
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
     const context = compileAgentContext(game.getRun(), game.loadState(), projection);
     const provider = new RecoveryOperationProvider();
     const decision = await provider.decide(context);
@@ -139,9 +139,9 @@ test("stale Operations and invented Decisions fail without world effects", async
 });
 
 test("ten strategic fixture decisions reproduce the 25-Tick verified victory", async () => {
-  await withStores(async (game, host) => {
+  await withStores(async (game) => {
     const provider = new RecoveryOperationProvider();
-    const projection = host.initializeRun(game.getRun(), game.loadState());
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
     let decisions = 0;
     while (game.loadState().mission.status === "running" && decisions < 16) {
       const state = game.loadState();
@@ -175,8 +175,8 @@ test("ten strategic fixture decisions reproduce the 25-Tick verified victory", a
 });
 
 test("Context trims retained Facts before failing its hard byte limit", () => {
-  withStores((game, host) => {
-    const projection = host.initializeRun(game.getRun(), game.loadState());
+  withStores((game) => {
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
     const state = game.loadState();
     const base = compileAgentContext(game.getRun(), state, projection, []);
     const event = {
@@ -217,8 +217,8 @@ test("Context trims retained Facts before failing its hard byte limit", () => {
 });
 
 test("Context projects missing and terminal world objects conservatively", () => {
-  withStores((game, host) => {
-    const projection = host.initializeRun(game.getRun(), game.loadState());
+  withStores((game) => {
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
     const state = game.loadState();
     delete state.systems.cooling;
     delete state.systems["life-support"];
@@ -339,8 +339,8 @@ test("all Operation success conditions have true and false semantics", () => {
 });
 
 test("Decision validation covers null selection, wrong Context, and malformed confidence", async () => {
-  await withStores(async (game, host) => {
-    const projection = host.initializeRun(game.getRun(), game.loadState());
+  await withStores(async (game) => {
+    const projection = initialAgentProjection(game.activeRunId, game.loadState().mission.status);
     const context = compileAgentContext(game.getRun(), game.loadState(), projection);
     const base = {
       providerId: "test",

@@ -90,14 +90,14 @@ Runtime dependencies remain zero. TypeScript and Node type definitions are devel
 ```text
 Player / Browser
         ↓ Messages, Objectives, approvals, pause, cancel
-Host-conformant Team Coordinator
-        ↓ actor Tasks, Contexts, Proposals, ABAC, legal subset
+Game domain sessions and Team Coordinator
+        ↓ actor-visible Contexts, Proposals, ABAC, legal subset
 Replaceable specialist cognition
-        ↓ exact Action candidate identity only
-Team Tick Effect and stable Dispatch
-        ↓ one atomic multi-Actor TickBatch
+        ↓ semantic Action candidate
+Embedded Host authority
+        ↓ TaskDescriptor, Dispatch, Observation, Verification, Outcome
 Deterministic Game World Kernel
-        ↓ Facts, per-Intent Verification, terminal outcome
+        ↓ one primitive Effect or atomic multi-Actor TickBatch
 SQLite World + Host journals
         ↓ recovery, audit, exact replay
 ```
@@ -113,17 +113,25 @@ The authoritative World owns:
 - atomic Tick conflict and shared-resource admission;
 - success, failure, and final state transitions.
 
-The Host layer owns continuity and coordination:
+The shared Host authority owns generic work commitments:
 
-- Team Goal and actor Tasks;
-- checked projections and short leases;
-- bounded Context compilation;
-- Provider invocation and exact Decision admission;
-- typed Messages and delivery state;
-- authority Decisions and Grants;
-- Proposals, TickPlans, Effects, Dispatches, Observations, and waiting state.
+- immutable TaskDescriptor identity;
+- Effect request and stable Dispatch identity;
+- Observation and response-loss recovery;
+- independent VerificationReceipt;
+- terminal TaskOutcome;
+- immutable Artifacts and one hash-chained Host Journal.
 
-A model cannot directly mutate World or Host state, invent an Actor, Action, target, Message delivery, Grant, or completion claim.
+Game domain state owns cognition and coordination facts:
+
+- Agent and actor sessions;
+- bounded Context compilation and Provider attempts;
+- typed Messages, authority Decisions and Grants;
+- Proposals, Rounds and TickPlans.
+
+There is no second generic Task, Effect, Dispatch, Observation, Verification, or recovery authority in Game. A model cannot directly mutate World or Host state, invent an Actor, Action, target, Message delivery, Grant, or completion claim.
+
+See [`docs/HOST-AUTHORITY-CUTOVER-P3-P6.md`](docs/HOST-AUTHORITY-CUTOVER-P3-P6.md) for the authority decision, deletion evidence, and workload receipts.
 
 ## API
 
@@ -172,9 +180,12 @@ Point-in-time replay selects the nearest retained Snapshot at or before the requ
 
 ### Host and team
 
-- [`src/host/`](src/host/) — M2 Goal, Task, Artifact, Journal, strategic Operation, Skill, Effect, Dispatch, and Observation path.
-- [`src/team/model.ts`](src/team/model.ts) — M3 Team Goal, actor Task, Message, ABAC, Proposal, Round, TickPlan, and execution contracts.
-- [`src/team/store.ts`](src/team/store.ts) — Host-conformant Team projections, leases, Messages, Decisions, and Grants.
+- [`src/host-contract/embedded-authority.ts`](src/host-contract/embedded-authority.ts) — the single Protocol-conformant Task, Dispatch, Observation, Verification, and Outcome authority.
+- [`src/host/`](src/host/) — Agent cognition loop, Context, strategic Operation, Skill, immutable Artifact, and Journal support.
+- [`src/agent/session-store.ts`](src/agent/session-store.ts) — single-Actor cognition-session continuity without a second generic Task store.
+- [`src/team/model.ts`](src/team/model.ts) — M3 actor sessions, Message, ABAC, Proposal, Round, TickPlan, and domain execution contracts.
+- [`src/team/store.ts`](src/team/store.ts) — Team domain sessions, leases, Messages, Decisions, Grants, and derived Goal projection.
+- [`src/team/execution-store.ts`](src/team/execution-store.ts) — Round/Context/Proposal/TickPlan storage plus the embedded authority adapter for joint Effects.
 - [`src/team/context.ts`](src/team/context.ts) — actor-visible knowledge and token-budget Context Blocks.
 - [`src/team/authority.ts`](src/team/authority.ts) — attribute-based authority evaluation.
 - [`src/team/providers.ts`](src/team/providers.ts) — strict Team Provider contract and deterministic Fixture policies.
