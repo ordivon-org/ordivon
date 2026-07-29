@@ -146,3 +146,26 @@ export interface ReplayFramePage {
   nextFromRevision: number | null;
   graphDigest: string;
 }
+
+
+export type DiagnosisEvidenceClass = "VERIFIED_DIRECT" | "VERIFIED_CONTRIBUTOR" | "COUNTERFACTUAL_SENSITIVE" | "CONTEXT_ONLY";
+export interface NumericCurvePoint { revision: number; value: number; }
+export interface BooleanCurvePoint { revision: number; value: boolean; }
+export interface ItemLocationCurvePoint { revision: number; rooms: Record<string, number>; actors: Record<string, number>; consumed: number; total: number; }
+export interface SystemCurvePoint { revision: number; integrity: number; powered: boolean; }
+export interface ReplayCurves {
+  schemaVersion: 1; kind: "ordivon.game.replay-curves"; runId: string; graphDigest: string; revisions: number[];
+  battery: NumericCurvePoint[]; oxygen: NumericCurvePoint[]; reactorHeat: NumericCurvePoint[];
+  actorHealth: Record<string, NumericCurvePoint[]>; crewHealth: Record<string, NumericCurvePoint[]>;
+  systems: Record<string, SystemCurvePoint[]>; items: Record<string, ItemLocationCurvePoint[]>;
+  objectives: Record<string, BooleanCurvePoint[]>; curvesDigest: string;
+}
+export type KeyTurnKind = "genesis" | "terminal" | "objective" | "resource-threshold" | "health-threshold" | "critical-item" | "authority" | "player" | "provider";
+export interface ReplayKeyTurn { keyTurnId: string; revision: number; priority: number; kind: KeyTurnKind; title: string; detail: string; evidenceNodeIds: string[]; }
+export interface DiagnosisClaim { claimId: string; evidenceClass: DiagnosisEvidenceClass; revision: number; title: string; explanation: string; evidenceNodeIds: string[]; }
+export interface RunDiagnosis {
+  schemaVersion: 1; kind: "ordivon.game.run-diagnosis"; runId: string;
+  terminal: { status: WorldState["mission"]["status"]; reason: string | null; revision: number; digest: string; };
+  graphDigest: string; curvesDigest: string; keyTurns: ReplayKeyTurn[]; claims: DiagnosisClaim[];
+  unsupportedCounterfactualReason: string | null; diagnosisDigest: string;
+}
