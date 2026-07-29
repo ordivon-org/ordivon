@@ -347,3 +347,8 @@ M5 release claims bind a canonical manifest of executable source, Web, lockfile,
 ## D-080 — One Chromium journey is the browser release gate
 
 M5 adds Playwright as a development-only dependency for one end-to-end deployment → play → terminal → replay → comparison journey. CI uses one worker and one Chromium headless browser with trace retention on failure. This closes M4's browser-evidence gap without creating a broad cross-browser test program.
+
+
+## D-081 — The first source-playable release is a player evidence loop, not the complete research program
+
+Station Zero `v0.1.0-alpha.1` is gated by deploy → play → terminal → replay → deterministic diagnosis → immutable reconfiguration → compatible comparison → clean archive verification. Fixture cognition is the default release path; live Codex/Hermes runs are compatibility dogfood. Equal-budget architecture ablations, Ordivon Runtime experiment matrices, and final embedded Host convergence remain required before stronger scientific or platform claims, but they do not block the first deterministic source-playable Alpha. This narrows release scope without weakening World, Host, replay, evidence, or provenance boundaries.
