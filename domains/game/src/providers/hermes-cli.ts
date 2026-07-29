@@ -15,6 +15,7 @@ export interface HermesCliProviderOptions {
   credentialEnvPath?: string;
   timeoutMs?: number;
   environment?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
 }
 
 export class HermesCliProvider implements OperationProvider {
@@ -26,6 +27,7 @@ export class HermesCliProvider implements OperationProvider {
   readonly credentialEnvPath: string;
   readonly timeoutMs: number;
   readonly environment: NodeJS.ProcessEnv;
+  readonly signal: AbortSignal | undefined;
   private lastEvidence: Record<string, unknown> | null = null;
 
   constructor(options: HermesCliProviderOptions = {}) {
@@ -36,6 +38,7 @@ export class HermesCliProvider implements OperationProvider {
     this.credentialEnvPath = options.credentialEnvPath ?? join(homedir(), ".hermes", ".env");
     this.timeoutMs = options.timeoutMs ?? 180_000;
     this.environment = options.environment ?? process.env;
+    this.signal = options.signal;
     for (const [label, value] of [["model", this.model], ["provider", this.provider], ["base URL", this.baseUrl]]) {
       if (!value || value !== value.trim() || value.includes("\n")) throw new TypeError(`Hermes ${label} must be non-empty and single-line`);
     }
@@ -74,7 +77,12 @@ export class HermesCliProvider implements OperationProvider {
       const result = await runProcess(this.executable, [
         "--oneshot", prompt, "--model", this.model, "--provider", this.provider,
         "--ignore-rules", "--usage-file", usagePath,
-      ], { cwd: work, env, timeoutMs: this.timeoutMs });
+      ], {
+        cwd: work,
+        env,
+        timeoutMs: this.timeoutMs,
+        ...(this.signal ? { signal: this.signal } : {}),
+      });
       if (result.exitCode !== 0) {
         throw new ProviderAdapterError("process_failed", `Hermes exited ${result.exitCode}: ${result.stderr.trim().slice(-2_000)}`);
       }

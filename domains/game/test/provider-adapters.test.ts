@@ -10,7 +10,7 @@ import { CodexCliProvider } from "../src/providers/codex-cli.ts";
 import { ProviderChain } from "../src/providers/chain.ts";
 import { RecoveryOperationProvider } from "../src/providers/fixture.ts";
 import { HermesCliProvider } from "../src/providers/hermes-cli.ts";
-import { runProcess } from "../src/providers/process.ts";
+import { ProcessAbortError, runProcess } from "../src/providers/process.ts";
 import {
   parseModelDecisionOutput,
   ProviderAdapterError,
@@ -198,6 +198,18 @@ test("process runner classifies timeout, output limit, unavailable executable, a
     await assert.rejects(
       () => runProcess(fake, [], { cwd: directory, env: { ...process.env, FAKE_MODE: "sleep" }, timeoutMs: 20 }),
       (error) => error instanceof ProviderAdapterError && error.code === "timeout",
+    );
+    const controller = new AbortController();
+    const interrupted = runProcess(fake, [], {
+      cwd: directory,
+      env: { ...process.env, FAKE_MODE: "sleep" },
+      timeoutMs: 2_000,
+      signal: controller.signal,
+    });
+    controller.abort(new Error("evaluation wall-clock limit reached"));
+    await assert.rejects(
+      () => interrupted,
+      (error) => error instanceof ProcessAbortError && /wall-clock limit/.test(error.message),
     );
     await assert.rejects(
       () => runProcess(fake, [], { cwd: directory, env: { ...process.env, FAKE_MODE: "huge" }, timeoutMs: 2_000, maximumOutputBytes: 10 }),

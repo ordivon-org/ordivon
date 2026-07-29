@@ -12,6 +12,7 @@ export interface CodexCliProviderOptions {
   model?: string;
   timeoutMs?: number;
   environment?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
 }
 
 export class CodexCliProvider implements OperationProvider {
@@ -20,6 +21,7 @@ export class CodexCliProvider implements OperationProvider {
   readonly model: string | null;
   readonly timeoutMs: number;
   readonly environment: NodeJS.ProcessEnv;
+  readonly signal: AbortSignal | undefined;
   private lastEvidence: Record<string, unknown> | null = null;
 
   constructor(options: CodexCliProviderOptions = {}) {
@@ -27,6 +29,7 @@ export class CodexCliProvider implements OperationProvider {
     this.model = options.model ?? null;
     this.timeoutMs = options.timeoutMs ?? 120_000;
     this.environment = options.environment ?? process.env;
+    this.signal = options.signal;
     this.providerId = `codex-cli-ephemeral-v1:${this.model ?? "configured"}`;
   }
 
@@ -72,6 +75,7 @@ export class CodexCliProvider implements OperationProvider {
         env: { ...this.environment, NO_COLOR: "1" },
         input: prompt,
         timeoutMs: this.timeoutMs,
+        ...(this.signal ? { signal: this.signal } : {}),
       });
       if (result.exitCode !== 0) {
         throw new ProviderAdapterError("process_failed", `Codex exited ${result.exitCode}: ${result.stderr.trim().slice(-2_000)}`);
