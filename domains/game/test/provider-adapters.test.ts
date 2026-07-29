@@ -199,6 +199,26 @@ test("process runner classifies timeout, output limit, unavailable executable, a
       () => runProcess(fake, [], { cwd: directory, env: { ...process.env, FAKE_MODE: "sleep" }, timeoutMs: 20 }),
       (error) => error instanceof ProviderAdapterError && error.code === "timeout",
     );
+    const alreadyAborted = new AbortController();
+    alreadyAborted.abort("cancelled before spawn");
+    await assert.rejects(
+      () => runProcess(fake, [], {
+        cwd: directory,
+        env: { ...process.env, FAKE_MODE: "success" },
+        timeoutMs: 2_000,
+        signal: alreadyAborted.signal,
+      }),
+      (error) => error instanceof ProcessAbortError && error.message === "Provider process was interrupted by its caller",
+    );
+
+    const noInputExecutable = executable(directory, "fake-no-input", "process.exit(0);");
+    const noInput = await runProcess(noInputExecutable, [], {
+      cwd: directory,
+      env: process.env,
+      timeoutMs: 2_000,
+    });
+    assert.equal(noInput.exitCode, 0);
+
     const controller = new AbortController();
     const interrupted = runProcess(fake, [], {
       cwd: directory,
