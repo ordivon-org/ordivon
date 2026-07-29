@@ -23,7 +23,7 @@ try {
   }
   samples.sort((left, right) => left - right);
   const medianMs = samples[2]!;
-  const thresholdMs = Number(process.env.ORDIVON_REPLAY_REPORT_P50_MAX_MS ?? 2500);
+  const thresholdMs = Number(process.env.ORDIVON_REPLAY_REPORT_P50_MAX_MS ?? 1500);
   const result = {
     schemaVersion: 1,
     kind: "ordivon.game.replay-performance",
