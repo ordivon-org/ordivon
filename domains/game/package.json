@@ -18,7 +18,7 @@
     "release:inputs": "node scripts/release-inputs.ts",
     "typecheck": "tsc --noEmit",
     "fixture:generate": "node scripts/generate-m1-fixture.ts",
-    "coverage": "node --experimental-test-coverage --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 --test test/*.test.ts",
+    "coverage": "node --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 --test test/*.test.ts",
     "measure": "node scripts/measure.ts",
     "measure:replay": "node scripts/measure-replay.ts",
     "measure:write": "node scripts/measure.ts --write",

@@ -82,11 +82,6 @@ export function providerPreflight(
         ? "CLI and DeepSeek credentials are configured"
         : "Hermes credential file has no DEEPSEEK_API_KEY",
   };
-  const byId = new Map<MissionProviderName, ProviderPreflightEntry>([
-    [fixture.providerId, fixture],
-    [codex.providerId, codex],
-    [hermes.providerId, hermes],
-  ]);
   const chain = (
     providerId: "codex-hermes" | "hermes-codex",
     first: ProviderPreflightEntry,
@@ -96,11 +91,7 @@ export function providerPreflight(
     ready: first.ready || second.ready,
     deterministic: false,
     executableReady: first.executableReady || second.executableReady,
-    credentialsReady: first.credentialsReady === true || second.credentialsReady === true
-      ? true
-      : first.credentialsReady === false || second.credentialsReady === false
-        ? false
-        : null,
+    credentialsReady: hermes.credentialsReady,
     summary: first.ready
       ? `Ready · ${first.providerId} primary, ${second.providerId} fallback`
       : second.ready

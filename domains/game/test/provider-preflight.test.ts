@@ -54,6 +54,57 @@ test("Provider chains remain ready through one configured fallback", () => {
   }
 });
 
+
+test("Provider chains expose primary and fallback readiness without inventing credentials", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-provider-preflight-fallback-"));
+  try {
+    const missing = join(directory, "missing");
+    const codex = executable(directory, "codex");
+    const hermes = executable(directory, "hermes");
+    const blankCredentials = join(directory, "blank.env");
+    const credentials = join(directory, "ready.env");
+    writeFileSync(blankCredentials, "DEEPSEEK_API_KEY=\nOTHER=value\n");
+    writeFileSync(credentials, "DEEPSEEK_API_KEY=test-key\n");
+
+    const codexOnly = providerPreflight({
+      codexExecutable: codex,
+      hermesExecutable: hermes,
+      hermesCredentialPath: blankCredentials,
+    });
+    assert.match(
+      codexOnly.providers.find((entry) => entry.providerId === "codex-hermes")!.summary,
+      /codex primary/,
+    );
+    assert.match(
+      codexOnly.providers.find((entry) => entry.providerId === "hermes-codex")!.summary,
+      /codex fallback/,
+    );
+    assert.equal(
+      codexOnly.providers.find((entry) => entry.providerId === "hermes")!.credentialsReady,
+      false,
+    );
+
+    const hermesOnly = providerPreflight({
+      codexExecutable: missing,
+      hermesExecutable: hermes,
+      hermesCredentialPath: credentials,
+    });
+    assert.match(
+      hermesOnly.providers.find((entry) => entry.providerId === "codex-hermes")!.summary,
+      /hermes fallback/,
+    );
+    assert.match(
+      hermesOnly.providers.find((entry) => entry.providerId === "hermes-codex")!.summary,
+      /hermes primary/,
+    );
+
+    const defaults = providerPreflight();
+    assert.equal(defaults.providers.length, 5);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("Mission Control catalog exposes only measured Deployment choices", () => {
   const catalog = createMissionControlCatalog();
   assert.equal(catalog.fixedLoadout.profileId, "standard-loadout");
