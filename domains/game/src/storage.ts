@@ -604,9 +604,10 @@ export class GameStore {
     runId: string,
     snapshot: SnapshotRow,
     targetRevision?: number,
+    streamVerified = false,
   ): PointInTimeReplayResult {
     const metadata = this.getRun(runId);
-    this.verifyStream(runId);
+    if (!streamVerified) this.verifyStream(runId);
     const terminalRevision = this.eventCount(runId);
     const revision = targetRevision ?? terminalRevision;
     if (!Number.isSafeInteger(revision) || revision < 0 || revision > terminalRevision) {
@@ -714,6 +715,25 @@ export class GameStore {
       }
       this.getRun(runId);
       return this.replayStateFromSnapshot(runId, this.readSnapshotAtOrBefore(runId, revision), revision);
+    } catch (error) {
+      mapStorageError(error);
+    }
+  }
+
+  statesAtEveryRevision(runId = this.activeRunId): PointInTimeReplayResult[] {
+    try {
+      this.getRun(runId);
+      this.verifyStream(runId);
+      const terminalRevision = this.eventCount(runId);
+      return Array.from(
+        { length: terminalRevision + 1 },
+        (_, revision) => this.replayStateFromSnapshot(
+          runId,
+          this.readSnapshotAtOrBefore(runId, revision),
+          revision,
+          true,
+        ),
+      );
     } catch (error) {
       mapStorageError(error);
     }
