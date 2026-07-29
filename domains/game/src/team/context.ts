@@ -1,5 +1,5 @@
 import { canonicalJson, sha256 } from "../digest.ts";
-import type { PrimitiveWorldCommand, WorldFact, WorldState } from "../model.ts";
+import type { ItemId, PrimitiveWorldCommand, WorldFact, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
 import { listAvailableActions, materializeAction } from "../world.ts";
 import { evaluateAuthority } from "./authority.ts";
@@ -92,6 +92,30 @@ function visibleFacts(store: GameStore, runId: string, actorId: string, state: W
   return facts.filter((fact) => factVisibleToActor(fact, state, actorId));
 }
 
+const missionItemCapability: Partial<Record<ItemId, string>> = {
+  "spare-parts": "repair_system",
+  sealant: "seal_hull",
+  medkit: "basic_first_aid",
+  "breaker-key": "set_power",
+  toolkit: "repair_system",
+};
+
+/**
+ * Team Actors may only claim a mission item when their current capability set
+ * can consume it. Primitive World pickup remains general; this is the bounded
+ * Game coordination frontier that prevents locally legal but unrecoverable
+ * critical-item capture while no transfer/release operation exists.
+ */
+export function actorCanClaimMissionItem(
+  state: WorldState,
+  actorId: string,
+  itemId: ItemId,
+): boolean {
+  const requiredCapability = missionItemCapability[itemId];
+  if (!requiredCapability) return true;
+  return state.agents[actorId]?.capabilities.includes(requiredCapability) ?? false;
+}
+
 function selectActions(
   runId: string,
   state: WorldState,
@@ -103,6 +127,8 @@ function selectActions(
   if (!actor) return [];
   const worldDigest = sha256(state);
   const actions = listAvailableActions(state, profile.actorId)
+    .filter((action) => action.command.kind !== "pickup_item" ||
+      actorCanClaimMissionItem(state, profile.actorId, action.command.itemId))
     .sort((left, right) => Number(left.actionId === "wait") - Number(right.actionId === "wait") || left.actionId.localeCompare(right.actionId))
     .slice(0, 8);
   return actions.map((action) => {

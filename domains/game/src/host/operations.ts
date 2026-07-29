@@ -2,7 +2,7 @@ import { sha256 } from "../digest.ts";
 import type { ItemId, MissionStatus, WorldCommand, WorldFact, WorldState } from "../model.ts";
 import { ENGINEER_ID, isOperational, POWER_JUNCTION_ID } from "../scenario.ts";
 import { applyWorldCommandV2, shortestPath } from "../world.ts";
-import { analyzeOperationStrategy, type OperationStrategyAnalysis } from "./strategy.ts";
+import { analyzeGoalStrategy, analyzeOperationStrategy, type OperationStrategyAnalysis } from "./strategy.ts";
 
 export type OperationKind =
   | "repair_system"
@@ -56,7 +56,7 @@ export interface OperationProjection {
   crewHealth: number;
 }
 
-export interface OperationCandidate {
+export interface OperationCandidateCore {
   operationCandidateId: string;
   kind: OperationKind;
   target: OperationTarget;
@@ -66,6 +66,9 @@ export interface OperationCandidate {
   requiredWorldDigest: string;
   planId: string;
   estimatedPrimitiveSteps: number;
+}
+
+export interface OperationCandidate extends OperationCandidateCore {
   planPreview: string[];
   projected: OperationProjection;
   projectedTerminalFailure: boolean;
@@ -379,17 +382,40 @@ export function compileOperationFrontier(state: WorldState): OperationCandidate[
       },
     };
   });
-  return candidates
-    .sort((left, right) =>
-      left.strategy.strategicScore - right.strategy.strategicScore ||
-      left.operationCandidateId.localeCompare(right.operationCandidateId))
-    .map((candidate, index) => ({
+  const ranked = candidates.sort((left, right) =>
+    left.strategy.strategicScore - right.strategy.strategicScore ||
+    left.operationCandidateId.localeCompare(right.operationCandidateId));
+  const intrinsicallyBlocked = (candidate: OperationCandidate): boolean =>
+    ["immediate_failure", "time_infeasible", "goal_regression"].includes(candidate.strategy.classification);
+  const hasUnblocked = ranked.some((candidate) => !intrinsicallyBlocked(candidate));
+  const preferredIndex = hasUnblocked ? ranked.findIndex((candidate) => !intrinsicallyBlocked(candidate)) : 0;
+  const preferred = ranked[preferredIndex] ?? null;
+  const primaryThreat = analyzeGoalStrategy(state).activeThreats[0]?.id ?? null;
+  const preferredAdvancesPrimary = primaryThreat !== null &&
+    (preferred?.strategy.urgentMitigationsAdvanced.includes(primaryThreat) ||
+      preferred?.strategy.threatsImproved.includes(primaryThreat));
+  return ranked.map((candidate, index) => {
+    const blocked = intrinsicallyBlocked(candidate) && hasUnblocked;
+    const advancesPrimary = primaryThreat !== null &&
+      (candidate.strategy.urgentMitigationsAdvanced.includes(primaryThreat) ||
+        candidate.strategy.threatsImproved.includes(primaryThreat));
+    const withinViableBand = preferred !== null &&
+      candidate.strategy.strategicScore <= preferred.strategy.strategicScore + 8_000;
+    const selectionClass = index === preferredIndex
+      ? "preferred" as const
+      : blocked
+        ? "blocked" as const
+        : withinViableBand && (!preferredAdvancesPrimary || advancesPrimary)
+          ? "viable" as const
+          : "defer" as const;
+    return {
       ...candidate,
-      strategy: { ...candidate.strategy, strategicRank: index + 1 },
-    }));
+      strategy: { ...candidate.strategy, strategicRank: index + 1, selectionClass },
+    };
+  });
 }
 
-export function compileSkillPlan(state: WorldState, candidate: OperationCandidate): SkillPlan {
+export function compileSkillPlan(state: WorldState, candidate: OperationCandidateCore): SkillPlan {
   if (candidate.requiredWorldRevision !== state.revision || candidate.requiredWorldDigest !== sha256(state)) {
     throw new OperationCompileError("operation candidate is stale");
   }

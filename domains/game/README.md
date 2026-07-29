@@ -85,6 +85,35 @@ pnpm m3:evaluate -- --mode codex-hermes-switch
 
 Runtime dependencies remain zero. TypeScript and Node type definitions are development-only checks.
 
+## Recoverable live model evaluation
+
+`m2-live-evaluation.ts` keeps evaluation wall-clock control outside Host authority while retaining a verifiable restart point:
+
+```bash
+node scripts/m2-live-evaluation.ts \
+  --mode codex-hermes \
+  --output /path/run.json \
+  --database /path/world.sqlite3 \
+  --wall-clock-ms 600000 \
+  --retain-database
+```
+
+The script writes a digest-bound lifecycle receipt beside the terminal report. If the evaluation wall-clock limit or `SIGINT`/`SIGTERM` interrupts an in-flight Provider process, it exits distinctly, preserves the database, and writes a partial receipt containing the active Attempt, World and replay digests, Host Journal digest, and Effect/Dispatch/Observation counts. The Host leaves the Attempt `provider_pending`; interruption is not recorded as Provider failure.
+
+Resume the exact Run with the retained database and partial receipt:
+
+```bash
+node scripts/m2-live-evaluation.ts \
+  --mode codex-hermes \
+  --output /path/recovered.json \
+  --database /path/world.sqlite3 \
+  --resume \
+  --recovery-of /path/run.json.partial.json \
+  --retain-database
+```
+
+Useful options: `--receipt-output`, `--partial-output`, `--maximum-steps`, `--wall-clock-ms`, `--database`, `--resume`, `--recovery-of`, and `--retain-database`. Provider timeout, evaluation timeout, external signal, and domain terminal failure remain separate receipt facts.
+
 ## Authority boundary
 
 ```text

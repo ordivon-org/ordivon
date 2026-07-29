@@ -105,6 +105,7 @@ test("safe cooling shutdown is derived from heat and remaining Goal horizon", ()
 
   state = apply(state, "seal_hazard", "maintenance-breach");
   state = apply(state, "repair_system", "life-support");
+  state = apply(state, "set_power", "life-support", true);
   const safeShutdown = select(
     state,
     (candidate) => candidate.kind === "set_power" && candidate.target.id === "cooling" &&
@@ -150,7 +151,7 @@ test("rank-one semantic policy reaches verified victory without Fixture or model
   assert.ok(state.turn <= state.mission.turnLimit);
   assert.ok(trace.includes("Disable Reactor Cooling"));
   assert.equal(trace.at(-1), "Send verified distress signal");
-  assert.equal(sha256(state), "4a6534c8a6a3ccdbf0e3970fdf3643bed4ab21f398b57d28ae6c29eabb0ed6e9");
+  assert.equal(sha256(state), "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2");
 });
 
 test("old Codex near-goal state clearly separates control, regression, and terminal failure", () => {
@@ -249,4 +250,48 @@ test("optimistic lower bound marks late unfinished states and terminal states", 
   const missingEngineer = initialWorld();
   delete missingEngineer.agents["engineer-01"];
   assert.equal(analyzeGoalStrategy(missingEngineer).optimisticMinimumPrimitiveStepsToVictory, Number.POSITIVE_INFINITY);
+});
+
+
+test("survival dependencies dominate longer distress deadlines on the Hermes failure frontier", () => {
+  let state = initialWorld();
+  const apply = (kind: string, targetId: string): void => {
+    const candidate = compileOperationFrontier(state).find((entry) => entry.kind === kind && entry.target.id === targetId);
+    assert.ok(candidate, `missing ${kind}/${targetId}`);
+    state = simulateSkillPlan(state, compileSkillPlan(state, candidate)).state;
+  };
+  apply("repair_system", "cooling");
+  apply("set_power", "cooling");
+  apply("seal_hazard", "maintenance-breach");
+  apply("stabilize_crew", "crew-01");
+
+  const frontier = compileOperationFrontier(state);
+  const lifeSupport = frontier.find((entry) => entry.kind === "repair_system" && entry.target.id === "life-support");
+  const communications = frontier.find((entry) => entry.kind === "repair_system" && entry.target.id === "communications");
+  const coolingOff = frontier.find((entry) => entry.kind === "set_power" && entry.target.id === "cooling");
+  assert.ok(lifeSupport && communications && coolingOff);
+  assert.equal(lifeSupport.strategy.selectionClass, "preferred");
+  assert.ok(lifeSupport.strategy.urgentMitigationsAdvanced.includes("engineer_incapacitated"));
+  assert.equal(lifeSupport.strategy.urgentMitigationDepths.engineer_incapacitated, 1);
+  assert.equal(communications.strategy.selectionClass, "viable");
+  assert.notEqual(communications.strategy.selectionClass, "preferred");
+  assert.equal(frontier.filter((entry) => entry.strategy.selectionClass === "preferred").length, 1);
+  assert.deepEqual(coolingOff.strategy.controlAdvantages, []);
+  assert.notEqual(coolingOff.strategy.selectionClass, "preferred");
+});
+
+test("goal-regressing power reversals are explicitly blocked while progress remains", () => {
+  let state = initialWorld();
+  state.systems["life-support"]!.integrity = 0.9;
+  state.systems["life-support"]!.powered = true;
+  state.systems.communications!.integrity = 0.9;
+  state.systems.communications!.powered = true;
+  const frontier = compileOperationFrontier(state);
+  const lifeSupportOff = frontier.find((entry) => entry.kind === "set_power" && entry.target.id === "life-support");
+  const communicationsOff = frontier.find((entry) => entry.kind === "set_power" && entry.target.id === "communications");
+  assert.equal(lifeSupportOff?.strategy.classification, "goal_regression");
+  assert.equal(lifeSupportOff?.strategy.selectionClass, "blocked");
+  assert.equal(communicationsOff?.strategy.classification, "goal_regression");
+  assert.equal(communicationsOff?.strategy.selectionClass, "blocked");
+  assert.ok(frontier.some((entry) => entry.strategy.selectionClass === "preferred"));
 });

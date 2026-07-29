@@ -12,6 +12,7 @@ export interface CodexCliProviderOptions {
   model?: string;
   timeoutMs?: number;
   environment?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
 }
 
 export class CodexCliProvider implements OperationProvider {
@@ -20,6 +21,7 @@ export class CodexCliProvider implements OperationProvider {
   readonly model: string | null;
   readonly timeoutMs: number;
   readonly environment: NodeJS.ProcessEnv;
+  readonly signal: AbortSignal | undefined;
   private lastEvidence: Record<string, unknown> | null = null;
 
   constructor(options: CodexCliProviderOptions = {}) {
@@ -27,6 +29,7 @@ export class CodexCliProvider implements OperationProvider {
     this.model = options.model ?? null;
     this.timeoutMs = options.timeoutMs ?? 120_000;
     this.environment = options.environment ?? process.env;
+    this.signal = options.signal;
     this.providerId = `codex-cli-ephemeral-v1:${this.model ?? "configured"}`;
   }
 
@@ -55,7 +58,7 @@ export class CodexCliProvider implements OperationProvider {
       }, null, 2) + "\n");
       const prompt = [
         "You are one replaceable cognitive step inside a persistent game Agent Host.",
-        "Use only the canonical Context below. Apply strategy.decisionPolicy in order, inspect each candidate strategy, and choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
+        "Use only the canonical Context below. Apply strategy.decisionPolicy in order. Start from the sole strategy.selectionClass=preferred Operation; never choose blocked or defer while preferred exists. Choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
         "Never invent Commands, objects, paths, Effects, completion claims, or another Operation. Return JSON only.",
         "",
         canonicalJson(context.payload),
@@ -72,6 +75,7 @@ export class CodexCliProvider implements OperationProvider {
         env: { ...this.environment, NO_COLOR: "1" },
         input: prompt,
         timeoutMs: this.timeoutMs,
+        ...(this.signal ? { signal: this.signal } : {}),
       });
       if (result.exitCode !== 0) {
         throw new ProviderAdapterError("process_failed", `Codex exited ${result.exitCode}: ${result.stderr.trim().slice(-2_000)}`);

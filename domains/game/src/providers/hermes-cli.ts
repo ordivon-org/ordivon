@@ -15,6 +15,7 @@ export interface HermesCliProviderOptions {
   credentialEnvPath?: string;
   timeoutMs?: number;
   environment?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
 }
 
 export class HermesCliProvider implements OperationProvider {
@@ -26,6 +27,7 @@ export class HermesCliProvider implements OperationProvider {
   readonly credentialEnvPath: string;
   readonly timeoutMs: number;
   readonly environment: NodeJS.ProcessEnv;
+  readonly signal: AbortSignal | undefined;
   private lastEvidence: Record<string, unknown> | null = null;
 
   constructor(options: HermesCliProviderOptions = {}) {
@@ -36,6 +38,7 @@ export class HermesCliProvider implements OperationProvider {
     this.credentialEnvPath = options.credentialEnvPath ?? join(homedir(), ".hermes", ".env");
     this.timeoutMs = options.timeoutMs ?? 180_000;
     this.environment = options.environment ?? process.env;
+    this.signal = options.signal;
     for (const [label, value] of [["model", this.model], ["provider", this.provider], ["base URL", this.baseUrl]]) {
       if (!value || value !== value.trim() || value.includes("\n")) throw new TypeError(`Hermes ${label} must be non-empty and single-line`);
     }
@@ -61,7 +64,7 @@ export class HermesCliProvider implements OperationProvider {
       const usagePath = join(root, "usage.json");
       const prompt = [
         "You are one replaceable cognitive step inside a persistent game Agent Host.",
-        "Use only the canonical Context below. Apply strategy.decisionPolicy in order, inspect each candidate strategy, and choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
+        "Use only the canonical Context below. Apply strategy.decisionPolicy in order. Start from the sole strategy.selectionClass=preferred Operation; never choose blocked or defer while preferred exists. Choose exactly one allowed Operation by copying its operationCandidateId and contextId exactly.",
         "Return exactly one JSON object with: contextId as a string; selectedOperationCandidateId as a string or null; riskLevel as exactly low, medium, high, or critical; confidence as a JSON number from 0 to 1; rationale as a non-empty string.",
         "Do not call tools or use memory, rules, skills, MCP, prior sessions, or markdown.",
         "",
@@ -74,7 +77,12 @@ export class HermesCliProvider implements OperationProvider {
       const result = await runProcess(this.executable, [
         "--oneshot", prompt, "--model", this.model, "--provider", this.provider,
         "--ignore-rules", "--usage-file", usagePath,
-      ], { cwd: work, env, timeoutMs: this.timeoutMs });
+      ], {
+        cwd: work,
+        env,
+        timeoutMs: this.timeoutMs,
+        ...(this.signal ? { signal: this.signal } : {}),
+      });
       if (result.exitCode !== 0) {
         throw new ProviderAdapterError("process_failed", `Hermes exited ${result.exitCode}: ${result.stderr.trim().slice(-2_000)}`);
       }

@@ -61,10 +61,13 @@ export type OperationStrategyClassification =
   | "goal_progress"
   | "neutral";
 
+export type OperationSelectionClass = "preferred" | "viable" | "defer" | "blocked";
+
 export interface OperationStrategyAnalysis {
   classification: OperationStrategyClassification;
   strategicScore: number;
   strategicRank: number;
+  selectionClass: OperationSelectionClass;
   projectedVictory: boolean;
   lowerBoundTimeFeasible: boolean;
   remainingVictoryRequirements: GoalRequirementId[];
@@ -76,6 +79,7 @@ export interface OperationStrategyAnalysis {
   threatsImproved: ThreatId[];
   threatsWorsened: ThreatId[];
   urgentMitigationsAdvanced: ThreatId[];
+  urgentMitigationDepths: Partial<Record<ThreatId, number>>;
   controlAdvantages: string[];
   batteryConsumed: number;
   projectedPowerDraw: number;
@@ -341,6 +345,37 @@ export function analyzeGoalStrategy(state: WorldState): GoalStrategyAnalysis {
   };
 }
 
+function mitigationDependencyDepth(
+  satisfiedRequirement: GoalRequirementId,
+  mitigationRequirement: GoalRequirementId,
+  visited = new Set<GoalRequirementId>(),
+): number | null {
+  if (satisfiedRequirement === mitigationRequirement) return 0;
+  if (visited.has(mitigationRequirement)) return null;
+  visited.add(mitigationRequirement);
+  const definition = requirementDefinitions.find((entry) => entry.id === mitigationRequirement);
+  if (!definition) return null;
+  const depths = definition.dependencies
+    .map((dependency) => mitigationDependencyDepth(satisfiedRequirement, dependency, new Set(visited)))
+    .filter((depth): depth is number => depth !== null);
+  return depths.length === 0 ? null : Math.min(...depths) + 1;
+}
+
+function urgentMitigationDepths(
+  before: GoalStrategyAnalysis,
+  newlySatisfied: GoalRequirementId[],
+): Partial<Record<ThreatId, number>> {
+  const output: Partial<Record<ThreatId, number>> = {};
+  for (const threat of before.activeThreats) {
+    const depths = threat.mitigationRequirements.flatMap((mitigation) =>
+      newlySatisfied
+        .map((requirement) => mitigationDependencyDepth(requirement, mitigation))
+        .filter((depth): depth is number => depth !== null));
+    if (depths.length > 0) output[threat.id] = Math.min(...depths);
+  }
+  return output;
+}
+
 function requirementMap(analysis: GoalStrategyAnalysis): Map<GoalRequirementId, boolean> {
   return new Map(analysis.requirements.map((requirement) => [requirement.id, requirement.satisfied]));
 }
@@ -375,7 +410,7 @@ function strategicScore(
   regressed: GoalRequirementId[],
   improvedThreats: ThreatId[],
   worsenedThreats: ThreatId[],
-  urgentMitigationsAdvanced: ThreatId[],
+  mitigationDepths: Partial<Record<ThreatId, number>>,
   controlAdvantages: string[],
   primitiveSteps: number,
 ): number {
@@ -396,15 +431,18 @@ function strategicScore(
     const threat = after.activeThreats.find((candidate) => candidate.id === threatId);
     score += Math.max(1, 14 - (threat?.ticksToFailure ?? 14)) * 2_000;
   }
-  for (const threatId of urgentMitigationsAdvanced) {
+  for (const [threatId, depth] of Object.entries(mitigationDepths) as Array<[ThreatId, number]>) {
     const threat = before.activeThreats.find((candidate) => candidate.id === threatId);
-    if (threat) score -= Math.max(1, 14 - threat.ticksToFailure) * 2_000;
+    if (threat) {
+      const dependencyWeight = 1 / (depth + 1);
+      score -= Math.max(1, 16 - threat.ticksToFailure) * 4_000 * dependencyWeight;
+    }
   }
   score -= controlAdvantages.length * 35_000;
   if (
     newlySatisfied.length === 0 &&
     improvedThreats.length === 0 &&
-    urgentMitigationsAdvanced.length === 0 &&
+    Object.keys(mitigationDepths).length === 0 &&
     controlAdvantages.length === 0
   ) {
     score += 15_000;
@@ -443,18 +481,22 @@ export function analyzeOperationStrategy(
     if (persistentRequirements.has(id) && satisfiedBefore && !satisfiedAfter) regressed.push(id);
   }
   const changes = threatChanges(before, after);
-  const urgentMitigationsAdvanced = before.activeThreats
-    .filter((threat) => threat.mitigationRequirements.some((id) => newlySatisfied.includes(id)))
-    .map((threat) => threat.id)
-    .sort();
+  const mitigationDepths = urgentMitigationDepths(before, newlySatisfied);
+  const urgentMitigationsAdvanced = (Object.keys(mitigationDepths) as ThreatId[]).sort();
   const controlAdvantages: string[] = [];
   const beforeCooling = beforeState.systems.cooling;
   const afterCooling = afterState.systems.cooling;
+  const urgentNonPowerThreat = after.activeThreats.some((threat) =>
+    threat.id !== "power_exhausted" &&
+    threat.id !== "mission_timeout" &&
+    (threat.severity === "critical" || threat.severity === "high"));
   if (
     beforeCooling?.powered &&
     afterCooling &&
     !afterCooling.powered &&
     isOperational(afterCooling.integrity) &&
+    !urgentNonPowerThreat &&
+    after.requirements.find((requirement) => requirement.id === "oxygen_safe")?.satisfied === true &&
     Number.isFinite(after.optimisticMinimumPrimitiveStepsToVictory) &&
     afterState.resources.reactorHeat + 6 * after.optimisticMinimumPrimitiveStepsToVictory <= 80
   ) {
@@ -488,7 +530,7 @@ export function analyzeOperationStrategy(
     regressed,
     changes.improved,
     changes.worsened,
-    urgentMitigationsAdvanced,
+    mitigationDepths,
     controlAdvantages,
     primitiveSteps,
   );
@@ -511,6 +553,7 @@ export function analyzeOperationStrategy(
     classification,
     strategicScore: score,
     strategicRank: 0,
+    selectionClass: "viable",
     projectedVictory,
     lowerBoundTimeFeasible: after.lowerBoundTimeFeasible,
     remainingVictoryRequirements: [...after.remainingVictoryRequirements],
@@ -522,6 +565,7 @@ export function analyzeOperationStrategy(
     threatsImproved: changes.improved,
     threatsWorsened: changes.worsened,
     urgentMitigationsAdvanced,
+    urgentMitigationDepths: mitigationDepths,
     controlAdvantages,
     batteryConsumed: beforeState.resources.batteryCharge - afterState.resources.batteryCharge,
     projectedPowerDraw: Object.values(afterState.systems)
