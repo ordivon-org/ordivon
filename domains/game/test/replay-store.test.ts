@@ -37,13 +37,10 @@ function retainedCounts(store: GameStore, runId: string): Record<string, number>
     "snapshots",
     "host_journal",
     "team_rounds",
-    "team_context_refs",
+    "team_round_contexts",
     "team_proposals",
     "team_authority_decisions",
     "team_tick_plans",
-    "team_effects",
-    "team_dispatches",
-    "team_observations",
   ];
   const counts = Object.fromEntries(runTables.map((table) => {
     const row = store.db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE run_id = ?`).get(runId) as { count: number };

@@ -149,7 +149,7 @@ test("TeamHost completes 18 atomic rounds with three persistent specialists", as
     assert.equal(result.projection.goal.status, "succeeded");
     assert.ok(result.projection.tasks.every((task) => task.state === "completed"));
     const proposalCount = Number(game.db.prepare("SELECT COUNT(*) AS count FROM team_proposals").get()!.count);
-    const observationCount = Number(game.db.prepare("SELECT COUNT(*) AS count FROM team_observations").get()!.count);
+    const observationCount = host.execution.authority.listObservations(game.activeRunId).length;
     assert.equal(proposalCount, 54);
     assert.equal(observationCount, 18);
     host.team.verify();
@@ -270,8 +270,8 @@ test("every TeamHost interruption boundary converges without duplicate World Tic
         assert.equal(sha256(reopened.loadState(runId)), TEAM_DIGEST, point);
         assert.equal(result.rounds.length, 18, point);
         assert.ok(result.rounds.every((round) => round.status === "completed"), point);
-        assert.equal(Number(reopened.db.prepare("SELECT COUNT(*) AS count FROM team_dispatches WHERE run_id = ?").get(runId)!.count), 18, point);
-        assert.equal(Number(reopened.db.prepare("SELECT COUNT(*) AS count FROM team_observations WHERE run_id = ?").get(runId)!.count), 18, point);
+        assert.equal(fresh.execution.authority.listDispatches(runId).length, 18, point);
+        assert.equal(fresh.execution.authority.listObservations(runId).length, 18, point);
         fresh.team.verify(runId);
       } finally {
         reopened.close();

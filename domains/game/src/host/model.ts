@@ -116,3 +116,38 @@ export function terminalTaskPhase(status: MissionStatus): TaskPhase {
   if (status === "failure") return "failed";
   return "ready";
 }
+
+
+export function initialAgentProjection(
+  runId: string,
+  missionStatus: MissionStatus,
+  providerOrder: string[] = ["fixture"],
+  createdAt = new Date().toISOString(),
+): AgentProjection {
+  const goal: AgentGoal = {
+    goalId: goalIdFor(runId),
+    runId,
+    actorId: "engineer-01",
+    statement: "Stabilize Station Zero and transmit a verified rescue signal.",
+    successCondition: { missionStatus: "victory", missionReason: "rescue_signal_verified" },
+    status: terminalGoalStatus(missionStatus),
+    revision: 1,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  const task: AgentTask = {
+    taskId: taskIdFor(runId),
+    goalId: goal.goalId,
+    runId,
+    actorId: "engineer-01",
+    phase: terminalTaskPhase(missionStatus),
+    revision: 1,
+    activeAttemptId: null,
+    completedAttemptIds: [],
+    blockers: [],
+    providerOrder: [...providerOrder],
+    createdAt,
+    updatedAt: createdAt,
+  };
+  return { goal, task, attempts: [] };
+}

@@ -44,18 +44,23 @@ test("persistent Agent Host completes the frozen mission through 10 Decisions an
     assert.ok(result.projection.attempts.every((attempt) => attempt.status === "succeeded"));
     assert.equal(provider.calls, 10);
     assert.equal(game.eventCount(), 25);
-    assert.equal(agent.execution.listEffects(game.activeRunId).length, 25);
-    assert.equal(agent.execution.listDispatches(game.activeRunId).length, 25);
-    assert.ok(agent.execution.listDispatches(game.activeRunId).every((dispatch) => dispatch.status === "succeeded"));
+    assert.equal(agent.authority.listEffects(game.activeRunId).length, 25);
+    assert.equal(agent.authority.listDispatches(game.activeRunId).length, 25);
+    assert.ok(agent.authority.listObservations(game.activeRunId).every((observation) => observation.status === "succeeded"));
     assert.equal(result.worldDigest, "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2");
     assert.equal(game.verifyReplay().digest, result.worldDigest);
     agent.host.verifyJournal(game.activeRunId);
     const eventTypes = new Set(agent.host.listJournal(game.activeRunId).map((event) => event.eventType));
     for (const expected of [
-      "attempt_activated", "decision_recorded", "effect_proposed", "dispatch_prepared",
-      "observation_recorded", "dispatch_succeeded", "effect_succeeded",
-      "skill_step_verified", "attempt_succeeded", "task_succeeded",
+      "attempt_activated", "decision_recorded", "host-contract.task-descriptor",
+      "host-contract.dispatch", "host-contract.observation", "host-contract.verification",
+      "host-contract.task-outcome", "skill_step_verified", "attempt_succeeded", "task_succeeded",
     ]) assert.ok(eventTypes.has(expected), expected);
+    assert.equal(game.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get("host_tasks"), undefined);
+    const legacyEffectTable = game.db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'host_effects'",
+    ).get() as { name?: string } | undefined;
+    assert.equal(legacyEffectTable, undefined);
   } finally {
     game.close();
     rmSync(directory, { recursive: true, force: true });
@@ -96,8 +101,8 @@ test("every persisted interruption boundary converges to one world effect histor
       const result = await fresh.run(game.activeRunId, 256);
       assert.equal(result.projection.task.phase, "succeeded", point);
       assert.equal(game.eventCount(), 25, point);
-      assert.equal(new Set(fresh.execution.listEffects(game.activeRunId).map((effect) => effect.commandId)).size, 25, point);
-      assert.equal(fresh.execution.listDispatches(game.activeRunId).length, 25, point);
+      assert.equal(new Set(fresh.authority.listEffects(game.activeRunId).map((effect) => effect.commandId)).size, 25, point);
+      assert.equal(fresh.authority.listDispatches(game.activeRunId).length, 25, point);
       assert.equal(result.worldDigest, "41d7bfd4c1b36f0a8e38533be7f7e9b48b1625608c76c5ced1ddd3d0952d02d2", point);
       if (point === "after_world_apply") assert.ok(eventsAtInterruption >= 1);
       if (point === "after_provider_call" || point === "after_decision_artifact") assert.ok(provider.calls >= 11);
@@ -132,7 +137,7 @@ test("world change during cognition rejects the stale Decision without a Host Ef
     const rejected = await agent.step();
     assert.equal(rejected.status, "decision_rejected");
     assert.equal(agent.projection().task.phase, "ready");
-    assert.equal(agent.execution.listEffects(game.activeRunId).length, 0);
+    assert.equal(agent.authority.listEffects(game.activeRunId).length, 0);
     assert.equal(game.eventCount(), 1);
     assert.equal(agent.projection().attempts[0]?.status, "failed");
   } finally {
@@ -155,7 +160,7 @@ test("technical Provider exhaustion blocks the Task without mutating the world",
     assert.equal(agent.projection().task.phase, "blocked");
     assert.deepEqual(agent.projection().task.blockers, ["provider_unavailable"]);
     assert.equal(game.eventCount(), 0);
-    assert.equal(agent.execution.listEffects(game.activeRunId).length, 0);
+    assert.equal(agent.authority.listEffects(game.activeRunId).length, 0);
   } finally {
     game.close();
     rmSync(directory, { recursive: true, force: true });
@@ -178,8 +183,10 @@ test("a prepared Dispatch observes manual world drift and rejects stale executio
     const rejected = await agent.step();
     assert.equal(rejected.status, "decision_rejected");
     assert.equal(agent.projection().task.phase, "ready");
-    assert.equal(agent.execution.listDispatches(game.activeRunId)[0]?.status, "rejected");
-    assert.equal(agent.execution.listEffects(game.activeRunId)[0]?.status, "rejected");
+    assert.equal(agent.authority.listObservations(game.activeRunId)[0]?.status, "rejected");
+    const outcome = agent.authority.contracts.transcript(game.activeRunId)
+      .find((entry) => entry.contractKind === "ordivon.task-outcome");
+    assert.equal((outcome?.object as { status?: string } | undefined)?.status, "failed");
     assert.equal(game.eventCount(), 1);
   } finally {
     game.close();
@@ -232,37 +239,49 @@ test("run validates its deterministic step budget", async () => {
   }
 });
 
-test("Effect, Dispatch, and Observation identities are idempotent and conflicting reuse fails closed", async () => {
+test("Embedded Host authority is idempotent and conflicting lifecycle reuse fails closed", async () => {
   const { directory, game } = fixture();
   try {
     const agent = new AgentHost(game, new RecoveryOperationProvider());
     await agent.step();
     await agent.step();
     await agent.step();
-    const effect = agent.execution.listEffects(game.activeRunId)[0];
-    const dispatch = agent.execution.listDispatches(game.activeRunId)[0];
-    assert.ok(effect);
+    const dispatch = agent.authority.listDispatches(game.activeRunId)[0];
+    const effect = agent.authority.listEffects(game.activeRunId)[0];
     assert.ok(dispatch);
-    assert.deepEqual(agent.execution.putEffect(effect), effect);
-    assert.deepEqual(agent.execution.putDispatch(dispatch), dispatch);
-    assert.throws(
-      () => agent.execution.putEffect({ ...effect, status: "rejected" }),
-      /Effect identity is bound to different content/,
+    assert.ok(effect);
+    const descriptorEntry = agent.authority.contracts.transcript(game.activeRunId)
+      .find((entry) => entry.contractKind === "ordivon.host-task-descriptor");
+    assert.ok(descriptorEntry);
+    const taskId = descriptorEntry.subjectRef;
+    const descriptor = agent.authority.descriptor(game.activeRunId, taskId);
+    const related = agent.authority.relatedObjects(game.activeRunId, taskId);
+    const request = related.find((item) => item.kind === "ordivon.game.world-command-request");
+    assert.ok(request && typeof request.content === "object" && request.content !== null && !Array.isArray(request.content));
+    assert.equal(agent.authority.ensureTask(game.activeRunId, descriptor).revision, 2);
+    assert.equal(
+      agent.authority.prepare(
+        game.activeRunId, taskId, effect, request.content as Record<string, import("../src/host-contract/canonical.ts").ProtocolJson>, dispatch,
+      ).revision,
+      2,
     );
     assert.throws(
-      () => agent.execution.putDispatch({ ...dispatch, error: "different" }),
-      /Dispatch identity is bound to different content/,
+      () => agent.authority.prepare(
+        game.activeRunId, taskId, effect, request.content as Record<string, import("../src/host-contract/canonical.ts").ProtocolJson>,
+        { ...dispatch, idempotencyKey: "different" },
+      ),
+      /another prepared Dispatch/,
     );
-    assert.throws(() => agent.execution.getEffect("effect:missing"), /Effect is missing/);
-    assert.throws(() => agent.execution.getDispatch("dispatch:missing"), /Dispatch is missing/);
 
     await agent.step();
-    const observation = agent.execution.findObservation(dispatch.dispatchId);
+    const observation = agent.authority.listObservations(game.activeRunId)[0];
     assert.ok(observation);
-    assert.deepEqual(agent.execution.putObservation(observation), observation);
+    assert.equal(agent.authority.recordObservation(game.activeRunId, taskId, observation).revision, 3);
     assert.throws(
-      () => agent.execution.putObservation({ ...observation, worldAfterDigest: "different" }),
-      /Observation identity is bound to different content/,
+      () => agent.authority.recordObservation(
+        game.activeRunId, taskId, { ...observation, payloadDigest: `sha256:${"0".repeat(64)}` },
+      ),
+      /another ordivon.observation-envelope/,
     );
   } finally {
     game.close();
