@@ -1,7 +1,6 @@
 import { sha256 } from "../digest.ts";
-import type { JournalEvent, WorldEvent } from "../model.ts";
+import type { JournalEvent, WorldEvent, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
-import { TeamExecutionStore } from "../team/execution-store.ts";
 import type {
   ActionProposal,
   AuthorityDecision,
@@ -9,14 +8,15 @@ import type {
   TeamMessage,
   TeamRound,
 } from "../team/model.ts";
-import { TeamStore } from "../team/store.ts";
 import type {
   EvidenceEdge,
   EvidenceEdgeKind,
   EvidenceNode,
   EvidenceNodeKind,
+  PointInTimeReplayResult,
   RunEvidenceGraph,
 } from "./model.ts";
+import { loadReplayTeamData, type ReplayTeamData } from "./team-data.ts";
 
 export class ReplayEvidenceError extends Error {
   readonly code = "replay_evidence_corrupt";
@@ -41,17 +41,6 @@ function semanticValue(value: unknown): unknown {
 
 function payloadDigest(value: unknown): string {
   return sha256(semanticValue(value));
-}
-
-function teamTablesExist(store: GameStore): boolean {
-  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'").get() as { name?: string } | undefined;
-  return row?.name === "team_actor_sessions";
-}
-
-function teamInitialized(store: GameStore, runId: string): boolean {
-  if (!teamTablesExist(store)) return false;
-  const row = store.db.prepare("SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { present?: number } | undefined;
-  return row?.present === 1;
 }
 
 function proposalRevision(proposal: ActionProposal): number {
@@ -110,10 +99,25 @@ function contractSummary(kind: string, subjectRef: string): string {
   return `${short} for ${subjectRef}`;
 }
 
-export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunId): RunEvidenceGraph {
+export interface EvidenceBuildInput {
+  terminal?: WorldState;
+  replays?: PointInTimeReplayResult[];
+  journal?: JournalEvent[];
+  teamData?: ReplayTeamData;
+}
+
+export function buildRunEvidenceGraph(
+  store: GameStore,
+  runId = store.activeRunId,
+  retained: EvidenceBuildInput = {},
+): RunEvidenceGraph {
   store.getRun(runId);
   store.verifyStream(runId);
-  const terminal = store.loadState(runId);
+  const terminal = retained.terminal ?? store.loadState(runId);
+  const replays = retained.replays ?? Array.from(
+    { length: terminal.revision + 1 },
+    (_, revision) => store.stateAtRevision(revision, runId),
+  );
   const nodes = new Map<string, EvidenceNode>();
   const edges = new Map<string, EvidenceEdge>();
 
@@ -133,14 +137,14 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
     edges.set(edgeId, { edgeId, kind, fromNodeId, toNodeId, required });
   };
 
-  for (const actor of Object.values(store.stateAtRevision(0, runId).state.agents).sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const actor of Object.values(replays[0]!.state.agents).sort((a, b) => a.id.localeCompare(b.id))) {
     addNode({ nodeId: `actor:${actor.id}`, kind: "actor", worldRevision: null, sequence: null, actorId: actor.id, roundId: null, subjectId: actor.id, payload: { id: actor.id, name: actor.name, capabilities: [...actor.capabilities].sort() }, summary: `${actor.name} · ${actor.capabilities.join(", ")}` });
   }
-  for (let revision = 0; revision <= terminal.revision; revision += 1) {
-    const replay = store.stateAtRevision(revision, runId);
+  for (const replay of replays) {
+    const revision = replay.revision;
     addNode({ nodeId: `world-state:${runId}:${revision}`, kind: "world-state", worldRevision: revision, sequence: revision, actorId: null, roundId: null, subjectId: runId, payload: { digest: replay.digest, mission: replay.state.mission, turn: replay.state.turn }, payloadDigest: replay.digest, summary: revision === 0 ? "Genesis World state" : `World state after revision ${revision}` });
   }
-  const journal = store.journalEvents(runId);
+  const journal = retained.journal ?? store.journalEvents(runId);
   const eventByRevision = new Map<number, JournalEvent>();
   for (const record of journal) {
     const event = record.event;
@@ -152,13 +156,14 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
     if (nodes.has(`actor:${event.actorId}`)) addEdge("belongs-to", nodeId, `actor:${event.actorId}`, false);
   }
 
-  if (teamInitialized(store, runId)) {
-    const team = new TeamStore(store);
-    const execution = new TeamExecutionStore(team);
-    team.verify(runId);
-    execution.authority.verify(runId);
-    const projection = team.projection(runId, false);
-    const rounds = execution.listRounds(runId);
+  const teamData = retained.teamData ?? loadReplayTeamData(store, runId);
+  if (teamData.initialized) {
+    const projection = {
+      authorityDecisions: teamData.authorityDecisions,
+      authorityGrants: teamData.authorityGrants,
+      messages: teamData.messages,
+    };
+    const rounds = teamData.rounds;
     const roundMap = new Map(rounds.map((round) => [round.roundId, round]));
     const proposalMap = new Map<string, ActionProposal>();
 
@@ -166,7 +171,7 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
       const roundNode = `team-round:${round.roundId}`;
       addNode({ nodeId: roundNode, kind: "team-round", worldRevision: round.worldRevision, sequence: round.worldRevision, actorId: null, roundId: round.roundId, subjectId: round.roundId, payload: round, summary: `Round ${round.worldRevision} · ${round.status}` });
       addEdge("prepared-from", `world-state:${runId}:${round.worldRevision}`, roundNode);
-      const contexts = execution.listContexts(round.roundId);
+      const contexts = teamData.contextsByRound.get(round.roundId) ?? [];
       for (const context of contexts) {
         const nodeId = `team-context:${context.contextId}`;
         addNode({ nodeId, kind: "team-context", worldRevision: context.worldRevision, sequence: null, actorId: context.actorId, roundId: round.roundId, subjectId: context.taskId, payload: context, summary: `${context.actorId} Context at revision ${context.worldRevision}` });
@@ -174,7 +179,7 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
         addEdge("prepared-from", nodeId, `world-state:${runId}:${context.worldRevision}`);
         addEdge("belongs-to", nodeId, `actor:${context.actorId}`);
       }
-      const proposals = execution.listProposals(round.roundId);
+      const proposals = teamData.proposalsByRound.get(round.roundId) ?? [];
       for (const proposal of proposals) {
         proposalMap.set(proposal.proposalId, proposal);
         const nodeId = `team-proposal:${proposal.proposalId}`;
@@ -186,7 +191,7 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
         addEdge("belongs-to", nodeId, `actor:${proposal.actorId}`);
       }
       if (round.tickPlanId) {
-        const plan = execution.getTickPlan(round.tickPlanId);
+        const plan = teamData.tickPlansByRound.get(round.roundId)!;
         const planNode = `team-tick-plan:${plan.tickPlanId}`;
         addNode({ nodeId: planNode, kind: "team-tick-plan", worldRevision: plan.worldRevision, sequence: null, actorId: null, roundId: round.roundId, subjectId: plan.tickPlanId, payload: plan, summary: `${plan.selectedProposalIds.length} selected / ${plan.rejectedProposalIds.length} rejected` });
         addEdge("belongs-to", planNode, roundNode);
@@ -202,19 +207,19 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
         }
       }
       if (round.effectId) {
-        const effect = execution.getEffect(round.effectId);
+        const effect = teamData.effectsByRound.get(round.roundId)!;
         const effectNode = `effect:${effect.effectId}`;
         addNode({ nodeId: effectNode, kind: "effect", worldRevision: effect.requiredWorldRevision, sequence: null, actorId: null, roundId: round.roundId, subjectId: effect.effectId, payload: effect, summary: `Team Tick Effect · ${effect.status}` });
         addEdge("materializes", `team-tick-plan:${effect.tickPlanId}`, effectNode);
       }
       if (round.dispatchId) {
-        const dispatch = execution.getDispatch(round.dispatchId);
+        const dispatch = teamData.dispatchesByRound.get(round.roundId)!;
         const dispatchNode = `dispatch:${dispatch.dispatchId}`;
         addNode({ nodeId: dispatchNode, kind: "dispatch", worldRevision: round.worldRevision, sequence: dispatch.commandSequence, actorId: null, roundId: round.roundId, subjectId: dispatch.dispatchId, payload: dispatch, summary: `World Dispatch · ${dispatch.status}` });
         addEdge("dispatches", `effect:${dispatch.effectId}`, dispatchNode);
       }
       if (round.observationId) {
-        const observation = execution.findObservationForRound(round.roundId);
+        const observation = teamData.observationsByRound.get(round.roundId) ?? null;
         if (!observation) throw new ReplayEvidenceError(`Round references missing Observation: ${round.roundId}`);
         const observationNode = `observation:${observation.observationId}`;
         addNode({ nodeId: observationNode, kind: "observation", worldRevision: round.worldRevision + 1, sequence: observation.commandSequence, actorId: null, roundId: round.roundId, subjectId: observation.observationId, payload: observation, summary: `${observation.verifiedIntentCommandIds.length} verified intent${observation.verifiedIntentCommandIds.length === 1 ? "" : "s"}` });
@@ -249,7 +254,7 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
       for (const actorId of message.recipientActorIds) addEdge("addressed-to", nodeId, `actor:${actorId}`, false);
     }
 
-    const transcript = execution.authority.contracts.transcript(runId);
+    const transcript = teamData.contractTranscript;
     const roundByTaskId = new Map(rounds.map((round) => [`task:team-round:${round.roundId.slice("team-round:".length)}`, round]));
     const previousBySubject = new Map<string, string>();
     for (const entry of transcript) {
@@ -262,7 +267,7 @@ export function buildRunEvidenceGraph(store: GameStore, runId = store.activeRunI
       for (const digest of entry.relatedDigests) addEdge("references", nodeId, `artifact:${digest}`, false);
     }
 
-    const hostJournal = team.host.listJournal(runId);
+    const hostJournal = teamData.hostJournal;
     for (const event of hostJournal.filter((entry) => !entry.eventType.startsWith("host-contract."))) {
       const inferredRevision = inferHostRevision(event.payload, proposalMap, roundMap);
       const playerVisible = /player|configuration-updated|task-provider-updated/.test(event.eventType);

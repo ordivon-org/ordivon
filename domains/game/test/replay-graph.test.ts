@@ -293,3 +293,15 @@ test("Evidence link integrity rejects required dangling identities and permits o
     (error) => error instanceof ReplayEvidenceError && /dangling/.test(error.message),
   );
 });
+
+
+test("single Replay Frame revision validation rejects fractional, negative, and future revisions", () => {
+  const store = new GameStore(":memory:");
+  try {
+    assert.throws(() => replayFrame(store, store.activeRunId, -1), /non-negative integer/);
+    assert.throws(() => replayFrame(store, store.activeRunId, 0.5), /non-negative integer/);
+    assert.throws(() => replayFrame(store, store.activeRunId, 1), /from 0 to 0/);
+  } finally {
+    store.close();
+  }
+});
