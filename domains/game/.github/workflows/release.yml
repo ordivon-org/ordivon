@@ -1,0 +1,59 @@
+name: Release Station Zero Alpha
+
+on:
+  push:
+    tags:
+      - v0.1.0-alpha.1
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.33.2
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm release:build -- --out dist/release --ref "$GITHUB_REF_NAME"
+      - run: pnpm release:verify -- --dir dist/release
+      - name: Create draft prerelease and upload verified bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 && \
+            gh release delete "$GITHUB_REF_NAME" --yes || true
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Station Zero $GITHUB_REF_NAME" \
+            --notes-file dist/release/docs/M5-RECEIPT.md \
+            --prerelease \
+            --draft
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/release/ordivon-game-station-zero-v0.1.0-alpha.1.tar.gz \
+            dist/release/SHA256SUMS \
+            dist/release/evaluated-inputs.json \
+            dist/release/docs/M5-EVALUATION.json \
+            dist/release/docs/M5-RELEASE.json \
+            dist/release/docs/M5-RECEIPT.md
+      - name: Download and fully reverify uploaded bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/ordivon-downloaded-release
+          mkdir -p /tmp/ordivon-downloaded-release/docs
+          gh release download "$GITHUB_REF_NAME" --dir /tmp/ordivon-downloaded-release
+          mv /tmp/ordivon-downloaded-release/M5-EVALUATION.json /tmp/ordivon-downloaded-release/docs/
+          mv /tmp/ordivon-downloaded-release/M5-RELEASE.json /tmp/ordivon-downloaded-release/docs/
+          mv /tmp/ordivon-downloaded-release/M5-RECEIPT.md /tmp/ordivon-downloaded-release/docs/
+          pnpm release:verify -- --dir /tmp/ordivon-downloaded-release
+      - name: Publish verified prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease
