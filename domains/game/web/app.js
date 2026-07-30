@@ -1,24 +1,97 @@
-import { advanceMission, initializeMission, issueCommand, listRuns, loadCatalog, loadMission } from "./api.js";
+import {
+  advanceMission,
+  compareRuns,
+  initializeMission,
+  issueCommand,
+  listRuns,
+  loadCatalog,
+  loadDeploymentManifest,
+  loadMission,
+  loadProviderPreflight,
+  loadReplayFrame,
+  loadReplayReport,
+} from "./api.js";
+import { renderCompare } from "./render-compare.js";
+import { renderDiagnosis } from "./render-diagnosis.js";
+import { renderReplay } from "./render-replay.js";
 import { renderDeployment, renderFatal, renderMission } from "./render-shell.js";
-import { compatibleRuns, createRunId, runIdFromUrl, urlForRun } from "./store.js";
+import {
+  compareRunIdFromUrl,
+  compatibleRuns,
+  createRunId,
+  revisionFromUrl,
+  runIdFromUrl,
+  surfaceFromUrl,
+  urlForState,
+} from "./store.js";
 
 const root = document.querySelector("#app");
 let runs = [];
 let catalog = null;
+let preflight = null;
 let view = null;
+let replayReport = null;
+let replayFrame = null;
+let comparison = null;
+let cloneManifest = null;
 let busy = false;
 let error = null;
 let currentRunId = runIdFromUrl(window.location.href);
+let surface = surfaceFromUrl(window.location.href);
+let selectedRevision = revisionFromUrl(window.location.href);
+let compareBaseRunId = compareRunIdFromUrl(window.location.href);
+
+function compareReady() {
+  return Boolean(
+    compareBaseRunId &&
+    currentRunId &&
+    compareBaseRunId !== currentRunId &&
+    view?.run?.status !== "running",
+  );
+}
+
+function syncUrl() {
+  history.replaceState({}, "", urlForState(window.location.href, {
+    runId: currentRunId,
+    surface,
+    revision: selectedRevision,
+    compareRunId: compareBaseRunId,
+  }));
+}
 
 function draw() {
   if (!root) return;
-  if (view?.initialized) root.innerHTML = renderMission(view, { busy, error, catalog });
-  else root.innerHTML = renderDeployment(runs, error, currentRunId, catalog);
+  const ready = compareReady();
+  if (!view?.initialized) {
+    root.innerHTML = renderDeployment(runs, {
+      error,
+      selectedRunId: currentRunId,
+      catalog,
+      preflight,
+      cloneManifest,
+      compareBaseRunId,
+    });
+  } else if (surface === "replay" && replayReport && replayFrame) {
+    root.innerHTML = renderReplay(replayReport, replayFrame, { compareReady: ready });
+  } else if (surface === "diagnosis" && replayReport) {
+    root.innerHTML = renderDiagnosis(replayReport, { compareReady: ready });
+  } else if (surface === "compare" && comparison) {
+    root.innerHTML = renderCompare(comparison);
+  } else {
+    root.innerHTML = renderMission(view, { busy, error, catalog, compareReady: ready });
+  }
+}
+
+function resetDerived() {
+  replayReport = null;
+  replayFrame = null;
+  comparison = null;
+  selectedRevision = null;
 }
 
 function setRunId(runId) {
   currentRunId = runId;
-  history.replaceState({}, "", urlForRun(window.location.href, runId));
+  syncUrl();
 }
 
 async function perform(operation) {
@@ -30,8 +103,10 @@ async function perform(operation) {
     await operation();
   } catch (caught) {
     error = caught;
+    if (surface !== "mission") surface = "mission";
   } finally {
     busy = false;
+    syncUrl();
     draw();
   }
 }
@@ -41,11 +116,56 @@ async function refreshRuns() {
   runs = compatibleRuns(result.runs ?? []);
 }
 
+async function ensureReplay(revision = selectedRevision) {
+  if (!currentRunId) return;
+  replayReport ??= await loadReplayReport(currentRunId);
+  const maximum = replayReport.summary.terminalRevision;
+  selectedRevision = revision === null
+    ? maximum
+    : Math.max(0, Math.min(maximum, Number(revision)));
+  replayFrame = await loadReplayFrame(currentRunId, selectedRevision);
+}
+
+async function ensureComparison() {
+  if (!compareReady()) {
+    throw new Error("Deploy again from a retained terminal Run before opening Compare.");
+  }
+  comparison = await compareRuns(compareBaseRunId, currentRunId);
+}
+
+async function openSurface(next) {
+  surface = next;
+  error = null;
+  if (next === "replay") await ensureReplay();
+  else if (next === "diagnosis") {
+    if (!currentRunId) return;
+    replayReport ??= await loadReplayReport(currentRunId);
+  } else if (next === "compare") await ensureComparison();
+  syncUrl();
+  draw();
+}
+
+async function bootFromUrl() {
+  currentRunId = runIdFromUrl(window.location.href);
+  surface = surfaceFromUrl(window.location.href);
+  selectedRevision = revisionFromUrl(window.location.href);
+  compareBaseRunId = compareRunIdFromUrl(window.location.href);
+  resetDerived();
+  if (currentRunId) {
+    view = await loadMission(currentRunId);
+    if (surface === "replay") await ensureReplay(selectedRevision);
+    else if (surface === "diagnosis") replayReport = await loadReplayReport(currentRunId);
+    else if (surface === "compare") await ensureComparison();
+  } else {
+    view = null;
+  }
+}
+
 async function boot() {
   try {
-    catalog = await loadCatalog();
+    [catalog, preflight] = await Promise.all([loadCatalog(), loadProviderPreflight()]);
     await refreshRuns();
-    if (currentRunId) view = await loadMission(currentRunId);
+    await bootFromUrl();
     draw();
   } catch (caught) {
     error = caught;
@@ -57,15 +177,26 @@ root.addEventListener("submit", (event) => {
   if (event.target.id !== "deployment-form") return;
   event.preventDefault();
   const form = new FormData(event.target);
-  const runId = String(form.get("runId") || currentRunId || createRunId());
-  const providers = Object.fromEntries((catalog?.actors ?? []).map((actor) => [actor.actorId, String(form.get(actor.actorId) || actor.defaultProvider)]));
+  const runId = String(form.get("runId") || createRunId());
+  const providers = Object.fromEntries(
+    (catalog?.actors ?? []).map((actor) => [
+      actor.actorId,
+      String(form.get(actor.actorId) || actor.defaultProvider),
+    ]),
+  );
   perform(async () => {
     view = await initializeMission({
       runId,
       scenarioCaseId: String(form.get("scenarioCaseId") || "baseline"),
+      coordinationProfileId: String(
+        form.get("coordinationProfileId") || "specialist-containment",
+      ),
       authorityPolicyMode: String(form.get("authorityPolicyMode") || "autonomous"),
       providers,
     });
+    cloneManifest = null;
+    resetDerived();
+    surface = "mission";
     setRunId(runId);
     await refreshRuns();
   });
@@ -74,8 +205,13 @@ root.addEventListener("submit", (event) => {
 root.addEventListener("click", (event) => {
   const target = event.target.closest("button, a");
   if (!target) return;
+
   if (target.dataset.resumeRun) {
     perform(async () => {
+      cloneManifest = null;
+      compareBaseRunId = null;
+      resetDerived();
+      surface = "mission";
       setRunId(target.dataset.resumeRun);
       view = await loadMission(currentRunId);
     });
@@ -83,34 +219,86 @@ root.addEventListener("click", (event) => {
   }
   if (target.hasAttribute("data-new-mission")) {
     view = null;
+    cloneManifest = null;
+    compareBaseRunId = null;
     error = null;
+    resetDerived();
+    surface = "mission";
     setRunId(null);
     draw();
     return;
   }
+  if (target.dataset.cloneRun) {
+    perform(async () => {
+      cloneManifest = await loadDeploymentManifest(target.dataset.cloneRun);
+      compareBaseRunId = target.dataset.cloneRun;
+      currentRunId = null;
+      view = null;
+      resetDerived();
+      surface = "mission";
+    });
+    return;
+  }
+  if (target.dataset.surface) {
+    perform(async () => openSurface(target.dataset.surface));
+    return;
+  }
+  if (target.dataset.replayJump !== undefined && currentRunId) {
+    perform(async () => {
+      surface = "replay";
+      await ensureReplay(Number(target.dataset.replayJump));
+    });
+    return;
+  }
   if (target.dataset.missionAction && currentRunId) {
-    const until = target.dataset.missionAction === "prepare" ? "proposal-review" : "tick-verified";
-    perform(async () => { view = (await advanceMission(currentRunId, until)).view; });
+    const until = target.dataset.missionAction === "prepare"
+      ? "proposal-review"
+      : "tick-verified";
+    perform(async () => {
+      view = (await advanceMission(currentRunId, until)).view;
+      resetDerived();
+    });
     return;
   }
   if (target.dataset.command && currentRunId) {
     const command = JSON.parse(decodeURIComponent(target.dataset.command));
-    perform(async () => { view = (await issueCommand(currentRunId, command)).view; });
+    perform(async () => {
+      view = (await issueCommand(currentRunId, command)).view;
+      resetDerived();
+    });
   }
 });
 
 root.addEventListener("change", (event) => {
   const target = event.target;
+  if (target.dataset.replayRevision !== undefined && currentRunId) {
+    perform(async () => ensureReplay(Number(target.value)));
+    return;
+  }
   if (!currentRunId) return;
   if (target.dataset.providerActor) {
     perform(async () => {
-      view = (await issueCommand(currentRunId, { action: "set-provider", actorId: target.dataset.providerActor, provider: target.value })).view;
+      view = (await issueCommand(currentRunId, {
+        action: "set-provider",
+        actorId: target.dataset.providerActor,
+        provider: target.value,
+      })).view;
+      resetDerived();
     });
   } else if (target.dataset.objectiveActor) {
     perform(async () => {
-      view = (await issueCommand(currentRunId, { action: "redirect-objective", actorId: target.dataset.objectiveActor, objectiveId: target.value })).view;
+      view = (await issueCommand(currentRunId, {
+        action: "redirect-objective",
+        actorId: target.dataset.objectiveActor,
+        objectiveId: target.value,
+      })).view;
+      resetDerived();
     });
   }
+});
+
+window.addEventListener("popstate", () => {
+  perform(bootFromUrl);
 });
 
 boot();

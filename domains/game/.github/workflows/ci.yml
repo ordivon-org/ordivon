@@ -20,6 +20,8 @@ jobs:
       - run: npm install --global pnpm@10.33.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
       - run: pnpm receipt
       - run: pnpm measure
       - run: pnpm measure:replay

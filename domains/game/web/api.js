@@ -26,6 +26,10 @@ export function loadCatalog() {
   return request("/api/mission-control/catalog");
 }
 
+export function loadProviderPreflight() {
+  return request("/api/providers/preflight");
+}
+
 export function listRuns() {
   return request("/api/runs");
 }
@@ -44,4 +48,20 @@ export function advanceMission(runId, until) {
 
 export function issueCommand(runId, command) {
   return post(`/api/mission-control/command${query(runId)}`, command);
+}
+
+export function loadReplayReport(runId) {
+  return request(`/api/replay/report${query(runId)}`);
+}
+
+export function loadReplayFrame(runId, revision) {
+  return request(`/api/replay/frame${query(runId)}&revision=${encodeURIComponent(revision)}`);
+}
+
+export function loadDeploymentManifest(runId) {
+  return request(`/api/deployments/manifest${query(runId)}`);
+}
+
+export function compareRuns(leftRunId, rightRunId) {
+  return request(`/api/compare?leftRunId=${encodeURIComponent(leftRunId)}&rightRunId=${encodeURIComponent(rightRunId)}`);
 }
