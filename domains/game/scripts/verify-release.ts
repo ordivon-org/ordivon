@@ -44,6 +44,19 @@ function run(
   });
 }
 
+function runPnpm(
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath?.trim()) {
+    run(process.execPath, [npmExecPath, ...args], cwd, env);
+    return;
+  }
+  run("pnpm", args, cwd, env);
+}
+
 const releaseDirectory = resolve(option("--dir", "dist/release"));
 const checksumPath = resolve(releaseDirectory, "SHA256SUMS");
 const checksums = parseChecksumText(readFileSync(checksumPath, "utf8"));
@@ -135,17 +148,17 @@ try {
 
   const installArgs = ["install", "--frozen-lockfile"];
   if (process.env.ORDIVON_RELEASE_OFFLINE === "1") installArgs.push("--offline");
-  run("pnpm", installArgs, root);
-  run("pnpm", ["check"], root);
-  run("pnpm", ["e2e"], root, {
+  runPnpm(installArgs, root);
+  runPnpm(["check"], root);
+  runPnpm(["e2e"], root, {
     ...process.env,
     TMPDIR: process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp",
   });
-  run("pnpm", ["receipt"], root);
-  run("pnpm", ["measure"], root);
-  run("pnpm", ["measure:replay"], root);
+  runPnpm(["receipt"], root);
+  runPnpm(["measure"], root);
+  runPnpm(["measure:replay"], root);
   const recomputedPath = resolve(directory, "evaluated-inputs.recomputed.json");
-  run("pnpm", ["release:inputs", "--", "--out", recomputedPath], root);
+  runPnpm(["release:inputs", "--", "--out", recomputedPath], root);
   const recomputed = JSON.parse(readFileSync(recomputedPath, "utf8")) as EvaluatedInputManifest;
   if (
     recomputed.evaluatedInputsDigest !== evaluatedInputs.evaluatedInputsDigest ||
