@@ -51,7 +51,7 @@ function runPnpm(
 ): void {
   const npmExecPath = process.env.npm_execpath;
   if (npmExecPath?.trim()) {
-    run(process.execPath, [npmExecPath, ...args], cwd, env);
+    run(npmExecPath, args, cwd, env);
     return;
   }
   run("pnpm", args, cwd, env);
