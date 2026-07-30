@@ -159,7 +159,7 @@ test("new and migrated Runs retain truthful Case, Genesis, build, and evaluated-
     assert.equal(run.scenarioCaseId, "power-constrained");
     assert.equal(run.genesisDigest, sha256(store.loadState(run.runId)));
     assert.match(run.evaluatedInputsDigest, /^[a-f0-9]{64}$/);
-    assert.equal(run.createdWithBuild, "ordivon-game@0.1.0");
+    assert.equal(run.createdWithBuild, "ordivon-game@0.1.0-alpha.1");
     assert.doesNotMatch(run.createdWithBuild, /\+m2/);
     assert.throws(() => store.createRun({
       runId: "run:m5-false-case",

@@ -51,11 +51,13 @@ function evaluationRun(
     reason: report.diagnosis.terminal.reason,
     revision: report.diagnosis.terminal.revision,
     score: scoreMission(store.loadState(runId)).total,
-    graphDigest: report.summary.graphDigest,
-    curvesDigest: report.curves.curvesDigest,
-    diagnosisDigest: report.diagnosis.diagnosisDigest,
+    terminalDigest: report.summary.terminalDigest,
     frameCount: report.summary.frameCount,
+    evidenceNodeCount: Object.values(report.summary.nodeCounts).reduce((sum, count) => sum + count, 0),
+    evidenceEdgeCount: report.summary.edgeCount,
+    curveRevisionCount: report.curves.revisions.length,
     keyTurnCount: report.keyTurns.length,
+    diagnosisClaimCount: report.diagnosis.claims.length,
     evidenceClassCounts: classCounts,
   };
 }

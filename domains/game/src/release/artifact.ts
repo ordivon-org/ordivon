@@ -23,11 +23,13 @@ export interface M5EvaluationRun {
   reason: string | null;
   revision: number;
   score: number;
-  graphDigest: string;
-  curvesDigest: string;
-  diagnosisDigest: string;
+  terminalDigest: string;
   frameCount: number;
+  evidenceNodeCount: number;
+  evidenceEdgeCount: number;
+  curveRevisionCount: number;
   keyTurnCount: number;
+  diagnosisClaimCount: number;
   evidenceClassCounts: Record<string, number>;
 }
 
