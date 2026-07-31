@@ -46,6 +46,12 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
   return `http://127.0.0.1:${address.port}`;
 }
 
+function fetchFresh(input: string, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers);
+  headers.set("connection", "close");
+  return fetch(input, { ...init, headers });
+}
+
 test("Deployment Manifest is content-addressed, immutable, and restart-stable", () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-deployment-"));
   const path = join(directory, "world.sqlite3");
@@ -218,13 +224,13 @@ test("Deployment and comparison HTTP APIs expose typed release inputs", async ()
   });
   try {
     const base = await listen(game);
-    const catalog = await (await fetch(`${base}/api/deployments/catalog`)).json();
+    const catalog = await (await fetchFresh(`${base}/api/deployments/catalog`)).json();
     assert.deepEqual(catalog, deploymentCatalog());
     for (const [runId, coordinationProfileId] of [
       ["run:http:short", "specialist-containment"],
       ["run:http:long", "engineer-seal"],
     ] as const) {
-      const response = await fetch(`${base}/api/mission-control/initialize`, {
+      const response = await fetchFresh(`${base}/api/mission-control/initialize`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -241,7 +247,7 @@ test("Deployment and comparison HTTP APIs expose typed release inputs", async ()
       assert.equal(response.status, 201);
       await finish(new MissionControlService(game.store, factory), runId);
     }
-    const manifestResponse = await fetch(
+    const manifestResponse = await fetchFresh(
       `${base}/api/deployments/manifest?runId=run:http:short`,
     );
     assert.equal(manifestResponse.status, 200);
@@ -249,17 +255,17 @@ test("Deployment and comparison HTTP APIs expose typed release inputs", async ()
       (await manifestResponse.json() as any).coordinationProfileId,
       "specialist-containment",
     );
-    const comparisonResponse = await fetch(
+    const comparisonResponse = await fetchFresh(
       `${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:long`,
     );
     assert.equal(comparisonResponse.status, 200);
     assert.equal((await comparisonResponse.json() as any).mode, "exact");
     assert.equal(
-      (await fetch(`${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:short`)).status,
+      (await fetchFresh(`${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:short`)).status,
       400,
     );
     assert.equal(
-      (await fetch(`${base}/api/deployments/manifest?runId=run:missing`)).status,
+      (await fetchFresh(`${base}/api/deployments/manifest?runId=run:missing`)).status,
       404,
     );
   } finally {
