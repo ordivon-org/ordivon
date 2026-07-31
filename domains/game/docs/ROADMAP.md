@@ -244,3 +244,13 @@ Track from the first executable slice:
 - replay digest equality;
 - mission success by team configuration;
 - player-visible unexplained failures.
+
+## Post-alpha M5-R1 control-boundary evaluation — completed
+
+The paired control-boundary matrix is closed in
+[`M5-R1-CONTROL-BOUNDARY-EVALUATION.md`](M5-R1-CONTROL-BOUNDARY-EVALUATION.md).
+It retained two owner-local invariants—accepted Verification before completion
+and terminal Team Task irreversibility—while rejecting a new control platform.
+The next active consumer is Ordivon Security #19; equal-budget single versus
+multi-Agent coordination remains deferred in #40, and Session/compaction remains
+deferred in #59.

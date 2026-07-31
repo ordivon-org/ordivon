@@ -141,8 +141,12 @@ export class EmbeddedHostAuthority {
     const outcome = validateTaskOutcome(value);
     const descriptor = this.descriptor(runId, taskId);
     const verification = requireEntry(this.contracts, runId, taskId, kind.verification);
+    const verificationReceipt = validateVerificationReceipt(verification.object);
     if (outcome.taskId !== taskId || outcome.goalId !== descriptor.goalId) throw new Error("TaskOutcome targets another Task or Goal");
     if (outcome.verificationDigest !== verification.contractDigest) throw new Error("TaskOutcome targets another VerificationReceipt");
+    if (outcome.status === "completed" && !verificationReceipt.accepted) {
+      throw new Error("completed TaskOutcome requires an accepted VerificationReceipt");
+    }
     return this.putStage(runId, taskId, kind.outcome, "host-contract.task-outcome", outcome);
   }
 

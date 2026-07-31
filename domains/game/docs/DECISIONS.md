@@ -352,3 +352,15 @@ M5 adds Playwright as a development-only dependency for one end-to-end deploymen
 ## D-081 — The first source-playable release is a player evidence loop, not the complete research program
 
 Station Zero `v0.1.0-alpha.1` is gated by deploy → play → terminal → replay → deterministic diagnosis → immutable reconfiguration → compatible comparison → clean archive verification. Fixture cognition is the default release path; live Codex/Hermes runs are compatibility dogfood. Equal-budget architecture ablations, Ordivon Runtime experiment matrices, and final embedded Host convergence remain required before stronger scientific or platform claims, but they do not block the first deterministic source-playable Alpha. This narrows release scope without weakening World, Host, replay, evidence, or provenance boundaries.
+
+## D-082 — Completed TaskOutcome requires accepted VerificationReceipt
+
+`EmbeddedHostAuthority` may record `TaskOutcome.status = completed` only when the current referenced `VerificationReceipt` exists and has `accepted = true`. A rejected Verification may still lead to a failed or blocked outcome after a real World Effect; it cannot be laundered into completion by an upper layer. This closes the authority boundary rather than relying on every caller to remember the invariant.
+
+## D-083 — Terminal Team Tasks cannot return to ready
+
+A Team Task in `completed`, `failed`, or `cancelled` state is irreversible within its Run. `setWait(null)` may resume a recoverable waiting Task but cannot reopen a terminal Task. A new strategic attempt requires a new Task or Run identity, not mutation of terminal evidence.
+
+## D-084 — M5-R1 retains existing controls and rejects a new control platform
+
+Seven paired should-act/should-hold cases exercised current Context admission, authority grants, lease replacement, Dispatch preconditions, World idempotency, Verification, waiting, terminal synchronization, and persisted Host/Game reconstruction. All seven useful actions were admitted and all seven invalid actions were held, with zero false completions and duplicate Effects. The experiment retained D-082 and D-083 as owner-local invariants and introduced no generic abstention service, Hook framework, approval plane, or duplicate Host state. Security adversarial work consumes the exact matrix rather than building a second Game runner.

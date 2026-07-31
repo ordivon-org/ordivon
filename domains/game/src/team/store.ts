@@ -300,6 +300,9 @@ export class TeamStore {
     if (next.runId !== current.runId || next.revision !== current.revision + 1) {
       throw new TeamStoreError("team_conflict", "Team Task identity or revision changed");
     }
+    if (["completed", "failed", "cancelled"].includes(current.state) && next.state !== current.state) {
+      throw new TeamStoreError("team_conflict", "terminal Team Task cannot transition to another state");
+    }
     const eventId = `host-event:${next.taskId}:revision:${next.revision}`;
     this.host.withTransaction(next.runId, () => {
       const changed = this.db.prepare(`UPDATE team_actor_sessions SET state = ?, revision = ?, head_event_id = ?, value_json = ?

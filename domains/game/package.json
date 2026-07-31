@@ -28,7 +28,8 @@
     "m2:evaluate": "node scripts/m2-live-evaluation.ts",
     "m21:evaluate": "node scripts/m2-live-evaluation.ts",
     "m3:evaluate": "node scripts/m3-live-evaluation.ts",
-    "e2e": "node scripts/e2e-first-playable.ts"
+    "e2e": "node scripts/e2e-first-playable.ts",
+    "evaluate:control-boundary": "node --experimental-strip-types scripts/control-boundary-evaluation.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {
