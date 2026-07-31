@@ -201,6 +201,13 @@ export class HostStore {
     return rows.map((row) => this.fromJournalRow(row));
   }
 
+  listEventTypes(runId: string): string[] {
+    const rows = this.db.prepare(
+      "SELECT event_type FROM host_journal WHERE run_id = ? ORDER BY sequence",
+    ).all(runId) as unknown as Array<{ event_type: string }>;
+    return rows.map((row) => row.event_type);
+  }
+
   verifyJournal(runId: string): void {
     const rows = this.db.prepare("SELECT * FROM host_journal WHERE run_id = ? ORDER BY sequence")
       .all(runId) as unknown as JournalRow[];

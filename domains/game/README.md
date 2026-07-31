@@ -160,9 +160,27 @@ Game domain state owns cognition and coordination facts:
 
 There is no second generic Task, Effect, Dispatch, Observation, Verification, or recovery authority in Game. A model cannot directly mutate World or Host state, invent an Actor, Action, target, Message delivery, Grant, or completion claim.
 
-See [`docs/HOST-AUTHORITY-CUTOVER-P3-P6.md`](docs/HOST-AUTHORITY-CUTOVER-P3-P6.md) for the authority decision, deletion evidence, and workload receipts.
+See [`docs/HOST-AUTHORITY-CUTOVER-P3-P6.md`](docs/HOST-AUTHORITY-CUTOVER-P3-P6.md) for the authority decision, deletion evidence, and workload receipts. The current Core A constraint review is in [`docs/P0-CORE-A-CONSTRAINT-AUDIT.md`](docs/P0-CORE-A-CONSTRAINT-AUDIT.md).
 
-## API
+## API surfaces
+
+The default player product uses Mission Control, replay, deployment, and comparison APIs. The raw World, single-Agent, and direct Team endpoints are a frozen engineering/compatibility surface and receive no new product semantics.
+
+### Product API
+
+```text
+GET  /api/mission-control/catalog
+GET  /api/mission-control/state
+GET  /api/mission-control/timeline
+POST /api/mission-control/initialize
+POST /api/mission-control/advance
+POST /api/mission-control/command
+GET  /api/replay/*
+GET  /api/deployments/*
+GET  /api/compare
+```
+
+### Debug and compatibility API
 
 M3 Team control:
 

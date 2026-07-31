@@ -1,5 +1,6 @@
 import { sha256 } from "../digest.ts";
 import type { DeploymentManifest } from "../deployment/model.ts";
+import { HostStore } from "../host/store.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { scoreMission } from "../scoring.ts";
 import type { GameStore } from "../storage.ts";
@@ -62,9 +63,7 @@ function metrics(store: GameStore, runId: string): RunComparisonMetrics {
       left.revision - right.revision || left.id.localeCompare(right.id),
     )
     .map((entry) => entry.id);
-  const hostRows = store.db.prepare(
-    "SELECT event_type FROM host_journal WHERE run_id = ?",
-  ).all(runId) as unknown as Array<{ event_type: string }>;
+  const hostEventTypes = new HostStore(store.db).listEventTypes(runId);
 
   const terminalItemOwners: Record<string, string[]> = {};
   for (const itemId of Object.keys(terminal.resources.consumedItems).sort()) {
@@ -98,11 +97,11 @@ function metrics(store: GameStore, runId: string): RunComparisonMetrics {
       ]),
     ),
     objectiveCompletionOrder,
-    playerInterventions: hostRows.filter((row) =>
-      /player|configuration-updated|task-provider-updated/.test(row.event_type),
+    playerInterventions: hostEventTypes.filter((eventType) =>
+      /player|configuration-updated|task-provider-updated/.test(eventType),
     ).length,
-    providerFailures: hostRows.filter((row) =>
-      /provider.*failed|provider-failed/.test(row.event_type),
+    providerFailures: hostEventTypes.filter((eventType) =>
+      /provider.*failed|provider-failed/.test(eventType),
     ).length,
     providerMetrics: {
       calls: null,

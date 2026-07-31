@@ -5,6 +5,7 @@ import { HostStore } from "../host/store.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../scenario.ts";
 import type { GameStore } from "../storage.ts";
+import { STATION_ZERO_SPECIALIST_LIMIT } from "./coordination-policy.ts";
 import type {
   ActorProfile,
   AuthorityDecision,
@@ -65,11 +66,29 @@ function profilesFor(state: WorldState): ActorProfile[] {
   requireActor(ENGINEER_ID);
   requireActor(MEDIC_ID);
   requireActor(SECURITY_ID);
-  return [
+  const profiles: ActorProfile[] = [
     { actorId: ENGINEER_ID, role: "engineer", providerOrder: ["fixture"], observationPolicyId: "station-zero-local-v1", authorityPolicyId: "station-zero-abac-v1", riskPreferenceId: "mission-balanced-v1" },
     { actorId: MEDIC_ID, role: "medic", providerOrder: ["fixture"], observationPolicyId: "station-zero-local-v1", authorityPolicyId: "station-zero-abac-v1", riskPreferenceId: "crew-first-v1" },
     { actorId: SECURITY_ID, role: "security", providerOrder: ["fixture"], observationPolicyId: "station-zero-local-v1", authorityPolicyId: "station-zero-abac-v1", riskPreferenceId: "containment-first-v1" },
   ];
+  if (profiles.length !== STATION_ZERO_SPECIALIST_LIMIT) {
+    throw new TeamStoreError("team_corrupt", "Station Zero specialist profile count drifted");
+  }
+  return profiles;
+}
+
+export function teamRunInitialized(
+  game: GameStore,
+  runId = game.activeRunId,
+): boolean {
+  const table = game.db.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'",
+  ).get() as { name?: string } | undefined;
+  if (table?.name !== "team_actor_sessions") return false;
+  const row = game.db.prepare(
+    "SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1",
+  ).get(runId) as { present?: number } | undefined;
+  return row?.present === 1;
 }
 
 function activeControl(state: WorldState): TeamTaskControl {
@@ -178,9 +197,12 @@ export class TeamStore {
     `);
   }
 
+  isInitialized(runId = this.game.activeRunId): boolean {
+    return teamRunInitialized(this.game, runId);
+  }
+
   initialize(runId = this.game.activeRunId): TeamProjection {
-    const existing = this.db.prepare("SELECT value_json FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as JsonRow | undefined;
-    if (existing) return this.projection(runId);
+    if (this.isInitialized(runId)) return this.projection(runId);
     const metadata = this.game.getRun(runId);
     if (metadata.rulesetVersion < 3 || metadata.scenarioVersion < 2) {
       throw new TeamStoreError("team_conflict", "Team Host requires Scenario v2 and Ruleset v3");

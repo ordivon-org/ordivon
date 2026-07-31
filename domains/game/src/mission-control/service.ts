@@ -145,9 +145,10 @@ export class MissionControlService {
     beforeRevision: number | null = null,
     limit = 12,
   ): { runId: string; items: MissionTimelineItem[]; nextBeforeRevision: number | null } {
-    const goal = this.store.db.prepare("SELECT task_id AS goal_id FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { goal_id?: string } | undefined;
-    if (!goal?.goal_id) return { runId, items: [], nextBeforeRevision: null };
     const team = this.teamStore();
+    if (!team.isInitialized(runId)) {
+      return { runId, items: [], nextBeforeRevision: null };
+    }
     const execution = new TeamExecutionStore(team);
     const page = execution.listRoundsPage(runId, beforeRevision, limit);
     return {

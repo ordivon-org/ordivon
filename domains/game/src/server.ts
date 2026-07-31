@@ -32,7 +32,7 @@ import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "./team/mo
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "./team/objectives.ts";
 import { TeamProviderChain } from "./team/provider-chain.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
-import { TeamStoreError } from "./team/store.ts";
+import { TeamStoreError, teamRunInitialized } from "./team/store.ts";
 import { listAvailableActions, parseWorldCommand } from "./world.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
@@ -208,22 +208,13 @@ function agentEnvelope(store: GameStore, provider: OperationProvider, runId: str
   }
 }
 
-function teamTablesExist(store: GameStore): boolean {
-  const row = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'").get() as { name?: string } | undefined;
-  return row?.name === "team_actor_sessions";
-}
-
 function teamEnvelope(
   store: GameStore,
   provider: TeamDecisionProvider,
   runId: string,
   policyMode: AuthorityPolicyMode,
 ): unknown {
-  if (!teamTablesExist(store)) {
-    return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
-  }
-  const goal = store.db.prepare("SELECT task_id AS goal_id FROM team_actor_sessions WHERE run_id = ? LIMIT 1").get(runId) as { goal_id?: string } | undefined;
-  if (!goal?.goal_id) {
+  if (!teamRunInitialized(store, runId)) {
     return { initialized: false, runId, policyMode, projection: null, rounds: [], proposals: [], latestTickPlan: null, timeline: [] };
   }
   const team = new TeamHost(store, provider, { policyMode });

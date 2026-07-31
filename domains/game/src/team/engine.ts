@@ -2,9 +2,9 @@ import { canonicalJson, sha256 } from "../digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "../providers/types.ts";
 import type { GameStore } from "../storage.ts";
-import { applyWorldTickV3 } from "../world.ts";
-import { authorityTargetId, candidateAllowed, evaluateAuthority } from "./authority.ts";
+import { authorityTargetId, evaluateAuthority } from "./authority.ts";
 import { compileTeamContext } from "./context.ts";
+import { evaluateStationZeroCoordination } from "./coordination-policy.ts";
 import { TeamExecutionStore } from "./execution-store.ts";
 import type {
   ActionProposal,
@@ -459,33 +459,17 @@ export class TeamHost {
     ) ?? null;
   }
 
-  private legalSubsets(runId: string, round: TeamRound, proposals: ActionProposal[]): ActionProposal[][] {
-    const state = this.game.loadState(runId);
-    const grants = this.team.listAuthorityGrants(runId);
-    const eligible = proposals.filter((proposal) => {
-      const task = this.team.getTask(proposal.actorTaskId);
-      return proposal.status === "proposed" && task.control.mode === "active" && candidateAllowed(
-        { authorityOutcome: proposal.authorityOutcome },
-        this.validGrant(proposal, grants, state.turn) !== null,
-      );
-    });
-    const subsets: ActionProposal[][] = [];
-    for (let mask = 1; mask < (1 << eligible.length); mask += 1) {
-      const subset = eligible.filter((_, index) => (mask & (1 << index)) !== 0);
-      const result = applyWorldTickV3(state, {
-        tickId: `probe:${round.roundId}:${mask}`,
-        expectedWorldRevision: round.worldRevision,
-        intents: subset.map((proposal, index) => ({ commandSequence: index, command: proposal.command })),
-      });
-      if (result.status === "accepted") subsets.push(subset);
-    }
-    return subsets;
-  }
-
   private prepareTickPlan(runId: string, round: TeamRound, proposals: ActionProposal[]): TeamHostStepReceipt {
-    const legal = this.legalSubsets(runId, round, proposals);
     const state = this.game.loadState(runId);
     const grants = this.team.listAuthorityGrants(runId);
+    const candidates = proposals
+      .filter((proposal) => this.team.getTask(proposal.actorTaskId).control.mode === "active")
+      .map((proposal) => ({
+        proposal,
+        authorityGrantAvailable: this.validGrant(proposal, grants, state.turn) !== null,
+      }));
+    const coordination = evaluateStationZeroCoordination(state, round, candidates);
+    const legal = coordination.legalSubsets;
     const authorityPending = proposals.some((proposal) => {
       const task = this.team.getTask(proposal.actorTaskId);
       return proposal.status === "proposed" && task.control.mode === "active" &&
@@ -501,12 +485,7 @@ export class TeamHost {
       }, "team.round-blocked");
       return this.receipt(runId, authorityPending ? "authority_required" : "blocked", updated.blocker ?? "blocked", updated);
     }
-    legal.sort((left, right) =>
-      right.filter((proposal) => proposal.command.kind !== "wait").length - left.filter((proposal) => proposal.command.kind !== "wait").length ||
-      right.length - left.length ||
-      left.map((proposal) => proposal.proposalId).sort().join("|").localeCompare(right.map((proposal) => proposal.proposalId).sort().join("|"))
-    );
-    const selected = legal[0] ?? [];
+    const selected = coordination.selected ?? [];
     const selectedIds = new Set(selected.map((proposal) => proposal.proposalId));
     const rejected = proposals.filter((proposal) => proposal.status === "proposed" && !selectedIds.has(proposal.proposalId));
     const createdAt = now();

@@ -12,7 +12,7 @@ import type {
   TeamRound,
   TeamTickPlan,
 } from "../team/model.ts";
-import { TeamStore } from "../team/store.ts";
+import { TeamStore, teamRunInitialized } from "../team/store.ts";
 
 export interface ReplayContractEntry {
   sequence: number;
@@ -63,22 +63,11 @@ function emptyReplayTeamData(): ReplayTeamData {
   };
 }
 
-function teamInitialized(store: GameStore, runId: string): boolean {
-  const table = store.db.prepare(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'",
-  ).get() as { name?: string } | undefined;
-  if (!table?.name) return false;
-  const row = store.db.prepare(
-    "SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1",
-  ).get(runId) as { present?: number } | undefined;
-  return row?.present === 1;
-}
-
 export function loadReplayTeamData(
   store: GameStore,
   runId: string,
 ): ReplayTeamData {
-  if (!teamInitialized(store, runId)) return emptyReplayTeamData();
+  if (!teamRunInitialized(store, runId)) return emptyReplayTeamData();
 
   const team = new TeamStore(store);
   const execution = new TeamExecutionStore(team);
