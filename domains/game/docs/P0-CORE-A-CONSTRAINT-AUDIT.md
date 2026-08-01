@@ -58,3 +58,23 @@ The single-Agent compatibility stack and Game-private Effect/Dispatch projection
 wrappers are not deleted in P0 because Harness v0 and the equal-budget single
 versus multi-Agent experiment are active dependencies. They receive no new
 features. Physical deletion is gated on evidence, not on architectural taste.
+
+## 2026-08-01 source-audit addendum
+
+The subsequent source-level audit at Computing revision
+`9b970833d57c31ee5aabc0f4a7498e484fcbb9df` retained this ledger and added
+implementation evidence for owner-local concurrency and read purity.
+
+- Round and Proposal heads now use exact optimistic CAS.
+- completed Rounds become durable before Host authority completion, with bounded
+  idempotent reconciliation after interruption.
+- setup-state, timeline, projection, and Goal reads no longer create schema,
+  refresh Messages, or recreate missing evidence.
+- Team and frozen Agent initialization, content-addressed Artifacts, and typed
+  Team execution objects converge under independent-process contention.
+- `busy_timeout` is installed before WAL/schema lock-taking work.
+- complete Team semantic verification remains an explicit closeout/audit
+  operation after per-Step measurement showed an 81.7% runtime penalty.
+
+The full reproductions, measurements, test matrix, and residual risks are in
+[`SOURCE-AUDIT-CORE-A-2026-08-01.md`](SOURCE-AUDIT-CORE-A-2026-08-01.md).

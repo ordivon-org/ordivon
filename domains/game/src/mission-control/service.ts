@@ -8,7 +8,7 @@ import { TeamHost } from "../team/engine.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
 import type { TeamDecisionProvider } from "../team/providers.ts";
-import { TeamStore, TeamStoreError } from "../team/store.ts";
+import { TeamStore, TeamStoreError, teamRunInitialized } from "../team/store.ts";
 import { isMissionProviderName, type MissionProviderName } from "./catalog.ts";
 import type { MissionControlAdvanceResult, MissionControlView, MissionTimelineItem } from "./model.ts";
 import { createMissionControlView, missionTimelineItems } from "./projection.ts";
@@ -145,10 +145,10 @@ export class MissionControlService {
     beforeRevision: number | null = null,
     limit = 12,
   ): { runId: string; items: MissionTimelineItem[]; nextBeforeRevision: number | null } {
-    const team = this.teamStore();
-    if (!team.isInitialized(runId)) {
+    if (!teamRunInitialized(this.store, runId)) {
       return { runId, items: [], nextBeforeRevision: null };
     }
+    const team = this.teamStore();
     const execution = new TeamExecutionStore(team);
     const page = execution.listRoundsPage(runId, beforeRevision, limit);
     return {
@@ -184,7 +184,7 @@ export class MissionControlService {
       case "deny": {
         const proposal = host.execution.getProposal(command.proposalId);
         if (proposal.runId !== runId || proposal.status !== "proposed") throw new TeamStoreError("team_conflict", "Proposal is not pending player review");
-        const updated = host.execution.saveProposal({ ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
+        const updated = host.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
         const task = team.getTask(proposal.actorTaskId);
         team.transitionTask(task.taskId, {
           state: task.control.mode === "paused" ? "waiting" : task.control.mode === "cancelled" ? "cancelled" : "blocked",

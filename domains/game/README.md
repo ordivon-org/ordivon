@@ -253,6 +253,8 @@ Point-in-time replay selects the nearest retained Snapshot at or before the requ
 - [`docs/M4-EVALUATION.json`](docs/M4-EVALUATION.json) — frozen machine-readable Mission Control, recovery, intervention, and Web evidence.
 - [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md) and [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json) — canonical multi-Agent and live Provider evidence.
 - [`docs/VISION.md`](docs/VISION.md) — long-horizon product thesis: play, creation, Agent-native worlds, and optional research/Security verticals.
+- [`docs/SOURCE-AUDIT-CORE-A-2026-08-01.md`](docs/SOURCE-AUDIT-CORE-A-2026-08-01.md) — source-level ownership, concurrency, evidence, recovery, and A11 constraint-cost audit.
+- [`docs/P0-CORE-A-CONSTRAINT-AUDIT.md`](docs/P0-CORE-A-CONSTRAINT-AUDIT.md) — persistent constraint ledger and keep/shrink/freeze/delete decisions.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestone dependency graph.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — architectural decisions and supersessions.
 

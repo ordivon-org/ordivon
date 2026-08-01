@@ -143,7 +143,7 @@ export class TeamHost {
   }
 
   syncContract(runId = this.game.activeRunId): void {
-    this.execution.authority.verify(runId);
+    this.execution.verify(runId);
   }
 
   private providerFor(actorId: string): TeamDecisionProvider {
@@ -185,12 +185,18 @@ export class TeamHost {
     this.game.verifyStream(runId);
     this.team.verify(runId);
     const state = this.game.loadState(runId);
+    if (state.revision > 0) {
+      const previousRound = this.execution.findRound(runId, state.revision - 1);
+      if (previousRound?.status === "completed") {
+        this.execution.reconcileCompletedRound(previousRound);
+      }
+    }
     const unsettled = [...this.execution.listRounds(runId)].reverse().find((candidate) =>
       candidate.status !== "completed" && candidate.status !== "blocked");
     if (unsettled && unsettled.worldRevision < state.revision) {
       if (unsettled.status === "dispatched") return this.executeAndObserve(runId, unsettled);
       if (unsettled.status === "observed") return this.verifyRound(runId, unsettled);
-      const blocked = this.execution.saveRound({
+      const blocked = this.execution.saveRound(unsettled, {
         ...unsettled,
         status: "blocked",
         blocker: "world_drift",
@@ -239,6 +245,7 @@ export class TeamHost {
     if (!round.dispatchId) return this.prepareDispatch(runId, round);
     if (!round.observationId) return this.executeAndObserve(runId, round);
     if (round.status !== "completed") return this.verifyRound(runId, round);
+    this.execution.reconcileCompletedRound(round);
     return this.receipt(runId, "stable", "Team Round already completed", round);
   }
 
@@ -252,7 +259,7 @@ export class TeamHost {
       if (state.mission.status !== "running" && (receipt.status === "round_verified" || receipt.status === "terminal")) break;
       if (receipt.status === "authority_required" || receipt.status === "blocked") break;
     }
-    this.execution.authority.verify(runId);
+    this.execution.verify(runId);
     const state = this.game.loadState(runId);
     return {
       runId,
@@ -275,6 +282,11 @@ export class TeamHost {
       if ((state.agents[profile.actorId]?.health ?? 0) <= 0) continue;
       const lease = this.team.acquireLease(task.taskId, this.ownerId);
       try {
+        const retainedContext = this.execution.findContextForActor(round.roundId, profile.actorId);
+        if (retainedContext) {
+          contextIds.push(retainedContext.contextId);
+          continue;
+        }
         const currentTask = this.team.getTask(task.taskId);
         if (currentTask.control.mode !== "active" || ["completed", "failed", "cancelled"].includes(currentTask.state)) continue;
         const context = compileTeamContext({
@@ -315,7 +327,7 @@ export class TeamHost {
         this.team.releaseLease(lease);
       }
     }
-    const updated = this.execution.saveRound({ ...round, contextIds: [...new Set(contextIds)].sort(), updatedAt: now() }, "team.round-contexts-prepared");
+    const updated = this.execution.saveRound(round, { ...round, contextIds: [...new Set(contextIds)].sort(), updatedAt: now() }, "team.round-contexts-prepared");
     return this.receipt(runId, "contexts_prepared", `Prepared ${updated.contextIds.length} Actor Contexts`, updated);
   }
 
@@ -436,7 +448,7 @@ export class TeamHost {
       proposalIds.push(proposal.proposalId);
       this.inject("after_proposal_persisted");
     }
-    const updated = this.execution.saveRound({
+    const updated = this.execution.saveRound(round, {
       ...round,
       resolvedActorIds: [...new Set(resolvedActorIds)].sort(),
       proposalIds: [...new Set(proposalIds)].sort(),
@@ -477,7 +489,7 @@ export class TeamHost {
     });
     const productiveLegal = legal.filter((subset) => subset.some((proposal) => proposal.command.kind !== "wait"));
     if (legal.length === 0 || (authorityPending && productiveLegal.length === 0)) {
-      const updated = this.execution.saveRound({
+      const updated = this.execution.saveRound(round, {
         ...round,
         status: "blocked",
         blocker: authorityPending ? "authority_required" : "no_legal_proposal_subset",
@@ -513,12 +525,12 @@ export class TeamHost {
       if (proposal.authorityOutcome === "require-human" && grant) {
         this.team.consumeGrant(grant.grantId, proposal.proposalId, proposal.contextId, proposal.worldDigest, this.game.loadState(runId).turn);
       }
-      this.execution.saveProposal({ ...proposal, status: "selected", updatedAt: createdAt }, "team.proposal-selected");
+      this.execution.saveProposal(proposal, { ...proposal, status: "selected", updatedAt: createdAt }, "team.proposal-selected");
     }
     for (const proposal of rejected) {
-      this.execution.saveProposal({ ...proposal, status: "rejected", rejectionReason: "not_selected_in_compatible_subset", updatedAt: createdAt }, "team.proposal-rejected");
+      this.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "not_selected_in_compatible_subset", updatedAt: createdAt }, "team.proposal-rejected");
     }
-    const updated = this.execution.saveRound({ ...round, status: "planned", tickPlanId: plan.tickPlanId, blocker: null, updatedAt: createdAt }, "team.round-planned");
+    const updated = this.execution.saveRound(round, { ...round, status: "planned", tickPlanId: plan.tickPlanId, blocker: null, updatedAt: createdAt }, "team.round-planned");
     this.inject("after_tick_plan_persisted");
     return this.receipt(runId, "tick_plan_prepared", `Selected ${selected.length} compatible Proposals`, updated);
   }
@@ -554,7 +566,7 @@ export class TeamHost {
       updatedAt: createdAt,
     };
     this.execution.putDispatch(dispatch);
-    const updated = this.execution.saveRound({ ...round, status: "dispatched", effectId: effect.effectId, dispatchId: dispatch.dispatchId, updatedAt: createdAt }, "team.round-dispatch-prepared");
+    const updated = this.execution.saveRound(round, { ...round, status: "dispatched", effectId: effect.effectId, dispatchId: dispatch.dispatchId, updatedAt: createdAt }, "team.round-dispatch-prepared");
     this.inject("after_dispatch_prepared");
     return this.receipt(runId, "dispatch_prepared", `Prepared ${dispatch.dispatchId}`, updated);
   }
@@ -570,7 +582,7 @@ export class TeamHost {
       if (state.revision !== effect.requiredWorldRevision || sha256(state) !== effect.requiredWorldDigest) {
         dispatch = this.execution.saveDispatch({ ...dispatch, status: "rejected", error: "stale_world", updatedAt: now() }, "team.dispatch-rejected");
         effect = this.execution.saveEffect({ ...effect, status: "rejected", updatedAt: now() }, "team.effect-rejected");
-        const blocked = this.execution.saveRound({ ...round, status: "blocked", blocker: "stale_world", updatedAt: now() }, "team.round-blocked");
+        const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: "stale_world", updatedAt: now() }, "team.round-blocked");
         return this.receipt(runId, "blocked", "World changed before Team Dispatch", blocked);
       }
       const applied = this.game.applyTeamTick({
@@ -581,7 +593,7 @@ export class TeamHost {
       if (applied.result.status !== "accepted") {
         dispatch = this.execution.saveDispatch({ ...dispatch, status: "rejected", error: `${applied.result.code}:${applied.result.reason}`, updatedAt: now() }, "team.dispatch-rejected");
         effect = this.execution.saveEffect({ ...effect, status: "rejected", updatedAt: now() }, "team.effect-rejected");
-        const blocked = this.execution.saveRound({ ...round, status: "blocked", blocker: applied.result.code, updatedAt: now() }, "team.round-blocked");
+        const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: applied.result.code, updatedAt: now() }, "team.round-blocked");
         return this.receipt(runId, "blocked", applied.result.reason, blocked);
       }
       this.inject("after_world_apply");
@@ -611,7 +623,7 @@ export class TeamHost {
     this.execution.putObservation(observation);
     dispatch = this.execution.saveDispatch({ ...dispatch, status: "succeeded", worldEventId: event.eventId, commandSequence: receipt.commandSequence, error: null, updatedAt: createdAt }, "team.dispatch-succeeded");
     effect = this.execution.saveEffect({ ...effect, status: observation.verificationSuccess ? "succeeded" : "rejected", updatedAt: createdAt }, observation.verificationSuccess ? "team.effect-succeeded" : "team.effect-rejected");
-    const updated = this.execution.saveRound({ ...round, status: "observed", observationId: observation.observationId, updatedAt: createdAt }, "team.round-observed");
+    const updated = this.execution.saveRound(round, { ...round, status: "observed", observationId: observation.observationId, updatedAt: createdAt }, "team.round-observed");
     this.inject("after_observation_persisted");
     return this.receipt(runId, "world_tick_observed", `Observed ${verifiedIntentCommandIds.length} verified Intents`, updated);
   }
@@ -619,7 +631,7 @@ export class TeamHost {
   private verifyRound(runId: string, round: TeamRound): TeamHostStepReceipt {
     const observation = this.execution.findObservationForRound(round.roundId);
     if (!observation || !observation.verificationSuccess) {
-      const blocked = this.execution.saveRound({ ...round, status: "blocked", blocker: "verification_failed", updatedAt: now() }, "team.round-blocked");
+      const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: "verification_failed", updatedAt: now() }, "team.round-blocked");
       return this.receipt(runId, "blocked", "Team Tick Verification failed", blocked);
     }
     this.inject("before_task_advance");
@@ -629,7 +641,7 @@ export class TeamHost {
     for (const proposal of proposals) {
       const success = verified.has(proposal.command.commandId);
       const updatedAt = now();
-      this.execution.saveProposal({
+      this.execution.saveProposal(proposal, {
         ...proposal,
         status: success ? "verified" : proposal.status === "rejected" ? "rejected" : "rejected",
         rejectionReason: success ? null : proposal.rejectionReason ?? "not_executed",
@@ -657,7 +669,7 @@ export class TeamHost {
       wait: null,
       lastWorldRevision: state.revision,
     }, "team.coordinator-round-verified", { roundId: round.roundId, observationId: observation.observationId });
-    const completed = this.execution.saveRound({ ...round, status: "completed", blocker: null, updatedAt: now() }, "team.round-completed");
+    const completed = this.execution.saveRound(round, { ...round, status: "completed", blocker: null, updatedAt: now() }, "team.round-completed");
     if (state.mission.status !== "running") this.team.synchronizeTerminal(runId);
     return this.receipt(runId, "round_verified", `Advanced Team to world revision ${state.revision}`, completed);
   }

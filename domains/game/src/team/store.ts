@@ -239,6 +239,10 @@ export class TeamStore {
     });
 
     this.host.withTransaction(runId, () => {
+      const retained = this.db.prepare(
+        "SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1",
+      ).get(runId) as { present?: number } | undefined;
+      if (retained?.present === 1) return;
       const configurationEventId = `host-event:team-configuration:${runId}:revision:1`;
       this.db.prepare("INSERT INTO team_run_configurations (run_id, revision, head_event_id, value_json) VALUES (?, ?, ?, ?)")
         .run(runId, configuration.revision, configurationEventId, canonicalJson(configuration));
@@ -266,7 +270,19 @@ export class TeamStore {
     if (!session?.task_id) throw new Error(`Team Goal is not initialized: ${runId}`);
     const metadata = this.game.getRun(runId);
     const state = this.game.loadState(runId);
-    const objectiveArtifact = this.host.putArtifact("team-objective-graph", TEAM_OBJECTIVE_GRAPH);
+    const objectiveDigest = sha256({ kind: "team-objective-graph", content: TEAM_OBJECTIVE_GRAPH });
+    let objectiveArtifact;
+    try {
+      objectiveArtifact = this.host.getArtifact<typeof TEAM_OBJECTIVE_GRAPH>(objectiveDigest);
+    } catch (error) {
+      throw new TeamStoreError("team_corrupt", `Team Objective Graph Artifact is unavailable: ${String(error)}`);
+    }
+    if (
+      objectiveArtifact.kind !== "team-objective-graph" ||
+      canonicalJson(objectiveArtifact.content) !== canonicalJson(TEAM_OBJECTIVE_GRAPH)
+    ) {
+      throw new TeamStoreError("team_corrupt", "Team Objective Graph Artifact differs from the retained contract");
+    }
     const tasks = this.listTasks(runId);
     const updatedAt = tasks.reduce((latest, task) => task.updatedAt > latest ? task.updatedAt : latest, metadata.createdAt);
     return {
@@ -306,9 +322,9 @@ export class TeamStore {
         issuedAtTick: parsed.lastWorldRevision,
       },
     };
-    const event = this.db.prepare("SELECT payload_json FROM host_journal WHERE run_id = ? AND event_id = ?").get(task.runId, row.head_event_id) as { payload_json: string } | undefined;
-    const payload = event ? parse<{ task: TeamTaskProjection }>(event.payload_json, "Team Task event") : null;
-    if (!payload || canonicalJson(payload.task) !== canonicalJson(task)) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");
+    const event = this.host.getJournalEvent(task.runId, row.head_event_id);
+    const payload = event?.payload as { task?: TeamTaskProjection } | undefined;
+    if (!payload?.task || canonicalJson(payload.task) !== canonicalJson(task)) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");
     return task;
   }
 
@@ -414,11 +430,15 @@ export class TeamStore {
       return retained;
     }
     this.host.withTransaction(runId, () => {
-      this.db.prepare("INSERT INTO team_messages (message_id, run_id, status, value_json) VALUES (?, ?, ?, ?)")
+      const inserted = this.db.prepare("INSERT OR IGNORE INTO team_messages (message_id, run_id, status, value_json) VALUES (?, ?, ?, ?)")
         .run(message.messageId, runId, message.status, canonicalJson(message));
-      this.host.appendEventInTransaction(runId, "team.message-created", `host-event:${message.messageId}:created`, { message }, now);
+      if (Number(inserted.changes) === 1) {
+        this.host.appendEventInTransaction(runId, "team.message-created", `host-event:${message.messageId}:created`, { message }, now);
+      }
     });
-    return message;
+    const retained = this.db.prepare("SELECT value_json FROM team_messages WHERE message_id = ?").get(message.messageId) as JsonRow | undefined;
+    if (!retained) throw new TeamStoreError("team_corrupt", "Team Message disappeared after insert");
+    return parse<TeamMessage>(retained.value_json, "Team Message");
   }
 
   listMessages(runId = this.game.activeRunId): TeamMessage[] {
@@ -441,9 +461,14 @@ export class TeamStore {
         status: expired ? "expired" : pendingActorIds.length === 0 ? "delivered" : "pending",
         updatedAt: now,
       };
+      const expectedJson = canonicalJson(message);
       this.host.withTransaction(runId, () => {
-        this.db.prepare("UPDATE team_messages SET status = ?, value_json = ? WHERE message_id = ?")
-          .run(next.status, canonicalJson(next), next.messageId);
+        const changed = this.db.prepare(
+          "UPDATE team_messages SET status = ?, value_json = ? WHERE message_id = ? AND value_json = ?",
+        ).run(next.status, canonicalJson(next), next.messageId, expectedJson);
+        if (Number(changed.changes) !== 1) {
+          throw new TeamStoreError("team_conflict", "Team Message was superseded");
+        }
         this.host.appendEventInTransaction(runId, `team.message-${next.status}`, `host-event:${next.messageId}:${next.status}:${state.turn}`, { message: next }, now);
       });
     }
@@ -457,12 +482,22 @@ export class TeamStore {
       if (canonicalJson(retained) !== canonicalJson(decision)) throw new TeamStoreError("team_conflict", "Authority Decision identity differs");
       return retained;
     }
+    const decisionJson = canonicalJson(decision);
     this.host.withTransaction(decision.runId, () => {
-      this.db.prepare("INSERT INTO team_authority_decisions (decision_id, run_id, actor_id, outcome, value_json) VALUES (?, ?, ?, ?, ?)")
-        .run(decision.decisionId, decision.runId, decision.actorId, decision.outcome, canonicalJson(decision));
-      this.host.appendEventInTransaction(decision.runId, "team.authority-decided", `host-event:${decision.decisionId}:recorded`, { decision }, decision.createdAt);
+      const inserted = this.db.prepare("INSERT OR IGNORE INTO team_authority_decisions (decision_id, run_id, actor_id, outcome, value_json) VALUES (?, ?, ?, ?, ?)")
+        .run(decision.decisionId, decision.runId, decision.actorId, decision.outcome, decisionJson);
+      if (Number(inserted.changes) === 1) {
+        this.host.appendEventInTransaction(decision.runId, "team.authority-decided", `host-event:${decision.decisionId}:recorded`, { decision }, decision.createdAt);
+        return;
+      }
+      const retained = this.db.prepare("SELECT value_json FROM team_authority_decisions WHERE decision_id = ?").get(decision.decisionId) as JsonRow | undefined;
+      if (!retained || retained.value_json !== decisionJson) {
+        throw new TeamStoreError("team_conflict", "Authority Decision identity differs");
+      }
     });
-    return decision;
+    const retained = this.db.prepare("SELECT value_json FROM team_authority_decisions WHERE decision_id = ?").get(decision.decisionId) as JsonRow | undefined;
+    if (!retained) throw new TeamStoreError("team_corrupt", "Authority Decision disappeared after insert");
+    return parse<AuthorityDecision>(retained.value_json, "Authority Decision");
   }
 
   listAuthorityDecisions(runId = this.game.activeRunId): AuthorityDecision[] {
@@ -480,12 +515,16 @@ export class TeamStore {
     const existing = this.db.prepare("SELECT value_json FROM team_authority_grants WHERE grant_id = ?").get(grant.grantId) as JsonRow | undefined;
     if (existing) return parse<AuthorityGrant>(existing.value_json, "Authority Grant");
     this.host.withTransaction(runId, () => {
-      this.db.prepare(`INSERT INTO team_authority_grants
+      const inserted = this.db.prepare(`INSERT OR IGNORE INTO team_authority_grants
         (grant_id, run_id, actor_id, proposal_id, consumed_at_tick, value_json) VALUES (?, ?, ?, ?, NULL, ?)`)
         .run(grant.grantId, runId, grant.actorId, grant.proposalId, canonicalJson(grant));
-      this.host.appendEventInTransaction(runId, "team.authority-granted", `host-event:${grant.grantId}:issued`, { grant }, now);
+      if (Number(inserted.changes) === 1) {
+        this.host.appendEventInTransaction(runId, "team.authority-granted", `host-event:${grant.grantId}:issued`, { grant }, now);
+      }
     });
-    return grant;
+    const retained = this.db.prepare("SELECT value_json FROM team_authority_grants WHERE grant_id = ?").get(grant.grantId) as JsonRow | undefined;
+    if (!retained) throw new TeamStoreError("team_corrupt", "Authority Grant disappeared after insert");
+    return parse<AuthorityGrant>(retained.value_json, "Authority Grant");
   }
 
   consumeGrant(grantId: string, proposalId: string, contextDigest: string, worldDigest: string, tick: number): AuthorityGrant {
@@ -518,9 +557,9 @@ export class TeamStore {
       return { schemaVersion: 1, runId, authorityPolicyMode: "autonomous", revision: 0, createdAt, updatedAt: createdAt };
     }
     const configuration = parse<TeamRunConfiguration>(row.value_json, "Team Run Configuration");
-    const event = this.db.prepare("SELECT payload_json FROM host_journal WHERE run_id = ? AND event_id = ?").get(runId, row.head_event_id) as { payload_json: string } | undefined;
-    const payload = event ? parse<{ configuration: TeamRunConfiguration }>(event.payload_json, "Team Run Configuration event") : null;
-    if (!payload || canonicalJson(payload.configuration) !== canonicalJson(configuration)) throw new TeamStoreError("team_corrupt", "Team Run Configuration differs from event head");
+    const event = this.host.getJournalEvent(runId, row.head_event_id);
+    const payload = event?.payload as { configuration?: TeamRunConfiguration } | undefined;
+    if (!payload?.configuration || canonicalJson(payload.configuration) !== canonicalJson(configuration)) throw new TeamStoreError("team_corrupt", "Team Run Configuration differs from event head");
     return configuration;
   }
 
@@ -547,7 +586,7 @@ export class TeamStore {
     return this.getConfiguration(runId);
   }
 
-  projection(runId = this.game.activeRunId, refreshMessages = true): TeamProjection {
+  projection(runId = this.game.activeRunId, refreshMessages = false): TeamProjection {
     const state = this.game.loadState(runId);
     return {
       goal: this.getGoal(runId),

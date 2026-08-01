@@ -59,13 +59,27 @@ function sendJson(response: ServerResponse, statusCode: number, value: unknown):
   response.end(body);
 }
 
+class HttpRequestError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(statusCode: number, code: string, message: string) {
+    super(message);
+    this.name = "HttpRequestError";
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
+
 async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request) {
     const buffer = Buffer.from(chunk);
     length += buffer.length;
-    if (length > 64 * 1024) throw new Error("request body exceeds 64 KiB");
+    if (length > 64 * 1024) {
+      throw new HttpRequestError(413, "request_too_large", "request body exceeds 64 KiB");
+    }
     chunks.push(buffer);
   }
   const text = Buffer.concat(chunks).toString("utf8");
@@ -274,6 +288,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         try {
           command = parseWorldCommand(await readJson(request));
         } catch (error) {
+          if (error instanceof HttpRequestError) throw error;
           sendJson(response, 400, {
             error: "invalid_command",
             message: error instanceof Error ? error.message : String(error),
@@ -564,7 +579,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           const proposal = team.execution.getProposal(proposalId);
           if (proposal.runId !== runId) throw new TeamStoreError("team_conflict", "Proposal belongs to another Run");
           const updatedAt = new Date().toISOString();
-          result = team.execution.saveProposal({ ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt }, "team.proposal-player-denied");
+          result = team.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt }, "team.proposal-player-denied");
           team.team.transitionTask(proposal.actorTaskId, {
             state: "blocked",
             admittedProposalId: proposal.proposalId,
@@ -646,6 +661,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       sendJson(response, 404, { error: "not_found" });
     } catch (error) {
+      if (error instanceof HttpRequestError) {
+        sendJson(response, error.statusCode, { error: error.code, message: error.message });
+        return;
+      }
       if (error instanceof DeploymentError) { sendJson(response, error.code === "deployment_corrupt" ? 500 : 409, { error: error.code, message: error.message }); return; }
       if (error instanceof ComparisonError) { sendJson(response, 409, { error: error.code, message: error.message }); return; }
       if (error instanceof ReplayEvidenceError) {
@@ -663,7 +682,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         });
         return;
       }
-      if (error instanceof TypeError || error instanceof SyntaxError) {
+      if (error instanceof TypeError || error instanceof SyntaxError || error instanceof URIError) {
         sendJson(response, 400, { error: "invalid_request", message: error.message });
         return;
       }

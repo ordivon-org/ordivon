@@ -94,9 +94,13 @@ export class HostStore {
     }
     const createdAt = new Date().toISOString();
     const byteLength = Buffer.byteLength(contentJson);
-    this.db.prepare("INSERT INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
+    this.db.prepare("INSERT OR IGNORE INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
       .run(digest, kind, contentJson, byteLength, createdAt);
-    return { digest, kind, content, byteLength, createdAt };
+    const retained = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
+    if (!retained || retained.kind !== kind || retained.content_json !== contentJson) {
+      throw new HostStoreError("host_corrupt", "artifact digest is bound to different content");
+    }
+    return { digest, kind, content, byteLength: Number(retained.byte_length), createdAt: retained.created_at };
   }
 
   getArtifact<T>(digest: string): HostArtifact<T> {
@@ -122,9 +126,13 @@ export class HostStore {
       return { digest, kind, content, byteLength: Number(existing.byte_length), createdAt: existing.created_at };
     }
     const byteLength = Buffer.byteLength(contentJson);
-    this.db.prepare("INSERT INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
+    this.db.prepare("INSERT OR IGNORE INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
       .run(digest, kind, contentJson, byteLength, createdAt);
-    return { digest, kind, content, byteLength, createdAt };
+    const retained = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
+    if (!retained || retained.kind !== kind || retained.content_json !== contentJson) {
+      throw new HostStoreError("host_corrupt", "Protocol Artifact digest is bound to different content or kind");
+    }
+    return { digest, kind, content, byteLength: Number(retained.byte_length), createdAt: retained.created_at };
   }
 
   getProtocolArtifact<T>(digest: string): HostArtifact<T> {
@@ -193,6 +201,17 @@ export class HostStore {
       runId, sequence: base.sequence, eventId, eventType, payload,
       previousDigest: base.previous_digest, recordDigest: digest, createdAt,
     };
+  }
+
+  getJournalEvent(runId: string, eventId: string): HostJournalEvent | null {
+    const row = this.db.prepare(
+      "SELECT * FROM host_journal WHERE run_id = ? AND event_id = ?",
+    ).get(runId, eventId) as JournalRow | undefined;
+    if (!row) return null;
+    if (recordDigest(row) !== row.record_digest) {
+      throw new HostStoreError("host_corrupt", "Host Journal record digest mismatch");
+    }
+    return this.fromJournalRow(row);
   }
 
   listJournal(runId: string): HostJournalEvent[] {

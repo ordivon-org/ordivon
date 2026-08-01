@@ -112,6 +112,12 @@ test("local Messages deliver by co-location, wait across separation, and later c
   const engineerMove = action(game, ENGINEER_ID, "move:power-junction", "message-engineer-move");
   const second = game.applyTeamTick({ tickId: "message-rejoin", expectedWorldRevision: 1, intents: [{ commandSequence: 1, command: engineerMove }] });
   assert.equal(second.result.status, "accepted");
+  const journalBeforeProjection = team.host.listJournal(game.activeRunId).length;
+  assert.equal(
+    team.projection().messages.find((message) => message.messageId === pending.messageId)?.status,
+    "pending",
+  );
+  assert.equal(team.host.listJournal(game.activeRunId).length, journalBeforeProjection);
   const delivered = team.refreshMessages().find((message) => message.messageId === pending.messageId);
   assert.equal(delivered?.status, "delivered");
   assert.deepEqual(delivered?.pendingActorIds, []);
@@ -134,4 +140,51 @@ test("radio Messages remain pending while communications are unavailable and exp
   const expired = team.refreshMessages().find((entry) => entry.messageId === message.messageId);
   assert.equal(expired?.status, "expired");
   game.close();
+});
+
+
+test("Team Goal reads fail closed when the retained Objective Graph Artifact is missing", () => {
+  const { game, team } = setup("run:team-objective-artifact");
+  try {
+    const row = game.db.prepare(
+      "SELECT digest FROM host_artifacts WHERE kind = 'team-objective-graph'",
+    ).get() as { digest: string } | undefined;
+    assert.ok(row);
+    game.db.prepare("DELETE FROM host_artifacts WHERE digest = ?").run(row.digest);
+    assert.throws(
+      () => team.getGoal(game.activeRunId),
+      (error: unknown) => error instanceof TeamStoreError && error.code === "team_corrupt" && /Objective Graph Artifact/.test(error.message),
+    );
+    assert.equal(
+      Number((game.db.prepare(
+        "SELECT COUNT(*) AS count FROM host_artifacts WHERE kind = 'team-objective-graph'",
+      ).get() as { count: number }).count),
+      0,
+      "a read must not silently recreate missing objective evidence",
+    );
+  } finally {
+    game.close();
+  }
+});
+
+test("terminal Team Messages remain immutable across repeated refresh", () => {
+  const { game, team } = setup("run:team-message-terminal");
+  try {
+    const delivered = team.sendMessage({
+      senderActorId: ENGINEER_ID,
+      recipientActorIds: [MEDIC_ID],
+      kind: "status-update",
+      boundedSummary: "This message is already delivered.",
+      channel: "local",
+    });
+    assert.equal(delivered.status, "delivered");
+    const before = team.host.listJournal(game.activeRunId).length;
+    assert.deepEqual(
+      team.refreshMessages().find((message) => message.messageId === delivered.messageId),
+      delivered,
+    );
+    assert.equal(team.host.listJournal(game.activeRunId).length, before);
+  } finally {
+    game.close();
+  }
 });

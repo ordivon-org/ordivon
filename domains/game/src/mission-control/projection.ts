@@ -5,7 +5,7 @@ import type { GameStore } from "../storage.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
 import type { ActionProposal, CompiledTeamContext, TeamProjection, TeamRound } from "../team/model.ts";
 import { objectivesForRole } from "../team/objectives.ts";
-import { TeamStore } from "../team/store.ts";
+import { TeamStore, teamRunInitialized } from "../team/store.ts";
 import type {
   ActorMissionView,
   CoordinationRoundView,
@@ -383,9 +383,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
   const metadata = store.getRun(runId);
   const state = store.loadState(runId);
   const digest = sha256(state);
-  const team = new TeamStore(store);
-  const execution = new TeamExecutionStore(team);
-  const initialized = team.isInitialized(runId);
+  const initialized = teamRunInitialized(store, runId);
   const baseResources = resources(store, runId, state);
   if (!initialized) {
     return {
@@ -400,6 +398,8 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
       controls: { canPrepare: false, canCommit: false, canConfigure: true },
     };
   }
+  const team = new TeamStore(store);
+  const execution = new TeamExecutionStore(team);
   const projection = team.projection(runId, false);
   const rounds = execution.listRounds(runId);
   const latestRound = rounds.at(-1);

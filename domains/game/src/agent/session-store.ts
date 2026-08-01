@@ -54,6 +54,8 @@ export class AgentSessionStore {
       updatedAt: timestamp,
     };
     return this.host.withTransaction(runId, () => {
+      const retained = this.find(runId);
+      if (retained) return retained;
       this.host.db.prepare(`INSERT INTO game_agent_sessions (run_id, revision, mode, value_json)
         VALUES (?, ?, ?, ?)`)
         .run(runId, session.revision, session.mode, canonicalJson(session));
@@ -78,9 +80,10 @@ export class AgentSessionStore {
     const current = this.get(session.runId);
     if (session.revision !== current.revision + 1) throw new Error("Agent Session revision is not consecutive");
     return this.host.withTransaction(session.runId, () => {
-      this.host.db.prepare(`UPDATE game_agent_sessions SET revision = ?, mode = ?, value_json = ?
+      const changed = this.host.db.prepare(`UPDATE game_agent_sessions SET revision = ?, mode = ?, value_json = ?
         WHERE run_id = ? AND revision = ?`)
         .run(session.revision, session.mode, canonicalJson(session), session.runId, current.revision);
+      if (Number(changed.changes) !== 1) throw new Error("Agent Session revision was superseded");
       this.host.appendEventInTransaction(session.runId, eventType, eventId, payload, session.updatedAt);
       return session;
     });

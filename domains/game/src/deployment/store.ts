@@ -1,6 +1,7 @@
 import { canonicalJson, sha256 } from "../digest.ts";
 import { HostStore } from "../host/store.ts";
 import type { GameStore } from "../storage.ts";
+import { teamCognitionStarted } from "../team/execution-store.ts";
 import type { AuthorityPolicyMode } from "../team/model.ts";
 import {
   STANDARD_LOADOUT_PROFILE_ID,
@@ -48,17 +49,6 @@ function baseManifest(store: GameStore, input: BindDeploymentInput) {
       }))
       .sort((left, right) => left.actorId.localeCompare(right.actorId)),
   };
-}
-
-function teamRoundCount(store: GameStore, runId: string): number {
-  const table = store.db.prepare(
-    "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'team_rounds'",
-  ).get() as { present?: number } | undefined;
-  if (table?.present !== 1) return 0;
-  const row = store.db.prepare(
-    "SELECT COUNT(*) AS count FROM team_rounds WHERE run_id = ?",
-  ).get(runId) as { count: number } | undefined;
-  return Number(row?.count ?? 0);
 }
 
 export class DeploymentStore {
@@ -147,7 +137,7 @@ export class DeploymentStore {
         "Deployment must bind before World execution begins",
       );
     }
-    if (teamRoundCount(this.game, input.runId) !== 0) {
+    if (teamCognitionStarted(this.game, input.runId)) {
       throw new DeploymentError(
         "deployment_conflict",
         "Deployment must bind before cognition creates a Round",

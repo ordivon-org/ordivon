@@ -11,7 +11,7 @@ import { GameStore } from "../src/storage.ts";
 import { TeamExecutionStore } from "../src/team/execution-store.ts";
 import type { ActionProposal } from "../src/team/model.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { TeamStore } from "../src/team/store.ts";
+import { TeamStore, TeamStoreError } from "../src/team/store.ts";
 
 function serviceFixture(runId: string) {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-m4-mission-control-"));
@@ -168,11 +168,22 @@ test("Mission Control exposes setup state and rejects invalid initialization or 
   const service = new MissionControlService(game, () => new FixtureTeamProvider());
   try {
     game.createRun({ runId: "run:m4-uninitialized", scenarioVersion: 2, rulesetVersion: 3 });
+    const tableNames = () => (game.db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+    ).all() as unknown as Array<{ name: string }>).map((row) => row.name);
+    const beforeView = tableNames();
     const view = createMissionControlView(game, "run:m4-uninitialized");
     assert.equal(view.initialized, false);
     assert.equal(view.run.status, "setup");
     assert.deepEqual(view.actors, []);
     assert.equal(view.controls.canConfigure, true);
+    assert.deepEqual(tableNames(), beforeView, "setup-state reads must not create Host or Team schema");
+    assert.deepEqual(service.timeline("run:m4-uninitialized"), {
+      runId: "run:m4-uninitialized",
+      items: [],
+      nextBeforeRevision: null,
+    });
+    assert.deepEqual(tableNames(), beforeView, "empty timeline reads must not create Host or Team schema");
     await assert.rejects(() => service.advance("run:m4-uninitialized", "proposal-review"), /not initialized/);
     await assert.rejects(() => service.advance("run:m4-uninitialized", "proposal-review", 0), /maximumInternalSteps/);
     assert.throws(() => service.initialize({ runId: "" }), /runId/);
@@ -459,5 +470,85 @@ test("Mission Control review is idempotent and paused redirects, default message
   } finally {
     game.close();
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("concurrent Mission Control advances cannot overwrite a committed Team Round", async () => {
+  const game = new GameStore(":memory:");
+  const runId = "run:m4-concurrent-commit";
+  const service = new MissionControlService(game, () => ({
+    providerId: "fixture-slow",
+    async decide(context) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return new FixtureTeamProvider().decide(context);
+    },
+  }));
+  try {
+    service.initialize({ runId });
+    assert.equal((await service.advance(runId, "proposal-review")).boundary, "proposal-review");
+    const results = await Promise.allSettled(
+      Array.from({ length: 6 }, () => service.advance(runId, "tick-verified")),
+    );
+    assert.ok(results.some((result) => result.status === "fulfilled"));
+    for (const result of results) {
+      if (result.status === "rejected") {
+        assert.ok(result.reason instanceof TeamStoreError);
+        assert.equal(result.reason.code, "team_conflict");
+      }
+    }
+    const team = new TeamStore(game);
+    const execution = new TeamExecutionStore(team);
+    game.verifyStream(runId);
+    team.verify(runId);
+    execution.authority.verify(runId);
+    const completedRoundIds = team.host.listJournal(runId)
+      .filter((event) => event.eventType === "team.round-completed")
+      .map((event) => (event.payload as { round: { roundId: string } }).round.roundId);
+    assert.equal(completedRoundIds.length, game.eventCount(runId));
+    for (const roundId of completedRoundIds) {
+      assert.equal(execution.getRound(roundId).status, "completed");
+    }
+  } finally {
+    game.close();
+  }
+});
+
+
+test("concurrent proposal review retains one Context per specialist", async () => {
+  const game = new GameStore(":memory:");
+  const runId = "run:m4-concurrent-context";
+  const service = new MissionControlService(game, () => ({
+    providerId: "fixture-slow-context",
+    async decide(context) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return new FixtureTeamProvider().decide(context);
+    },
+  }));
+  try {
+    service.initialize({ runId });
+    const results = await Promise.allSettled(
+      Array.from({ length: 6 }, () => service.advance(runId, "proposal-review")),
+    );
+    for (const result of results) {
+      if (result.status === "rejected") {
+        assert.ok(result.reason instanceof TeamStoreError);
+        assert.ok(["team_conflict", "team_lease_held"].includes(result.reason.code));
+      }
+    }
+    const contexts = game.db.prepare(
+      "SELECT actor_id, COUNT(*) AS count FROM team_round_contexts WHERE run_id = ? GROUP BY actor_id ORDER BY actor_id",
+    ).all(runId) as unknown as Array<{ actor_id: string; count: number }>;
+    assert.deepEqual(
+      contexts.map((row) => ({ actor_id: row.actor_id, count: Number(row.count) })),
+      [
+        { actor_id: "engineer-01", count: 1 },
+        { actor_id: "medic-01", count: 1 },
+        { actor_id: "security-01", count: 1 },
+      ],
+    );
+    new TeamExecutionStore(new TeamStore(game)).verify(runId);
+  } finally {
+    game.close();
   }
 });

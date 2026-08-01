@@ -245,11 +245,11 @@ export class GameStore {
     this.db = new DatabaseSync(dbPath);
 
     try {
+      this.db.exec(`PRAGMA busy_timeout = ${normalized.busyTimeoutMs ?? 5000};`);
       this.db.exec(`
         PRAGMA foreign_keys = ON;
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = FULL;
-        PRAGMA busy_timeout = ${normalized.busyTimeoutMs ?? 5000};
       `);
       this.createSchema();
       this.migrateSchema();

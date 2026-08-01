@@ -56,6 +56,8 @@ test("Host Journal is idempotent and rejects conflicting identity or tampering",
     const first = host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 1 });
     const duplicate = host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 1 });
     assert.equal(duplicate.recordDigest, first.recordDigest);
+    assert.deepEqual(host.getJournalEvent(game.activeRunId, first.eventId), first);
+    assert.equal(host.getJournalEvent(game.activeRunId, "host-event:missing"), null);
     assert.throws(() => host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 2 }), (error) => error instanceof HostStoreError && error.code === "host_constraint");
     host.appendEvent(game.activeRunId, "second", "host-event:second", { value: 2 });
     host.verifyJournal(game.activeRunId);
@@ -77,5 +79,23 @@ test("HostStore validates missing identities and transaction rollback", () => {
       throw new Error("rollback");
     }), /rollback/);
     assert.equal(host.listJournal(game.activeRunId).length, 0);
+  });
+});
+
+
+test("Host Journal point reads reject tampered records", () => {
+  withStores((game, host) => {
+    const event = host.appendEvent(
+      game.activeRunId,
+      "audit-event",
+      "host-event:audit-point-read",
+      { value: 1 },
+    );
+    game.db.prepare("UPDATE host_journal SET payload_json = ? WHERE run_id = ? AND event_id = ?")
+      .run('{"value":2}', game.activeRunId, event.eventId);
+    assert.throws(
+      () => host.getJournalEvent(game.activeRunId, event.eventId),
+      (error: unknown) => error instanceof HostStoreError && error.code === "host_corrupt" && /record digest mismatch/.test(error.message),
+    );
   });
 });
