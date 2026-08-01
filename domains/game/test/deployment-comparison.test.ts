@@ -343,3 +343,35 @@ test("corrupt deployment bindings fail closed before comparison", () => {
     store.close();
   }
 });
+
+
+test("Deployment binding closes at the first retained Team Round before World execution", async () => {
+  const store = new GameStore(":memory:");
+  const runId = "run:deployment:cognition-only";
+  try {
+    store.createRun({
+      runId,
+      scenarioVersion: 2,
+      scenarioCaseId: "baseline",
+      rulesetVersion: 3,
+    });
+    const team = new TeamHost(store, new FixtureTeamProvider());
+    team.initialize(runId);
+    const actors = team.team.listTasks(runId)
+      .filter((task) => task.actorId)
+      .map((task) => ({ actorId: task.actorId!, providerOrder: ["fixture"] }));
+    assert.equal(store.loadState(runId).revision, 0);
+    await team.step(runId);
+    assert.equal(store.loadState(runId).revision, 0);
+    assert.throws(
+      () => new DeploymentStore(store).bind({
+        runId,
+        authorityPolicyMode: "autonomous",
+        actors,
+      }),
+      (error) => error instanceof DeploymentError && /before cognition/.test(error.message),
+    );
+  } finally {
+    store.close();
+  }
+});

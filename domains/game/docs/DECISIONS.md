@@ -274,7 +274,6 @@ The 16 KiB contract remains part of frozen M2 compatibility. M3 actor Contexts u
 
 The target ownership is an Ordivon Host Team Coordinator workload with a Game World adapter. The first executable slice defaults to a conformance-backed in-process TypeScript adapter unless a local Python Host sidecar experiment proves lower total complexity or a required independent-Host capability. Implementation does not begin before this choice is reviewed.
 
-
 ## D-063 — M3 uses an embedded Host-conformant Team adapter
 
 The first executable Team Coordinator remains inside the TypeScript Game process and shares the existing SQLite deployment. It conforms to Host Event, checked projection, revision, lease, Context, Effect, Dispatch, Observation, and Verification semantics. A Python sidecar was rejected because it would add startup, protocol, packaging, and split-recovery boundaries without supplying a capability required by the three-specialist scenario.
@@ -319,7 +318,6 @@ The root page exposes deployment, bounded state, semantic evidence, intervention
 
 M4 changes durable control, bounded projection, HTTP boundaries, and Web presentation without changing Codex/Hermes cognition contracts or hidden-correcting valid model choices. Live Provider runs are therefore not repeated for M4 closeout; M3 remains the canonical live Provider evaluation. Fixture, persistence, intervention, recovery, and product evidence are re-evaluated directly.
 
-
 ## D-074 — Scenario Cases supersede label-only seed semantics for M5
 
 A release-comparable environment is identified by a deterministic Scenario Case and Genesis specification digest. The legacy seed field remains compatibility metadata until an actual Scenario RNG consumes it. M5 does not add randomness merely to make a seed label appear meaningful.
@@ -347,7 +345,6 @@ M5 release claims bind a canonical manifest of executable source, Web, lockfile,
 ## D-080 — One Chromium journey is the browser release gate
 
 M5 adds Playwright as a development-only dependency for one end-to-end deployment → play → terminal → replay → comparison journey. CI uses one worker and one Chromium headless browser with trace retention on failure. This closes M4's browser-evidence gap without creating a broad cross-browser test program.
-
 
 ## D-081 — The first source-playable release is a player evidence loop, not the complete research program
 
@@ -380,3 +377,15 @@ Permanent engines, stores, protocols, policies, and compatibility layers must ea
 ## D-088 — Station Zero is the first world, not a universal schema
 
 Station Zero remains the current release and evidence priority. Its Mission Control, three-specialist coordination, emergency Objective Graph, and resource rules must not become universal Game architecture by default. A second materially different world—such as a non-mission playground, social investigation world, or exploration/creation world—is required before promoting new Game mechanisms into shared Host, Protocol, or reusable engine contracts.
+
+## D-089 — Team execution heads require exact optimistic CAS
+
+A Team Round or Proposal update must bind the exact retained previous object and the exact next object. Stale writers fail with `team_conflict`; they cannot overwrite a newer durable head. Completed Rounds are immutable, and rejected or verified Proposals are semantically immutable. This owner-local CAS replaces the need for a global request lock or transaction coordinator.
+
+## D-090 — Durable Round commitment precedes Host authority completion
+
+A completed Team Round and its completion event become durable before Host Verification and Outcome are reconciled. Authority completion is idempotent and may be recovered from the immediately previous completed Round after interruption. This preserves owner boundaries without pretending that SQLite-local objects form a distributed transaction.
+
+## D-091 — Complete semantic verification is an explicit boundary, not a per-Step tax
+
+Full Team execution verification belongs at `syncContract`, Run closeout, and explicit audit boundaries. It does not run on every Team Step: measurement showed that placement increased the median 18-Round runtime by 81.7%. The hot path retains exact CAS and local admission; complete history verification remains available where its approximately 95 ms cost is justified.

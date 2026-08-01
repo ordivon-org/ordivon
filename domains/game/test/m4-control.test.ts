@@ -78,7 +78,7 @@ test("rejected Proposals are excluded from legal subset selection", async () => 
     const round = blocked.rounds.at(-1)!;
     const pending = host.execution.listProposals(round.roundId).find((proposal) => proposal.status === "proposed" && proposal.authorityOutcome === "require-human");
     assert.ok(pending);
-    host.execution.saveProposal({ ...pending, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
+    host.execution.saveProposal(pending, { ...pending, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
     const next = await host.step(runId);
     assert.ok(["tick_plan_prepared", "authority_required", "blocked"].includes(next.status));
     const retained = host.execution.getProposal(pending.proposalId);

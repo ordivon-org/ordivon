@@ -8,6 +8,7 @@ import {
   STATION_ZERO_SPECIALIST_LIMIT,
 } from "../src/team/coordination-policy.ts";
 import { TeamHost } from "../src/team/engine.ts";
+import { teamCognitionStarted } from "../src/team/execution-store.ts";
 import type { ActionProposal } from "../src/team/model.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
 import { teamRunInitialized, TeamStore } from "../src/team/store.ts";
@@ -78,6 +79,7 @@ test("Team initialization queries stay inside the Team owner and do not create s
   const runId = "run:team-initialization-query";
   game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
   assert.equal(teamRunInitialized(game, runId), false);
+  assert.equal(teamCognitionStarted(game, runId), false);
   const before = game.db.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_actor_sessions'",
   ).get();
@@ -87,4 +89,21 @@ test("Team initialization queries stay inside the Team owner and do not create s
   team.initialize(runId);
   assert.equal(teamRunInitialized(game, runId), true);
   game.close();
+});
+
+
+test("Team cognition detection is owner-local and begins with the first retained Round", async () => {
+  const game = new GameStore(":memory:");
+  const runId = "run:team-cognition-query";
+  try {
+    game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
+    assert.equal(teamCognitionStarted(game, runId), false);
+    const host = new TeamHost(game, new FixtureTeamProvider());
+    host.initialize(runId);
+    assert.equal(teamCognitionStarted(game, runId), false);
+    await host.step(runId);
+    assert.equal(teamCognitionStarted(game, runId), true);
+  } finally {
+    game.close();
+  }
 });

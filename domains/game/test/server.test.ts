@@ -51,3 +51,26 @@ test("browser API exposes the station and applies an admitted action", async () 
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test("HTTP boundary classifies oversized and malformed path input without internal errors", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-game-server-boundary-"));
+  const game = createGameServer({ dbPath: join(directory, "world.sqlite3") });
+  try {
+    const base = await listen(game);
+    const oversized = await fetch(`${base}/api/actions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ padding: "x".repeat(65 * 1024) }),
+    });
+    assert.equal(oversized.status, 413);
+    assert.equal((await oversized.json() as { error: string }).error, "request_too_large");
+
+    const malformed = await fetch(`${base}/api/agent/artifacts/%`);
+    assert.equal(malformed.status, 400);
+    assert.equal((await malformed.json() as { error: string }).error, "invalid_request");
+  } finally {
+    await game.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

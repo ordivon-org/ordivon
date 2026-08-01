@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson } from "../digest.ts";
 import { protocolDigest, type ProtocolJson } from "../host-contract/canonical.ts";
+import type { GameStore } from "../storage.ts";
 import { EmbeddedHostAuthority } from "../host-contract/embedded-authority.ts";
 import type {
   DispatchEnvelope,
@@ -25,6 +26,25 @@ interface JsonRow { value_json: string }
 function parse<T>(text: string, label: string): T {
   try { return JSON.parse(text) as T; }
   catch (error) { throw new TeamStoreError("team_corrupt", `${label} is invalid JSON: ${String(error)}`); }
+}
+
+export function teamCognitionStarted(
+  game: GameStore,
+  runId = game.activeRunId,
+): boolean {
+  const table = game.db.prepare(
+    "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'team_rounds'",
+  ).get() as { present?: number } | undefined;
+  if (table?.present !== 1) return false;
+  const row = game.db.prepare(
+    "SELECT 1 AS present FROM team_rounds WHERE run_id = ? LIMIT 1",
+  ).get(runId) as { present?: number } | undefined;
+  return row?.present === 1;
+}
+
+function proposalSemanticJson(proposal: ActionProposal): string {
+  const { updatedAt: _updatedAt, ...semantic } = proposal;
+  return canonicalJson(semantic);
 }
 
 function protocolSafe(value: unknown): ProtocolJson {
@@ -114,12 +134,22 @@ export class TeamExecutionStore {
       return retained;
     }
     const placeholders = insertColumns.map(() => "?").join(", ");
+    const recordJson = canonicalJson(record);
     this.team.host.withTransaction(runId, () => {
-      this.db.prepare(`INSERT INTO ${table} (${insertColumns.join(", ")}, value_json) VALUES (${placeholders}, ?)`)
-        .run(...([...insertValues, canonicalJson(record)] as never[]));
-      this.team.host.appendEventInTransaction(runId, eventType, `host-event:${id}:created`, { record }, createdAt);
+      const inserted = this.db.prepare(`INSERT OR IGNORE INTO ${table} (${insertColumns.join(", ")}, value_json) VALUES (${placeholders}, ?)`)
+        .run(...([...insertValues, recordJson] as never[]));
+      if (Number(inserted.changes) === 1) {
+        this.team.host.appendEventInTransaction(runId, eventType, `host-event:${id}:created`, { record }, createdAt);
+        return;
+      }
+      const retained = this.db.prepare(`SELECT value_json FROM ${table} WHERE ${idColumn} = ?`).get(id) as JsonRow | undefined;
+      if (!retained || retained.value_json !== recordJson) {
+        throw new TeamStoreError("team_conflict", `${table} identity is bound to different content`);
+      }
     });
-    return record;
+    const retained = this.db.prepare(`SELECT value_json FROM ${table} WHERE ${idColumn} = ?`).get(id) as JsonRow | undefined;
+    if (!retained) throw new TeamStoreError("team_corrupt", `${table} record disappeared after insert`);
+    return parse<T>(retained.value_json, table);
   }
 
   findRound(runId: string, worldRevision: number): TeamRound | null {
@@ -136,15 +166,66 @@ export class TeamExecutionStore {
       ["round_id", "run_id", "world_revision", "status"], [round.roundId, round.runId, round.worldRevision, round.status],
       "team.round-created", round.runId, round.createdAt);
   }
-  saveRound(round: TeamRound, eventType: string): TeamRound {
+  saveRound(expected: TeamRound, round: TeamRound, eventType: string): TeamRound {
     const current = this.getRound(round.roundId);
-    if (current.runId !== round.runId || current.worldRevision !== round.worldRevision) throw new TeamStoreError("team_conflict", "Team Round identity changed");
-    if (round.status === "completed") this.completeAuthority(round);
+    if (
+      expected.roundId !== round.roundId ||
+      expected.runId !== round.runId ||
+      expected.worldRevision !== round.worldRevision ||
+      current.runId !== round.runId ||
+      current.worldRevision !== round.worldRevision
+    ) {
+      throw new TeamStoreError("team_conflict", "Team Round identity changed");
+    }
+    const transitions: Record<TeamRound["status"], TeamRound["status"][]> = {
+      collecting: ["collecting", "planned", "blocked"],
+      planned: ["planned", "dispatched", "blocked"],
+      dispatched: ["dispatched", "observed", "blocked"],
+      observed: ["observed", "completed", "blocked"],
+      blocked: ["blocked", "planned"],
+      completed: ["completed"],
+    };
+    if (!transitions[expected.status].includes(round.status)) {
+      throw new TeamStoreError("team_conflict", `invalid Team Round transition: ${expected.status} -> ${round.status}`);
+    }
+    const expectedJson = canonicalJson(expected);
+    const roundJson = canonicalJson(round);
+    if (expected.status === "completed" && expectedJson !== roundJson) {
+      throw new TeamStoreError("team_conflict", "completed Team Round is immutable");
+    }
+    const currentJson = canonicalJson(current);
+    if (currentJson !== expectedJson) {
+      if (currentJson === roundJson) {
+        if (current.status === "completed") this.reconcileCompletedRound(current);
+        return current;
+      }
+      throw new TeamStoreError("team_conflict", "Team Round was superseded");
+    }
     this.team.host.withTransaction(round.runId, () => {
-      this.db.prepare("UPDATE team_rounds SET status = ?, value_json = ? WHERE round_id = ?").run(round.status, canonicalJson(round), round.roundId);
+      const changed = this.db.prepare(
+        "UPDATE team_rounds SET status = ?, value_json = ? WHERE round_id = ? AND value_json = ?",
+      ).run(round.status, roundJson, round.roundId, expectedJson);
+      if (Number(changed.changes) !== 1) {
+        throw new TeamStoreError("team_conflict", "Team Round was superseded");
+      }
       this.team.host.appendEventInTransaction(round.runId, eventType, `host-event:${round.roundId}:${eventType}:${round.updatedAt}`, { round }, round.updatedAt);
     });
-    return round;
+    const retained = this.getRound(round.roundId);
+    if (retained.status === "completed") this.reconcileCompletedRound(retained);
+    return retained;
+  }
+
+  reconcileCompletedRound(round: TeamRound): void {
+    if (round.status !== "completed") {
+      throw new TeamStoreError("team_conflict", "only a completed Team Round can reconcile authority");
+    }
+    const taskId = authorityTaskId(round.roundId);
+    const projection = this.authority.projection(round.runId, taskId);
+    if (projection.state === "completed") return;
+    if (projection.state === "failed" || projection.state === "cancelled") {
+      throw new TeamStoreError("team_corrupt", `completed Team Round has terminal Authority state ${projection.state}`);
+    }
+    this.completeAuthority(round);
   }
 
   putContext(reference: TeamContextReference): TeamContextReference {
@@ -168,14 +249,50 @@ export class TeamExecutionStore {
       [proposal.proposalId, proposal.roundId, proposal.runId, proposal.actorId, proposal.status],
       "team.proposal-recorded", proposal.runId, proposal.createdAt);
   }
-  saveProposal(proposal: ActionProposal, eventType: string): ActionProposal {
+  saveProposal(expected: ActionProposal, proposal: ActionProposal, eventType: string): ActionProposal {
     const current = this.getProposal(proposal.proposalId);
-    if (current.roundId !== proposal.roundId || current.actorId !== proposal.actorId) throw new TeamStoreError("team_conflict", "Team Proposal identity changed");
+    if (
+      expected.proposalId !== proposal.proposalId ||
+      expected.roundId !== proposal.roundId ||
+      expected.actorId !== proposal.actorId ||
+      current.roundId !== proposal.roundId ||
+      current.actorId !== proposal.actorId
+    ) {
+      throw new TeamStoreError("team_conflict", "Team Proposal identity changed");
+    }
+    const transitions: Record<ActionProposal["status"], ActionProposal["status"][]> = {
+      proposed: ["proposed", "selected", "rejected"],
+      selected: ["selected", "executed", "verified", "rejected"],
+      executed: ["executed", "verified", "rejected"],
+      rejected: ["rejected"],
+      verified: ["verified"],
+    };
+    if (!transitions[expected.status].includes(proposal.status)) {
+      throw new TeamStoreError("team_conflict", `invalid Team Proposal transition: ${expected.status} -> ${proposal.status}`);
+    }
+    const expectedJson = canonicalJson(expected);
+    const proposalJson = canonicalJson(proposal);
+    const currentJson = canonicalJson(current);
+    if (currentJson !== expectedJson) {
+      if (currentJson === proposalJson) return current;
+      throw new TeamStoreError("team_conflict", "Team Proposal was superseded");
+    }
+    if (["rejected", "verified"].includes(expected.status) && expectedJson !== proposalJson) {
+      if (proposalSemanticJson(expected) !== proposalSemanticJson(proposal)) {
+        throw new TeamStoreError("team_conflict", `terminal Team Proposal is immutable: ${expected.status}`);
+      }
+      return current;
+    }
     this.team.host.withTransaction(proposal.runId, () => {
-      this.db.prepare("UPDATE team_proposals SET status = ?, value_json = ? WHERE proposal_id = ?").run(proposal.status, canonicalJson(proposal), proposal.proposalId);
+      const changed = this.db.prepare(
+        "UPDATE team_proposals SET status = ?, value_json = ? WHERE proposal_id = ? AND value_json = ?",
+      ).run(proposal.status, proposalJson, proposal.proposalId, expectedJson);
+      if (Number(changed.changes) !== 1) {
+        throw new TeamStoreError("team_conflict", "Team Proposal was superseded");
+      }
       this.team.host.appendEventInTransaction(proposal.runId, eventType, `host-event:${proposal.proposalId}:${eventType}:${proposal.updatedAt}`, { proposal }, proposal.updatedAt);
     });
-    return proposal;
+    return this.getProposal(proposal.proposalId);
   }
   getProposal(proposalId: string): ActionProposal {
     const row = this.db.prepare("SELECT value_json FROM team_proposals WHERE proposal_id = ?").get(proposalId) as JsonRow | undefined;
@@ -318,6 +435,46 @@ export class TeamExecutionStore {
       : this.db.prepare("SELECT world_revision, value_json FROM team_rounds WHERE run_id = ? AND world_revision < ? ORDER BY world_revision DESC LIMIT ?").all(runId, beforeRevision, limit + 1)) as unknown as Array<{ world_revision: number; value_json: string }>;
     const selected = rows.slice(0, limit);
     return { rounds: selected.map((row) => parse<TeamRound>(row.value_json, "Team Round")), nextBeforeRevision: rows.length > limit ? Number(selected.at(-1)?.world_revision ?? 0) : null };
+  }
+
+  verify(runId: string): void {
+    this.authority.verify(runId);
+    const rounds = new Map(this.listRounds(runId).map((round) => [round.roundId, round]));
+    for (const round of rounds.values()) {
+      if (["planned", "dispatched", "observed", "completed"].includes(round.status) && !round.tickPlanId) {
+        throw new TeamStoreError("team_corrupt", `Team Round ${round.roundId} omitted TickPlan identity`);
+      }
+      if (["dispatched", "observed", "completed"].includes(round.status) && (!round.effectId || !round.dispatchId)) {
+        throw new TeamStoreError("team_corrupt", `Team Round ${round.roundId} omitted Effect or Dispatch identity`);
+      }
+      if (["observed", "completed"].includes(round.status)) {
+        const observation = this.findObservationForRound(round.roundId);
+        if (!round.observationId || !observation || observation.observationId !== round.observationId) {
+          throw new TeamStoreError("team_corrupt", `Team Round ${round.roundId} omitted its retained Observation`);
+        }
+        if (round.status === "completed" && !observation.verificationSuccess) {
+          throw new TeamStoreError("team_corrupt", `completed Team Round ${round.roundId} has rejected Verification`);
+        }
+      }
+    }
+
+    for (const event of this.team.host.listJournal(runId)) {
+      if (event.eventType === "team.round-completed") {
+        const payload = event.payload as { round?: TeamRound };
+        const retained = payload.round ? rounds.get(payload.round.roundId) : undefined;
+        if (!payload.round || !retained || retained.status !== "completed" || canonicalJson(retained) !== canonicalJson(payload.round)) {
+          throw new TeamStoreError("team_corrupt", "completed Team Round event differs from the retained head");
+        }
+      }
+      if (["team.proposal-rejected", "team.proposal-player-denied", "team.proposal-verified"].includes(event.eventType)) {
+        const payload = event.payload as { proposal?: ActionProposal };
+        if (!payload.proposal) throw new TeamStoreError("team_corrupt", "terminal Team Proposal event omitted Proposal payload");
+        const retained = this.getProposal(payload.proposal.proposalId);
+        if (canonicalJson(retained) !== canonicalJson(payload.proposal)) {
+          throw new TeamStoreError("team_corrupt", "terminal Team Proposal event differs from the retained head");
+        }
+      }
+    }
   }
 
   private completeAuthority(round: TeamRound): void {
