@@ -2,9 +2,11 @@
 
 ## Architectural objective
 
-Build the smallest system in which persistent Agent cognition can influence a deterministic game world through typed, observable, verifiable effects.
+The current executable objective is to build the smallest system in which persistent Agent cognition can influence a deterministic game world through typed, observable, verifiable effects.
 
-The implementation should reuse Ordivon concepts without coupling the game to a remote MCP round trip for every in-world action.
+The long-horizon objective is broader: support open interactive worlds in which people and Agents can play, create, relate, explore, compete, cooperate, and produce persistent histories. The deterministic kernel and evidence path are enabling structure, not the complete player experience.
+
+The implementation should reuse Ordivon concepts without coupling the game to a remote MCP round trip for every in-world action. It must also keep the default player experience separate from raw research, Security, and debugging surfaces.
 
 ## Components
 

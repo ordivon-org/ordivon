@@ -1,5 +1,7 @@
 # Product definition: Station Zero
 
+This document defines the first product vertical. It does not define the full purpose of Ordivon Game. The broader project may support playgrounds, creative worlds, social spaces, Agent habitats, and research or Security verticals; see [`VISION.md`](VISION.md).
+
 ## Product thesis
 
 The player should feel responsible for a capable but imperfect autonomous team. The central tension is not direct control; it is deciding what to delegate, what to verify, when to intervene, and which losses to accept.
