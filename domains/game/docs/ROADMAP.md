@@ -220,16 +220,49 @@ Acceptance criteria:
 
 Equal-budget ablations, Runtime experiment matrices, and final embedded Host convergence remain explicit post-alpha work. They constrain later scientific and platform claims but do not block the first deterministic source-playable release.
 
-## Deferred branches
+## Post-alpha opportunity graph
 
-Only after M5 evidence:
+The first playable is not the complete definition of Ordivon Game. After M5 evidence, later work may proceed through several independent opportunity tracks. These are hypotheses and bounded experiments, not one mandatory feature sequence.
 
-- competitive Agent Arena modes;
-- persistent station organization;
-- larger Agent Society simulation;
-- modding and user-authored scenarios;
-- a reusable `ordivon-world` package;
-- multiplayer or hosted service infrastructure.
+```text
+                         M5 first playable
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          ▼                     ▼                     ▼
+       G-PLAY                 G-WORLD               G-CREATE
+playground and return   Agent participation      player/Agent creation
+          │                     │                     │
+          └─────────────────────┼─────────────────────┘
+                                ▼
+                         optional verticals
+                 product worlds / social worlds /
+                 evaluation / Security / Arena
+```
+
+### G-PLAY — Playability, leisure, and return
+
+Prove that Station Zero or a second small world can remain enjoyable outside terminal mission optimization:
+
+- one optional non-mission activity;
+- one relationship or world consequence that changes later interaction;
+- one event not caused by a player Objective;
+- one reason to revisit after mastering the emergency.
+
+### G-WORLD — Agent-native world participation
+
+Test identity, body, memory, relationships, self-directed activity, longer timescales, and world history. Do not begin with hundreds of residents or a generic civilization engine.
+
+### G-CREATE — Creative medium and modding
+
+Test bounded player-authored scenarios, Agent-created Artifacts, construction, performance, and world modification. Candidate content does not gain authoritative consequence until admitted by the Game World.
+
+### G-EXPERIMENT — Evaluation and Security worlds
+
+Retain deterministic Scenario Cases, hidden truth, paired trajectories, replay, reset, independent scoring, and adversarial roles as optional consumers of the Game World. Security remains a vertical consumer, not the owner of the Game roadmap.
+
+### Deferred infrastructure
+
+Competitive Arena modes, persistent organizations, larger Agent societies, multiplayer, hosted services, and reusable engine packages remain deferred until a concrete vertical demonstrates that their experience value or shared responsibility exceeds their cost.
 
 ## Measurement
 

@@ -1,8 +1,10 @@
 # Ordivon Game
 
-**Agent-native games built on Ordivon Computing, Ordivon Host, and Ordivon Runtime semantics.**
+**Open interactive worlds for people and Agents.**
 
 Ordivon Game explores games in which autonomous Agents are not decorative dialogue systems. They hold persistent goals, receive bounded observations, act through explicit capabilities, communicate under world constraints, request authority, produce independently verified effects, fail, recover, and remain understandable to the player.
+
+The project is broader than an Agent benchmark or Security laboratory. It may become a game product, playground, creative medium, social world, Agent habitat, or controlled experiment. Play, beauty, surprise, attachment, and expression are legitimate outcomes even when they produce no external productivity claim. See [`docs/VISION.md`](docs/VISION.md).
 
 ## Station Zero
 
@@ -250,6 +252,7 @@ Point-in-time replay selects the nearest retained Snapshot at or before the requ
 - [`docs/M4-RECEIPT.md`](docs/M4-RECEIPT.md) — M4 implementation and acceptance evidence.
 - [`docs/M4-EVALUATION.json`](docs/M4-EVALUATION.json) — frozen machine-readable Mission Control, recovery, intervention, and Web evidence.
 - [`docs/M3-RECEIPT.md`](docs/M3-RECEIPT.md) and [`docs/M3-EVALUATION.json`](docs/M3-EVALUATION.json) — canonical multi-Agent and live Provider evidence.
+- [`docs/VISION.md`](docs/VISION.md) — long-horizon product thesis: play, creation, Agent-native worlds, and optional research/Security verticals.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestone dependency graph.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — architectural decisions and supersessions.
 

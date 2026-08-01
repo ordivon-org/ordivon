@@ -364,3 +364,19 @@ A Team Task in `completed`, `failed`, or `cancelled` state is irreversible withi
 ## D-084 — M5-R1 retains existing controls and rejects a new control platform
 
 Seven paired should-act/should-hold cases exercised current Context admission, authority grants, lease replacement, Dispatch preconditions, World idempotency, Verification, waiting, terminal synchronization, and persisted Host/Game reconstruction. All seven useful actions were admitted and all seven invalid actions were held, with zero false completions and duplicate Effects. The experiment retained D-082 and D-083 as owner-local invariants and introduced no generic abstention service, Hook framework, approval plane, or duplicate Host state. Security adversarial work consumes the exact matrix rather than building a second Game runner.
+
+## D-085 — Ordivon Game is an open interactive-world project, not only a laboratory
+
+Station Zero, deterministic replay, Host/Harness evaluation, and Security experiments are current high-value uses of Game, but they do not define its complete purpose. Ordivon Game may create playgrounds, complete game products, creative media, social worlds, persistent Agent habitats, and controlled research worlds. Play, beauty, surprise, attachment, expression, and shared history are valid terminal values even when they produce no benchmark or productivity improvement.
+
+## D-086 — Security is a vertical consumer of Game, not its product authority
+
+Game may provide authoritative hidden truth, partial observation, reversible mutation, replay, reset, and residual evidence to Ordivon Security. Security owns adversarial roles, Campaign meaning, opponent models, deception, and evaluation. It does not require every Game object, mechanic, character, or experience to be expressed as threat, risk, attack, defense, or Judge state.
+
+## D-087 — Infrastructure and creative content use different admission tests
+
+Permanent engines, stores, protocols, policies, and compatibility layers must earn retention through explicit ownership, realistic failure evidence, measured net benefit, second-consumer pressure, and deletion tests. Characters, places, activities, rituals, stories, aesthetics, relationships, and playful rules are admitted through experiential judgment: whether they are fun, affecting, expressive, surprising, memorable, or worth their cost. Applying infrastructure minimalism to all content would optimize the game into an empty machine.
+
+## D-088 — Station Zero is the first world, not a universal schema
+
+Station Zero remains the current release and evidence priority. Its Mission Control, three-specialist coordination, emergency Objective Graph, and resource rules must not become universal Game architecture by default. A second materially different world—such as a non-mission playground, social investigation world, or exploration/creation world—is required before promoting new Game mechanisms into shared Host, Protocol, or reusable engine contracts.
