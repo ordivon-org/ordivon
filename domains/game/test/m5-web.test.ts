@@ -41,13 +41,16 @@ test("Deployment renders fixed loadout, measured coordination, and Provider read
       providers: [{ providerId: "fixture", label: "Fixture", deterministic: true }],
       cases: [{ caseId: "baseline", label: "Baseline" }],
       authorityPolicies: [{ policyMode: "autonomous", label: "Autonomous" }],
+      doctrines: [{ doctrineId: "delegated-response", label: "Delegated response", description: "Routine work proceeds.", authorityPolicyMode: "autonomous" }],
+      playDefaults: { doctrineId: "delegated-response", scenarioCaseId: "baseline", coordinationProfileId: "specialist-containment" },
       fixedLoadout: { profileId: "standard-loadout", label: "Standard loadout", description: "Fixed" },
       coordinationProfiles: [{ profileId: "specialist-containment", label: "Specialist containment" }],
     },
     preflight: { providers: [{ providerId: "fixture", ready: true, summary: "Ready" }] },
   });
-  assert.match(html, /Coordination profile/);
-  assert.match(html, /Standard loadout/);
+  assert.match(html, /Coordination fixture/);
+  assert.match(html, /Command doctrine/);
+  assert.match(html, /Three persistent specialists/);
   assert.match(html, /Provider readiness/);
 });
 

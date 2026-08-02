@@ -68,15 +68,17 @@ Differences must be expressed through capabilities, goals, observations, risk pr
 ## Core loop
 
 ```text
-inspect mission state
-→ configure team and authority
-→ issue a high-level goal
-→ Agents observe, plan, and propose actions
-→ world admits or rejects actions
-→ player handles exceptions and trade-offs
+receive the mission brief
+→ choose a Command Doctrine
+→ Agents observe, plan, and execute routine verified work
+→ Mission Control stops at consequential intervention boundaries
+→ player authorizes, denies, redirects, pauses, or changes standing orders
+→ the team continues from durable World and Host state
 → mission reaches a verified outcome
-→ replay and diagnose the decision chain
+→ replay, diagnose, and compare the decision chain
 ```
+
+The product is intervention-driven rather than Tick-confirmation-driven. Every World Tick remains individually authoritative and verified, but the player is interrupted only when a decision has material consequence. Exact per-Tick Proposal review remains a Lab capability.
 
 ## Sources of fun
 
@@ -119,7 +121,9 @@ The first playable includes:
 - six authoritative resources or conditions: time, power, oxygen, health, equipment integrity, communications;
 - a small typed action set;
 - one linked emergency mission;
-- configurable authority boundaries;
+- player-facing Command Doctrines compiled into the existing authority boundary;
+- exact next-Tick consequence forecasts and Mission Fronts;
+- automatic execution until a meaningful intervention;
 - player approval, redirection, pause, and cancellation;
 - complete event replay and outcome verification.
 

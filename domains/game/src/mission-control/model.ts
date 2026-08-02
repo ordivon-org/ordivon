@@ -3,6 +3,8 @@ import type { AuthorityPolicyMode, TeamTaskControlMode } from "../team/model.ts"
 
 export type EvidenceStage = "observed" | "assessed" | "proposed" | "executing" | "verified";
 export type Severity = "info" | "warning" | "critical";
+export type DoctrineId = "delegated-response" | "critical-approval" | "strict-control";
+export type MissionAdvanceMode = "one-tick" | "three-ticks" | "until-intervention";
 
 export interface MissionResourceView {
   resourceId: string;
@@ -12,6 +14,51 @@ export interface MissionResourceView {
   unit: "energy" | "percent" | "health" | "ticks";
   band: "stable" | "warning" | "critical" | "terminal";
   trend: "improving" | "stable" | "worsening" | "unknown";
+}
+
+export interface ForecastResourceChange {
+  resourceId: string;
+  label: string;
+  before: number;
+  after: number;
+  delta: number;
+  causes: string[];
+}
+
+export interface TickForecast {
+  status: "available" | "unavailable";
+  fromRevision: number;
+  resultingRevision: number | null;
+  summary: string;
+  resources: ForecastResourceChange[];
+  actorChanges: Array<{
+    actorId: string;
+    locationBefore: string;
+    locationAfter: string;
+    healthBefore: number;
+    healthAfter: number;
+  }>;
+  objectiveChanges: string[];
+  irreversibleEffects: string[];
+  terminal: null | { status: "victory" | "failure"; reason: string };
+  unavailableReason: string | null;
+}
+
+export interface MissionFrontView {
+  frontId: "reactor" | "crew" | "habitation" | "rescue";
+  label: string;
+  status: "stable" | "at-risk" | "critical" | "resolved";
+  objectiveIds: string[];
+  responsibleActorIds: string[];
+  primaryBlocker: string | null;
+  forecast: string;
+}
+
+export interface MissionOutcomeView {
+  headline: string;
+  summary: string;
+  facts: string[];
+  nearMisses: string[];
 }
 
 export interface StationRoomView {
@@ -75,7 +122,7 @@ export type InterventionKind =
   | "mission-risk";
 
 export interface PlayerCommandDescriptor {
-  action: string;
+  action: "approve" | "deny" | "pause" | "resume" | "cancel" | "redirect-objective";
   actorId?: string;
   proposalId?: string;
   objectiveId?: string;
@@ -93,6 +140,7 @@ export interface InterventionCard {
   expiresAtTick: number | null;
   commands: PlayerCommandDescriptor[];
   evidenceRefs: string[];
+  forecast?: TickForecast | null;
 }
 
 export interface RoundActorEntry {
@@ -101,6 +149,9 @@ export interface RoundActorEntry {
   action: string | null;
   status: string;
   authority: string | null;
+  rationale: string | null;
+  confidence: number | null;
+  forecast: TickForecast | null;
 }
 
 export interface CoordinationRoundView {
@@ -121,6 +172,15 @@ export interface MissionTimelineItem {
   summary: string;
   actorActions: string[];
   facts: string[];
+}
+
+export interface MissionExperienceView {
+  mode: "play";
+  doctrineId: DoctrineId;
+  fronts: MissionFrontView[];
+  passiveForecast: TickForecast;
+  activeInterventionId: string | null;
+  outcome: MissionOutcomeView | null;
 }
 
 export interface MissionControlView {
@@ -164,15 +224,28 @@ export interface MissionControlView {
   currentRound: CoordinationRoundView | null;
   inbox: InterventionCard[];
   timeline: MissionTimelineItem[];
+  experience: MissionExperienceView;
   controls: {
     canPrepare: boolean;
     canCommit: boolean;
     canConfigure: boolean;
+    canRun: boolean;
+    canAdvanceOne: boolean;
   };
 }
 
 export interface MissionControlAdvanceResult {
-  boundary: "proposal-review" | "tick-verified" | "authority" | "blocked" | "terminal" | "step-limit";
+  boundary:
+    | "proposal-review"
+    | "tick-verified"
+    | "authority"
+    | "blocked"
+    | "intervention"
+    | "maximum-ticks"
+    | "terminal"
+    | "step-limit";
   steps: string[];
+  committedRevisions: number[];
+  stopReason: string | null;
   view: MissionControlView;
 }

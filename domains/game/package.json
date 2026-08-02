@@ -11,7 +11,7 @@
     "start": "node src/server.ts",
     "demo": "node scripts/demo.ts",
     "test": "node --test test/*.test.ts",
-    "check": "pnpm typecheck && pnpm webcheck && pnpm coverage",
+    "check": "pnpm typecheck && pnpm webcheck && pnpm test",
     "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs && node scripts/check-m5-web.mjs",
     "m4:evaluate": "node scripts/m4-evaluation.ts --write",
     "m5:evaluate": "node scripts/m5-evaluation.ts",

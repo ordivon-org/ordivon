@@ -5,6 +5,7 @@ import type { GameStore } from "../storage.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
 import type { ActionProposal, CompiledTeamContext, TeamProjection, TeamRound } from "../team/model.ts";
 import { objectivesForRole } from "../team/objectives.ts";
+import { doctrineForPolicy, missionFronts, missionOutcome, passiveForecast, proposalForecast } from "./experience.ts";
 import { TeamStore, teamRunInitialized } from "../team/store.ts";
 import type {
   ActorMissionView,
@@ -234,7 +235,10 @@ function consequence(proposal: ActionProposal): string {
 export function deriveInterventions(state: WorldState, projection: TeamProjection, proposals: ActionProposal[]): InterventionCard[] {
   const cards: InterventionCard[] = [];
   const authorityById = new Map(projection.authorityDecisions.map((decision) => [decision.decisionId, decision]));
-  for (const proposal of proposals.filter((entry) => entry.status === "proposed" && entry.authorityOutcome === "require-human")) {
+  const grantedProposalIds = new Set(projection.authorityGrants
+    .filter((grant) => grant.consumedAtTick === null && grant.expiresAtTick >= state.turn)
+    .map((grant) => grant.proposalId));
+  for (const proposal of proposals.filter((entry) => entry.status === "proposed" && entry.authorityOutcome === "require-human" && !grantedProposalIds.has(entry.proposalId))) {
     const decision = authorityById.get(proposal.authorityDecisionId);
     cards.push({
       cardId: `authority:${proposal.proposalId}`,
@@ -248,6 +252,7 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
       expiresAtTick: state.turn + 2,
       commands: [{ action: "approve", proposalId: proposal.proposalId }, { action: "deny", proposalId: proposal.proposalId }],
       evidenceRefs: [proposal.proposalId, proposal.authorityDecisionId],
+      forecast: proposalForecast(state, proposal),
     });
   }
 
@@ -268,6 +273,7 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
         expiresAtTick: state.turn,
         commands: [{ action: "deny", proposalId: proposal.proposalId }, { action: "pause", actorId: proposal.actorId }],
         evidenceRefs: [proposal.proposalId],
+        forecast: proposalForecast(state, proposal),
       });
     }
   }
@@ -289,7 +295,7 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
     });
   }
 
-  for (const task of projection.tasks.filter((task) => task.actorId && task.wait)) {
+  for (const task of projection.tasks.filter((task) => task.actorId && task.wait && (task.wait.kind === "provider" || task.wait.kind === "conflict" || task.control.mode === "paused" || task.state === "blocked"))) {
     cards.push({
       cardId: `wait:${task.taskId}:${task.revision}`,
       kind: task.wait?.kind === "provider" ? "provider-failure" : "task-wait",
@@ -345,7 +351,7 @@ function roundPhase(round: TeamRound, proposals: ActionProposal[]): Coordination
   return "preparing";
 }
 
-function currentRound(execution: TeamExecutionStore, rounds: TeamRound[]): CoordinationRoundView | null {
+function currentRound(state: WorldState, execution: TeamExecutionStore, rounds: TeamRound[]): CoordinationRoundView | null {
   const round = rounds.at(-1);
   if (!round) return null;
   const proposals = execution.listProposals(round.roundId);
@@ -354,7 +360,16 @@ function currentRound(execution: TeamExecutionStore, rounds: TeamRound[]): Coord
     roundId: round.roundId,
     worldRevision: round.worldRevision,
     phase: roundPhase(round, proposals),
-    actors: proposals.map((proposal) => ({ actorId: proposal.actorId, proposalId: proposal.proposalId, action: commandLabel(proposal.command), status: proposal.status, authority: proposal.authorityOutcome })),
+    actors: proposals.map((proposal) => ({
+      actorId: proposal.actorId,
+      proposalId: proposal.proposalId,
+      action: commandLabel(proposal.command),
+      status: proposal.status,
+      authority: proposal.authorityOutcome,
+      rationale: proposal.rationale,
+      confidence: proposal.confidence,
+      forecast: proposal.worldRevision === state.revision ? proposalForecast(state, proposal) : null,
+    })),
     selectedProposalIds: plan?.selectedProposalIds ?? [],
     rejectedProposalIds: plan?.rejectedProposalIds ?? proposals.filter((proposal) => proposal.status === "rejected").map((proposal) => proposal.proposalId),
     blocker: round.blocker,
@@ -385,6 +400,7 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
   const digest = sha256(state);
   const initialized = teamRunInitialized(store, runId);
   const baseResources = resources(store, runId, state);
+  const noChangeForecast = passiveForecast(state);
   if (!initialized) {
     return {
       schemaVersion: 1, initialized: false,
@@ -395,7 +411,15 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
       resources: baseResources,
       station: { rooms: station(state), communicationAvailable: false },
       actors: [], objectives: [], currentRound: null, inbox: [], timeline: [],
-      controls: { canPrepare: false, canCommit: false, canConfigure: true },
+      experience: {
+        mode: "play",
+        doctrineId: "critical-approval",
+        fronts: missionFronts(state, [], noChangeForecast),
+        passiveForecast: noChangeForecast,
+        activeInterventionId: null,
+        outcome: null,
+      },
+      controls: { canPrepare: false, canCommit: false, canConfigure: true, canRun: false, canAdvanceOne: false },
     };
   }
   const team = new TeamStore(store);
@@ -408,7 +432,9 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
   const satisfied = objectiveViews.filter((objective) => objective.status === "satisfied").length;
   const superseded = objectiveViews.filter((objective) => objective.status === "superseded").length;
   const score = state.mission.status === "running" ? null : scoreMission(state);
-  const roundView = currentRound(execution, rounds);
+  const roundView = currentRound(state, execution, rounds);
+  const inbox = deriveInterventions(state, projection, latestProposals);
+  const actionable = inbox.find((card) => card.commands.length > 0 || card.kind === "provider-failure");
   return {
     schemaVersion: 1,
     initialized: true,
@@ -421,12 +447,22 @@ export function createMissionControlView(store: GameStore, runId = store.activeR
     actors: actors(state, projection, execution, team, rounds),
     objectives: objectiveViews,
     currentRound: roundView,
-    inbox: deriveInterventions(state, projection, latestProposals),
+    inbox,
     timeline: missionTimelineItems(execution, rounds.slice(-12).reverse()),
+    experience: {
+      mode: "play",
+      doctrineId: doctrineForPolicy(projection.configuration.authorityPolicyMode),
+      fronts: missionFronts(state, objectiveViews, noChangeForecast),
+      passiveForecast: noChangeForecast,
+      activeInterventionId: actionable?.cardId ?? null,
+      outcome: missionOutcome(state),
+    },
     controls: {
       canPrepare: state.mission.status === "running" && (!roundView || roundView.phase === "verified" || roundView.phase === "blocked"),
       canCommit: state.mission.status === "running" && Boolean(roundView && ["proposal-review", "authority", "committing"].includes(roundView.phase)),
       canConfigure: state.mission.status === "running",
+      canRun: state.mission.status === "running",
+      canAdvanceOne: state.mission.status === "running",
     },
   };
 }

@@ -12,7 +12,7 @@ Station Zero is a turn-based Agent Operations game:
 
 - the player leads a remote mission-control team;
 - Engineer, Medic, and Security operate inside a damaged space station;
-- the player assigns Objectives, authority policy, Messages, and interventions;
+- the player selects a Command Doctrine, assigns Mission Orders, and resolves consequential interventions;
 - specialist Providers may differ or change during one Run;
 - compatible specialist Intents execute in one atomic simulation Tick;
 - every accepted Tick produces durable, replayable World and Host evidence.
@@ -41,6 +41,8 @@ M3 includes:
 - isolated Codex and Hermes cognition adapters;
 - provider failure isolation and mid-Run Provider replacement;
 - process recovery, immutable hash-chained journals, snapshots, and exact replay;
+- intervention-driven Play Mode with `Run until intervention`, exact next-Tick forecasts, four Mission Fronts, and outcome-first reports;
+- a separate Lab/debug surface retaining Provider, Proposal, evidence, and exact Tick controls;
 - synchronous Team APIs and a dependency-free browser mission-control panel.
 
 M1, M1.5, M2, and M2.1 remain executable under their version-bound Scenario and Ruleset contracts.
