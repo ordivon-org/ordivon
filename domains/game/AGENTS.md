@@ -33,8 +33,10 @@ Engineer + Medic + Security
 6. Mission Control is a pure bounded projection and owns no second database.
 7. Replay, diagnosis, deployment, and comparison derive from retained evidence rather than storing alternative truth.
 8. Routine deterministic execution must not require a model call.
-9. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
-10. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
+9. Hot-path reads use verified heads and local CAS checks; complete stream and Journal verification belongs to recovery, explicit audit, and replay boundaries.
+10. Materialized indexes and projections must remain rebuildable from their authority and must be point-validated before use.
+11. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
+12. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
 
 ## Working method
 

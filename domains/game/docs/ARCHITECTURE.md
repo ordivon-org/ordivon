@@ -136,6 +136,21 @@ run ordinary verified work
 
 Reads must not create semantic events or mutate Team state.
 
+### Advancement hot path
+
+Mission advancement distinguishes internal progress from player-facing projection:
+
+```text
+TeamHost Step Receipt
+→ local boundary decision
+→ continue without rebuilding the full product view
+→ build Mission Control View only for an actual intervention, budget boundary, or terminal result
+```
+
+A Step Receipt carries the current World revision, mission status, Round status, and blocker. Full Mission Control views remain pure projections, but are no longer rebuilt after every Context, Proposal, Dispatch, Observation, and Verification stage.
+
+One Run has one active Mission writer. Identical concurrent advance requests share the same in-flight result; a different advance or player mutation fails closed until that writer finishes. Different Runs may overlap external Provider cognition while SQLite serializes their short durable checkpoints.
+
 ## Persistence and replay
 
 SQLite retains:
@@ -148,7 +163,26 @@ SQLite retains:
 - Team and Host journals;
 - immutable deployment manifests.
 
-Recovery begins from the newest valid snapshot and replays the tail. Full verification begins from Genesis and checks the complete retained history. Snapshot deletion cannot destroy truth; corrupted snapshots or journal chains fail closed.
+Recovery begins from the newest valid snapshot and replays the tail. A successful recovery establishes a verified in-memory World Head. Normal current-state reads compare that Head with the latest retained Command/Event digest and return it directly; a mismatch invalidates the Head and triggers recovery. Full verification still begins from Genesis and checks the complete retained history. Snapshot deletion cannot destroy truth; corrupted snapshots or journal chains fail closed.
+
+Hot-path validation and deep audit are intentionally separate:
+
+| Boundary | Validation |
+|---|---|
+| current read | latest sequence and retained Head digests |
+| Team transition | identity, revision CAS, lease, and projection-head digest |
+| Effect preparation | required World revision/digest and idempotency key |
+| Effect observation | retained World Event and Observation binding |
+| Round completion | VerificationReceipt and terminal projection heads |
+| recovery / explicit audit | complete World streams, Host Journal, Contracts, and Replay |
+
+Host Contract events remain authoritative in the Host Journal. `host_contract_entries` is a rebuildable materialized index written in the same transaction and point-validated against Journal and Artifact evidence before use. It is not a second history.
+
+Team Projection tables retain complete current objects. Lifecycle Journal events retain compact object identity, revision, and digest heads rather than copying the complete object at every transition. Readers accept existing full-object events and the compact head form, preserving retained Run compatibility.
+
+Large Artifact bodies and non-Contract Journal payloads use transparent gzip storage when it is smaller. Digests continue to bind canonical logical content, and public read APIs return the original JSON objects.
+
+Durable Team work uses short checkpoint transactions around Context preparation, Provider result admission, Tick planning, Dispatch preparation, post-Effect Observation, and Verification. Provider calls and World Effects remain outside long Host transactions.
 
 Replay, diagnosis, and comparison are derived views. They never write a second history.
 

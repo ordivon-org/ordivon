@@ -270,3 +270,94 @@ test("one-Tick and three-Tick Play controls stop at their requested verified bud
     threeStore.close();
   }
 });
+
+
+test("identical concurrent advances coalesce while conflicting mutations fail closed", async () => {
+  const store = new GameStore(":memory:");
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const fixture = new FixtureTeamProvider();
+  const delayed = {
+    providerId: "delayed-fixture",
+    async decide(context: Parameters<FixtureTeamProvider["decide"]>[0]) {
+      await gate;
+      return fixture.decide(context);
+    },
+  };
+  const mission = new MissionControlService(store, () => delayed);
+  try {
+    const runId = "run:experience:coalesced-advance";
+    mission.initialize({ runId, doctrineId: "delegated-response" });
+
+    const first = mission.advancePlay(runId, "one-tick", 1, 64);
+    const duplicates = [
+      mission.advancePlay(runId, "one-tick", 1, 64),
+      mission.advancePlay(runId, "one-tick", 1, 64),
+      mission.advancePlay(runId, "one-tick", 1, 64),
+    ];
+    assert.ok(duplicates.every((promise) => promise === first));
+    await assert.rejects(
+      mission.advancePlay(runId, "three-ticks", 3, 64),
+      /different Mission advance is already active/,
+    );
+    assert.throws(
+      () => mission.command(runId, { action: "pause", actorId: "engineer-01" }),
+      /advance is active/,
+    );
+
+    release();
+    const results = await Promise.all([first, ...duplicates]);
+    assert.ok(results.every((result) => result.boundary === "tick-verified"));
+    assert.ok(results.every((result) => JSON.stringify(result.committedRevisions) === "[1]"));
+    assert.equal(store.loadState(runId).revision, 1);
+    assert.equal(store.eventCount(runId), 1);
+    store.verifyReplay(runId);
+  } finally {
+    release();
+    store.close();
+  }
+});
+
+
+test("independent Runs overlap external cognition while retaining separate World histories", async () => {
+  const store = new GameStore(":memory:");
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let startedCount = 0;
+  let allStarted!: () => void;
+  const started = new Promise<void>((resolve) => { allStarted = resolve; });
+  const fixture = new FixtureTeamProvider();
+  const delayed = {
+    providerId: "cross-run-delayed-fixture",
+    async decide(context: Parameters<FixtureTeamProvider["decide"]>[0]) {
+      startedCount += 1;
+      if (startedCount === 6) allStarted();
+      await gate;
+      return fixture.decide(context);
+    },
+  };
+  const mission = new MissionControlService(store, () => delayed);
+  try {
+    const firstRun = "run:experience:parallel:first";
+    const secondRun = "run:experience:parallel:second";
+    mission.initialize({ runId: firstRun, doctrineId: "delegated-response" });
+    mission.initialize({ runId: secondRun, doctrineId: "delegated-response" });
+
+    const first = mission.advancePlay(firstRun, "one-tick", 1, 64);
+    const second = mission.advancePlay(secondRun, "one-tick", 1, 64);
+    await started;
+    assert.equal(startedCount, 6);
+    release();
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    assert.deepEqual(firstResult.committedRevisions, [1]);
+    assert.deepEqual(secondResult.committedRevisions, [1]);
+    assert.equal(store.eventCount(firstRun), 1);
+    assert.equal(store.eventCount(secondRun), 1);
+    assert.notEqual(store.verifyReplay(firstRun).digest, "");
+    assert.notEqual(store.verifyReplay(secondRun).digest, "");
+  } finally {
+    release();
+    store.close();
+  }
+});

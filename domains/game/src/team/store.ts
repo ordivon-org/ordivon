@@ -26,6 +26,22 @@ import type {
 import { TEAM_OBJECTIVE_GRAPH, nextObjectiveForRole, objectiveStatus } from "./objectives.ts";
 
 interface JsonRow { value_json: string }
+
+interface ProjectionHead {
+  kind: string;
+  id: string;
+  revision: number | null;
+  digest: string;
+}
+
+function projectionHead(kind: string, id: string, value: unknown, revision: number | null = null): ProjectionHead {
+  return { kind, id, revision, digest: sha256(value) };
+}
+
+function headMatches(head: ProjectionHead | undefined, kind: string, id: string, value: unknown, revision: number | null = null): boolean {
+  return Boolean(head && head.kind === kind && head.id === id && head.revision === revision && head.digest === sha256(value));
+}
+
 interface TaskRow extends JsonRow { task_id: string; head_event_id: string }
 interface LeaseRow { task_id: string; owner_id: string; revision: number; expires_at_ms: number }
 
@@ -259,7 +275,9 @@ export class TeamStore {
           (task_id, run_id, actor_id, role, state, revision, head_event_id, value_json)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(task.taskId, runId, task.actorId, task.role, task.state, task.revision, eventId, canonicalJson(task));
-        this.host.appendEventInTransaction(runId, "team.task-created", eventId, { task }, now);
+        this.host.appendEventInTransaction(runId, "team.task-created", eventId, {
+          head: projectionHead("team-task", task.taskId, task, task.revision),
+        }, now);
       }
     });
     return this.projection(runId);
@@ -314,8 +332,11 @@ export class TeamStore {
     if (!row) throw new Error(`unknown Team Task: ${taskId}`);
     const task = parse<TeamTaskProjection>(row.value_json, "Team Task");
     const event = this.host.getJournalEvent(task.runId, row.head_event_id);
-    const payload = event?.payload as { task?: TeamTaskProjection } | undefined;
-    if (!payload?.task || canonicalJson(payload.task) !== canonicalJson(task)) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");
+    const payload = event?.payload as { task?: TeamTaskProjection; head?: ProjectionHead } | undefined;
+    const valid = payload?.task
+      ? canonicalJson(payload.task) === canonicalJson(task)
+      : headMatches(payload?.head, "team-task", task.taskId, task, task.revision);
+    if (!valid) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");
     return task;
   }
 
@@ -338,7 +359,10 @@ export class TeamStore {
         WHERE task_id = ? AND revision = ?`)
         .run(next.state, next.revision, eventId, canonicalJson(next), next.taskId, current.revision);
       if (Number(changed.changes) !== 1) throw new TeamStoreError("team_conflict", "Team Task revision was superseded");
-      this.host.appendEventInTransaction(next.runId, eventType, eventId, { task: next, ...eventData }, next.updatedAt);
+      this.host.appendEventInTransaction(next.runId, eventType, eventId, {
+        head: projectionHead("team-task", next.taskId, next, next.revision),
+        ...eventData,
+      }, next.updatedAt);
     });
     return this.getTask(next.taskId);
   }

@@ -79,3 +79,30 @@ test("HostContractStore rejects malformed retained contract event payloads", () 
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test("Host Contract materialized indexes rebuild from Journal and reject divergence", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-game-contract-index-"));
+  const game = new GameStore(join(directory, "world.sqlite3"));
+  try {
+    const host = new HostStore(game.db);
+    const contracts = new HostContractStore(host);
+    const runId = game.activeRunId;
+    const value = { schemaVersion: 1, kind: "ordivon.indexed-test", value: 7 } as const;
+    const artifact = contracts.putProtocolObject(
+      runId, "host-contract.indexed-test", "host-contract:indexed-test:one", "subject:indexed", value,
+    );
+    game.db.prepare("DELETE FROM host_contract_entries WHERE run_id = ?").run(runId);
+
+    const rebuilt = new HostContractStore(host);
+    assert.equal(rebuilt.latest(runId, "subject:indexed", value.kind)?.contractDigest, artifact.digest);
+    assert.equal(Number((game.db.prepare("SELECT COUNT(*) count FROM host_contract_entries WHERE run_id = ?").get(runId) as { count: number }).count), 1);
+
+    game.db.prepare("UPDATE host_contract_entries SET contract_digest = ? WHERE run_id = ?")
+      .run("sha256:invalid", runId);
+    assert.throws(() => rebuilt.latest(runId, "subject:indexed", value.kind), /index differs from journal/);
+  } finally {
+    game.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

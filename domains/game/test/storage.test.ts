@@ -41,3 +41,26 @@ test("command identity remains idempotent and conflicting reuse fails closed", (
     store.close();
   });
 });
+
+
+test("a verified World Head invalidates when another Store commits a newer revision", () => {
+  withDatabase((path) => {
+    const first = new GameStore(path);
+    const second = new GameStore(path);
+    try {
+      assert.equal(first.loadState().revision, 0);
+      const action = recoveryPolicy.choose(second.loadState());
+      assert.ok(action);
+      const applied = second.apply(materializeAction(action, "external-head-update"));
+      assert.equal(applied.result.status, "accepted");
+      assert.equal(second.loadState().revision, 1);
+
+      const refreshed = first.loadState();
+      assert.equal(refreshed.revision, 1);
+      assert.equal(first.verifyReplay().digest, second.verifyReplay().digest);
+    } finally {
+      second.close();
+      first.close();
+    }
+  });
+});

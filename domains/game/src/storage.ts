@@ -58,6 +58,12 @@ interface SnapshotRow {
   digest: string;
 }
 
+interface VerifiedWorldHead {
+  state: WorldState;
+  digest: string;
+  commandSequence: number;
+}
+
 interface RunRow {
   run_id: string;
   scenario_id: string;
@@ -212,6 +218,7 @@ export class GameStore {
   readonly snapshotInterval: number;
   readonly faultInjector: ((point: StorageFaultPoint) => void) | undefined;
   activeRunId: string;
+  private readonly verifiedHeads = new Map<string, VerifiedWorldHead>();
 
   constructor(dbPath: string, options: StoreOptions | string = {}) {
     const normalized = typeof options === "string" ? { activeRunId: options } : options;
@@ -240,6 +247,21 @@ export class GameStore {
     } catch (error) {
       mapStorageError(error);
     }
+  }
+
+  private cacheVerifiedHead(runId: string, state: WorldState, digest = sha256(state)): void {
+    this.verifiedHeads.set(runId, { state: structuredClone(state), digest, commandSequence: state.revision - 1 });
+  }
+
+  private cachedHeadIsCurrent(runId: string, head: VerifiedWorldHead): boolean {
+    const row = this.db.prepare(`SELECT c.command_sequence, c.after_digest command_digest, e.after_digest event_digest
+      FROM commands c JOIN events e ON e.run_id = c.run_id AND e.event_sequence = c.command_sequence
+      WHERE c.run_id = ? ORDER BY c.command_sequence DESC LIMIT 1`).get(runId) as
+      { command_sequence: number; command_digest: string; event_digest: string } | undefined;
+    if (!row) return head.commandSequence === -1 && head.state.revision === 0 && this.getRun(runId).genesisDigest === head.digest;
+    return Number(row.command_sequence) === head.commandSequence &&
+      head.state.revision === head.commandSequence + 1 &&
+      row.command_digest === head.digest && row.event_digest === head.digest;
   }
 
   private inject(point: StorageFaultPoint): void {
@@ -384,6 +406,7 @@ export class GameStore {
         this.db.exec("ROLLBACK");
         throw error;
       }
+      this.cacheVerifiedHead(metadata.runId, genesis, genesisDigest);
       return metadata;
     } catch (error) {
       mapStorageError(error);
@@ -573,10 +596,11 @@ export class GameStore {
     try {
       this.getRun(runId);
       const replay = this.replayStateFromSnapshot(runId, this.readSnapshot(runId, true));
+      this.cacheVerifiedHead(runId, replay.state, replay.digest);
       return {
         runId: replay.runId,
         mode: "recovery",
-        state: replay.state,
+        state: structuredClone(replay.state),
         digest: replay.digest,
         eventCount: this.eventCount(runId),
         replayedCommandCount: replay.replayedCommandCount,
@@ -643,6 +667,8 @@ export class GameStore {
   }
 
   loadState(runId = this.activeRunId): WorldState {
+    const cached = this.verifiedHeads.get(runId);
+    if (cached && this.cachedHeadIsCurrent(runId, cached)) return structuredClone(cached.state);
     return this.recover(runId).state;
   }
 
@@ -786,6 +812,7 @@ export class GameStore {
         this.db.prepare("UPDATE runs SET status = ? WHERE run_id = ?").run(result.state.mission.status, runId);
         this.inject("before_commit");
         this.db.exec("COMMIT");
+        this.cacheVerifiedHead(runId, result.state, result.event.afterDigest);
         this.inject("after_commit");
         return { result, idempotent: false, runId, commandSequence: sequence };
       } catch (error) {
@@ -849,6 +876,7 @@ export class GameStore {
   }
 
   close(): void {
+    this.verifiedHeads.clear();
     this.db.close();
   }
 }

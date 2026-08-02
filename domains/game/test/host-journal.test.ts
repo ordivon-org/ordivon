@@ -99,3 +99,23 @@ test("Host Journal point reads reject tampered records", () => {
     );
   });
 });
+
+
+test("large Artifact and Journal JSON compress transparently without changing logical identity", () => {
+  withStores((game, host) => {
+    const content = { repeated: "station-zero:".repeat(1_000), values: Array.from({ length: 64 }, (_, index) => index) };
+    const artifact = host.putArtifact("large-context", content);
+    const artifactRow = game.db.prepare("SELECT content_json, byte_length FROM host_artifacts WHERE digest = ?")
+      .get(artifact.digest) as { content_json: string; byte_length: number };
+    assert.match(artifactRow.content_json, /^gzip-base64:/);
+    assert.ok(Buffer.byteLength(artifactRow.content_json) < Number(artifactRow.byte_length));
+    assert.deepEqual(host.getArtifact(artifact.digest).content, content);
+
+    const event = host.appendEvent(game.activeRunId, "large-event", "host-event:large-compressed", content);
+    const journalRow = game.db.prepare("SELECT payload_json FROM host_journal WHERE run_id = ? AND event_id = ?")
+      .get(game.activeRunId, event.eventId) as { payload_json: string };
+    assert.match(journalRow.payload_json, /^gzip-base64:/);
+    assert.deepEqual(host.getJournalEvent(game.activeRunId, event.eventId)?.payload, content);
+    host.verifyJournal(game.activeRunId);
+  });
+});

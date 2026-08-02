@@ -12,7 +12,7 @@ import { TeamStore, TeamStoreError, teamRunInitialized } from "../team/store.ts"
 import { isMissionProviderName, type MissionProviderName } from "./catalog.ts";
 import { policyForDoctrine } from "./experience.ts";
 import type { DoctrineId, MissionAdvanceMode, MissionControlAdvanceResult, MissionControlView, MissionTimelineItem } from "./model.ts";
-import { createMissionControlView, missionTimelineItems } from "./projection.ts";
+import { createMissionControlView, deriveInterventions, missionTimelineItems } from "./projection.ts";
 
 export type { MissionProviderName } from "./catalog.ts";
 export type MissionProviderFactory = (name: MissionProviderName, options?: DeploymentProviderOptions) => TeamDecisionProvider;
@@ -47,6 +47,22 @@ function providerForOrder(order: string[], factory: MissionProviderFactory, opti
   return factory(providerName(order[0]), options);
 }
 
+interface ActiveMissionAdvance {
+  key: string;
+  promise: Promise<MissionControlAdvanceResult>;
+}
+
+const activeMissionAdvances = new WeakMap<GameStore, Map<string, ActiveMissionAdvance>>();
+
+function activeAdvancesFor(store: GameStore): Map<string, ActiveMissionAdvance> {
+  let active = activeMissionAdvances.get(store);
+  if (!active) {
+    active = new Map();
+    activeMissionAdvances.set(store, active);
+  }
+  return active;
+}
+
 export class MissionControlService {
   readonly store: GameStore;
   readonly providerFactory: MissionProviderFactory;
@@ -73,12 +89,54 @@ export class MissionControlService {
     return new TeamHost(this.store, providers, { policyMode: configuration.authorityPolicyMode });
   }
 
+  private withRunAdvance(
+    runId: string,
+    key: string,
+    operation: () => Promise<MissionControlAdvanceResult>,
+  ): Promise<MissionControlAdvanceResult> {
+    const active = activeAdvancesFor(this.store);
+    const retained = active.get(runId);
+    if (retained) {
+      if (retained.key === key) return retained.promise;
+      return Promise.reject(new TeamStoreError("team_conflict", "A different Mission advance is already active for this Run"));
+    }
+    let promise: Promise<MissionControlAdvanceResult>;
+    try { promise = operation(); }
+    catch (error) { return Promise.reject(error); }
+    active.set(runId, { key, promise });
+    const clear = (): void => {
+      if (active.get(runId)?.promise === promise) active.delete(runId);
+      if (active.size === 0) activeMissionAdvances.delete(this.store);
+    };
+    promise.then(clear, clear);
+    return promise;
+  }
+
+  private assertRunNotAdvancing(runId: string): void {
+    if (activeMissionAdvances.get(this.store)?.has(runId)) {
+      throw new TeamStoreError("team_conflict", "Mission commands cannot mutate a Run while its advance is active");
+    }
+  }
+
   state(runId: string): MissionControlView {
     return createMissionControlView(this.store, runId);
   }
 
+  private actionableIntervention(runId: string, roundId: string | null): string | null {
+    const state = this.store.loadState(runId);
+    if (state.mission.status !== "running") return null;
+    const team = this.teamStore();
+    const projection = team.projection(runId, false);
+    const execution = new TeamExecutionStore(team);
+    const round = roundId ? execution.getRound(roundId) : execution.findRound(runId, state.revision);
+    const proposals = round ? execution.listProposals(round.roundId) : [];
+    return deriveInterventions(state, projection, proposals)
+      .find((card) => card.commands.length > 0 || card.kind === "provider-failure")?.kind ?? null;
+  }
+
   initialize(input: MissionControlInitializeInput): MissionControlView {
     if (!input.runId?.trim()) throw new TypeError("runId must be non-empty");
+    this.assertRunNotAdvancing(input.runId);
     if (!this.store.listRuns().some((run) => run.runId === input.runId)) {
       this.store.createRun({ runId: input.runId, scenarioVersion: 2, scenarioCaseId: input.scenarioCaseId ?? "baseline", rulesetVersion: 3 });
     }
@@ -117,7 +175,12 @@ export class MissionControlService {
     return this.state(input.runId);
   }
 
-  async advance(runId: string, until: "proposal-review" | "tick-verified", maximumInternalSteps = 16): Promise<MissionControlAdvanceResult> {
+  advance(runId: string, until: "proposal-review" | "tick-verified", maximumInternalSteps = 16): Promise<MissionControlAdvanceResult> {
+    return this.withRunAdvance(runId, `advance:${until}:${maximumInternalSteps}`, () =>
+      this.advanceInternal(runId, until, maximumInternalSteps));
+  }
+
+  private async advanceInternal(runId: string, until: "proposal-review" | "tick-verified", maximumInternalSteps: number): Promise<MissionControlAdvanceResult> {
     if (!Number.isSafeInteger(maximumInternalSteps) || maximumInternalSteps < 1 || maximumInternalSteps > 64) throw new TypeError("maximumInternalSteps must be an integer from 1 to 64");
     const initial = this.state(runId);
     if (!initial.initialized) throw new TeamStoreError("team_conflict", "Mission Control is not initialized");
@@ -131,24 +194,42 @@ export class MissionControlService {
     for (let index = 0; index < maximumInternalSteps; index += 1) {
       const receipt = await host.step(runId);
       steps.push(receipt.status);
-      const view = this.state(runId);
-      const committedRevisions = view.generatedFrom.worldRevision > startRevision ? [view.generatedFrom.worldRevision] : [];
-      if (view.run.status !== "running") return { boundary: "terminal", steps, committedRevisions, stopReason: view.mission.reason ?? "terminal", view };
-      if (receipt.status === "authority_required" || view.currentRound?.phase === "authority") return { boundary: "authority", steps, committedRevisions, stopReason: "authority-required", view };
-      if (receipt.status === "blocked" || view.currentRound?.phase === "blocked") return { boundary: "blocked", steps, committedRevisions, stopReason: view.currentRound?.blocker ?? "blocked", view };
-      if (until === "proposal-review" && view.currentRound?.phase === "proposal-review") return { boundary: "proposal-review", steps, committedRevisions, stopReason: "proposal-review", view };
-      if (until === "tick-verified" && view.generatedFrom.worldRevision > startRevision && view.currentRound?.phase === "verified") {
-        return { boundary: "tick-verified", steps, committedRevisions, stopReason: "one-tick", view };
+      const committedRevisions = receipt.worldRevision > startRevision ? [receipt.worldRevision] : [];
+      if (receipt.missionStatus !== "running") {
+        const view = this.state(runId);
+        return { boundary: "terminal", steps, committedRevisions, stopReason: receipt.missionReason ?? "terminal", view };
+      }
+      if (receipt.status === "authority_required") {
+        return { boundary: "authority", steps, committedRevisions, stopReason: "authority-required", view: this.state(runId) };
+      }
+      if (receipt.status === "blocked") {
+        return { boundary: "blocked", steps, committedRevisions, stopReason: receipt.roundBlocker ?? "blocked", view: this.state(runId) };
+      }
+      if (until === "proposal-review" && receipt.status === "proposals_recorded") {
+        return { boundary: "proposal-review", steps, committedRevisions, stopReason: "proposal-review", view: this.state(runId) };
+      }
+      if (until === "tick-verified" && receipt.status === "round_verified" && receipt.worldRevision > startRevision) {
+        return { boundary: "tick-verified", steps, committedRevisions, stopReason: "one-tick", view: this.state(runId) };
       }
     }
     return { boundary: "step-limit", steps, committedRevisions: [], stopReason: "internal-step-limit", view: this.state(runId) };
   }
 
-  async advancePlay(
+  advancePlay(
     runId: string,
     mode: MissionAdvanceMode,
     maximumWorldTicks = mode === "three-ticks" ? 3 : mode === "one-tick" ? 1 : 12,
     maximumInternalSteps = 256,
+  ): Promise<MissionControlAdvanceResult> {
+    return this.withRunAdvance(runId, `play:${mode}:${maximumWorldTicks}:${maximumInternalSteps}`, () =>
+      this.advancePlayInternal(runId, mode, maximumWorldTicks, maximumInternalSteps));
+  }
+
+  private async advancePlayInternal(
+    runId: string,
+    mode: MissionAdvanceMode,
+    maximumWorldTicks: number,
+    maximumInternalSteps: number,
   ): Promise<MissionControlAdvanceResult> {
     if (!Number.isSafeInteger(maximumWorldTicks) || maximumWorldTicks < 1 || maximumWorldTicks > 24) throw new TypeError("maximumWorldTicks must be an integer from 1 to 24");
     if (!Number.isSafeInteger(maximumInternalSteps) || maximumInternalSteps < 1 || maximumInternalSteps > 512) throw new TypeError("maximumInternalSteps must be an integer from 1 to 512");
@@ -169,33 +250,32 @@ export class MissionControlService {
     for (let index = 0; index < maximumInternalSteps; index += 1) {
       const receipt = await host.step(runId);
       steps.push(receipt.status);
-      const view = this.state(runId);
-      if (view.generatedFrom.worldRevision > previousRevision) {
-        committedRevisions.push(view.generatedFrom.worldRevision);
-        previousRevision = view.generatedFrom.worldRevision;
+      if (receipt.worldRevision > previousRevision) {
+        committedRevisions.push(receipt.worldRevision);
+        previousRevision = receipt.worldRevision;
       }
-      if (view.run.status !== "running") {
-        return { boundary: "terminal", steps, committedRevisions, stopReason: view.mission.reason ?? "terminal", view };
+      if (receipt.missionStatus !== "running") {
+        return { boundary: "terminal", steps, committedRevisions, stopReason: receipt.missionReason ?? "terminal", view: this.state(runId) };
       }
-      if (isActionable(view)) {
-        return { boundary: "intervention", steps, committedRevisions, stopReason: view.inbox.find((card) => card.commands.length > 0 || card.kind === "provider-failure")?.kind ?? "intervention", view };
+      if (receipt.status === "authority_required") {
+        return { boundary: "intervention", steps, committedRevisions, stopReason: "authority-request", view: this.state(runId) };
       }
-      if (receipt.status === "blocked" && view.currentRound?.phase === "blocked") {
-        return { boundary: "blocked", steps, committedRevisions, stopReason: view.currentRound.blocker ?? "blocked", view };
+      if (receipt.status === "proposals_recorded") {
+        const intervention = this.actionableIntervention(runId, receipt.roundId);
+        if (intervention) return { boundary: "intervention", steps, committedRevisions, stopReason: intervention, view: this.state(runId) };
       }
-      if (committedRevisions.length >= maximumWorldTicks) {
+      if (receipt.status === "blocked") {
+        return { boundary: "blocked", steps, committedRevisions, stopReason: receipt.roundBlocker ?? "blocked", view: this.state(runId) };
+      }
+      if (committedRevisions.length >= maximumWorldTicks && receipt.status === "round_verified") {
         return {
           boundary: mode === "one-tick" ? "tick-verified" : "maximum-ticks",
-          steps,
-          committedRevisions,
-          stopReason: mode,
-          view,
+          steps, committedRevisions, stopReason: mode, view: this.state(runId),
         };
       }
     }
     return { boundary: "step-limit", steps, committedRevisions, stopReason: "internal-step-limit", view: this.state(runId) };
   }
-
 
   timeline(
     runId: string,
@@ -216,6 +296,7 @@ export class MissionControlService {
   }
 
   command(runId: string, command: MissionControlCommand): unknown {
+    this.assertRunNotAdvancing(runId);
     const host = this.host(runId);
     const team = host.team;
     const state = this.store.loadState(runId);
