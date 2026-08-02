@@ -23,7 +23,7 @@ station-zero-core@3
 Engineer + Medic + Security
 ```
 
-The frozen non-executable P0 target is:
+The unregistered v3 target is:
 
 ```text
 station-zero@3
@@ -31,7 +31,7 @@ station-zero-core@4
 Rescue vs Pirate vs Swarm
 ```
 
-Its sole source is `src/station-zero-v3/` plus `docs/STATION_ZERO_V3_P0.md`. Do not register, persist, serve, or render this target until P1 supplies a deterministic reducer and replay-complete Turn evidence.
+Its frozen content and pure deterministic reducer live only under `src/station-zero-v3/`, `docs/STATION_ZERO_V3_P0.md`, and `docs/STATION_ZERO_V3_P1.md`. Do not register, persist, serve, or render this target until P2 supplies one durable Turn commitment path, crash recovery, retained Replay, and bounded product projections.
 
 ## Hard boundaries
 
@@ -47,10 +47,14 @@ Its sole source is `src/station-zero-v3/` plus `docs/STATION_ZERO_V3_P0.md`. Do 
 10. Materialized indexes and projections must remain rebuildable from their authority and must be point-validated before use.
 11. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
 12. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
-13. The v3 P0 contract is Station Zero-specific. Do not generalize it into a tactical, RPG, roguelite, or simulation platform.
-14. P1 must distinguish a correctly resolved but unsuccessful Intent from execution or verification failure.
+13. The v3 contract is Station Zero-specific. Do not generalize it into a tactical, RPG, roguelite, or simulation platform.
+14. A correctly resolved but unsuccessful Intent is not execution or verification failure.
 15. Faction knowledge is authoritative gameplay state; projections and Agent Contexts must never read hidden World truth directly.
 16. A normal local combat invalidation must not roll back an otherwise valid committed Turn.
+17. Every accepted v3 Turn must produce exactly one Resolution per committed Intent and one content-addressed Turn Record.
+18. Equivalent Faction Plan or Intent input ordering must produce identical World, Resolution, and Record digests.
+19. An uncertain durable Turn must be observed or recovered by its original identity, never retried under a new identity.
+20. Do not expose the pure v3 reducer as raw stepping or mutation controls through the product API.
 
 ## Working method
 
@@ -89,9 +93,10 @@ A meaningful change should state:
 ## Sources of truth
 
 - `README.md` describes the current executable and repository map.
-- `docs/PRODUCT.md` defines the Station Zero product.
-- `docs/ARCHITECTURE.md` defines ownership and execution boundaries.
+- `docs/PRODUCT.md` defines the current Station Zero product.
+- `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
-- `docs/STATION_ZERO_V3_P0.md` defines the frozen next encounter contract without making it executable.
+- `docs/STATION_ZERO_V3_P0.md` defines the frozen next encounter contract.
+- `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
 - GitHub Issues own active work and discussion.
 - Git history owns deleted implementation history.

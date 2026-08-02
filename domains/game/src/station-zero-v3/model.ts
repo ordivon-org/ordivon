@@ -427,15 +427,34 @@ export type StationZeroFact =
   | { factId: string; kind: "actor_moved"; actorId: string; fromZoneId: string; toZoneId: string }
   | { factId: string; kind: "actor_attacked"; actorId: string; targetActorId: string; abilityId: string }
   | { factId: string; kind: "damage_dealt"; sourceActorId: string; targetActorId: string; amount: number }
+  | { factId: string; kind: "actor_health_changed"; actorId: string; before: number; after: number; causes: string[] }
   | { factId: string; kind: "actor_life_state_changed"; actorId: string; before: StationZeroActorLifeState; after: StationZeroActorLifeState }
+  | { factId: string; kind: "actor_status_changed"; actorId: string; statusId: string; active: boolean }
   | { factId: string; kind: "ground_item_dropped"; groundItemId: string; actorId: string; zoneId: string }
   | { factId: string; kind: "ground_item_picked_up"; groundItemId: string; actorId: string; quantity: number }
+  | { factId: string; kind: "item_consumed"; actorId: string; itemId: string; quantity: number; purpose: string }
+  | { factId: string; kind: "item_extracted"; actorId: string; factionId: StationZeroFactionId; itemId: string }
+  | { factId: string; kind: "passage_changed"; passageId: string; before: StationZeroPassageState; after: StationZeroPassageState }
   | { factId: string; kind: "system_changed"; systemId: string; integrityBefore: number; integrityAfter: number; poweredBefore: boolean; poweredAfter: boolean }
   | { factId: string; kind: "hazard_changed"; hazardId: string; severityBefore: number; severityAfter: number; contained: boolean }
   | { factId: string; kind: "knowledge_revealed"; factionId: StationZeroFactionId; subjectId: string; subjectKind: "room" | "zone" | "actor" | "system" | "hazard" | "item" }
   | { factId: string; kind: "objective_changed"; factionId: StationZeroFactionId; objectiveId: string; before: StationZeroObjectiveStatus; after: StationZeroObjectiveStatus }
   | { factId: string; kind: "faction_outcome_changed"; factionId: StationZeroFactionId; before: StationZeroFactionOutcome; after: StationZeroFactionOutcome; reason: string }
   | { factId: string; kind: "environment_changed"; resourceId: "battery" | "oxygen" | "reactor-heat" | "biomass" | "alert"; before: number; after: number; causes: string[] };
+
+export interface StationZeroFactionObservation {
+  factionId: StationZeroFactionId;
+  worldRevision: number;
+  turn: number;
+  visibleFactIds: string[];
+  discoveredRoomIds: string[];
+  discoveredZoneIds: string[];
+  knownActorIds: string[];
+  knownSystemIds: string[];
+  knownHazardIds: string[];
+  knownGroundItemIds: string[];
+  observationDigest: string;
+}
 
 export interface StationZeroTurnResolution {
   turnBatchId: string;
@@ -445,5 +464,29 @@ export interface StationZeroTurnResolution {
   turnAfter: number;
   intentResolutions: StationZeroIntentResolution[];
   facts: StationZeroFact[];
+  observations: Record<StationZeroFactionId, StationZeroFactionObservation>;
   deterministicDigest: string;
 }
+
+export interface StationZeroTurnRecord {
+  schemaVersion: 1;
+  kind: "ordivon.game.station-zero-v3-turn-record";
+  stateDigestBefore: string;
+  batch: StationZeroTurnBatch;
+  resolution: StationZeroTurnResolution;
+  stateDigestAfter: string;
+  recordDigest: string;
+}
+
+export type StationZeroTurnApplyResult =
+  | {
+      status: "accepted";
+      state: StationZeroV3WorldState;
+      resolution: StationZeroTurnResolution;
+      record: StationZeroTurnRecord;
+    }
+  | {
+      status: "rejected";
+      code: "invalid_turn_batch";
+      reason: string;
+    };

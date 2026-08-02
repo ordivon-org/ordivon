@@ -61,17 +61,21 @@ Runtime dependencies: none
 
 Only this Scenario and Ruleset are supported. Older executable paths, compatibility APIs, migration layers, milestone fixtures, and release-era evidence have been removed from the repository.
 
-## Frozen next contract
+## Frozen next implementation
 
-P0 for the next Station Zero form is retained under `src/station-zero-v3/` and documented in [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md).
+The next Station Zero form is retained under `src/station-zero-v3/` and documented in:
+
+- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
+- [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and replay contract.
 
 ```text
 Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 Target form: three-faction deterministic turn-based tactical encounter
+P1 status: pure reducer and replay complete
 ```
 
-This is a tested design contract, not an executable registration. `src/registry.ts`, the HTTP service, and the browser continue to run only the current v2/v3 contract until a P1 reducer proves the new Turn semantics.
+This is still not an executable product registration. `src/registry.ts`, SQLite, the HTTP service, and the browser continue to run only the current v2/v3 contract. P2 must prove durable Turn commitment, crash recovery, retained replay, and bounded Mission Control projections before the target can replace the current executable.
 
 ## Run
 
@@ -119,31 +123,34 @@ GET  /api/compare
 
 ```text
 src/model.ts, scenario.ts, world.ts, facts.ts
-    authoritative World state, rules, facts, and verification
+    current authoritative World state, rules, facts, and verification
 
 src/storage.ts, run.ts, registry.ts
-    final contract identity, persistence, recovery, and replay source
+    current contract identity, persistence, recovery, and replay source
 
 src/team/
-    specialist Context, Messages, authority, Proposals, coordination, Providers
+    current specialist Context, Messages, authority, Proposals, coordination, Providers
 
 src/host-contract/
     embedded Task/Effect/Dispatch/Observation/Verification authority
 
 src/mission-control/
-    player-facing doctrine, forecast, intervention, and bounded read model
+    current player-facing doctrine, forecast, intervention, and bounded read model
 
 src/replay/, src/deployment/, src/comparison/
-    evidence projection, diagnosis, retained configuration, and Run comparison
+    current evidence projection, diagnosis, retained configuration, and Run comparison
 
 src/server.ts, web/
-    product HTTP service and browser interface
+    current product HTTP service and browser interface
 
-src/station-zero-v3/, docs/STATION_ZERO_V3_P0.md
-    frozen next-contract types, content, fixed Genesis, and Turn admission rules; not executable yet
+src/station-zero-v3/
+    frozen next-contract content, fixed Genesis, admission, topology, deterministic Turn reducer, faction observations, and pure replay
+
+docs/STATION_ZERO_V3_P0.md, docs/STATION_ZERO_V3_P1.md
+    target design and execution boundaries; not registered yet
 
 test/, scripts/e2e-first-playable.ts
-    current-contract verification and one complete browser journey
+    current-contract verification, v3 contract/reducer tests, and one complete current browser journey
 ```
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/VISION.md`](docs/VISION.md).

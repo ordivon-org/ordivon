@@ -9,7 +9,7 @@ Current executable: station-zero@2 / station-zero-core@3 / World schema 2
 P0 frozen target: station-zero@3 / station-zero-core@4 / World schema 3
 ```
 
-The v3 code under `src/station-zero-v3/` is deliberately not registered in `src/registry.ts`. P1 must implement and verify the deterministic reducer before the executable can switch contracts.
+The v3 code under `src/station-zero-v3/` is deliberately not registered in `src/registry.ts`. P1 has implemented and verified the pure deterministic reducer; see [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md). Product registration remains deferred until P2 supplies durable Turn commitment, persistence, recovery, and bounded projections.
 
 ## Product form
 
