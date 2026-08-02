@@ -3,6 +3,7 @@ import { listScenarioCases } from "../scenario-cases.ts";
 import { initialTeamWorld } from "../scenario.ts";
 import type { ActorRole, AuthorityPolicyMode } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
+import { DOCTRINES } from "./experience.ts";
 
 export const MISSION_PROVIDER_OPTIONS = [
   { providerId: "fixture", label: "Fixture baseline", deterministic: true },
@@ -48,6 +49,8 @@ export interface MissionControlCatalog {
   }>;
   providers: Array<{ providerId: MissionProviderName; label: string; deterministic: boolean }>;
   authorityPolicies: typeof AUTHORITY_POLICY_OPTIONS;
+  doctrines: typeof DOCTRINES;
+  playDefaults: { doctrineId: "critical-approval"; scenarioCaseId: "baseline"; coordinationProfileId: "specialist-containment" };
   objectives: typeof TEAM_OBJECTIVE_GRAPH.nodes;
   evidenceOrdering: {
     authoritative: ["world-revision", "host-sequence", "projection-revision"];
@@ -90,6 +93,8 @@ export function createMissionControlCatalog(): MissionControlCatalog {
     actors,
     providers: MISSION_PROVIDER_OPTIONS.map((option) => ({ ...option })),
     authorityPolicies: AUTHORITY_POLICY_OPTIONS.map((option) => ({ ...option })),
+    doctrines: DOCTRINES.map((entry) => ({ ...entry })),
+    playDefaults: { doctrineId: "critical-approval", scenarioCaseId: "baseline", coordinationProfileId: "specialist-containment" },
     objectives: TEAM_OBJECTIVE_GRAPH.nodes.map((node) => structuredClone(node)),
     evidenceOrdering: {
       authoritative: ["world-revision", "host-sequence", "projection-revision"],

@@ -25,7 +25,3 @@ jobs:
       - run: pnpm check
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
-      - run: pnpm receipt
-      - run: pnpm measure
-      - run: pnpm measure:replay
-      - run: pnpm release:inputs -- --out /tmp/m5-inputs.json > /dev/null

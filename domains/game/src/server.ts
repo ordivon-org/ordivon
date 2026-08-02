@@ -10,6 +10,7 @@ import { deploymentCatalog } from "./deployment/profiles.ts";
 import { DeploymentError, DeploymentStore } from "./deployment/store.ts";
 import { createMissionControlCatalog, isMissionProviderName } from "./mission-control/catalog.ts";
 import { MissionControlService, type MissionControlCommand, type MissionProviderName } from "./mission-control/service.ts";
+import type { DoctrineId, MissionAdvanceMode } from "./mission-control/model.ts";
 import { AgentHost } from "./host/engine.ts";
 import { admitProviderDecision, compileProviderContext, FixtureProvider, type CognitionProvider } from "./provider.ts";
 import { CodexCliProvider } from "./providers/codex-cli.ts";
@@ -44,7 +45,7 @@ const staticFiles: Record<string, { file: string; contentType: string }> = {
   "/debug.css": { file: "debug.css", contentType: "text/css; charset=utf-8" },
   ...Object.fromEntries([
     "app.js", "api.js", "store.js", "render-utils.js", "render-map.js", "render-actors.js",
-    "render-inbox.js", "render-objectives.js", "render-timeline.js", "render-shell.js",
+    "render-inbox.js", "render-objectives.js", "render-fronts.js", "render-timeline.js", "render-shell.js",
     "render-navigation.js", "render-curves.js", "render-replay.js", "render-diagnosis.js",
     "render-compare.js", "debug.js",
   ].map((file) => [`/${file}`, { file, contentType: "text/javascript; charset=utf-8" }])),
@@ -115,6 +116,17 @@ function parseProviderName(value: unknown): AgentProviderName {
   const name = value ?? "fixture";
   if (isMissionProviderName(name)) return name;
   throw new TypeError("unsupported Agent Provider");
+}
+
+function parseDoctrineId(value: unknown): DoctrineId {
+  if (["delegated-response", "critical-approval", "strict-control"].includes(String(value))) return value as DoctrineId;
+  throw new TypeError("unsupported Mission Control doctrine");
+}
+
+function parseMissionAdvanceMode(value: unknown): MissionAdvanceMode {
+  const mode = requiredString(value, "mission advance mode");
+  if (["one-tick", "three-ticks", "until-intervention"].includes(mode)) return mode as MissionAdvanceMode;
+  throw new TypeError("unsupported mission advance mode");
 }
 
 function parseAuthorityPolicy(value: unknown): AuthorityPolicyMode {
@@ -461,7 +473,8 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, 201, service.initialize({
           runId: selectedRunId,
           ...(typeof body.scenarioCaseId === "string" ? { scenarioCaseId: body.scenarioCaseId } : {}),
-          authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode),
+          ...(body.authorityPolicyMode === undefined ? {} : { authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode) }),
+          ...(body.doctrineId === undefined ? {} : { doctrineId: parseDoctrineId(body.doctrineId) }),
           providers,
           ...(typeof body.coordinationProfileId === "string" ? { coordinationProfileId: body.coordinationProfileId } : {}),
         }));
@@ -469,11 +482,22 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       }
       if (request.method === "POST" && url.pathname === "/api/mission-control/advance") {
         const body = bodyRecord(await readJson(request));
-        const until = requiredString(body.until, "advance boundary");
-        if (until !== "proposal-review" && until !== "tick-verified") throw new TypeError("unsupported advance boundary");
-        const maximumInternalSteps = body.maximumInternalSteps === undefined ? 16 : Number(body.maximumInternalSteps);
         const service = new MissionControlService(store, teamProviderFactory);
-        sendJson(response, 200, await service.advance(runId, until, maximumInternalSteps));
+        if (body.mode !== undefined) {
+          const maximumWorldTicks = body.maximumWorldTicks === undefined ? undefined : Number(body.maximumWorldTicks);
+          const maximumInternalSteps = body.maximumInternalSteps === undefined ? undefined : Number(body.maximumInternalSteps);
+          sendJson(response, 200, await service.advancePlay(
+            runId,
+            parseMissionAdvanceMode(body.mode),
+            maximumWorldTicks,
+            maximumInternalSteps,
+          ));
+        } else {
+          const until = requiredString(body.until, "advance boundary");
+          if (until !== "proposal-review" && until !== "tick-verified") throw new TypeError("unsupported advance boundary");
+          const maximumInternalSteps = body.maximumInternalSteps === undefined ? 16 : Number(body.maximumInternalSteps);
+          sendJson(response, 200, await service.advance(runId, until, maximumInternalSteps));
+        }
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/mission-control/command") {

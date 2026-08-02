@@ -42,12 +42,7 @@ let selectedRevision = revisionFromUrl(window.location.href);
 let compareBaseRunId = compareRunIdFromUrl(window.location.href);
 
 function compareReady() {
-  return Boolean(
-    compareBaseRunId &&
-    currentRunId &&
-    compareBaseRunId !== currentRunId &&
-    view?.run?.status !== "running",
-  );
+  return Boolean(compareBaseRunId && currentRunId && compareBaseRunId !== currentRunId && view?.run?.status !== "running");
 }
 
 function syncUrl() {
@@ -120,16 +115,12 @@ async function ensureReplay(revision = selectedRevision) {
   if (!currentRunId) return;
   replayReport ??= await loadReplayReport(currentRunId);
   const maximum = replayReport.summary.terminalRevision;
-  selectedRevision = revision === null
-    ? maximum
-    : Math.max(0, Math.min(maximum, Number(revision)));
+  selectedRevision = revision === null ? maximum : Math.max(0, Math.min(maximum, Number(revision)));
   replayFrame = await loadReplayFrame(currentRunId, selectedRevision);
 }
 
 async function ensureComparison() {
-  if (!compareReady()) {
-    throw new Error("Deploy again from a retained terminal Run before opening Compare.");
-  }
+  if (!compareReady()) throw new Error("Deploy again from a retained terminal Run before opening Compare.");
   comparison = await compareRuns(compareBaseRunId, currentRunId);
 }
 
@@ -156,9 +147,7 @@ async function bootFromUrl() {
     if (surface === "replay") await ensureReplay(selectedRevision);
     else if (surface === "diagnosis") replayReport = await loadReplayReport(currentRunId);
     else if (surface === "compare") await ensureComparison();
-  } else {
-    view = null;
-  }
+  } else view = null;
 }
 
 async function boot() {
@@ -178,20 +167,16 @@ root.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(event.target);
   const runId = String(form.get("runId") || createRunId());
-  const providers = Object.fromEntries(
-    (catalog?.actors ?? []).map((actor) => [
-      actor.actorId,
-      String(form.get(actor.actorId) || actor.defaultProvider),
-    ]),
-  );
+  const providers = Object.fromEntries((catalog?.actors ?? []).map((actor) => [
+    actor.actorId,
+    String(form.get(actor.actorId) || actor.defaultProvider),
+  ]));
   perform(async () => {
     view = await initializeMission({
       runId,
-      scenarioCaseId: String(form.get("scenarioCaseId") || "baseline"),
-      coordinationProfileId: String(
-        form.get("coordinationProfileId") || "specialist-containment",
-      ),
-      authorityPolicyMode: String(form.get("authorityPolicyMode") || "autonomous"),
+      scenarioCaseId: String(form.get("scenarioCaseId") || catalog?.playDefaults?.scenarioCaseId || "baseline"),
+      doctrineId: String(form.get("doctrineId") || catalog?.playDefaults?.doctrineId || "critical-approval"),
+      coordinationProfileId: String(form.get("coordinationProfileId") || catalog?.playDefaults?.coordinationProfileId || "specialist-containment"),
       providers,
     });
     cloneManifest = null;
@@ -205,7 +190,6 @@ root.addEventListener("submit", (event) => {
 root.addEventListener("click", (event) => {
   const target = event.target.closest("button, a");
   if (!target) return;
-
   if (target.dataset.resumeRun) {
     perform(async () => {
       cloneManifest = null;
@@ -250,12 +234,9 @@ root.addEventListener("click", (event) => {
     });
     return;
   }
-  if (target.dataset.missionAction && currentRunId) {
-    const until = target.dataset.missionAction === "prepare"
-      ? "proposal-review"
-      : "tick-verified";
+  if (target.dataset.advanceMode && currentRunId) {
     perform(async () => {
-      view = (await advanceMission(currentRunId, until)).view;
+      view = (await advanceMission(currentRunId, target.dataset.advanceMode)).view;
       resetDerived();
     });
     return;
@@ -276,16 +257,7 @@ root.addEventListener("change", (event) => {
     return;
   }
   if (!currentRunId) return;
-  if (target.dataset.providerActor) {
-    perform(async () => {
-      view = (await issueCommand(currentRunId, {
-        action: "set-provider",
-        actorId: target.dataset.providerActor,
-        provider: target.value,
-      })).view;
-      resetDerived();
-    });
-  } else if (target.dataset.objectiveActor) {
+  if (target.dataset.objectiveActor) {
     perform(async () => {
       view = (await issueCommand(currentRunId, {
         action: "redirect-objective",
@@ -297,8 +269,5 @@ root.addEventListener("change", (event) => {
   }
 });
 
-window.addEventListener("popstate", () => {
-  perform(bootFromUrl);
-});
-
+window.addEventListener("popstate", () => perform(bootFromUrl));
 boot();

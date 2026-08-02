@@ -389,3 +389,8 @@ A completed Team Round and its completion event become durable before Host Verif
 ## D-091 — Complete semantic verification is an explicit boundary, not a per-Step tax
 
 Full Team execution verification belongs at `syncContract`, Run closeout, and explicit audit boundaries. It does not run on every Team Step: measurement showed that placement increased the median 18-Round runtime by 81.7%. The hot path retains exact CAS and local admission; complete history verification remains available where its approximately 95 ms cost is justified.
+
+
+## D-092 — Play Mode advances to meaningful intervention while Lab retains exact step control
+
+The default Station Zero product no longer requires the player to prepare and commit every World Tick. Play Mode compiles a player-facing Command Doctrine into the existing authority policy, executes ordinary Host steps and individually verified World Ticks until an actionable authority request, conflict, provider failure, block, requested Tick budget, or terminal outcome, and presents a read-only exact next-Tick forecast. The existing `proposal-review` and `tick-verified` controls, Provider configuration, complete Objective Graph, evidence stages, and raw identities remain available through Lab/debug surfaces. This changes product pacing without changing World, Host, Effect, Dispatch, Observation, Verification, persistence, or replay authority.

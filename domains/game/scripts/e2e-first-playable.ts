@@ -32,26 +32,34 @@ async function waitIdle(page: import("playwright").Page): Promise<void> {
   await page.waitForFunction(() => !document.querySelector(".busy-overlay"));
 }
 
-async function clickAndWait(
-  page: import("playwright").Page,
-  name: string | RegExp,
-): Promise<void> {
+async function clickAndWait(page: import("playwright").Page, name: string | RegExp): Promise<void> {
   await page.getByRole("button", { name }).click();
   await waitIdle(page);
 }
 
-async function finishMission(page: import("playwright").Page): Promise<void> {
-  for (let index = 0; index < 30; index += 1) {
-    if (await page.locator(".terminal-panel").count()) return;
-    const prepare = page.getByRole("button", { name: "Prepare proposals" });
-    await prepare.waitFor({ state: "visible" });
-    if (await prepare.isEnabled()) await clickAndWait(page, "Prepare proposals");
-    if (await page.locator(".terminal-panel").count()) return;
-    const commit = page.getByRole("button", { name: "Commit one verified Tick" });
-    await commit.waitFor({ state: "visible" });
-    if (await commit.isEnabled()) await clickAndWait(page, "Commit one verified Tick");
+async function finishMission(page: import("playwright").Page): Promise<{ runActions: number; approvals: number }> {
+  let runActions = 0;
+  let approvals = 0;
+  for (let index = 0; index < 40; index += 1) {
+    if (await page.locator(".terminal-panel").count()) return { runActions, approvals };
+    const authorize = page.getByRole("button", { name: "Authorize" });
+    if (await authorize.count()) {
+      await authorize.first().click();
+      approvals += 1;
+      await waitIdle(page);
+      continue;
+    }
+    const run = page.getByRole("button", { name: "Run until intervention" });
+    await run.waitFor({ state: "visible" });
+    if (!await run.isEnabled()) {
+      const text = await page.locator(".mission-shell").innerText();
+      throw new Error(`Mission stopped without an actionable intervention:\n${text}`);
+    }
+    await run.click();
+    runActions += 1;
+    await waitIdle(page);
   }
-  throw new Error("Mission did not reach a terminal state within 30 Rounds");
+  throw new Error("Mission did not reach a terminal state within 40 player decisions");
 }
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
@@ -75,18 +83,25 @@ try {
   page.on("pageerror", (error) => browserErrors.push(error.message));
 
   await page.goto(base, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Direct an imperfect autonomous team." }).waitFor();
+  await page.getByRole("heading", { name: "Command the emergency, not every Tick." }).waitFor();
   await page.selectOption('select[name="scenarioCaseId"]', "power-constrained");
-  await page.selectOption('select[name="coordinationProfileId"]', "specialist-containment");
-  await clickAndWait(page, "Start verified mission");
+  await page.selectOption('select[name="doctrineId"]', "critical-approval");
+  await clickAndWait(page, "Begin emergency response");
   await page.getByRole("heading", { name: "Station Zero", level: 1 }).waitFor();
+  await page.getByRole("heading", { name: "What needs command attention" }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Prepare proposals" }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Commit one verified Tick" }).count(), 0);
 
+  await page.getByText("Issue a direct command").first().click();
   await page.getByRole("button", { name: "Pause" }).first().click();
   await waitIdle(page);
   await page.getByRole("button", { name: "Resume" }).first().click();
   await waitIdle(page);
-  await finishMission(page);
+
+  const firstInteraction = await finishMission(page);
   await page.getByRole("heading", { name: "Rescue signal verified" }).waitFor();
+  assert.ok(firstInteraction.runActions < 18, JSON.stringify(firstInteraction));
+  assert.ok(firstInteraction.approvals > 0, JSON.stringify(firstInteraction));
   const firstRunUrl = new URL(page.url());
   const firstRunId = firstRunUrl.searchParams.get("runId");
   assert.ok(firstRunId);
@@ -106,10 +121,11 @@ try {
 
   await clickAndWait(page, "Mission");
   await clickAndWait(page, "Deploy again from this Run");
-  await page.getByRole("heading", { name: "Change one verified deployment input." }).waitFor();
+  await page.getByRole("heading", { name: "Change the command doctrine. Compare the consequence." }).waitFor();
+  await page.getByText("Lab and model configuration").click();
   await page.selectOption('select[name="coordinationProfileId"]', "engineer-seal");
-  await clickAndWait(page, "Start comparison Run");
-  await finishMission(page);
+  await clickAndWait(page, "Start comparison mission");
+  const secondInteraction = await finishMission(page);
   await page.getByRole("heading", { name: "Mission failed" }).waitFor();
   assert.match(await page.locator(".terminal-panel").innerText(), /power_exhausted/);
   const secondRunUrl = new URL(page.url());
@@ -130,17 +146,20 @@ try {
   assert.deepEqual(browserErrors, []);
 
   console.log(JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "ordivon.game.first-playable-browser-receipt",
     browser: await browser.version(),
     firstRunId,
     secondRunId,
     firstOutcome: "victory",
     secondOutcome: "power_exhausted",
+    firstInteraction,
+    secondInteraction,
     replayRevision: 5,
     diagnosis: "verified-direct",
     comparison: "exact",
     reloadRecovered: true,
+    productLoop: "intervention-driven",
   }, null, 2));
 } finally {
   await browser?.close();

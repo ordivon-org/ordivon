@@ -15,7 +15,7 @@ const game = new GameStore(join(directory, "world.sqlite3"));
 try {
   const service = new MissionControlService(game, () => new FixtureTeamProvider());
   const runId = "run:web-smoke";
-  service.initialize({ runId, authorityPolicyMode: "autonomous" });
+  service.initialize({ runId, doctrineId: "critical-approval" });
   const review = await service.advance(runId, "proposal-review");
   const catalog = createMissionControlCatalog();
   const mission = renderMission(review.view, { catalog });
@@ -23,24 +23,32 @@ try {
   assert.match(mission, /Engineer Imani/);
   assert.match(mission, /Medic Reyes/);
   assert.match(mission, /Security Chen/);
-  assert.match(mission, /Prepare proposals/);
-  assert.match(mission, /Commit one verified Tick/);
-  assert.match(mission, /Observed/);
-  assert.match(mission, /Assessed · unverified/);
+  assert.match(mission, /Run until intervention/);
+  assert.match(mission, /Advance one Tick/);
+  assert.match(mission, /Mission fronts/i);
+  assert.match(mission, /No-change next Tick/i);
+  assert.match(mission, /Operational evidence/);
+  assert.doesNotMatch(mission, /Prepare proposals|Commit one verified Tick/);
   assert.doesNotMatch(mission, /MANUAL COMMAND|PERSISTENT AGENT|Latest receipt/);
 
   const terminalView = structuredClone(review.view);
   terminalView.run.status = "victory";
   terminalView.mission.reason = "rescue_signal_verified";
-  terminalView.mission.score = 2200;
-  terminalView.mission.scoreComponents = { verifiedVictory: 1000, objectiveProgress: 700 };
-  assert.match(renderMission(terminalView, { catalog }), /Verified terminal outcome/i);
-  assert.match(renderMission(terminalView, { catalog }), /Score 2200/);
+  terminalView.experience.outcome = {
+    headline: "Rescue signal verified",
+    summary: "The team stabilized Station Zero long enough to request rescue.",
+    facts: ["Navigator Sato survived."],
+    nearMisses: ["Battery reserve ended at 8."],
+  };
+  assert.match(renderMission(terminalView, { catalog }), /Verified mission outcome/i);
+  assert.match(renderMission(terminalView, { catalog }), /Navigator Sato survived/);
+  assert.doesNotMatch(renderMission(terminalView, { catalog }), /Score 2200/);
 
   const runs = compatibleRuns(game.listRuns());
   const deployment = renderDeployment(runs, null, null, catalog);
-  assert.match(deployment, /Team configuration/);
-  assert.match(deployment, /Engineer Imani/);
+  assert.match(deployment, /Standing orders/);
+  assert.match(deployment, /Command doctrine/);
+  assert.match(deployment, /Lab and model configuration/);
   assert.match(deployment, /Power constrained/);
   assert.match(deployment, /Resume mission/);
 

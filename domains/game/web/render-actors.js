@@ -1,4 +1,4 @@
-import { commandAttribute, escapeHtml, humanize, inventorySummary, providerOptions } from "./render-utils.js";
+import { commandAttribute, escapeHtml, humanize, inventorySummary } from "./render-utils.js";
 
 function evidenceSections(actor) {
   return actor.evidence.map((entry) => {
@@ -23,11 +23,13 @@ function actorControls(actor, objectives, catalog) {
       : `<button data-command="${commandAttribute({ action: "pause", actorId: actor.actorId })}">Pause</button>`;
   const cancel = actor.controlMode === "cancelled" ? "" : `<button class="danger" data-command="${commandAttribute({ action: "cancel", actorId: actor.actorId })}">Cancel</button>`;
   return `
-    <div class="actor-controls">
-      <label>Provider<select data-provider-actor="${escapeHtml(actor.actorId)}">${providerOptions(catalog?.providers, actor.providerOrder[0])}</select></label>
-      <label>Objective<select data-objective-actor="${escapeHtml(actor.actorId)}">${objectiveOptions}</select></label>
-      <div class="button-row">${control}${cancel}</div>
-    </div>`;
+    <details class="actor-command-drawer">
+      <summary>Issue a direct command</summary>
+      <div class="actor-controls">
+        <label>Mission order<select data-objective-actor="${escapeHtml(actor.actorId)}">${objectiveOptions}</select></label>
+        <div class="button-row">${control}${cancel}</div>
+      </div>
+    </details>`;
 }
 
 export function renderActors(view, catalog) {
@@ -41,11 +43,11 @@ export function renderActors(view, catalog) {
         <div><dt>Location</dt><dd>${escapeHtml(actor.locationName)}</dd></div>
         <div><dt>Health</dt><dd>${actor.health}%</dd></div>
         <div><dt>Inventory</dt><dd>${escapeHtml(inventorySummary(actor.inventory))}</dd></div>
-        <div><dt>Current objective</dt><dd>${escapeHtml(humanize(actor.activeObjectiveId ?? "No active objective"))}</dd></div>
+        <div><dt>Current mission order</dt><dd>${escapeHtml(humanize(actor.activeObjectiveId ?? "Awaiting assignment"))}</dd></div>
       </dl>
-      ${actor.waitReason ? `<p class="wait-reason">Waiting: ${escapeHtml(actor.waitReason)}</p>` : ""}
+      ${actor.waitReason ? `<p class="wait-reason">Operational blocker: ${escapeHtml(actor.waitReason)}</p>` : ""}
       ${actorControls(actor, view.objectives, catalog)}
-      <details class="evidence-drawer"><summary>Inspect cognition and evidence</summary>${evidenceSections(actor)}</details>
+      <details class="evidence-drawer"><summary>Operational evidence</summary>${evidenceSections(actor)}</details>
     </article>`).join("");
-  return `<section class="panel actor-panel"><div class="section-heading"><div><p class="eyebrow">SPECIALIST TEAM</p><h2>Actor state and evidence</h2></div><span>${view.actors.length} persistent specialists</span></div><div class="actor-grid">${cards}</div></section>`;
+  return `<section class="panel actor-panel"><div class="section-heading"><div><p class="eyebrow">SPECIALIST TEAM</p><h2>People carrying out the plan</h2></div><span>${view.actors.length} persistent specialists</span></div><div class="actor-grid">${cards}</div></section>`;
 }

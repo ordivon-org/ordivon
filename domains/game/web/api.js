@@ -42,7 +42,11 @@ export function initializeMission(input) {
   return post("/api/mission-control/initialize", input);
 }
 
-export function advanceMission(runId, until) {
+export function advanceMission(runId, mode) {
+  return post(`/api/mission-control/advance${query(runId)}`, { mode });
+}
+
+export function advanceMissionDebug(runId, until) {
   return post(`/api/mission-control/advance${query(runId)}`, { until });
 }
 
