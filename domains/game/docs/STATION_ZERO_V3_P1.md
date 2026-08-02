@@ -9,12 +9,12 @@ Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 World schema: 3
 Execution status: pure reducer and replay complete
+P2 persistence and Host execution: complete
 Product registration: deferred
-Persistence: deferred
-Mission Control / Agent orchestration: deferred
+Agent planning and browser play: deferred
 ```
 
-The current product still executes only `station-zero@2 / station-zero-core@3`. P1 does not alter `src/registry.ts`, SQLite schemas, HTTP routes, or the browser.
+The current product still executes only `station-zero@2 / station-zero-core@3`. P1 remains the pure reducer boundary; P2 adds the durable execution path documented in [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md).
 
 ## Responsibility
 
@@ -32,7 +32,7 @@ It does not own:
 - product projections;
 - UI controls.
 
-Those are P2 concerns.
+Those concerns are implemented by the P2 durable execution boundary.
 
 ## Commit boundary
 
@@ -358,24 +358,21 @@ Tampering with the Record, before-state, Resolution, or after-state fails closed
 15. deterministic Brood spawning;
 16. admission rejection without input mutation.
 
-## Deferred to P2
+## Implemented by P2
 
-P1 remains a pure in-memory reducer. P2 must add the sole durable Turn execution path:
+P2 supplies the sole durable Turn execution path:
 
 ```text
-open planning head
-→ retain player Orders and Agent Plans
+open Planning Head
+→ retain one immutable Plan per faction
 → commit one canonical Turn Batch
+→ prepare one Embedded Host Dispatch
 → execute outside model ownership
-→ atomically retain World Event + Turn Record
-→ recover uncertain response by identity
+→ atomically retain World Event + Turn Record + World Head
+→ recover uncertain response by original identity
 → expose bounded Mission Control state
 ```
 
-P2 must not:
+See [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) for persistence, Host lifecycle, crash recovery, evidence-chain, and projection boundaries.
 
-- register v3 before crash recovery and Replay from SQLite are proven;
-- create a second World or Replay authority;
-- retry an uncertain accepted Turn with a new identity;
-- let Provider output mutate World state directly;
-- expose raw reducer stepping through the product API.
+P1 remains the sole deterministic rules owner. Persistence and Host orchestration must invoke the reducer rather than reimplementing combat or environment rules.

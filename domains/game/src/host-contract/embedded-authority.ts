@@ -1,3 +1,5 @@
+import type { DatabaseSync } from "node:sqlite";
+
 import type { ProtocolJson } from "./canonical.ts";
 import { protocolCanonicalJson, protocolDigest, validateProtocolJson } from "./canonical.ts";
 import type {
@@ -16,7 +18,6 @@ import {
 } from "./validate.ts";
 import { HostContractStore, type HostContractTranscriptEntry } from "./store.ts";
 import { HostStore } from "./journal.ts";
-import type { GameStore } from "../storage.ts";
 
 export type EmbeddedHostState = "ready" | "reconciling" | "verifying" | "result" | "completed" | "failed" | "cancelled" | "blocked";
 
@@ -59,7 +60,7 @@ export class EmbeddedHostAuthority {
   readonly host: HostStore;
   readonly contracts: HostContractStore;
 
-  constructor(game: GameStore) {
+  constructor(game: { readonly db: DatabaseSync }) {
     this.host = new HostStore(game.db);
     this.contracts = new HostContractStore(this.host);
   }

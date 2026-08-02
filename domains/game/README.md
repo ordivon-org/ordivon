@@ -61,21 +61,23 @@ Runtime dependencies: none
 
 Only this Scenario and Ruleset are supported. Older executable paths, compatibility APIs, migration layers, milestone fixtures, and release-era evidence have been removed from the repository.
 
-## Frozen next implementation
+## Unregistered next implementation
 
 The next Station Zero form is retained under `src/station-zero-v3/` and documented in:
 
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
-- [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and replay contract.
+- [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and pure replay contract;
+- [`docs/STATION_ZERO_V3_P2.md`](docs/STATION_ZERO_V3_P2.md): durable SQLite execution, Embedded Host lifecycle, crash recovery, and bounded Mission Control projection.
 
 ```text
 Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 Target form: three-faction deterministic turn-based tactical encounter
-P1 status: pure reducer and replay complete
+P1 status: reducer and pure replay complete
+P2 status: durable Turn authority and recovery complete
 ```
 
-This is still not an executable product registration. `src/registry.ts`, SQLite, the HTTP service, and the browser continue to run only the current v2/v3 contract. P2 must prove durable Turn commitment, crash recovery, retained replay, and bounded Mission Control projections before the target can replace the current executable.
+This is still not an executable product registration. `src/registry.ts`, the public HTTP service, and the browser continue to run only the current v2/v3 contract. P3 must connect bounded player Orders and Agent planning to the durable Turn path and prove one first-playable browser journey before v3 can replace the current executable.
 
 ## Run
 
@@ -144,13 +146,13 @@ src/server.ts, web/
     current product HTTP service and browser interface
 
 src/station-zero-v3/
-    frozen next-contract content, fixed Genesis, admission, topology, deterministic Turn reducer, faction observations, and pure replay
+    unregistered v3 content, Genesis, admission, topology, deterministic reducer, SQLite Planning/Turn authority, Embedded Host execution, recovery, and bounded projection
 
-docs/STATION_ZERO_V3_P0.md, docs/STATION_ZERO_V3_P1.md
-    target design and execution boundaries; not registered yet
+docs/STATION_ZERO_V3_P0.md, docs/STATION_ZERO_V3_P1.md, docs/STATION_ZERO_V3_P2.md
+    target design, reducer, and durable execution boundaries; not registered yet
 
 test/, scripts/e2e-first-playable.ts
-    current-contract verification, v3 contract/reducer tests, and one complete current browser journey
+    current-contract verification, v3 contract/reducer/persistence tests, and one complete current browser journey
 ```
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/VISION.md`](docs/VISION.md).

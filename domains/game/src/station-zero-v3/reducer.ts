@@ -89,7 +89,7 @@ function canonicalPlans(batch: StationZeroTurnBatch): StationZeroFactionTurnPlan
     }));
 }
 
-function canonicalBatch(batch: StationZeroTurnBatch): StationZeroTurnBatch {
+export function canonicalizeStationZeroV3TurnBatch(batch: StationZeroTurnBatch): StationZeroTurnBatch {
   return { ...structuredClone(batch), factionPlans: canonicalPlans(batch) };
 }
 
@@ -1386,7 +1386,7 @@ export function applyStationZeroV3Turn(
   }
 
   const stateDigestBefore = sha256(inputState);
-  const batch = canonicalBatch(inputBatch);
+  const batch = canonicalizeStationZeroV3TurnBatch(inputBatch);
   const context: MutableContext = {
     state: structuredClone(inputState),
     batch,

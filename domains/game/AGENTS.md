@@ -31,7 +31,7 @@ station-zero-core@4
 Rescue vs Pirate vs Swarm
 ```
 
-Its frozen content and pure deterministic reducer live only under `src/station-zero-v3/`, `docs/STATION_ZERO_V3_P0.md`, and `docs/STATION_ZERO_V3_P1.md`. Do not register, persist, serve, or render this target until P2 supplies one durable Turn commitment path, crash recovery, retained Replay, and bounded product projections.
+Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, and bounded Mission Control projection live only under `src/station-zero-v3/` plus `docs/STATION_ZERO_V3_P0.md`, `docs/STATION_ZERO_V3_P1.md`, and `docs/STATION_ZERO_V3_P2.md`. Do not register, publicly serve, or render this target until P3 supplies bounded player/Agent planning and a verified first-playable browser journey.
 
 ## Hard boundaries
 
@@ -55,6 +55,12 @@ Its frozen content and pure deterministic reducer live only under `src/station-z
 18. Equivalent Faction Plan or Intent input ordering must produce identical World, Resolution, and Record digests.
 19. An uncertain durable Turn must be observed or recovered by its original identity, never retried under a new identity.
 20. Do not expose the pure v3 reducer as raw stepping or mutation controls through the product API.
+21. One Faction may retain only one immutable Plan per Planning Head; replacement requires a new World revision and Planning identity.
+22. World Event, Turn Record, World Head, Planning resolution, and Run status must commit atomically.
+23. The Embedded Host owns Task and Dispatch continuity; Station Zero owns Planning, World, Event, Record, and faction Knowledge.
+24. A new Planning Head must not open while the previous Turn lacks an authoritative World result or Host completion.
+25. Historical verification must reconstruct the World at each Planning revision rather than validating old Plans against the latest Head.
+26. Mission Control projections must expose enemy state only through retained player-faction Knowledge and visible Fact identities.
 
 ## Working method
 
@@ -98,5 +104,6 @@ A meaningful change should state:
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen next encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
+- `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.
 - GitHub Issues own active work and discussion.
 - Git history owns deleted implementation history.

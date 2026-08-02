@@ -279,5 +279,12 @@ export function assertStationZeroTurnBatch(
   }
   const planIds = batch.factionPlans.map((plan) => plan.planId);
   if (new Set(planIds).size !== planIds.length) throw new TypeError(`Turn Batch duplicates Plan identities`);
+  const intentIds = batch.factionPlans.flatMap((plan) => plan.actorIntents.map((intent) => intent.intentId));
+  if (new Set(intentIds).size !== intentIds.length) throw new TypeError(`Turn Batch duplicates Intent identities across Factions`);
+  const commanderActionIds = batch.factionPlans.flatMap((plan) =>
+    plan.commanderActions.map((action) => action.commanderActionId));
+  if (new Set(commanderActionIds).size !== commanderActionIds.length) {
+    throw new TypeError(`Turn Batch duplicates Commander Action identities across Factions`);
+  }
   for (const plan of batch.factionPlans) assertStationZeroFactionTurnPlan(state, plan);
 }
