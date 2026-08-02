@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { HostContractStore } from "../src/host-contract/store.ts";
-import { HostStore } from "../src/host/store.ts";
+import { HostStore } from "../src/host-contract/journal.ts";
 import { GameStore } from "../src/storage.ts";
 
 test("HostContractStore batches idempotent protocol objects and exposes bounded queries", () => {

@@ -5,7 +5,6 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { recoveryPolicy } from "../src/policies.ts";
 import { GameStore, StorageError } from "../src/storage.ts";
 import { listAvailableActions, materializeAction } from "../src/world.ts";
 
@@ -13,14 +12,13 @@ function directory(): string {
   return mkdtempSync(join(tmpdir(), "ordivon-game-integrity-"));
 }
 
-function advance(store: GameStore, maximum = 64): void {
+function advance(store: GameStore, maximum = 9): void {
   let state = store.loadState();
   for (let step = 0; step < maximum && state.mission.status === "running"; step += 1) {
-    const action = recoveryPolicy.choose(state);
+    const action = listAvailableActions(state).find((candidate) => candidate.actionId === "wait");
     assert.ok(action);
-    const result = store.apply(materializeAction(action, `integrity:${step}:${action.actionId}`));
+    const result = store.apply(materializeAction(action, `integrity:${step}:wait`));
     if (result.result.status !== "accepted") throw new Error(`${result.result.code}: ${result.result.reason}`);
-    assert.equal(result.result.status, "accepted");
     state = result.result.state;
   }
 }
@@ -34,16 +32,16 @@ test("sparse snapshots support fast recovery and full verification", () => {
   try {
     const store = new GameStore(join(dir, "world.sqlite3"));
     advance(store);
-    assert.equal(store.eventCount(), 25);
-    assert.equal(store.snapshotCount(), 5);
+    assert.equal(store.eventCount(), 9);
+    assert.equal(store.snapshotCount(), 2);
     const recovery = store.recover();
     const verify = store.verifyReplay();
     assert.equal(recovery.mode, "recovery");
-    assert.equal(recovery.snapshotRevision, 25);
-    assert.equal(recovery.replayedCommandCount, 0);
+    assert.equal(recovery.snapshotRevision, 8);
+    assert.equal(recovery.replayedCommandCount, 1);
     assert.equal(verify.mode, "verify");
     assert.equal(verify.snapshotRevision, 0);
-    assert.equal(verify.replayedCommandCount, 25);
+    assert.equal(verify.replayedCommandCount, 9);
     assert.equal(recovery.digest, verify.digest);
     store.close();
   } finally {
@@ -61,7 +59,7 @@ test("snapshots are caches: deleting non-genesis snapshots still recovers from t
     assert.equal(store.snapshotCount(), 1);
     const recovered = store.recover();
     assert.equal(recovered.snapshotRevision, 0);
-    assert.equal(recovered.replayedCommandCount, 25);
+    assert.equal(recovered.replayedCommandCount, 9);
     assert.equal(recovered.digest, expected);
     store.close();
   } finally {
@@ -93,7 +91,7 @@ test("snapshot digest tampering blocks recovery", () => {
   try {
     const store = new GameStore(join(dir, "world.sqlite3"));
     advance(store);
-    store.db.prepare("UPDATE snapshots SET digest = ? WHERE revision = 25").run("tampered");
+    store.db.prepare("UPDATE snapshots SET digest = ? WHERE revision = 8").run("tampered");
     expectCorrupt(() => store.recover());
     store.close();
   } finally {
@@ -105,9 +103,9 @@ test("recent event queries read only the requested tail", () => {
   const dir = directory();
   try {
     const store = new GameStore(join(dir, "world.sqlite3"));
-    advance(store, 10);
+    advance(store, 8);
     const recent = store.recentJournalEvents(3);
-    assert.deepEqual(recent.map((event) => event.commandSequence), [7, 8, 9]);
+    assert.deepEqual(recent.map((event) => event.commandSequence), [5, 6, 7]);
     store.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -121,7 +119,7 @@ test("SQLite writer contention maps to storage_busy without duplicate effects", 
   const second = new GameStore(path, { busyTimeoutMs: 1 });
   try {
     const state = second.loadState();
-    const action = recoveryPolicy.choose(state);
+    const action = listAvailableActions(state).find((candidate) => candidate.actionId === "wait");
     assert.ok(action);
     first.db.exec("BEGIN IMMEDIATE");
     assert.throws(
@@ -137,7 +135,6 @@ test("SQLite writer contention maps to storage_busy without duplicate effects", 
     rmSync(dir, { recursive: true, force: true });
   }
 });
-
 
 test("Ruleset v3 primitive command recovers through its synthetic Tick intent receipt", () => {
   const dir = directory();

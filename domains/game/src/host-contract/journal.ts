@@ -6,7 +6,26 @@ import {
   protocolDigest,
   validateProtocolJson,
 } from "../host-contract/canonical.ts";
-import type { HostArtifact, HostJournalEvent } from "./model.ts";
+
+
+export interface HostArtifact<T = unknown> {
+  digest: string;
+  kind: string;
+  content: T;
+  byteLength: number;
+  createdAt: string;
+}
+
+export interface HostJournalEvent<T = unknown> {
+  runId: string;
+  sequence: number;
+  eventId: string;
+  eventType: string;
+  payload: T;
+  previousDigest: string;
+  recordDigest: string;
+  createdAt: string;
+}
 
 interface JournalRow {
   run_id: string;

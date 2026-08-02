@@ -1,6 +1,6 @@
 import { sha256 } from "./digest.ts";
 import type { WorldState } from "./model.ts";
-import { assertWorldInvariants, initialTeamWorld, initialWorld } from "./scenario.ts";
+import { assertWorldInvariants, initialTeamWorld } from "./scenario.ts";
 
 export interface ScenarioGenesisSpec {
   resources?: {
@@ -58,19 +58,11 @@ function defineCase(input: ScenarioCaseInput): ScenarioCaseDefinition {
 
 const CASES: ScenarioCaseDefinition[] = [
   defineCase({
-    caseId: "legacy-fixed",
-    scenarioId: "station-zero",
-    scenarioVersion: 1,
-    label: "Legacy fixed mission",
-    description: "Frozen single-Engineer compatibility mission used by M1 and M2 evidence.",
-    genesisSpec: {},
-  }),
-  defineCase({
     caseId: "baseline",
     scenarioId: "station-zero",
     scenarioVersion: 2,
     label: "Baseline emergency",
-    description: "The verified three-specialist Station Zero baseline used by M3 and M4.",
+    description: "The verified three-specialist Station Zero baseline.",
     genesisSpec: {},
   }),
   defineCase({
@@ -104,7 +96,7 @@ export function resolveScenarioCase(
 ): ScenarioCaseDefinition {
   const candidates = CASES.filter((definition) =>
     definition.scenarioId === scenarioId && definition.scenarioVersion === scenarioVersion);
-  const selectedId = caseId ?? (scenarioVersion === 1 ? "legacy-fixed" : "baseline");
+  const selectedId = caseId ?? "baseline";
   const definition = candidates.find((candidate) => candidate.caseId === selectedId);
   if (!definition) {
     throw new TypeError(`unsupported Scenario Case: ${scenarioId}@${scenarioVersion}/${selectedId}`);
@@ -151,7 +143,7 @@ export function createScenarioCaseWorld(
   compatibilitySeed?: string,
 ): { definition: ScenarioCaseDefinition; state: WorldState; genesisDigest: string } {
   const definition = resolveScenarioCase(scenarioId, scenarioVersion, caseId);
-  const base = scenarioVersion === 1 ? initialWorld() : initialTeamWorld();
+  const base = initialTeamWorld();
   const state = applyScenarioGenesisSpec(base, definition.genesisSpec);
   if (compatibilitySeed) state.seed = compatibilitySeed;
   assertWorldInvariants(state);

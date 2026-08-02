@@ -1,4 +1,4 @@
-import { ProviderAdapterError } from "../providers/types.ts";
+import { ProviderAdapterError } from "./provider-runtime.ts";
 import type { CompiledTeamContext, TeamProviderDecision } from "./model.ts";
 import type { TeamDecisionProvider } from "./providers.ts";
 

@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { canonicalJson, sha256 } from "../digest.ts";
-import { runProcess } from "../providers/process.ts";
-import { ProviderAdapterError } from "../providers/types.ts";
+import { runProcess } from "./provider-runtime.ts";
+import { ProviderAdapterError } from "./provider-runtime.ts";
 import type { CompiledTeamContext, TeamProviderDecision } from "./model.ts";
 import { parseTeamProviderDecision, type TeamDecisionProvider } from "./providers.ts";
 

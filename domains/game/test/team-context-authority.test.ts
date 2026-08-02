@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, initialWorld } from "../src/scenario.ts";
+import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, initialTeamWorld } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { evaluateAuthority } from "../src/team/authority.ts";
 import { actorCanClaimMissionItem, compileTeamContext } from "../src/team/context.ts";
@@ -232,7 +232,7 @@ test("Team Context prevents mission-critical items from being stranded on incapa
 
 
 test("mission-item claim policy fails closed for missing Actors and leaves non-mission items general", () => {
-  const state = initialWorld();
+  const state = initialTeamWorld();
   assert.equal(actorCanClaimMissionItem(state, "missing-actor", "sealant"), false);
   assert.equal(actorCanClaimMissionItem(state, ENGINEER_ID, "sealant"), true);
   assert.equal(actorCanClaimMissionItem(state, SECURITY_ID, "sealant"), false);

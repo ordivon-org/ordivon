@@ -15,7 +15,7 @@ import {
   validateVerificationReceipt,
 } from "./validate.ts";
 import { HostContractStore, type HostContractTranscriptEntry } from "./store.ts";
-import { HostStore } from "../host/store.ts";
+import { HostStore } from "./journal.ts";
 import type { GameStore } from "../storage.ts";
 
 export type EmbeddedHostState = "ready" | "reconciling" | "verifying" | "result" | "completed" | "failed" | "cancelled" | "blocked";

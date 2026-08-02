@@ -2,7 +2,7 @@ import { sha256 } from "../digest.ts";
 import type { GameStore } from "../storage.ts";
 import { actorCanClaimMissionItem } from "../team/context.ts";
 import { TEAM_OBJECTIVE_GRAPH, objectiveSatisfied } from "../team/objectives.ts";
-import { applyWorldTickV3, listAvailableActions, materializeAction } from "../world.ts";
+import { applyWorldTick, listAvailableActions, materializeAction } from "../world.ts";
 import type {
   DiagnosisClaim,
   DiagnosisEvidenceClass,
@@ -118,7 +118,7 @@ export function boundedFinalRoundSensitivity(
               commandId: `counterfactual:retained:${candidate.proposalId}`,
             },
       }));
-      const result = applyWorldTickV3(before, {
+      const result = applyWorldTick(before, {
         tickId: `counterfactual:${terminal.round.roundId}:${proposal.actorId}`,
         expectedWorldRevision: before.revision,
         intents,

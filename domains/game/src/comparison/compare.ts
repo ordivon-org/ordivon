@@ -1,6 +1,6 @@
 import { sha256 } from "../digest.ts";
 import type { DeploymentManifest } from "../deployment/model.ts";
-import { HostStore } from "../host/store.ts";
+import { HostStore } from "../host-contract/journal.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { scoreMission } from "../scoring.ts";
 import type { GameStore } from "../storage.ts";

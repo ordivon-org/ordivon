@@ -37,18 +37,15 @@ function doctrineIdForManifest(catalog, manifest) {
     ?? "critical-approval";
 }
 
-export function renderDeployment(runs, options = {}, legacySelectedRunId = null, legacyCatalog = null) {
-  const normalized = options === null || options instanceof Error || typeof options !== "object"
-    ? { error: options, selectedRunId: legacySelectedRunId, catalog: legacyCatalog }
-    : options;
+export function renderDeployment(runs, options = {}) {
   const {
     error = null,
     selectedRunId = null,
-    catalog = legacyCatalog,
+    catalog = null,
     preflight = null,
     cloneManifest = null,
     compareBaseRunId = null,
-  } = normalized;
+  } = options;
   const actorFields = (catalog?.actors ?? []).map((actor) => {
     const retained = cloneManifest?.actors?.find((item) => item.actorId === actor.actorId);
     const provider = retained?.providerOrder?.[0] ?? actor.defaultProvider;
@@ -80,7 +77,7 @@ export function renderDeployment(runs, options = {}, legacySelectedRunId = null,
           <label class="authority-field"><span>Command doctrine</span><select name="doctrineId">${doctrineOptions}</select><small>${escapeHtml(doctrineDescription)}</small></label>
           <div class="configuration-note"><strong>Three persistent specialists</strong><p>Engineer Imani, Medic Reyes, and Security Chen retain their identities, tasks, and verified history across the mission.</p></div>
           <details class="advanced-deployment">
-            <summary>Lab and model configuration</summary>
+            <summary>Provider and coordination configuration</summary>
             <label class="authority-field"><span>Coordination fixture</span><select name="coordinationProfileId">${coordinationOptions}</select></label>
             <div class="provider-grid">${actorFields}</div>
             <details class="provider-preflight"><summary>Provider readiness</summary><ul>${providerReadiness(preflight)}</ul></details>

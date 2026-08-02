@@ -1,171 +1,142 @@
-# Product definition: Station Zero
-
-This document defines the first product vertical. It does not define the full purpose of Ordivon Game. The broader project may support playgrounds, creative worlds, social spaces, Agent habitats, and research or Security verticals; see [`VISION.md`](VISION.md).
+# Station Zero
 
 ## Product thesis
 
-The player should feel responsible for a capable but imperfect autonomous team. The central tension is not direct control; it is deciding what to delegate, what to verify, when to intervene, and which losses to accept.
+The player leads a capable but imperfect autonomous response team. The central decision is not how to move every unit; it is what to delegate, what to verify, when to intervene, and which losses to accept.
 
-The game succeeds only when Agent autonomy creates meaningful decisions that a conventional scripted unit system would not create as naturally.
+Agent autonomy earns its place only when it creates meaningful coordination, authority, information, or recovery decisions that a conventional scripted unit system would not produce as naturally.
 
-## Player role
+## Situation
 
-The player is the remote mission-control director for an isolated station. They cannot move crew members directly. They can:
-
-- define mission goals and priorities;
-- assign specialists, tools, and scarce resources;
-- grant or revoke authority;
-- approve exceptional or dangerous operations;
-- request observations and evidence;
-- redirect, pause, or cancel work;
-- review the mission history and improve the next deployment.
-
-## First scenario
-
-A compact station suffers a linked failure:
+A remote station suffers a linked emergency:
 
 ```text
 power instability
-→ partial blackout
-→ oxygen circulation degradation
+→ cooling and life-support failure
+→ oxygen loss and reactor heating
 → unreliable communications
-→ injured or isolated personnel
+→ injured personnel
 ```
 
-The first map contains roughly 8–12 rooms:
+Time advances after every accepted Tick. Power, oxygen, health, equipment integrity, consumables, communications, and specialist location constrain the available response.
 
-- command center;
-- medical bay;
-- reactor room;
-- life-support room;
-- communications room;
-- storage;
-- isolation chamber;
-- connecting corridors.
-
-## Initial Agent team
+## Team
 
 ### Engineer
 
-- strong repair and energy-system capability;
-- can inspect, isolate, replace, and test equipment;
-- tends to accept technical risk to restore critical systems.
+Repairs systems, manages power, carries technical supplies, and may seal the hull breach.
 
 ### Medic
 
-- strong diagnosis, treatment, and life-support capability;
-- prioritizes preventable loss of life;
-- cannot perform most heavy engineering actions.
+Stabilizes injured crew and protects life under incomplete local information.
 
-### Security specialist
+### Security
 
-- strong exploration, access control, transport, and hazard containment capability;
-- prioritizes containment and crew survival;
-- may conflict with high-risk repair plans.
+Explores, transports resources, controls access, and can contain the breach without consuming Engineer sealant.
 
-Differences must be expressed through capabilities, goals, observations, risk preferences, and admitted actions—not merely different dialogue styles.
+Their differences are enforced through capabilities, observations, inventory, objectives, and admitted actions—not dialogue style alone.
+
+## Player role
+
+The player operates Mission Control and can:
+
+- choose a doctrine;
+- select Providers for each specialist;
+- approve or deny restricted Proposals;
+- redirect an actor's objective;
+- send bounded messages;
+- pause, resume, or cancel specialist work;
+- review the verified outcome;
+- clone and compare deployments.
+
+The player cannot directly mutate World state.
 
 ## Core loop
 
 ```text
-receive the mission brief
-→ choose a Command Doctrine
-→ Agents observe, plan, and execute routine verified work
-→ Mission Control stops at consequential intervention boundaries
-→ player authorizes, denies, redirects, pauses, or changes standing orders
-→ the team continues from durable World and Host state
-→ mission reaches a verified outcome
-→ replay, diagnose, and compare the decision chain
+choose Scenario Case, doctrine, coordination profile, and Providers
+→ team executes routine verified work
+→ Mission Control stops at a consequential boundary
+→ player approves, denies, redirects, or changes standing orders
+→ execution resumes from durable state
+→ mission reaches victory or a specific failure
+→ replay and diagnosis expose the decision chain
+→ a revised deployment can be compared with the retained Run
 ```
 
-The product is intervention-driven rather than Tick-confirmation-driven. Every World Tick remains individually authoritative and verified, but the player is interrupted only when a decision has material consequence. Exact per-Tick Proposal review remains a Lab capability.
+## Sources of play
 
-## Sources of fun
+- **Delegation tension:** autonomy increases speed while reducing direct control.
+- **Incomplete information:** actors see different local facts and depend on communication.
+- **Professional conflict:** several valid specialist plans compete for scarce time and resources.
+- **Authority:** a safe default may delay a high-value action; broader autonomy may accept more risk.
+- **Resource coupling:** solving one subsystem can make another impossible.
+- **Recoverable failure:** interrupted execution preserves evidence and can continue without duplicate effects.
+- **System mastery:** improvement comes from changing doctrine, coordination, Provider assignment, and intervention—not hidden prompt tricks.
 
-1. **Delegation tension** — more autonomy increases speed but reduces control.
-2. **Incomplete information** — Agents possess different local observations.
-3. **Professional disagreement** — specialists prefer different valid solutions.
-4. **Resource trade-offs** — power, oxygen, time, equipment, and personnel are scarce.
-5. **Recoverable failure** — failed attempts leave consequences and evidence.
-6. **System mastery** — the player improves by changing team design and authority, not by learning hidden prompts.
-7. **Emergent stories** — memorable outcomes arise from goals, constraints, and world state.
+## Current scope
 
-## Design principles
+Station Zero includes:
 
-### The world is authoritative
+- one eight-room deterministic station;
+- three persistent specialists;
+- three Scenario Cases;
+- one linked emergency;
+- atomic multi-Actor Ticks;
+- local and radio communication;
+- attribute-based authority and exact Grants;
+- three player doctrines;
+- automatic execution until intervention;
+- exact next-Tick forecasts and four Mission Fronts;
+- durable replay, evidence-linked diagnosis, deployment cloning, and comparison.
 
-Models never directly mutate inventory, health, doors, equipment, power, oxygen, mission score, or victory state.
+## Success and failure
 
-### Freedom is bounded by capability
+Victory requires a verified distress signal, stabilized crew, controlled breach, operational cooling and life support, adequate oxygen, and bounded reactor heat.
 
-Agents may propose open-ended plans, but every world effect must map to a typed action with explicit preconditions and completion semantics.
+Failure is explicit and retained, including:
 
-### Failure must be legible
+- reactor meltdown;
+- station asphyxiation;
+- crew loss;
+- complete team incapacitation;
+- power exhaustion;
+- mission timeout.
 
-The player should be able to identify the chain that caused a failure and make a concrete change before the next run.
+A terminal outcome is never inferred from model prose.
 
-### Dialogue supports action
+## Product principles
 
-Conversation can explain, negotiate, warn, or request approval. It is not the primary product by itself.
-
-### Model calls are low-frequency cognition
-
-Pathfinding, animation, damage, resource updates, and routine execution remain deterministic. Models are invoked for goal interpretation, planning, disagreement, exception handling, and high-value decisions.
-
-## First-playable scope
-
-The first playable includes:
-
-- one deterministic station map;
-- three specialist Agents;
-- six authoritative resources or conditions: time, power, oxygen, health, equipment integrity, communications;
-- a small typed action set;
-- one linked emergency mission;
-- player-facing Command Doctrines compiled into the existing authority boundary;
-- exact next-Tick consequence forecasts and Mission Fronts;
-- automatic execution until a meaningful intervention;
-- player approval, redirection, pause, and cancellation;
-- complete event replay and outcome verification.
+1. **The World is authoritative.** Models propose; the reducer decides.
+2. **Capability and authority are separate.** Being able to act does not imply permission.
+3. **Player attention is scarce.** Routine work proceeds automatically; meaningful decisions interrupt.
+4. **Failure must be legible.** Every outcome should expose evidence the player can use in the next deployment.
+5. **Dialogue supports consequence.** Communication matters when delivery and content change later action.
+6. **Provider replacement preserves identity.** The specialist and Task survive model or process replacement.
+7. **Play comes before platform.** Station Zero does not justify a universal game engine.
 
 ## Explicit non-goals
 
-The first playable does not include:
+The current product does not include:
 
-- 3D rendering or real-time action combat;
-- a general-purpose game engine;
-- hundreds of autonomous residents;
-- persistent civilization simulation;
-- multiplayer competition;
-- user-authored arbitrary tools;
-- a general workflow DSL;
+- 3D rendering or action combat;
+- multiplayer;
+- hundreds of residents;
+- a persistent civilization simulation;
+- arbitrary user-authored tools;
 - model-generated authoritative rules;
-- monetization or live-service infrastructure.
+- hosted live-service infrastructure;
+- a general workflow or multi-Agent scheduling platform.
 
-## Product acceptance criteria
+## Product acceptance
 
-The vertical slice is successful when:
+The current vertical slice is valid when:
 
-1. Agents cannot create nonexistent objects, capabilities, observations, or outcomes.
-2. The same Agent configuration produces a recognizable behavioral style across runs.
-3. Different team authority settings produce materially different mission trajectories.
-4. The mission can pause and resume without losing semantic state.
-5. Every terminal outcome has evidence that can be independently checked.
-6. A failed run exposes at least one understandable decision or coordination error.
-7. A player can improve subsequent performance through configuration changes.
-8. The experience is interesting before visual polish or large content volume is added.
-
-## M1 playable proof
-
-The first deterministic scenario now makes three pressures advance together:
-
-- reactor heat rises unless repaired cooling receives power;
-- oxygen falls until the hull breach is sealed and life support is restored;
-- an injured crew member loses health until stabilized.
-
-The Engineer has exactly three spare parts across the station, one sealant charge, one medkit, and a finite battery. Repairing or powering one system does not pause the other hazards.
-
-The intended strategic lesson is visible without an LLM:
-
-> Completing communications first is locally sensible but globally fatal. The player must control the hazard frontier, collect finite supplies, decide when cooling can be switched off, and preserve enough energy to transmit the final signal.
-
-This is the first evidence that Station Zero contains an actual management problem rather than only an Agent integration demonstration.
+- actors cannot invent World objects, capabilities, observations, actions, or outcomes;
+- authority settings materially change trajectories;
+- communication reachability can change the result;
+- process interruption does not duplicate World effects;
+- every revision can be reconstructed and verified;
+- a failed Run identifies an understandable contributor;
+- a player can produce and compare a materially different deployment;
+- the experience remains interesting without large content volume or visual spectacle.

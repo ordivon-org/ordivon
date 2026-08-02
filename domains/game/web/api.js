@@ -46,10 +46,6 @@ export function advanceMission(runId, mode) {
   return post(`/api/mission-control/advance${query(runId)}`, { mode });
 }
 
-export function advanceMissionDebug(runId, until) {
-  return post(`/api/mission-control/advance${query(runId)}`, { until });
-}
-
 export function issueCommand(runId, command) {
   return post(`/api/mission-control/command${query(runId)}`, command);
 }

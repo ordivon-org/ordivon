@@ -39,21 +39,6 @@ test("TeamStore initializes one Goal, three Actor Tasks, and one Coordinator Tas
   game.close();
 });
 
-test("TeamStore rejects legacy Runs and detects checked-projection drift", () => {
-  const legacy = new GameStore(":memory:");
-  const legacyTeam = new TeamStore(legacy);
-  assert.throws(() => legacyTeam.initialize(), /Scenario v2 and Ruleset v3/);
-  legacy.close();
-
-  const { game, team } = setup("run:team-corrupt");
-  const taskId = actorTaskId(game.activeRunId, ENGINEER_ID);
-  const task = team.getTask(taskId);
-  game.db.prepare("UPDATE team_actor_sessions SET value_json = ? WHERE task_id = ?")
-    .run(JSON.stringify({ ...task, state: "completed" }), taskId);
-  assert.throws(() => team.getTask(taskId), (error: unknown) => error instanceof TeamStoreError && error.code === "team_corrupt");
-  game.close();
-});
-
 test("Task transitions use revision CAS and short exclusive leases", () => {
   const { game, team } = setup("run:team-lease");
   const taskId = actorTaskId(game.activeRunId, ENGINEER_ID);
@@ -141,7 +126,6 @@ test("radio Messages remain pending while communications are unavailable and exp
   assert.equal(expired?.status, "expired");
   game.close();
 });
-
 
 test("Team Goal reads fail closed when the retained Objective Graph Artifact is missing", () => {
   const { game, team } = setup("run:team-objective-artifact");

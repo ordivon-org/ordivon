@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ProviderAdapterError } from "../src/providers/types.ts";
+import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
 import { ENGINEER_ID } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { TeamCodexCliProvider } from "../src/team/codex-cli.ts";

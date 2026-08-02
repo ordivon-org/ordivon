@@ -56,7 +56,6 @@ export interface MissionControlCatalog {
     authoritative: ["world-revision", "host-sequence", "projection-revision"];
     timestamp: "metadata-only";
   };
-  debugCompatibilityApis: string[];
 }
 
 export function createMissionControlCatalog(): MissionControlCatalog {
@@ -100,6 +99,5 @@ export function createMissionControlCatalog(): MissionControlCatalog {
       authoritative: ["world-revision", "host-sequence", "projection-revision"],
       timestamp: "metadata-only",
     },
-    debugCompatibilityApis: ["/api/actions", "/api/agent/*", "/api/team/*", "/debug.html"],
   };
 }

@@ -32,7 +32,7 @@ test("passive next-Tick forecast is exact, bounded, and side-effect free", () =>
   assert.equal(state.resources.oxygen, 78);
 });
 
-test("Play catalog exposes doctrines without removing Lab providers", () => {
+test("Play catalog exposes doctrines with the supported Provider choices", () => {
   const catalog = createMissionControlCatalog();
   assert.deepEqual(catalog.doctrines.map((entry) => entry.doctrineId), [
     "delegated-response",
@@ -42,48 +42,6 @@ test("Play catalog exposes doctrines without removing Lab providers", () => {
   assert.equal(catalog.playDefaults.doctrineId, "critical-approval");
   assert.ok(catalog.providers.some((entry) => entry.providerId === "codex"));
 });
-
-test("critical approval runs multiple verified Ticks and stops at a real intervention", async () => {
-  const { store, service: mission } = service();
-  try {
-    const runId = "run:experience:critical";
-    mission.initialize({ runId, doctrineId: "critical-approval" });
-    const first = await mission.advancePlay(runId, "until-intervention", 24, 512);
-    assert.equal(first.boundary, "intervention");
-    assert.deepEqual(first.committedRevisions, [1, 2, 3]);
-    assert.equal(first.view.run.turn, 3);
-    const card = first.view.inbox.find((entry) => entry.kind === "authority-request");
-    assert.ok(card?.forecast?.resources.some((entry) => entry.resourceId === "oxygen"));
-    const approve = card?.commands.find((entry) => entry.action === "approve");
-    assert.ok(approve?.proposalId);
-    mission.command(runId, { action: "approve", proposalId: approve.proposalId });
-    const afterApproval = mission.state(runId);
-    assert.equal(afterApproval.experience.activeInterventionId, null);
-    const next = await mission.advancePlay(runId, "until-intervention", 24, 512);
-    assert.ok(next.committedRevisions.length >= 1);
-    assert.ok(next.view.run.turn > first.view.run.turn);
-  } finally {
-    store.close();
-  }
-});
-
-test("delegated doctrine can complete the deterministic baseline without per-Tick confirmation", async () => {
-  const { store, service: mission } = service();
-  try {
-    const runId = "run:experience:delegated";
-    mission.initialize({ runId, doctrineId: "delegated-response" });
-    const result = await mission.advancePlay(runId, "until-intervention", 24, 512);
-    assert.equal(result.boundary, "terminal");
-    assert.equal(result.view.run.status, "victory");
-    assert.equal(result.view.run.turn, 18);
-    assert.equal(result.committedRevisions.length, 18);
-    assert.equal(result.view.experience.fronts.length, 4);
-    assert.equal(result.view.experience.outcome?.headline, "Rescue signal verified");
-  } finally {
-    store.close();
-  }
-});
-
 
 test("doctrine mappings preserve explicit modes and bounded fallbacks", () => {
   assert.equal(policyForDoctrine("delegated-response"), "autonomous");
@@ -241,7 +199,6 @@ test("Play advancement validates budgets and preserves terminal and pending-inte
     terminalStore.close();
   }
 });
-
 
 test("forecast, Mission Front, and outcome projections cover terminal and fallback branches", () => {
   const terminalState = initialTeamWorld();

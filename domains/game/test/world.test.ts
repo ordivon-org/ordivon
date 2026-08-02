@@ -3,11 +3,11 @@ import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
 import { ITEM_IDS } from "../src/model.ts";
-import { assertWorldInvariants, currentItemTotal, initialWorld } from "../src/scenario.ts";
+import { assertWorldInvariants, currentItemTotal, initialTeamWorld } from "../src/scenario.ts";
 import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "../src/world.ts";
 
 test("initial station graph and resource ledgers are valid", () => {
-  const state = initialWorld();
+  const state = initialTeamWorld();
   assertWorldInvariants(state);
   assert.equal(Object.keys(state.rooms).length, 8);
   assert.deepEqual(shortestPath(state, "command-center", "maintenance"), [
@@ -22,7 +22,7 @@ test("initial station graph and resource ledgers are valid", () => {
 });
 
 test("non-adjacent movement is rejected without mutation", () => {
-  const state = initialWorld();
+  const state = initialTeamWorld();
   const before = sha256(state);
   const result = applyWorldCommand(state, {
     kind: "move",
@@ -37,7 +37,7 @@ test("non-adjacent movement is rejected without mutation", () => {
 });
 
 test("repair consumes a spare part into the conserved resource ledger", () => {
-  let state = initialWorld();
+  let state = initialTeamWorld();
   for (const actionId of ["move:power-junction", "move:reactor", "repair:cooling"]) {
     const action = listAvailableActions(state).find((candidate) => candidate.actionId === actionId);
     assert.ok(action);

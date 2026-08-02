@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "../digest.ts";
-import { HostStore } from "../host/store.ts";
+import { HostStore } from "../host-contract/journal.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../scenario.ts";
 import type { GameStore } from "../storage.ts";
@@ -312,16 +312,7 @@ export class TeamStore {
   getTask(taskId: string): TeamTaskProjection {
     const row = this.db.prepare("SELECT task_id, head_event_id, value_json FROM team_actor_sessions WHERE task_id = ?").get(taskId) as TaskRow | undefined;
     if (!row) throw new Error(`unknown Team Task: ${taskId}`);
-    const parsed = parse<TeamTaskProjection>(row.value_json, "Team Task");
-    const task: TeamTaskProjection = parsed.control ? parsed : {
-      ...parsed,
-      control: {
-        mode: parsed.state === "cancelled" ? "cancelled" : "active",
-        reason: parsed.state === "cancelled" ? "Legacy cancelled Task" : null,
-        issuedBy: "system:legacy-normalization",
-        issuedAtTick: parsed.lastWorldRevision,
-      },
-    };
+    const task = parse<TeamTaskProjection>(row.value_json, "Team Task");
     const event = this.host.getJournalEvent(task.runId, row.head_event_id);
     const payload = event?.payload as { task?: TeamTaskProjection } | undefined;
     if (!payload?.task || canonicalJson(payload.task) !== canonicalJson(task)) throw new TeamStoreError("team_corrupt", "Team Task projection differs from event head");

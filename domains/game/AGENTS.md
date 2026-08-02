@@ -2,54 +2,79 @@
 
 ## Objective
 
-Deliver one small, playable, verifiable Agent mission game. Prefer executable evidence over architectural volume.
+Improve the current Station Zero product without recreating deleted historical paths or anticipating a general game platform.
+
+## Current executable
+
+```text
+Mission Control
+→ Station Zero Team domain
+→ Embedded Host authority
+→ deterministic Game World
+→ SQLite evidence
+→ Replay / Diagnosis / Comparison
+```
+
+The only supported execution contract is:
+
+```text
+station-zero@2
+station-zero-core@3
+Engineer + Medic + Security
+```
 
 ## Hard boundaries
 
-1. The Game World Kernel is authoritative for all physical and numerical state.
-2. Model output is a proposal, never a direct world mutation.
-3. Every important mutation uses a typed action with explicit preconditions and terminal semantics.
-4. Observations, beliefs, proposals, Dispatches, and verified Facts remain distinct.
-5. Provider sessions do not own Agent identity, mission state, or task continuity.
-6. Routine simulation must not require an LLM call.
-7. Replay and recovery are designed with the first state transition, not added later.
-8. Do not extract a general platform before the vertical slice repeatedly needs it.
+1. The Game World is authoritative for all physical, numerical, temporal, and terminal state.
+2. Model output is a Proposal, never a direct mutation or completion claim.
+3. Capability, authority, admission, execution, observation, and verification remain distinct.
+4. Team state owns Station Zero coordination; embedded Host state owns generic commitment identity.
+5. Provider sessions do not own actor identity, task continuity, World state, or replay.
+6. Mission Control is a pure bounded projection and owns no second database.
+7. Replay, diagnosis, deployment, and comparison derive from retained evidence rather than storing alternative truth.
+8. Routine deterministic execution must not require a model call.
+9. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
+10. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
 
 ## Working method
 
 ```text
-select the next acceptance criterion
-→ build the smallest executable path
-→ test success, rejection, interruption, and replay
-→ preserve a receipt
-→ revise the architecture only from observed evidence
+identify a current player or World problem
+→ locate the sole state owner
+→ make the smallest owner-local change
+→ test success, rejection, interruption, and replay where relevant
+→ verify the browser journey when product behavior changes
+→ delete replaced structure
 ```
 
-## Change discipline
+## Required change evidence
 
-Every meaningful implementation change should identify:
+A meaningful change should state:
 
-- the milestone and acceptance criterion it advances;
-- the authoritative state owner affected;
-- new identities or transitions introduced;
-- failure and recovery semantics;
-- deterministic tests or replay evidence;
-- model-cost impact when cognition is involved.
+- which current responsibility changes;
+- which authority owns it;
+- what player or execution value it adds;
+- its failure and recovery behavior;
+- which current-contract test demonstrates it;
+- what obsolete structure it replaces or avoids.
 
 ## Prohibited shortcuts
 
-- parsing free-form model prose into privileged commands without a typed admission layer;
-- allowing dialogue text to alter world state;
-- treating Agent claims as verified outcomes;
-- silently retrying uncertain external mutations;
-- hiding unexplained failure behind randomness;
-- adding many Agents before one Agent can continue correctly after interruption;
-- using visual polish to mask an uninteresting deterministic game loop.
+- parsing free-form model prose into privileged commands;
+- allowing dialogue to alter World state;
+- treating provider success as verified task completion;
+- retrying an uncertain World effect under a new identity;
+- adding a second Task, World, replay, diagnosis, or product authority;
+- exposing internal stepping or raw mutation controls through the product API;
+- preserving dead paths for historical sentiment;
+- adding generic infrastructure before a second materially different world requires it;
+- using visual polish to conceal an uninteresting play loop.
 
-## Source of truth
+## Sources of truth
 
-- `docs/PRODUCT.md` owns the first-playable experience and scope.
-- `docs/ARCHITECTURE.md` owns component and state boundaries.
-- `docs/ROADMAP.md` owns milestone acceptance criteria.
-- GitHub Issues own active work, dependencies, and discussion.
-- Git commits own implementation history.
+- `README.md` describes the current executable and repository map.
+- `docs/PRODUCT.md` defines the Station Zero product.
+- `docs/ARCHITECTURE.md` defines ownership and execution boundaries.
+- `docs/VISION.md` defines long-horizon direction without authorizing current scope.
+- GitHub Issues own active work and discussion.
+- Git history owns deleted implementation history.

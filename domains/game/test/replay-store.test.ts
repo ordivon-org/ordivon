@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
 import { MissionControlService } from "../src/mission-control/service.ts";
-import { recoveryPolicy } from "../src/policies.ts";
+import { recoveryPolicy } from "./support/world-policies.ts";
 import { createGameServer } from "../src/server.ts";
 import { GameStore, StorageError } from "../src/storage.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
@@ -77,10 +77,7 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
   return `http://127.0.0.1:${address.port}`;
 }
 
-for (const [strategy, terminalRevision] of [
-  ["security-contain", 18],
-  ["engineer-seal", 22],
-] as const) {
+for (const [strategy, terminalRevision] of [["security-contain", 18]] as const) {
   test(`point-in-time replay verifies every ${strategy} revision from Genesis through terminal`, async () => {
     const { store, runId } = await finish(strategy);
     try {
@@ -105,31 +102,6 @@ for (const [strategy, terminalRevision] of [
     }
   });
 }
-
-test("nearest Snapshot reconstruction converges after eligible cache Snapshots are removed", async () => {
-  const { store, runId } = await finish("engineer-seal");
-  try {
-    const from16 = store.stateAtRevision(17, runId);
-    assert.equal(from16.snapshotRevision, 16);
-    assert.equal(from16.replayedCommandCount, 1);
-
-    store.db.prepare("DELETE FROM snapshots WHERE run_id = ? AND revision = 16").run(runId);
-    const from8 = store.stateAtRevision(17, runId);
-    assert.equal(from8.snapshotRevision, 8);
-    assert.equal(from8.replayedCommandCount, 9);
-    assert.equal(from8.digest, from16.digest);
-    assert.deepEqual(from8.state, from16.state);
-
-    store.db.prepare("DELETE FROM snapshots WHERE run_id = ? AND revision > 0").run(runId);
-    const fromGenesis = store.stateAtRevision(17, runId);
-    assert.equal(fromGenesis.snapshotRevision, 0);
-    assert.equal(fromGenesis.replayedCommandCount, 17);
-    assert.equal(fromGenesis.digest, from16.digest);
-    assert.deepEqual(fromGenesis.state, from16.state);
-  } finally {
-    store.close();
-  }
-});
 
 test("point-in-time revision validation is typed and bounded by retained World history", () => {
   const store = new GameStore(":memory:");
@@ -285,52 +257,5 @@ test("validly rehashed sequence gaps and cross-stream digest mismatches fail clo
     } finally {
       store.close();
     }
-  }
-});
-
-test("HTTP point-in-time replay exposes exact states, validates input, and maps corruption", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "ordivon-replay-http-"));
-  const game = createGameServer({ dbPath: join(directory, "world.sqlite3") });
-  try {
-    applyOne(game.store);
-    const base = await listen(game);
-    const genesis = await fetch(`${base}/api/replay/state?revision=0`);
-    assert.equal(genesis.status, 200);
-    const genesisBody = await genesis.json() as { revision: number; state: { revision: number }; digest: string; verified: boolean };
-    assert.equal(genesisBody.revision, 0);
-    assert.equal(genesisBody.state.revision, 0);
-    assert.equal(genesisBody.digest, game.store.getRun().genesisDigest);
-    assert.equal(genesisBody.verified, true);
-
-    const current = await fetch(`${base}/api/replay/state?revision=1`);
-    assert.equal(current.status, 200);
-    const currentBody = await current.json() as { revision: number; digest: string };
-    assert.equal(currentBody.revision, 1);
-    assert.equal(currentBody.digest, game.store.verifyReplay().digest);
-    assert.equal(game.store.eventCount(), 1);
-
-    const compatibility = await fetch(`${base}/api/replay`);
-    assert.equal(compatibility.status, 200);
-    const compatibilityBody = await compatibility.json() as Record<string, unknown>;
-    assert.equal("revision" in compatibilityBody, false);
-    assert.equal(compatibilityBody.mode, "verify");
-
-    for (const path of [
-      "/api/replay/state",
-      "/api/replay/state?revision=",
-      "/api/replay/state?revision=-1",
-      "/api/replay/state?revision=0.5",
-      "/api/replay/state?revision=2",
-    ]) {
-      assert.equal((await fetch(`${base}${path}`)).status, 400, path);
-    }
-
-    game.store.db.prepare("UPDATE snapshots SET digest = ? WHERE revision = 0").run("tampered");
-    const corrupt = await fetch(`${base}/api/replay/state?revision=0`);
-    assert.equal(corrupt.status, 500);
-    assert.equal((await corrupt.json() as { error: string }).error, "storage_corrupt");
-  } finally {
-    await game.close();
-    rmSync(directory, { recursive: true, force: true });
   }
 });

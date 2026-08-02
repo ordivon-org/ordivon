@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { recoveryPolicy } from "../src/policies.ts";
+import { recoveryPolicy } from "./support/world-policies.ts";
 import { UnsupportedVersionError } from "../src/registry.ts";
 import { GameStore } from "../src/storage.ts";
 import { materializeAction } from "../src/world.ts";
@@ -23,12 +23,12 @@ function withStore(run: (store: GameStore) => void): void {
   }
 }
 
-test("one database isolates multiple version-bound runs", () => {
+test("one database isolates multiple final-contract runs", () => {
   withStore((store) => {
     const second = store.createRun({ runId: "run:failure", seed: "station-zero-fixed-seed-02" });
     assert.equal(store.listRuns().length, 2);
-    assert.equal(second.scenarioVersion, 1);
-    assert.equal(second.rulesetVersion, 2);
+    assert.equal(second.scenarioVersion, 2);
+    assert.equal(second.rulesetVersion, 3);
 
     const firstState = store.loadState("run:default");
     const secondState = store.loadState("run:failure");

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { ProviderAdapterError } from "../src/providers/types.ts";
+import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
 import { ENGINEER_ID } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { compileTeamContext } from "../src/team/context.ts";

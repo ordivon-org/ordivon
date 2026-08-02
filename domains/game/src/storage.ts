@@ -4,11 +4,10 @@ import { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "./digest.ts";
 import type { ApplyResult, JournalEvent, PrimitiveWorldCommand, TickBatch, WorldCommand, WorldEvent, WorldState } from "./model.ts";
-import { listRulesetContracts, listScenarioContracts, resolveRuleset, resolveScenario } from "./registry.ts";
+import { RULESET_VERSION, SCENARIO_VERSION, resolveRuleset, resolveScenario } from "./registry.ts";
 import type { PointInTimeReplayResult } from "./replay/model.ts";
-import { createEvaluatedInputManifest } from "./release/inputs.ts";
+import { CURRENT_BUILD, CURRENT_INPUTS_DIGEST } from "./build.ts";
 import {
-  CURRENT_BUILD,
   DEFAULT_RUN_ID,
   newRunId,
   type CreateRunInput,
@@ -17,14 +16,8 @@ import {
 import { assertWorldInvariants } from "./scenario.ts";
 
 export const DEFAULT_SNAPSHOT_INTERVAL = 8;
-let cachedEvaluatedInputsDigest: string | null = null;
-
 function currentEvaluatedInputsDigest(): string {
-  cachedEvaluatedInputsDigest ??= createEvaluatedInputManifest({
-    scenarioContracts: listScenarioContracts(),
-    rulesetContracts: listRulesetContracts(),
-  }).evaluatedInputsDigest;
-  return cachedEvaluatedInputsDigest;
+  return CURRENT_INPUTS_DIGEST;
 }
 export type StorageErrorCode = "storage_busy" | "storage_corrupt" | "storage_constraint";
 
@@ -44,8 +37,8 @@ interface CommandRow {
   command_json: string;
   before_digest: string;
   after_digest: string;
-  previous_digest: string | null;
-  record_digest: string | null;
+  previous_digest: string;
+  record_digest: string;
 }
 
 interface EventRow {
@@ -54,13 +47,13 @@ interface EventRow {
   event_json: string;
   before_digest: string;
   after_digest: string;
-  previous_digest: string | null;
-  record_digest: string | null;
+  previous_digest: string;
+  record_digest: string;
 }
 
 interface SnapshotRow {
   revision: number;
-  command_sequence: number | null;
+  command_sequence: number;
   state_json: string;
   digest: string;
 }
@@ -69,13 +62,13 @@ interface RunRow {
   run_id: string;
   scenario_id: string;
   scenario_version: number;
-  scenario_case_id: string | null;
+  scenario_case_id: string;
   ruleset_id: string;
   ruleset_version: number;
   state_schema_version: number;
   seed: string;
-  genesis_digest: string | null;
-  evaluated_inputs_digest: string | null;
+  genesis_digest: string;
+  evaluated_inputs_digest: string;
   status: RunMetadata["status"];
   created_at: string;
   created_with_build: string;
@@ -122,13 +115,13 @@ function metadataFromRow(row: RunRow): RunMetadata {
     runId: row.run_id,
     scenarioId: row.scenario_id,
     scenarioVersion: Number(row.scenario_version),
-    scenarioCaseId: row.scenario_case_id ?? (Number(row.scenario_version) >= 2 ? "baseline" : "legacy-fixed"),
+    scenarioCaseId: row.scenario_case_id,
     rulesetId: row.ruleset_id,
     rulesetVersion: Number(row.ruleset_version),
     stateSchemaVersion: Number(row.state_schema_version),
     seed: row.seed,
-    genesisDigest: row.genesis_digest ?? "legacy:unknown-genesis",
-    evaluatedInputsDigest: row.evaluated_inputs_digest ?? "legacy:unbound",
+    genesisDigest: row.genesis_digest,
+    evaluatedInputsDigest: row.evaluated_inputs_digest,
     status: row.status,
     createdAt: row.created_at,
     createdWithBuild: row.created_with_build,
@@ -179,24 +172,12 @@ function parseStoredWorldState(json: string, label: string): WorldState {
   }
 }
 
-function parseJournalEvent(runId: string, sequence: number, json: string): JournalEvent {
-  const parsed = parseStoredJson<JournalEvent | WorldEvent>(json, "retained Event");
-  if (parsed && typeof parsed === "object" && "event" in parsed) {
-    if (!parsed.event || typeof parsed.event !== "object") {
-      throw new StorageError("storage_corrupt", "retained Event envelope is invalid");
-    }
-    return parsed;
+function parseJournalEvent(_runId: string, _sequence: number, json: string): JournalEvent {
+  const parsed = parseStoredJson<JournalEvent>(json, "retained Event");
+  if (!parsed || typeof parsed !== "object" || !("event" in parsed) || !parsed.event || typeof parsed.event !== "object") {
+    throw new StorageError("storage_corrupt", "retained Event envelope is invalid");
   }
-  if (!parsed || typeof parsed !== "object") {
-    throw new StorageError("storage_corrupt", "retained Event shape is invalid");
-  }
-  return {
-    tickId: `legacy:${runId}:${sequence}`,
-    commandSequence: sequence,
-    simulationTick: parsed.turn,
-    worldRevision: parsed.worldRevision,
-    event: parsed,
-  };
+  return parsed;
 }
 
 function commandDigest(runId: string, row: Omit<CommandRow, "record_digest">): string {
@@ -208,7 +189,7 @@ function commandDigest(runId: string, row: Omit<CommandRow, "record_digest">): s
     commandJson: row.command_json,
     beforeDigest: row.before_digest,
     afterDigest: row.after_digest,
-    previousDigest: row.previous_digest ?? "",
+    previousDigest: row.previous_digest,
   });
 }
 
@@ -221,7 +202,7 @@ function eventDigest(runId: string, row: Omit<EventRow, "record_digest">): strin
     eventJson: row.event_json,
     beforeDigest: row.before_digest,
     afterDigest: row.after_digest,
-    previousDigest: row.previous_digest ?? "",
+    previousDigest: row.previous_digest,
   });
 }
 
@@ -252,9 +233,6 @@ export class GameStore {
         PRAGMA synchronous = FULL;
       `);
       this.createSchema();
-      this.migrateSchema();
-      this.backfillRunIdentityMetadata();
-      this.backfillIntegrityMetadata();
       this.pruneSnapshots();
       if (this.listRuns().length === 0) this.createRun({ runId: this.activeRunId });
       if (!this.findRun(this.activeRunId)) this.activeRunId = this.listRuns()[0]?.runId ?? this.activeRunId;
@@ -292,8 +270,8 @@ export class GameStore {
         command_json TEXT NOT NULL,
         before_digest TEXT NOT NULL,
         after_digest TEXT NOT NULL,
-        previous_digest TEXT,
-        record_digest TEXT,
+        previous_digest TEXT NOT NULL,
+        record_digest TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (run_id, command_sequence),
         UNIQUE (run_id, command_id),
@@ -306,8 +284,8 @@ export class GameStore {
         event_json TEXT NOT NULL,
         before_digest TEXT NOT NULL,
         after_digest TEXT NOT NULL,
-        previous_digest TEXT,
-        record_digest TEXT,
+        previous_digest TEXT NOT NULL,
+        record_digest TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (run_id, event_sequence),
         UNIQUE (run_id, command_id),
@@ -316,7 +294,7 @@ export class GameStore {
       CREATE TABLE IF NOT EXISTS snapshots (
         run_id TEXT NOT NULL,
         revision INTEGER NOT NULL,
-        command_sequence INTEGER,
+        command_sequence INTEGER NOT NULL,
         state_json TEXT NOT NULL,
         digest TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -324,85 +302,6 @@ export class GameStore {
         FOREIGN KEY (run_id) REFERENCES runs(run_id)
       );
     `);
-  }
-
-  private hasColumn(table: string, column: string): boolean {
-    const rows = this.db.prepare(`PRAGMA table_info(${table})`).all() as unknown as Array<{ name: string }>;
-    return rows.some((row) => row.name === column);
-  }
-
-  private migrateSchema(): void {
-    if (!this.hasColumn("runs", "scenario_case_id")) this.db.exec("ALTER TABLE runs ADD COLUMN scenario_case_id TEXT");
-    if (!this.hasColumn("runs", "genesis_digest")) this.db.exec("ALTER TABLE runs ADD COLUMN genesis_digest TEXT");
-    if (!this.hasColumn("runs", "evaluated_inputs_digest")) this.db.exec("ALTER TABLE runs ADD COLUMN evaluated_inputs_digest TEXT");
-    if (!this.hasColumn("commands", "previous_digest")) this.db.exec("ALTER TABLE commands ADD COLUMN previous_digest TEXT");
-    if (!this.hasColumn("commands", "record_digest")) this.db.exec("ALTER TABLE commands ADD COLUMN record_digest TEXT");
-    if (!this.hasColumn("events", "previous_digest")) this.db.exec("ALTER TABLE events ADD COLUMN previous_digest TEXT");
-    if (!this.hasColumn("events", "record_digest")) this.db.exec("ALTER TABLE events ADD COLUMN record_digest TEXT");
-    if (!this.hasColumn("snapshots", "command_sequence")) this.db.exec("ALTER TABLE snapshots ADD COLUMN command_sequence INTEGER");
-    this.db.exec("UPDATE snapshots SET command_sequence = revision - 1 WHERE command_sequence IS NULL");
-  }
-
-  private backfillRunIdentityMetadata(): void {
-    const rows = this.db.prepare("SELECT run_id, scenario_id, scenario_version, scenario_case_id, genesis_digest, evaluated_inputs_digest FROM runs")
-      .all() as unknown as Array<{
-        run_id: string;
-        scenario_id: string;
-        scenario_version: number;
-        scenario_case_id: string | null;
-        genesis_digest: string | null;
-        evaluated_inputs_digest: string | null;
-      }>;
-    for (const row of rows) {
-      const snapshot = this.db.prepare("SELECT state_json, digest FROM snapshots WHERE run_id = ? AND revision = 0")
-        .get(row.run_id) as { state_json?: string; digest?: string } | undefined;
-      let scenarioCaseId = row.scenario_case_id;
-      if (scenarioCaseId === null) {
-        const scenario = resolveScenario(row.scenario_id, Number(row.scenario_version));
-        const retained = snapshot?.state_json ? JSON.parse(snapshot.state_json) as WorldState : null;
-        const defaultGenesis = retained
-          ? scenario.create({ caseId: scenario.defaultCaseId, seed: retained.seed })
-          : null;
-        scenarioCaseId = retained && defaultGenesis && canonicalJson(retained) === canonicalJson(defaultGenesis)
-          ? scenario.defaultCaseId
-          : "legacy-custom-genesis";
-      }
-      const genesisDigest = row.genesis_digest ?? snapshot?.digest ?? "legacy:unknown-genesis";
-      const evaluatedInputsDigest = row.evaluated_inputs_digest ?? "legacy:unbound";
-      this.db.prepare("UPDATE runs SET scenario_case_id = ?, genesis_digest = ?, evaluated_inputs_digest = ? WHERE run_id = ?")
-        .run(scenarioCaseId, genesisDigest, evaluatedInputsDigest, row.run_id);
-    }
-  }
-
-  private backfillIntegrityMetadata(): void {
-    for (const run of this.listRuns()) {
-      let previous = "";
-      const commands = this.db.prepare("SELECT * FROM commands WHERE run_id = ? ORDER BY command_sequence").all(run.runId) as unknown as CommandRow[];
-      for (const row of commands) {
-        if (row.previous_digest === null || row.record_digest === null) {
-          const base = { ...row, previous_digest: previous };
-          const digest = commandDigest(run.runId, base);
-          this.db.prepare("UPDATE commands SET previous_digest = ?, record_digest = ? WHERE run_id = ? AND command_sequence = ?")
-            .run(previous, digest, run.runId, row.command_sequence);
-          previous = digest;
-        } else {
-          previous = row.record_digest;
-        }
-      }
-      previous = "";
-      const events = this.db.prepare("SELECT * FROM events WHERE run_id = ? ORDER BY event_sequence").all(run.runId) as unknown as EventRow[];
-      for (const row of events) {
-        if (row.previous_digest === null || row.record_digest === null) {
-          const base = { ...row, previous_digest: previous };
-          const digest = eventDigest(run.runId, base);
-          this.db.prepare("UPDATE events SET previous_digest = ?, record_digest = ? WHERE run_id = ? AND event_sequence = ?")
-            .run(previous, digest, run.runId, row.event_sequence);
-          previous = digest;
-        } else {
-          previous = row.record_digest;
-        }
-      }
-    }
   }
 
   private pruneSnapshots(): void {
@@ -442,9 +341,9 @@ export class GameStore {
   createRun(input: CreateRunInput = {}): RunMetadata {
     try {
       const scenarioId = input.scenarioId ?? "station-zero";
-      const scenarioVersion = input.scenarioVersion ?? 1;
+      const scenarioVersion = input.scenarioVersion ?? SCENARIO_VERSION;
       const rulesetId = input.rulesetId ?? "station-zero-core";
-      const rulesetVersion = input.rulesetVersion ?? 2;
+      const rulesetVersion = input.rulesetVersion ?? RULESET_VERSION;
       const scenario = resolveScenario(scenarioId, scenarioVersion);
       resolveRuleset(rulesetId, rulesetVersion);
       if (input.genesis && input.scenarioCaseId && input.scenarioCaseId !== "custom-genesis") {

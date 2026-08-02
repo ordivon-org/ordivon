@@ -125,7 +125,7 @@ dt { color: var(--quiet); font-size: .62rem; text-transform: uppercase; letter-s
 @media (max-width: 760px) { .top-nav, .mission-header { align-items: flex-start; flex-direction: column; }.resource-strip { grid-template-columns: repeat(2, 1fr); }.provider-grid, .round-actors, .objective-grid { grid-template-columns: 1fr; }.station-map { min-height: 0; grid-template-columns: 1fr; grid-template-rows: none; }.station-room { grid-column: 1 !important; grid-row: auto !important; }.actor-controls, .actor-facts { grid-template-columns: 1fr; }.actor-controls .button-row { grid-column: 1; }.score-grid { grid-template-columns: repeat(2, 1fr); } }
 
 
-/* M5 first-playable product surfaces */
+/* Product surfaces */
 .product-shell { min-height: 100vh; padding: 0 32px 48px; background: var(--background); color: var(--text); }
 .product-nav { max-width: 1440px; margin: 0 auto; min-height: 72px; display: grid; grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr); align-items: center; gap: 24px; border-bottom: 1px solid var(--line); }
 .product-nav > div:first-child { display: flex; flex-direction: column; gap: 3px; }

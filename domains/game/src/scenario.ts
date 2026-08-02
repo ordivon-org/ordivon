@@ -5,7 +5,7 @@ export const ENGINEER_ID = "engineer-01";
 export const MEDIC_ID = "medic-01";
 export const SECURITY_ID = "security-01";
 
-export function initialWorld(): WorldState {
+function baseStationWorld(): WorldState {
   const initialItems = inventory({
     toolkit: 1,
     "breaker-key": 1,
@@ -16,8 +16,8 @@ export function initialWorld(): WorldState {
 
   return {
     schemaVersion: 2,
-    scenarioId: "station-zero-m1",
-    seed: "station-zero-fixed-seed-01",
+    scenarioId: "station-zero",
+    seed: "station-zero-team-fixed-seed-01",
     revision: 0,
     turn: 0,
     rooms: {
@@ -155,17 +155,14 @@ export function initialWorld(): WorldState {
       status: "running",
       reason: null,
       distressSent: false,
-      turnLimit: 28,
+      turnLimit: 22,
     },
   };
 }
 
 
 export function initialTeamWorld(): WorldState {
-  const state = initialWorld();
-  state.scenarioId = "station-zero-m3";
-  state.seed = "station-zero-team-fixed-seed-01";
-  state.mission.turnLimit = 22;
+  const state = baseStationWorld();
   const engineer = state.agents[ENGINEER_ID];
   if (!engineer) throw new Error("engineer missing from team genesis");
   engineer.capabilities = [
@@ -358,9 +355,7 @@ export function evaluateMission(state: WorldState): void {
   if (state.resources.reactorHeat >= 100) return fail("reactor_meltdown");
   if (state.resources.oxygen <= 0) return fail("station_asphyxiation");
   if (casualty.health <= 0) return fail("crew_lost");
-  if (state.scenarioId === "station-zero-m1") {
-    if (engineer.health <= 0) return fail("engineer_incapacitated");
-  } else if (Object.values(state.agents).every((agent) => agent.health <= 0)) {
+  if (Object.values(state.agents).every((agent) => agent.health <= 0)) {
     return fail("team_incapacitated");
   }
 

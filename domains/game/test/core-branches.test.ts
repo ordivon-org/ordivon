@@ -6,12 +6,12 @@ import {
   advanceEnvironment,
   assertWorldInvariants,
   evaluateMission,
-  initialWorld,
+  initialTeamWorld,
 } from "../src/scenario.ts";
 import { parseWorldCommand, shortestPath, validateWorldCommand } from "../src/world.ts";
 
 function clone(): WorldState {
-  return structuredClone(initialWorld());
+  return structuredClone(initialTeamWorld());
 }
 
 function expectInvariant(mutator: (state: WorldState) => void, pattern: RegExp): void {
@@ -79,9 +79,9 @@ test("mission evaluation covers every terminal reason and critical-object failur
     [(state) => { state.resources.reactorHeat = 100; }, "reactor_meltdown"],
     [(state) => { state.resources.oxygen = 0; }, "station_asphyxiation"],
     [(state) => { state.crew["crew-01"]!.health = 0; }, "crew_lost"],
-    [(state) => { state.agents["engineer-01"]!.health = 0; }, "engineer_incapacitated"],
+    [(state) => { for (const agent of Object.values(state.agents)) agent.health = 0; }, "team_incapacitated"],
     [(state) => { state.resources.batteryCharge = 0; state.resources.energyConsumed = 56; }, "power_exhausted"],
-    [(state) => { state.turn = 28; state.revision = 28; }, "mission_timeout"],
+    [(state) => { state.turn = 22; state.revision = 22; }, "mission_timeout"],
   ];
   for (const [mutator, reason] of cases) {
     const state = clone();
@@ -194,14 +194,15 @@ test("command admission returns explicit rejection codes across all action famil
   maintenance.agents["engineer-01"]!.inventory.sealant = 0;
   assert.equal(code(maintenance, { ...base, kind: "seal_hull", targetHazardId: "maintenance-breach" }), "item_missing");
 
-  assert.equal(code(clone(), { ...base, kind: "stabilize_crew", targetCrewId: "missing" }), "unknown_target");
+  const medicBase = { ...base, actorId: "medic-01" };
+  assert.equal(code(clone(), { ...medicBase, kind: "stabilize_crew", targetCrewId: "missing" }), "unknown_target");
   const medical = clone();
-  medical.agents["engineer-01"]!.location = "medical-bay";
+  medical.agents["medic-01"]!.location = "medical-bay";
   medical.crew["crew-01"]!.stabilized = true;
-  assert.equal(code(medical, { ...base, kind: "stabilize_crew", targetCrewId: "crew-01" }), "already_complete");
+  assert.equal(code(medical, { ...medicBase, kind: "stabilize_crew", targetCrewId: "crew-01" }), "already_complete");
   medical.crew["crew-01"]!.stabilized = false;
-  medical.agents["engineer-01"]!.inventory.medkit = 0;
-  assert.equal(code(medical, { ...base, kind: "stabilize_crew", targetCrewId: "crew-01" }), "item_missing");
+  medical.agents["medic-01"]!.inventory.medkit = 0;
+  assert.equal(code(medical, { ...medicBase, kind: "stabilize_crew", targetCrewId: "crew-01" }), "item_missing");
 
   assert.equal(code(clone(), { ...base, kind: "send_distress", targetSystemId: "missing" }), "unknown_target");
   assert.equal(code(clone(), { ...base, kind: "send_distress", targetSystemId: "cooling" }), "invalid_command");

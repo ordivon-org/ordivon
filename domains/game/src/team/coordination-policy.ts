@@ -1,5 +1,5 @@
 import type { WorldState } from "../model.ts";
-import { applyWorldTickV3 } from "../world.ts";
+import { applyWorldTick } from "../world.ts";
 import { candidateAllowed } from "./authority.ts";
 import type { ActionProposal, TeamRound } from "./model.ts";
 
@@ -55,7 +55,7 @@ export function evaluateStationZeroCoordination(
   const legalSubsets: ActionProposal[][] = [];
   for (let mask = 1; mask < (1 << eligible.length); mask += 1) {
     const subset = eligible.filter((_, index) => (mask & (1 << index)) !== 0);
-    const result = applyWorldTickV3(state, {
+    const result = applyWorldTick(state, {
       tickId: `probe:${round.roundId}:${mask}`,
       expectedWorldRevision: round.worldRevision,
       intents: subset.map((proposal, index) => ({

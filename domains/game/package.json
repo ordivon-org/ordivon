@@ -3,33 +3,17 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
-  "description": "Agent-native game experiments built on deterministic world state and Ordivon semantics.",
+  "description": "Intervention-driven multi-Agent mission game with deterministic world state and verified replay.",
   "engines": {
     "node": ">=26.0.0"
   },
   "scripts": {
     "start": "node src/server.ts",
-    "demo": "node scripts/demo.ts",
     "test": "node --test test/*.test.ts",
-    "check": "pnpm typecheck && pnpm webcheck && pnpm test",
-    "webcheck": "for file in web/*.js; do node --check \"$file\"; done && node scripts/check-m4-web.mjs && node scripts/check-m5-web.mjs",
-    "m4:evaluate": "node scripts/m4-evaluation.ts --write",
-    "m5:evaluate": "node scripts/m5-evaluation.ts",
-    "receipt": "node scripts/receipt.ts",
-    "release:inputs": "node scripts/release-inputs.ts",
-    "release:build": "node scripts/build-release.ts",
-    "release:verify": "node scripts/verify-release.ts",
     "typecheck": "tsc --noEmit",
-    "fixture:generate": "node scripts/generate-m1-fixture.ts",
-    "coverage": "node --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=95 --test-coverage-branches=90 --test-coverage-functions=95 --test test/*.test.ts",
-    "measure": "node scripts/measure.ts",
-    "measure:replay": "node scripts/measure-replay.ts",
-    "measure:write": "node scripts/measure.ts --write",
-    "m2:evaluate": "node scripts/m2-live-evaluation.ts",
-    "m21:evaluate": "node scripts/m2-live-evaluation.ts",
-    "m3:evaluate": "node scripts/m3-live-evaluation.ts",
-    "e2e": "node scripts/e2e-first-playable.ts",
-    "evaluate:control-boundary": "node --experimental-strip-types scripts/control-boundary-evaluation.ts"
+    "webcheck": "for file in web/*.js; do node --check \"$file\"; done",
+    "check": "pnpm typecheck && pnpm webcheck && pnpm test",
+    "e2e": "node scripts/e2e-first-playable.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

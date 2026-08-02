@@ -14,14 +14,14 @@ import { compareRunIdFromUrl, revisionFromUrl, surfaceFromUrl, urlForState } fro
 // @ts-expect-error Browser module intentionally has no Node declaration.
 import { humanize } from "../web/render-utils.js";
 
-test("M5 URL state retains Run, surface, revision, and comparison base", () => {
-  const url = urlForState("https://game.test/?debug=1", {
+test("URL state retains Run, surface, revision, and comparison base", () => {
+  const url = urlForState("https://game.test/?source=retained", {
     runId: "run:second",
     surface: "replay",
     revision: 5,
     compareRunId: "run:first",
   });
-  assert.equal(url, "/?debug=1&runId=run%3Asecond&view=replay&revision=5&compareRunId=run%3Afirst");
+  assert.equal(url, "/?source=retained&runId=run%3Asecond&view=replay&revision=5&compareRunId=run%3Afirst");
   const full = `https://game.test${url}`;
   assert.equal(surfaceFromUrl(full), "replay");
   assert.equal(revisionFromUrl(full), 5);

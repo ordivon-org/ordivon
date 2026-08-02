@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { HostStore, HostStoreError } from "../src/host/store.ts";
+import { HostStore, HostStoreError } from "../src/host-contract/journal.ts";
 import { GameStore } from "../src/storage.ts";
 
 function withStores(run: (game: GameStore, host: HostStore) => void): void {

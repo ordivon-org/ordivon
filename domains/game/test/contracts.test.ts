@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { communicationsFirstPolicy, recoveryPolicy, runPolicy } from "../src/policies.ts";
-import { initialWorld } from "../src/scenario.ts";
+import { communicationsFirstPolicy, recoveryPolicy, runPolicy } from "./support/world-policies.ts";
+import { initialTeamWorld } from "../src/scenario.ts";
 import { applyWorldCommand, listAvailableActions, materializeAction } from "../src/world.ts";
 
-function applyActionId(state: ReturnType<typeof initialWorld>, actionId: string, commandId: string) {
+function applyActionId(state: ReturnType<typeof initialTeamWorld>, actionId: string, commandId: string) {
   const action = listAvailableActions(state).find((candidate) => candidate.actionId === actionId);
   assert.ok(action, `missing action: ${actionId}`);
   const result = applyWorldCommand(state, materializeAction(action, commandId));
@@ -16,7 +16,7 @@ function applyActionId(state: ReturnType<typeof initialWorld>, actionId: string,
 }
 
 test("stale revisions and powering damaged systems fail atomically", () => {
-  const initial = initialWorld();
+  const initial = initialTeamWorld();
   const initialDigest = sha256(initial);
   const stale = applyWorldCommand(initial, {
     kind: "move",
@@ -45,7 +45,7 @@ test("stale revisions and powering damaged systems fail atomically", () => {
 });
 
 test("battery use is conserved after powering a repaired system", () => {
-  let state = initialWorld();
+  let state = initialTeamWorld();
   state = applyActionId(state, "move:power-junction", "energy-1");
   state = applyActionId(state, "move:reactor", "energy-2");
   state = applyActionId(state, "repair:cooling", "energy-3");
@@ -59,22 +59,4 @@ test("battery use is conserved after powering a repaired system", () => {
     state.resources.batteryCharge + state.resources.energyConsumed,
     state.resources.batteryInitial,
   );
-});
-
-test("scripted scenario evidence covers every M1 command kind", () => {
-  const events = [
-    ...runPolicy(recoveryPolicy).events,
-    ...runPolicy(communicationsFirstPolicy).events,
-  ];
-  const kinds = new Set(events.map((event) => event.commandKind));
-  assert.deepEqual([...kinds].sort(), [
-    "move",
-    "pickup_item",
-    "repair_system",
-    "seal_hull",
-    "send_distress",
-    "set_power",
-    "stabilize_crew",
-    "wait",
-  ]);
 });

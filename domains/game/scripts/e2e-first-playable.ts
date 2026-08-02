@@ -6,10 +6,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 
 import type { DeploymentProviderOptions } from "../src/deployment/model.ts";
-import { createGameServer, type TeamProviderFactory } from "../src/server.ts";
+import { createGameServer } from "../src/server.ts";
+import type { MissionProviderFactory } from "../src/mission-control/service.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
 
-const fixtureFactory: TeamProviderFactory = (_name, options?: DeploymentProviderOptions) =>
+const fixtureFactory: MissionProviderFactory = (_name, options?: DeploymentProviderOptions) =>
   new FixtureTeamProvider({
     breachStrategy: options?.coordinationProfileId === "engineer-seal"
       ? "engineer-seal"
@@ -67,7 +68,7 @@ process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-first-playable-e2e-"));
 const game = createGameServer({
   dbPath: join(directory, "station-zero.sqlite3"),
-  teamProviderFactory: fixtureFactory,
+  providerFactory: fixtureFactory,
 });
 let browser: import("playwright").Browser | null = null;
 try {
@@ -122,7 +123,7 @@ try {
   await clickAndWait(page, "Mission");
   await clickAndWait(page, "Deploy again from this Run");
   await page.getByRole("heading", { name: "Change the command doctrine. Compare the consequence." }).waitFor();
-  await page.getByText("Lab and model configuration").click();
+  await page.getByText("Provider and coordination configuration").click();
   await page.selectOption('select[name="coordinationProfileId"]', "engineer-seal");
   await clickAndWait(page, "Start comparison mission");
   const secondInteraction = await finishMission(page);

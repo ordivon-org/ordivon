@@ -2,8 +2,8 @@ import type { ProtocolJson } from "./canonical.ts";
 import { protocolDigest, validateProtocolJson } from "./canonical.ts";
 import type { HostWorkloadObject } from "./model.ts";
 import { validateHostWorkloadObject } from "./validate.ts";
-import type { HostArtifact, HostJournalEvent } from "../host/model.ts";
-import type { HostStore } from "../host/store.ts";
+import type { HostArtifact, HostJournalEvent } from "./journal.ts";
+import type { HostStore } from "./journal.ts";
 
 export interface HostContractEventPayload {
   schemaVersion: 1;

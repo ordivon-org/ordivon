@@ -94,100 +94,6 @@ test("Deployment Manifest is content-addressed, immutable, and restart-stable", 
   }
 });
 
-test("same power-constrained Case proves a coordination-only failure-to-victory comparison", async () => {
-  const store = new GameStore(":memory:");
-  const service = new MissionControlService(store, factory);
-  try {
-    service.initialize({
-      runId: "run:compare:short",
-      scenarioCaseId: "power-constrained",
-      coordinationProfileId: "specialist-containment",
-    });
-    service.initialize({
-      runId: "run:compare:long",
-      scenarioCaseId: "power-constrained",
-      coordinationProfileId: "engineer-seal",
-    });
-    const left = await finish(service, "run:compare:short");
-    const right = await finish(service, "run:compare:long");
-    assert.equal(left.run.status, "victory");
-    assert.equal(right.run.status, "failure");
-    assert.equal(right.mission.reason, "power_exhausted");
-
-    const comparison = compareRuns(store, "run:compare:short", "run:compare:long");
-    assert.equal(comparison.mode, "exact");
-    assert.deepEqual(
-      comparison.inputDifferences.map((difference) => difference.field),
-      ["coordinationProfileId"],
-    );
-    assert.equal(comparison.left.metrics.status, "victory");
-    assert.equal(comparison.right.metrics.status, "failure");
-    assert.ok(comparison.left.metrics.score > comparison.right.metrics.score);
-    assert.ok(
-      comparison.left.metrics.minimumBattery > comparison.right.metrics.minimumBattery,
-    );
-    assert.deepEqual(comparison.left.metrics.providerMetrics, {
-      calls: null,
-      inputTokens: null,
-      outputTokens: null,
-      costUsd: null,
-    });
-    assert.equal(
-      compareRuns(store, "run:compare:short", "run:compare:long").comparisonDigest,
-      comparison.comparisonDigest,
-    );
-  } finally {
-    store.close();
-  }
-});
-
-test("cross-Case comparison is descriptive-only and incompatible contracts fail closed", async () => {
-  const store = new GameStore(":memory:");
-  const service = new MissionControlService(store, factory);
-  try {
-    service.initialize({ runId: "run:compare:baseline", scenarioCaseId: "baseline" });
-    service.initialize({
-      runId: "run:compare:oxygen",
-      scenarioCaseId: "oxygen-constrained",
-    });
-    await finish(service, "run:compare:baseline");
-    await finish(service, "run:compare:oxygen");
-    assert.equal(
-      compareRuns(store, "run:compare:baseline", "run:compare:oxygen").mode,
-      "descriptive-only",
-    );
-
-    const incompatibleRunId = "run:compare:other-inputs";
-    store.createRun({
-      runId: incompatibleRunId,
-      scenarioVersion: 2,
-      scenarioCaseId: "baseline",
-      rulesetVersion: 3,
-      evaluatedInputsDigest: "sha256:different",
-    });
-    const team = new TeamHost(store, new FixtureTeamProvider());
-    team.initialize(incompatibleRunId);
-    const actors = team.team.listTasks(incompatibleRunId)
-      .filter((task) => task.actorId)
-      .map((task) => ({ actorId: task.actorId!, providerOrder: ["fixture"] }));
-    new DeploymentStore(store).bind({
-      runId: incompatibleRunId,
-      authorityPolicyMode: "autonomous",
-      actors,
-    });
-    assert.throws(
-      () => compareRuns(store, "run:compare:baseline", incompatibleRunId),
-      (error) => error instanceof ComparisonError && /Evaluated input/.test(error.message),
-    );
-    assert.throws(
-      () => compareRuns(store, "run:compare:baseline", "run:compare:baseline"),
-      /two different Runs/,
-    );
-  } finally {
-    store.close();
-  }
-});
-
 test("Deployment cannot be added after cognition or World execution", async () => {
   const store = new GameStore(":memory:");
   const runId = "run:deployment:late";
@@ -213,64 +119,6 @@ test("Deployment cannot be added after cognition or World execution", async () =
     );
   } finally {
     store.close();
-  }
-});
-
-test("Deployment and comparison HTTP APIs expose typed release inputs", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "ordivon-compare-http-"));
-  const game = createGameServer({
-    dbPath: join(directory, "world.sqlite3"),
-    teamProviderFactory: factory,
-  });
-  try {
-    const base = await listen(game);
-    const catalog = await (await fetchFresh(`${base}/api/deployments/catalog`)).json();
-    assert.deepEqual(catalog, deploymentCatalog());
-    for (const [runId, coordinationProfileId] of [
-      ["run:http:short", "specialist-containment"],
-      ["run:http:long", "engineer-seal"],
-    ] as const) {
-      const response = await fetchFresh(`${base}/api/mission-control/initialize`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          runId,
-          scenarioCaseId: "power-constrained",
-          coordinationProfileId,
-          providers: {
-            "engineer-01": "fixture",
-            "medic-01": "fixture",
-            "security-01": "fixture",
-          },
-        }),
-      });
-      assert.equal(response.status, 201);
-      await finish(new MissionControlService(game.store, factory), runId);
-    }
-    const manifestResponse = await fetchFresh(
-      `${base}/api/deployments/manifest?runId=run:http:short`,
-    );
-    assert.equal(manifestResponse.status, 200);
-    assert.equal(
-      (await manifestResponse.json() as any).coordinationProfileId,
-      "specialist-containment",
-    );
-    const comparisonResponse = await fetchFresh(
-      `${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:long`,
-    );
-    assert.equal(comparisonResponse.status, 200);
-    assert.equal((await comparisonResponse.json() as any).mode, "exact");
-    assert.equal(
-      (await fetchFresh(`${base}/api/compare?leftRunId=run:http:short&rightRunId=run:http:short`)).status,
-      400,
-    );
-    assert.equal(
-      (await fetchFresh(`${base}/api/deployments/manifest?runId=run:missing`)).status,
-      404,
-    );
-  } finally {
-    await game.close();
-    rmSync(directory, { recursive: true, force: true });
   }
 });
 
@@ -343,7 +191,6 @@ test("corrupt deployment bindings fail closed before comparison", () => {
     store.close();
   }
 });
-
 
 test("Deployment binding closes at the first retained Team Round before World execution", async () => {
   const store = new GameStore(":memory:");

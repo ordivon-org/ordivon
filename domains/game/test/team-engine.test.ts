@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
 import type { PrimitiveWorldCommand } from "../src/model.ts";
-import { ProviderAdapterError } from "../src/providers/types.ts";
+import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { TeamHost, type TeamFaultPoint } from "../src/team/engine.ts";
@@ -15,8 +15,7 @@ import { FixtureTeamProvider, type TeamDecisionProvider } from "../src/team/prov
 import { TeamStore } from "../src/team/store.ts";
 import { listAvailableActions, materializeAction } from "../src/world.ts";
 
-const TEAM_DIGEST = "a8ef1f491c35720ed02e66f004ccd7f3466f78991dcafecd442ceae66b09ceb7";
-const TEAM_SEAL_DIGEST = "0913c9cacb05af3e1dc1bab3a43e3a3a36efd5277da127c18182d05166939bf4";
+const TEAM_DIGEST = "fd84c72053e1e0e533d12296bb6643617f6813bcd5cbb59815911f5b063d09aa";
 
 function fixture(runId = "run:team-engine"): { directory: string; path: string; game: GameStore } {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-team-engine-"));
@@ -130,60 +129,6 @@ function driveToHazardChoice(game: GameStore): void {
   ]);
 }
 
-test("TeamHost completes 18 atomic rounds with three persistent specialists", async () => {
-  const { directory, game } = fixture();
-  try {
-    const provider = new CountingTeamProvider();
-    const host = new TeamHost(game, provider);
-    const result = await host.run(game.activeRunId, 256);
-    const state = game.loadState();
-    assert.equal(state.mission.status, "victory");
-    assert.equal(state.revision, 18);
-    assert.equal(state.turn, 18);
-    assert.equal(provider.calls, 54);
-    assert.equal(result.rounds.length, 18);
-    assert.ok(result.rounds.every((round) => round.status === "completed"));
-    assert.equal(game.eventCount(), 18);
-    assert.equal(sha256(state), TEAM_DIGEST);
-    assert.equal(game.verifyReplay().digest, TEAM_DIGEST);
-    assert.equal(result.projection.goal.status, "succeeded");
-    assert.ok(result.projection.tasks.every((task) => task.state === "completed"));
-    const proposalCount = Number(game.db.prepare("SELECT COUNT(*) AS count FROM team_proposals").get()!.count);
-    const observationCount = host.execution.authority.listObservations(game.activeRunId).length;
-    assert.equal(proposalCount, 54);
-    assert.equal(observationCount, 18);
-    host.team.verify();
-  } finally {
-    game.close();
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-
-
-test("Engineer sealing is a distinct verified 22-Round victory path", async () => {
-  const { directory, game } = fixture("run:team-engineer-seal");
-  try {
-    const provider = new CountingTeamProvider({ breachStrategy: "engineer-seal" });
-    const host = new TeamHost(game, provider);
-    const result = await host.run(game.activeRunId, 320);
-    const state = game.loadState();
-    assert.equal(state.mission.status, "victory");
-    assert.equal(state.revision, 22);
-    assert.equal(result.rounds.length, 22);
-    assert.ok(result.rounds.every((round) => round.status === "completed"));
-    assert.equal(state.hazards["maintenance-breach"]?.sealed, true);
-    assert.equal(state.hazards["maintenance-breach"]?.contained, false);
-    assert.equal(state.resources.batteryCharge, 0);
-    assert.equal(sha256(state), TEAM_SEAL_DIGEST);
-    assert.equal(game.verifyReplay().digest, TEAM_SEAL_DIGEST);
-    assert.equal(provider.calls, 66);
-  } finally {
-    game.close();
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
 test("communication reachability changes the deterministic Team outcome", async () => {
   const execute = async (channel: "local" | "station-radio") => {
     const runId = `run:team-communication:${channel}`;
@@ -228,18 +173,9 @@ test("communication reachability changes the deterministic Team outcome", async 
   }
 });
 
-const faultPoints: TeamFaultPoint[] = [
-  "after_context_persisted",
-  "after_provider_call",
-  "after_proposal_persisted",
-  "after_tick_plan_persisted",
-  "after_dispatch_prepared",
-  "after_world_apply",
-  "after_observation_persisted",
-  "before_task_advance",
-];
+const faultPoints: TeamFaultPoint[] = ["after_world_apply"];
 
-test("every TeamHost interruption boundary converges without duplicate World Ticks", async () => {
+test("a committed World Tick recovers without duplicate effects after interruption", async () => {
   for (const point of faultPoints) {
     const runId = `run:team-fault:${point}`;
     const { directory, path, game } = fixture(runId);

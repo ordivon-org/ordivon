@@ -1,7 +1,7 @@
-import { sha256 } from "./digest.ts";
-import type { AvailableAction, WorldEvent, WorldState } from "./model.ts";
-import { ENGINEER_ID, initialWorld, isOperational, POWER_JUNCTION_ID } from "./scenario.ts";
-import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "./world.ts";
+import { sha256 } from "../../src/digest.ts";
+import type { AvailableAction, WorldEvent, WorldState } from "../../src/model.ts";
+import { ENGINEER_ID, initialTeamWorld, isOperational, POWER_JUNCTION_ID } from "../../src/scenario.ts";
+import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "../../src/world.ts";
 
 export interface ScriptedPolicy {
   name: string;
@@ -208,7 +208,7 @@ export const communicationsFirstPolicy: ScriptedPolicy = {
 
 export function runPolicy(
   policy: ScriptedPolicy,
-  genesis: WorldState = initialWorld(),
+  genesis: WorldState = initialTeamWorld(),
   maximumSteps = 64,
 ): PolicyRun {
   let state = structuredClone(genesis);

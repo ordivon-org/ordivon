@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { recoveryPolicy } from "../src/policies.ts";
+import { recoveryPolicy } from "./support/world-policies.ts";
 import { GameStore, type StorageFaultPoint } from "../src/storage.ts";
 import { materializeAction } from "../src/world.ts";
 

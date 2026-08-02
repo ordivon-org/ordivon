@@ -19,12 +19,10 @@ import {
   assertWorldInvariants,
   ENGINEER_ID,
   evaluateMission,
-  initialWorld,
   isOperational,
   POWER_JUNCTION_ID,
 } from "./scenario.ts";
 
-export { initialWorld } from "./scenario.ts";
 export type {
   ApplyResult,
   AvailableAction,
@@ -359,38 +357,6 @@ function diffState(before: WorldState, after: WorldState): StateChange[] {
   return changes;
 }
 
-export function applyWorldCommand(state: WorldState, command: WorldCommand): ApplyResult {
-  assertWorldInvariants(state);
-  const validation = validateWorldCommand(state, command);
-  if (validation) return reject(state, validation.code, validation.reason);
-
-  const beforeDigest = sha256(state);
-  const next = structuredClone(state);
-  applyActionMutation(next, command);
-  next.revision += 1;
-  next.turn += 1;
-  advanceEnvironment(next);
-  evaluateMission(next);
-  assertWorldInvariants(next);
-  const afterDigest = sha256(next);
-
-  const event: WorldEvent = {
-    eventId: `event:${command.commandId}`,
-    commandId: command.commandId,
-    commandKind: command.kind,
-    actorId: command.actorId,
-    worldRevision: next.revision,
-    turn: next.turn,
-    beforeDigest,
-    afterDigest,
-    changes: diffState(state, next),
-    missionStatus: next.mission.status,
-    missionReason: next.mission.reason,
-  };
-
-  return { status: "accepted", state: next, event };
-}
-
 function draft<T extends WorldCommandDraft>(command: T): T {
   return command;
 }
@@ -474,65 +440,6 @@ export function shortestPath(state: WorldState, start: string, target: string): 
   return null;
 }
 
-export function applyWorldTick(
-  state: WorldState,
-  batch: import("./model.ts").TickBatch,
-): import("./model.ts").ApplyTickResult {
-  if (typeof batch.tickId !== "string" || batch.tickId.length === 0) {
-    return { status: "rejected", state, code: "invalid_tick", reason: "tickId must be non-empty" };
-  }
-  if (batch.expectedWorldRevision !== state.revision) {
-    return {
-      status: "rejected",
-      state,
-      code: "stale_revision",
-      reason: `expected world revision ${batch.expectedWorldRevision}, current revision is ${state.revision}`,
-    };
-  }
-  if (batch.intents.length !== 1) {
-    return {
-      status: "rejected",
-      state,
-      code: "invalid_tick",
-      reason: "station-zero-core v1 accepts exactly one intent per simulation tick",
-    };
-  }
-  const intent = batch.intents[0];
-  if (!intent || !Number.isSafeInteger(intent.commandSequence) || intent.commandSequence < 0) {
-    return {
-      status: "rejected",
-      state,
-      code: "invalid_tick",
-      reason: "intent commandSequence must be a non-negative integer",
-    };
-  }
-  if (intent.command.expectedRevision !== batch.expectedWorldRevision) {
-    return {
-      status: "rejected",
-      state,
-      code: "stale_revision",
-      reason: "intent revision does not match the tick revision",
-    };
-  }
-
-  const result = applyWorldCommand(state, intent.command);
-  if (result.status === "rejected") return result;
-  return {
-    status: "accepted",
-    state: result.state,
-    journalEvents: [
-      {
-        tickId: batch.tickId,
-        commandSequence: intent.commandSequence,
-        simulationTick: result.state.turn,
-        worldRevision: result.state.revision,
-        event: result.event,
-      },
-    ],
-  };
-}
-
-
 function mutableTarget(command: PrimitiveWorldCommand): string | null {
   switch (command.kind) {
     case "repair_system":
@@ -582,7 +489,7 @@ function teamConflict(state: WorldState, commands: PrimitiveWorldCommand[]): str
   return null;
 }
 
-export function applyWorldTickV3(
+export function applyWorldTick(
   state: WorldState,
   batch: import("./model.ts").TickBatch,
 ): import("./model.ts").ApplyTickResult {
@@ -706,10 +613,10 @@ export function applyWorldTickV3(
   };
 }
 
-export function applyWorldCommandV3(state: WorldState, command: WorldCommand): ApplyResult {
+export function applyWorldCommand(state: WorldState, command: WorldCommand): ApplyResult {
   const commands = command.kind === "team_tick" ? command.intents : [command];
   const tickId = command.kind === "team_tick" ? command.tickId : `tick:${command.commandId}`;
-  const result = applyWorldTickV3(state, {
+  const result = applyWorldTick(state, {
     tickId,
     expectedWorldRevision: command.expectedRevision,
     intents: commands.map((intent, index) => ({ commandSequence: index, command: intent })),
@@ -725,38 +632,4 @@ export function applyWorldCommandV3(state: WorldState, command: WorldCommand): A
   const event = result.journalEvents[0]?.event;
   if (!event) return { status: "rejected", state, code: "invalid_command", reason: "Ruleset v3 produced no TickEvent" };
   return { status: "accepted", state: result.state, event };
-}
-
-
-export function applyWorldCommandV2(state: WorldState, command: WorldCommand): ApplyResult {
-  const result = applyWorldCommand(state, command);
-  if (result.status !== "accepted") return result;
-  return {
-    status: "accepted",
-    state: result.state,
-    event: enrichWorldEvent(state, result.state, command, result.event),
-  };
-}
-
-export function applyWorldTickV2(
-  state: WorldState,
-  batch: import("./model.ts").TickBatch,
-): import("./model.ts").ApplyTickResult {
-  const result = applyWorldTick(state, batch);
-  if (result.status !== "accepted") return result;
-  const intent = batch.intents[0];
-  const record = result.journalEvents[0];
-  if (!intent || !record) {
-    return { status: "rejected", state, code: "invalid_tick", reason: "accepted v1 tick lacked one intent or event" };
-  }
-  return {
-    status: "accepted",
-    state: result.state,
-    journalEvents: [
-      {
-        ...record,
-        event: enrichWorldEvent(state, result.state, intent.command, record.event),
-      },
-    ],
-  };
 }

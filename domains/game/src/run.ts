@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { MissionStatus, WorldState } from "./model.ts";
-import { currentPackageIdentity } from "./release/inputs.ts";
+import { CURRENT_BUILD } from "./build.ts";
 
 export const DEFAULT_RUN_ID = "run:default";
-export const CURRENT_BUILD = currentPackageIdentity();
 
 export interface RunMetadata {
   runId: string;

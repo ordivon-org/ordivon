@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { canonicalJson, sha256 } from "../src/digest.ts";
-import { recoveryPolicy } from "../src/policies.ts";
+import { recoveryPolicy } from "./support/world-policies.ts";
 import { GameStore, StorageError } from "../src/storage.ts";
 import { materializeAction } from "../src/world.ts";
 
@@ -68,24 +68,6 @@ test("an invalid SQLite file maps to storage_corrupt", () => {
   }
 });
 
-test("legacy raw WorldEvent rows are adapted at the read boundary", () => {
-  const { directory, path } = temp();
-  try {
-    const store = new GameStore(path);
-    applyOne(store);
-    const envelope = store.db.prepare("SELECT event_json FROM events WHERE event_sequence = 0").get() as { event_json: string };
-    const raw = (JSON.parse(envelope.event_json) as { event: unknown }).event;
-    store.db.prepare("UPDATE events SET event_json = ? WHERE event_sequence = 0").run(canonicalJson(raw));
-    const record = store.journalEvents()[0];
-    assert.equal(record?.tickId, "legacy:run:default:0");
-    assert.equal(record?.commandSequence, 0);
-    assert.equal(record?.event.commandKind, "move");
-    store.close();
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
 test("a stale persisted command rolls back and returns a typed world rejection", () => {
   const { directory, path } = temp();
   try {
@@ -135,7 +117,6 @@ test("a validly hashed but incompatible Genesis is rejected by replay digests", 
   }
 });
 
-
 test("individually valid Command and Event chains still reject cross-stream identity mismatch", () => {
   const { directory, path } = temp();
   try {
@@ -160,29 +141,6 @@ test("individually valid Command and Event chains still reject cross-stream iden
       .run(commandId, digest);
     corrupt(() => store.verifyStream());
     store.close();
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-
-test("legacy constructor options and custom Run metadata resolve deterministically", () => {
-  const { directory, path } = temp();
-  try {
-    const first = new GameStore(path);
-    first.close();
-    const reopened = new GameStore(path, "run:missing");
-    assert.equal(reopened.activeRunId, "run:default");
-    const custom = reopened.createRun({
-      seed: "custom-seed",
-      createdWithBuild: "test-build",
-    });
-    assert.equal(custom.seed, "custom-seed");
-    assert.equal(custom.createdWithBuild, "test-build");
-    assert.match(custom.runId, /^run:/);
-    assert.throws(() => reopened.setActiveRun("run:unknown"), /unknown run/);
-    assert.throws(() => reopened.recentJournalEvents(0), /limit must be positive/);
-    reopened.close();
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

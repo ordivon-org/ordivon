@@ -8,16 +8,16 @@ import fc, { type Command } from "fast-check";
 import { sha256 } from "../src/digest.ts";
 import type { WorldState } from "../src/model.ts";
 import { resolveRuleset } from "../src/registry.ts";
-import { assertWorldInvariants, initialWorld } from "../src/scenario.ts";
+import { assertWorldInvariants, initialTeamWorld } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { listAvailableActions, materializeAction } from "../src/world.ts";
 
-const ruleset = resolveRuleset("station-zero-core", 2);
+const ruleset = resolveRuleset("station-zero-core", 3);
 
 test("property: arbitrary legal action sequences preserve all world invariants", () => {
   fc.assert(
     fc.property(fc.array(fc.nat(), { maxLength: 45 }), (choices) => {
-      let state = initialWorld();
+      let state = initialTeamWorld();
       for (const [step, choice] of choices.entries()) {
         if (state.mission.status !== "running") break;
         const actions = listAvailableActions(state);
@@ -51,7 +51,7 @@ test("property: arbitrary legal action sequences preserve all world invariants",
 test("property: stale commands are rejected without changing the input", () => {
   fc.assert(
     fc.property(fc.integer({ min: 1, max: 10_000 }), (offset) => {
-      const state = initialWorld();
+      const state = initialTeamWorld();
       const before = sha256(state);
       const result = ruleset.apply(state, {
         kind: "move",
@@ -75,7 +75,7 @@ test("property: pure, persisted, recovered, and verified executions agree", () =
       const path = join(directory, "world.sqlite3");
       try {
         const store = new GameStore(path);
-        let pure = initialWorld();
+        let pure = initialTeamWorld();
         for (const [step, choice] of choices.entries()) {
           if (pure.mission.status !== "running") break;
           const actions = listAvailableActions(pure);
@@ -251,7 +251,7 @@ test("model-based: movement-only world matches an independent reference model", 
             status: "running" as const,
             reason: null,
           },
-          real: { state: initialWorld() },
+          real: { state: initialTeamWorld() },
         }),
         commands,
       );

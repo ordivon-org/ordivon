@@ -1,5 +1,5 @@
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
-import { applyWorldTickV3 } from "../world.ts";
+import { applyWorldTick } from "../world.ts";
 import type { ActionProposal, AuthorityPolicyMode } from "../team/model.ts";
 import type {
   DoctrineId,
@@ -95,7 +95,7 @@ function objectiveSnapshot(state: WorldState): Record<string, boolean> {
 }
 
 export function forecastCommands(state: WorldState, commands: PrimitiveWorldCommand[], summary: string): TickForecast {
-  const result = applyWorldTickV3(state, {
+  const result = applyWorldTick(state, {
     tickId: `forecast:${state.revision}:${commands.map((command) => command.commandId).join(":") || "wait"}`,
     expectedWorldRevision: state.revision,
     intents: commands.map((command, commandSequence) => ({ commandSequence, command })),

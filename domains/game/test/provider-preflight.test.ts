@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { createMissionControlCatalog } from "../src/mission-control/catalog.ts";
-import { providerPreflight } from "../src/providers/preflight.ts";
+import { providerPreflight } from "../src/team/provider-preflight.ts";
 
 function executable(directory: string, name: string): string {
   const path = join(directory, name);

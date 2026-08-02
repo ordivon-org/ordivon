@@ -1,5 +1,5 @@
 import { canonicalJson, sha256 } from "../digest.ts";
-import { HostStore } from "../host/store.ts";
+import { HostStore } from "../host-contract/journal.ts";
 import type { GameStore } from "../storage.ts";
 import { teamCognitionStarted } from "../team/execution-store.ts";
 import type { AuthorityPolicyMode } from "../team/model.ts";

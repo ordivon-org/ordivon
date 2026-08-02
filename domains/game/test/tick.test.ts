@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { initialWorld } from "../src/scenario.ts";
+import { initialTeamWorld } from "../src/scenario.ts";
 import { applyWorldTick, listAvailableActions, materializeAction } from "../src/world.ts";
 
 test("one intent advances one simulation tick and one world revision", () => {
-  const state = initialWorld();
+  const state = initialTeamWorld();
   const action = listAvailableActions(state).find((candidate) => candidate.actionId === "move:power-junction");
   assert.ok(action);
   const command = materializeAction(action, "tick-one");
@@ -25,8 +25,8 @@ test("one intent advances one simulation tick and one world revision", () => {
   assert.equal(result.journalEvents[0]?.tickId, "tick:test:1");
 });
 
-test("multi-intent batches fail closed until the M3 conflict model exists", () => {
-  const state = initialWorld();
+test("conflicting multi-intent batches fail closed atomically", () => {
+  const state = initialTeamWorld();
   const action = listAvailableActions(state).find((candidate) => candidate.actionId === "move:power-junction");
   assert.ok(action);
   const command = materializeAction(action, "tick-multi");
@@ -40,12 +40,12 @@ test("multi-intent batches fail closed until the M3 conflict model exists", () =
     ],
   });
   assert.equal(result.status, "rejected");
-  assert.equal(result.status === "rejected" ? result.code : null, "invalid_tick");
+  assert.equal(result.status === "rejected" ? result.code : null, "conflicting_intents");
   assert.equal(sha256(state), before);
 });
 
 test("tick and intent revisions must agree", () => {
-  const state = initialWorld();
+  const state = initialTeamWorld();
   const action = listAvailableActions(state).find((candidate) => candidate.actionId === "move:power-junction");
   assert.ok(action);
   const command = materializeAction(action, "tick-stale");
@@ -56,28 +56,4 @@ test("tick and intent revisions must agree", () => {
   });
   assert.equal(result.status, "rejected");
   assert.equal(result.status === "rejected" ? result.code : null, "stale_revision");
-});
-
-
-test("legacy Tick rejects empty identity and invalid command sequence", () => {
-  const state = initialWorld();
-  const action = listAvailableActions(state).find((candidate) => candidate.actionId === "move:power-junction");
-  assert.ok(action);
-  const command = materializeAction(action, "tick-invalid-shape");
-  const emptyId = applyWorldTick(state, {
-    tickId: "",
-    expectedWorldRevision: 0,
-    intents: [{ commandSequence: 0, command }],
-  });
-  assert.equal(emptyId.status, "rejected");
-  assert.equal(emptyId.status === "rejected" ? emptyId.code : null, "invalid_tick");
-
-  const invalidSequence = applyWorldTick(state, {
-    tickId: "tick:test:invalid-sequence",
-    expectedWorldRevision: 0,
-    intents: [{ commandSequence: -1, command }],
-  });
-  assert.equal(invalidSequence.status, "rejected");
-  assert.equal(invalidSequence.status === "rejected" ? invalidSequence.code : null, "invalid_tick");
-  assert.equal(state.revision, 0);
 });

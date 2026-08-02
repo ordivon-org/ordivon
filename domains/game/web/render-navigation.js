@@ -16,6 +16,5 @@ export function renderProductNav({ surface = "mission", runId = null, compareRea
     <nav class="product-nav" aria-label="Station Zero views">
       <div><span>ORDIVON GAME</span><strong>${runId ? escapeHtml(humanize(runId)) : "Station Zero"}</strong></div>
       <div class="product-tabs">${tabs}</div>
-      <a href="/debug.html">Open Lab mode</a>
     </nav>`;
 }

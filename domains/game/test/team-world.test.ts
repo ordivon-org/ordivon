@@ -6,7 +6,7 @@ import type { PrimitiveWorldCommand, TickBatch } from "../src/model.ts";
 import { resolveRuleset, resolveScenario } from "../src/registry.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, evaluateMission, initialTeamWorld } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
-import { applyWorldCommandV3, applyWorldTickV3, listAvailableActions, materializeAction, validateWorldCommand } from "../src/world.ts";
+import { applyWorldCommand, applyWorldTick, listAvailableActions, materializeAction, validateWorldCommand } from "../src/world.ts";
 
 function command(state: ReturnType<typeof initialTeamWorld>, actorId: string, actionId: string, commandId: string): PrimitiveWorldCommand {
   const action = listAvailableActions(state, actorId).find((candidate) => candidate.actionId === actionId);
@@ -36,13 +36,13 @@ test("Scenario v2 exposes three persistent specialists with exclusive capabiliti
   assert.ok(!state.agents[SECURITY_ID]?.capabilities.includes("basic_first_aid"));
   assert.ok(state.agents[SECURITY_ID]?.capabilities.includes("contain_hazard"));
   assert.equal(state.hazards["maintenance-breach"]?.contained, false);
-  assert.equal(resolveScenario("station-zero", 2).create().scenarioId, "station-zero-m3");
+  assert.equal(resolveScenario("station-zero", 2).create().scenarioId, "station-zero");
   assert.equal(resolveRuleset("station-zero-core", 3).version, 3);
 });
 
 test("three compatible actor intents advance one simulation Tick and environment once", () => {
   const state = initialTeamWorld();
-  const result = applyWorldTickV3(state, movementBatch(state));
+  const result = applyWorldTick(state, movementBatch(state));
   if (result.status !== "accepted") throw new Error(`${result.code}: ${result.reason}`);
   assert.equal(result.state.revision, 1);
   assert.equal(result.state.turn, 1);
@@ -59,8 +59,8 @@ test("three compatible actor intents advance one simulation Tick and environment
 
 test("TickBatch result is independent from actor intent order", () => {
   const state = initialTeamWorld();
-  const forward = applyWorldTickV3(state, movementBatch(state));
-  const reverse = applyWorldTickV3(state, movementBatch(state, [SECURITY_ID, MEDIC_ID, ENGINEER_ID]));
+  const forward = applyWorldTick(state, movementBatch(state));
+  const reverse = applyWorldTick(state, movementBatch(state, [SECURITY_ID, MEDIC_ID, ENGINEER_ID]));
   assert.equal(forward.status, "accepted");
   assert.equal(reverse.status, "accepted");
   if (forward.status !== "accepted" || reverse.status !== "accepted") return;
@@ -75,7 +75,7 @@ test("same mutable target and over-allocated shared inventory reject atomically"
   assert.ok(engineer);
   engineer.inventory.sealant = 1;
   state.rooms.storage!.inventory.sealant = 0;
-  const targetConflict = applyWorldTickV3(state, {
+  const targetConflict = applyWorldTick(state, {
     tickId: "conflict-hazard",
     expectedWorldRevision: 0,
     intents: [
@@ -92,7 +92,7 @@ test("same mutable target and over-allocated shared inventory reject atomically"
   const inventoryState = initialTeamWorld();
   inventoryState.agents[MEDIC_ID]!.location = "medical-bay";
   inventoryState.agents[SECURITY_ID]!.location = "medical-bay";
-  const inventoryConflict = applyWorldTickV3(inventoryState, {
+  const inventoryConflict = applyWorldTick(inventoryState, {
     tickId: "conflict-inventory",
     expectedWorldRevision: 0,
     intents: [
@@ -133,7 +133,7 @@ test("Ruleset v3 parses and verifies contain_hazard and synthetic team_tick comm
   const state = initialTeamWorld();
   state.agents[SECURITY_ID]!.location = "maintenance";
   const contain = command(state, SECURITY_ID, "contain:maintenance-breach", "contain-success");
-  const result = applyWorldTickV3(state, {
+  const result = applyWorldTick(state, {
     tickId: "contain-success",
     expectedWorldRevision: 0,
     intents: [{ commandSequence: 0, command: contain }],
@@ -174,7 +174,7 @@ test("Ruleset v3 rejects malformed, stale, duplicate, nested, and illegal batche
   ];
   for (const batch of cases) {
     const before = sha256(state);
-    const result = applyWorldTickV3(state, batch);
+    const result = applyWorldTick(state, batch);
     assert.equal(result.status, "rejected", batch.tickId);
     assert.equal(sha256(state), before, batch.tickId);
   }
@@ -187,14 +187,14 @@ test("Ruleset v3 rejects malformed, stale, duplicate, nested, and illegal batche
     tickId: "nested",
     intents: [moveEngineer],
   };
-  const nestedResult = applyWorldTickV3(state, {
+  const nestedResult = applyWorldTick(state, {
     tickId: "nested-outer",
     expectedWorldRevision: 0,
     intents: [{ commandSequence: 0, command: nested }],
   });
   assert.equal(nestedResult.status, "accepted");
 
-  const staleSynthetic = applyWorldTickV3(state, {
+  const staleSynthetic = applyWorldTick(state, {
     tickId: "stale-synthetic",
     expectedWorldRevision: 0,
     intents: [{ commandSequence: 0, command: { ...nested, commandId: "stale-synthetic", expectedRevision: 1 } }],
@@ -202,45 +202,13 @@ test("Ruleset v3 rejects malformed, stale, duplicate, nested, and illegal batche
   assert.equal(staleSynthetic.status, "rejected");
 });
 
-test("GameStore refuses team ticks on legacy rulesets and nested synthetic commands", () => {
-  const legacy = new GameStore(":memory:");
-  const state = legacy.loadState();
-  const legacyResult = legacy.applyTeamTick({
-    tickId: "legacy-team",
-    expectedWorldRevision: 0,
-    intents: [{ commandSequence: 0, command: command(state as ReturnType<typeof initialTeamWorld>, ENGINEER_ID, "move:power-junction", "legacy-move") }],
-  });
-  assert.equal(legacyResult.result.status, "rejected");
-  legacy.close();
-
-  const store = new GameStore(":memory:");
-  const run = store.createRun({ runId: "run:nested-team", scenarioVersion: 2, rulesetVersion: 3 });
-  const teamState = store.loadState(run.runId);
-  const move = command(teamState as ReturnType<typeof initialTeamWorld>, ENGINEER_ID, "move:power-junction", "nested-child");
-  const nestedResult = store.applyTeamTick({
-    tickId: "nested-store",
-    expectedWorldRevision: 0,
-    intents: [{ commandSequence: 0, command: {
-      kind: "team_tick",
-      commandId: "nested-store-command",
-      actorId: "team-coordinator",
-      expectedRevision: 0,
-      tickId: "nested-store-inner",
-      intents: [move],
-    } }],
-  }, run.runId);
-  assert.equal(nestedResult.result.status, "rejected");
-  store.close();
-});
-
-
 test("v3 command wrapper preserves direct team admission and rejection boundaries", () => {
   const state = initialTeamWorld();
   const move = command(state, ENGINEER_ID, "move:power-junction", "wrapper-move");
-  const direct = applyWorldCommandV3(state, move);
+  const direct = applyWorldCommand(state, move);
   assert.equal(direct.status, "accepted");
 
-  const stale = applyWorldCommandV3(state, { ...move, commandId: "wrapper-stale", expectedRevision: 1 });
+  const stale = applyWorldCommand(state, { ...move, commandId: "wrapper-stale", expectedRevision: 1 });
   assert.equal(stale.status, "rejected");
   assert.equal(stale.status === "rejected" ? stale.code : null, "stale_revision");
 
@@ -256,7 +224,7 @@ test("v3 command wrapper preserves direct team admission and rejection boundarie
     ],
   };
   assert.equal(validateWorldCommand(state, teamCommand)?.code, "invalid_command");
-  const team = applyWorldCommandV3(state, teamCommand);
+  const team = applyWorldCommand(state, teamCommand);
   assert.equal(team.status, "accepted");
   assert.equal(team.status === "accepted" ? team.event.intentReceipts?.length : 0, 2);
 });
