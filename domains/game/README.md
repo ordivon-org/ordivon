@@ -61,6 +61,18 @@ Runtime dependencies: none
 
 Only this Scenario and Ruleset are supported. Older executable paths, compatibility APIs, migration layers, milestone fixtures, and release-era evidence have been removed from the repository.
 
+## Frozen next contract
+
+P0 for the next Station Zero form is retained under `src/station-zero-v3/` and documented in [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md).
+
+```text
+Target Scenario: station-zero@3
+Target Ruleset: station-zero-core@4
+Target form: three-faction deterministic turn-based tactical encounter
+```
+
+This is a tested design contract, not an executable registration. `src/registry.ts`, the HTTP service, and the browser continue to run only the current v2/v3 contract until a P1 reducer proves the new Turn semantics.
+
 ## Run
 
 Requirements:
@@ -126,6 +138,9 @@ src/replay/, src/deployment/, src/comparison/
 
 src/server.ts, web/
     product HTTP service and browser interface
+
+src/station-zero-v3/, docs/STATION_ZERO_V3_P0.md
+    frozen next-contract types, content, fixed Genesis, and Turn admission rules; not executable yet
 
 test/, scripts/e2e-first-playable.ts
     current-contract verification and one complete browser journey

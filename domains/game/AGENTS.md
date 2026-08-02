@@ -23,6 +23,16 @@ station-zero-core@3
 Engineer + Medic + Security
 ```
 
+The frozen non-executable P0 target is:
+
+```text
+station-zero@3
+station-zero-core@4
+Rescue vs Pirate vs Swarm
+```
+
+Its sole source is `src/station-zero-v3/` plus `docs/STATION_ZERO_V3_P0.md`. Do not register, persist, serve, or render this target until P1 supplies a deterministic reducer and replay-complete Turn evidence.
+
 ## Hard boundaries
 
 1. The Game World is authoritative for all physical, numerical, temporal, and terminal state.
@@ -37,6 +47,10 @@ Engineer + Medic + Security
 10. Materialized indexes and projections must remain rebuildable from their authority and must be point-validated before use.
 11. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
 12. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
+13. The v3 P0 contract is Station Zero-specific. Do not generalize it into a tactical, RPG, roguelite, or simulation platform.
+14. P1 must distinguish a correctly resolved but unsuccessful Intent from execution or verification failure.
+15. Faction knowledge is authoritative gameplay state; projections and Agent Contexts must never read hidden World truth directly.
+16. A normal local combat invalidation must not roll back an otherwise valid committed Turn.
 
 ## Working method
 
@@ -78,5 +92,6 @@ A meaningful change should state:
 - `docs/PRODUCT.md` defines the Station Zero product.
 - `docs/ARCHITECTURE.md` defines ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
+- `docs/STATION_ZERO_V3_P0.md` defines the frozen next encounter contract without making it executable.
 - GitHub Issues own active work and discussion.
 - Git history owns deleted implementation history.
