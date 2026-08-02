@@ -284,7 +284,16 @@ export class MissionControlService {
         if (!isMissionProviderName(command.provider)) throw new TypeError("unsupported Team Provider");
         const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
         if (!task) throw new TypeError("no matching Actor Task");
-        return team.transitionTask(task.taskId, { providerOrder: [command.provider], preparedContextDigest: null }, "team.task-provider-updated", { actorId: command.actorId, provider: command.provider });
+        const recoveringProviderWait = task.control.mode === "active" && task.wait?.kind === "provider";
+        return team.transitionTask(task.taskId, {
+          providerOrder: [command.provider],
+          preparedContextDigest: null,
+          ...(recoveringProviderWait ? { state: "ready" as const, admittedProposalId: null, wait: null } : {}),
+        }, "team.task-provider-updated", {
+          actorId: command.actorId,
+          provider: command.provider,
+          recoveredProviderWait: recoveringProviderWait,
+        });
       }
       case "set-authority-policy": return team.saveConfiguration(command.policyMode, runId);
       case "send-message": return team.sendMessage({

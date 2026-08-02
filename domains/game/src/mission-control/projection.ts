@@ -306,7 +306,9 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
       consequence: "This specialist will not contribute a verified action until the wait clears or the player intervenes.",
       urgency: urgency(state),
       expiresAtTick: null,
-      commands: task.control.mode === "paused" ? [{ action: "resume", actorId: task.actorId! }] : [],
+      commands: task.wait?.kind === "provider" || task.control.mode === "paused"
+        ? [{ action: "resume", actorId: task.actorId! }]
+        : [],
       evidenceRefs: [task.taskId, task.wait!.subjectId],
     });
   }

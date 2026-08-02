@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { MissionControlService, type MissionProviderFactory } from "../src/mission-control/service.ts";
 import { GameStore } from "../src/storage.ts";
 import { TeamHost } from "../src/team/engine.ts";
 import { FixtureTeamProvider } from "../src/team/providers.ts";
@@ -113,6 +114,44 @@ test("Team authority and per-Actor Provider configuration survive a fresh proces
     assert.equal(host.team.getConfiguration(runId).authorityPolicyMode, "locked");
     assert.deepEqual(host.team.listTasks(runId).find((task) => task.actorId === MEDIC_ID)?.providerOrder, ["hermes", "codex"]);
     host.team.verify(runId);
+  } finally {
+    game.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("Provider replacement clears the Provider wait and returns the Actor to the ready frontier", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-provider-recovery-"));
+  const game = new GameStore(join(directory, "world.sqlite3"));
+  const failingActors = new Set<string>([SECURITY_ID]);
+  const providerFactory: MissionProviderFactory = () => new FixtureTeamProvider({ failActors: [...failingActors] });
+  try {
+    const runId = "run:provider-recovery";
+    const service = new MissionControlService(game, providerFactory);
+    service.initialize({ runId, doctrineId: "delegated-response", coordinationProfileId: "specialist-containment" });
+
+    const failed = await service.advancePlay(runId, "until-intervention", 24, 64);
+    const failureCard = failed.view.inbox.find((card) => card.kind === "provider-failure");
+    assert.ok(failureCard);
+    assert.deepEqual(failureCard.commands, [{ action: "resume", actorId: SECURITY_ID }]);
+
+    const team = new TeamHost(game, new FixtureTeamProvider()).team;
+    const before = team.listTasks(runId).find((task) => task.actorId === SECURITY_ID);
+    assert.equal(before?.state, "waiting");
+    assert.equal(before?.wait?.kind, "provider");
+
+    failingActors.clear();
+    service.command(runId, { action: "set-provider", actorId: SECURITY_ID, provider: "fixture" });
+
+    const recovered = team.listTasks(runId).find((task) => task.actorId === SECURITY_ID);
+    assert.equal(recovered?.state, "ready");
+    assert.equal(recovered?.wait, null);
+    assert.deepEqual(recovered?.providerOrder, ["fixture"]);
+
+    const next = await service.advancePlay(runId, "one-tick", 1, 64);
+    assert.notEqual(next.stopReason, "pending-intervention");
+    assert.deepEqual(next.committedRevisions, [1]);
+    game.verifyReplay(runId);
   } finally {
     game.close();
     rmSync(directory, { recursive: true, force: true });
