@@ -1,4 +1,55 @@
+---
+schema_version: 1
+id: game.station-zero-v3.execution
+title: Station Zero v3 — P2 durable Turn execution
+type: architecture
+profile: engineering
+lifecycle: accepted
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - designer
+  - builder
+  - operator
+  - agent
+updated: 2026-08-03
+summary: Accepted target architecture for unregistered Station Zero v3 durable Planning, atomic Turn commit, embedded Host execution, recovery, verification, replay, and bounded Mission Control projection.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - station-zero-v3-unregistered
+related:
+  - game.station-zero-v3.encounter
+  - game.station-zero-v3.reducer
+  - game.authority
+---
 # Station Zero v3 — P2 durable Turn execution
+
+## Purpose
+
+Turn the pure v3 reducer into a durable, restart-safe execution path without allowing Planning, Host projections, Runtime-like receipts, or Mission Control views to become alternate World authorities.
+
+## Boundaries
+
+The v3 domain owns World state, Plans, Turn Batch construction, reducer semantics, World Events, and Turn Records. SQLite owns retained rows and atomic commit. The embedded Host owns Task, Effect, Dispatch, Observation, Verification, and Outcome continuity. Providers do not own plans, world state, or completion.
+
+## Components
+
+The architecture contains the v3 Store, Planning Head, faction Plan records, canonical Turn Batch, deterministic executor, embedded Host authority, World Event and Turn Record streams, recovery and historical verification, and a bounded Mission Control projection.
+
+## Data flow
+
+Genesis creates the retained Run; one Planning Head binds the current World revision; faction Plans are submitted and committed into one canonical Turn Batch; Host prepares and dispatches the deterministic executor; SQLite atomically commits the next World revision and evidence; Host reconciles the retained receipt and admits verification; Mission Control projects current progress.
+
+## Failure modes
+
+The path fails closed on stale or divergent World heads, incomplete faction Plans, mismatched commitment digests, ambiguous or repeated Batch identity, response loss without retained receipt, Host incompleteness after World commit, broken event chains, corruption, and any attempt to redispatch after an already committed Turn.
+
+## Verification
+
+Verification rebuilds history from Genesis, checks every Planning Head, submitted Plan, Batch, World Event, Turn Record, digest chain, reducer output, and Host lifecycle relationship, and confirms that bounded projections are reconstructable. The encounter contract is [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md), the reducer contract is [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md), and registration and first-playable browser evidence remain deferred to the next product stage.
 
 ## Status
 

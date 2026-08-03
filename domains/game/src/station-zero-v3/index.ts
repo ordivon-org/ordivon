@@ -1,3 +1,5 @@
+export * from "./deepseek-credentials.ts";
+export * from "./deepseek-provider.ts";
 export * from "./agent-planning.ts";
 export * from "./content.ts";
 export * from "./contracts.ts";

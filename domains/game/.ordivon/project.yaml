@@ -1,0 +1,27 @@
+schema_version: 1
+id: ordivon-game
+name: Ordivon Game
+repository: https://github.com/zycxfyh/ordivon-game
+kind: research-engineering
+default_profiles:
+  - engineering
+  - research
+  - organization
+documentation_roots:
+  - README.md
+  - AGENTS.md
+  - docs
+managed_paths:
+  - README.md
+  - docs/PRODUCT.md
+  - docs/ARCHITECTURE.md
+  - docs/VISION.md
+  - docs/STATION_ZERO_V3_P0.md
+  - docs/STATION_ZERO_V3_P1.md
+  - docs/STATION_ZERO_V3_P2.md
+  - docs/authority.md
+enforcement: strict
+maintainers:
+  - zycxfyh
+public_projection: ordivon-web
+description: Intervention-driven game worlds, deterministic rules, Agent participation, replay, and player-facing evidence.

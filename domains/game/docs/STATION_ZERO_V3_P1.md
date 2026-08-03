@@ -1,4 +1,46 @@
+---
+schema_version: 1
+id: game.station-zero-v3.reducer
+title: Station Zero v3 — P1 deterministic Turn reducer
+type: reference
+profile: engineering
+lifecycle: accepted
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - designer
+  - builder
+  - agent
+updated: 2026-08-03
+summary: Accepted target reference for the unregistered Station Zero v3 deterministic Turn reducer, ordering, combat, interaction, environment, knowledge, outcomes, and pure replay.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - station-zero-v3-unregistered
+related:
+  - game.station-zero-v3.encounter
+  - game.station-zero-v3.execution
+  - game.authority
+---
 # Station Zero v3 — P1 deterministic Turn reducer
+
+## Scope
+
+This reference defines the pure deterministic reducer that resolves one complete v3 Turn from a frozen World revision and one admitted plan per faction.
+
+## Contract
+
+The reducer validates Turn identity and faction plans, applies the fixed resolution order, resolves movement, reactions, combat, interaction, commander actions, environment, cleanup, objectives, outcomes, knowledge, World Events, and Turn Records, and produces replayable deterministic output without persistence or Provider calls.
+
+## Errors
+
+Stale revisions, invalid topology, unknown or duplicate identities, unauthorized actors or abilities, hidden targets, over-budget plans, conflicting content, and invariant violations fail before an authoritative partial result can escape.
+
+## Compatibility
+
+The reference applies only to the unregistered v3 encounter and Ruleset target. P2 persists and executes this reducer unchanged; public compatibility begins only after v3 registration replaces the current executable contract.
 
 ## Status
 
