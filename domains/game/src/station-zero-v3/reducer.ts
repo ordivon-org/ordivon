@@ -803,6 +803,15 @@ function stabilizeActor(
     resolveIntent(context, intent, "interaction", "invalidated", "stabilize_target_not_local_or_dead");
     return;
   }
+  if (target.lifeState === "incapacitated") {
+    const zone = context.state.zones[target.position.zoneId]!;
+    const activeOccupants = Object.values(context.state.actors).filter((candidate) =>
+      candidate.lifeState === "active" && candidate.position.zoneId === target.position.zoneId).length;
+    if (activeOccupants >= zone.capacity) {
+      resolveIntent(context, intent, "interaction", "contested", "stabilization_zone_capacity_lost");
+      return;
+    }
+  }
   const factIds: string[] = [];
   const beforeHealth = target.health;
   target.health = Math.min(target.maximumHealth, Math.max(25, target.health + 30));

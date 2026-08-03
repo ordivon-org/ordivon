@@ -22,15 +22,19 @@ import { TeamHermesCliProvider } from "./team/hermes-cli.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "./team/model.ts";
 import { providerPreflight } from "./team/provider-preflight.ts";
 import { TeamProviderChain } from "./team/provider-chain.ts";
+import { ProviderAdapterError } from "./team/provider-runtime.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
 import { TeamStoreError } from "./team/store.ts";
 import {
+  StationZeroV3DeepSeekProviderPool,
   StationZeroV3PlanningStoreError,
   StationZeroV3PlayService,
   StationZeroV3StorageError,
   StationZeroV3Store,
+  stationZeroV3DeepSeekCredentialSources,
   type StationZeroV3AgentProviderFactory,
   type StationZeroV3CommanderOrderPatch,
+  type StationZeroV3DeepSeekThinkingMode,
 } from "./station-zero-v3/index.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
@@ -438,6 +442,9 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         error.code === "station_zero_v3_busy" ? 503 : error.code === "station_zero_v3_constraint" ? 409 : 500,
         { error: error.code, message: error.message });
       else if (error instanceof StorageError) sendJson(response, error.code === "storage_busy" ? 503 : 500, { error: error.code, message: error.message });
+      else if (error instanceof ProviderAdapterError) sendJson(response,
+        error.code === "timeout" ? 504 : ["unavailable", "process_failed"].includes(error.code) ? 503 : 502,
+        { error: `provider_${error.code}`, message: error.message });
       else if (error instanceof TypeError || error instanceof SyntaxError || error instanceof URIError) sendJson(response, 400, { error: "invalid_request", message: error.message });
       else sendJson(response, 500, { error: "internal_error", message: error instanceof Error ? error.message : String(error) });
     }
@@ -461,11 +468,36 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const port = Number(process.env.PORT ?? 4173);
+  const v3ProviderMode = process.env.ORDIVON_GAME_V3_PROVIDER ?? "fixture";
+  if (!["fixture", "deepseek"].includes(v3ProviderMode)) throw new TypeError(`unsupported ORDIVON_GAME_V3_PROVIDER: ${v3ProviderMode}`);
+  const thinkingMode = (process.env.ORDIVON_GAME_V3_DEEPSEEK_THINKING ?? "disabled") as StationZeroV3DeepSeekThinkingMode;
+  if (!["disabled", "enabled"].includes(thinkingMode)) throw new TypeError(`unsupported DeepSeek thinking mode: ${thinkingMode}`);
+  const v3Pool = v3ProviderMode === "deepseek" ? new StationZeroV3DeepSeekProviderPool({
+    credentialSources: stationZeroV3DeepSeekCredentialSources(process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS),
+    thinkingMode,
+    timeoutMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TIMEOUT_MS ?? 30_000),
+    maxTokens: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_TOKENS ?? (thinkingMode === "enabled" ? 2_048 : 512)),
+    temperature: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TEMPERATURE ?? 0.1),
+    maximumConcurrencyPerCredential: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_CONCURRENCY ?? 4),
+    retryBaseDelayMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RETRY_BASE_DELAY_MS ?? 1_000),
+    credentialReloadIntervalMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RELOAD_INTERVAL_MS ?? 15_000),
+    credentialCooldownMaximumMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_COOLDOWN_MAXIMUM_MS ?? 30_000),
+    ...(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS
+      ? { maximumAttempts: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS) }
+      : {}),
+  }) : null;
   const game = createGameServer({
     dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath,
     v3DbPath: process.env.ORDIVON_GAME_V3_DB ?? defaultV3DbPath,
+    ...(v3Pool ? { v3ProviderFactory: v3Pool.providerFactory() } : {}),
   });
-  game.server.listen(port, "127.0.0.1", () => console.log(`Station Zero running at http://127.0.0.1:${port}`));
+  const v3ProviderDescription = (() => {
+    if (!v3Pool) return "fixture";
+    const snapshot = v3Pool.evidenceSnapshot();
+    const totalConcurrency = snapshot.credentials.reduce((sum, credential) => sum + credential.maximumConcurrency, 0);
+    return `${v3Pool.providerId} (${snapshot.credentials.length} credentials, ${totalConcurrency} configured concurrent calls)`;
+  })();
+  game.server.listen(port, "127.0.0.1", () => console.log(`Station Zero running at http://127.0.0.1:${port} with v3 Provider ${v3ProviderDescription}`));
   const shutdown = () => game.close().finally(() => process.exit(0));
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);

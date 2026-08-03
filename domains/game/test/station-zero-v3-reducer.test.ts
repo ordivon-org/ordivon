@@ -530,3 +530,31 @@ test("Cleanup Ability consumes Biomass and spawns a deterministic policy Actor",
   assert.ok(result.state.factionKnowledge.swarm.knownActors[spawnedId]);
   assert.ok(result.resolution.facts.some((entry) => entry.kind === "environment_changed" && entry.resourceId === "biomass"));
 });
+
+test("stabilization cannot reactivate an Actor when the Zone has no active-unit capacity", () => {
+  const state = prepareStationZeroV3Commitment(createStationZeroV3Genesis());
+  state.actors["engineer-imani"]!.position.zoneId = "junction-console";
+  state.actors["engineer-imani"]!.lifeState = "incapacitated";
+  state.actors["engineer-imani"]!.health = 0;
+  state.actors["medic-reyes"]!.position.zoneId = "junction-console";
+  state.actors["security-chen"]!.position.zoneId = "junction-console";
+  const stabilize: StationZeroActorIntent = {
+    intentId: "intent:medic:stabilize-full-zone",
+    actorId: "medic-reyes",
+    factionId: "rescue",
+    expectedWorldRevision: state.revision,
+    expectedTurn: state.encounter.turn,
+    kind: "interact",
+    operationId: "stabilize",
+    targetId: "engineer-imani",
+  };
+
+  const result = accepted(applyStationZeroV3Turn(state, batch(state, {
+    rescue: plan(state, "rescue", [stabilize]),
+  })));
+
+  assert.equal(resolution(result, stabilize.intentId).status, "contested");
+  assert.equal(resolution(result, stabilize.intentId).reason, "stabilization_zone_capacity_lost");
+  assert.equal(result.state.actors["engineer-imani"]!.lifeState, "incapacitated");
+  assert.equal(result.state.actors["engineer-imani"]!.health, 0);
+});

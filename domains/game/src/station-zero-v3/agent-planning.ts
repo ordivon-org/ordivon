@@ -1152,15 +1152,22 @@ export async function buildStationZeroV3PlanPreview(input: {
   const agentDecisions: StationZeroV3AgentDecision[] = [];
   const policyDecisions: StationZeroV3PolicyDecision[] = [];
 
-  for (const actorId of [...AGENT_ACTOR_IDS].sort()) {
-    const actor = state.actors[actorId];
-    if (!actor || actor.lifeState !== "active") continue;
-    const context = compileStationZeroV3AgentContext(state, planning, actorId, order);
-    const provider = providerFactory(actor.factionId!, actorId);
+  const highFidelityActors = [...AGENT_ACTOR_IDS].sort()
+    .map((actorId) => state.actors[actorId])
+    .filter((actor): actor is StationZeroActorState => Boolean(actor && actor.lifeState === "active"));
+  const highFidelitySettled = await Promise.allSettled(highFidelityActors.map(async (actor) => {
+    const context = compileStationZeroV3AgentContext(state, planning, actor.actorId, order);
+    const provider = providerFactory(actor.factionId!, actor.actorId);
     const decision = await provider.decide(context);
     assertStationZeroV3AgentDecision(context, decision);
-    contexts.push(context);
-    agentDecisions.push(decision);
+    return { context, decision };
+  }));
+  const rejected = highFidelitySettled.find((result) => result.status === "rejected");
+  if (rejected?.status === "rejected") throw rejected.reason;
+  for (const result of highFidelitySettled) {
+    if (result.status !== "fulfilled") continue;
+    contexts.push(result.value.context);
+    agentDecisions.push(result.value.decision);
   }
 
   const pirateDirective = (agentDecisions.find((decision) => decision.actorId === "pirate-captain-veyra")?.directiveId ?? "steal-core") as StationZeroV3PirateDirective;
