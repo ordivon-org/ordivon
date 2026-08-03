@@ -1,4 +1,42 @@
+---
+schema_version: 1
+id: game.station-zero-v3.encounter
+title: Station Zero v3 — P0 frozen encounter contract
+type: decision
+profile: engineering
+lifecycle: accepted
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - designer
+  - builder
+  - agent
+updated: 2026-08-03
+summary: Accepted target decision for the unregistered Station Zero v3 three-faction encounter, player role, deterministic turn contract, tactical space, and fixed Genesis.
+evidence_status: not_applicable
+readiness: READY
+applies_to:
+  - station-zero-v3-unregistered
+related:
+  - game.station-zero-v3.reducer
+  - game.station-zero-v3.execution
+  - game.authority
+---
 # Station Zero v3 — P0 frozen encounter contract
+
+## Context
+
+The registered Station Zero product proved intervention-driven multi-Agent play but did not yet provide the stronger adversarial tactical form, opposing factions, commander abilities, and repeatable encounter structure selected for the next implementation.
+
+## Decision
+
+Freeze one deterministic three-faction encounter contract for Rescue, Pirate, and Swarm commanders. The contract fixes player and Agent responsibilities, tactical topology, actor fidelity, turn and resolution identity, faction knowledge, content boundaries, and one reproducible Genesis before service or browser registration.
+
+## Consequences
+
+Reducer, persistence, planning, Host execution, Agent integration, and product registration must conform to this encounter contract. The phase-coded path remains the current target authority until a stable human-oriented product specification explicitly supersedes it; it does not make v3 the registered executable.
 
 ## Status
 

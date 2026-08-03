@@ -1,4 +1,56 @@
+---
+schema_version: 1
+id: game.architecture
+title: Architecture
+type: architecture
+profile: engineering
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - designer
+  - builder
+  - operator
+  - agent
+updated: 2026-08-03
+summary: Canonical architecture for the registered Station Zero executable, deterministic World authority, Team domain, embedded Host contract, Mission Control, persistence, replay, and HTTP surface.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - station-zero@2
+  - station-zero-core@3
+related:
+  - game.start
+  - game.product.station-zero
+  - game.authority
+---
 # Architecture
+
+## Purpose
+
+Connect uncertain Agent cognition to one deterministic persistent game world without allowing Provider output, presentation state, or recovery machinery to become authoritative reality.
+
+## Boundaries
+
+The Game World owns legal state and transitions; GameStore owns retained Commands, Events, snapshots, and hash chains; Team owns specialist coordination; the embedded Host adapter owns commitment evidence; Mission Control and replay are projections. The registered executable remains Station Zero v2, while v3 is an unregistered target path.
+
+## Components
+
+The executable combines Mission Control, the Station Zero Team domain, embedded Host authority, deterministic World reducer, SQLite evidence, replay and diagnosis, deployment comparison, Provider adapters, one local HTTP service, and the browser interface.
+
+## Data flow
+
+Player doctrine and interventions constrain Team Tasks and Proposals; admitted compatible intents become one atomic World Tick; World state and evidence commit together; Host Observations and Verification bind completion; Mission Control projects the next consequential boundary; replay and comparison derive from retained history.
+
+## Failure modes
+
+The architecture fails closed on unknown contract versions, stale World revisions, invalid capabilities, duplicate or conflicting actions, partial Tick mutation, invented Provider identities, missing verification, corrupted history, concurrent writer conflict, and any projection that attempts to become a second truth store.
+
+## Verification
+
+Exact behavior is verified by deterministic reducer and storage tests, hash-chain and replay checks, Host Contract evidence, Provider isolation tests, product hardening tests, `pnpm check`, and the complete browser acceptance journey. The player experience is defined in [`PRODUCT.md`](PRODUCT.md), and the authority split is recorded in [`authority.md`](authority.md). Source and tests remain stronger than prose for exact fields and transitions.
 
 ## Objective
 

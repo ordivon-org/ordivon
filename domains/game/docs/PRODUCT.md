@@ -1,4 +1,48 @@
+---
+schema_version: 1
+id: game.product.station-zero
+title: Station Zero
+type: concept
+profile: engineering
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - player
+  - designer
+  - builder
+  - agent
+updated: 2026-08-03
+summary: Canonical product definition for the registered Station Zero experience, player role, core loop, sources of play, scope, outcomes, and acceptance.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - station-zero@2
+related:
+  - game.start
+  - game.architecture
+  - game.vision
+  - game.authority
+---
 # Station Zero
+
+## Problem
+
+A conventional unit-control game does not test the central experience Ordivon Game is pursuing: delegating consequential work to capable but imperfect autonomous specialists while preserving meaningful player authority, understandable failure, and recoverable history.
+
+## Model
+
+Station Zero is an intervention-driven deterministic mission game. The player sets doctrine, Provider assignments, authority, objectives, and bounded messages; specialists act from local information; the World admits legal consequences; Mission Control interrupts only when judgment is required; replay exposes what happened and why.
+
+## Boundary
+
+This document defines the registered Station Zero product experience and acceptance criteria. It does not define every future Ordivon world, the exact implementation schema, or the unregistered v3 replacement contract.
+
+## Related work
+
+[`ARCHITECTURE.md`](ARCHITECTURE.md) defines executable ownership and persistence, [`VISION.md`](VISION.md) defines the broader Game direction, and [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md) begins the accepted v3 target specification.
 
 ## Product thesis
 

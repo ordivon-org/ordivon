@@ -1,4 +1,47 @@
+---
+schema_version: 1
+id: game.vision
+title: Ordivon Game vision
+type: concept
+profile: engineering
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - player
+  - designer
+  - researcher
+  - builder
+updated: 2026-08-03
+summary: Canonical long-range direction for authoritative interactive worlds where people and Agents play, create, cooperate, compete, and produce persistent consequence.
+evidence_status: not_applicable
+readiness: READY
+applies_to:
+  - ordivon-game
+related:
+  - game.product.station-zero
+  - game.architecture
+  - game.authority
+---
 # Ordivon Game vision
+
+## Problem
+
+Agent systems can easily become benchmarks, chat overlays, or invisible background calls rather than inhabitants of worlds worth entering. Game needs a durable direction that protects play, agency, experience, and authoritative consequence without prematurely building a universal platform.
+
+## Model
+
+Ordivon Game combines an authoritative World, meaningful human and Agent agency, a player-facing experience, and history that changes later possibilities. Different worlds may emphasize challenge, exploration, creation, relationships, or research, while preserving the separation between generated cognition and legal reality.
+
+## Boundary
+
+This vision admits possibilities and principles, not an implementation roadmap. Station Zero is the only current executable, and a second materially different world is required before shared Game infrastructure is generalized.
+
+## Related work
+
+[`PRODUCT.md`](PRODUCT.md) defines the current Station Zero experience, [`ARCHITECTURE.md`](ARCHITECTURE.md) defines the registered executable boundary, and [`authority.md`](authority.md) separates current fact from future direction.
 
 ## Thesis
 

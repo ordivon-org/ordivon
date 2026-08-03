@@ -1,8 +1,50 @@
+---
+schema_version: 1
+id: game.start
+title: Ordivon Game
+type: start
+profile: organization
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - player
+  - designer
+  - builder
+  - agent
+updated: 2026-08-03
+summary: Canonical entry to Ordivon Game, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - ordivon-game
+related:
+  - game.product.station-zero
+  - game.architecture
+  - game.vision
+  - game.authority
+---
 # Ordivon Game
+
+## Purpose
 
 **Intervention-driven worlds for people and Agents.**
 
 Ordivon Game currently ships one executable world: **Station Zero**, a deterministic multi-Agent mission game. The player commands Engineer, Medic, and Security specialists through standing doctrine and consequential interventions rather than moving units directly.
+
+## Current boundary
+
+The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, and durable execution path are accepted target specifications and implementation evidence, but they are not the public executable until registry, service, browser, and first-playable acceptance move together.
+
+## Start here
+
+- [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
+- [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
+- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), and [`P2`](docs/STATION_ZERO_V3_P2.md) define the accepted but unregistered v3 target slices.
+- [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
 ## Station Zero
 
