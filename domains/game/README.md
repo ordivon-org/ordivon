@@ -14,7 +14,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-03
+updated: 2026-08-04
 summary: Canonical entry to Ordivon Game, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
 evidence_status: verified
 readiness: READY
@@ -226,6 +226,12 @@ test/, scripts/e2e-first-playable.ts, scripts/e2e-station-zero-v3.ts
 ```
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/VISION.md`](docs/VISION.md).
+
+## Project family
+
+- [Public project directory](https://ordivon.com/projects) — current product, v3 preview status, project role, and next steps.
+- [Cross-project map](https://github.com/zycxfyh/ordivon-computing/blob/main/projects/README.md) — stable roles, repository links, and authority entry points for all nine repositories.
+- Related owners: Game owns authoritative game World state and player-facing rules; [Ordivon Host](https://github.com/zycxfyh/ordivon-host), [Harness](https://github.com/zycxfyh/ordivon-harness), and [Runtime](https://github.com/zycxfyh/ordivon-runtime) own their generic boundaries only when a Game path consumes them.
 
 ## License
 
