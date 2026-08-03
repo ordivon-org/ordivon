@@ -10,11 +10,11 @@ Target Ruleset: station-zero-core@4
 World schema: 3
 Execution status: pure reducer and replay complete
 P2 persistence and Host execution: complete
-Product registration: deferred
-Agent planning and browser play: deferred
+P3 player/Agent planning and /v3 first-playable: complete
+Current executable replacement: deferred
 ```
 
-The current product still executes only `station-zero@2 / station-zero-core@3`. P1 remains the pure reducer boundary; P2 adds the durable execution path documented in [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md).
+The root product still executes only `station-zero@2 / station-zero-core@3`. P1 remains the sole deterministic rules boundary; P2 adds durable execution and P3 adds the separate playable planning surface documented in [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) and [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md).
 
 ## Responsibility
 

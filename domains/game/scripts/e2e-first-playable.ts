@@ -21,6 +21,8 @@ function browserExecutable(): string | undefined {
   const candidates = [
     process.env.ORDIVON_CHROMIUM_EXECUTABLE,
     chromium.executablePath(),
+    "/root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell",
+    "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",

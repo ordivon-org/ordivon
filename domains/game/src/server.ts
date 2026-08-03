@@ -24,9 +24,19 @@ import { providerPreflight } from "./team/provider-preflight.ts";
 import { TeamProviderChain } from "./team/provider-chain.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
 import { TeamStoreError } from "./team/store.ts";
+import {
+  StationZeroV3PlanningStoreError,
+  StationZeroV3PlayService,
+  StationZeroV3StorageError,
+  StationZeroV3Store,
+  type StationZeroV3AgentProviderFactory,
+  type StationZeroV3CommanderOrderPatch,
+} from "./station-zero-v3/index.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
+const defaultV3WebRoot = fileURLToPath(new URL("../web-v3", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
+const defaultV3DbPath = resolve(process.cwd(), "data/station-zero-v3.sqlite3");
 const staticFiles: Record<string, { file: string; contentType: string }> = {
   "/": { file: "index.html", contentType: "text/html; charset=utf-8" },
   "/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
@@ -36,6 +46,15 @@ const staticFiles: Record<string, { file: string; contentType: string }> = {
     "render-shell.js", "render-navigation.js", "render-curves.js", "render-replay.js",
     "render-diagnosis.js", "render-compare.js",
   ].map((file) => [`/${file}`, { file, contentType: "text/javascript; charset=utf-8" }])),
+};
+
+const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
+  "/v3": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/v3/": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/v3/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/v3/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
+  "/v3/api.js": { file: "api.js", contentType: "text/javascript; charset=utf-8" },
+  "/v3/render.js": { file: "render.js", contentType: "text/javascript; charset=utf-8" },
 };
 
 function sendJson(response: ServerResponse, statusCode: number, value: unknown): void {
@@ -129,6 +148,59 @@ function parseMessageChannel(value: unknown): MessageChannel {
   throw new TypeError("unsupported Team message channel");
 }
 
+function parseV3OrderPatch(body: Record<string, unknown>): StationZeroV3CommanderOrderPatch {
+  const patch: StationZeroV3CommanderOrderPatch = {};
+  if (body.primaryObjectiveId !== undefined) {
+    const value = requiredString(body.primaryObjectiveId, "primaryObjectiveId");
+    if (!["rescue-two-civilians", "recover-research-core", "eliminate-hive-alpha"].includes(value)) {
+      throw new TypeError("unsupported Station Zero v3 primary Objective");
+    }
+    patch.primaryObjectiveId = value as NonNullable<StationZeroV3CommanderOrderPatch["primaryObjectiveId"]>;
+  }
+  if (body.posture !== undefined) {
+    const value = requiredString(body.posture, "posture");
+    if (!["cautious", "balanced", "aggressive"].includes(value)) throw new TypeError("unsupported Station Zero v3 posture");
+    patch.posture = value as NonNullable<StationZeroV3CommanderOrderPatch["posture"]>;
+  }
+  if (body.formation !== undefined) {
+    const value = requiredString(body.formation, "formation");
+    if (!["cohesive", "split"].includes(value)) throw new TypeError("unsupported Station Zero v3 formation");
+    patch.formation = value as NonNullable<StationZeroV3CommanderOrderPatch["formation"]>;
+  }
+  if (body.retreatHealthThreshold !== undefined) patch.retreatHealthThreshold = Number(body.retreatHealthThreshold);
+  if (body.lethalForce !== undefined) {
+    const value = requiredString(body.lethalForce, "lethalForce");
+    if (!["forbidden", "permitted", "preferred"].includes(value)) throw new TypeError("unsupported lethal-force policy");
+    patch.lethalForce = value as NonNullable<StationZeroV3CommanderOrderPatch["lethalForce"]>;
+  }
+  if (body.collateralPolicy !== undefined) {
+    const value = requiredString(body.collateralPolicy, "collateralPolicy");
+    if (!["forbidden", "limited", "permitted"].includes(value)) throw new TypeError("unsupported collateral policy");
+    patch.collateralPolicy = value as NonNullable<StationZeroV3CommanderOrderPatch["collateralPolicy"]>;
+  }
+  if (body.lootPolicy !== undefined) {
+    const value = requiredString(body.lootPolicy, "lootPolicy");
+    if (!["ignore", "mission-only", "opportunistic"].includes(value)) throw new TypeError("unsupported loot policy");
+    patch.lootPolicy = value as NonNullable<StationZeroV3CommanderOrderPatch["lootPolicy"]>;
+  }
+  for (const key of ["protectedActorId", "priorityTargetActorId"] as const) {
+    const value = body[key];
+    if (value !== undefined) {
+      if (value !== null && typeof value !== "string") throw new TypeError(`${key} must be a string or null`);
+      patch[key] = value as string | null;
+    }
+  }
+  if (body.commanderDirectiveId !== undefined) {
+    const value = requiredString(body.commanderDirectiveId, "commanderDirectiveId");
+    if (![
+      "hold-command", "scan-reactor", "scan-maintenance", "scan-life-support", "reroute-cooling",
+      "lock-maintenance", "emergency-uplink", "call-extraction",
+    ].includes(value)) throw new TypeError("unsupported Commander directive");
+    patch.commanderDirectiveId = value as NonNullable<StationZeroV3CommanderOrderPatch["commanderDirectiveId"]>;
+  }
+  return patch;
+}
+
 function parseCommand(body: Record<string, unknown>): MissionControlCommand {
   const action = requiredString(body.action, "Mission Control action");
   switch (action) {
@@ -167,17 +239,30 @@ export interface GameServerOptions {
   dbPath?: string;
   webRoot?: string;
   providerFactory?: MissionProviderFactory;
+  v3DbPath?: string;
+  v3WebRoot?: string;
+  v3ProviderFactory?: StationZeroV3AgentProviderFactory;
 }
 
 export interface GameServer {
   server: Server;
   store: GameStore;
+  v3Store: StationZeroV3Store;
+  v3Play: StationZeroV3PlayService;
   close(): Promise<void>;
 }
 
 export function createGameServer(options: GameServerOptions = {}): GameServer {
   const store = new GameStore(options.dbPath ?? defaultDbPath);
+  const v3DbPath = options.v3DbPath ?? (options.dbPath
+    ? options.dbPath === ":memory:" ? ":memory:" : `${options.dbPath}.v3`
+    : defaultV3DbPath);
+  const v3Store = new StationZeroV3Store(v3DbPath);
+  const v3Play = new StationZeroV3PlayService(v3Store, {
+    ...(options.v3ProviderFactory ? { providerFactory: options.v3ProviderFactory } : {}),
+  });
   const webRoot = options.webRoot ?? defaultWebRoot;
+  const v3WebRoot = options.v3WebRoot ?? defaultV3WebRoot;
   const providerFactory = options.providerFactory ?? defaultProviderFactory;
   const service = (): MissionControlService => new MissionControlService(store, providerFactory);
 
@@ -185,6 +270,59 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
     try {
       const url = new URL(request.url ?? "/", "http://localhost");
       const runId = url.searchParams.get("runId") ?? store.activeRunId;
+
+      if (request.method === "GET" && url.pathname === "/api/station-zero-v3/catalog") {
+        sendJson(response, 200, v3Play.catalog());
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/station-zero-v3/runs") {
+        sendJson(response, 200, { runs: v3Play.listRuns() });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/station-zero-v3/runs") {
+        const body = bodyRecord(await readJson(request));
+        const v3RunId = requiredString(body.runId, "runId");
+        sendJson(response, 201, v3Play.initialize({
+          runId: v3RunId,
+          ...(typeof body.seed === "string" && body.seed.trim() ? { seed: body.seed } : {}),
+        }));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/station-zero-v3/resume") {
+        const v3RunId = requiredString(url.searchParams.get("runId"), "runId");
+        sendJson(response, 200, v3Play.resume(v3RunId));
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/station-zero-v3/state") {
+        const v3RunId = requiredString(url.searchParams.get("runId"), "runId");
+        sendJson(response, 200, v3Play.state(v3RunId));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/station-zero-v3/order") {
+        const v3RunId = requiredString(url.searchParams.get("runId"), "runId");
+        sendJson(response, 200, v3Play.saveOrder(v3RunId, parseV3OrderPatch(bodyRecord(await readJson(request)))));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/station-zero-v3/preview") {
+        const v3RunId = requiredString(url.searchParams.get("runId"), "runId");
+        const generated = await v3Play.generatePreview(v3RunId);
+        sendJson(response, 200, {
+          idempotent: generated.idempotent,
+          previewId: generated.preview.previewId,
+          previewDigest: generated.preview.previewDigest,
+          view: generated.view,
+        });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/station-zero-v3/commit") {
+        const v3RunId = requiredString(url.searchParams.get("runId"), "runId");
+        const body = bodyRecord(await readJson(request));
+        sendJson(response, 200, await v3Play.commitPreview(
+          v3RunId,
+          typeof body.previewId === "string" && body.previewId.trim() ? body.previewId : undefined,
+        ));
+        return;
+      }
 
       if (request.method === "GET" && url.pathname === "/api/runs") {
         sendJson(response, 200, { activeRunId: store.activeRunId, runs: store.listRuns() });
@@ -267,6 +405,17 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
+      const v3StaticFile = v3StaticFiles[url.pathname];
+      if (request.method === "GET" && v3StaticFile) {
+        const body = await readFile(resolve(v3WebRoot, v3StaticFile.file));
+        response.writeHead(200, {
+          "content-type": v3StaticFile.contentType,
+          "content-length": body.length,
+          "cache-control": "no-store",
+        });
+        response.end(body);
+        return;
+      }
       const staticFile = staticFiles[url.pathname];
       if (request.method === "GET" && staticFile) {
         const body = await readFile(resolve(webRoot, staticFile.file));
@@ -284,6 +433,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       else if (error instanceof DeploymentError) sendJson(response, error.code === "deployment_corrupt" ? 500 : 409, { error: error.code, message: error.message });
       else if (error instanceof ComparisonError) sendJson(response, 409, { error: error.code, message: error.message });
       else if (error instanceof TeamStoreError) sendJson(response, error.code === "team_corrupt" ? 500 : 409, { error: error.code, message: error.message });
+      else if (error instanceof StationZeroV3PlanningStoreError) sendJson(response, error.code === "station_zero_v3_planning_corrupt" ? 500 : 409, { error: error.code, message: error.message });
+      else if (error instanceof StationZeroV3StorageError) sendJson(response,
+        error.code === "station_zero_v3_busy" ? 503 : error.code === "station_zero_v3_constraint" ? 409 : 500,
+        { error: error.code, message: error.message });
       else if (error instanceof StorageError) sendJson(response, error.code === "storage_busy" ? 503 : 500, { error: error.code, message: error.message });
       else if (error instanceof TypeError || error instanceof SyntaxError || error instanceof URIError) sendJson(response, 400, { error: "invalid_request", message: error.message });
       else sendJson(response, 500, { error: "internal_error", message: error instanceof Error ? error.message : String(error) });
@@ -293,10 +446,13 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
   return {
     server,
     store,
+    v3Store,
+    v3Play,
     close: () => new Promise<void>((resolveClose, reject) => {
       server.close((error) => {
         if (error) return reject(error);
         store.close();
+        v3Store.close();
         resolveClose();
       });
     }),
@@ -305,7 +461,10 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const port = Number(process.env.PORT ?? 4173);
-  const game = createGameServer({ dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath });
+  const game = createGameServer({
+    dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath,
+    v3DbPath: process.env.ORDIVON_GAME_V3_DB ?? defaultV3DbPath,
+  });
   game.server.listen(port, "127.0.0.1", () => console.log(`Station Zero running at http://127.0.0.1:${port}`));
   const shutdown = () => game.close().finally(() => process.exit(0));
   process.on("SIGINT", shutdown);

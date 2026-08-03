@@ -515,6 +515,8 @@ type ReactionIntent =
 type MoveCandidate = {
   intent: Extract<StationZeroActorIntent, { kind: "move" }>;
   actor: StationZeroActorState;
+  escortedCivilians: StationZeroActorState[];
+  footprint: number;
   fromZoneId: string;
   targetZoneId: string;
 };
@@ -539,7 +541,21 @@ function resolveMovementAndReactions(context: MutableContext, intents: StationZe
       resolveIntent(context, intent, "movement", "invalidated", "target_unreachable_in_committed_world");
       continue;
     }
-    candidates.push({ intent, actor, fromZoneId: actor.position.zoneId, targetZoneId: intent.targetZoneId });
+    const escortedCivilians = Object.values(context.state.actors)
+      .filter((candidate) =>
+        candidate.kind === "civilian" &&
+        candidate.lifeState === "active" &&
+        candidate.position.zoneId === actor.position.zoneId &&
+        candidate.statusIds.includes(`escorted-by:${actor.actorId}`))
+      .sort((left, right) => left.actorId.localeCompare(right.actorId));
+    candidates.push({
+      intent,
+      actor,
+      escortedCivilians,
+      footprint: 1 + escortedCivilians.length,
+      fromZoneId: actor.position.zoneId,
+      targetZoneId: intent.targetZoneId,
+    });
   }
 
   const winnerIds = new Set<string>();
@@ -554,10 +570,15 @@ function resolveMovementAndReactions(context: MutableContext, intents: StationZe
         right.actor.initiative - left.actor.initiative ||
         left.actor.actorId.localeCompare(right.actor.actorId) ||
         left.intent.intentId.localeCompare(right.intent.intentId));
-    contenders.forEach((candidate, index) => {
-      if (index < available) winnerIds.add(candidate.intent.intentId);
-      else resolveIntent(context, candidate.intent, "movement", "contested", "target_zone_capacity_lost");
-    });
+    let claimedCapacity = 0;
+    for (const candidate of contenders) {
+      if (claimedCapacity + candidate.footprint <= available) {
+        claimedCapacity += candidate.footprint;
+        winnerIds.add(candidate.intent.intentId);
+      } else {
+        resolveIntent(context, candidate.intent, "movement", "contested", "target_zone_capacity_lost");
+      }
+    }
   }
 
   const provisionalWinners = candidates
@@ -614,14 +635,24 @@ function resolveMovementAndReactions(context: MutableContext, intents: StationZe
       resolveIntent(context, candidate.intent, "movement", "interrupted", "movement_interrupted_by_reaction");
       continue;
     }
+    const factIds: string[] = [];
     candidate.actor.position.zoneId = candidate.targetZoneId;
-    const factId = emitFact(context, {
+    factIds.push(emitFact(context, {
       kind: "actor_moved",
       actorId: candidate.actor.actorId,
       fromZoneId: candidate.fromZoneId,
       toZoneId: candidate.targetZoneId,
-    });
-    resolveIntent(context, candidate.intent, "movement", "executed", "movement_completed", [factId]);
+    }));
+    for (const civilian of candidate.escortedCivilians) {
+      civilian.position.zoneId = candidate.targetZoneId;
+      factIds.push(emitFact(context, {
+        kind: "actor_moved",
+        actorId: civilian.actorId,
+        fromZoneId: candidate.fromZoneId,
+        toZoneId: candidate.targetZoneId,
+      }));
+    }
+    resolveIntent(context, candidate.intent, "movement", "executed", "movement_completed", factIds);
   }
 }
 

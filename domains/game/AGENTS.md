@@ -2,7 +2,7 @@
 
 ## Objective
 
-Improve the current Station Zero product without recreating deleted historical paths or anticipating a general game platform.
+Improve the current Station Zero product and its isolated v3 first-playable without recreating deleted historical paths or anticipating a general game platform.
 
 ## Current executable
 
@@ -15,7 +15,7 @@ Mission Control
 → Replay / Diagnosis / Comparison
 ```
 
-The only supported execution contract is:
+The only registered product contract is:
 
 ```text
 station-zero@2
@@ -23,33 +23,36 @@ station-zero-core@3
 Engineer + Medic + Security
 ```
 
-The unregistered v3 target is:
+The isolated v3 preview contract is:
 
 ```text
 station-zero@3
 station-zero-core@4
 Rescue vs Pirate vs Swarm
+/v3 preview surface
 ```
 
-Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, and bounded Mission Control projection live only under `src/station-zero-v3/` plus `docs/STATION_ZERO_V3_P0.md`, `docs/STATION_ZERO_V3_P1.md`, and `docs/STATION_ZERO_V3_P2.md`. Do not register, publicly serve, or render this target until P3 supplies bounded player/Agent planning and a verified first-playable browser journey.
+Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, bounded player/Agent planning, policy expansion, and first-playable browser live under `src/station-zero-v3/`, `web-v3/`, and `docs/STATION_ZERO_V3_P0.md` through `docs/STATION_ZERO_V3_P3.md`.
+
+The v3 preview is intentionally absent from `src/registry.ts` and uses its own API namespace and database. Do not replace the current root product until repeated playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
 ## Hard boundaries
 
 1. The Game World is authoritative for all physical, numerical, temporal, and terminal state.
-2. Model output is a Proposal, never a direct mutation or completion claim.
+2. Model output is a Proposal or Candidate selection, never a direct mutation or completion claim.
 3. Capability, authority, admission, execution, observation, and verification remain distinct.
-4. Team state owns Station Zero coordination; embedded Host state owns generic commitment identity.
-5. Provider sessions do not own actor identity, task continuity, World state, or replay.
-6. Mission Control is a pure bounded projection and owns no second database.
-7. Replay, diagnosis, deployment, and comparison derive from retained evidence rather than storing alternative truth.
-8. Routine deterministic execution must not require a model call.
+4. Team or faction planning state owns coordination; embedded Host state owns generic commitment identity.
+5. Provider sessions do not own actor identity, task continuity, World state, Planning state, or replay.
+6. Mission Control and Play views are pure bounded projections and own no second database.
+7. Replay, diagnosis, deployment, comparison, and Aftermath derive from retained evidence rather than storing alternative truth.
+8. Routine deterministic execution and policy-unit expansion must not require a model call.
 9. Hot-path reads use verified heads and local CAS checks; complete stream and Journal verification belongs to recovery, explicit audit, and replay boundaries.
 10. Materialized indexes and projections must remain rebuildable from their authority and must be point-validated before use.
 11. New permanent structure must own a responsibility the existing owner cannot safely handle locally.
 12. Do not restore old Scenario versions, reducers, single-Agent stacks, compatibility APIs, fixtures, milestone documents, or database migrations.
-13. The v3 contract is Station Zero-specific. Do not generalize it into a tactical, RPG, roguelite, or simulation platform.
+13. The v3 contract is Station Zero-specific. Do not generalize it into a tactical, RPG, roguelite, workflow, or simulation platform.
 14. A correctly resolved but unsuccessful Intent is not execution or verification failure.
-15. Faction knowledge is authoritative gameplay state; projections and Agent Contexts must never read hidden World truth directly.
+15. Faction Knowledge is authoritative gameplay state; projections and Agent Contexts must never read hidden World truth directly.
 16. A normal local combat invalidation must not roll back an otherwise valid committed Turn.
 17. Every accepted v3 Turn must produce exactly one Resolution per committed Intent and one content-addressed Turn Record.
 18. Equivalent Faction Plan or Intent input ordering must produce identical World, Resolution, and Record digests.
@@ -57,10 +60,19 @@ Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host
 20. Do not expose the pure v3 reducer as raw stepping or mutation controls through the product API.
 21. One Faction may retain only one immutable Plan per Planning Head; replacement requires a new World revision and Planning identity.
 22. World Event, Turn Record, World Head, Planning resolution, and Run status must commit atomically.
-23. The Embedded Host owns Task and Dispatch continuity; Station Zero owns Planning, World, Event, Record, and faction Knowledge.
+23. The Embedded Host owns Task and Dispatch continuity; Station Zero owns Planning, World, Event, Record, and Faction Knowledge.
 24. A new Planning Head must not open while the previous Turn lacks an authoritative World result or Host completion.
 25. Historical verification must reconstruct the World at each Planning revision rather than validating old Plans against the latest Head.
-26. Mission Control projections must expose enemy state only through retained player-faction Knowledge and visible Fact identities.
+26. Player projections must expose enemy state only through retained Rescue Knowledge and visible Fact identities.
+27. Commander Orders may change repeatedly only while the P2 Planning Head is open and no durable Faction Plan has been submitted.
+28. Editing a Commander Order must invalidate the active Preview reference without changing World state.
+29. Generating a Preview must not occupy any immutable P2 Faction Plan slot.
+30. A Provider may select only one Candidate already admitted in its exact Context digest; free-form prose never becomes a command.
+31. Pirate and Swarm Plan contents must remain sealed in the player projection before Turn resolution.
+32. Lower-cost policy Actors expand a leader directive deterministically and do not invoke the full Agent Provider by default.
+33. Only the active selected Preview may submit its exact three Faction Plans and cross the explicit Commit boundary.
+34. The `/v3` API and database must remain isolated from current `/api/runs`, root Mission Control, and registry identity until replacement is approved.
+35. A browser journey is evidence that a loop works, not evidence that it is fun; playtest findings must be allowed to delete or simplify P0–P3 structure.
 
 ## Working method
 
@@ -68,8 +80,8 @@ Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host
 identify a current player or World problem
 → locate the sole state owner
 → make the smallest owner-local change
-→ test success, rejection, interruption, and replay where relevant
-→ verify the browser journey when product behavior changes
+→ test success, rejection, interruption, recovery, and hidden-information boundaries
+→ verify the real browser journey when product behavior changes
 → delete replaced structure
 ```
 
@@ -81,29 +93,33 @@ A meaningful change should state:
 - which authority owns it;
 - what player or execution value it adds;
 - its failure and recovery behavior;
-- which current-contract test demonstrates it;
+- which current-contract or first-playable test demonstrates it;
 - what obsolete structure it replaces or avoids.
 
 ## Prohibited shortcuts
 
 - parsing free-form model prose into privileged commands;
 - allowing dialogue to alter World state;
-- treating provider success as verified task completion;
+- treating Provider success as verified task completion;
 - retrying an uncertain World effect under a new identity;
-- adding a second Task, World, replay, diagnosis, or product authority;
+- adding a second Task, World, replay, diagnosis, Planning, or product authority;
 - exposing internal stepping or raw mutation controls through the product API;
+- showing enemy Plan details because they exist in the retained Preview;
+- submitting Plans as a side effect of GET, rendering, or Preview generation;
+- invoking one expensive model call per low-fidelity creature;
 - preserving dead paths for historical sentiment;
 - adding generic infrastructure before a second materially different world requires it;
 - using visual polish to conceal an uninteresting play loop.
 
 ## Sources of truth
 
-- `README.md` describes the current executable and repository map.
+- `README.md` describes the registered product, v3 preview, and repository map.
 - `docs/PRODUCT.md` defines the current Station Zero product.
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
-- `docs/STATION_ZERO_V3_P0.md` defines the frozen next encounter contract.
+- `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
 - `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.
+- `docs/STATION_ZERO_V3_P3.md` defines Commander Orders, Agent Context and Candidate admission, sealed Preview, explicit Commit, policy hierarchy, and browser first-playable boundaries.
 - GitHub Issues own active work and discussion.
 - Git history owns deleted implementation history.

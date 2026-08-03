@@ -13,11 +13,11 @@ SQLite Turn persistence: complete
 Embedded Host lifecycle: complete
 Crash recovery and replay: complete
 Bounded Mission Control projection: complete
-Product registration: deferred
-Agent planning and browser play: deferred
+P3 planning and /v3 first-playable: complete
+Current executable replacement: deferred
 ```
 
-The current product still executes only `station-zero@2 / station-zero-core@3`. P2 does not register v3 in `src/registry.ts`, add public HTTP routes, alter the current browser, or invoke a cognition Provider.
+The root product still executes only `station-zero@2 / station-zero-core@3`. P2 remains the durable execution boundary; P3 uses it through the separate API and browser surface documented in [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md).
 
 ## Responsibility split
 
@@ -389,30 +389,20 @@ src/station-zero-v3/mission-control.ts
 17. canonical Batch and Planning tamper detection;
 18. independently retained Faction Plan tamper detection.
 
-## Deferred to P3
+## Implemented by P3
 
-P2 proves the durable authority path but does not yet make v3 a playable product.
-
-P3 should add the bounded planning layer:
+P3 supplies the bounded playable planning layer:
 
 ```text
-player Commander Orders
-→ Rescue specialist Agent Plans
-→ Pirate Captain Plan
-→ Hive Alpha Plan
+player Commander Order
+→ admitted high-fidelity Agent Decisions
 → deterministic policy-unit expansion
-→ canonical durable Turn execution
-→ Mission Control v3 interaction
+→ sealed three-faction Plan Preview
+→ explicit player Commit
+→ P2 canonical durable Turn execution
+→ bounded Aftermath
 ```
 
-P3 must also provide a first-playable product journey before v3 registration:
+The dedicated `/v3` surface proves process-restart recovery and a complete 14-Turn browser journey without exposing raw reducer controls, omniscient enemy state, or model-owned World mutation.
 
-- player-visible Situation and uncertainty;
-- Commander Ability and Standing Order controls;
-- explainable Agent intent previews;
-- one explicit Commit boundary;
-- bounded Turn aftermath;
-- recovery after process restart;
-- no raw reducer stepping;
-- no omniscient enemy projection;
-- no model-owned World state.
+See [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md) for Order revision, Agent Context, Candidate admission, sealed enemy plans, policy hierarchy, browser, and first-playable boundaries.

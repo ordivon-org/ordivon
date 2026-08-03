@@ -59,25 +59,27 @@ Service: one local Node.js process
 Runtime dependencies: none
 ```
 
-Only this Scenario and Ruleset are supported. Older executable paths, compatibility APIs, migration layers, milestone fixtures, and release-era evidence have been removed from the repository.
+Only this Scenario and Ruleset are registered as the current product. Older executable paths, compatibility APIs, migration layers, milestone fixtures, and release-era evidence have been removed from the repository.
 
-## Unregistered next implementation
+## Station Zero v3 preview
 
 The next Station Zero form is retained under `src/station-zero-v3/` and documented in:
 
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
 - [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and pure replay contract;
-- [`docs/STATION_ZERO_V3_P2.md`](docs/STATION_ZERO_V3_P2.md): durable SQLite execution, Embedded Host lifecycle, crash recovery, and bounded Mission Control projection.
+- [`docs/STATION_ZERO_V3_P2.md`](docs/STATION_ZERO_V3_P2.md): durable SQLite execution, Embedded Host lifecycle, crash recovery, and bounded Mission Control projection;
+- [`docs/STATION_ZERO_V3_P3.md`](docs/STATION_ZERO_V3_P3.md): Commander Orders, bounded Agent planning, policy expansion, sealed three-faction Preview, explicit Commit, and browser first-playable.
 
 ```text
 Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 Target form: three-faction deterministic turn-based tactical encounter
-P1 status: reducer and pure replay complete
-P2 status: durable Turn authority and recovery complete
+P1: reducer and pure replay complete
+P2: durable Turn authority and recovery complete
+P3: isolated playable planning layer and /v3 browser complete
 ```
 
-This is still not an executable product registration. `src/registry.ts`, the public HTTP service, and the browser continue to run only the current v2/v3 contract. P3 must connect bounded player Orders and Agent planning to the durable Turn path and prove one first-playable browser journey before v3 can replace the current executable.
+The v3 preview is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. Replacement is deferred until repeated human playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
 ## Run
 
@@ -92,15 +94,23 @@ pnpm check
 pnpm start
 ```
 
-Open `http://127.0.0.1:4173`.
+Open:
 
-Browser acceptance journey:
+```text
+Current product: http://127.0.0.1:4173/
+Station Zero v3 preview: http://127.0.0.1:4173/v3
+```
+
+Browser acceptance journeys:
 
 ```bash
 pnpm e2e
+pnpm e2e:v3
 ```
 
 ## Product API
+
+### Current product
 
 ```text
 GET  /api/runs
@@ -121,6 +131,21 @@ GET  /api/deployments/manifest
 GET  /api/compare
 ```
 
+### Station Zero v3 preview
+
+```text
+GET  /api/station-zero-v3/catalog
+GET  /api/station-zero-v3/runs
+POST /api/station-zero-v3/runs
+POST /api/station-zero-v3/resume
+GET  /api/station-zero-v3/state
+POST /api/station-zero-v3/order
+POST /api/station-zero-v3/preview
+POST /api/station-zero-v3/commit
+```
+
+The v3 preview uses `data/station-zero-v3.sqlite3` by default and does not add v3 Runs to the current `/api/runs` contract.
+
 ## Repository map
 
 ```text
@@ -134,7 +159,7 @@ src/team/
     current specialist Context, Messages, authority, Proposals, coordination, Providers
 
 src/host-contract/
-    embedded Task/Effect/Dispatch/Observation/Verification authority
+    shared Task/Effect/Dispatch/Observation/Verification authority
 
 src/mission-control/
     current player-facing doctrine, forecast, intervention, and bounded read model
@@ -146,13 +171,16 @@ src/server.ts, web/
     current product HTTP service and browser interface
 
 src/station-zero-v3/
-    unregistered v3 content, Genesis, admission, topology, deterministic reducer, SQLite Planning/Turn authority, Embedded Host execution, recovery, and bounded projection
+    v3 content, Genesis, deterministic reducer, Planning/Turn authority, Host execution, Agent Context and Candidate admission, policy expansion, Play Service, recovery, and bounded projections
 
-docs/STATION_ZERO_V3_P0.md, docs/STATION_ZERO_V3_P1.md, docs/STATION_ZERO_V3_P2.md
-    target design, reducer, and durable execution boundaries; not registered yet
+web-v3/
+    isolated Station Zero v3 first-playable browser
 
-test/, scripts/e2e-first-playable.ts
-    current-contract verification, v3 contract/reducer/persistence tests, and one complete current browser journey
+docs/STATION_ZERO_V3_P0.md through docs/STATION_ZERO_V3_P3.md
+    v3 encounter, reducer, durable execution, and playable planning boundaries
+
+test/, scripts/e2e-first-playable.ts, scripts/e2e-station-zero-v3.ts
+    current-product verification plus v3 contract, reducer, persistence, planning, API, renderer, and real-browser journeys
 ```
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/VISION.md`](docs/VISION.md).

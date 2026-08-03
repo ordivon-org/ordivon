@@ -9,7 +9,7 @@ Current executable: station-zero@2 / station-zero-core@3 / World schema 2
 P0 frozen target: station-zero@3 / station-zero-core@4 / World schema 3
 ```
 
-The v3 code under `src/station-zero-v3/` is deliberately not registered in `src/registry.ts`. P1 implemented the pure deterministic reducer and P2 implemented durable Turn commitment, SQLite recovery, Embedded Host execution, and bounded Mission Control projection; see [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md) and [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md). Product registration remains deferred until P3 supplies the bounded player/Agent planning layer and a verified first-playable browser journey.
+The v3 code under `src/station-zero-v3/` remains deliberately absent from `src/registry.ts`. P1 implemented the pure deterministic reducer, P2 implemented durable Turn execution and recovery, and P3 implemented bounded player/Agent planning plus a verified `/v3` first-playable; see [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md), [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md), and [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md). Replacement of the current executable remains deferred until repeated playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
 ## Product form
 
