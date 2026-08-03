@@ -43,6 +43,7 @@ export interface StationZeroV3DeepSeekCredentialSnapshot {
   weight: number;
   active: number;
   queued: number;
+  reserved: number;
   successes: number;
   failures: number;
   consecutiveFailures: number;
@@ -83,7 +84,7 @@ interface CredentialHealth {
   cooldownUntilMs: number;
   quarantined: boolean;
   quarantineReason: string | null;
-  selections: number;
+  virtualRuntime: number;
 }
 
 export interface StationZeroV3DeepSeekCredentialHandle {
@@ -98,6 +99,7 @@ export interface StationZeroV3DeepSeekCredentialHandle {
   readonly weight: number;
   readonly active: number;
   readonly queued: number;
+  readonly reserved: number;
   run<T>(operation: () => Promise<T>): Promise<T>;
 }
 
@@ -119,14 +121,29 @@ class AsyncSemaphore {
     return this.queue.length;
   }
 
+  private async acquire(): Promise<void> {
+    if (this.activeCount < this.maximum) {
+      this.activeCount += 1;
+      return;
+    }
+    await new Promise<void>((resolveQueue) => this.queue.push(resolveQueue));
+  }
+
+  private release(): void {
+    const next = this.queue.shift();
+    if (next) {
+      next();
+      return;
+    }
+    this.activeCount -= 1;
+  }
+
   async run<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.activeCount >= this.maximum) await new Promise<void>((resolveQueue) => this.queue.push(resolveQueue));
-    this.activeCount += 1;
+    await this.acquire();
     try {
       return await operation();
     } finally {
-      this.activeCount -= 1;
-      this.queue.shift()?.();
+      this.release();
     }
   }
 }
@@ -144,8 +161,9 @@ class LoadedCredential implements StationZeroV3DeepSeekCredentialHandle {
   readonly weight: number;
   readonly semaphore: AsyncSemaphore;
   readonly health: CredentialHealth;
+  private reservedCount = 0;
 
-  constructor(parsed: ParsedCredential, retainedHealth?: CredentialHealth) {
+  constructor(parsed: ParsedCredential, retainedHealth?: CredentialHealth, initialVirtualRuntime = 0) {
     this.credentialId = parsed.credentialId;
     this.sourcePath = parsed.sourcePath;
     this.sourceId = parsed.sourceId;
@@ -165,7 +183,7 @@ class LoadedCredential implements StationZeroV3DeepSeekCredentialHandle {
       cooldownUntilMs: 0,
       quarantined: false,
       quarantineReason: null,
-      selections: 0,
+      virtualRuntime: initialVirtualRuntime,
     };
   }
 
@@ -177,7 +195,20 @@ class LoadedCredential implements StationZeroV3DeepSeekCredentialHandle {
     return this.semaphore.queued;
   }
 
+  get reserved(): number {
+    return this.reservedCount;
+  }
+
+  reserve(): void {
+    this.reservedCount += 1;
+  }
+
+  releaseReservation(): void {
+    if (this.reservedCount > 0) this.reservedCount -= 1;
+  }
+
   run<T>(operation: () => Promise<T>): Promise<T> {
+    this.releaseReservation();
     return this.semaphore.run(operation);
   }
 }
@@ -208,27 +239,47 @@ function credentialFileName(name: string): boolean {
   return normalized.startsWith("deepseek") && normalized.endsWith(".json");
 }
 
-function discoverFiles(sources: string[]): string[] {
+function discoverFiles(sources: string[]): {
+  files: string[];
+  errors: Array<{ sourceId: string; message: string }>;
+} {
   const files = new Set<string>();
+  const errors: Array<{ sourceId: string; message: string }> = [];
   for (const source of sources) {
     const absolute = resolve(source);
     let metadata;
     try {
       metadata = statSync(absolute);
     } catch (error) {
-      throw new ProviderAdapterError("unavailable", `DeepSeek credential source does not exist: ${absolute}`, { cause: error });
-    }
-    if (metadata.isFile()) {
-      files.add(realpathSync(absolute));
+      errors.push({ sourceId: absolute, message: sanitizedDiscoveryMessage(error) });
       continue;
     }
-    if (!metadata.isDirectory()) throw new TypeError(`DeepSeek credential source is neither a file nor directory: ${absolute}`);
-    for (const entry of readdirSync(absolute, { withFileTypes: true })) {
-      if (!entry.isFile() || !credentialFileName(entry.name)) continue;
-      files.add(realpathSync(resolve(absolute, entry.name)));
+    if (metadata.isFile()) {
+      try {
+        files.add(realpathSync(absolute));
+      } catch (error) {
+        errors.push({ sourceId: absolute, message: sanitizedDiscoveryMessage(error) });
+      }
+      continue;
+    }
+    if (!metadata.isDirectory()) {
+      errors.push({ sourceId: absolute, message: "DeepSeek credential source is neither a file nor directory" });
+      continue;
+    }
+    try {
+      for (const entry of readdirSync(absolute, { withFileTypes: true })) {
+        if (!entry.isFile() || !credentialFileName(entry.name)) continue;
+        try {
+          files.add(realpathSync(resolve(absolute, entry.name)));
+        } catch (error) {
+          errors.push({ sourceId: entry.name, message: sanitizedDiscoveryMessage(error) });
+        }
+      }
+    } catch (error) {
+      errors.push({ sourceId: absolute, message: sanitizedDiscoveryMessage(error) });
     }
   }
-  return [...files].sort();
+  return { files: [...files].sort(), errors };
 }
 
 function parseCredentialFile(path: string, defaultMaximumConcurrency: number): ParsedCredential | null {
@@ -326,6 +377,16 @@ export class StationZeroV3DeepSeekCredentialPool {
     return this.credentials.length;
   }
 
+  get usableSize(): number {
+    return this.credentials.filter((credential) => !credential.health.quarantined).length;
+  }
+
+  usableFingerprints(): string[] {
+    return this.credentials
+      .filter((credential) => !credential.health.quarantined)
+      .map((credential) => credential.fingerprint);
+  }
+
   identity(): { provider: string; model: string } {
     const first = this.credentials[0];
     if (!first) throw new ProviderAdapterError("unavailable", "DeepSeek credential pool is empty");
@@ -336,18 +397,9 @@ export class StationZeroV3DeepSeekCredentialPool {
     const now = Date.now();
     if (!force && now - this.lastReloadAtMs < this.reloadIntervalMs) return false;
     const retainedByFingerprint = new Map(this.credentials.map((credential) => [credential.fingerprint, credential]));
-    const errors: Array<{ sourceId: string; message: string }> = [];
-    let files: string[];
-    try {
-      files = discoverFiles(this.sources);
-    } catch (error) {
-      if (this.credentials.length > 0) {
-        this.discoveryErrors = [{ sourceId: "sources", message: sanitizedDiscoveryMessage(error) }];
-        this.lastReloadAtMs = now;
-        return false;
-      }
-      throw error;
-    }
+    const discovery = discoverFiles(this.sources);
+    const files = discovery.files;
+    const errors: Array<{ sourceId: string; message: string }> = [...discovery.errors];
     const parsed: ParsedCredential[] = [];
     for (const path of files) {
       try {
@@ -375,8 +427,12 @@ export class StationZeroV3DeepSeekCredentialPool {
         [...(candidates ?? [])].sort((left, right) => left.sourcePath.localeCompare(right.sourcePath))[0];
       if (selected) deduplicated.set(fingerprint, selected);
     }
-    const duplicateCount = parsed.length - deduplicated.size;
+    const duplicateCount = compatible.length - deduplicated.size;
     const unique = stableUniqueCredentialIds([...deduplicated.values()]);
+    const retainedRuntime = this.credentials.map((credential) => credential.health.virtualRuntime);
+    const initialVirtualRuntime = retainedRuntime.length > 0
+      ? retainedRuntime.reduce((sum, value) => sum + value, 0) / retainedRuntime.length
+      : 0;
     const loaded = unique.map((credential) => {
       const retained = retainedByFingerprint.get(credential.fingerprint);
       if (
@@ -385,18 +441,16 @@ export class StationZeroV3DeepSeekCredentialPool {
         retained.weight === credential.weight &&
         retained.credentialId === credential.credentialId
       ) return retained;
-      return new LoadedCredential(credential, retained?.health);
+      return new LoadedCredential(credential, retained?.health, initialVirtualRuntime);
     });
     if (loaded.length === 0) {
-      if (this.credentials.length > 0) {
-        this.discoveredFiles = files.length;
-        this.duplicateCredentialsSkipped = duplicateCount;
-        this.discoveryErrors = errors.length > 0 ? errors : [{ sourceId: "sources", message: "no enabled compatible credential remained; retained last-known-good pool" }];
-        this.lastReloadAtMs = now;
-        return false;
-      }
-      const detail = errors.length > 0 ? `: ${errors.map((entry) => `${entry.sourceId}: ${entry.message}`).join("; ")}` : "";
-      throw new ProviderAdapterError("unavailable", `No valid enabled DeepSeek credentials were discovered${detail}`);
+      this.credentials = [];
+      this.discoveredFiles = files.length;
+      this.duplicateCredentialsSkipped = duplicateCount;
+      this.discoveryErrors = errors.length > 0 ? errors : [{ sourceId: "sources", message: "no enabled compatible credential remains" }];
+      this.lastReloadAtMs = now;
+      const detail = this.discoveryErrors.map((entry) => `${entry.sourceId}: ${entry.message}`).join("; ");
+      throw new ProviderAdapterError("unavailable", `No valid enabled DeepSeek credentials were discovered: ${detail}`);
     }
     this.credentials = loaded;
     this.discoveredFiles = files.length;
@@ -411,32 +465,36 @@ export class StationZeroV3DeepSeekCredentialPool {
     while (true) {
       const now = Date.now();
       const nonQuarantined = this.credentials.filter((credential) => !credential.health.quarantined);
-      if (nonQuarantined.length === 0) throw new ProviderAdapterError("unavailable", "Every DeepSeek credential is quarantined");
-      let eligible = nonQuarantined.filter((credential) =>
-        credential.health.cooldownUntilMs <= now && !excludedFingerprints.has(credential.fingerprint));
+      if (nonQuarantined.length === 0) throw new ProviderAdapterError("unavailable", "Every DeepSeek credential is quarantined or unavailable");
+      const untried = nonQuarantined.filter((credential) => !excludedFingerprints.has(credential.fingerprint));
+      if (untried.length === 0) throw new ProviderAdapterError("unavailable", "Every usable DeepSeek credential was already attempted in this retry cycle");
+      const eligible = untried.filter((credential) => credential.health.cooldownUntilMs <= now);
       if (eligible.length === 0) {
-        eligible = nonQuarantined.filter((credential) => credential.health.cooldownUntilMs <= now);
-      }
-      if (eligible.length === 0) {
-        const earliest = Math.min(...nonQuarantined.map((credential) => credential.health.cooldownUntilMs));
+        const earliest = Math.min(...untried.map((credential) => credential.health.cooldownUntilMs));
         await delay(Math.max(1, earliest - now));
         this.refresh(false);
         continue;
       }
-      const cursor = this.selectionCursor++;
-      eligible.sort((left, right) => {
-        const leftLoad = (left.active + left.queued) / left.maximumConcurrency;
-        const rightLoad = (right.active + right.queued) / right.maximumConcurrency;
+      const minimumRuntime = Math.min(...nonQuarantined.map((credential) => credential.health.virtualRuntime));
+      if (minimumRuntime > 1_000_000) {
+        for (const credential of nonQuarantined) credential.health.virtualRuntime -= minimumRuntime;
+      }
+      const ordered = [...eligible].sort((left, right) => left.credentialId.localeCompare(right.credentialId));
+      const cursor = this.selectionCursor++ % ordered.length;
+      const tieRank = new Map(ordered.map((credential, index) => [credential.fingerprint, (index - cursor + ordered.length) % ordered.length]));
+      ordered.sort((left, right) => {
+        const leftLoad = (left.active + left.queued + left.reserved) / left.maximumConcurrency;
+        const rightLoad = (right.active + right.queued + right.reserved) / right.maximumConcurrency;
         const leftLatency = left.health.averageLatencyMs ?? 0;
         const rightLatency = right.health.averageLatencyMs ?? 0;
-        const leftScore = leftLoad * 4 + left.health.consecutiveFailures * 3 + leftLatency / 30_000 + left.health.selections / left.weight / 100;
-        const rightScore = rightLoad * 4 + right.health.consecutiveFailures * 3 + rightLatency / 30_000 + right.health.selections / right.weight / 100;
+        const leftScore = left.health.virtualRuntime + leftLoad * 4 + left.health.consecutiveFailures * 3 + leftLatency / 30_000;
+        const rightScore = right.health.virtualRuntime + rightLoad * 4 + right.health.consecutiveFailures * 3 + rightLatency / 30_000;
         if (leftScore !== rightScore) return leftScore - rightScore;
-        return ((left.credentialId.charCodeAt(0) + cursor) % 997) - ((right.credentialId.charCodeAt(0) + cursor) % 997) ||
-          left.credentialId.localeCompare(right.credentialId);
+        return (tieRank.get(left.fingerprint) ?? 0) - (tieRank.get(right.fingerprint) ?? 0);
       });
-      const selected = eligible[0]!;
-      selected.health.selections += 1;
+      const selected = ordered[0]!;
+      selected.health.virtualRuntime += 1 / selected.weight;
+      selected.reserve();
       return selected;
     }
   }
@@ -446,7 +504,6 @@ export class StationZeroV3DeepSeekCredentialPool {
     if (!credential) return;
     credential.health.successes += 1;
     credential.health.consecutiveFailures = 0;
-    credential.health.cooldownUntilMs = 0;
     credential.health.averageLatencyMs = credential.health.averageLatencyMs === null
       ? latencyMs
       : Math.round(credential.health.averageLatencyMs * 0.8 + latencyMs * 0.2);
@@ -497,6 +554,7 @@ export class StationZeroV3DeepSeekCredentialPool {
         weight: credential.weight,
         active: credential.active,
         queued: credential.queued,
+        reserved: credential.reserved,
         successes: credential.health.successes,
         failures: credential.health.failures,
         consecutiveFailures: credential.health.consecutiveFailures,

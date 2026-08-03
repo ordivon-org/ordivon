@@ -282,7 +282,7 @@ export class StationZeroV3DeepSeekProviderPool {
   private nextCall = 0;
 
   get maximumAttempts(): number {
-    return this.configuredMaximumAttempts ?? Math.max(4, this.credentialPool.size * 2);
+    return this.configuredMaximumAttempts ?? Math.max(4, this.credentialPool.usableSize * 2);
   }
 
   constructor(options: StationZeroV3DeepSeekProviderOptions) {
@@ -349,9 +349,13 @@ export class StationZeroV3DeepSeekProviderPool {
     const attemptedFingerprints = new Set<string>();
     let lastError: unknown = null;
     for (let attempt = 1; attempt <= this.maximumAttempts; attempt += 1) {
-      if (attemptedFingerprints.size >= this.credentialPool.size) {
+      const usableFingerprints = this.credentialPool.usableFingerprints();
+      const usableCredentials = usableFingerprints.length;
+      if (usableCredentials === 0) throw new ProviderAdapterError("unavailable", "No usable DeepSeek credential remains");
+      const attemptedUsable = usableFingerprints.filter((fingerprint) => attemptedFingerprints.has(fingerprint)).length;
+      if (attemptedUsable >= usableCredentials) {
         attemptedFingerprints.clear();
-        const cycle = Math.floor((attempt - 1) / Math.max(1, this.credentialPool.size));
+        const cycle = Math.floor((attempt - 1) / usableCredentials);
         const jitter = [...context.actor.actorId].reduce((sum, character) => sum + character.charCodeAt(0), context.worldRevision) % Math.max(1, this.retryBaseDelayMs);
         await new Promise((resolveDelay) => setTimeout(resolveDelay, this.retryBaseDelayMs * Math.max(1, cycle) + jitter));
       }

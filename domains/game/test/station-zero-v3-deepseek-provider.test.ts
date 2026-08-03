@@ -7,6 +7,7 @@ import test from "node:test";
 import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
 import {
   FixtureStationZeroV3AgentProvider,
+  StationZeroV3DeepSeekCredentialPool,
   StationZeroV3DeepSeekProviderPool,
   StationZeroV3PlayService,
   StationZeroV3Store,
@@ -230,7 +231,6 @@ test("high-fidelity Agent decisions are generated concurrently from one World sn
   }
 });
 
-
 test("DeepSeek Provider retries across time after every credential shares a transient endpoint failure", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-time-retry-"));
   const { store, context } = contextFixture();
@@ -267,7 +267,6 @@ test("DeepSeek Provider retries across time after every credential shares a tran
     rmSync(directory, { recursive: true, force: true });
   }
 });
-
 
 test("directory sources hot-load additive deepseek files, retain existing identities, and skip duplicates", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-directory-"));
@@ -420,7 +419,9 @@ test("401 quarantines only the rejected credential and does not poison the remai
       },
     });
 
+    const started = performance.now();
     await pool.decide(context);
+    assert.ok(performance.now() - started < 500, "healthy fallback waited for a quarantined credential cycle");
     const firstSnapshot = pool.evidenceSnapshot();
     assert.equal(firstSnapshot.credentials.find((entry) => entry.credentialId === "a")?.quarantined, true);
     assert.equal(firstSnapshot.credentials.find((entry) => entry.credentialId === "a")?.quarantineReason, "authentication");
@@ -430,6 +431,161 @@ test("401 quarantines only the rejected credential and does not poison the remai
     assert.equal(calls.filter((call) => call.credentialId === "z" && call.outcome === "success").length, 2);
   } finally {
     store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a hot-added credential starts at the pool's current scheduling position instead of receiving a catch-up flood", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-fair-hot-add-"));
+  try {
+    secret(directory, "deepseek-old", "key-old", 0o600, { id: "old", maximumConcurrency: 1 });
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [directory],
+      defaultMaximumConcurrency: 1,
+      reloadIntervalMs: 0,
+      cooldownBaseMs: 0,
+    });
+    for (let index = 0; index < 1_000; index += 1) {
+      const handle = await pool.select();
+      await handle.run(async () => undefined);
+      pool.reportSuccess(handle, 1);
+    }
+
+    secret(directory, "deepseek-new", "key-new", 0o600, { id: "new", maximumConcurrency: 1 });
+    pool.refresh(true);
+    const selected: string[] = [];
+    for (let index = 0; index < 20; index += 1) {
+      const handle = await pool.select();
+      selected.push(handle.credentialId);
+      await handle.run(async () => undefined);
+      pool.reportSuccess(handle, 1);
+    }
+
+    const counts = Object.groupBy(selected, (credentialId) => credentialId);
+    assert.ok((counts.old?.length ?? 0) >= 8, selected.join(","));
+    assert.ok((counts.new?.length ?? 0) >= 8, selected.join(","));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a loaded credential fails closed when its file becomes insecure", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-permission-regression-"));
+  try {
+    const path = secret(directory, "deepseek", "key-primary");
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [directory],
+      defaultMaximumConcurrency: 1,
+      reloadIntervalMs: 0,
+    });
+    chmodSync(path, 0o644);
+
+    assert.throws(
+      () => pool.refresh(true),
+      (error: unknown) => error instanceof ProviderAdapterError && error.code === "unavailable",
+    );
+    assert.equal(pool.size, 0);
+    assert.equal(pool.snapshot().discoveryErrors[0]?.sourceId, "deepseek.json");
+    await assert.rejects(
+      () => pool.select(),
+      (error: unknown) => error instanceof ProviderAdapterError && error.code === "unavailable",
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("the per-credential semaphore never exceeds its configured concurrency under queued handoff", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-concurrency-"));
+  try {
+    secret(directory, "deepseek", "key-primary", 0o600, { maximumConcurrency: 2 });
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [directory],
+      defaultMaximumConcurrency: 1,
+      reloadIntervalMs: 0,
+    });
+    let active = 0;
+    let maximumActive = 0;
+    await Promise.all(Array.from({ length: 40 }, async () => {
+      const handle = await pool.select();
+      await handle.run(async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 4));
+        active -= 1;
+      });
+      pool.reportSuccess(handle, 4);
+    }));
+    assert.equal(maximumActive, 2);
+    const credential = pool.snapshot().credentials[0]!;
+    assert.equal(credential.active, 0);
+    assert.equal(credential.queued, 0);
+    assert.equal(credential.reserved, 0);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a concurrent success does not erase an active rate-limit cooldown", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-cooldown-race-"));
+  try {
+    secret(directory, "deepseek", "key-primary", 0o600, { maximumConcurrency: 2 });
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [directory],
+      defaultMaximumConcurrency: 2,
+      reloadIntervalMs: 0,
+      cooldownBaseMs: 1,
+      cooldownMaximumMs: 10_000,
+    });
+    const limited = await pool.select();
+    const successful = await pool.select();
+    await Promise.all([limited.run(async () => undefined), successful.run(async () => undefined)]);
+    pool.reportFailure(limited, "rate_limit", 5_000);
+    pool.reportSuccess(successful, 1);
+    assert.notEqual(pool.snapshot().credentials[0]?.cooldownUntil, null);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("one missing credential source does not suppress valid credentials from another source", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-multi-source-"));
+  try {
+    secret(directory, "deepseek", "key-primary");
+    const missing = join(directory, "missing-directory");
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [missing, directory],
+      defaultMaximumConcurrency: 1,
+    });
+    const snapshot = pool.snapshot();
+    assert.equal(snapshot.credentials.length, 1);
+    assert.ok(snapshot.discoveryErrors.some((entry) => entry.sourceId === missing));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("credential weight produces proportional sequential scheduling without bypassing concurrency", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-deepseek-weight-"));
+  try {
+    secret(directory, "deepseek-a", "key-a", 0o600, { id: "a", weight: 1 });
+    secret(directory, "deepseek-b", "key-b", 0o600, { id: "b", weight: 3 });
+    const pool = new StationZeroV3DeepSeekCredentialPool({
+      sources: [directory],
+      defaultMaximumConcurrency: 1,
+      reloadIntervalMs: 0,
+    });
+    const selected: string[] = [];
+    for (let index = 0; index < 80; index += 1) {
+      const handle = await pool.select();
+      selected.push(handle.credentialId);
+      await handle.run(async () => undefined);
+      pool.reportSuccess(handle, 1);
+    }
+    const counts = Object.groupBy(selected, (credentialId) => credentialId);
+    assert.equal(counts.a?.length, 20);
+    assert.equal(counts.b?.length, 60);
+  } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 });

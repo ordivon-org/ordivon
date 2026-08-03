@@ -55,22 +55,23 @@ Do not copy one key into several files to simulate capacity. The pool fingerprin
 
 The running service checks credential sources before Agent decisions. The default reload interval is 15 seconds. A newly created valid `deepseek*.json` file is admitted on a later decision after that interval; a restart is not normally required.
 
-Reload follows last-known-good behavior:
+Reload is additive but fail-closed per credential:
 
-- a valid new credential is added;
-- a removed credential stops receiving new work after reload;
-- a malformed, insecure, disabled, or incompatible new file is skipped;
-- an invalid reload does not erase already loaded valid credentials;
+- a valid new credential is added without historical catch-up traffic;
+- a removed or disabled credential stops receiving new work after reload;
+- a malformed, insecure, or incompatible new file is skipped while unrelated valid credentials remain available;
+- if no valid credential remains, the pool becomes unavailable instead of using cached secret material;
+- one missing source does not suppress valid credentials discovered from other configured sources;
 - in-flight calls continue on the credential object with which they started.
 
 ## Scheduling and health
 
 Credential selection is not fixed round-robin. The score considers:
 
-- active and queued work relative to that key's concurrency;
+- active, queued, and reserved work relative to that key's concurrency;
 - consecutive failures;
 - moving-average latency;
-- scheduling weight;
+- weighted virtual runtime, initialized at the current pool position when a key is hot-added;
 - temporary cooldown or permanent quarantine.
 
 Failure handling:
@@ -81,7 +82,7 @@ Failure handling:
 - malformed model output: reject the response and try other capacity, without treating the key as invalid;
 - reported-model mismatch: quarantine the incompatible credential.
 
-The default retry limit is automatic: `max(4, credential count × 2)`. `ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS` overrides it when explicitly set.
+The default retry limit is automatic: `max(4, usable credential count × 2)`. Quarantined credentials do not inflate the retry budget. `ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS` overrides it when explicitly set.
 
 ## Runtime configuration
 
