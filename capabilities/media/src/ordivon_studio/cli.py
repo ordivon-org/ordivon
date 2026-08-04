@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .assets import hash_file, probe_media, r2_object_key
 from .qc import validate_video_probe
+from .resolve_adapter import discover_resolve_paths, install_runner, prepare_probe, read_result
 from .timed_text import export_srt, export_webvtt
 
 
@@ -74,6 +75,52 @@ def _command_timed_text(args: argparse.Namespace) -> int:
     return 0
 
 
+def _optional_path(value: str | None) -> Path | None:
+    return Path(value) if value else None
+
+
+def _command_resolve_paths(args: argparse.Namespace) -> int:
+    paths = discover_resolve_paths()
+    _write_json(
+        {
+            "scriptsDirectory": str(paths.scripts_directory),
+            "controlDirectory": str(paths.control_directory),
+            "windowsControlDirectory": paths.windows_control_directory,
+        }
+    )
+    return 0
+
+
+def _command_resolve_install(args: argparse.Namespace) -> int:
+    _write_json(
+        install_runner(
+            scripts_directory=_optional_path(args.scripts_directory),
+            control_directory=_optional_path(args.control_directory),
+            windows_control_directory=args.windows_control_directory,
+        )
+    )
+    return 0
+
+
+def _command_resolve_prepare_probe(args: argparse.Namespace) -> int:
+    _write_json(
+        prepare_probe(
+            control_directory=_optional_path(args.control_directory),
+            operation_id=args.operation_id,
+        )
+    )
+    return 0
+
+
+def _command_resolve_result(args: argparse.Namespace) -> int:
+    result = read_result(
+        control_directory=_optional_path(args.control_directory),
+        expected_operation_id=args.operation_id,
+    )
+    _write_json(result)
+    return 0 if result.get("status") == "succeeded" else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ordivon-studio")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -107,6 +154,28 @@ def build_parser() -> argparse.ArgumentParser:
     timed_parser.add_argument("--format", choices=["vtt", "srt"], required=True)
     timed_parser.add_argument("--output")
     timed_parser.set_defaults(handler=_command_timed_text)
+
+    resolve_parser = commands.add_parser("resolve", help="operate the DaVinci Resolve-specific adapter")
+    resolve_commands = resolve_parser.add_subparsers(dest="resolve_command", required=True)
+
+    resolve_paths = resolve_commands.add_parser("paths", help="show discovered Windows adapter paths")
+    resolve_paths.set_defaults(handler=_command_resolve_paths)
+
+    resolve_install = resolve_commands.add_parser("install", help="install the internal Resolve menu runner")
+    resolve_install.add_argument("--scripts-directory")
+    resolve_install.add_argument("--control-directory")
+    resolve_install.add_argument("--windows-control-directory")
+    resolve_install.set_defaults(handler=_command_resolve_install)
+
+    resolve_prepare = resolve_commands.add_parser("prepare-probe", help="prepare one read-only Resolve probe")
+    resolve_prepare.add_argument("--control-directory")
+    resolve_prepare.add_argument("--operation-id")
+    resolve_prepare.set_defaults(handler=_command_resolve_prepare_probe)
+
+    resolve_result = resolve_commands.add_parser("result", help="validate and print the latest Resolve result")
+    resolve_result.add_argument("--control-directory")
+    resolve_result.add_argument("--operation-id")
+    resolve_result.set_defaults(handler=_command_resolve_result)
     return parser
 
 
@@ -114,7 +183,7 @@ def main() -> None:
     args = build_parser().parse_args()
     try:
         raise SystemExit(args.handler(args))
-    except (FileNotFoundError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+    except (FileNotFoundError, OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
         print(f"error: {error}", file=sys.stderr)
         raise SystemExit(2) from error
 

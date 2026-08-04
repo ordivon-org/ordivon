@@ -30,6 +30,7 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 - [`STUDIO.md`](STUDIO.md) — first-principles architecture and corrected technical choices;
 - [`docs/media-model.md`](docs/media-model.md) — Asset, Blob, Production, Claim, TimedText, and Output objects;
 - [`docs/technical-baseline.md`](docs/technical-baseline.md) — time, color, audio, storage, editor, and rendering baseline;
+- [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
 - [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real production vertical.
 
 ## Current state
@@ -41,9 +42,10 @@ The design foundation is executable and verified:
 - one React/SVG Runtime visual is consumed by both Preview and Remotion;
 - the Preview app builds;
 - the Runtime motion composition renders at 1920×1080, 30 fps;
-- QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track.
+- QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track;
+- the Resolve Free adapter has passed a real read-only internal-menu probe against Resolve 21.0.3, including Project Manager, current Project, Media Pool, frame-rate, and resolution access.
 
-The external creative workstation is not configured yet. DaVinci Resolve, OBS Studio, Figma, and R2 remain selected design choices rather than current executable capabilities. The next phase chooses the actual visual direction, capture method, narration, editorial treatment, and asset-storage configuration.
+DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. Resolve editing, real OBS capture, narration, asset registration, and final delivery remain production work rather than repository architecture.
 
 The first complete target is one editable Runtime production that can produce:
 
@@ -60,6 +62,7 @@ The first complete target is one editable Runtime production that can produce:
 React / SVG             reusable visual primitives
 Remotion adapter        deterministic motion rendering
 DaVinci Resolve         selected editorial, color, and Fairlight environment
+Resolve adapter         bounded internal operations for Resolve Free
 OpenTimelineIO          open editorial interchange snapshots
 OBS                     selected real-product capture environment
 FFmpeg / ffprobe        media transforms and machine QC
