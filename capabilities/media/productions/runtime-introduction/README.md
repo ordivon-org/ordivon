@@ -15,6 +15,7 @@ d620d7ce71ae76140cf88b570c141edd777ec91c
 
 ## Current sources
 
+- [`plan.md`](plan.md) — code-derived demonstration and film design;
 - `claims.json` — five bounded Runtime claims with exact evidence paths;
 - `story.mdx` — editorial source, not final publication copy;
 - `script/` — English and Chinese narration drafts;
@@ -22,6 +23,21 @@ d620d7ce71ae76140cf88b570c141edd777ec91c
 - `assets.json` — selected media assets; currently empty because real capture has not started;
 - `timeline/` — future OTIO snapshots after editorial work begins;
 - `../../apps/motion-remotion/` — verified programmatic Runtime motion source.
+
+## Chosen proof
+
+The first film will not enumerate every Runtime feature. It will prove one complete trajectory:
+
+```text
+exact source
+→ guarded Patch
+→ durable Job
+→ recover the same Job after uncertain delivery
+→ read bounded evidence and review the diff
+→ compare-and-close the exact reviewed Workspace state
+```
+
+The executable demonstration belongs in `ordivon-runtime`; Studio owns the story, motion, capture selection, edit and delivery variants.
 
 ## Verified now
 
@@ -31,12 +47,4 @@ This proves the code, token, render, and QC path. It does not prove the final vi
 
 ## Decisions still open
 
-The next production review should decide:
-
-- the Runtime demonstration journey and capture runner;
-- visual identity beyond the current Web-derived baseline;
-- narration voice and language treatment;
-- final film structure and pacing;
-- how much motion is programmatic versus NLE-edited;
-- Windows media-root layout and R2 archival configuration;
-- whether Resolve, OBS, and Figma remain the best tools after a real workflow test.
+The next implementation should build and verify the bounded Runtime demo client described in `plan.md`. After it produces a real redacted receipt, Studio can decide the final visual treatment, narration voice, capture tooling, editorial pacing and asset-storage configuration from actual footage rather than assumptions.

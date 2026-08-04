@@ -2,22 +2,26 @@
 
 AI systems can propose code and commands. That does not make the resulting execution durable, observable, or safe to repeat after an uncertain response.
 
-Ordivon Runtime addresses that physical execution boundary. It binds work to an exact Git Workspace, commits a durable Job identity, supervises the resulting process tree, preserves bounded evidence, and exposes explicit observation, cancellation, reconciliation, and recovery.
+Ordivon Runtime addresses that physical execution boundary. It binds work to an exact Git Workspace, commits a durable Job identity, supervises the resulting process tree, preserves bounded evidence, and exposes explicit observation and recovery.
 
 <RuntimeFlow activeStage="evidence" />
 
-The production will pair this explanation with a real end-to-end demonstration:
+The first production will pair this explanation with one real end-to-end proof:
 
 ```text
 workspace.open
-→ workspace.patch
-→ workspace.exec
+→ workspace.read / workspace.patch
+→ workspace.execPlan
+→ exact request replay / task.list
 → task.observe
 → artifact.read
 → workspace.diff
-→ workspace.close
+→ workspace.get
+→ workspace.close(expectedSourceStateDigest)
 ```
 
-The film will also state the boundary directly: Runtime is operational for owner-trusted Linux environments. It does not decide semantic Task completion and is not a hostile multi-tenant sandbox.
+The point is not that every effect becomes idempotent. The point is that an admitted operation has a stable request identity and recorded Job, so uncertain delivery does not require blind redispatch. The resulting evidence and source changes remain inspectable, and cleanup can be fenced to the exact Workspace state that was reviewed.
+
+The film will state the boundary directly: Runtime is operational for owner-trusted Linux environments. It does not decide semantic Task completion and is not a hostile multi-tenant sandbox.
 
 This file is an editorial source, not final publication copy.
