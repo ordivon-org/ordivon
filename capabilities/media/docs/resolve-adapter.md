@@ -49,4 +49,8 @@ The read-only probe passed on DaVinci Resolve Free 21.0.3.7. The menu environmen
 
 The result contained no private filesystem path or database address. Resolve's embedded menu-script environment does not define `__file__`; the runner therefore uses the Windows local-application-data control directory directly and treats a colocated config as optional.
 
-Further actions are added only after the current Resolve version proves the relevant mutation APIs work. The next acceptance case is one disposable project containing one bin, one imported clip, and one timeline.
+The bounded mutation acceptance also passed on Resolve Free 21.0.3.7. One reserved-name Smoke Project was created at 1920×1080 and 30 fps, one SHA-256-bound fixture was imported into `01_SMOKE`, one `Assembly` timeline was created, the clip was appended to V1 and A1, the project was saved, and the previously open project was restored.
+
+The action is replay-safe: it reuses the reserved project, bin, media item, and timeline when they already exist, and it refuses to append over unexpected timeline contents. A successful operation result with the same identity and digest is returned without repeating Resolve mutations.
+
+Resolve reported two items from the target Folder after one media import and one timeline creation. The adapter therefore treats Folder item count as diagnostic only; imported-media identity is established by the file name, expected digest, and the actual timeline items rather than by assuming Folder counts contain media clips only.

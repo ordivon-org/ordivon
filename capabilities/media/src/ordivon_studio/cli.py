@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .assets import hash_file, probe_media, r2_object_key
 from .qc import validate_video_probe
-from .resolve_adapter import discover_resolve_paths, install_runner, prepare_probe, read_result
+from .resolve_adapter import discover_resolve_paths, install_runner, prepare_probe, prepare_smoke, read_result
 from .timed_text import export_srt, export_webvtt
 
 
@@ -112,6 +112,18 @@ def _command_resolve_prepare_probe(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_resolve_prepare_smoke(args: argparse.Namespace) -> int:
+    _write_json(
+        prepare_smoke(
+            control_directory=_optional_path(args.control_directory),
+            media_path=_optional_path(args.media),
+            windows_media_path=args.windows_media_path,
+            operation_id=args.operation_id,
+        )
+    )
+    return 0
+
+
 def _command_resolve_result(args: argparse.Namespace) -> int:
     result = read_result(
         control_directory=_optional_path(args.control_directory),
@@ -171,6 +183,15 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_prepare.add_argument("--control-directory")
     resolve_prepare.add_argument("--operation-id")
     resolve_prepare.set_defaults(handler=_command_resolve_prepare_probe)
+
+    resolve_smoke = resolve_commands.add_parser(
+        "prepare-smoke", help="prepare one bounded Resolve project mutation acceptance"
+    )
+    resolve_smoke.add_argument("--control-directory")
+    resolve_smoke.add_argument("--media", help="WSL path to the smoke media fixture")
+    resolve_smoke.add_argument("--windows-media-path", help="matching absolute Windows media path")
+    resolve_smoke.add_argument("--operation-id")
+    resolve_smoke.set_defaults(handler=_command_resolve_prepare_smoke)
 
     resolve_result = resolve_commands.add_parser("result", help="validate and print the latest Resolve result")
     resolve_result.add_argument("--control-directory")

@@ -17,7 +17,9 @@ RUNNER_FILENAME = "Ordivon Studio Runner.py"
 CONFIG_FILENAME = "ordivon-runner.config.json"
 OPERATION_FILENAME = "resolve-operation.json"
 RESULT_FILENAME = "resolve-result.json"
+SMOKE_FIXTURE_FILENAME = "resolve-smoke-1080p30.mp4"
 _OPERATION_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
+_DIGEST = re.compile(r"^sha256:[a-f0-9]{64}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +32,16 @@ class ResolvePaths:
 def _canonical_digest(value: object) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return f"sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
+def _hash_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(chunk_size):
+            digest.update(chunk)
+    return f"sha256:{digest.hexdigest()}"
 
 
 def _atomic_write_json(path: Path, value: object) -> None:
@@ -93,6 +105,12 @@ def discover_resolve_paths() -> ResolvePaths:
     )
 
 
+def discover_smoke_fixture() -> tuple[Path, str]:
+    environment = _powershell_environment()
+    windows_path = environment["LocalAppData"] + rf"\OrdivonStudio\fixtures\{SMOKE_FIXTURE_FILENAME}"
+    return Path(_wslpath(windows_path, "-u")), windows_path
+
+
 def _resolved_paths(
     *,
     scripts_directory: Path | None = None,
@@ -152,26 +170,63 @@ def install_runner(
     }
 
 
-def _new_operation_id() -> str:
+def _new_operation_id(kind: str) -> str:
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dt%H%M%Sz").lower()
-    return f"resolve-probe-{timestamp}-{secrets.token_hex(4)}"
+    return f"resolve-{kind}-{timestamp}-{secrets.token_hex(4)}"
+
+
+def _requested_at() -> str:
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _validate_operation_id(operation_id: str) -> str:
+    if not _OPERATION_ID.fullmatch(operation_id):
+        raise ValueError("operationId has an invalid format")
+    return operation_id
 
 
 def build_probe_operation(operation_id: str | None = None) -> dict[str, Any]:
-    operation_id = operation_id or _new_operation_id()
-    if not _OPERATION_ID.fullmatch(operation_id):
-        raise ValueError("operationId has an invalid format")
+    operation_id = _validate_operation_id(operation_id or _new_operation_id("probe"))
     return {
         "schemaVersion": 1,
         "operationId": operation_id,
         "action": "probe",
-        "requestedAt": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "requestedAt": _requested_at(),
     }
 
 
-def prepare_probe(*, control_directory: Path | None = None, operation_id: str | None = None) -> dict[str, Any]:
-    control = control_directory or discover_resolve_paths().control_directory
-    operation = build_probe_operation(operation_id)
+def build_smoke_operation(
+    *,
+    media_path: str,
+    media_digest: str,
+    operation_id: str | None = None,
+    project_name: str | None = None,
+) -> dict[str, Any]:
+    operation_id = _validate_operation_id(operation_id or _new_operation_id("smoke"))
+    if not _DIGEST.fullmatch(media_digest):
+        raise ValueError("mediaDigest must be a sha256 digest")
+    suffix = operation_id.removeprefix("resolve-smoke-")
+    project_name = project_name or f"Ordivon Resolve Smoke {suffix}"
+    if not project_name.startswith("Ordivon Resolve Smoke "):
+        raise ValueError("smoke project name must use the reserved prefix")
+    return {
+        "schemaVersion": 1,
+        "operationId": operation_id,
+        "action": "create-smoke-project",
+        "requestedAt": _requested_at(),
+        "parameters": {
+            "projectName": project_name,
+            "timelineName": "Assembly",
+            "binName": "01_SMOKE",
+            "mediaPath": media_path,
+            "mediaDigest": media_digest,
+            "settings": {"frameRate": 30, "width": 1920, "height": 1080},
+            "restorePreviousProject": True,
+        },
+    }
+
+
+def _prepare_operation(control: Path, operation: dict[str, Any]) -> dict[str, Any]:
     path = control / OPERATION_FILENAME
     _atomic_write_json(path, operation)
     stale_result = control / RESULT_FILENAME
@@ -185,14 +240,49 @@ def prepare_probe(*, control_directory: Path | None = None, operation_id: str | 
     }
 
 
-def validate_probe_result(result: dict[str, Any], *, expected_operation_id: str | None = None) -> list[str]:
+def prepare_probe(*, control_directory: Path | None = None, operation_id: str | None = None) -> dict[str, Any]:
+    control = control_directory or discover_resolve_paths().control_directory
+    return _prepare_operation(control, build_probe_operation(operation_id))
+
+
+def prepare_smoke(
+    *,
+    control_directory: Path | None = None,
+    media_path: Path | None = None,
+    windows_media_path: str | None = None,
+    operation_id: str | None = None,
+) -> dict[str, Any]:
+    control = control_directory or discover_resolve_paths().control_directory
+    if media_path is None and windows_media_path is None:
+        media_path, windows_media_path = discover_smoke_fixture()
+    elif media_path is None:
+        media_path = Path(_wslpath(windows_media_path, "-u"))  # type: ignore[arg-type]
+    elif windows_media_path is None:
+        windows_media_path = _wslpath(str(media_path), "-w")
+    digest = _hash_file(media_path)
+    operation = build_smoke_operation(
+        media_path=windows_media_path,
+        media_digest=digest,
+        operation_id=operation_id,
+    )
+    prepared = _prepare_operation(control, operation)
+    prepared["media"] = {
+        "path": str(media_path),
+        "digest": digest,
+        "sizeBytes": media_path.stat().st_size,
+    }
+    return prepared
+
+
+def validate_result(result: dict[str, Any], *, expected_operation_id: str | None = None) -> list[str]:
     errors: list[str] = []
     if result.get("schemaVersion") != 1:
         errors.append("schemaVersion must be 1")
     if result.get("adapter") != "resolve":
         errors.append("adapter must be resolve")
-    if result.get("action") != "probe":
-        errors.append("action must be probe")
+    action = result.get("action")
+    if action not in {"probe", "create-smoke-project"}:
+        errors.append("action is unsupported")
     if result.get("status") not in {"succeeded", "failed"}:
         errors.append("status must be succeeded or failed")
     operation_id = result.get("operationId")
@@ -201,14 +291,31 @@ def validate_probe_result(result: dict[str, Any], *, expected_operation_id: str 
     if expected_operation_id is not None and operation_id != expected_operation_id:
         errors.append(f"operationId does not match expected {expected_operation_id}")
     digest = result.get("operationDigest")
-    if digest is not None and (not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)):
+    if digest is not None and (not isinstance(digest, str) or not _DIGEST.fullmatch(digest)):
         errors.append("operationDigest is invalid")
     if result.get("status") == "succeeded":
-        probe = result.get("probe")
-        if not isinstance(probe, dict):
-            errors.append("successful result must contain probe")
-        elif not isinstance(probe.get("capabilities"), dict):
-            errors.append("probe must contain capabilities")
+        if action == "probe":
+            probe = result.get("probe")
+            if not isinstance(probe, dict):
+                errors.append("successful probe result must contain probe")
+            elif not isinstance(probe.get("capabilities"), dict):
+                errors.append("probe must contain capabilities")
+        elif action == "create-smoke-project":
+            smoke = result.get("smoke")
+            if not isinstance(smoke, dict):
+                errors.append("successful smoke result must contain smoke")
+            else:
+                project = smoke.get("project")
+                timeline = smoke.get("timeline")
+                media = smoke.get("media")
+                if not isinstance(project, dict) or not str(project.get("name", "")).startswith("Ordivon Resolve Smoke "):
+                    errors.append("smoke result has an invalid project")
+                if not isinstance(timeline, dict) or not timeline.get("videoTrackItems"):
+                    errors.append("smoke result has no video timeline item")
+                if not isinstance(media, dict) or not _DIGEST.fullmatch(str(media.get("digest", ""))):
+                    errors.append("smoke result has an invalid media digest")
+                if smoke.get("restoredPreviousProject") is not True:
+                    errors.append("smoke result did not restore the previous project")
     if result.get("status") == "failed" and not isinstance(result.get("error"), dict):
         errors.append("failed result must contain error")
     encoded = json.dumps(result, ensure_ascii=False, sort_keys=True)
@@ -216,6 +323,10 @@ def validate_probe_result(result: dict[str, Any], *, expected_operation_id: str 
         if forbidden in encoded:
             errors.append(f"result contains forbidden private material: {forbidden!r}")
     return errors
+
+
+def validate_probe_result(result: dict[str, Any], *, expected_operation_id: str | None = None) -> list[str]:
+    return validate_result(result, expected_operation_id=expected_operation_id)
 
 
 def read_result(
@@ -228,7 +339,7 @@ def read_result(
     value = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict):
         raise ValueError("Resolve result root must be an object")
-    errors = validate_probe_result(value, expected_operation_id=expected_operation_id)
+    errors = validate_result(value, expected_operation_id=expected_operation_id)
     if errors:
         raise ValueError("; ".join(errors))
     return value
