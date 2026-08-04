@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+out/
+.cache/
+.env
+.env.*
+!.env.example
+media/
+proxies/
+renders/
+*.drp
+*.dra
