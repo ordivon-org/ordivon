@@ -1,5 +1,113 @@
 {
   "schemaVersion": 1,
   "productionId": "runtime-introduction",
-  "assets": []
+  "assets": [
+    {
+      "id": "runtime-hook-placeholder",
+      "role": "assembly placeholder for opening uncertainty hook",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:05db35684bc28aba576f8dff27e8ef022fc2d1ac83468534a87d142d08c7c132", "sizeBytes": 35133, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 180}},
+      "technical": {"fileName": "00-hook-placeholder.mp4", "durationFrames": 180, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace before picture lock."
+    },
+    {
+      "id": "runtime-flow-motion",
+      "role": "selected Runtime system-flow motion anchor",
+      "origin": "rendered",
+      "selectedBlob": {"digest": "sha256:9164cde7c91607e3caafc027b4b81d4c252b47ba388506819c82fdb287d0f98b", "sizeBytes": 216598, "mediaType": "video/mp4"},
+      "source": {"tool": "Remotion", "inputAssets": ["../../apps/motion-remotion/src/runtime-flow-composition.tsx"], "settings": {"compositionId": "runtime-flow", "durationFrames": 210}},
+      "technical": {"fileName": "runtime-flow.mp4", "durationFrames": 210, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"}
+    },
+    {
+      "id": "runtime-source-patch-placeholder",
+      "role": "assembly placeholder for exact source and guarded Patch capture",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:76606133767156e072627cdf0af1da00473a27dccf350f535b26b05dc06feef2", "sizeBytes": 82709, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 330}},
+      "technical": {"fileName": "02-source-patch-placeholder.mp4", "durationFrames": 330, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with selected real terminal capture."
+    },
+    {
+      "id": "runtime-exec-observe-placeholder",
+      "role": "assembly placeholder for durable Job and observation capture",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:056e1a4a9149bee48dabbb5965301b016e97f486c0da43a5bd82cff87f960b24", "sizeBytes": 87369, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 390}},
+      "technical": {"fileName": "03-exec-observe-placeholder.mp4", "durationFrames": 390, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with selected real terminal capture."
+    },
+    {
+      "id": "runtime-request-replay-motion",
+      "role": "selected exact-request-replay motion anchor",
+      "origin": "rendered",
+      "selectedBlob": {"digest": "sha256:2de685bf5dd4920b3a06576f798b3bd6aadde1e0dc07ea0d15ccad28240b5814", "sizeBytes": 276695, "mediaType": "video/mp4"},
+      "source": {"tool": "Remotion", "inputAssets": ["../../apps/motion-remotion/src/request-replay-composition.tsx", "evidence/runtime-demo.receipt.json"], "settings": {"compositionId": "runtime-request-replay", "durationFrames": 180}},
+      "technical": {"fileName": "runtime-request-replay.mp4", "durationFrames": 180, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"}
+    },
+    {
+      "id": "runtime-replay-terminal-placeholder",
+      "role": "assembly placeholder for real reconnect output",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:0bb99c49e01d8adc19d2ca4cec0e57c2c7eb74a39b2baadcf3ccec00f33f69ed", "sizeBytes": 36274, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 150}},
+      "technical": {"fileName": "05-replay-terminal-placeholder.mp4", "durationFrames": 150, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with selected real terminal output."
+    },
+    {
+      "id": "runtime-evidence-placeholder",
+      "role": "assembly placeholder for bounded Artifact evidence capture",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:89318730f84b27227c4396fd4bfaffbb9175b54548c13a6f0b737f23ef0c0d0e", "sizeBytes": 80633, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 330}},
+      "technical": {"fileName": "06-evidence-placeholder.mp4", "durationFrames": 330, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with Artifact descriptor and bounded read."
+    },
+    {
+      "id": "runtime-exact-close-motion",
+      "role": "selected compare-and-close motion anchor",
+      "origin": "rendered",
+      "selectedBlob": {"digest": "sha256:5cda1fd4ded4ec1539bc79fa6f03d7d07c1873fd09df36773144a12dd7acd0dc", "sizeBytes": 216033, "mediaType": "video/mp4"},
+      "source": {"tool": "Remotion", "inputAssets": ["../../apps/motion-remotion/src/exact-close-composition.tsx", "evidence/runtime-demo.receipt.json"], "settings": {"compositionId": "runtime-exact-close", "durationFrames": 180}},
+      "technical": {"fileName": "runtime-exact-close.mp4", "durationFrames": 180, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"}
+    },
+    {
+      "id": "runtime-diff-placeholder",
+      "role": "assembly placeholder for structured diff capture",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:a8d2bbf83bb160f0406fc1af8976a72bd7cce6691ad6af6ecff0ed39527da83c", "sizeBytes": 32226, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 90}},
+      "technical": {"fileName": "08-diff-placeholder.mp4", "durationFrames": 90, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with selected workspace.diff capture."
+    },
+    {
+      "id": "runtime-boundary-placeholder",
+      "role": "assembly placeholder for product-boundary card",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:512f2e4e98291582d194f117c1b9638e3e9a1f22765deb4a484dff08f8f13534", "sizeBytes": 38419, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 210}},
+      "technical": {"fileName": "09-boundary-placeholder.mp4", "durationFrames": 210, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with final designed boundary card."
+    },
+    {
+      "id": "runtime-end-placeholder",
+      "role": "assembly placeholder for end card",
+      "origin": "generated",
+      "selectedBlob": {"digest": "sha256:4657d2de5265a75ee6282dc97f92a6c2e57680fa7dc606a55363fcdef980255a", "sizeBytes": 28912, "mediaType": "video/mp4"},
+      "source": {"tool": "FFmpeg", "settings": {"purpose": "assembly-v0-placeholder", "durationFrames": 90}},
+      "technical": {"fileName": "10-end-placeholder.mp4", "durationFrames": 90, "frameRate": "30/1", "width": 1920, "height": 1080, "codec": "h264", "pixelFormat": "yuv420p", "colorSpace": "bt709", "colorTransfer": "bt709", "colorPrimaries": "bt709", "colorRange": "tv"},
+      "rights": {"status": "owned"},
+      "notes": "Editorial placeholder. Replace with final designed end card."
+    }
+  ]
 }

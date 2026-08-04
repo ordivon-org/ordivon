@@ -43,7 +43,7 @@ The design foundation is executable and verified:
 - the Preview app builds;
 - the Runtime motion composition renders at 1920×1080, 30 fps;
 - QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track;
-- the Resolve Free adapter has passed real read-only and bounded-mutation internal-menu acceptances against Resolve 21.0.3, including Project creation, settings, Bin and media import, Timeline assembly, save, and restoration of the previously open Project.
+- the Resolve Free adapter has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; native OTIO import preserves clip durations and gaps, while explicit Append source ranges are excluded from production assembly.
 
 DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. Resolve editing, real OBS capture, narration, asset registration, and final delivery remain production work rather than repository architecture.
 

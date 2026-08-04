@@ -1,0 +1,858 @@
+{
+    "OTIO_SCHEMA": "Timeline.1",
+    "metadata": {
+        "ordivon": {
+            "frameRate": "30/1",
+            "productionId": "runtime-introduction",
+            "status": "assembly-v0",
+            "totalFrames": 2340
+        }
+    },
+    "name": "Runtime Introduction · Assembly v0",
+    "global_start_time": {
+        "OTIO_SCHEMA": "RationalTime.1",
+        "rate": 30.0,
+        "value": 108000.0
+    },
+    "tracks": {
+        "OTIO_SCHEMA": "Stack.1",
+        "metadata": {},
+        "name": "tracks",
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "children": [
+            {
+                "OTIO_SCHEMA": "Track.1",
+                "metadata": {},
+                "name": "V1 · Assembly",
+                "source_range": null,
+                "effects": [],
+                "markers": [],
+                "enabled": true,
+                "color": null,
+                "children": [
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-hook-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "hook-placeholder"
+                            }
+                        },
+                        "name": "hook-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 180.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 180.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-hook-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 180.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-hook-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-flow-motion",
+                                "binName": "02_MOTION",
+                                "placeholder": false,
+                                "segmentId": "runtime-flow"
+                            }
+                        },
+                        "name": "runtime-flow",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 210.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-flow-motion"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 210.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-flow-motion"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-source-patch-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "source-patch-placeholder"
+                            }
+                        },
+                        "name": "source-patch-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 330.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 330.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-source-patch-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 330.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-source-patch-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-exec-observe-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "exec-observe-placeholder"
+                            }
+                        },
+                        "name": "exec-observe-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 390.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 390.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-exec-observe-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 390.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-exec-observe-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-request-replay-motion",
+                                "binName": "02_MOTION",
+                                "placeholder": false,
+                                "segmentId": "request-replay"
+                            }
+                        },
+                        "name": "request-replay",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 180.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-request-replay-motion"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 180.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-request-replay-motion"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-replay-terminal-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "replay-terminal-placeholder"
+                            }
+                        },
+                        "name": "replay-terminal-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 150.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 150.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-replay-terminal-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 150.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-replay-terminal-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-evidence-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "evidence-placeholder"
+                            }
+                        },
+                        "name": "evidence-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 330.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 330.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-evidence-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 330.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-evidence-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-exact-close-motion",
+                                "binName": "02_MOTION",
+                                "placeholder": false,
+                                "segmentId": "exact-close"
+                            }
+                        },
+                        "name": "exact-close",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 180.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-exact-close-motion"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 180.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-exact-close-motion"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-diff-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "diff-placeholder"
+                            }
+                        },
+                        "name": "diff-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 90.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 90.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-diff-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 90.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-diff-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-boundary-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "boundary-placeholder"
+                            }
+                        },
+                        "name": "boundary-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 210.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 210.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-boundary-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 210.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-boundary-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    },
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "ordivon": {
+                                "assetId": "runtime-end-placeholder",
+                                "binName": "01_PLACEHOLDERS",
+                                "placeholder": true,
+                                "segmentId": "end-placeholder"
+                            }
+                        },
+                        "name": "end-placeholder",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 90.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 30.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [
+                            {
+                                "OTIO_SCHEMA": "Marker.2",
+                                "metadata": {
+                                    "ordivon": {
+                                        "status": "placeholder"
+                                    }
+                                },
+                                "name": "Replace before picture lock",
+                                "color": "YELLOW",
+                                "marked_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 90.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "comment": ""
+                            }
+                        ],
+                        "enabled": true,
+                        "color": null,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {
+                                    "ordivon": {
+                                        "assetId": "runtime-end-placeholder"
+                                    }
+                                },
+                                "name": "",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 90.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 30.0,
+                                        "value": 0.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "ordivon-asset://runtime-end-placeholder"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    }
+                ],
+                "kind": "Video"
+            }
+        ]
+    }
+}

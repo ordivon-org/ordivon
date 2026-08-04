@@ -54,3 +54,21 @@ The bounded mutation acceptance also passed on Resolve Free 21.0.3.7. One reserv
 The action is replay-safe: it reuses the reserved project, bin, media item, and timeline when they already exist, and it refuses to append over unexpected timeline contents. A successful operation result with the same identity and digest is returned without repeating Resolve mutations.
 
 Resolve reported two items from the target Folder after one media import and one timeline creation. The adapter therefore treats Folder item count as diagnostic only; imported-media identity is established by the file name, expected digest, and the actual timeline items rather than by assuming Folder counts contain media clips only.
+
+## Resolve Free 21.0.3.7 compatibility profile
+
+A six-case disposable-project probe now records the installed build's actual timeline semantics. The normalized evidence is in [`resolve-compatibility/resolve-free-21.0.3.7.md`](resolve-compatibility/resolve-free-21.0.3.7.md) and its adjacent JSON profile.
+
+The probe established that `TimelineItem.GetEnd()` is an exclusive timeline boundary and that `GetDuration()` equals `GetEnd() - GetStart()`. Source-end behavior is not uniform across operations: full-media Append, explicit source-range Append, and OTIO import expose different conventions. The adapter therefore does not apply one generic `+1` or `-1` rule.
+
+Explicit source-range Append is not a production path on this profile. The installed official example labels source `0…23` as 24 frames, while the live 21.0.3.7 result produced a 23-frame TimelineItem. Full-media Append remains diagnostic-only.
+
+Native `ImportTimelineFromFile` OTIO conform succeeded with both existing Media Pool sources and `sourceClipsPath` import. Both preserved a 24-frame clip, a 6-frame gap, a 30-frame clip, the `01:00:00:00` start timecode, and the 60-frame total. Runtime Introduction assembly will therefore compile a Resolve-facing OTIO, import verified media into controlled Bins, use the existing-source OTIO path, and verify the resulting Timeline by scanning V1.
+
+The compatibility operation is prepared with:
+
+```bash
+uv run ordivon-studio resolve prepare-compatibility
+```
+
+It is locked to DaVinci Resolve Free 21.0.3.7, Windows internal-menu execution, the installed Developer Package digest, and content-addressed test fixtures. A Resolve upgrade requires a new profile rather than silently reusing these assumptions.

@@ -7,7 +7,15 @@ from pathlib import Path
 
 from .assets import hash_file, probe_media, r2_object_key
 from .qc import validate_video_probe
-from .resolve_adapter import discover_resolve_paths, install_runner, prepare_probe, prepare_smoke, read_result
+from .resolve_adapter import (
+    discover_resolve_paths,
+    install_runner,
+    prepare_assembly,
+    prepare_compatibility,
+    prepare_probe,
+    prepare_smoke,
+    read_result,
+)
 from .timed_text import export_srt, export_webvtt
 
 
@@ -124,6 +132,33 @@ def _command_resolve_prepare_smoke(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_resolve_prepare_compatibility(args: argparse.Namespace) -> int:
+    _write_json(
+        prepare_compatibility(
+            control_directory=_optional_path(args.control_directory),
+            media_path=_optional_path(args.media),
+            windows_media_path=args.windows_media_path,
+            developer_readme_path=_optional_path(args.developer_readme),
+            operation_id=args.operation_id,
+        )
+    )
+    return 0
+
+
+def _command_resolve_prepare_assembly(args: argparse.Namespace) -> int:
+    _write_json(
+        prepare_assembly(
+            production_id=args.production_id,
+            production_root=_optional_path(args.production_root),
+            control_directory=_optional_path(args.control_directory),
+            media_root=_optional_path(args.media_root),
+            windows_media_root=args.windows_media_root,
+            operation_id=args.operation_id,
+        )
+    )
+    return 0
+
+
 def _command_resolve_result(args: argparse.Namespace) -> int:
     result = read_result(
         control_directory=_optional_path(args.control_directory),
@@ -192,6 +227,28 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_smoke.add_argument("--windows-media-path", help="matching absolute Windows media path")
     resolve_smoke.add_argument("--operation-id")
     resolve_smoke.set_defaults(handler=_command_resolve_prepare_smoke)
+
+    resolve_compatibility = resolve_commands.add_parser(
+        "prepare-compatibility",
+        help="prepare a Resolve Free 21.0.3.7 version-specific compatibility probe",
+    )
+    resolve_compatibility.add_argument("--control-directory")
+    resolve_compatibility.add_argument("--media", help="WSL path to the compatibility media fixture")
+    resolve_compatibility.add_argument("--windows-media-path", help="matching absolute Windows media path")
+    resolve_compatibility.add_argument("--developer-readme", help="WSL path to the installed Developer README")
+    resolve_compatibility.add_argument("--operation-id")
+    resolve_compatibility.set_defaults(handler=_command_resolve_prepare_compatibility)
+
+    resolve_assembly = resolve_commands.add_parser(
+        "prepare-assembly", help="compile the selected Production OTIO snapshot into a bounded Resolve operation"
+    )
+    resolve_assembly.add_argument("--production-id", default="runtime-introduction")
+    resolve_assembly.add_argument("--production-root")
+    resolve_assembly.add_argument("--control-directory")
+    resolve_assembly.add_argument("--media-root")
+    resolve_assembly.add_argument("--windows-media-root")
+    resolve_assembly.add_argument("--operation-id")
+    resolve_assembly.set_defaults(handler=_command_resolve_prepare_assembly)
 
     resolve_result = resolve_commands.add_parser("result", help="validate and print the latest Resolve result")
     resolve_result.add_argument("--control-directory")

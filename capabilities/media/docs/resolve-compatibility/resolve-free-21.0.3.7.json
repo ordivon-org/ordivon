@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "profileId": "resolve-free-21.0.3.7-windows-internal-menu",
+  "resolve": {
+    "productName": "DaVinci Resolve",
+    "edition": "free",
+    "versionString": "21.0.3.7",
+    "version": [21, 0, 3, 7, ""],
+    "platform": "windows",
+    "executionMode": "internal-menu"
+  },
+  "developerPackage": {
+    "readmeDigest": "sha256:7c3d76a82ef111725f5d3c9e3b0e3020bbd650802573380644fa1580649245e9"
+  },
+  "fixture": {
+    "videoFrames": 90,
+    "frameRate": 30,
+    "width": 1920,
+    "height": 1080,
+    "mediaDigest": "sha256:123f9348d8f2e285790c7d37d1667fbcb877b924dfebb42aed7e9ec6b2e2c59d",
+    "otioDigest": "sha256:df8c71174ebe753d36e31357eada290ea6629998417f14ef3d93388c83d08f21"
+  },
+  "timelineItem": {
+    "durationAuthority": "GetDuration",
+    "timelineSpanCheck": "GetEnd - GetStart",
+    "timelineEndBoundary": "exclusive",
+    "returnedHandleHasUniqueId": true,
+    "trackScanMatchesReturnedHandle": true,
+    "mediaPoolItemHasUniqueId": true,
+    "mediaPoolItemHasMediaId": true
+  },
+  "append": {
+    "directObject": {
+      "supported": true,
+      "expectedFrames": 90,
+      "observedDuration": 90,
+      "observedTimelineSpan": 90,
+      "sourceStart": 0,
+      "sourceEnd": 89,
+      "sourceEndBoundary": "inclusive"
+    },
+    "directList": {
+      "supported": true,
+      "expectedFrames": 90,
+      "observedDuration": 90,
+      "observedTimelineSpan": 90
+    },
+    "positionedFullMedia": {
+      "supported": true,
+      "requestedRecordOffset": 30,
+      "observedRecordOffset": 30,
+      "observedDuration": 90
+    },
+    "sourceRangeZeroToTwentyThree": {
+      "supportedByApi": true,
+      "officialExampleLabel": "first 24 frames",
+      "requestedStartFrame": 0,
+      "requestedEndFrame": 23,
+      "observedDuration": 23,
+      "observedTimelineSpan": 23,
+      "observedSourceStart": 0,
+      "observedSourceEnd": 23,
+      "productionDecision": "do-not-use"
+    }
+  },
+  "otioImport": {
+    "timelineStartTimecode": "01:00:00:00",
+    "requestedLayout": {
+      "firstClipFrames": 24,
+      "gapFrames": 6,
+      "secondClipFrames": 30,
+      "totalFrames": 60
+    },
+    "existingMediaPoolSources": {
+      "supported": true,
+      "observedClipDurations": [24, 30],
+      "observedClipOffsets": [0, 30],
+      "observedTotalFrames": 60,
+      "gapPreserved": true,
+      "sourceEndBoundary": "exclusive"
+    },
+    "sourceClipsPathImport": {
+      "supported": true,
+      "observedClipDurations": [24, 30],
+      "observedClipOffsets": [0, 30],
+      "observedTotalFrames": 60,
+      "gapPreserved": true,
+      "sourceEndBoundary": "exclusive"
+    }
+  },
+  "lifecycle": {
+    "previousProjectRestored": true,
+    "disposableProjectDeleted": true
+  },
+  "productionDecision": {
+    "preferredAssemblyPath": "ImportTimelineFromFile(OTIO)",
+    "preferredMediaResolution": "preimport media and pass sourceClipsFolders",
+    "timelineDurationVerification": "GetDuration and GetEnd - GetStart must agree",
+    "appendFullMedia": "diagnostic-only",
+    "appendSourceRange": "unsupported-for-production"
+  }
+}
