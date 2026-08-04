@@ -25,69 +25,65 @@ The film is not a catalog of every Runtime feature. Cancellation, restart reconc
 
 The implementation references are primarily:
 
+- `scripts/demo_runtime_flow.py` — bounded presentation-ready proof against the installed service;
+- `examples/runtime-demo/` — deterministic no-network fixture;
 - `scripts/mcp_probe.py` — reusable MCP client;
-- `scripts/mcp_e2e.py` — complete real-system proof and request shapes;
+- `scripts/mcp_e2e.py` — complete real-system acceptance and request shapes;
 - `crates/ordivon-runtime-core/src/runtime/types.rs` — Job, observation and Artifact results;
 - `crates/ordivon-runtime-core/src/runtime/patch.rs` — durable Patch receipt and replay identity;
 - `crates/ordivon-runtime-core/src/universal/types.rs` — Workspace, diff and close results;
 - `docs/agent-ux.md` and `docs/runtime.md` — recovery and compare-and-close semantics.
 
-## The executable demonstration
+## Executable demonstration
 
-The clean recording path should be owned by `ordivon-runtime` as a new bounded demonstration client, tentatively:
+The recording path is owned by `ordivon-runtime`:
 
 ```text
 scripts/demo_runtime_flow.py
 examples/runtime-demo/
 ```
 
-It should reuse `scripts/mcp_probe.py::McpClient` and target the already installed loopback service. It should not rebuild Runtime, launch a temporary server, run the whole acceptance suite, or print credentials.
+It reuses `scripts/mcp_probe.py::McpClient`, targets the installed loopback service, does not rebuild Runtime or launch a second server, and does not print credentials.
 
-### Demonstration fixture
-
-Use a tiny Python repository created from `examples/runtime-demo/` in a temporary directory. The fixture should contain:
-
-- one readable source file with a small, explicit defect or configuration value;
-- one test that fails before the guarded Patch and passes after it;
-- one report command that emits a compact deterministic summary;
-- no network dependency, secret, package installation or external service.
-
-The fixture exists to make Runtime state visible. It is not presented as an AI benchmark or a meaningful software product.
+The fixture contains one explicit recovery-policy defect, one test that fails before the guarded Patch and passes after it, one deterministic report, and no network or package-install dependency.
 
 ### Demonstration trajectory
 
 1. Create the temporary source repository and record its commit.
 2. Call `workspace.open` and show the returned `workspaceId` and exact `sourceRevision`.
 3. Call `workspace.read`; use its digest in one durable `workspace.patch` request.
-4. Submit one `workspace.execPlan` with a stable human-readable `clientRequestId` and three steps: inspect, verify, report.
-5. Recreate the MCP client and replay the exact operation request. Verify that the returned `jobId` and `attemptId` are unchanged.
+4. Submit one `workspace.execPlan` with a unique request identity and three steps: inspect, verify, report.
+5. Recreate the MCP client and replay the exact operation request; require unchanged `jobId` and `attemptId`.
 6. Use `task.list(clientRequestId=...)` and `task.observe` to recover and observe the Job.
-7. Read the terminal-evidence Artifact with `artifact.read` and show its Job, Attempt, Workspace and source-revision binding.
-8. Show `workspace.diff` and its structured changed paths.
+7. Read the terminal-evidence Artifact and verify its Job, Attempt, Workspace and source-revision binding.
+8. Require `workspace.diff` to contain only `policy.py`.
 9. Read `workspace.get.sourceStateDigest` after review.
 10. Call `workspace.close` with `force=true` and that exact `expectedSourceStateDigest`.
-11. Write one redacted JSON receipt for Studio. It may contain identifiers, durations, statuses, digests and selected evidence fields, but never the bearer token, environment values, full local state roots or unrelated jobs.
+11. Write a redacted JSON Receipt containing selected identities, timings, statuses and digests, but no bearer token, source path, Runtime state root or unrelated Job.
 
-The operation should last long enough for at least one non-terminal `task.observe` result, but it must not add artificial production delays to Runtime itself. A small deterministic fixture workload may take approximately three seconds.
+The fixture takes approximately three seconds and yields non-terminal observations without adding delays to Runtime itself.
 
-## Presentation output of the demo client
+## Verified demonstration result
 
-The normal Runtime API remains structured JSON. The demonstration client should additionally support a presentation mode that prints one compact event at a time:
+The Demo has completed independent live runs against the installed service. Each run produced:
 
 ```text
-SOURCE     5ce2…
-WORKSPACE  ws-…  detached
-PATCH      committed  sha256:…
-JOB        job-…  attempt-…
+SOURCE     <revision>
+WORKSPACE  <workspace>  detached
+PATCH      committed  <request digest>
+JOB        <job>  <attempt>
+RECOVER    same <job>
 STEP       inspect  1/3
 STEP       verify   2/3
-RECOVER    same job-…
-EVIDENCE   terminal-evidence  sha256:…
-DIFF       1 modified path
-CLOSE      exact state matched
+STEP       report   3/3
+EVIDENCE   terminal-evidence  <digest>
+DIFF       1 modified path  policy.py
+CLOSE      exact state matched  <source-state digest>
 ```
 
-This is a projection of real responses, not a second state model. The JSON receipt remains the machine-readable capture source.
+Within each run, replay returned the same Job and Attempt. Across runs, identities remained independent. Receipt audits verified identity binding, non-terminal observations, evidence consistency, one-file source effect, exact close, secret exclusion and cleanup with no residual demo Workspace.
+
+The selected Studio Receipt is stored at `evidence/runtime-demo.receipt.json` and validated by `schemas/runtime-demo-receipt.schema.json` plus semantic checks.
 
 ## Film structure
 
@@ -96,12 +92,12 @@ Target master: English, 16:9, approximately 78 seconds. Real product capture rem
 | Time | Image | Proof |
 | --- | --- | --- |
 | 0–6 s | Programmatic hook: “The command ran. Did it commit? Can you reconnect?” | execution uncertainty is the problem |
-| 6–13 s | Current `RuntimeFlow` composition | Workspace → Job → Attempt → Evidence → Recovery |
+| 6–13 s | `RuntimeFlow` composition | Workspace → Job → Attempt → Evidence → Recovery |
 | 13–24 s | Real terminal: source commit, `workspace.open`, guarded Patch | exact source and protected mutation |
-| 24–37 s | Real terminal: `workspace.execPlan` and one live `task.observe` | durable Job and observable progress |
-| 37–48 s | New client / exact replay, then `task.list` by request identity | recovery returns the same Job, not new work |
+| 24–37 s | Real terminal: `workspace.execPlan` and live `task.observe` | durable Job and observable progress |
+| 37–48 s | Receipt-driven exact replay composition and selected real terminal output | recovery returns the same Job, not new work |
 | 48–59 s | Artifact descriptor and bounded terminal-evidence read | evidence survives the client interaction |
-| 59–68 s | `workspace.diff`, `workspace.get`, compare-and-close | reviewed exact source state is the close fence |
+| 59–68 s | Receipt-driven exact-close composition and selected real diff | reviewed source state is the close fence |
 | 68–75 s | Boundary card | owner-trusted Linux; not semantic completion; not a hostile-code sandbox |
 | 75–78 s | End card | durable local execution for Agent and automation workflows |
 
@@ -120,8 +116,8 @@ Target master: English, 16:9, approximately 78 seconds. Real product capture rem
 
 - the opening uncertainty question;
 - the conceptual Runtime flow;
-- a request-identity line reconnecting to the same Job;
-- the source-state digest acting as a close fence;
+- the Receipt-driven request replay to the same Job and Attempt;
+- the Receipt-driven source-state digest match;
 - boundary and end cards.
 
 Programmatic motion must explain real Runtime facts. It must not fabricate terminal sessions or substitute animated JSON for the core demonstration.
@@ -135,25 +131,24 @@ Programmatic motion must explain real Runtime facts. It must not fabricate termi
 - cancellation, backup, restore, repair and rollback as a feature montage;
 - claims of hostile-code isolation, semantic Task success or universal external-effect idempotency.
 
-## Studio changes after the Runtime demo exists
+## Current Studio implementation
 
-Only three additions are justified for the first film:
+The first film now has:
 
-1. a receipt-driven request-replay visual showing the same `clientRequestId` resolving to the same `jobId`;
-2. a receipt-driven compare-and-close visual showing the reviewed `sourceStateDigest` matching the close request;
-3. capture registration in `assets.json`, followed by narration timing and an editorial cut.
+1. a validated live Runtime Receipt;
+2. a Receipt-driven request-replay composition;
+3. a Receipt-driven compare-and-close composition;
+4. a Preview evidence summary;
+5. deterministic H.264/BT.709 rendering and QC.
 
-A generic dashboard, media database, visual editor, Runtime clone or cross-project Console is not required.
+A generic dashboard, media database, visual editor, Runtime clone or cross-project Console remains unnecessary.
 
 ## Acceptance before recording
 
-The demonstration is ready to capture only when:
+The Runtime demonstration is ready for recording. The remaining capture acceptance is:
 
-- it runs twice against the installed service without manual cleanup;
-- exact replay returns the same Job and Attempt;
-- at least one non-terminal observation is available;
-- the terminal-evidence Artifact can be read and verified;
-- the diff contains only the intended fixture change;
-- compare-and-close succeeds only for the reviewed source-state digest;
-- the receipt contains no secret or unstable unrelated machine data;
-- a failed run leaves a documented cleanup command and no active Job.
+- no private terminal history or notifications enter the frame;
+- the presentation projection remains readable at final viewing size;
+- the selected capture file is hashed and registered before editing;
+- visual playback review confirms no clipped text, unreadable identifiers or misleading timing;
+- the captured run produces a Receipt that passes the same validation as the current selected evidence.

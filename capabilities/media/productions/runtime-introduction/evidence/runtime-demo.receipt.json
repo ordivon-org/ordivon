@@ -1,0 +1,197 @@
+{
+  "close": {
+    "exactStateMatched": true,
+    "removed": true,
+    "sourceStateDigest": "sha256:ed871689ffff59888e460d3d91aeccbed48577de48413fe127ece12fc2d52875"
+  },
+  "diff": {
+    "changedPaths": [
+      "policy.py"
+    ],
+    "digest": null,
+    "modifiedPaths": [
+      "policy.py"
+    ],
+    "truncated": false
+  },
+  "evidence": {
+    "artifactId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.terminal-evidence.e3b23107fa8e0bb9c0f52b07fedc3d3fb03470b6266eb4a7fbf024232ca94d86",
+    "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+    "cancellationDisposition": "not_requested",
+    "deliveryDisposition": "committed",
+    "digest": "sha256:e3b23107fa8e0bb9c0f52b07fedc3d3fb03470b6266eb4a7fbf024232ca94d86",
+    "executionDisposition": "succeeded",
+    "executionProfile": "trusted_local",
+    "jobId": "job-019fcb91-3892-7780-9f4c-2ad0c7e29b70",
+    "observedAtMs": 1785826723281,
+    "processTreeDisposition": "terminal_clean",
+    "reasonCode": "PROCESS_EXIT_ZERO",
+    "schemaVersion": 1,
+    "sourceRevision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c",
+    "startDisposition": "identity_bound",
+    "terminalArtifactIds": [
+      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.stdout",
+      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.stderr",
+      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.result"
+    ],
+    "workspaceId": "runtime-demo-de1061323e7840e4955a10eca1e2d5a1"
+  },
+  "execution": {
+    "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+    "clientRequestId": "demo:runtime-flow:exec:de1061323e7840e4955a10eca1e2d5a1",
+    "elapsedMs": 3322,
+    "exitCode": 0,
+    "jobId": "job-019fcb91-3892-7780-9f4c-2ad0c7e29b70",
+    "observations": [
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 0,
+        "currentStepId": "inspect",
+        "currentStepIndex": 0,
+        "elapsedMs": 650,
+        "progressRevision": 2,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 1,
+        "currentStepId": "verify",
+        "currentStepIndex": 1,
+        "elapsedMs": 1127,
+        "progressRevision": 4,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 1,
+        "currentStepId": "verify",
+        "currentStepIndex": 1,
+        "elapsedMs": 1161,
+        "progressRevision": 4,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 1,
+        "currentStepId": "verify",
+        "currentStepIndex": 1,
+        "elapsedMs": 1674,
+        "progressRevision": 4,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 2,
+        "elapsedMs": 2189,
+        "progressRevision": 5,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 2,
+        "currentStepId": "report",
+        "currentStepIndex": 2,
+        "elapsedMs": 2706,
+        "progressRevision": 6,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 2,
+        "currentStepId": "report",
+        "currentStepIndex": 2,
+        "elapsedMs": 3232,
+        "progressRevision": 6,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "completedSteps": 3,
+        "elapsedMs": 3322,
+        "exitCode": 0,
+        "progressRevision": 8,
+        "status": "succeeded",
+        "totalSteps": 3
+      }
+    ],
+    "recoveredByTaskList": true,
+    "sameJobAfterReplay": true,
+    "status": "succeeded"
+  },
+  "kind": "ordivon-runtime-demo-receipt",
+  "patch": {
+    "clientRequestId": "demo:runtime-flow:patch:de1061323e7840e4955a10eca1e2d5a1",
+    "files": [
+      "policy.py"
+    ],
+    "operationId": "patch-019fcb91-382a-7052-885a-833532114f10",
+    "replayed": false,
+    "requestDigest": "sha256:144c764c3331c89f2e10649ea347eb70eb9d8095308b1e20f70ff8ae7676f632"
+  },
+  "presentation": [
+    {
+      "detail": "1be3fcd5aea1\u2026",
+      "kind": "source"
+    },
+    {
+      "detail": "runtime-demo\u2026  detached  1be3fcd5aea1\u2026",
+      "kind": "workspace"
+    },
+    {
+      "detail": "committed  sha256:144c764c3331\u2026",
+      "kind": "patch"
+    },
+    {
+      "detail": "job-019fcb91\u2026  attempt-019f\u2026",
+      "kind": "job"
+    },
+    {
+      "detail": "same job-019fcb91\u2026",
+      "kind": "recover"
+    },
+    {
+      "detail": "inspect  1/3",
+      "kind": "step"
+    },
+    {
+      "detail": "verify  2/3",
+      "kind": "step"
+    },
+    {
+      "detail": "report  3/3",
+      "kind": "step"
+    },
+    {
+      "detail": "terminal-evidence  sha256:e3b23107fa8e\u2026",
+      "kind": "evidence"
+    },
+    {
+      "detail": "1 modified path  policy.py",
+      "kind": "diff"
+    },
+    {
+      "detail": "exact state matched  sha256:ed871689ffff\u2026",
+      "kind": "close"
+    }
+  ],
+  "protocolVersion": "2026-07-28",
+  "schemaVersion": 1,
+  "source": {
+    "revision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c"
+  },
+  "status": "passed",
+  "toolCatalogDigest": "sha256:115e7762e12a8711fbf3338106f483145107b1c09a916a8f1871716eac9ae051",
+  "workspace": {
+    "closed": true,
+    "sourceRevision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c",
+    "sourceStateDigest": "sha256:ed871689ffff59888e460d3d91aeccbed48577de48413fe127ece12fc2d52875",
+    "workspaceId": "runtime-demo-de1061323e7840e4955a10eca1e2d5a1"
+  }
+}

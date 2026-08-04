@@ -91,6 +91,7 @@
         "article": {"type": "string"},
         "scripts": {"type": "array", "items": {"type": "string"}},
         "timedText": {"type": "array", "items": {"type": "string"}},
+        "receipts": {"type": "array", "items": {"type": "string"}},
         "motion": {"type": "array", "items": {"type": "string"}},
         "resolveProjectAsset": {"type": "string"},
         "otioSnapshots": {"type": "array", "items": {"type": "string"}}

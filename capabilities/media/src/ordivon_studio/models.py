@@ -19,6 +19,7 @@ DOCUMENT_SCHEMAS = {
     "claims.json": "claims.schema.json",
     "assets.json": "asset.schema.json",
 }
+TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -49,7 +50,12 @@ def _is_repository_path(value: str) -> bool:
     return bool(path) and not path.startswith(("/", "\\")) and "://" not in path and ".." not in Path(path).parts
 
 
-def _validate_production_semantics(production_path: Path, production: dict[str, Any], claims: dict[str, Any], assets: dict[str, Any]) -> list[str]:
+def _validate_production_semantics(
+    production_path: Path,
+    production: dict[str, Any],
+    claims: dict[str, Any],
+    assets: dict[str, Any],
+) -> list[str]:
     errors: list[str] = []
     prefix = str(production_path.parent)
 
@@ -58,7 +64,11 @@ def _validate_production_semantics(production_path: Path, production: dict[str, 
     if assets.get("productionId") != production.get("id"):
         errors.append(f"{prefix}: assets productionId does not match production id")
 
-    binding_ids = [item["id"] for item in production.get("sourceBindings", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
+    binding_ids = [
+        item["id"]
+        for item in production.get("sourceBindings", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
     for duplicate in sorted(_duplicates(binding_ids)):
         errors.append(f"{prefix}: duplicate source binding id: {duplicate}")
     known_bindings = set(binding_ids)
@@ -84,11 +94,19 @@ def _validate_production_semantics(production_path: Path, production: dict[str, 
     for duplicate in sorted(_duplicates(claim_ids)):
         errors.append(f"{prefix}: duplicate claim id: {duplicate}")
 
-    asset_ids = [item["id"] for item in assets.get("assets", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
+    asset_ids = [
+        item["id"]
+        for item in assets.get("assets", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
     for duplicate in sorted(_duplicates(asset_ids)):
         errors.append(f"{prefix}: duplicate asset id: {duplicate}")
 
-    output_ids = [item["id"] for item in production.get("outputs", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
+    output_ids = [
+        item["id"]
+        for item in production.get("outputs", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    ]
     for duplicate in sorted(_duplicates(output_ids)):
         errors.append(f"{prefix}: duplicate output id: {duplicate}")
 
@@ -101,10 +119,68 @@ def _validate_production_semantics(production_path: Path, production: dict[str, 
             elif isinstance(value, list):
                 source_paths.extend(item for item in value if isinstance(item, str))
         for source_path in source_paths:
-            if not (production_path.parent / source_path).resolve().is_relative_to(ROOT.resolve()):
+            resolved = (production_path.parent / source_path).resolve()
+            if not resolved.is_relative_to(ROOT.resolve()):
                 errors.append(f"{prefix}: source escapes repository: {source_path}")
-            elif not (production_path.parent / source_path).exists():
+            elif not resolved.exists():
                 errors.append(f"{prefix}: declared source does not exist: {source_path}")
+    return errors
+
+
+def _validate_runtime_receipt(path: Path, receipt: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    execution = receipt.get("execution", {})
+    evidence = receipt.get("evidence", {})
+    workspace = receipt.get("workspace", {})
+    source = receipt.get("source", {})
+    close = receipt.get("close", {})
+    diff = receipt.get("diff", {})
+
+    expected_pairs = (
+        ("execution/evidence jobId", execution.get("jobId"), evidence.get("jobId")),
+        ("execution/evidence attemptId", execution.get("attemptId"), evidence.get("attemptId")),
+        ("workspace/evidence workspaceId", workspace.get("workspaceId"), evidence.get("workspaceId")),
+        ("source/workspace revision", source.get("revision"), workspace.get("sourceRevision")),
+        ("source/evidence revision", source.get("revision"), evidence.get("sourceRevision")),
+        ("workspace/close sourceStateDigest", workspace.get("sourceStateDigest"), close.get("sourceStateDigest")),
+    )
+    for label, left, right in expected_pairs:
+        if left != right:
+            errors.append(f"{path}: {label} does not match")
+
+    observations = execution.get("observations", [])
+    if isinstance(observations, list) and not any(
+        isinstance(item, dict) and item.get("status") not in TERMINAL for item in observations
+    ):
+        errors.append(f"{path}: receipt contains no non-terminal observation")
+
+    changed = set(diff.get("changedPaths", [])) if isinstance(diff.get("changedPaths"), list) else set()
+    modified = set(diff.get("modifiedPaths", [])) if isinstance(diff.get("modifiedPaths"), list) else set()
+    if not modified.issubset(changed):
+        errors.append(f"{path}: modifiedPaths is not a subset of changedPaths")
+
+    kinds = {
+        item.get("kind")
+        for item in receipt.get("presentation", [])
+        if isinstance(item, dict) and isinstance(item.get("kind"), str)
+    }
+    required_kinds = {"source", "workspace", "patch", "job", "recover", "step", "evidence", "diff", "close"}
+    if not required_kinds.issubset(kinds):
+        errors.append(f"{path}: presentation omits required proof events")
+
+    encoded = json.dumps(receipt, ensure_ascii=False, sort_keys=True)
+    forbidden = (
+        "ORDIVON_BEARER_TOKEN",
+        "Authorization",
+        "Bearer ",
+        "/root/",
+        "/var/lib/",
+        "/tmp/",
+        "\\Users\\",
+    )
+    for value in forbidden:
+        if value in encoded:
+            errors.append(f"{path}: receipt contains forbidden private material: {value!r}")
     return errors
 
 
@@ -112,6 +188,7 @@ def validate_repository() -> list[str]:
     errors: list[str] = []
     validators = {name: _validator(schema) for name, schema in DOCUMENT_SCHEMAS.items()}
     timed_text_validator = _validator("timed-text.schema.json")
+    receipt_validator = _validator("runtime-demo-receipt.schema.json")
 
     for production_directory in sorted(path for path in PRODUCTION_DIRECTORY.iterdir() if path.is_dir()):
         documents: dict[str, dict[str, Any]] = {}
@@ -126,6 +203,7 @@ def validate_repository() -> list[str]:
                 location = "/".join(str(part) for part in error.path)
                 errors.append(f"{path}:{location}: {error.message}")
 
+        production = documents.get("production.json")
         if set(documents) == set(DOCUMENT_SCHEMAS):
             errors.extend(
                 _validate_production_semantics(
@@ -147,6 +225,21 @@ def validate_repository() -> list[str]:
                     tuple(iter_cues(document))
                 except ValueError as error:
                     errors.append(f"{path}:semantic: {error}")
+
+        if isinstance(production, dict):
+            sources = production.get("sources", {})
+            receipt_paths = sources.get("receipts", []) if isinstance(sources, dict) else []
+            for relative_path in receipt_paths:
+                if not isinstance(relative_path, str):
+                    continue
+                path = production_directory / relative_path
+                if not path.is_file():
+                    continue
+                receipt = _load(path)
+                for error in sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path)):
+                    location = "/".join(str(part) for part in error.path)
+                    errors.append(f"{path}:{location}: {error.message}")
+                errors.extend(_validate_runtime_receipt(path, receipt))
     return errors
 
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "runtime-introduction",
   "title": "Ordivon Runtime Introduction",
-  "status": "design",
+  "status": "production",
   "intent": "Explain why reliable Agent execution requires durable identity, process ownership, bounded evidence, observation, and recovery, then demonstrate those properties through a real Runtime workflow.",
   "audiences": [
     "potential-client",
@@ -14,7 +14,7 @@
     {
       "id": "runtime",
       "repository": "https://github.com/zycxfyh/ordivon-runtime",
-      "revision": "d620d7ce71ae76140cf88b570c141edd777ec91c",
+      "revision": "f0784919e56a3fe9c7767781fd6c71563f8c5f8e",
       "role": "product-facts-and-executable-demonstration"
     }
   ],
@@ -36,7 +36,12 @@
     "article": "story.mdx",
     "scripts": ["script/narration.en.md", "script/narration.zh.md"],
     "timedText": ["timed-text/narration.en.json"],
-    "motion": ["../../apps/motion-remotion/src/runtime-flow-composition.tsx"],
+    "receipts": ["evidence/runtime-demo.receipt.json"],
+    "motion": [
+      "../../apps/motion-remotion/src/runtime-flow-composition.tsx",
+      "../../apps/motion-remotion/src/request-replay-composition.tsx",
+      "../../apps/motion-remotion/src/exact-close-composition.tsx"
+    ],
     "otioSnapshots": []
   },
   "outputs": [

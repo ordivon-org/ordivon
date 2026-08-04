@@ -14,7 +14,14 @@
       "id": "runtime-workspace-binding",
       "source": {"binding": "runtime", "path": "README.md#what-it-does"},
       "meaning": "Runtime creates detached Git Workspaces bound to exact local revisions and provides guarded read, mutation, diff, and closure operations.",
-      "evidence": ["README.md#what-it-does", "docs/agent-ux.md", "docs/reference/tools.md", "scripts/mcp_e2e.py"],
+      "evidence": [
+        "README.md#what-it-does",
+        "docs/agent-ux.md",
+        "docs/reference/tools.md",
+        "scripts/mcp_e2e.py",
+        "scripts/demo_runtime_flow.py",
+        "examples/runtime-demo/"
+      ],
       "allowedWording": ["revision-bound Git workspace", "isolated Git workspace"],
       "avoid": ["virtual machine isolation", "hostile-code sandbox"]
     },
@@ -22,7 +29,13 @@
       "id": "runtime-process-evidence",
       "source": {"binding": "runtime", "path": "README.md#what-it-does"},
       "meaning": "Each Attempt owns a systemd unit and cgroup process tree and records bounded Results, Artifacts, and supervision evidence.",
-      "evidence": ["README.md#what-it-does", "docs/runtime.md", "docs/reference/tools.md", "scripts/local-acceptance"],
+      "evidence": [
+        "README.md#what-it-does",
+        "docs/runtime.md",
+        "docs/reference/tools.md",
+        "scripts/local-acceptance",
+        "scripts/demo_runtime_flow.py"
+      ],
       "allowedWording": ["owned process tree", "bounded execution evidence"],
       "avoid": ["proves every external-world effect", "prevents every process escape"]
     },
@@ -30,7 +43,13 @@
       "id": "runtime-response-loss",
       "source": {"binding": "runtime", "path": "README.md#first-runtime-workflow"},
       "meaning": "After response loss, clients reconnect using the same request or discover and observe the same recorded Job instead of blindly creating a new opaque operation.",
-      "evidence": ["README.md#first-runtime-workflow", "docs/agent-ux.md", "docs/runtime.md", "scripts/mcp_e2e.py"],
+      "evidence": [
+        "README.md#first-runtime-workflow",
+        "docs/agent-ux.md",
+        "docs/runtime.md",
+        "scripts/mcp_e2e.py",
+        "scripts/demo_runtime_flow.py"
+      ],
       "allowedWording": ["reconnect to the same Job", "do not blindly repeat uncertain work"],
       "avoid": ["every external effect is idempotent", "network failure cannot lose information"]
     },
