@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.com/studio/schemas/production-v1.json",
+  "title": "Ordivon Studio Production v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "status", "intent", "audiences", "sourceBindings", "workingProfile", "sources", "outputs"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "title": {"type": "string", "minLength": 1},
+    "status": {"enum": ["design", "production", "review", "published", "archived"]},
+    "intent": {"type": "string", "minLength": 1},
+    "audiences": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "sourceBindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "repository", "revision", "role"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+          },
+          "repository": {"type": "string", "minLength": 1},
+          "revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+          "role": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "workingProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameRate", "canvas", "color", "audio"],
+      "properties": {
+        "frameRate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numerator", "denominator"],
+          "properties": {
+            "numerator": {"type": "integer", "minimum": 1},
+            "denominator": {"type": "integer", "minimum": 1}
+          }
+        },
+        "canvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": {"type": "integer", "minimum": 1},
+            "height": {"type": "integer", "minimum": 1}
+          }
+        },
+        "color": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["still", "video"],
+          "properties": {
+            "still": {"type": "string"},
+            "video": {"type": "string"}
+          }
+        },
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sampleRate", "sourceBitDepth"],
+          "properties": {
+            "sampleRate": {"type": "integer", "minimum": 8000},
+            "sourceBitDepth": {"type": "integer", "enum": [16, 24, 32]}
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claims", "assets"],
+      "properties": {
+        "claims": {"type": "string"},
+        "assets": {"type": "string"},
+        "article": {"type": "string"},
+        "scripts": {"type": "array", "items": {"type": "string"}},
+        "timedText": {"type": "array", "items": {"type": "string"}},
+        "motion": {"type": "array", "items": {"type": "string"}},
+        "resolveProjectAsset": {"type": "string"},
+        "otioSnapshots": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+          },
+          "kind": {
+            "enum": ["article", "video", "audio", "image", "captions", "interactive", "publication-package"]
+          },
+          "status": {"enum": ["planned", "rendered", "approved", "published"]},
+          "profile": {"type": "string"},
+          "blobDigest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

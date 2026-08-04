@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.com/studio/schemas/asset-manifest-v1.json",
+  "title": "Ordivon Studio Asset Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "productionId", "assets"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "productionId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "assets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/asset"}
+    }
+  },
+  "$defs": {
+    "blob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "sizeBytes", "mediaType"],
+      "properties": {
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "sizeBytes": {"type": "integer", "minimum": 0},
+        "mediaType": {"type": "string", "minLength": 1}
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "origin", "rights"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+        },
+        "role": {"type": "string", "minLength": 1},
+        "origin": {
+          "enum": ["capture", "human-created", "generated", "imported", "rendered", "transformed"]
+        },
+        "selectedBlob": {"$ref": "#/$defs/blob"},
+        "alternativeBlobs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/blob"}
+        },
+        "parents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tool": {"type": "string"},
+            "provider": {"type": "string"},
+            "model": {"type": "string"},
+            "promptSource": {"type": "string"},
+            "inputAssets": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string"}
+            },
+            "settings": {"type": "object"}
+          }
+        },
+        "technical": {"type": "object"},
+        "rights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": {
+              "enum": ["owned", "licensed", "public-domain", "restricted", "unknown"]
+            },
+            "license": {"type": "string"},
+            "attribution": {"type": "string"},
+            "notes": {"type": "string"}
+          }
+        },
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

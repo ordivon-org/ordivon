@@ -1,0 +1,22 @@
+[project]
+name = "ordivon-studio-tools"
+version = "0.1.0a0"
+description = "Asset, timed-text, timeline, and media inspection tools for Ordivon Studio"
+requires-python = ">=3.12"
+dependencies = [
+  "jsonschema==4.25.1",
+  "opentimelineio==0.18.1",
+]
+
+[project.scripts]
+ordivon-studio = "ordivon_studio.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ordivon_studio"]
+
+[dependency-groups]
+dev = []

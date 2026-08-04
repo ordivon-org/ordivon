@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "productionId": "runtime-introduction",
+  "claims": [
+    {
+      "id": "runtime-purpose",
+      "source": {"binding": "runtime", "path": "README.md#purpose"},
+      "meaning": "Ordivon Runtime is a trusted-local execution subsystem that turns admitted operations into durable Jobs, owns process trees, preserves bounded evidence, and makes interruption and recovery explicit.",
+      "evidence": ["README.md#purpose", "docs/runtime.md", "scripts/local-acceptance"],
+      "allowedWording": ["durable local execution layer", "trusted-local execution subsystem"],
+      "avoid": ["complete autonomous Agent platform", "general distributed scheduler"]
+    },
+    {
+      "id": "runtime-workspace-binding",
+      "source": {"binding": "runtime", "path": "README.md#what-it-does"},
+      "meaning": "Runtime creates detached Git Workspaces bound to exact local revisions and provides guarded read, mutation, diff, and closure operations.",
+      "evidence": ["README.md#what-it-does", "docs/agent-ux.md", "docs/reference/tools.md", "scripts/mcp_e2e.py"],
+      "allowedWording": ["revision-bound Git workspace", "isolated Git workspace"],
+      "avoid": ["virtual machine isolation", "hostile-code sandbox"]
+    },
+    {
+      "id": "runtime-process-evidence",
+      "source": {"binding": "runtime", "path": "README.md#what-it-does"},
+      "meaning": "Each Attempt owns a systemd unit and cgroup process tree and records bounded Results, Artifacts, and supervision evidence.",
+      "evidence": ["README.md#what-it-does", "docs/runtime.md", "docs/reference/tools.md", "scripts/local-acceptance"],
+      "allowedWording": ["owned process tree", "bounded execution evidence"],
+      "avoid": ["proves every external-world effect", "prevents every process escape"]
+    },
+    {
+      "id": "runtime-response-loss",
+      "source": {"binding": "runtime", "path": "README.md#first-runtime-workflow"},
+      "meaning": "After response loss, clients reconnect using the same request or discover and observe the same recorded Job instead of blindly creating a new opaque operation.",
+      "evidence": ["README.md#first-runtime-workflow", "docs/agent-ux.md", "docs/runtime.md", "scripts/mcp_e2e.py"],
+      "allowedWording": ["reconnect to the same Job", "do not blindly repeat uncertain work"],
+      "avoid": ["every external effect is idempotent", "network failure cannot lose information"]
+    },
+    {
+      "id": "runtime-boundary",
+      "source": {"binding": "runtime", "path": "README.md#what-it-does-not-do"},
+      "meaning": "Runtime does not own semantic Task completion, cognition, planning, hostile multi-tenant isolation, or domain proof of external-world effects.",
+      "evidence": ["README.md#what-it-does-not-do", "docs/status.md", "SECURITY.md"],
+      "allowedWording": ["owner-trusted Linux environments", "not a hostile-code sandbox"],
+      "avoid": ["secure execution of arbitrary untrusted agents", "guaranteed task success"]
+    }
+  ]
+}

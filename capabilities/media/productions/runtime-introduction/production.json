@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "runtime-introduction",
+  "title": "Ordivon Runtime Introduction",
+  "status": "design",
+  "intent": "Explain why reliable Agent execution requires durable identity, process ownership, bounded evidence, observation, and recovery, then demonstrate those properties through a real Runtime workflow.",
+  "audiences": [
+    "potential-client",
+    "agent-system-builder",
+    "open-source-reviewer",
+    "technical-reader"
+  ],
+  "sourceBindings": [
+    {
+      "id": "runtime",
+      "repository": "https://github.com/zycxfyh/ordivon-runtime",
+      "revision": "d620d7ce71ae76140cf88b570c141edd777ec91c",
+      "role": "product-facts-and-executable-demonstration"
+    }
+  ],
+  "workingProfile": {
+    "frameRate": {"numerator": 30, "denominator": 1},
+    "canvas": {"width": 1920, "height": 1080},
+    "color": {
+      "still": "sRGB",
+      "video": "Rec.709 Gamma 2.4 SDR"
+    },
+    "audio": {
+      "sampleRate": 48000,
+      "sourceBitDepth": 24
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "assets": "assets.json",
+    "article": "story.mdx",
+    "scripts": ["script/narration.en.md", "script/narration.zh.md"],
+    "timedText": ["timed-text/narration.en.json"],
+    "motion": ["../../apps/motion-remotion/src/runtime-flow-composition.tsx"],
+    "otioSnapshots": []
+  },
+  "outputs": [
+    {"id": "runtime-article-en", "kind": "article", "status": "planned", "profile": "web-en"},
+    {"id": "runtime-film-en-landscape", "kind": "video", "status": "planned", "profile": "youtube-upwork-1080p"},
+    {"id": "runtime-short-zh-vertical", "kind": "video", "status": "planned", "profile": "douyin-1080x1920"},
+    {"id": "runtime-architecture-interactive", "kind": "interactive", "status": "planned", "profile": "web-react"},
+    {"id": "runtime-upwork-package", "kind": "publication-package", "status": "planned", "profile": "upwork-portfolio"}
+  ]
+}

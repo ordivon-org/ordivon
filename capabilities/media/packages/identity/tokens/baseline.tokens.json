@@ -1,0 +1,43 @@
+{
+  "$description": "Initial cross-medium baseline transcribed from the current Ordivon Web visual language. Values are subject to the Studio visual-direction review.",
+  "color": {
+    "$type": "color",
+    "ink": {"$value": {"colorSpace": "srgb", "components": [0.043137, 0.054902, 0.078431], "alpha": 1}},
+    "inkSoft": {"$value": {"colorSpace": "srgb", "components": [0.066667, 0.086275, 0.12549], "alpha": 1}},
+    "surface": {"$value": {"colorSpace": "srgb", "components": [0.090196, 0.113725, 0.160784], "alpha": 1}},
+    "surfaceStrong": {"$value": {"colorSpace": "srgb", "components": [0.117647, 0.152941, 0.207843], "alpha": 1}},
+    "paper": {"$value": {"colorSpace": "srgb", "components": [0.886275, 0.905882, 0.937255], "alpha": 1}},
+    "paperSoft": {"$value": {"colorSpace": "srgb", "components": [0.741176, 0.776471, 0.827451], "alpha": 1}},
+    "muted": {"$value": {"colorSpace": "srgb", "components": [0.498039, 0.541176, 0.603922], "alpha": 1}},
+    "accent": {"$value": {"colorSpace": "srgb", "components": [0.568627, 0.529412, 1], "alpha": 1}},
+    "accentSoft": {"$value": {"colorSpace": "srgb", "components": [0.698039, 0.670588, 1], "alpha": 1}},
+    "success": {"$value": {"colorSpace": "srgb", "components": [0.439216, 0.796078, 0.635294], "alpha": 1}},
+    "signal": {"$value": {"colorSpace": "srgb", "components": [0.878431, 0.627451, 0.435294], "alpha": 1}}
+  },
+  "font": {
+    "sans": {"$type": "fontFamily", "$value": ["Inter", "Helvetica Neue", "Arial", "sans-serif"]},
+    "serif": {"$type": "fontFamily", "$value": ["Source Serif 4", "Iowan Old Style", "Georgia", "serif"]},
+    "mono": {"$type": "fontFamily", "$value": ["JetBrains Mono", "SFMono-Regular", "Consolas", "monospace"]}
+  },
+  "space": {
+    "$type": "dimension",
+    "xs": {"$value": {"value": 4, "unit": "px"}},
+    "sm": {"$value": {"value": 8, "unit": "px"}},
+    "md": {"$value": {"value": 16, "unit": "px"}},
+    "lg": {"$value": {"value": 24, "unit": "px"}},
+    "xl": {"$value": {"value": 48, "unit": "px"}}
+  },
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "fast": {"$value": {"value": 120, "unit": "ms"}},
+      "normal": {"$value": {"value": 220, "unit": "ms"}},
+      "slow": {"$value": {"value": 480, "unit": "ms"}}
+    },
+    "ease": {
+      "$type": "cubicBezier",
+      "standard": {"$value": [0.22, 1, 0.36, 1]},
+      "linear": {"$value": [0, 0, 1, 1]}
+    }
+  }
+}

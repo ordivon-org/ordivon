@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.com/studio/schemas/claims-v1.json",
+  "title": "Ordivon Studio Claim Set v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "productionId", "claims"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "productionId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "source", "meaning", "evidence", "avoid"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["binding", "path"],
+            "properties": {
+              "binding": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+              },
+              "path": {"type": "string", "minLength": 1}
+            }
+          },
+          "meaning": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "allowedWording": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "avoid": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  }
+}

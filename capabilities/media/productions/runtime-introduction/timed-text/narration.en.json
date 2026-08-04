@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "runtime-introduction-narration-en",
+  "language": "en",
+  "timeBase": {
+    "ticksPerSecond": 1000,
+    "frameRate": {"numerator": 30, "denominator": 1}
+  },
+  "cues": [
+    {"id": "en-001", "startTick": 0, "endTick": 2400, "text": "AI agents can write code.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-002", "startTick": 2600, "endTick": 5200, "text": "Reliable execution is a different problem.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-003", "startTick": 5400, "endTick": 12100, "text": "A command may outlive the conversation, lose its response, spawn child processes, or leave behind an ambiguous result.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-004", "startTick": 12400, "endTick": 17400, "text": "Ordivon Runtime is a durable local execution layer for AI-agent and automation workflows.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"}
+  ]
+}

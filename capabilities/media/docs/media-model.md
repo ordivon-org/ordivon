@@ -1,0 +1,132 @@
+# Media model
+
+Studio keeps a small set of objects because each answers a different irreversible question.
+
+## Blob
+
+A Blob is one exact byte sequence.
+
+```json
+{
+  "digest": "sha256:<hex>",
+  "sizeBytes": 123,
+  "mediaType": "video/x-matroska"
+}
+```
+
+Digest keys are immutable. A Blob has no editorial meaning by itself.
+
+## Asset
+
+An Asset gives one or more Blobs a stable production role and provenance.
+
+Important fields:
+
+- semantic `id`;
+- selected Blob and optional alternatives;
+- origin: capture, human-created, generated, imported, rendered, or transformed;
+- parent Asset IDs;
+- technical facts obtained from inspection;
+- rights and attribution;
+- selected generation receipt when AI is materially involved.
+
+An Asset can select a new Blob without pretending the old bytes never existed.
+
+## Claim
+
+A Claim binds public wording to one owning source revision.
+
+It contains:
+
+- source repository and exact commit;
+- the bounded meaning Studio is allowed to express;
+- an evidence target or executable demonstration;
+- prohibited or misleading extensions;
+- the productions that consume it.
+
+Claims are production inputs, not new product authority.
+
+## TimedText
+
+TimedText is the internal source for narration alignment, subtitles, captions, chapters, and synchronized interactive text.
+
+Each cue has:
+
+- stable cue ID;
+- language;
+- start and end in integer time units;
+- time base;
+- text;
+- optional speaker and semantic kind;
+- translation or source-cue relationship;
+- provisional or locked timing status.
+
+WebVTT, SRT, ASS, transcript Markdown, and platform caption formats are derived outputs.
+
+## Editorial source
+
+A Production may have several editorial sources:
+
+- Resolve project export or archive for proprietary NLE state;
+- OTIO snapshot for open cut structure and markers;
+- Remotion source for deterministic motion;
+- MDX for article and interactive structure;
+- audio stems and raw capture Assets.
+
+No interchange file is assumed to preserve every editor-specific effect.
+
+## Production
+
+A Production ties claims, assets, editable sources, timing, color, audio, and outputs together.
+
+It declares:
+
+- semantic production ID and title;
+- source projects and revisions;
+- editorial intent and audiences;
+- time base, frame rate, color, and audio working profiles;
+- required Claims and Assets;
+- planned or completed outputs;
+- selected source files and external editor artifacts.
+
+The Production manifest does not track every creative thought or temporary generation.
+
+## Output
+
+An Output is a deterministic or manually approved delivery object derived from a Production.
+
+Examples:
+
+- YouTube 16:9 MP4;
+- Douyin 9:16 MP4;
+- Web article package;
+- Upwork cover and project film;
+- WebVTT caption track;
+- audio-only master.
+
+Every published Output records its Blob digest and source Production revision.
+
+## Canonical versus generated
+
+```text
+canonical in Git
+  DTCG token source
+  production manifest
+  claims
+  selected Asset records
+  TimedText source
+  MDX and code
+  OTIO snapshots
+
+canonical outside Git
+  immutable raw and selected media Blobs
+  Resolve/Figma and other binary editable masters at named milestones
+
+generated
+  CSS and TypeScript tokens
+  WebVTT, SRT, ASS
+  proxies
+  thumbnails
+  delivery encodes
+  indexes and search databases
+```
