@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 
-ADAPTER_VERSION = "0.4.1"
+ADAPTER_VERSION = "0.5.0"
 CONFIG_NAME = "ordivon-runner.config.json"
 OPERATION_NAME = "resolve-operation.json"
 RESULT_NAME = "resolve-result.json"
@@ -28,6 +28,8 @@ _COMPATIBILITY_VERSION_STRING = "21.0.3.7"
 _COMPATIBILITY_VERSION = [21, 0, 3, 7, ""]
 _ASSEMBLY_PROJECT_NAME = "Ordivon Runtime Introduction"
 _ASSEMBLY_TIMELINE_NAME = "Assembly v0"
+_ASSEMBLY_CONFORM_PROJECT_PREFIX = "Ordivon Runtime Introduction Conform Probe "
+_ASSEMBLY_CONFORM_TIMELINE_NAME = "Assembly v0 Conform Probe"
 _ASSEMBLY_BINS = {"01_PLACEHOLDERS", "02_MOTION"}
 
 
@@ -286,6 +288,66 @@ def _validate_assembly_parameters(parameters):
     return parameters
 
 
+def _validate_assembly_conform_parameters(parameters):
+    if not isinstance(parameters, dict):
+        raise ValueError("probe-assembly-conform requires parameters")
+    assembly_fields = {
+        "productionId",
+        "projectName",
+        "timelineName",
+        "startTimecode",
+        "settings",
+        "totalFrames",
+        "sourceDigests",
+        "segments",
+        "restorePreviousProject",
+    }
+    extra_fields = {
+        "expectedProductName",
+        "expectedVersionString",
+        "expectedVersion",
+        "developerPackageDigest",
+        "resolveOtioPath",
+        "resolveOtioDigest",
+        "cleanupProject",
+    }
+    allowed = assembly_fields | extra_fields
+    unknown = sorted(set(parameters) - allowed)
+    if unknown:
+        raise ValueError("unknown assembly conform parameter fields: " + ", ".join(unknown))
+    missing = sorted(allowed - set(parameters))
+    if missing:
+        raise ValueError("missing assembly conform parameter fields: " + ", ".join(missing))
+
+    assembly_parameters = {key: parameters[key] for key in assembly_fields}
+    assembly_parameters["projectName"] = _ASSEMBLY_PROJECT_NAME
+    assembly_parameters["timelineName"] = _ASSEMBLY_TIMELINE_NAME
+    _validate_assembly_parameters(assembly_parameters)
+
+    _require_string(parameters.get("projectName"), "projectName", _ASSEMBLY_CONFORM_PROJECT_PREFIX)
+    if parameters.get("timelineName") != _ASSEMBLY_CONFORM_TIMELINE_NAME:
+        raise ValueError("probe-assembly-conform timelineName is not reserved")
+    if parameters.get("expectedProductName") != _COMPATIBILITY_PRODUCT_NAME:
+        raise ValueError("assembly conform expectedProductName is not supported")
+    if parameters.get("expectedVersionString") != _COMPATIBILITY_VERSION_STRING:
+        raise ValueError("assembly conform expectedVersionString is not supported")
+    if parameters.get("expectedVersion") != _COMPATIBILITY_VERSION:
+        raise ValueError("assembly conform expectedVersion is not supported")
+    for label in ("developerPackageDigest", "resolveOtioDigest"):
+        value = parameters.get(label)
+        if not isinstance(value, str) or not _DIGEST.fullmatch(value):
+            raise ValueError(label + " must be a sha256 digest")
+    otio_path = Path(_require_string(parameters.get("resolveOtioPath"), "resolveOtioPath"))
+    if not otio_path.is_absolute():
+        raise ValueError("resolveOtioPath must be absolute")
+    for label in ("restorePreviousProject", "cleanupProject"):
+        if not isinstance(parameters.get(label), bool):
+            raise ValueError(label + " must be boolean")
+    if parameters.get("cleanupProject") is not True:
+        raise ValueError("probe-assembly-conform requires cleanupProject=true")
+    return parameters
+
+
 def validate_operation(operation):
     if not isinstance(operation, dict):
         raise ValueError("operation must be an object")
@@ -299,7 +361,13 @@ def validate_operation(operation):
     if not isinstance(operation_id, str) or not _OPERATION_ID.fullmatch(operation_id):
         raise ValueError("operationId has an invalid format")
     action = operation.get("action")
-    if action not in {"probe", "create-smoke-project", "probe-compatibility", "assemble-review"}:
+    if action not in {
+        "probe",
+        "create-smoke-project",
+        "probe-compatibility",
+        "probe-assembly-conform",
+        "assemble-review",
+    }:
         raise ValueError("unsupported Resolve action")
     requested_at = operation.get("requestedAt")
     if requested_at is not None and (not isinstance(requested_at, str) or not requested_at):
@@ -311,6 +379,8 @@ def validate_operation(operation):
         _validate_smoke_parameters(operation.get("parameters"))
     elif action == "probe-compatibility":
         _validate_compatibility_parameters(operation.get("parameters"))
+    elif action == "probe-assembly-conform":
+        _validate_assembly_conform_parameters(operation.get("parameters"))
     else:
         _validate_assembly_parameters(operation.get("parameters"))
     return operation
@@ -1157,6 +1227,251 @@ def _overlaps(snapshot, start_frame, duration_frames):
     return snapshot["startFrame"] < end_frame and start_frame < snapshot["endFrame"]
 
 
+def probe_assembly_conform(resolve_object, operation, acquisition):
+    parameters = operation["parameters"]
+    segments = parameters["segments"]
+    otio_path = Path(parameters["resolveOtioPath"])
+
+    # Verify all immutable inputs before creating or loading any probe project.
+    for segment in segments:
+        media_path = Path(segment["mediaPath"])
+        if not media_path.is_file():
+            raise FileNotFoundError("assembly conform media file does not exist: " + segment["fileName"])
+        if _hash_file(media_path) != segment["mediaDigest"]:
+            raise ValueError("assembly conform media digest does not match: " + segment["fileName"])
+    if not otio_path.is_file():
+        raise FileNotFoundError("assembly conform OTIO file does not exist")
+    if _hash_file(otio_path) != parameters["resolveOtioDigest"]:
+        raise ValueError("assembly conform OTIO digest does not match")
+    developer_readme = _developer_readme_path()
+    if not developer_readme.is_file():
+        raise FileNotFoundError("Resolve Developer Package README is unavailable")
+    if _hash_file(developer_readme) != parameters["developerPackageDigest"]:
+        raise ValueError("Resolve Developer Package digest does not match")
+
+    product_name = _call(resolve_object, "GetProductName")
+    version_string = _call(resolve_object, "GetVersionString")
+    version = _call(resolve_object, "GetVersion")
+    if product_name != parameters["expectedProductName"]:
+        raise RuntimeError("Resolve product name differs from the assembly conform profile")
+    if version_string != parameters["expectedVersionString"]:
+        raise RuntimeError("Resolve version string differs from the assembly conform profile")
+    if list(version or []) != parameters["expectedVersion"]:
+        raise RuntimeError("Resolve version fields differ from the assembly conform profile")
+
+    project_manager = _require_object(_call(resolve_object, "GetProjectManager"), "GetProjectManager")
+    previous_project = _call(project_manager, "GetCurrentProject")
+    previous_name = _call(previous_project, "GetName") if previous_project else None
+    if previous_project:
+        _require_true(_call(project_manager, "SaveProject"), "SaveProject(previous)")
+
+    project_name = parameters["projectName"]
+    if project_name in (_call(project_manager, "GetProjectListInCurrentFolder") or []):
+        raise RuntimeError("assembly conform probe project already exists")
+
+    project = None
+    result = None
+    operation_error = None
+    restored = previous_name is None
+    cleanup_attempted = False
+    cleanup_deleted = False
+    try:
+        project = _require_object(_call(project_manager, "CreateProject", project_name), "CreateProject")
+        _apply_project_settings(project, parameters["settings"])
+        media_pool = _require_object(_call(project, "GetMediaPool"), "GetMediaPool")
+        root = _require_object(_call(media_pool, "GetRootFolder"), "GetRootFolder")
+
+        folders = {}
+        bin_results = []
+        for bin_name in sorted(_ASSEMBLY_BINS):
+            folder, disposition = _ensure_folder(media_pool, root, bin_name)
+            folders[bin_name] = folder
+            bin_results.append({"name": bin_name, "disposition": disposition})
+
+        clips = {}
+        asset_results = []
+        for segment in segments:
+            asset_id = segment["assetId"]
+            if asset_id in clips:
+                continue
+            folder = folders[segment["binName"]]
+            _require_true(_call(media_pool, "SetCurrentFolder", folder), "SetCurrentFolder")
+            imported = _call(media_pool, "ImportMedia", [segment["mediaPath"]]) or []
+            if len(imported) != 1:
+                raise RuntimeError("ImportMedia did not return exactly one clip: " + segment["fileName"])
+            clip = imported[0]
+            if _clip_file_name(clip) != segment["fileName"]:
+                raise RuntimeError("imported media identity differs: " + segment["fileName"])
+            clips[asset_id] = clip
+            asset_results.append(
+                {
+                    "assetId": asset_id,
+                    "fileName": segment["fileName"],
+                    "binName": segment["binName"],
+                    "digest": segment["mediaDigest"],
+                    "mediaId": _media_id(clip),
+                    "disposition": "imported",
+                }
+            )
+
+        _require_true(_call(media_pool, "SetCurrentFolder", root), "SetCurrentFolder(root)")
+        timeline = _require_object(
+            _call(
+                media_pool,
+                "ImportTimelineFromFile",
+                str(otio_path),
+                {
+                    "timelineName": parameters["timelineName"],
+                    "importSourceClips": False,
+                    "sourceClipsFolders": [folders[name] for name in sorted(_ASSEMBLY_BINS)],
+                },
+            ),
+            "ImportTimelineFromFile",
+        )
+        _require_true(_call(project, "SetCurrentTimeline", timeline), "SetCurrentTimeline(imported)")
+        if _call(timeline, "GetName") != parameters["timelineName"]:
+            raise RuntimeError("imported assembly conform timeline name differs")
+        if _call(timeline, "GetStartTimecode") != parameters["startTimecode"]:
+            raise RuntimeError("imported assembly conform start timecode differs")
+
+        timeline_start, snapshots = _video_item_snapshots(timeline)
+        if len(snapshots) != len(segments):
+            raise RuntimeError(
+                "imported assembly conform video item count differs: actual="
+                + str(len(snapshots))
+                + ", expected="
+                + str(len(segments))
+            )
+
+        segment_results = []
+        expected_layout = []
+        for segment in segments:
+            expected_media_id = _media_id(clips[segment["assetId"]])
+            expected_layout.append(
+                (segment["startFrame"], segment["durationFrames"], expected_media_id)
+            )
+            item = _find_item_at(snapshots, segment["startFrame"])
+            if item is None:
+                raise RuntimeError("imported assembly conform is missing segment: " + segment["id"])
+            if item["mediaId"] != expected_media_id:
+                raise RuntimeError("imported assembly conform media differs: " + segment["id"])
+            if item["durationFrames"] != segment["durationFrames"]:
+                raise RuntimeError(
+                    "imported assembly conform duration differs: "
+                    + segment["id"]
+                    + "; actual="
+                    + str(item["durationFrames"])
+                    + "; expected="
+                    + str(segment["durationFrames"])
+                )
+            segment_results.append(
+                {
+                    "id": segment["id"],
+                    "assetId": segment["assetId"],
+                    "fileName": segment["fileName"],
+                    "placeholder": segment["placeholder"],
+                    "requestedStartFrame": segment["startFrame"],
+                    "actualStartFrame": item["startFrame"],
+                    "requestedDurationFrames": segment["durationFrames"],
+                    "actualDurationFrames": item["durationFrames"],
+                    "actualEndFrame": item["endFrame"],
+                    "mediaId": item["mediaId"],
+                }
+            )
+
+        actual_layout = sorted(
+            (item["startFrame"], item["durationFrames"], item["mediaId"])
+            for item in snapshots
+        )
+        if actual_layout != sorted(expected_layout):
+            raise RuntimeError("imported assembly conform layout differs from the compiled OTIO")
+        timeline_end = int(round(float(_call(timeline, "GetEndFrame"))))
+        timeline_span = timeline_end - timeline_start
+        if timeline_span != parameters["totalFrames"]:
+            raise RuntimeError(
+                "imported assembly conform total duration differs: actual="
+                + str(timeline_span)
+                + ", expected="
+                + str(parameters["totalFrames"])
+            )
+
+        _require_true(_call(project_manager, "SaveProject"), "SaveProject(assembly conform)")
+        result = {
+            "productionId": parameters["productionId"],
+            "resolve": {
+                "productName": product_name,
+                "edition": "free" if product_name == "DaVinci Resolve" else "studio",
+                "versionString": version_string,
+                "version": list(version or []),
+                "platform": "windows",
+                "executionMode": "internal-menu",
+                "acquisition": acquisition,
+            },
+            "sourceDigests": parameters["sourceDigests"],
+            "resolveOtioDigest": parameters["resolveOtioDigest"],
+            "project": {
+                "name": project_name,
+                "frameRate": _call(project, "GetSetting", "timelineFrameRate"),
+                "width": _call(project, "GetSetting", "timelineResolutionWidth"),
+                "height": _call(project, "GetSetting", "timelineResolutionHeight"),
+            },
+            "bins": bin_results,
+            "assets": asset_results,
+            "timeline": {
+                "name": _call(timeline, "GetName"),
+                "startTimecode": _call(timeline, "GetStartTimecode"),
+                "startFrame": timeline_start,
+                "endFrame": timeline_end,
+                "totalFrames": timeline_span,
+                "videoTrackCount": int(_call(timeline, "GetTrackCount", "video") or 0),
+                "videoItemCount": len(snapshots),
+            },
+            "segments": segment_results,
+            "placeholderCount": sum(1 for segment in segments if segment["placeholder"]),
+            "previousProject": previous_name,
+        }
+    except Exception as error:
+        operation_error = error
+    finally:
+        if project:
+            try:
+                _call(project_manager, "SaveProject")
+            except Exception:
+                pass
+        if previous_name and parameters.get("restorePreviousProject", True):
+            try:
+                restored = bool(_call(project_manager, "LoadProject", previous_name))
+            except Exception:
+                restored = False
+        elif project:
+            try:
+                restored = bool(_call(project_manager, "CloseProject", project))
+            except Exception:
+                restored = False
+        if project and parameters.get("cleanupProject", True) and restored:
+            cleanup_attempted = True
+            try:
+                cleanup_deleted = bool(_call(project_manager, "DeleteProject", project_name))
+            except Exception:
+                cleanup_deleted = False
+
+    if operation_error is not None:
+        if not restored:
+            raise RuntimeError(type(operation_error).__name__ + "; previous project restoration failed") from operation_error
+        raise operation_error
+    if not restored:
+        raise RuntimeError("previous project restoration failed")
+    if parameters.get("cleanupProject", True) and not cleanup_deleted:
+        raise RuntimeError("disposable assembly conform project cleanup failed")
+    result["restoredPreviousProject"] = restored
+    result["cleanup"] = {
+        "requested": parameters.get("cleanupProject", True),
+        "attempted": cleanup_attempted,
+        "deleted": cleanup_deleted,
+    }
+    return result
+
+
 def _ensure_timeline_marker(timeline, segment, operation_id):
     custom_data = "ordivon:" + operation_id + ":" + segment["id"]
     markers = _call(timeline, "GetMarkers") or {}
@@ -1421,6 +1736,8 @@ def execute_operation(operation, resolve_object=None, acquisition=None):
         return create_smoke_project(resolve_object, operation)
     if operation["action"] == "probe-compatibility":
         return probe_compatibility(resolve_object, operation, acquisition or "provided")
+    if operation["action"] == "probe-assembly-conform":
+        return probe_assembly_conform(resolve_object, operation, acquisition or "provided")
     return assemble_review(resolve_object, operation)
 
 
@@ -1518,6 +1835,8 @@ def main():
             result["smoke"] = payload
         elif operation["action"] == "probe-compatibility":
             result["compatibility"] = payload
+        elif operation["action"] == "probe-assembly-conform":
+            result["assemblyConform"] = payload
         else:
             result["assembly"] = payload
     except Exception as error:

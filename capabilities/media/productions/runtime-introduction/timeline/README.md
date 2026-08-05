@@ -41,3 +41,9 @@ publication-master.otio
 ```
 
 Resolve project exports or archives remain binary Assets outside Git. OTIO does not promise to preserve every Resolve title, effect, color node, Fairlight process, or generator.
+
+## Resolve acceptance
+
+A disposable Resolve Free 21.0.3.7 project imported a locally compiled form of this OTIO and reproduced all eleven clips exactly. Start positions, durations, media identities, timeline start timecode, and the 2340-frame total were verified through the scripting API. The probe restored the previously open project and deleted itself afterward.
+
+Assembly v0 is therefore no longer only a repository model: its native Resolve conform path has passed real execution. It remains an editorial review skeleton because eight visual placeholders still require replacement with real product evidence.

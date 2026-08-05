@@ -11,6 +11,7 @@ from .resolve_adapter import (
     discover_resolve_paths,
     install_runner,
     prepare_assembly,
+    prepare_assembly_conform,
     prepare_compatibility,
     prepare_probe,
     prepare_smoke,
@@ -145,6 +146,23 @@ def _command_resolve_prepare_compatibility(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_resolve_prepare_assembly_conform(args: argparse.Namespace) -> int:
+    _write_json(
+        prepare_assembly_conform(
+            production_id=args.production_id,
+            production_root=_optional_path(args.production_root),
+            control_directory=_optional_path(args.control_directory),
+            media_root=_optional_path(args.media_root),
+            windows_media_root=args.windows_media_root,
+            resolve_otio_root=_optional_path(args.resolve_otio_root),
+            windows_resolve_otio_root=args.windows_resolve_otio_root,
+            developer_readme_path=_optional_path(args.developer_readme),
+            operation_id=args.operation_id,
+        )
+    )
+    return 0
+
+
 def _command_resolve_prepare_assembly(args: argparse.Namespace) -> int:
     _write_json(
         prepare_assembly(
@@ -238,6 +256,21 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_compatibility.add_argument("--developer-readme", help="WSL path to the installed Developer README")
     resolve_compatibility.add_argument("--operation-id")
     resolve_compatibility.set_defaults(handler=_command_resolve_prepare_compatibility)
+
+    resolve_assembly_conform = resolve_commands.add_parser(
+        "prepare-assembly-conform",
+        help="prepare a disposable Resolve 21.0.3.7 native OTIO conform acceptance",
+    )
+    resolve_assembly_conform.add_argument("--production-id", default="runtime-introduction")
+    resolve_assembly_conform.add_argument("--production-root")
+    resolve_assembly_conform.add_argument("--control-directory")
+    resolve_assembly_conform.add_argument("--media-root")
+    resolve_assembly_conform.add_argument("--windows-media-root")
+    resolve_assembly_conform.add_argument("--resolve-otio-root")
+    resolve_assembly_conform.add_argument("--windows-resolve-otio-root")
+    resolve_assembly_conform.add_argument("--developer-readme")
+    resolve_assembly_conform.add_argument("--operation-id")
+    resolve_assembly_conform.set_defaults(handler=_command_resolve_prepare_assembly_conform)
 
     resolve_assembly = resolve_commands.add_parser(
         "prepare-assembly", help="compile the selected Production OTIO snapshot into a bounded Resolve operation"

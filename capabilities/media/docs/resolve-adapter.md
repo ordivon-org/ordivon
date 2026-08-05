@@ -72,3 +72,13 @@ uv run ordivon-studio resolve prepare-compatibility
 ```
 
 It is locked to DaVinci Resolve Free 21.0.3.7, Windows internal-menu execution, the installed Developer Package digest, and content-addressed test fixtures. A Resolve upgrade requires a new profile rather than silently reusing these assumptions.
+
+## Runtime Introduction native conform acceptance
+
+The full Runtime Introduction Assembly v0 has now passed a real disposable-project conform acceptance on Resolve Free 21.0.3.7. The normalized evidence is stored in [`resolve-compatibility/runtime-introduction-assembly-conform-21.0.3.7.json`](resolve-compatibility/runtime-introduction-assembly-conform-21.0.3.7.json).
+
+The adapter compiled the canonical Production, Asset manifest, and `assembly.v0.otio` into one local Resolve-facing OTIO, verified all eleven media digests before mutation, imported the media into controlled Bins, and invoked `ImportTimelineFromFile` with `importSourceClips=False` and the two controlled source folders.
+
+Resolve produced exactly eleven V1 items. Every item matched the requested start frame, duration, and imported MediaId. The Timeline began at `01:00:00:00`, occupied frames `108000…110340`, and therefore measured exactly 2340 frames or 78 seconds. The operation restored the previously open project and deleted the disposable probe project.
+
+This closes the compatibility question for the current workstation profile. Native OTIO conform is now the accepted assembly mechanism. The old explicit source-range Append implementation remains only as historical and diagnostic code; it is not an approved production path.

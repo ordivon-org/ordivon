@@ -5,23 +5,28 @@ import json
 import os
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest.mock import patch
 
 import opentimelineio as otio
 import ordivon_studio.resolve_runner_menu as runner_menu
 from ordivon_studio.resolve_adapter import (
+    ASSEMBLY_CONFORM_PROJECT_PREFIX,
+    ASSEMBLY_CONFORM_TIMELINE_NAME,
     ASSEMBLY_PROJECT_NAME,
     ASSEMBLY_TIMELINE_NAME,
     CONFIG_FILENAME,
     OPERATION_FILENAME,
     RUNNER_FILENAME,
+    build_assembly_conform_operation,
     build_assembly_operation,
     build_compatibility_operation,
     build_probe_operation,
     build_smoke_operation,
     install_runner,
     prepare_assembly,
+    prepare_assembly_conform,
     prepare_probe,
     prepare_smoke,
     validate_result,
@@ -302,16 +307,56 @@ class FakeMediaPool:
         return appended
 
     def ImportTimelineFromFile(self, path: str, options: dict[str, object]) -> FakeTimeline | None:
-        clips = [clip for folder in self.root.subfolders for clip in folder.clips]
-        if not clips:
+        clips: list[FakeClip] = []
+
+        def collect(folder: FakeFolder) -> None:
+            clips.extend(folder.clips)
+            for child in folder.subfolders:
+                collect(child)
+
+        collect(self.root)
+        clips_by_name = {clip.file_name: clip for clip in clips}
+        if not clips_by_name:
             return None
+
+        document = otio.adapters.read_from_file(path)
+        if not isinstance(document, otio.schema.Timeline):
+            return None
+        tracks = [track for track in document.video_tracks()]
+        if len(tracks) != 1:
+            return None
+
         timeline = FakeTimeline(str(options["timelineName"]))
-        timeline.video_items.append(
-            FakeTimelineItem(clips[0], timeline.start_frame, 24, source_start=0, source_end=24)
-        )
-        timeline.video_items.append(
-            FakeTimelineItem(clips[0], timeline.start_frame + 30, 30, source_start=24, source_end=54)
-        )
+        if document.global_start_time is not None:
+            timeline.start_frame = round(document.global_start_time.rescaled_to(30).value)
+            timeline.start_timecode = otio.opentime.to_timecode(document.global_start_time, rate=30)
+        cursor = 0
+        for child in tracks[0]:
+            duration = round(child.duration().rescaled_to(30).value)
+            if isinstance(child, otio.schema.Gap):
+                cursor += duration
+                continue
+            if not isinstance(child, otio.schema.Clip) or child.source_range is None:
+                return None
+            reference = child.media_reference
+            if not isinstance(reference, otio.schema.ExternalReference):
+                return None
+            parsed = urllib.parse.urlparse(reference.target_url)
+            file_name = Path(urllib.parse.unquote(parsed.path)).name
+            clip = clips_by_name.get(file_name)
+            if clip is None:
+                return None
+            source_start = round(child.source_range.start_time.rescaled_to(30).value)
+            timeline.video_items.append(
+                FakeTimelineItem(
+                    clip,
+                    timeline.start_frame + cursor,
+                    duration,
+                    source_start=source_start,
+                    source_end=source_start + duration,
+                )
+            )
+            cursor += duration
         self.project.timelines.append(timeline)
         self.project.current_timeline = timeline
         return timeline
@@ -522,6 +567,35 @@ def _build_test_assembly_operation(
     return operation
 
 
+def _build_test_assembly_conform_operation(
+    production_root: Path,
+    media_root: Path,
+    root: Path,
+    operation_id: str,
+) -> tuple[dict[str, object], Path, Path]:
+    developer_readme = root / "README.txt"
+    developer_readme.write_bytes(b"resolve-21-developer-package")
+    resolve_otio = root / "resolve" / "assembly.v0.resolve-21.0.3.7.otio"
+    operation = build_assembly_conform_operation(
+        production_root=production_root,
+        media_root=media_root,
+        windows_media_root=r"C:\OrdivonStudio\runtime-introduction\media",
+        resolve_otio_path=resolve_otio,
+        windows_resolve_otio_path=r"C:\OrdivonStudio\runtime-introduction\resolve\assembly.v0.resolve-21.0.3.7.otio",
+        developer_readme_path=developer_readme,
+        operation_id=operation_id,
+    )
+    parameters = operation["parameters"]
+    assert isinstance(parameters, dict)
+    parameters["resolveOtioPath"] = str(resolve_otio)
+    segments = parameters["segments"]
+    assert isinstance(segments, list)
+    for segment in segments:
+        assert isinstance(segment, dict)
+        segment["mediaPath"] = str(media_root / str(segment["fileName"]))
+    return operation, developer_readme, resolve_otio
+
+
 class ResolveAdapterTests(unittest.TestCase):
     def test_probe_operation_is_minimal_and_valid(self) -> None:
         operation = build_probe_operation("resolve-probe-test-001")
@@ -605,6 +679,100 @@ class ResolveAdapterTests(unittest.TestCase):
             self.assertEqual(sum(segment["placeholder"] for segment in parameters["segments"]), 8)
             self.assertEqual(parameters["segments"][-1]["startFrame"], 2250)
 
+    def test_assembly_conform_compiles_resolve_facing_otio(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production_root, media_root = _write_assembly_sources(root / "sources")
+            control = root / "control"
+            control.mkdir()
+            developer_readme = root / "README.txt"
+            developer_readme.write_bytes(b"resolve-21-developer-package")
+            resolve_root = root / "resolve"
+
+            prepared = prepare_assembly_conform(
+                production_root=production_root,
+                control_directory=control,
+                media_root=media_root,
+                windows_media_root=r"C:\OrdivonStudio\runtime-introduction\media",
+                resolve_otio_root=resolve_root,
+                windows_resolve_otio_root=r"C:\OrdivonStudio\runtime-introduction\resolve",
+                developer_readme_path=developer_readme,
+                operation_id="resolve-assembly-conform-test-001",
+            )
+
+            operation = prepared["operation"]
+            parameters = operation["parameters"]
+            self.assertEqual(operation["action"], "probe-assembly-conform")
+            self.assertTrue(parameters["projectName"].startswith(ASSEMBLY_CONFORM_PROJECT_PREFIX))
+            self.assertEqual(parameters["timelineName"], ASSEMBLY_CONFORM_TIMELINE_NAME)
+            self.assertEqual(prepared["assemblyConform"]["segmentCount"], 11)
+            self.assertEqual(prepared["assemblyConform"]["totalFrames"], 2340)
+
+            resolve_otio = resolve_root / "assembly.v0.resolve-21.0.3.7.otio"
+            document = otio.adapters.read_from_file(str(resolve_otio))
+            self.assertIsInstance(document, otio.schema.Timeline)
+            track = document.video_tracks()[0]
+            self.assertEqual(len(track), 11)
+            self.assertEqual(round(document.duration().rescaled_to(30).value), 2340)
+            self.assertTrue(
+                all(
+                    isinstance(child, otio.schema.Clip)
+                    and isinstance(child.media_reference, otio.schema.ExternalReference)
+                    and child.media_reference.target_url.startswith("file:///C:/OrdivonStudio/")
+                    for child in track
+                )
+            )
+            digest = "sha256:" + hashlib.sha256(resolve_otio.read_bytes()).hexdigest()
+            self.assertEqual(parameters["resolveOtioDigest"], digest)
+
+    def test_assembly_conform_imports_exact_layout_and_cleans_up(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production_root, media_root = _write_assembly_sources(root / "sources")
+            operation, developer_readme, _ = _build_test_assembly_conform_operation(
+                production_root,
+                media_root,
+                root,
+                "resolve-assembly-conform-test-002",
+            )
+            self.assertEqual(validate_operation(operation), operation)
+            resolve = FakeResolve()
+            with patch.object(runner_menu, "_developer_readme_path", return_value=developer_readme):
+                result = execute_operation(operation, resolve, "test-double")
+
+            self.assertEqual(result["resolve"]["versionString"], "21.0.3.7")
+            self.assertEqual(result["timeline"]["name"], ASSEMBLY_CONFORM_TIMELINE_NAME)
+            self.assertEqual(result["timeline"]["videoItemCount"], 11)
+            self.assertEqual(result["timeline"]["totalFrames"], 2340)
+            self.assertEqual(result["placeholderCount"], 8)
+            self.assertEqual(
+                [(segment["actualStartFrame"], segment["actualDurationFrames"]) for segment in result["segments"]],
+                [
+                    (sum(item[3] for item in ASSEMBLY_LAYOUT[:index]), item[3])
+                    for index, item in enumerate(ASSEMBLY_LAYOUT)
+                ],
+            )
+            self.assertTrue(result["restoredPreviousProject"])
+            self.assertTrue(result["cleanup"]["deleted"])
+            self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
+
+    def test_assembly_conform_rejects_otio_drift_before_project_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production_root, media_root = _write_assembly_sources(root / "sources")
+            operation, developer_readme, _ = _build_test_assembly_conform_operation(
+                production_root,
+                media_root,
+                root,
+                "resolve-assembly-conform-test-003",
+            )
+            operation["parameters"]["resolveOtioDigest"] = "sha256:" + "0" * 64
+            resolve = FakeResolve()
+            with patch.object(runner_menu, "_developer_readme_path", return_value=developer_readme):
+                with self.assertRaisesRegex(ValueError, "OTIO digest does not match"):
+                    execute_operation(operation, resolve, "test-double")
+            self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
+
     def test_assembly_executes_exact_layout_then_reuses_it(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -671,7 +839,51 @@ class ResolveAdapterTests(unittest.TestCase):
             otio_path = root / "resolve-21.0.3.7-compatibility.otio"
             developer_readme = root / "README.txt"
             media.write_bytes(b"compatibility-media")
-            otio_path.write_bytes(b"compatibility-otio")
+            compatibility_timeline = otio.schema.Timeline(
+                name="Resolve 21 Compatibility",
+                global_start_time=otio.opentime.RationalTime(108000, 30),
+            )
+            compatibility_track = otio.schema.Track(name="V1", kind=otio.schema.TrackKind.Video)
+            compatibility_reference = otio.schema.ExternalReference(
+                target_url=media.as_uri(),
+                available_range=otio.opentime.TimeRange(
+                    otio.opentime.RationalTime(0, 30),
+                    otio.opentime.RationalTime(90, 30),
+                ),
+            )
+            compatibility_track.append(
+                otio.schema.Clip(
+                    name="first-24",
+                    media_reference=compatibility_reference,
+                    source_range=otio.opentime.TimeRange(
+                        otio.opentime.RationalTime(0, 30),
+                        otio.opentime.RationalTime(24, 30),
+                    ),
+                )
+            )
+            compatibility_track.append(
+                otio.schema.Gap(
+                    source_range=otio.opentime.TimeRange(
+                        duration=otio.opentime.RationalTime(6, 30)
+                    )
+                )
+            )
+            compatibility_track.append(
+                otio.schema.Clip(
+                    name="next-30",
+                    media_reference=compatibility_reference,
+                    source_range=otio.opentime.TimeRange(
+                        otio.opentime.RationalTime(24, 30),
+                        otio.opentime.RationalTime(30, 30),
+                    ),
+                )
+            )
+            compatibility_timeline.tracks.append(compatibility_track)
+            otio.adapters.write_to_file(
+                compatibility_timeline,
+                str(otio_path),
+                adapter_name="otio_json",
+            )
             developer_readme.write_bytes(b"resolve-21-developer-package")
 
             def digest(path: Path) -> str:

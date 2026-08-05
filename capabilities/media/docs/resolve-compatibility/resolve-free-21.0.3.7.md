@@ -66,3 +66,9 @@ Production Manifest + selected Assets + canonical OTIO
 Manual full-media Append remains useful as a diagnostic. Append with explicit source `startFrame/endFrame` is excluded from production assembly on this profile.
 
 A future Resolve update must run the compatibility probe again before reusing this profile.
+
+## Full Assembly v0 acceptance
+
+The version-level OTIO probe was followed by a full 11-clip Runtime Introduction conform acceptance. Resolve preserved every requested start and duration, produced a 2340-frame Timeline with no extra or missing items, restored the prior project, and deleted the disposable test project.
+
+The normalized result is [`runtime-introduction-assembly-conform-21.0.3.7.json`](runtime-introduction-assembly-conform-21.0.3.7.json). This upgrades native OTIO conform from a small compatibility result to an accepted real-production assembly path for this profile.

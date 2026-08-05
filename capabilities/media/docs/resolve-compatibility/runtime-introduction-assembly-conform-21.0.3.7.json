@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "runtime-introduction-assembly-conform-resolve-free-21.0.3.7",
+  "resolveProfile": "resolve-free-21.0.3.7-windows-internal-menu",
+  "adapterVersion": "0.5.0",
+  "productionId": "runtime-introduction",
+  "sourceDigests": {
+    "production": "sha256:35d39bdf3dfb9c4ccf89f227d0da2badcf4551c73d396336c0cee037f51a47b9",
+    "assets": "sha256:6e6eef98fd0b86c6d491a1e7a8fff8e5d025d9c1883ce17dd6ee1983466666ab",
+    "canonicalOtio": "sha256:5e678803084dfa54eb91666fd092d10a60a20c8450eb5fc013133f943f147e44",
+    "resolveFacingOtio": "sha256:8233fb0b63901e02d580fa6a64fba326d83b1f4124e1c02ae6e1a6fcb3d93309"
+  },
+  "project": {
+    "kind": "disposable-probe",
+    "frameRate": 30,
+    "width": 1920,
+    "height": 1080,
+    "restoredPreviousProject": true,
+    "deletedAfterProbe": true
+  },
+  "timeline": {
+    "name": "Assembly v0 Conform Probe",
+    "startTimecode": "01:00:00:00",
+    "startFrame": 108000,
+    "endFrame": 110340,
+    "totalFrames": 2340,
+    "videoTrackCount": 1,
+    "videoItemCount": 11,
+    "placeholderCount": 8,
+    "motionCount": 3
+  },
+  "segments": [
+    {"id":"hook-placeholder","startFrame":0,"durationFrames":180,"endFrame":180,"placeholder":true},
+    {"id":"runtime-flow","startFrame":180,"durationFrames":210,"endFrame":390,"placeholder":false},
+    {"id":"source-patch-placeholder","startFrame":390,"durationFrames":330,"endFrame":720,"placeholder":true},
+    {"id":"exec-observe-placeholder","startFrame":720,"durationFrames":390,"endFrame":1110,"placeholder":true},
+    {"id":"request-replay","startFrame":1110,"durationFrames":180,"endFrame":1290,"placeholder":false},
+    {"id":"replay-terminal-placeholder","startFrame":1290,"durationFrames":150,"endFrame":1440,"placeholder":true},
+    {"id":"evidence-placeholder","startFrame":1440,"durationFrames":330,"endFrame":1770,"placeholder":true},
+    {"id":"exact-close","startFrame":1770,"durationFrames":180,"endFrame":1950,"placeholder":false},
+    {"id":"diff-placeholder","startFrame":1950,"durationFrames":90,"endFrame":2040,"placeholder":true},
+    {"id":"boundary-placeholder","startFrame":2040,"durationFrames":210,"endFrame":2250,"placeholder":true},
+    {"id":"end-placeholder","startFrame":2250,"durationFrames":90,"endFrame":2340,"placeholder":true}
+  ],
+  "verification": {
+    "allMediaDigestsVerifiedBeforeMutation": true,
+    "allSegmentsMatchedStartDurationAndMediaId": true,
+    "timelineSpanMatchedExpectedFrames": true,
+    "unexpectedItems": 0,
+    "status": "passed"
+  },
+  "productionDecision": {
+    "nativeOtioConform": "accepted",
+    "explicitAppendSourceRanges": "rejected",
+    "nextStep": "create persistent review project from the accepted conform path"
+  }
+}

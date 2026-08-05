@@ -32,6 +32,9 @@ DEVELOPER_README_PATH = Path(
 )
 ASSEMBLY_PROJECT_NAME = "Ordivon Runtime Introduction"
 ASSEMBLY_TIMELINE_NAME = "Assembly v0"
+ASSEMBLY_CONFORM_PROJECT_PREFIX = "Ordivon Runtime Introduction Conform Probe "
+ASSEMBLY_CONFORM_TIMELINE_NAME = "Assembly v0 Conform Probe"
+ASSEMBLY_CONFORM_OTIO_FILENAME = "assembly.v0.resolve-21.0.3.7.otio"
 _OPERATION_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 _DIGEST = re.compile(r"^sha256:[a-f0-9]{64}$")
 
@@ -436,6 +439,63 @@ def _windows_child(directory: str, file_name: str) -> str:
     return directory.rstrip("\\/") + "\\" + file_name
 
 
+def _write_resolve_assembly_otio(
+    path: Path,
+    *,
+    production_id: str,
+    start_timecode: str,
+    segments: list[dict[str, Any]],
+) -> None:
+    start_frames = otio.opentime.from_timecode(start_timecode, 30).rescaled_to(30)
+    timeline = otio.schema.Timeline(
+        name=ASSEMBLY_TIMELINE_NAME,
+        global_start_time=start_frames,
+        metadata={
+            "ordivon": {
+                "productionId": production_id,
+                "kind": "resolve-facing-conform",
+                "resolveProfile": "resolve-free-21.0.3.7-windows-internal-menu",
+                "totalFrames": sum(int(segment["durationFrames"]) for segment in segments),
+            }
+        },
+    )
+    track = otio.schema.Track(name="V1 Assembly", kind=otio.schema.TrackKind.Video)
+    for segment in segments:
+        duration = int(segment["durationFrames"])
+        available = otio.opentime.TimeRange(
+            otio.opentime.RationalTime(0, 30),
+            otio.opentime.RationalTime(duration, 30),
+        )
+        reference = otio.schema.ExternalReference(
+            target_url=_windows_file_uri(str(segment["mediaPath"])),
+            available_range=available,
+            metadata={
+                "ordivon": {
+                    "assetId": segment["assetId"],
+                    "mediaDigest": segment["mediaDigest"],
+                }
+            },
+        )
+        track.append(
+            otio.schema.Clip(
+                name=segment["id"],
+                media_reference=reference,
+                source_range=available,
+                metadata={
+                    "ordivon": {
+                        "segmentId": segment["id"],
+                        "assetId": segment["assetId"],
+                        "binName": segment["binName"],
+                        "placeholder": segment["placeholder"],
+                    }
+                },
+            )
+        )
+    timeline.tracks.append(track)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    otio.adapters.write_to_file(timeline, str(path), adapter_name="otio_json")
+
+
 def build_assembly_operation(
     *,
     production_root: Path,
@@ -581,6 +641,48 @@ def build_assembly_operation(
     }
 
 
+def build_assembly_conform_operation(
+    *,
+    production_root: Path,
+    media_root: Path,
+    windows_media_root: str,
+    resolve_otio_path: Path,
+    windows_resolve_otio_path: str,
+    developer_readme_path: Path = DEVELOPER_README_PATH,
+    operation_id: str | None = None,
+) -> dict[str, Any]:
+    operation_id = _validate_operation_id(operation_id or _new_operation_id("assembly-conform"))
+    operation = build_assembly_operation(
+        production_root=production_root,
+        media_root=media_root,
+        windows_media_root=windows_media_root,
+        operation_id=operation_id,
+    )
+    parameters = operation["parameters"]
+    suffix = operation_id.removeprefix("resolve-assembly-conform-")
+    _write_resolve_assembly_otio(
+        resolve_otio_path,
+        production_id=parameters["productionId"],
+        start_timecode=parameters["startTimecode"],
+        segments=parameters["segments"],
+    )
+    parameters.update(
+        {
+            "projectName": ASSEMBLY_CONFORM_PROJECT_PREFIX + suffix,
+            "timelineName": ASSEMBLY_CONFORM_TIMELINE_NAME,
+            "expectedProductName": COMPATIBILITY_PRODUCT_NAME,
+            "expectedVersionString": COMPATIBILITY_VERSION_STRING,
+            "expectedVersion": COMPATIBILITY_VERSION,
+            "developerPackageDigest": _hash_file(developer_readme_path),
+            "resolveOtioPath": windows_resolve_otio_path,
+            "resolveOtioDigest": _hash_file(resolve_otio_path),
+            "cleanupProject": True,
+        }
+    )
+    operation["action"] = "probe-assembly-conform"
+    return operation
+
+
 def _prepare_operation(control: Path, operation: dict[str, Any]) -> dict[str, Any]:
     path = control / OPERATION_FILENAME
     _atomic_write_json(path, operation)
@@ -681,6 +783,66 @@ def prepare_compatibility(
     return prepared
 
 
+def prepare_assembly_conform(
+    *,
+    production_id: str = "runtime-introduction",
+    production_root: Path | None = None,
+    control_directory: Path | None = None,
+    media_root: Path | None = None,
+    windows_media_root: str | None = None,
+    resolve_otio_root: Path | None = None,
+    windows_resolve_otio_root: str | None = None,
+    developer_readme_path: Path | None = None,
+    operation_id: str | None = None,
+) -> dict[str, Any]:
+    repository_root = Path(__file__).resolve().parents[2]
+    production_root = production_root or repository_root / "productions" / production_id
+    control = control_directory or discover_resolve_paths().control_directory
+    if media_root is None and windows_media_root is None:
+        discovered = discover_production_media(production_id)
+        media_root = discovered.directory
+        windows_media_root = discovered.windows_directory
+    elif media_root is None:
+        media_root = Path(_wslpath(windows_media_root, "-u"))  # type: ignore[arg-type]
+    elif windows_media_root is None:
+        windows_media_root = _wslpath(str(media_root), "-w")
+    if media_root is None or windows_media_root is None:
+        raise RuntimeError("assembly conform media path resolution failed")
+
+    if resolve_otio_root is None and windows_resolve_otio_root is None:
+        resolve_otio_root = media_root.parent / "resolve"
+        windows_resolve_otio_root = windows_media_root.rsplit("\\", 1)[0] + r"\resolve"
+    elif resolve_otio_root is None:
+        resolve_otio_root = Path(_wslpath(windows_resolve_otio_root, "-u"))  # type: ignore[arg-type]
+    elif windows_resolve_otio_root is None:
+        windows_resolve_otio_root = _wslpath(str(resolve_otio_root), "-w")
+    if resolve_otio_root is None or windows_resolve_otio_root is None:
+        raise RuntimeError("assembly conform OTIO path resolution failed")
+
+    resolve_otio_path = resolve_otio_root / ASSEMBLY_CONFORM_OTIO_FILENAME
+    windows_resolve_otio_path = _windows_child(windows_resolve_otio_root, ASSEMBLY_CONFORM_OTIO_FILENAME)
+    operation = build_assembly_conform_operation(
+        production_root=production_root,
+        media_root=media_root,
+        windows_media_root=windows_media_root,
+        resolve_otio_path=resolve_otio_path,
+        windows_resolve_otio_path=windows_resolve_otio_path,
+        developer_readme_path=developer_readme_path or DEVELOPER_README_PATH,
+        operation_id=operation_id,
+    )
+    prepared = _prepare_operation(control, operation)
+    prepared["assemblyConform"] = {
+        "productionId": production_id,
+        "resolveProfile": "resolve-free-21.0.3.7-windows-internal-menu",
+        "segmentCount": len(operation["parameters"]["segments"]),
+        "totalFrames": operation["parameters"]["totalFrames"],
+        "totalSeconds": operation["parameters"]["totalFrames"] / 30,
+        "resolveOtioDigest": operation["parameters"]["resolveOtioDigest"],
+        "cleanupProject": True,
+    }
+    return prepared
+
+
 def prepare_assembly(
     *,
     production_id: str = "runtime-introduction",
@@ -726,7 +888,13 @@ def validate_result(result: dict[str, Any], *, expected_operation_id: str | None
     if result.get("adapter") != "resolve":
         errors.append("adapter must be resolve")
     action = result.get("action")
-    if action not in {"probe", "create-smoke-project", "probe-compatibility", "assemble-review"}:
+    if action not in {
+        "probe",
+        "create-smoke-project",
+        "probe-compatibility",
+        "probe-assembly-conform",
+        "assemble-review",
+    }:
         errors.append("action is unsupported")
     if result.get("status") not in {"succeeded", "failed"}:
         errors.append("status must be succeeded or failed")
@@ -784,6 +952,34 @@ def validate_result(result: dict[str, Any], *, expected_operation_id: str | None
                     errors.append("compatibility case summary is invalid")
                 if compatibility.get("restoredPreviousProject") is not True:
                     errors.append("compatibility result did not restore the previous project")
+        elif action == "probe-assembly-conform":
+            conform = result.get("assemblyConform")
+            if not isinstance(conform, dict):
+                errors.append("successful assembly conform result must contain assemblyConform")
+            else:
+                project = conform.get("project")
+                timeline = conform.get("timeline")
+                segments = conform.get("segments")
+                cleanup = conform.get("cleanup")
+                resolve = conform.get("resolve")
+                if not isinstance(project, dict) or not str(project.get("name", "")).startswith(
+                    ASSEMBLY_CONFORM_PROJECT_PREFIX
+                ):
+                    errors.append("assembly conform result has an invalid project")
+                if not isinstance(timeline, dict) or timeline.get("name") != ASSEMBLY_CONFORM_TIMELINE_NAME:
+                    errors.append("assembly conform result has an invalid timeline")
+                elif timeline.get("totalFrames") != 2340 or timeline.get("videoItemCount") != 11:
+                    errors.append("assembly conform timeline structure is incomplete")
+                if not isinstance(segments, list) or len(segments) != 11:
+                    errors.append("assembly conform result must contain 11 segments")
+                if conform.get("placeholderCount") != 8:
+                    errors.append("assembly conform placeholder count differs")
+                if conform.get("restoredPreviousProject") is not True:
+                    errors.append("assembly conform did not restore the previous project")
+                if not isinstance(cleanup, dict) or cleanup.get("deleted") is not True:
+                    errors.append("assembly conform disposable project was not deleted")
+                if not isinstance(resolve, dict) or resolve.get("versionString") != COMPATIBILITY_VERSION_STRING:
+                    errors.append("assembly conform Resolve profile differs")
         elif action == "assemble-review":
             assembly = result.get("assembly")
             if not isinstance(assembly, dict):
