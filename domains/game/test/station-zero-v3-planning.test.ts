@@ -19,6 +19,8 @@ import {
   type StationZeroFactionId,
   type StationZeroFactionTurnPlan,
   type StationZeroTurnBatch,
+  type StationZeroV3AgentContext,
+  type StationZeroV3ResponsibilityFeedback,
   type StationZeroV3PlanningHead,
   type StationZeroV3WorldState,
 } from "../src/station-zero-v3/index.ts";
@@ -186,6 +188,90 @@ test("Rescue responsibilities assign distinct known civilians and a bounded supp
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("next Planning carries authoritative feedback from the previous responsibility attempt", async () => {
+  const { directory, runId, store, play } = fixture("responsibility-feedback");
+  try {
+    play.initialize({ runId });
+    let preview = (await play.generatePreview(runId)).preview;
+    assert.equal(preview.contexts.find((context) => context.actor.actorId === "engineer-imani")?.responsibilityFeedback, null);
+
+    let blockedCandidate = null as StationZeroV3AgentContext["candidates"][number] | null;
+    let blockedResponsibility = null as StationZeroV3AgentContext["responsibility"];
+    let blockedPlanningId = "";
+    for (let turn = 0; turn <= 4; turn += 1) {
+      const engineer = preview.contexts.find((context) => context.actor.actorId === "engineer-imani");
+      const decision = preview.agentDecisions.find((entry) => entry.actorId === "engineer-imani");
+      assert.ok(engineer);
+      assert.ok(decision);
+      const selected = engineer.candidates.find((candidate) => candidate.candidateId === decision.candidateId);
+      assert.ok(selected);
+      const committed = await play.commitPreview(runId, preview.previewId);
+      if (turn === 4) {
+        const result = committed.view.aftermath?.ownIntentResults.find((entry) => entry.actorId === "engineer-imani");
+        assert.equal(engineer.responsibility?.kind, "recover-civilian");
+        assert.equal(engineer.responsibility?.targetActorId, "civilian-kade");
+        assert.equal(result?.status, "contested");
+        assert.equal(result?.reason, "target_zone_capacity_lost");
+        blockedCandidate = selected;
+        blockedResponsibility = engineer.responsibility;
+        blockedPlanningId = preview.planningId;
+        break;
+      }
+      preview = (await play.generatePreview(runId)).preview;
+    }
+
+    assert.ok(blockedCandidate);
+    assert.ok(blockedResponsibility);
+    const nextPreview = (await play.generatePreview(runId)).preview;
+    const nextEngineer = nextPreview.contexts.find((context) => context.actor.actorId === "engineer-imani");
+    assert.ok(nextEngineer?.responsibilityFeedback);
+    assert.equal(nextEngineer.responsibilityFeedback.turnSequence, 4);
+    assert.equal(nextEngineer.responsibilityFeedback.planningId, blockedPlanningId);
+    assert.deepEqual(nextEngineer.responsibilityFeedback.responsibility, blockedResponsibility);
+    assert.equal(nextEngineer.responsibilityFeedback.candidateId, blockedCandidate.candidateId);
+    assert.equal(nextEngineer.responsibilityFeedback.candidateLabel, blockedCandidate.label);
+    assert.deepEqual(nextEngineer.responsibilityFeedback.intent, blockedCandidate.intent);
+    assert.equal(nextEngineer.responsibilityFeedback.status, "contested");
+    assert.equal(nextEngineer.responsibilityFeedback.reason, "target_zone_capacity_lost");
+    const playerEngineer = play.state(runId).experience.preview?.actorIntents.find((entry) => entry.actorId === "engineer-imani");
+    assert.equal(playerEngineer?.responsibilityFeedback?.candidateId, blockedCandidate.candidateId);
+    assert.equal(playerEngineer?.responsibilityFeedback?.status, "contested");
+    assert.equal(playerEngineer?.responsibilityFeedback?.reason, "target_zone_capacity_lost");
+  } finally {
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("responsibility feedback does not drift across a reassigned responsibility", () => {
+  const state = createStationZeroV3Genesis();
+  const planning = planningFor(state);
+  const order = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+  const initial = compileStationZeroV3AgentContext(state, planning, "medic-reyes", order);
+  assert.equal(initial.responsibility?.kind, "search-civilian");
+  const candidate = initial.candidates[0]!;
+  const staleFeedback: StationZeroV3ResponsibilityFeedback = {
+    turnSequence: 0,
+    planningId: "planning:previous",
+    responsibility: {
+      responsibilityId: "responsibility:previous:recover:sato",
+      kind: "recover-civilian",
+      objectiveId: "rescue-two-civilians",
+      targetActorId: "civilian-sato",
+      targetZoneId: "med-ward",
+      blockerActorIds: [],
+    },
+    candidateId: candidate.candidateId,
+    candidateLabel: candidate.label,
+    intent: structuredClone(candidate.intent),
+    status: "contested",
+    reason: "target_zone_capacity_lost",
+  };
+  const reassigned = compileStationZeroV3AgentContext(state, planning, "medic-reyes", order, staleFeedback);
+  assert.equal(reassigned.responsibility?.kind, "search-civilian");
+  assert.equal(reassigned.responsibilityFeedback, null);
 });
 
 test("Agent Context omits repair Candidates after the Actor exhausts Spare Parts", () => {

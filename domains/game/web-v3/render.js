@@ -79,6 +79,12 @@ function renderOrder(view, catalog) {
   </section>`;
 }
 
+function feedbackText(feedback) {
+  if (!feedback) return "";
+  const reason = String(feedback.reason).replaceAll("_", " ");
+  return `Previous attempt: ${feedback.candidateLabel} · ${feedback.status} · ${reason}`;
+}
+
 function responsibilityText(responsibility) {
   if (!responsibility) return "";
   const target = responsibility.targetActorId ?? responsibility.targetZoneId;
@@ -107,6 +113,7 @@ function renderPreview(view) {
       <div><span>${escapeHtml(intent.roleId)}</span><h3>${escapeHtml(intent.actorName)}</h3></div>
       <strong>${escapeHtml(intent.action)}</strong>
       ${intent.responsibility ? `<small data-testid="rescue-responsibility">${escapeHtml(responsibilityText(intent.responsibility))}</small>` : ""}
+      ${intent.responsibilityFeedback ? `<small data-testid="responsibility-feedback">${escapeHtml(feedbackText(intent.responsibilityFeedback))}</small>` : ""}
       <p>${escapeHtml(intent.rationale)}</p>
       ${intent.confidence === null ? "" : `<small>Confidence ${Math.round(intent.confidence * 100)}%</small>`}
     </article>`).join("")}</div>

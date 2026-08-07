@@ -111,6 +111,17 @@ export interface StationZeroV3AgentResponsibility {
   blockerActorIds: string[];
 }
 
+export interface StationZeroV3ResponsibilityFeedback {
+  turnSequence: number;
+  planningId: string;
+  responsibility: StationZeroV3AgentResponsibility;
+  candidateId: string;
+  candidateLabel: string;
+  intent: StationZeroActorIntent;
+  status: StationZeroIntentResolutionStatus;
+  reason: string;
+}
+
 export interface StationZeroV3AgentContext {
   schemaVersion: 1;
   kind: "ordivon.game.station-zero-v3-agent-context";
@@ -153,6 +164,7 @@ export interface StationZeroV3AgentContext {
   objectiveIds: string[];
   playerOrder: StationZeroV3CommanderOrder | null;
   responsibility: StationZeroV3AgentResponsibility | null;
+  responsibilityFeedback: StationZeroV3ResponsibilityFeedback | null;
   allowedDirectiveIds: string[];
   candidates: StationZeroV3AgentCandidate[];
   contextDigest: string;
@@ -198,6 +210,7 @@ export interface StationZeroV3FactionPlanExplanation {
     rationale: string;
     confidence: number | null;
     responsibility: StationZeroV3AgentResponsibility | null;
+    responsibilityFeedback: StationZeroV3ResponsibilityFeedback | null;
   }>;
 }
 
@@ -246,6 +259,7 @@ export interface StationZeroV3PlayerPlanView {
     rationale: string;
     confidence: number | null;
     responsibility: StationZeroV3AgentResponsibility | null;
+    responsibilityFeedback: StationZeroV3ResponsibilityFeedback | null;
   }>;
   enemyPlansSealed: Array<{
     factionId: "pirate" | "swarm";

@@ -24,6 +24,7 @@ import type {
   StationZeroV3AgentProvider,
   StationZeroV3AgentProviderFactory,
   StationZeroV3AgentResponsibility,
+  StationZeroV3ResponsibilityFeedback,
   StationZeroV3CommanderDirectiveId,
   StationZeroV3CommanderOrder,
   StationZeroV3FactionPlanExplanation,
@@ -680,6 +681,7 @@ export function compileStationZeroV3AgentContext(
   planning: StationZeroV3PlanningHead,
   actorId: string,
   playerOrder: StationZeroV3CommanderOrder | null,
+  previousResponsibilityFeedback: StationZeroV3ResponsibilityFeedback | null = null,
 ): StationZeroV3AgentContext {
   const actor = state.actors[actorId];
   if (!actor || !actor.factionId || actor.lifeState !== "active") throw new TypeError(`Cannot compile Agent Context for inactive or unknown Actor ${actorId}`);
@@ -699,6 +701,15 @@ export function compileStationZeroV3AgentContext(
       observedAtTurn: known.observedAtTurn,
     };
   });
+  const responsibility = factionId === "rescue" ? rescueResponsibilities(state, planning, playerOrder).get(actor.actorId) ?? null : null;
+  const previousResponsibility = previousResponsibilityFeedback?.responsibility ?? null;
+  const responsibilityFeedback = responsibility && previousResponsibilityFeedback && previousResponsibility &&
+      previousResponsibility.objectiveId === responsibility.objectiveId &&
+      previousResponsibility.kind === responsibility.kind &&
+      previousResponsibility.targetActorId === responsibility.targetActorId &&
+      (responsibility.targetActorId !== null || previousResponsibility.targetZoneId === responsibility.targetZoneId)
+    ? structuredClone(previousResponsibilityFeedback)
+    : null;
   const contextBase = {
     schemaVersion: 1 as const,
     kind: "ordivon.game.station-zero-v3-agent-context" as const,
@@ -740,7 +751,8 @@ export function compileStationZeroV3AgentContext(
     },
     objectiveIds: STATION_ZERO_V3_OBJECTIVES.filter((objective) => objective.factionId === factionId).map((objective) => objective.objectiveId),
     playerOrder: factionId === "rescue" ? playerOrder : null,
-    responsibility: factionId === "rescue" ? rescueResponsibilities(state, planning, playerOrder).get(actor.actorId) ?? null : null,
+    responsibility,
+    responsibilityFeedback,
     allowedDirectiveIds: allowedDirectiveIds(factionId),
     candidates: stationZeroV3AgentCandidates(state, planning, actorId),
   };
@@ -1245,6 +1257,7 @@ function explanation(
       rationale: agent?.rationale ?? policy?.rationale ?? "Deterministic faction policy selected this admitted action.",
       confidence: agent?.confidence ?? null,
       responsibility: context?.responsibility ? structuredClone(context.responsibility) : null,
+      responsibilityFeedback: context?.responsibilityFeedback ? structuredClone(context.responsibilityFeedback) : null,
     };
   });
   const risks: string[] = [];
@@ -1267,6 +1280,7 @@ export async function buildStationZeroV3PlanPreview(input: {
   order: StationZeroV3CommanderOrder;
   orderDigest: string;
   providerFactory?: StationZeroV3AgentProviderFactory;
+  responsibilityFeedbackByActor?: Readonly<Record<string, StationZeroV3ResponsibilityFeedback>>;
 }): Promise<StationZeroV3PlanPreview> {
   const { state, planning, orderRevision, order, orderDigest } = input;
   assertStationZeroV3CommanderOrder(state, planning, order);
@@ -1279,7 +1293,9 @@ export async function buildStationZeroV3PlanPreview(input: {
     .map((actorId) => state.actors[actorId])
     .filter((actor): actor is StationZeroActorState => Boolean(actor && actor.lifeState === "active"));
   const highFidelitySettled = await Promise.allSettled(highFidelityActors.map(async (actor) => {
-    const context = compileStationZeroV3AgentContext(state, planning, actor.actorId, order);
+    const context = compileStationZeroV3AgentContext(
+      state, planning, actor.actorId, order, input.responsibilityFeedbackByActor?.[actor.actorId] ?? null,
+    );
     const provider = providerFactory(actor.factionId!, actor.actorId);
     const decision = await provider.decide(context);
     assertStationZeroV3AgentDecision(context, decision);

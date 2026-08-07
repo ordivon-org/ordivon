@@ -131,6 +131,7 @@ When allowedDirectives is non-empty, choose exactly one supplied directiveId and
 When allowedDirectives is empty, directiveId must be null.
 Respect the player's Commander Order when it is present. Primary objective, role competence, formation, survival, and local evidence determine local action. Remote Mission Control abilities are deliberately absent and must not be inferred.
 When responsibility is present, treat it as this Actor's assigned share of the Commander objective. Blocker identities are only known contacts; use admitted actions and their confidence rather than inventing hidden state or repeatedly forcing a blocked route.
+When responsibilityFeedback is present, it is the authoritative result of your previous admitted action under that responsibility. If it was contested, interrupted, invalidated, or had no effect, do not blindly repeat the same blocked action unless current known state makes that failure obsolete. Choose another admitted way to progress, support, or safely hold.
 Role doctrine: Engineers prioritize systems, technical routes, and mission cargo; Medics prioritize wounded people, civilians, escort, and extraction; Security prioritizes protection, guard, hostile interception, and safe access. A split formation means specialists should pursue different role-appropriate fronts when possible; a cohesive formation means mutual support is preferred. Pirate Captains preserve their crew while pursuing profit. Hive Alphas pursue biomass, infection, growth, or survival according to the selected directive.
 Do not mention or rely on hidden information. Do not reveal chain-of-thought. Give only a short operational rationale of at most 240 characters.
 Return JSON only. Exact example: {"candidateId":"candidate:exact-id","directiveId":null,"rationale":"Short operational reason.","confidence":0.8}
@@ -173,6 +174,7 @@ function compactContext(context: StationZeroV3AgentContext): Record<string, unkn
       priorityTargetActorId: order.priorityTargetActorId,
     } : null,
     responsibility: context.responsibility,
+    responsibilityFeedback: context.responsibilityFeedback,
     allowedDirectives: directiveDescriptions(context),
     candidates: context.candidates.map((candidate) => ({
       candidateId: candidate.candidateId,
