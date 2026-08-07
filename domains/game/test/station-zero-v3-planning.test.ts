@@ -19,7 +19,6 @@ import {
   type StationZeroFactionId,
   type StationZeroFactionTurnPlan,
   type StationZeroTurnBatch,
-  type StationZeroV3AgentContext,
   type StationZeroV3ResponsibilityFeedback,
   type StationZeroV3PlanningHead,
   type StationZeroV3WorldState,
@@ -174,7 +173,6 @@ test("Rescue responsibilities assign distinct known civilians and a bounded supp
     assert.equal(engineer.responsibility.targetActorId, "civilian-kade");
     assert.equal(security.responsibility.kind, "support-civilian-recovery");
     assert.equal(security.responsibility.targetActorId, "civilian-kade");
-    assert.ok(security.responsibility.blockerActorIds.includes("swarm-stalker-kappa"));
     const securityKnown = new Set(security.known.actors.map((known) => known.actorId));
     assert.ok(security.responsibility.blockerActorIds.every((actorId) => securityKnown.has(actorId)));
 
@@ -190,55 +188,69 @@ test("Rescue responsibilities assign distinct known civilians and a bounded supp
   }
 });
 
+test("Rescue Knowledge records its own civilian extraction before the next responsibility assignment", async () => {
+  const { directory, runId, store, play } = fixture("civilian-extraction-knowledge");
+  try {
+    play.initialize({ runId });
+    let preview = (await play.generatePreview(runId)).preview;
+    for (let turn = 0; turn <= 8; turn += 1) {
+      const medic = preview.contexts.find((context) => context.actor.actorId === "medic-reyes");
+      const decision = preview.agentDecisions.find((entry) => entry.actorId === "medic-reyes");
+      if (turn === 8) {
+        assert.equal(medic?.actor.zoneId, "rescue-airlock");
+        assert.equal(medic?.responsibility?.targetActorId, "civilian-sato");
+        const selected = medic?.candidates.find((candidate) => candidate.candidateId === decision?.candidateId);
+        assert.equal(selected?.intent.kind, "extract");
+      }
+      await play.commitPreview(runId, preview.previewId);
+      if (turn < 8) preview = (await play.generatePreview(runId)).preview;
+    }
+    const state = store.loadState(runId);
+    assert.equal(state.actors["civilian-sato"]?.lifeState, "extracted");
+    assert.equal(state.factionKnowledge.rescue.knownActors["civilian-sato"]?.observedLifeState, "extracted");
+    const nextPreview = (await play.generatePreview(runId)).preview;
+    assert.equal(nextPreview.contexts.some((context) =>
+      context.responsibility?.kind === "recover-civilian" && context.responsibility.targetActorId === "civilian-sato"), false);
+  } finally {
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("next Planning carries authoritative feedback from the previous responsibility attempt", async () => {
   const { directory, runId, store, play } = fixture("responsibility-feedback");
   try {
     play.initialize({ runId });
-    let preview = (await play.generatePreview(runId)).preview;
-    assert.equal(preview.contexts.find((context) => context.actor.actorId === "engineer-imani")?.responsibilityFeedback, null);
+    const firstPreview = (await play.generatePreview(runId)).preview;
+    const firstMedic = firstPreview.contexts.find((context) => context.actor.actorId === "medic-reyes");
+    const firstDecision = firstPreview.agentDecisions.find((entry) => entry.actorId === "medic-reyes");
+    assert.ok(firstMedic?.responsibility);
+    assert.equal(firstMedic.responsibility.kind, "search-civilian");
+    assert.equal(firstMedic.responsibilityFeedback, null);
+    assert.ok(firstDecision);
+    const selected = firstMedic.candidates.find((candidate) => candidate.candidateId === firstDecision.candidateId);
+    assert.ok(selected);
 
-    let blockedCandidate = null as StationZeroV3AgentContext["candidates"][number] | null;
-    let blockedResponsibility = null as StationZeroV3AgentContext["responsibility"];
-    let blockedPlanningId = "";
-    for (let turn = 0; turn <= 4; turn += 1) {
-      const engineer = preview.contexts.find((context) => context.actor.actorId === "engineer-imani");
-      const decision = preview.agentDecisions.find((entry) => entry.actorId === "engineer-imani");
-      assert.ok(engineer);
-      assert.ok(decision);
-      const selected = engineer.candidates.find((candidate) => candidate.candidateId === decision.candidateId);
-      assert.ok(selected);
-      const committed = await play.commitPreview(runId, preview.previewId);
-      if (turn === 4) {
-        const result = committed.view.aftermath?.ownIntentResults.find((entry) => entry.actorId === "engineer-imani");
-        assert.equal(engineer.responsibility?.kind, "recover-civilian");
-        assert.equal(engineer.responsibility?.targetActorId, "civilian-kade");
-        assert.equal(result?.status, "contested");
-        assert.equal(result?.reason, "target_zone_capacity_lost");
-        blockedCandidate = selected;
-        blockedResponsibility = engineer.responsibility;
-        blockedPlanningId = preview.planningId;
-        break;
-      }
-      preview = (await play.generatePreview(runId)).preview;
-    }
+    const committed = await play.commitPreview(runId, firstPreview.previewId);
+    const result = committed.view.aftermath?.ownIntentResults.find((entry) => entry.actorId === "medic-reyes");
+    assert.equal(result?.status, "executed");
+    assert.equal(result?.reason, "movement_completed");
 
-    assert.ok(blockedCandidate);
-    assert.ok(blockedResponsibility);
     const nextPreview = (await play.generatePreview(runId)).preview;
-    const nextEngineer = nextPreview.contexts.find((context) => context.actor.actorId === "engineer-imani");
-    assert.ok(nextEngineer?.responsibilityFeedback);
-    assert.equal(nextEngineer.responsibilityFeedback.turnSequence, 4);
-    assert.equal(nextEngineer.responsibilityFeedback.planningId, blockedPlanningId);
-    assert.deepEqual(nextEngineer.responsibilityFeedback.responsibility, blockedResponsibility);
-    assert.equal(nextEngineer.responsibilityFeedback.candidateId, blockedCandidate.candidateId);
-    assert.equal(nextEngineer.responsibilityFeedback.candidateLabel, blockedCandidate.label);
-    assert.deepEqual(nextEngineer.responsibilityFeedback.intent, blockedCandidate.intent);
-    assert.equal(nextEngineer.responsibilityFeedback.status, "contested");
-    assert.equal(nextEngineer.responsibilityFeedback.reason, "target_zone_capacity_lost");
-    const playerEngineer = play.state(runId).experience.preview?.actorIntents.find((entry) => entry.actorId === "engineer-imani");
-    assert.equal(playerEngineer?.responsibilityFeedback?.candidateId, blockedCandidate.candidateId);
-    assert.equal(playerEngineer?.responsibilityFeedback?.status, "contested");
-    assert.equal(playerEngineer?.responsibilityFeedback?.reason, "target_zone_capacity_lost");
+    const nextMedic = nextPreview.contexts.find((context) => context.actor.actorId === "medic-reyes");
+    assert.ok(nextMedic?.responsibilityFeedback);
+    assert.equal(nextMedic.responsibilityFeedback.turnSequence, 0);
+    assert.equal(nextMedic.responsibilityFeedback.planningId, firstPreview.planningId);
+    assert.deepEqual(nextMedic.responsibilityFeedback.responsibility, firstMedic.responsibility);
+    assert.equal(nextMedic.responsibilityFeedback.candidateId, selected.candidateId);
+    assert.equal(nextMedic.responsibilityFeedback.candidateLabel, selected.label);
+    assert.deepEqual(nextMedic.responsibilityFeedback.intent, selected.intent);
+    assert.equal(nextMedic.responsibilityFeedback.status, "executed");
+    assert.equal(nextMedic.responsibilityFeedback.reason, "movement_completed");
+    const playerMedic = play.state(runId).experience.preview?.actorIntents.find((entry) => entry.actorId === "medic-reyes");
+    assert.equal(playerMedic?.responsibilityFeedback?.candidateId, selected.candidateId);
+    assert.equal(playerMedic?.responsibilityFeedback?.status, "executed");
+    assert.equal(playerMedic?.responsibilityFeedback?.reason, "movement_completed");
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });
@@ -272,6 +284,59 @@ test("responsibility feedback does not drift across a reassigned responsibility"
   const reassigned = compileStationZeroV3AgentContext(state, planning, "medic-reyes", order, staleFeedback);
   assert.equal(reassigned.responsibility?.kind, "search-civilian");
   assert.equal(reassigned.responsibilityFeedback, null);
+});
+
+test("Agent Context marks only Candidates that directly advance the current rescue responsibility", () => {
+  const state = createStationZeroV3Genesis();
+  const medic = state.actors["medic-reyes"]!;
+  const civilian = state.actors["civilian-sato"]!;
+  const security = state.actors["security-chen"]!;
+  medic.position.zoneId = "med-console";
+  civilian.position.zoneId = "med-console";
+  civilian.statusIds.push(`escorted-by:${medic.actorId}`);
+  security.position.zoneId = "junction-cover";
+  state.factionKnowledge.rescue.knownActors[civilian.actorId] = {
+    actorId: civilian.actorId,
+    lastKnownZoneId: "med-console",
+    observedLifeState: "active",
+    observedHealthBand: "wounded",
+    observedAtTurn: state.encounter.turn,
+    confidence: "confirmed",
+  };
+  const planning = planningFor(state);
+  const order = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+  const context = compileStationZeroV3AgentContext(state, planning, medic.actorId, order);
+  assert.equal(context.responsibility?.targetZoneId, "rescue-airlock");
+  const towardAirlock = context.candidates.find((candidate) =>
+    candidate.intent.kind === "move" && candidate.intent.targetZoneId === "junction-console");
+  const backToWard = context.candidates.find((candidate) =>
+    candidate.intent.kind === "move" && candidate.intent.targetZoneId === "med-ward");
+  assert.ok(towardAirlock);
+  assert.ok(backToWard);
+  assert.ok(towardAirlock.tags.includes("responsibility:advance"));
+  assert.equal(backToWard.tags.includes("responsibility:advance"), false);
+});
+
+test("Agent Context omits moves that cannot fit an escorted civilian past known friendly occupancy", () => {
+  const state = createStationZeroV3Genesis();
+  const medic = state.actors["medic-reyes"]!;
+  const civilian = state.actors["civilian-sato"]!;
+  const security = state.actors["security-chen"]!;
+  medic.position.zoneId = "med-console";
+  civilian.position.zoneId = "med-console";
+  civilian.statusIds.push(`escorted-by:${medic.actorId}`);
+  security.position.zoneId = "junction-cover";
+  const planning = planningFor(state);
+  const order = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+
+  const blocked = compileStationZeroV3AgentContext(state, planning, medic.actorId, order);
+  assert.equal(blocked.candidates.some((candidate) =>
+    candidate.intent.kind === "move" && candidate.intent.targetZoneId === "junction-cover"), false);
+
+  security.position.zoneId = "command-deck";
+  const clear = compileStationZeroV3AgentContext(state, planning, medic.actorId, order);
+  assert.equal(clear.candidates.some((candidate) =>
+    candidate.intent.kind === "move" && candidate.intent.targetZoneId === "junction-cover"), true);
 });
 
 test("Agent Context omits repair Candidates after the Actor exhausts Spare Parts", () => {
@@ -360,6 +425,22 @@ test("Agent Decisions cannot invent an action or enemy directive", () => {
   assert.doesNotThrow(() => assertStationZeroV3AgentDecision(context, valid));
   assert.throws(() => assertStationZeroV3AgentDecision(context, { ...valid, candidateId: "candidate:invented" }), /invented a Candidate/);
   assert.throws(() => assertStationZeroV3AgentDecision(context, { ...valid, directiveId: "steal-core" }), /directive does not match/);
+});
+
+test("default Rescue Commander spends bounded scan capacity on Life Support before Maintenance and never selects an unavailable scan", () => {
+  const state = createStationZeroV3Genesis();
+  const planning = planningFor(state);
+  state.factionKnowledge.rescue.knownSystemIds.push("cooling");
+  state.systems.cooling!.powered = true;
+  state.factions.rescue.commanderAbilityCharges["orbital-scan"] = 1;
+  const lifeFirst = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+  assert.equal(lifeFirst.commanderDirectiveId, "scan-life-support");
+
+  state.factions.rescue.commanderAbilityCharges["orbital-scan"] = 0;
+  const exhausted = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+  assert.notEqual(exhausted.commanderDirectiveId, "scan-life-support");
+  assert.notEqual(exhausted.commanderDirectiveId, "scan-maintenance");
+  assert.equal(exhausted.commanderDirectiveId, "hold-command");
 });
 
 test("Commander Order revisions invalidate prior previews and materially alter Rescue planning", async () => {

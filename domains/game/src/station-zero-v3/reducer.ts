@@ -881,6 +881,7 @@ function resolveInteraction(context: MutableContext, intents: StationZeroActorIn
         if (civilianStatusFactId) factIds.push(civilianStatusFactId);
         const civilianLifeFactId = changeLifeState(context, civilian, "extracted");
         if (civilianLifeFactId) factIds.push(civilianLifeFactId);
+        revealActor(context, actor.factionId!, civilian);
       }
       resolveIntent(context, intent, "interaction", "executed", "actor_extracted", factIds);
       continue;

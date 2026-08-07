@@ -280,13 +280,19 @@ function moveCandidates(
       entry.statusIds.includes(`escorted-by:${actor.actorId}`))
     .map((entry) => entry.actorId)
     .sort();
+  const movementFootprint = 1 + escortedCivilianIds.length;
   return Object.values(state.zones)
     .filter((zone) => zone.zoneId !== actor.position.zoneId)
     .map((zone) => ({
       zone,
       distance: stationZeroShortestDistance(state, actor.position.zoneId, zone.zoneId, actor.factionId),
+      guaranteedFriendlyOccupancy: Object.values(state.actors).filter((entry) =>
+        entry.lifeState === "active" && entry.factionId === actor.factionId && entry.position.zoneId === zone.zoneId).length,
     }))
-    .filter(({ zone, distance }) => distance !== null && distance <= actor.movementRange && (known.has(zone.zoneId) || frontier.has(zone.zoneId)))
+    .filter(({ zone, distance, guaranteedFriendlyOccupancy }) =>
+      distance !== null && distance <= actor.movementRange &&
+      (known.has(zone.zoneId) || frontier.has(zone.zoneId)) &&
+      movementFootprint <= Math.max(0, zone.capacity - guaranteedFriendlyOccupancy))
     .sort((left, right) => left.zone.zoneId.localeCompare(right.zone.zoneId))
     .map(({ zone }) => candidate({
       intentId: intentIdentity(planning.planningId, actor.actorId, `move:${zone.zoneId}`),
@@ -676,6 +682,22 @@ function allowedDirectiveIds(factionId: StationZeroFactionId): string[] {
   return [];
 }
 
+function markResponsibilityProgressCandidates(
+  candidates: StationZeroV3AgentCandidate[],
+  responsibility: StationZeroV3AgentResponsibility | null,
+): StationZeroV3AgentCandidate[] {
+  if (!responsibility || responsibility.kind === "support-civilian-recovery") return candidates;
+  return candidates.map((entry) => {
+    const advancesRoute = entry.tags.includes(`route:${responsibility.targetZoneId}`);
+    const advancesCustody = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
+      entry.tags.includes("rescue") && entry.tags.includes(`target:${responsibility.targetActorId}`);
+    const advancesExtraction = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
+      entry.intent.kind === "extract" && entry.tags.includes(`escort:${responsibility.targetActorId}`);
+    if (!advancesRoute && !advancesCustody && !advancesExtraction) return entry;
+    return { ...entry, tags: [...new Set([...entry.tags, "responsibility:advance"])].sort() };
+  });
+}
+
 export function compileStationZeroV3AgentContext(
   state: StationZeroV3WorldState,
   planning: StationZeroV3PlanningHead,
@@ -710,6 +732,9 @@ export function compileStationZeroV3AgentContext(
       (responsibility.targetActorId !== null || previousResponsibility.targetZoneId === responsibility.targetZoneId)
     ? structuredClone(previousResponsibilityFeedback)
     : null;
+  const candidates = markResponsibilityProgressCandidates(
+    stationZeroV3AgentCandidates(state, planning, actorId), responsibility,
+  );
   const contextBase = {
     schemaVersion: 1 as const,
     kind: "ordivon.game.station-zero-v3-agent-context" as const,
@@ -754,7 +779,7 @@ export function compileStationZeroV3AgentContext(
     responsibility,
     responsibilityFeedback,
     allowedDirectiveIds: allowedDirectiveIds(factionId),
-    candidates: stationZeroV3AgentCandidates(state, planning, actorId),
+    candidates,
   };
   return { ...contextBase, contextDigest: sha256(contextBase) };
 }
@@ -1001,15 +1026,24 @@ export function defaultStationZeroV3CommanderOrder(
   state: StationZeroV3WorldState,
 ): StationZeroV3CommanderOrder {
   const knowledge = state.factionKnowledge.rescue;
+  const faction = state.factions.rescue;
+  const abilityAvailable = (abilityId: string): boolean => {
+    const definition = STATION_ZERO_V3_COMMANDER_ABILITIES.find((entry) => entry.commanderAbilityId === abilityId);
+    if (!definition) return false;
+    const charges = faction.commanderAbilityCharges[abilityId];
+    return (charges === null || (charges !== undefined && charges > 0)) &&
+      (faction.commanderAbilityCooldowns[abilityId] ?? 0) === 0 &&
+      definition.commandPointCost <= faction.commandPoints;
+  };
   let commanderDirectiveId: StationZeroV3CommanderDirectiveId = "hold-command";
-  if (!knowledge.knownSystemIds.includes("cooling")) {
+  if (!knowledge.knownSystemIds.includes("cooling") && abilityAvailable("orbital-scan")) {
     commanderDirectiveId = "scan-reactor";
-  } else if (!state.systems.cooling?.powered && (state.factions.rescue.commanderAbilityCooldowns["power-reroute"] ?? 0) === 0) {
+  } else if (!state.systems.cooling?.powered && abilityAvailable("power-reroute")) {
     commanderDirectiveId = "reroute-cooling";
-  } else if (!knowledge.discoveredZoneIds.includes("maintenance-entry")) {
-    commanderDirectiveId = "scan-maintenance";
-  } else if (!knowledge.knownSystemIds.includes("life-support")) {
+  } else if (!knowledge.knownSystemIds.includes("life-support") && abilityAvailable("orbital-scan")) {
     commanderDirectiveId = "scan-life-support";
+  } else if (!knowledge.discoveredZoneIds.includes("maintenance-entry") && abilityAvailable("orbital-scan")) {
+    commanderDirectiveId = "scan-maintenance";
   }
   return {
     schemaVersion: 1,
