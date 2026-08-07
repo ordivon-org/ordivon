@@ -248,7 +248,7 @@ function localInteractionCandidates(
     .filter((hazard) => hazard.zoneId === actor.position.zoneId && state.factionKnowledge[factionId].knownHazardIds.includes(hazard.hazardId))
     .sort((left, right) => left.hazardId.localeCompare(right.hazardId));
 
-  if (actor.capabilityIds.includes("repair")) {
+  if (actor.capabilityIds.includes("repair") && actor.inventoryItemIds.includes("spare-parts")) {
     for (const system of localSystems.filter((entry) => entry.integrity < 1)) {
       candidates.push(candidate({
         intentId: intentIdentity(planning.planningId, actor.actorId, `repair:${system.systemId}`),
@@ -729,6 +729,7 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
     }
   }
   if (candidateTag(candidate, "extract") && actor.inventoryItemIds.includes("research-core")) score += 700;
+  if (candidateTag(candidate, "extract") && candidateTag(candidate, "escorting-civilian")) score += 2_000;
   if (candidateTag(candidate, "escorting-civilian")) score += 1_000;
   return score;
 }

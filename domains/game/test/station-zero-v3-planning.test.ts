@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  FixtureStationZeroV3AgentProvider,
   StationZeroV3PlanningStore,
   StationZeroV3PlayService,
   StationZeroV3Store,
@@ -12,6 +13,7 @@ import {
   assertStationZeroV3AgentDecision,
   compileStationZeroV3AgentContext,
   createStationZeroV3Genesis,
+  defaultStationZeroV3CommanderOrder,
   prepareStationZeroV3Commitment,
   type StationZeroActorIntent,
   type StationZeroFactionId,
@@ -138,6 +140,53 @@ test("Agent Contexts expose faction Knowledge and admitted Candidates, not hidde
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("Agent Context omits repair Candidates after the Actor exhausts Spare Parts", () => {
+  const state = createStationZeroV3Genesis();
+  const engineer = state.actors["engineer-imani"]!;
+  engineer.position.zoneId = "reactor-console";
+  engineer.inventoryItemIds.push("spare-parts");
+  if (!state.factionKnowledge.rescue.knownSystemIds.includes("cooling")) {
+    state.factionKnowledge.rescue.knownSystemIds.push("cooling");
+  }
+  const planning = planningFor(state);
+
+  const withParts = compileStationZeroV3AgentContext(state, planning, engineer.actorId, null);
+  assert.equal(
+    withParts.candidates.some((candidate) =>
+      candidate.intent.kind === "interact" && candidate.intent.operationId === "repair" && candidate.intent.targetId === "cooling"),
+    true,
+  );
+
+  engineer.inventoryItemIds = engineer.inventoryItemIds.filter((itemId) => itemId !== "spare-parts");
+  const withoutParts = compileStationZeroV3AgentContext(state, planning, engineer.actorId, null);
+  assert.equal(
+    withoutParts.candidates.some((candidate) =>
+      candidate.intent.kind === "interact" && candidate.intent.operationId === "repair" && candidate.intent.targetId === "cooling"),
+    false,
+  );
+  assert.equal(
+    withoutParts.candidates.some((candidate) => candidate.intent.kind === "use_ability" && candidate.intent.abilityId === "field-repair"),
+    true,
+  );
+});
+
+test("Fixture Provider extracts an escorted civilian instead of leaving the Rescue Airlock", async () => {
+  const state = createStationZeroV3Genesis();
+  const medic = state.actors["medic-reyes"]!;
+  const civilian = state.actors["civilian-sato"]!;
+  medic.position.zoneId = "rescue-airlock";
+  civilian.position.zoneId = "rescue-airlock";
+  civilian.statusIds.push(`escorted-by:${medic.actorId}`);
+  const planning = planningFor(state);
+  const order = defaultStationZeroV3CommanderOrder(planning.runId, planning, state);
+  const context = compileStationZeroV3AgentContext(state, planning, medic.actorId, order);
+  const extract = context.candidates.find((candidate) => candidate.intent.kind === "extract");
+  assert.ok(extract);
+
+  const decision = await new FixtureStationZeroV3AgentProvider().decide(context);
+  assert.equal(decision.candidateId, extract.candidateId);
 });
 
 test("Agent Decisions cannot invent an action or enemy directive", () => {
@@ -337,7 +386,12 @@ test("the bounded fixture planner can drive a complete 14-Turn encounter without
     assert.equal(view.run.turn, 14);
     assert.equal(view.run.status, "terminal");
     assert.equal(store.turnCount(runId), 14);
-    assert.ok(["victory", "partial", "failure"].includes(view.outcomes.rescue));
+    assert.notEqual(view.outcomes.rescue, "failure");
+    const civilianObjective = view.objectives.find((objective) => objective.objectiveId === "rescue-two-civilians");
+    const survivalObjective = view.objectives.find((objective) => objective.objectiveId === "rescue-team-survives");
+    assert.ok(civilianObjective);
+    assert.ok(civilianObjective.progress >= 1);
+    assert.equal(survivalObjective?.status, "completed");
     assert.equal(view.aftermath?.turnSequence, 13);
     assert.doesNotThrow(() => play.planning.verifyRun(runId));
     assert.equal(play.turns.recover(runId).world.turnCount, 14);
