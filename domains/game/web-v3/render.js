@@ -79,6 +79,20 @@ function renderOrder(view, catalog) {
   </section>`;
 }
 
+function responsibilityText(responsibility) {
+  if (!responsibility) return "";
+  const target = responsibility.targetActorId ?? responsibility.targetZoneId;
+  const action = responsibility.kind === "search-civilian"
+    ? "Search civilian sector"
+    : responsibility.kind === "recover-civilian"
+      ? "Recover civilian"
+      : "Support civilian recovery";
+  const blockers = responsibility.blockerActorIds.length
+    ? ` · blockers ${responsibility.blockerActorIds.join(", ")}`
+    : "";
+  return `${action}: ${target}${blockers}`;
+}
+
 function renderPreview(view) {
   const preview = view.experience.preview;
   if (!preview) return `<section class="panel empty-preview"><p class="eyebrow">Deliberation</p><h2>No plan generated</h2><p>Save the strategic Order, then ask the specialists and faction leaders to form one simultaneous Turn plan.</p></section>`;
@@ -92,6 +106,7 @@ function renderPreview(view) {
     <div class="intent-list">${preview.actorIntents.map((intent) => `<article class="intent-card" data-testid="rescue-intent">
       <div><span>${escapeHtml(intent.roleId)}</span><h3>${escapeHtml(intent.actorName)}</h3></div>
       <strong>${escapeHtml(intent.action)}</strong>
+      ${intent.responsibility ? `<small data-testid="rescue-responsibility">${escapeHtml(responsibilityText(intent.responsibility))}</small>` : ""}
       <p>${escapeHtml(intent.rationale)}</p>
       ${intent.confidence === null ? "" : `<small>Confidence ${Math.round(intent.confidence * 100)}%</small>`}
     </article>`).join("")}</div>

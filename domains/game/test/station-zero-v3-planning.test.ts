@@ -142,6 +142,52 @@ test("Agent Contexts expose faction Knowledge and admitted Candidates, not hidde
   }
 });
 
+test("Rescue responsibilities assign distinct known civilians and a bounded support handoff", async () => {
+  const { directory, runId, store, play } = fixture("responsibility-decomposition");
+  try {
+    play.initialize({ runId });
+    let preview = (await play.generatePreview(runId)).preview;
+    const firstRescueContexts = preview.contexts.filter((context) => context.factionId === "rescue");
+    const initialMedic = firstRescueContexts.find((context) => context.actor.actorId === "medic-reyes");
+    assert.equal(initialMedic?.responsibility?.kind, "search-civilian");
+    assert.equal(initialMedic?.responsibility?.targetActorId, null);
+    assert.equal(initialMedic?.responsibility?.targetZoneId, "med-ward");
+    assert.equal(JSON.stringify(firstRescueContexts).includes("civilian-kade"), false);
+
+    for (let turn = 0; turn < 3; turn += 1) {
+      await play.commitPreview(runId, preview.previewId);
+      if (turn < 2) preview = (await play.generatePreview(runId)).preview;
+    }
+    preview = (await play.generatePreview(runId)).preview;
+    const byActor = new Map(preview.contexts.filter((context) => context.factionId === "rescue").map((context) => [context.actor.actorId, context]));
+    const medic = byActor.get("medic-reyes");
+    const engineer = byActor.get("engineer-imani");
+    const security = byActor.get("security-chen");
+    assert.ok(medic?.responsibility);
+    assert.ok(engineer?.responsibility);
+    assert.ok(security?.responsibility);
+    assert.equal(medic.responsibility.kind, "recover-civilian");
+    assert.equal(medic.responsibility.targetActorId, "civilian-sato");
+    assert.equal(engineer.responsibility.kind, "recover-civilian");
+    assert.equal(engineer.responsibility.targetActorId, "civilian-kade");
+    assert.equal(security.responsibility.kind, "support-civilian-recovery");
+    assert.equal(security.responsibility.targetActorId, "civilian-kade");
+    assert.ok(security.responsibility.blockerActorIds.includes("swarm-stalker-kappa"));
+    const securityKnown = new Set(security.known.actors.map((known) => known.actorId));
+    assert.ok(security.responsibility.blockerActorIds.every((actorId) => securityKnown.has(actorId)));
+
+    await play.commitPreview(runId, preview.previewId);
+    const escortPreview = (await play.generatePreview(runId)).preview;
+    const escortMedic = escortPreview.contexts.find((context) => context.actor.actorId === "medic-reyes");
+    assert.equal(escortMedic?.responsibility?.kind, "recover-civilian");
+    assert.equal(escortMedic?.responsibility?.targetActorId, "civilian-sato");
+    assert.equal(escortMedic?.responsibility?.targetZoneId, "rescue-airlock");
+  } finally {
+    store.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("Agent Context omits repair Candidates after the Actor exhausts Spare Parts", () => {
   const state = createStationZeroV3Genesis();
   const engineer = state.actors["engineer-imani"]!;

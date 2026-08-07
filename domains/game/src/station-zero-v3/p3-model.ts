@@ -102,6 +102,15 @@ export interface StationZeroV3AgentCandidate {
   tags: string[];
 }
 
+export interface StationZeroV3AgentResponsibility {
+  responsibilityId: string;
+  kind: "search-civilian" | "recover-civilian" | "support-civilian-recovery";
+  objectiveId: "rescue-two-civilians";
+  targetActorId: string | null;
+  targetZoneId: string;
+  blockerActorIds: string[];
+}
+
 export interface StationZeroV3AgentContext {
   schemaVersion: 1;
   kind: "ordivon.game.station-zero-v3-agent-context";
@@ -143,6 +152,7 @@ export interface StationZeroV3AgentContext {
   };
   objectiveIds: string[];
   playerOrder: StationZeroV3CommanderOrder | null;
+  responsibility: StationZeroV3AgentResponsibility | null;
   allowedDirectiveIds: string[];
   candidates: StationZeroV3AgentCandidate[];
   contextDigest: string;
@@ -187,6 +197,7 @@ export interface StationZeroV3FactionPlanExplanation {
     label: string;
     rationale: string;
     confidence: number | null;
+    responsibility: StationZeroV3AgentResponsibility | null;
   }>;
 }
 
@@ -234,6 +245,7 @@ export interface StationZeroV3PlayerPlanView {
     action: string;
     rationale: string;
     confidence: number | null;
+    responsibility: StationZeroV3AgentResponsibility | null;
   }>;
   enemyPlansSealed: Array<{
     factionId: "pirate" | "swarm";
