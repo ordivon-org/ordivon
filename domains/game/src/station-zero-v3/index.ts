@@ -16,5 +16,6 @@ export * from "./play-service.ts";
 export * from "./reducer.ts";
 export * from "./resource-egress.ts";
 export * from "./message-issuance.ts";
+export * from "./entity-departure.ts";
 export * from "./topology.ts";
 export * from "./turn-service.ts";
