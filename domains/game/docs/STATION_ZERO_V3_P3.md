@@ -1,3 +1,31 @@
+---
+schema_version: 1
+id: game.station-zero-v3.planning
+title: Station Zero v3 — P3 first-playable planning layer
+type: architecture
+profile: engineering
+lifecycle: accepted
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - player
+  - designer
+  - builder
+  - agent
+updated: 2026-08-08
+summary: Accepted target architecture for the unregistered Station Zero v3 Commander Orders, bounded Agent planning, sealed Plan Preview, explicit Commit, dedicated API, first-playable browser, and recovery.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - station-zero-v3-unregistered
+related:
+  - game.station-zero-v3.encounter
+  - game.station-zero-v3.reducer
+  - game.station-zero-v3.execution
+  - game.authority
+---
 # Station Zero v3 — P3 first-playable planning layer
 
 ## Status

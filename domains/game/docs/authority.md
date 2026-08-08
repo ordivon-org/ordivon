@@ -15,8 +15,8 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-03
-summary: Decision separating the registered Station Zero product, the unregistered v3 target specifications, long-range Game vision, machine truth, and historical evidence.
+updated: 2026-08-08
+summary: Decision separating the registered Station Zero product, the unregistered v3 target through its first-playable planning layer, long-range Game vision, machine truth, and historical evidence.
 evidence_status: not_applicable
 readiness: READY
 applies_to:
@@ -29,6 +29,7 @@ related:
   - game.station-zero-v3.encounter
   - game.station-zero-v3.reducer
   - game.station-zero-v3.execution
+  - game.station-zero-v3.planning
 ---
 # Game Content Authority
 
@@ -40,13 +41,13 @@ Game simultaneously contains one registered executable, one broader product visi
 
 [`../README.md`](../README.md) is the canonical repository entry and must state which Scenario and Ruleset are registered. [`PRODUCT.md`](PRODUCT.md) owns the current Station Zero player experience and acceptance. [`ARCHITECTURE.md`](ARCHITECTURE.md) owns the registered executable architecture and state ownership. [`VISION.md`](VISION.md) owns long-range principles and possibilities but creates no feature commitment.
 
-The accepted unregistered v3 target is jointly defined by [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md) for encounter and content decisions, [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md) for the pure deterministic reducer contract, and [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) for durable Planning, execution, evidence, and recovery. These documents do not register v3 or replace the current browser and HTTP product.
+The accepted unregistered v3 target is jointly defined by [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md) for encounter and content decisions, [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md) for the pure deterministic reducer contract, [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) for durable Planning, execution, evidence, and recovery, and [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md) for Commander Orders, bounded Agent planning, Plan Preview/Commit, the dedicated v3 API, and the separate `/v3` first-playable. These documents do not register v3 or replace the current root browser and HTTP product.
 
 `src/registry.ts`, source code, SQLite schema, deterministic tests, generated or retained receipts, replay verification, product acceptance scripts, and the running service remain stronger owners for exact executable registration, fields, transitions, and observed behavior. `AGENTS.md` governs repository work rather than product truth.
 
 ## Consequences
 
-The current executable and v3 target can evolve without pretending they are already the same system. P0/P1/P2 phase-coded paths remain temporarily canonical because they contain active target contracts; later human-centered stable documents should supersede them explicitly after registration or redesign. Older milestones and evidence will be handled only after the higher-priority authority and implementation work is complete.
+The current executable and v3 target can evolve without pretending they are already the same system. P0/P1/P2/P3 phase-coded paths remain temporarily canonical because they contain accepted target contracts; later human-centered stable documents should supersede them explicitly after registration or redesign. Older milestones and evidence will be handled only after the higher-priority authority and implementation work is complete.
 
 ## Status
 

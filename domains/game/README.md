@@ -14,7 +14,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-04
+updated: 2026-08-08
 summary: Canonical entry to Ordivon Game, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
 evidence_status: verified
 readiness: READY
@@ -36,14 +36,14 @@ Ordivon Game currently ships one executable world: **Station Zero**, a determini
 
 ## Current boundary
 
-The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, and durable execution path are accepted target specifications and implementation evidence, but they are not the public executable until registry, service, browser, and first-playable acceptance move together.
+The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, durable execution, planning layer, dedicated API, and separate `/v3` first-playable are implemented as an accepted replacement target, but v3 remains unregistered and does not replace the root product. Replacement is deferred until repeated human playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
 ## Start here
 
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
-- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), and [`P2`](docs/STATION_ZERO_V3_P2.md) define the accepted but unregistered v3 target slices.
+- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the accepted but unregistered v3 target slices.
 - [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
 ## Station Zero
