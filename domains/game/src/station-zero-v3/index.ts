@@ -14,5 +14,6 @@ export * from "./planning-store.ts";
 export * from "./play-projection.ts";
 export * from "./play-service.ts";
 export * from "./reducer.ts";
+export * from "./resource-egress.ts";
 export * from "./topology.ts";
 export * from "./turn-service.ts";
