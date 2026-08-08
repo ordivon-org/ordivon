@@ -144,6 +144,8 @@ Tests exist to discover where a model fails. The laboratory must not become a ri
 
 ## Machine context
 
+[`aesthetic-model.md`](./aesthetic-model.md) provides the cross-medium aesthetic sub-model: nine working dimensions, causal-layer separation, and the distinction between first-impression liking and longer aftereffects. [`sources.json`](./sources.json) provides a compact machine-readable source ledger so later Agents can recover which priors came from peer-reviewed work versus contemporary benchmarks.
+
 [`context.json`](./context.json) provides the first compact Agent-readable map of:
 
 - experiential outcomes;

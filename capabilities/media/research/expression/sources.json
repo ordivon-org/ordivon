@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.expression-sources",
+  "sources": [
+    {
+      "id": "hekkert-2003-maya",
+      "year": 2003,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "Most advanced, yet acceptable: Typicality and novelty as joint predictors of aesthetic preference in industrial design",
+      "doi": "10.1348/000712603762842147",
+      "concepts": [
+        "familiarity-novelty",
+        "novelty"
+      ]
+    },
+    {
+      "id": "reber-2004-processing-fluency",
+      "year": 2004,
+      "kind": "peer-reviewed-review",
+      "evidenceClass": "theory_backed",
+      "title": "Processing fluency and aesthetic pleasure: is beauty in the perceiver’s processing experience?",
+      "doi": "10.1207/s15327957pspr0804_3",
+      "concepts": [
+        "perceptual-legibility",
+        "fluency-challenge"
+      ]
+    },
+    {
+      "id": "leder-2004-aesthetic-appreciation",
+      "year": 2004,
+      "kind": "peer-reviewed-model",
+      "evidenceClass": "theory_backed",
+      "title": "A model of aesthetic appreciation and aesthetic judgments",
+      "doi": "10.1348/0007126042369811",
+      "concepts": [
+        "perceptual-legibility",
+        "meaning-context",
+        "affect-valuation"
+      ]
+    },
+    {
+      "id": "moshagen-2010-visawi",
+      "year": 2010,
+      "kind": "peer-reviewed",
+      "evidenceClass": "robust_empirical",
+      "title": "Facets of visual aesthetics",
+      "doi": "10.1016/j.ijhcs.2010.05.006",
+      "concepts": [
+        "perceptual-legibility",
+        "richness",
+        "craft-resolution"
+      ]
+    },
+    {
+      "id": "palmer-schloss-2010-color",
+      "year": 2010,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "An ecological valence theory of human color preference",
+      "doi": "10.1073/pnas.0906172107",
+      "concepts": [
+        "affect-valuation",
+        "meaning-context"
+      ]
+    },
+    {
+      "id": "tuch-2012-web-first-impression",
+      "year": 2012,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "The role of visual complexity and prototypicality regarding first impression of websites",
+      "doi": "10.1016/j.ijhcs.2012.06.003",
+      "concepts": [
+        "perceptual-legibility",
+        "richness",
+        "novelty"
+      ]
+    },
+    {
+      "id": "chatterjee-vartanian-2014-neuroaesthetics",
+      "year": 2014,
+      "kind": "peer-reviewed-review",
+      "evidenceClass": "theory_backed",
+      "title": "Neuroaesthetics",
+      "doi": "10.1016/j.tics.2014.03.003",
+      "concepts": [
+        "perceptual-legibility",
+        "affect-valuation",
+        "meaning-context"
+      ]
+    },
+    {
+      "id": "post-2017-unity-variety-web",
+      "year": 2017,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "Unity in Variety in website aesthetics: A systematic inquiry",
+      "doi": "10.1016/j.ijhcs.2017.02.003",
+      "concepts": [
+        "coherence",
+        "richness",
+        "unity-variety"
+      ]
+    },
+    {
+      "id": "ui-bench-2025",
+      "year": 2025,
+      "kind": "preprint-benchmark",
+      "evidenceClass": "bounded_empirical",
+      "title": "UI-Bench: A Benchmark for Evaluating Design Capabilities of AI Text-to-App Tools",
+      "arxiv": "2508.20410",
+      "concepts": [
+        "craft-resolution",
+        "expression-presence"
+      ]
+    },
+    {
+      "id": "visual-aesthetic-benchmark-2026",
+      "year": 2026,
+      "kind": "preprint-benchmark",
+      "evidenceClass": "bounded_empirical",
+      "title": "Visual Aesthetic Benchmark: Can Frontier Models Judge Beauty?",
+      "arxiv": "2605.12684",
+      "concepts": [
+        "craft-resolution",
+        "expression-presence",
+        "comparative-judgment"
+      ]
+    }
+  ]
+}

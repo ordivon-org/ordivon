@@ -54,6 +54,26 @@ Color preference, color-emotion association, musical liking, and aesthetic exper
 
 Evidence class: `robust_empirical` for context dependence; specific mappings are `bounded_empirical`.
 
+### Artifact metrics are diagnostics, not aesthetic truth
+
+Aesthetic mechanisms operate at different causal layers. Pixel-level or implementation-level quantities such as edge density, symmetry, contrast, colorfulness, saliency, layout entropy, or embedding similarity can be useful diagnostics, but they do not directly measure beauty, presence, meaning, or memorability unless calibrated for that target.
+
+**Use:** measure the property an experiment actually manipulated and use it to verify that the manipulation occurred.
+
+**Boundary:** never promote an easy-to-measure proxy into a universal aesthetic objective because it correlates with one outcome in one dataset.
+
+Evidence class: `theory_backed` / methodological prior.
+
+### One observer is calibration, not population taste
+
+Ordivon Web A0/A2 produced a useful local falsifier: one evaluator first preferred the named `quiet` condition, then under identity-blinded pairwise comparison preferred `editorial` over both alternatives on all three tested surfaces. This does not establish editorial as population taste; it establishes that the earlier known-label preference was not stable enough to become design authority.
+
+**Use:** retain personal or small-N preference as local calibration and as a way to expose framing sensitivity.
+
+**Boundary:** repeated decisions from one person across several surfaces are repeated measures, not several independent human samples.
+
+Evidence class: `local_experiment`.
+
 ## B. Narrative and temporal priors
 
 ### Narrative is information under a perspective

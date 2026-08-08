@@ -244,5 +244,52 @@
     "Do not treat a current trend as a stable aesthetic principle.",
     "Do not turn diagnostic metrics into a universal beauty score.",
     "Do not let expressive framing contradict source-bound factual claims."
-  ]
+  ],
+  "aestheticDimensions": [
+    {
+      "id": "perceptual-legibility",
+      "question": "Can the intended sensory structure be recovered without avoidable friction?"
+    },
+    {
+      "id": "coherence",
+      "question": "Do parts establish intelligible order, unity, hierarchy, and relationships?"
+    },
+    {
+      "id": "richness",
+      "question": "Is there enough meaningful variation and information to sustain attention?"
+    },
+    {
+      "id": "novelty",
+      "question": "How does the work depart from learned category expectations?"
+    },
+    {
+      "id": "affect-valuation",
+      "question": "What emotional, hedonic, aversive, arousal, or reward response does the work invite?"
+    },
+    {
+      "id": "meaning-context",
+      "question": "What associations, knowledge, culture, intent, narrative, and prior exposure change the experience?"
+    },
+    {
+      "id": "craft-resolution",
+      "question": "Does execution feel deliberate, controlled, and sufficiently resolved for its intended form?"
+    },
+    {
+      "id": "expression-presence",
+      "question": "Does the work carry distinctive character or felt force beyond correctness?"
+    },
+    {
+      "id": "aftereffect",
+      "question": "What remains after first contact: memory, curiosity, reflection, trust, desire, or action?"
+    }
+  ],
+  "causalLayers": [
+    "artifact-properties",
+    "perceptual-processing",
+    "affect-valuation",
+    "meaning-interpretation",
+    "aesthetic-judgment",
+    "behavior-memory-action"
+  ],
+  "sourceLedger": "research/expression/sources.json"
 }
