@@ -86,9 +86,32 @@ Text, image, video, voice, music, transcription, and translation providers remai
 
 Temporary generations do not all enter permanent provenance. Selected assets and published outputs do.
 
-### 9. Human judgment remains at the final composition boundary
+### 9. Creative judgment is claim-dependent, not permanently human-gated
 
-Automation may generate drafts, variants, subtitles, diagrams, motion, mixes, and delivery packages. It does not decide that a story is comprehensible, a claim is fair, a voice is appropriate, or a cut should be published.
+Studio is human-facing, but an Agent should not be forced to imitate a human editor and then wait for a human approval ritual at every composition boundary. Agents may generate, critique, select, edit, and publish within source-bound production authority.
+
+The important distinction is **what kind of claim a judgment makes**:
+
+```text
+mechanical / factual claim
+    → verify against source and production evidence
+
+medium craft judgment
+    → use mature conventions, explicit intent, and bounded critique
+
+human-experience claim
+    → use empirical priors and sample human/expert response only when uncertainty matters
+```
+
+One human preference is not universal taste authority, and one Agent preference is not human-perception truth. The Art & Expression Laboratory in `research/expression/` supplies cross-medium priors, records where they fail, and lets later Agents inherit better judgment rather than requiring permanent human supervision.
+
+## Art and expression research
+
+Creative infrastructure is incomplete if it preserves media perfectly but has no disciplined way to reason about why one composition is clearer, more beautiful, more compelling, more memorable, or more narratively effective than another.
+
+[`research/expression/README.md`](research/expression/README.md) therefore owns the cross-medium Art & Expression Laboratory. It studies empirical aesthetics, visual composition, narratology, motion/editing, sound/music, rhetoric/voice, style/culture, and computational aesthetics. Its machine-readable [`context.json`](research/expression/context.json) is context for Agent judgment, not a universal style generator.
+
+Medium-specific systems remain free to specialize these priors. Web, for example, can bias toward fluency, trust, hierarchy, and accessibility while a film can spend substantially more uncertainty on tension, surprise, and temporal expression.
 
 ## System shape
 

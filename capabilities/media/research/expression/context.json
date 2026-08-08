@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.expression-context",
+  "authority": "research/expression/README.md",
+  "principles": [
+    "Aesthetic and artistic quality is multidimensional; do not collapse outcomes into one beauty score.",
+    "Human preference is conditional but structured; use evidence as scoped priors rather than universal taste laws.",
+    "Compelling expression often emerges by resolving tensions rather than maximizing one variable.",
+    "Medium, audience, task, culture, expertise, genre, and temporal context can change the desirable tension profile.",
+    "Agents may make creative judgments; external human evaluation is a sensor for uncertain human-experience claims, not a mandatory approval gate."
+  ],
+  "outcomes": [
+    "beauty",
+    "pleasure",
+    "interest",
+    "appeal",
+    "clarity",
+    "presence",
+    "identity",
+    "memorability",
+    "transportation",
+    "trust"
+  ],
+  "tensions": [
+    {
+      "id": "unity-variety",
+      "a": "unity",
+      "b": "variety",
+      "prior": "Establish intelligible coherence while preserving meaningful differentiation."
+    },
+    {
+      "id": "fluency-challenge",
+      "a": "fluency",
+      "b": "challenge",
+      "prior": "Make the intended model learnable without eliminating all cognitive work."
+    },
+    {
+      "id": "familiarity-novelty",
+      "a": "familiarity",
+      "b": "novelty",
+      "prior": "Use recognizable structure as entry and spend novelty where discovery or identity matters."
+    },
+    {
+      "id": "predictability-surprise",
+      "a": "predictability",
+      "b": "surprise",
+      "prior": "Build expectations before violating them; tune surprise to uncertainty and audience knowledge."
+    },
+    {
+      "id": "continuity-discontinuity",
+      "a": "continuity",
+      "b": "discontinuity",
+      "prior": "Preserve the event model across surface change unless a real boundary is intended."
+    },
+    {
+      "id": "restraint-expression",
+      "a": "restraint",
+      "b": "expressiveness",
+      "prior": "Keep expressive force proportional to the role of the moment and medium."
+    },
+    {
+      "id": "explicitness-ambiguity",
+      "a": "explicitness",
+      "b": "ambiguity",
+      "prior": "State what must be understood; preserve ambiguity only when interpretive openness is part of the work."
+    },
+    {
+      "id": "density-space",
+      "a": "density",
+      "b": "breathing-space",
+      "prior": "Concentrate information where comparison matters and create rest where hierarchy or affect needs time."
+    }
+  ],
+  "lenses": [
+    "perception",
+    "composition",
+    "meaning",
+    "narrative",
+    "affect",
+    "craft",
+    "context"
+  ],
+  "evidenceClasses": {
+    "robust_empirical": "strong scoped prior supported across substantial evidence",
+    "bounded_empirical": "direct evidence with meaningful population/medium/task limits",
+    "theory_backed": "useful explanatory model with partial empirical support",
+    "craft_prior": "durable professional convention to keep or deliberately break",
+    "trend": "time-bound stylistic signal, never a law",
+    "local_experiment": "Ordivon-specific evidence that updates only the relevant profile until replicated elsewhere"
+  },
+  "mediumProfiles": {
+    "web": {
+      "primaryOutcomes": [
+        "clarity",
+        "trust",
+        "identity",
+        "appeal"
+      ],
+      "secondaryOutcomes": [
+        "beauty",
+        "interest",
+        "memorability"
+      ],
+      "constraints": [
+        "information hierarchy",
+        "task comprehension",
+        "navigation",
+        "accessibility",
+        "responsive behavior"
+      ],
+      "defaultTensionBias": {
+        "unity-variety": "unity-first",
+        "fluency-challenge": "fluency-first",
+        "familiarity-novelty": "familiar-entry",
+        "restraint-expression": "restrained-base-expressive-peaks"
+      }
+    },
+    "film-video": {
+      "primaryOutcomes": [
+        "transportation",
+        "interest",
+        "presence",
+        "memorability"
+      ],
+      "secondaryOutcomes": [
+        "beauty",
+        "clarity"
+      ],
+      "constraints": [
+        "event comprehension",
+        "temporal continuity",
+        "audio-visual synchronization",
+        "delivery format"
+      ],
+      "defaultTensionBias": {
+        "predictability-surprise": "pattern-then-variation",
+        "continuity-discontinuity": "action-model-first",
+        "restraint-expression": "sequence-dependent"
+      }
+    },
+    "still-graphic": {
+      "primaryOutcomes": [
+        "presence",
+        "identity",
+        "appeal",
+        "memorability"
+      ],
+      "secondaryOutcomes": [
+        "beauty",
+        "clarity"
+      ],
+      "constraints": [
+        "single-frame hierarchy",
+        "viewing distance",
+        "format/crop",
+        "reproduction"
+      ],
+      "defaultTensionBias": {
+        "unity-variety": "coherent-differentiation",
+        "fluency-challenge": "fast-entry-optional-depth"
+      }
+    },
+    "article-essay": {
+      "primaryOutcomes": [
+        "clarity",
+        "interest",
+        "trust",
+        "memorability"
+      ],
+      "secondaryOutcomes": [
+        "transportation",
+        "identity"
+      ],
+      "constraints": [
+        "argument integrity",
+        "reading rhythm",
+        "source truth",
+        "language"
+      ],
+      "defaultTensionBias": {
+        "explicitness-ambiguity": "explicit-claims-open-interpretation",
+        "density-space": "rhythmic"
+      }
+    },
+    "audio-music": {
+      "primaryOutcomes": [
+        "interest",
+        "presence",
+        "memorability",
+        "pleasure"
+      ],
+      "secondaryOutcomes": [
+        "transportation"
+      ],
+      "constraints": [
+        "time",
+        "loudness",
+        "spectral balance",
+        "platform playback"
+      ],
+      "defaultTensionBias": {
+        "predictability-surprise": "uncertainty-sensitive",
+        "unity-variety": "motif-with-variation"
+      }
+    },
+    "interactive": {
+      "primaryOutcomes": [
+        "clarity",
+        "interest",
+        "presence",
+        "trust"
+      ],
+      "secondaryOutcomes": [
+        "transportation",
+        "identity"
+      ],
+      "constraints": [
+        "agency",
+        "feedback",
+        "state legibility",
+        "recovery",
+        "accessibility"
+      ],
+      "defaultTensionBias": {
+        "predictability-surprise": "stable-rules-variable-consequence",
+        "continuity-discontinuity": "state-continuity-first"
+      }
+    }
+  },
+  "agentLoop": [
+    "define-intent",
+    "select-outcomes",
+    "retrieve-evidence-and-precedents",
+    "choose-tension-profile",
+    "generate",
+    "verify-medium-and-truth-constraints",
+    "critique-against-intent",
+    "calibrate-only-where-uncertain",
+    "record-transfer-or-failure"
+  ],
+  "prohibitions": [
+    "Do not infer artistic value from popularity alone.",
+    "Do not treat one observer as universal taste authority.",
+    "Do not treat a current trend as a stable aesthetic principle.",
+    "Do not turn diagnostic metrics into a universal beauty score.",
+    "Do not let expressive framing contradict source-bound factual claims."
+  ]
+}

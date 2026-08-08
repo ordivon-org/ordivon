@@ -17,6 +17,7 @@ owning project facts and executable evidence
 ## What this repository owns
 
 - the Ordivon cross-medium identity source;
+- the Art & Expression Laboratory for cross-medium aesthetics, narrative, rhetoric, motion, sound, and style research;
 - reusable editorial, visual, motion, caption, and interactive primitives;
 - selected-asset provenance and rights records;
 - production manifests and source packages;
@@ -28,6 +29,8 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 ## Start here
 
 - [`STUDIO.md`](STUDIO.md) — first-principles architecture and corrected technical choices;
+- [`research/expression/README.md`](research/expression/README.md) — Art & Expression Laboratory, its research boundary, tensions, and Agent loop;
+- [`research/expression/evidence-map.md`](research/expression/evidence-map.md) — evidence-backed aesthetic and narrative priors with explicit scope limits;
 - [`docs/media-model.md`](docs/media-model.md) — Asset, Blob, Production, Claim, TimedText, and Output objects;
 - [`docs/technical-baseline.md`](docs/technical-baseline.md) — time, color, audio, storage, editor, and rendering baseline;
 - [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
