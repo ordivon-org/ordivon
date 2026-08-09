@@ -94,7 +94,9 @@ Manual frame numbers remain optional semantic anchors. They augment automatic pe
 
 Studio can decide **which pixels should be available to perception** and can materialize those model views. It should not own the final transport into a model runtime.
 
-The first C6 acceptance exposed a concrete boundary in the current WSL MCP surface: a generated JPEG/PNG can be hashed and Base64-encoded into a text Job Artifact, but the available tool surface does not present an arbitrary Workspace image as native `image/jpeg` / `image/png` model content. Base64 text is not an acceptable long-term perception transport.
+The first C6 acceptance exposed a concrete boundary in the WSL MCP surface available at that time: a generated JPEG/PNG could be hashed and Base64-encoded into a text Job Artifact, but the tool surface could not present an arbitrary Workspace image as native `image/jpeg` / `image/png` model content. That experiment remains the historical evidence that motivated the cross-project requirement; Base64 text is not an acceptable long-term perception transport.
+
+As of Runtime source revision `66b87a90d1701c5f04aa42b327024e6aeecc8fb3`, that source-level gap is implemented by generic `workspace.content`: Runtime binds the read to an opened Workspace-confined file descriptor, bounds the bytes, verifies the caller-selected SHA-256 digest and PNG/JPEG signature, and projects the result as native MCP image content. Production deployment and a fresh vision-capable Agent consuming the image remain separate acceptance boundaries; Studio therefore does not claim that the current production MCP session has already delivered these pixels to a model.
 
 The cross-project requirement is therefore:
 
@@ -136,7 +138,7 @@ C6 does not establish:
 - scene-score importance;
 - a universal image embedding or CV stack;
 - that contact sheets can replace playback;
-- that current MCP transport already supplies native image input;
+- that the currently deployed production MCP session already supplies the Runtime source-level native image capability to a fresh vision-capable Agent;
 - that every medium should share the video perception representation.
 
 The accepted result is narrower: **Studio can deterministically compile a real time-based artifact into a bounded, progressive model-view surface while keeping mechanical sampling separate from semantic interpretation.**
