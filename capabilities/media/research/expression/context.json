@@ -88,156 +88,6 @@
     "trend": "time-bound stylistic signal, never a law",
     "local_experiment": "Ordivon-specific evidence that updates only the relevant profile until replicated elsewhere"
   },
-  "mediumProfiles": {
-    "web": {
-      "primaryOutcomes": [
-        "clarity",
-        "trust",
-        "identity",
-        "appeal"
-      ],
-      "secondaryOutcomes": [
-        "beauty",
-        "interest",
-        "memorability"
-      ],
-      "constraints": [
-        "information hierarchy",
-        "task comprehension",
-        "navigation",
-        "accessibility",
-        "responsive behavior"
-      ],
-      "defaultTensionBias": {
-        "unity-variety": "unity-first",
-        "fluency-challenge": "fluency-first",
-        "familiarity-novelty": "familiar-entry",
-        "restraint-expression": "restrained-base-expressive-peaks"
-      }
-    },
-    "film-video": {
-      "primaryOutcomes": [
-        "transportation",
-        "interest",
-        "presence",
-        "memorability"
-      ],
-      "secondaryOutcomes": [
-        "beauty",
-        "clarity"
-      ],
-      "constraints": [
-        "event comprehension",
-        "temporal continuity",
-        "audio-visual synchronization",
-        "delivery format"
-      ],
-      "defaultTensionBias": {
-        "predictability-surprise": "pattern-then-variation",
-        "continuity-discontinuity": "action-model-first",
-        "restraint-expression": "sequence-dependent"
-      }
-    },
-    "still-graphic": {
-      "primaryOutcomes": [
-        "presence",
-        "identity",
-        "appeal",
-        "memorability"
-      ],
-      "secondaryOutcomes": [
-        "beauty",
-        "clarity"
-      ],
-      "constraints": [
-        "single-frame hierarchy",
-        "viewing distance",
-        "format/crop",
-        "reproduction"
-      ],
-      "defaultTensionBias": {
-        "unity-variety": "coherent-differentiation",
-        "fluency-challenge": "fast-entry-optional-depth"
-      }
-    },
-    "article-essay": {
-      "primaryOutcomes": [
-        "clarity",
-        "interest",
-        "trust",
-        "memorability"
-      ],
-      "secondaryOutcomes": [
-        "transportation",
-        "identity"
-      ],
-      "constraints": [
-        "argument integrity",
-        "reading rhythm",
-        "source truth",
-        "language"
-      ],
-      "defaultTensionBias": {
-        "explicitness-ambiguity": "explicit-claims-open-interpretation",
-        "density-space": "rhythmic"
-      }
-    },
-    "audio-music": {
-      "primaryOutcomes": [
-        "interest",
-        "presence",
-        "memorability",
-        "pleasure"
-      ],
-      "secondaryOutcomes": [
-        "transportation"
-      ],
-      "constraints": [
-        "time",
-        "loudness",
-        "spectral balance",
-        "platform playback"
-      ],
-      "defaultTensionBias": {
-        "predictability-surprise": "uncertainty-sensitive",
-        "unity-variety": "motif-with-variation"
-      }
-    },
-    "interactive": {
-      "primaryOutcomes": [
-        "clarity",
-        "interest",
-        "presence",
-        "trust"
-      ],
-      "secondaryOutcomes": [
-        "transportation",
-        "identity"
-      ],
-      "constraints": [
-        "agency",
-        "feedback",
-        "state legibility",
-        "recovery",
-        "accessibility"
-      ],
-      "defaultTensionBias": {
-        "predictability-surprise": "stable-rules-variable-consequence",
-        "continuity-discontinuity": "state-continuity-first"
-      }
-    }
-  },
-  "agentLoop": [
-    "define-intent",
-    "select-outcomes",
-    "retrieve-evidence-and-precedents",
-    "choose-tension-profile",
-    "generate",
-    "verify-medium-and-truth-constraints",
-    "critique-against-intent",
-    "calibrate-only-where-uncertain",
-    "record-transfer-or-failure"
-  ],
   "prohibitions": [
     "Do not infer artistic value from popularity alone.",
     "Do not treat one observer as universal taste authority.",
@@ -333,6 +183,18 @@
       "artifact-local",
       "medium-profile-candidate",
       "cross-medium-core-candidate"
-    ]
-  }
+    ],
+    "protocolAuthority": "research/expression/protocol.md",
+    "knowledgeModel": "research/expression/knowledge-model.md",
+    "profileIndex": "research/expression/profiles/README.md",
+    "researchBranch": "Research is conditional: use it only when durable uncertainty survives normal production."
+  },
+  "knowledgeLayers": {
+    "hard_constraint": "mechanically testable or externally owned boundary; verify strongly",
+    "durable_prior": "cross-medium scoped prior; stable enough to reuse, always revisable",
+    "medium_prior": "medium-specific craft or affordance knowledge; owned by a profile",
+    "context_signal": "culture/platform/audience/time-sensitive signal; retrieve near use",
+    "local_observation": "bounded Ordivon evidence; retain exact scope and provenance"
+  },
+  "profileRegistry": "research/expression/profiles/medium-baseline.json"
 }

@@ -107,31 +107,13 @@ The first program spans eight connected areas:
 
 The domains are deliberately not separate departments. A real artifact is expected to cross several at once.
 
-## Agent research loop
+## Production and research
 
-The default loop is:
+[`protocol.md`](./protocol.md) is the single production loop: `FRAME → BIND → EXPRESS → RENDER → AUDIT → DECIDE`. The laboratory no longer maintains a second default Agent loop here.
 
-```text
-intent + audience + medium + constraints
-                ↓
-select desired experiential outcomes
-                ↓
-retrieve relevant evidence and precedents
-                ↓
-choose an explicit tension profile
-                ↓
-generate one or more coherent expressions
-                ↓
-mechanical / semantic / medium-specific checks
-                ↓
-Agent critique against evidence and intent
-                ↓
-external calibration only where uncertainty matters
-                ↓
-record what transferred and what failed
-```
+Research is a conditional branch from production when a durable uncertainty survives normal source verification, craft judgment, rendering, and semantic audit. Experiments exist to pressure-test priors, not to turn every creative decision into research.
 
-External human judgment is one possible sensor when the claim is about human experience. It is not a mandatory approval step and one evaluator is never promoted into a universal taste oracle.
+[`knowledge-model.md`](./knowledge-model.md) separates hard constraints, durable cross-medium priors, medium priors, current context signals, and local observations. Evidence class and reuse scope are intentionally orthogonal.
 
 ## Experiment families
 
@@ -175,6 +157,6 @@ This foundation does **not** yet claim:
 - that empirical popularity should override deliberate difficulty, ambiguity, provocation, or subcultural expression;
 - that every production requires formal user testing.
 
-## Immediate research pressure
+## Current pressure
 
-The first useful task is not another theme contest. It is to use the evidence map and context on two unlike real artifacts — one Web surface and one Studio motion/editorial surface — and see which priors transfer, which become medium-specific, and which prove too vague to change an actual creative decision.
+A3-1 through A3-3 already established that the cross-medium model can change real production decisions and can be falsified by rendered artifacts. The next pressure is structural: consume the single protocol in ordinary Web, motion/video, and writing work; keep medium knowledge downstream; and promote new shared priors only when repeated production earns them.

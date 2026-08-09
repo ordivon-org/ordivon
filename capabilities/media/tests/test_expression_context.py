@@ -21,20 +21,27 @@ class ExpressionContextTests(unittest.TestCase):
             self.assertTrue(item["b"])
             self.assertNotEqual(item["a"], item["b"])
             self.assertTrue(item["prior"])
-        for required in ("web", "film-video", "still-graphic", "article-essay", "audio-music", "interactive"):
-            self.assertIn(required, data["mediumProfiles"])
-            profile = data["mediumProfiles"][required]
-            self.assertTrue(profile["primaryOutcomes"])
-            self.assertTrue(profile["constraints"])
+        self.assertNotIn("mediumProfiles", data)
+        self.assertNotIn("agentLoop", data)
         self.assertIn("local_experiment", data["evidenceClasses"])
-        self.assertIn("calibrate-only-where-uncertain", data["agentLoop"])
         creative = data["creativeSystem"]
         self.assertEqual(creative["authority"], "research/expression/creative-system.md")
         self.assertEqual(creative["coreLoop"], ["frame", "bind", "express", "render", "audit", "decide"])
+        self.assertEqual(creative["protocolAuthority"], "research/expression/protocol.md")
+        self.assertEqual(creative["knowledgeModel"], "research/expression/knowledge-model.md")
         self.assertIn("medium", creative["variableProfiles"])
         self.assertIn("encounter-mode", creative["variableProfiles"])
         self.assertEqual(creative["learningPromotion"][0], "artifact-local")
         self.assertIn("human experience", creative["twoSpeedLearning"]["boundary"])
+
+        expected_layers = {"hard_constraint", "durable_prior", "medium_prior", "context_signal", "local_observation"}
+        self.assertEqual(set(data["knowledgeLayers"]), expected_layers)
+        profile_registry = ROOT / data["profileRegistry"]
+        self.assertTrue(profile_registry.is_file())
+        profiles = json.loads(profile_registry.read_text(encoding="utf-8"))
+        for required in ("web", "film-video", "still-graphic", "article-essay", "audio-music", "interactive"):
+            self.assertIn(required, profiles["profiles"])
+            self.assertTrue(profiles["profiles"][required]["constraints"])
 
     def test_aesthetic_dimensions_and_sources_are_consistent(self) -> None:
         data = json.loads(CONTEXT.read_text(encoding="utf-8"))

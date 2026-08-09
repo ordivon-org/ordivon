@@ -103,36 +103,8 @@ physical or interface environment
 time / style context
 ```
 
-## Agent decision model
+## Role in production
 
-```text
-intent + medium + audience + context
-                ↓
-retrieve evidence and precedents
-                ↓
-choose desired outcomes + tension profile
-                ↓
-generate / compose
-                ↓
-mechanical and semantic checks
-                ↓
-Agent critique across aesthetic dimensions
-                ↓
-uncertainty test
-        ┌───────┴─────────┐
-        │                 │
-    sufficient       unresolved claim
-     evidence         about human response
-        │                 │
-        │           targeted calibration
-        │                 │
-        └────────┬────────┘
-                 ↓
-          publication judgment
-                 ↓
-          observed consequence
-                 ↓
-             revise prior
-```
+This model does not own a second Agent decision loop. [`protocol.md`](./protocol.md) owns production cognition. The aesthetic model is evidence used primarily during `EXPRESS` and `AUDIT`: it helps an Agent choose and critique perceptual, affective, meaning, craft, and aftereffect strategies without collapsing them into one score.
 
-Human response is therefore evidence about human response, not a permanent creative-control boundary.
+When the unresolved claim is genuinely about human response, the protocol may branch to targeted calibration. Human response remains evidence about human response, not a permanent creative-control boundary.
