@@ -72,6 +72,11 @@ For expressive judgment, inspect motion over time. A valid frame, OTIO layout, d
 3. **Placeholder visibility is the main current semantic risk.** Placeholder clips are valid assembly artifacts but must not be mistaken for recorded Runtime evidence or a publication-ready output.
 4. **Programmatic motion must remain explanatory.** It may express uncertain delivery, identity continuity, and exact close, but must not fabricate the core real demonstration.
 5. **No population-level aesthetic claim is needed at this stage.** The unresolved work is capture replacement, playback/semantic inspection, narration lock, and actual delivery composition. Human calibration should be requested only if a consequential human-response uncertainty survives those steps.
+6. **C4 tightened the replay wording at the actual render source.** `runtime-request-replay` now says “Exact replay returns the recorded Job. It does not admit a second Job.” This keeps the claim at Runtime admission identity instead of inviting a broader external-effect interpretation.
+7. **The first fast-loop attempt exposed a network-dependent renderer prerequisite.** Remotion attempted browser acquisition when no local executable was declared. The supported configuration is now local-browser-first and fails closed unless browser download is explicitly allowed.
+8. **The second attempt exposed a generated-source prerequisite.** A fresh Workspace could not resolve `@ordivon/identity/tokens.css`; supported motion entrypoints now build tokens before render instead of relying on Agent memory.
+9. **The third attempt completed a real local render/review pass.** The 180-frame replay composition rendered, passed the then-observed structural video QC, and produced exact keyframe/source evidence in a disposable review packet. The packet intentionally leaves semantic audit pending rather than promoting technical correctness into expressive correctness.
+10. **A repeated pass exposed H.264 signalling drift.** Raw Remotion output retained BT.709 matrix/range but could omit transfer/primaries. The supported render entrypoint now normalizes H.264 VUI by stream copy before QC. Two consecutive complete loops then produced identical final MP4/keyframe digests and passed complete BT.709 checks.
 
 ### Audit routing
 
@@ -105,6 +110,9 @@ Retain these findings at the narrowest current scope:
 - **production-local:** source/asset/timeline state should be referenced, not duplicated into cognition, because physical production can outrun descriptive prose;
 - **candidate Writing/Profile observation:** must-not-imply constraints cannot safely be implemented as lexical bans because explicit negation often needs the same vocabulary;
 - **candidate production-system observation:** one artifact can compose multiple medium profiles without merging their authorities;
-- **no new Core prior promoted by C3.** One production is not enough evidence.
+- **production-local C4 observation:** deterministic render prerequisites should be self-satisfied or fail fast; hidden setup and network acquisition directly reduce Agent inner-loop frequency;
+- **production-local C4 observation:** a disposable review packet can combine artifact identity, technical QC, source digests, and exact review frames without becoming a second Production authority;
+- **Motion/technical-baseline observation:** renderer color intent is not sufficient evidence of complete encoded VUI metadata; supported output should be normalized/verified at the byte boundary before downstream editorial use;
+- **no new Art & Expression Core prior promoted by C3/C4.** These production-system findings do not constitute a universal aesthetic law.
 
 If later unrelated productions repeatedly need the same record fields, promote only those repeated semantics into a stronger machine schema. Until then, this Markdown record plus the existing Production source pointer is sufficient.

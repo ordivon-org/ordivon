@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .assets import hash_file, probe_media, r2_object_key
 from .qc import validate_video_probe
+from .review import build_video_review_packet
 from .resolve_adapter import (
     discover_resolve_paths,
     install_runner,
@@ -18,6 +19,7 @@ from .resolve_adapter import (
     read_result,
 )
 from .timed_text import export_srt, export_webvtt
+from .video import normalize_h264_bt709
 
 
 def _write_json(value: object) -> None:
@@ -36,6 +38,21 @@ def _command_hash(args: argparse.Namespace) -> int:
 def _command_probe(args: argparse.Namespace) -> int:
     path = Path(args.path)
     _write_json({"blob": hash_file(path).as_dict(), "probe": probe_media(path, args.ffprobe)})
+    return 0
+
+
+def _command_normalize_h264_bt709(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    before = hash_file(path)
+    normalize_h264_bt709(path, args.ffmpeg)
+    after = hash_file(path)
+    _write_json({
+        "ok": True,
+        "path": str(path),
+        "transform": "h264-bt709-vui-stream-copy",
+        "before": before.as_dict(),
+        "after": after.as_dict(),
+    })
     return 0
 
 
@@ -72,6 +89,47 @@ def _command_qc_video(args: argparse.Namespace) -> int:
         }
     )
     return 0 if not errors else 1
+
+
+def _parse_frames(value: str) -> list[int]:
+    frames: list[int] = []
+    for item in value.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        frame = int(item)
+        if frame < 0:
+            raise ValueError("review frames must be non-negative")
+        frames.append(frame)
+    if not frames:
+        raise ValueError("at least one review frame is required")
+    return frames
+
+
+def _command_review_video(args: argparse.Namespace) -> int:
+    packet = build_video_review_packet(
+        production_root=Path(args.production_root),
+        video_path=Path(args.path),
+        source_paths=[Path(value) for value in args.source],
+        frames=_parse_frames(args.frames),
+        output_directory=Path(args.output_dir),
+        codec=args.codec,
+        pixel_format=args.pixel_format,
+        color_space=args.color_space,
+        color_range=args.color_range,
+        expect_audio=args.expect_audio,
+        ffprobe=args.ffprobe,
+        ffmpeg=args.ffmpeg,
+        repository_root=Path.cwd(),
+    )
+    _write_json({
+        "ok": True,
+        "review": str(Path(args.output_dir) / "review.json"),
+        "artifactDigest": packet["reviewedArtifact"]["blob"]["digest"],
+        "frames": [item["frame"] for item in packet["keyframes"]],
+        "semanticAudit": packet["semanticAudit"]["status"],
+    })
+    return 0
 
 
 def _command_timed_text(args: argparse.Namespace) -> int:
@@ -199,6 +257,11 @@ def build_parser() -> argparse.ArgumentParser:
     probe_parser.add_argument("--ffprobe", default="/usr/bin/ffprobe")
     probe_parser.set_defaults(handler=_command_probe)
 
+    normalize_parser = commands.add_parser("normalize-h264-bt709", help="write complete BT.709 H.264 VUI metadata without re-encoding picture data")
+    normalize_parser.add_argument("path")
+    normalize_parser.add_argument("--ffmpeg", default="/usr/bin/ffmpeg")
+    normalize_parser.set_defaults(handler=_command_normalize_h264_bt709)
+
     qc_parser = commands.add_parser("qc-video", help="verify structural video and color facts")
     qc_parser.add_argument("path")
     qc_parser.add_argument("--width", type=int, required=True)
@@ -213,6 +276,23 @@ def build_parser() -> argparse.ArgumentParser:
     audio_group.add_argument("--no-audio", action="store_false", dest="expect_audio")
     qc_parser.add_argument("--ffprobe", default="/usr/bin/ffprobe")
     qc_parser.set_defaults(handler=_command_qc_video)
+
+    review_parser = commands.add_parser("review-video", help="build disposable technical and keyframe evidence for one rendered Production video")
+    review_parser.add_argument("path")
+    review_parser.add_argument("--production-root", required=True)
+    review_parser.add_argument("--source", action="append", default=[], help="source file materially responsible for this render; repeat as needed")
+    review_parser.add_argument("--frames", required=True, help="comma-separated exact frame indices to extract")
+    review_parser.add_argument("--output-dir", required=True)
+    review_parser.add_argument("--codec", default="h264")
+    review_parser.add_argument("--pixel-format", default="yuv420p")
+    review_parser.add_argument("--color-space", default="bt709")
+    review_parser.add_argument("--color-range", default="tv")
+    review_audio = review_parser.add_mutually_exclusive_group(required=True)
+    review_audio.add_argument("--expect-audio", action="store_true")
+    review_audio.add_argument("--no-audio", action="store_false", dest="expect_audio")
+    review_parser.add_argument("--ffprobe", default="/usr/bin/ffprobe")
+    review_parser.add_argument("--ffmpeg", default="/usr/bin/ffmpeg")
+    review_parser.set_defaults(handler=_command_review_video)
 
     timed_parser = commands.add_parser("timed-text", help="export internal TimedText")
     timed_parser.add_argument("input")

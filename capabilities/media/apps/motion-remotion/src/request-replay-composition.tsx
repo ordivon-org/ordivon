@@ -76,7 +76,7 @@ export function RequestReplayComposition() {
         <div style={{position: 'absolute', right: 0, bottom: 30, width: 660, padding: 24, opacity: confirmation, background: 'color-mix(in srgb, var(--ordivon-color-success) 14%, var(--ordivon-color-ink-soft))', border: '1px solid var(--ordivon-color-success)'}}>
           <strong style={{fontSize: 30, color: 'var(--ordivon-color-success)'}}>same Job · same Attempt</strong>
           <p style={{margin: '10px 0 0', color: 'var(--ordivon-color-paper-soft)', fontSize: 20}}>
-            No silent redispatch. The recorded identity survives the client interaction.
+            Exact replay returns the recorded Job. It does not admit a second Job.
           </p>
         </div>
       </div>

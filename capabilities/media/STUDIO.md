@@ -149,4 +149,6 @@ No product repository imports Studio to execute its core behavior. Web may consu
 
 C3 adds one thin continuation layer: [`docs/production-cognition.md`](docs/production-cognition.md). A Production may reference a Markdown cognition record that recovers current `FRAME/BIND/EXPRESS/RENDER/AUDIT/DECIDE` judgment plus scoped post-decision `LEARNING` while leaving physical and factual authority in the existing manifest, Claim, Asset, Timeline, and evidence records.
 
+C4 adds a correspondingly thin execution-side creative loop: [`docs/fast-inner-loop.md`](docs/fast-inner-loop.md). Supported motion entrypoints satisfy deterministic local preconditions, produce a real render, and compile disposable technical/keyframe review evidence. They deliberately stop before semantic/aesthetic approval; the Agent remains responsible for `AUDIT` and `DECIDE`.
+
 The exact visual direction, narration voice, motion language, footage treatment, and platform cut strategy remain design questions for the next review. The technical substrate should constrain them only where information would otherwise be lost.

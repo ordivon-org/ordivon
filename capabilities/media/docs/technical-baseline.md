@@ -55,7 +55,7 @@ This baseline exists to prevent information loss and cross-medium drift. It is n
 
 - Identity and diagrams remain renderer-independent React/SVG.
 - Remotion is the first renderer adapter and is pinned exactly across all `remotion` packages.
-- Remotion render configuration fixes codec, CRF, pixel format, BT.709 signaling, and muted motion-only output.
+- Remotion render configuration fixes codec, CRF, pixel format, color intent, and muted motion-only output. The supported Studio render entrypoint then normalizes H.264 VUI primaries/transfer/matrix/range by stream copy before QC; renderer output alone is not trusted to preserve complete signalling on every run.
 - Programmatic renders are version-bound Assets and enter the NLE like other source media.
 - Renderer licensing and replacement remain visible; production meaning cannot depend on undocumented Remotion-only state.
 
