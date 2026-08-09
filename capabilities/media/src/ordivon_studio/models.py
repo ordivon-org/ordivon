@@ -20,6 +20,7 @@ DOCUMENT_SCHEMAS = {
     "assets.json": "asset.schema.json",
 }
 TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
+COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -127,6 +128,24 @@ def _validate_production_semantics(
     return errors
 
 
+def _validate_cognition_record(path: Path) -> list[str]:
+    if not path.is_file():
+        return [f"{path}: cognition record does not exist"]
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    positions: list[int] = []
+    for section in COGNITION_SECTIONS:
+        marker = f"## {section}"
+        position = text.find(marker)
+        if position < 0:
+            errors.append(f"{path}: missing cognition section {section}")
+        else:
+            positions.append(position)
+    if not errors and positions != sorted(positions):
+        errors.append(f"{path}: cognition sections are out of protocol order")
+    return errors
+
+
 def _validate_runtime_receipt(path: Path, receipt: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     execution = receipt.get("execution", {})
@@ -228,6 +247,9 @@ def validate_repository() -> list[str]:
 
         if isinstance(production, dict):
             sources = production.get("sources", {})
+            cognition_path = sources.get("cognition") if isinstance(sources, dict) else None
+            if isinstance(cognition_path, str):
+                errors.extend(_validate_cognition_record(production_directory / cognition_path))
             receipt_paths = sources.get("receipts", []) if isinstance(sources, dict) else []
             for relative_path in receipt_paths:
                 if not isinstance(relative_path, str):

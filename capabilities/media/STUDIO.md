@@ -147,4 +147,6 @@ No product repository imports Studio to execute its core behavior. Web may consu
 
 `productions/runtime-introduction` is the architectural acceptance case. It must prove that one source package can bind Runtime facts, preserve raw evidence, compose real capture and generated motion, keep audio and captions editable, and export multiple platform variants without duplicating the whole production.
 
+C3 adds one thin continuation layer: [`docs/production-cognition.md`](docs/production-cognition.md). A Production may reference a Markdown cognition record that recovers current `FRAME/BIND/EXPRESS/RENDER/AUDIT/DECIDE` judgment plus scoped post-decision `LEARNING` while leaving physical and factual authority in the existing manifest, Claim, Asset, Timeline, and evidence records.
+
 The exact visual direction, narration voice, motion language, footage treatment, and platform cut strategy remain design questions for the next review. The technical substrate should constrain them only where information would otherwise be lost.

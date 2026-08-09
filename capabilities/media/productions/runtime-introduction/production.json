@@ -42,7 +42,8 @@
       "../../apps/motion-remotion/src/request-replay-composition.tsx",
       "../../apps/motion-remotion/src/exact-close-composition.tsx"
     ],
-    "otioSnapshots": ["timeline/assembly.v0.otio"]
+    "otioSnapshots": ["timeline/assembly.v0.otio"],
+    "cognition": "cognition.md"
   },
   "outputs": [
     {"id": "runtime-article-en", "kind": "article", "status": "planned", "profile": "web-en"},

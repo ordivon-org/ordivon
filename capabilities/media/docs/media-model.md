@@ -91,6 +91,8 @@ It declares:
 
 The Production manifest does not track every creative thought or temporary generation.
 
+A Production may point to one lightweight `cognition` Markdown source when current creative judgment must be recoverable across Agent/session replacement. That record indexes the six-stage `FRAME → BIND → EXPRESS → RENDER → AUDIT → DECIDE` protocol plus scoped post-decision `LEARNING`; it does not duplicate Claims, Assets, Timeline state, or evidence. See [`production-cognition.md`](production-cognition.md).
+
 ## Output
 
 An Output is a deterministic or manually approved delivery object derived from a Production.

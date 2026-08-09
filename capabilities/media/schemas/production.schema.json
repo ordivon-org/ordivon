@@ -94,7 +94,8 @@
         "receipts": {"type": "array", "items": {"type": "string"}},
         "motion": {"type": "array", "items": {"type": "string"}},
         "resolveProjectAsset": {"type": "string"},
-        "otioSnapshots": {"type": "array", "items": {"type": "string"}}
+        "otioSnapshots": {"type": "array", "items": {"type": "string"}},
+        "cognition": {"type": "string"}
       }
     },
     "outputs": {
