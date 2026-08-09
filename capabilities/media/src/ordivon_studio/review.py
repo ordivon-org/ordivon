@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 from typing import Any, Iterable
 
 from .assets import hash_file, probe_media
+from .perception import build_video_perception_bundle
 from .qc import validate_video_probe
 
 
@@ -47,42 +47,12 @@ def _normalized_video_summary(probe: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _extract_frame(video_path: Path, frame: int, output_path: Path, ffmpeg: str) -> None:
-    if frame < 0:
-        raise ValueError("review frame must be non-negative")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
-            ffmpeg,
-            "-v",
-            "error",
-            "-y",
-            "-i",
-            str(video_path),
-            "-vf",
-            f"select=eq(n\\,{frame})",
-            "-fps_mode",
-            "passthrough",
-            "-frames:v",
-            "1",
-            str(output_path),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"ffmpeg failed to extract frame {frame}")
-    if not output_path.is_file() or output_path.stat().st_size == 0:
-        raise RuntimeError(f"ffmpeg produced no review frame for {frame}")
-
-
 def build_video_review_packet(
     *,
     production_root: Path,
     video_path: Path,
     source_paths: Iterable[Path],
-    frames: Iterable[int],
+    frames: Iterable[int] = (),
     output_directory: Path,
     codec: str = "h264",
     pixel_format: str = "yuv420p",
@@ -137,21 +107,14 @@ def build_video_review_packet(
         blob = hash_file(resolved)
         source_records.append({"path": _repository_relative(resolved, repo), "blob": blob.as_dict()})
 
-    frame_records: list[dict[str, Any]] = []
-    unique_frames = list(dict.fromkeys(int(frame) for frame in frames))
-    if not unique_frames:
-        raise ValueError("at least one review frame is required")
-    frames_directory = output_directory / "frames"
-    for frame in unique_frames:
-        output_path = frames_directory / f"frame-{frame:06d}.png"
-        _extract_frame(video_path, frame, output_path, ffmpeg)
-        frame_records.append(
-            {
-                "frame": frame,
-                "path": output_path.relative_to(output_directory).as_posix(),
-                "blob": hash_file(output_path).as_dict(),
-            }
-        )
+    perception = build_video_perception_bundle(
+        video_path=video_path,
+        probe=probe,
+        output_directory=output_directory,
+        requested_frames=list(dict.fromkeys(int(frame) for frame in frames)),
+        ffmpeg=ffmpeg,
+    )
+    frame_records = perception["selectedFrames"]
 
     sources = production.get("sources")
     cognition = sources.get("cognition") if isinstance(sources, dict) else None
@@ -203,10 +166,10 @@ def build_video_review_packet(
             "errors": [],
         },
         "sourceFiles": source_records,
-        "keyframes": frame_records,
+        "perception": perception,
         "semanticAudit": {
             "status": "pending-agent-inspection",
-            "note": "The packet proves artifact identity, technical QC and exact review frames. It does not infer aesthetic or semantic correctness from those facts.",
+            "note": "The packet proves artifact identity, technical QC and a bounded perception surface. It does not infer aesthetic or semantic correctness from those facts.",
         },
     }
     output_directory.mkdir(parents=True, exist_ok=True)

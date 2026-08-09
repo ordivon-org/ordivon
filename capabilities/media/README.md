@@ -35,6 +35,7 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 - [`docs/technical-baseline.md`](docs/technical-baseline.md) — time, color, audio, storage, editor, and rendering baseline;
 - [`docs/fast-inner-loop.md`](docs/fast-inner-loop.md) — local render/review iteration, hidden-precondition handling, and technical-versus-semantic audit boundary;
 - [`docs/review-consumption.md`](docs/review-consumption.md) — Agent review consumption, authority snapshots, transient critique, and bounded revision evidence;
+- [`docs/artifact-perception.md`](docs/artifact-perception.md) — temporal observation sampling, model-view preparation, and native image-transport boundary;
 - [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
 - [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real production vertical.
 

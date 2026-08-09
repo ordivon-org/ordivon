@@ -80,6 +80,9 @@ For expressive judgment, inspect motion over time. A valid frame, OTIO layout, d
 11. **C5 found a review-evidence/claim-strength mismatch.** The replay banner asserted `same Job · same Attempt`, while the selected Receipt contract independently encodes `sameJobAfterReplay=true` but not a separate `sameAttemptAfterReplay` invariant. The expression was narrowed to `same recorded Job`; the Attempt remains visible as a recorded identity rather than an independently asserted replay-equality result.
 12. **Review judgment now freezes its authority context.** A packet records exact digests for `production.json`, `cognition.md`, and `claims.json`, so a later Agent can distinguish the artifact it observed from the decision boundary it applied. Paths alone are insufficient for this purpose.
 13. **The C5 revision was physically bounded.** With identical review-frame selection, frame 0 retained the exact previous PNG digest while frames 75/130/165/179 changed after the identity/confirmation wording revision. The candidate render remains unpromoted; `assets.json` is intentionally unchanged.
+14. **C6 replaced the manually enumerated review list with progressive perception preparation.** The replay artifact now combines temporal coverage with de-duplicated five-frame pixel-change peaks and generates an ordered contact sheet plus exact full-resolution observation frames. The first automatic set was `0, 10, 35, 60, 70, 119, 130, 179`; both opening and final resolved states remained represented.
+15. **Hard-cut scene detection was falsified for this motion case.** FFmpeg scene scores remained near zero through gradual entrances/reconnect/confirmation, so scene-change detection is not the primary sampler for programmatic motion. Pixel-change peaks are used only as a where-to-look diagnostic.
+16. **Native model-view transport is still missing from the current WSL MCP surface.** Studio successfully generated PNG/JPEG model views, but exposing one to the current Agent required degrading it to Base64 text in a Job Artifact. This should become MIME-preserving Host/Runtime/MCP image transport, not a Studio Base64 convention. No pixel-level visual interpretation is claimed by this C6 run.
 
 ### Audit routing
 
@@ -118,6 +121,8 @@ Retain these findings at the narrowest current scope:
 - **Motion/technical-baseline observation:** renderer color intent is not sufficient evidence of complete encoded VUI metadata; supported output should be normalized/verified at the byte boundary before downstream editorial use;
 - **production-system C5 observation:** semantic review needs both render evidence and a digest-bound decision-context snapshot; otherwise the Agent can silently judge an old artifact against moving authority;
 - **production-system C5 observation:** critique should remain transient unless its consequence matters; source diff plus before/after artifact evidence is a better default durable trace than an approval transcript;
-- **no new Art & Expression Core prior promoted by C3/C4/C5.** These production-system findings do not constitute a universal aesthetic law.
+- **Motion/Profile C6 observation:** combine temporal coverage with bounded visual-change sampling; neither scene scores nor change magnitude should be promoted into semantic importance;
+- **production-system C6 observation:** Studio should compile model views, while MIME-preserving binary transport into a vision/audio-capable Agent belongs to the Agent transport boundary;
+- **no new Art & Expression Core prior promoted by C3/C4/C5/C6.** These production-system findings do not constitute a universal aesthetic law.
 
 If later unrelated productions repeatedly need the same record fields, promote only those repeated semantics into a stronger machine schema. Until then, this Markdown record plus the existing Production source pointer is sufficient.

@@ -111,7 +111,7 @@ def _command_review_video(args: argparse.Namespace) -> int:
         production_root=Path(args.production_root),
         video_path=Path(args.path),
         source_paths=[Path(value) for value in args.source],
-        frames=_parse_frames(args.frames),
+        frames=_parse_frames(args.frames) if args.frames else [],
         output_directory=Path(args.output_dir),
         codec=args.codec,
         pixel_format=args.pixel_format,
@@ -126,7 +126,8 @@ def _command_review_video(args: argparse.Namespace) -> int:
         "ok": True,
         "review": str(Path(args.output_dir) / "review.json"),
         "artifactDigest": packet["reviewedArtifact"]["blob"]["digest"],
-        "frames": [item["frame"] for item in packet["keyframes"]],
+        "frames": [item["frame"] for item in packet["perception"]["selectedFrames"]],
+        "modelViews": [item["path"] for item in packet["perception"]["modelViews"]],
         "semanticAudit": packet["semanticAudit"]["status"],
     })
     return 0
@@ -281,7 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     review_parser.add_argument("path")
     review_parser.add_argument("--production-root", required=True)
     review_parser.add_argument("--source", action="append", default=[], help="source file materially responsible for this render; repeat as needed")
-    review_parser.add_argument("--frames", required=True, help="comma-separated exact frame indices to extract")
+    review_parser.add_argument("--frames", help="optional comma-separated semantic anchor frames; automatic coverage/change sampling still runs")
     review_parser.add_argument("--output-dir", required=True)
     review_parser.add_argument("--codec", default="h264")
     review_parser.add_argument("--pixel-format", default="yuv420p")

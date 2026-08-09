@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_studio.assets import BlobInfo
 from ordivon_studio.review import build_video_review_packet
 
 
@@ -56,26 +55,33 @@ class ReviewPacketTests(unittest.TestCase):
             source.write_text("source", encoding="utf-8")
             output = root / "review"
 
-            def fake_extract(_video: Path, frame: int, output_path: Path, _ffmpeg: str) -> None:
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_bytes(f"frame-{frame}".encode())
-
+            perception = {
+                "strategy": "coverage-plus-temporal-change",
+                "selectedFrames": [
+                    {"frame": 0, "timeSeconds": 0.0, "selectionReasons": ["coverage"], "path": "frames/frame-000000.png", "blob": {"digest": "sha256:" + "1" * 64}},
+                    {"frame": 15, "timeSeconds": 0.5, "selectionReasons": ["requested"], "path": "frames/frame-000015.png", "blob": {"digest": "sha256:" + "2" * 64}},
+                    {"frame": 29, "timeSeconds": 0.966667, "selectionReasons": ["coverage"], "path": "frames/frame-000029.png", "blob": {"digest": "sha256:" + "3" * 64}},
+                ],
+                "modelViews": [{"kind": "temporal-contact-sheet", "path": "model-views/temporal-contact-sheet.png"}],
+            }
             with (
                 patch("ordivon_studio.review.probe_media", return_value=GOOD_PROBE),
-                patch("ordivon_studio.review._extract_frame", side_effect=fake_extract),
+                patch("ordivon_studio.review.build_video_perception_bundle", return_value=perception),
             ):
                 packet = build_video_review_packet(
                     production_root=production_root,
                     video_path=video,
                     source_paths=[source],
-                    frames=[0, 15, 15, 29],
+                    frames=[15],
                     output_directory=output,
                     repository_root=root,
                 )
 
             self.assertEqual(packet["productionId"], "demo")
             self.assertEqual(packet["disposition"], "disposable-review-evidence")
-            self.assertEqual([item["frame"] for item in packet["keyframes"]], [0, 15, 29])
+            self.assertEqual([item["frame"] for item in packet["perception"]["selectedFrames"]], [0, 15, 29])
+            self.assertEqual(packet["perception"]["modelViews"][0]["kind"], "temporal-contact-sheet")
+            self.assertNotIn(str(root), json.dumps(packet))
             self.assertEqual(packet["semanticAudit"]["status"], "pending-agent-inspection")
             self.assertTrue(packet["technicalQc"]["ok"])
             self.assertEqual(packet["sourceFiles"][0]["path"], "source.tsx")

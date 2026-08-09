@@ -26,7 +26,7 @@ This is what physically produced or describes the candidate artifact:
 
 - rendered video Blob identity;
 - technical media facts and QC;
-- exact review frames;
+- a perception bundle containing exact observation frames and model views;
 - materially responsible source files and their Blob identities.
 
 ### Decision context
@@ -44,6 +44,8 @@ The distinction matters:
 > Render evidence explains what artifact was observed. Decision context explains what judgment boundary was applied to it.
 
 Neither plane replaces the owning source. The packet is a snapshot for review, not a new authority.
+
+C6 refines render evidence further: frame selection is no longer a manually maintained list by default. Coverage and temporal-change sampling prepare a progressive visual observation surface, while semantic interpretation remains outside the mechanical packet builder.
 
 ## Critique is transient by default
 

@@ -153,4 +153,6 @@ C4 adds a correspondingly thin execution-side creative loop: [`docs/fast-inner-l
 
 C5 adds the consumption boundary: [`docs/review-consumption.md`](docs/review-consumption.md). Review packets freeze the relevant Production/Cognition/Claim decision context alongside render evidence, while Agent critique remains transient by default. A bounded revision is evidenced by the source diff and new artifact rather than by storing an approval transcript.
 
+C6 adds the perception-preparation boundary: [`docs/artifact-perception.md`](docs/artifact-perception.md). Video review now combines temporal coverage with pixel-change peaks, materializes exact full-resolution observation frames and an ordered contact sheet, and leaves visual interpretation to a vision-capable Agent. Native image/audio transport into that Agent remains a Host/Runtime/MCP responsibility rather than a Studio aesthetic subsystem.
+
 The exact visual direction, narration voice, motion language, footage treatment, and platform cut strategy remain design questions for the next review. The technical substrate should constrain them only where information would otherwise be lost.

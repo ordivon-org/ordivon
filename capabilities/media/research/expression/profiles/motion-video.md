@@ -90,6 +90,8 @@ Use actual frames or playback for expressive judgment. Source JSX, timeline meta
 
 For time-based claims, inspect more than a single attractive frame. A frame can verify composition; it cannot prove pacing, reveal, continuity or audio/image relation.
 
+A useful Agent observation path can be progressive: coarse temporal contact sheet → exact full-resolution frames → continuous playback when the unresolved claim is temporal. Change metrics may help choose where to look, but must not be treated as event importance or semantic meaning.
+
 ## Protocol specialization
 
 ```text

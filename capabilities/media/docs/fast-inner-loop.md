@@ -13,7 +13,7 @@ supported render entrypoint
         ↓
 real video artifact
         ↓
-technical QC + exact keyframes + source digests
+technical QC + perception bundle + source digests
         ↓
 Agent semantic / expressive inspection
         ↓
@@ -46,7 +46,8 @@ The principle is broader than Remotion:
 - normalized ffprobe facts;
 - structural video QC result;
 - materially responsible source-file Blob identities;
-- exact requested keyframe indices, PNG paths and Blob identities;
+- automatically selected observation-frame indices, selection reasons, PNG paths and Blob identities;
+- one ordered temporal contact sheet for coarse vision-model inspection;
 - Production/Cognition/Claim decision-context paths plus Blob identities;
 - semantic-audit status.
 
@@ -60,7 +61,7 @@ The packet deliberately ends at:
 semanticAudit.status = pending-agent-inspection
 ```
 
-Technical QC can prove dimensions, frame rate, codec, pixel format, color signalling, audio-stream expectations and exact artifact identity. Exact keyframes can prove which pixels were selected for review. Neither proves that the sequence is clear, truthful, beautiful, persuasive, suspenseful, trustworthy, or otherwise aesthetically correct.
+Technical QC can prove dimensions, frame rate, codec, pixel format, color signalling, audio-stream expectations and exact artifact identity. Perception sampling can prove which pixels and temporal moments were prepared for review. Neither proves that the sequence is clear, truthful, beautiful, persuasive, suspenseful, trustworthy, or otherwise aesthetically correct.
 
 An Agent must still inspect the artifact against the Production cognition and relevant medium profiles. Human/expert calibration remains conditional on a residual human-response claim, exactly as in the shared Expression Protocol.
 
