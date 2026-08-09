@@ -291,5 +291,48 @@
     "aesthetic-judgment",
     "behavior-memory-action"
   ],
-  "sourceLedger": "research/expression/sources.json"
+  "sourceLedger": "research/expression/sources.json",
+  "creativeSystem": {
+    "authority": "research/expression/creative-system.md",
+    "thesis": "Build one Agent-first cross-medium work cognition system; keep medium, distribution, audience, encounter, and equipment knowledge as faster-moving profiles above a slower shared core.",
+    "coreLoop": [
+      "frame",
+      "bind",
+      "express",
+      "render",
+      "audit",
+      "decide"
+    ],
+    "knowledgeInputs": [
+      "external-research",
+      "durable-craft",
+      "culture-history-current-environment",
+      "local-production-evidence"
+    ],
+    "slowCoreResponsibilities": [
+      "experiential-target",
+      "truth-and-focalization-binding",
+      "medium-native-expression",
+      "real-artifact-observation",
+      "rendered-semantic-audit",
+      "scoped-decision-and-learning"
+    ],
+    "variableProfiles": [
+      "medium",
+      "distribution-surface",
+      "audience-observer-class",
+      "encounter-mode",
+      "production-equipment"
+    ],
+    "twoSpeedLearning": {
+      "innerLoop": "Agent-speed generation, rendering, comparison, semantic audit and revision.",
+      "outerLoop": "Human response, culture, distribution and world consequence provide slower external evidence.",
+      "boundary": "Do not treat fast internal convergence as proof of human experience or universal artistic value."
+    },
+    "learningPromotion": [
+      "artifact-local",
+      "medium-profile-candidate",
+      "cross-medium-core-candidate"
+    ]
+  }
 }

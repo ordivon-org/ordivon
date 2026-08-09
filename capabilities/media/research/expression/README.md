@@ -10,6 +10,12 @@ The laboratory studies a narrower question than philosophy of art and a broader 
 
 This is cross-medium research. Web, video, still graphics, motion, writing, audio, and interactive work may reuse its priors, but each medium retains its own task constraints and implementation authority.
 
+## Core cognition
+
+[`creative-system.md`](./creative-system.md) records the architectural conclusion established by the first cross-medium trials: Studio is building an **Agent-first cross-medium work cognition system**, not a style catalog. The relatively stable core reasons about intended experience, source/focalization boundaries, medium-native expression, real rendered artifacts, implicit semantics, scoped decisions, and learning. Medium, distribution, audience, encounter and production-tool profiles remain faster-moving layers above that core.
+
+A central operational consequence is a two-speed learning model: machine-speed Agent production/render/audit loops inside a slower human/culture/world consequence loop. Fast iteration is an advantage only if internal convergence is not mistaken for human truth.
+
 ## Why Studio owns this research
 
 Studio already owns Ordivon's cross-medium identity and the reusable editorial, visual, motion, audio, caption, and interactive production language. Aesthetic and narrative knowledge therefore has a real shared consumer here.

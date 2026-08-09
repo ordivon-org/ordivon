@@ -28,6 +28,13 @@ class ExpressionContextTests(unittest.TestCase):
             self.assertTrue(profile["constraints"])
         self.assertIn("local_experiment", data["evidenceClasses"])
         self.assertIn("calibrate-only-where-uncertain", data["agentLoop"])
+        creative = data["creativeSystem"]
+        self.assertEqual(creative["authority"], "research/expression/creative-system.md")
+        self.assertEqual(creative["coreLoop"], ["frame", "bind", "express", "render", "audit", "decide"])
+        self.assertIn("medium", creative["variableProfiles"])
+        self.assertIn("encounter-mode", creative["variableProfiles"])
+        self.assertEqual(creative["learningPromotion"][0], "artifact-local")
+        self.assertIn("human experience", creative["twoSpeedLearning"]["boundary"])
 
     def test_aesthetic_dimensions_and_sources_are_consistent(self) -> None:
         data = json.loads(CONTEXT.read_text(encoding="utf-8"))
