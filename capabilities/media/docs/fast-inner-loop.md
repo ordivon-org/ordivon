@@ -47,6 +47,7 @@ The principle is broader than Remotion:
 - structural video QC result;
 - materially responsible source-file Blob identities;
 - exact requested keyframe indices, PNG paths and Blob identities;
+- Production/Cognition/Claim decision-context paths plus Blob identities;
 - semantic-audit status.
 
 Review output belongs under ignored working directories such as `out/reviews/`. It is not automatically registered as an Asset, Production Output, Claim, Receipt, or durable research result.

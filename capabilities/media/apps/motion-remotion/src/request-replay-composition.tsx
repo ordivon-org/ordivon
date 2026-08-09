@@ -56,7 +56,7 @@ export function RequestReplayComposition() {
         >
           <strong style={{display: 'block', fontSize: 34, fontWeight: 560}}>Job {compactProofValue(receipt.execution.jobId, 22, 10)}</strong>
           <code style={{display: 'block', marginTop: 16, fontFamily: 'var(--ordivon-font-mono)', fontSize: 20, color: 'var(--ordivon-color-muted)'}}>
-            Attempt {compactProofValue(receipt.execution.attemptId, 22, 10)}
+            Recorded Attempt {compactProofValue(receipt.execution.attemptId, 22, 10)}
           </code>
         </ProofCard>
 
@@ -74,9 +74,9 @@ export function RequestReplayComposition() {
         <div style={{position: 'absolute', left: 560, bottom: 131, width: 420, height: 2, background: 'var(--ordivon-color-accent)', transformOrigin: 'left', transform: `scaleX(${reconnect}) rotate(-13deg)`}} />
 
         <div style={{position: 'absolute', right: 0, bottom: 30, width: 660, padding: 24, opacity: confirmation, background: 'color-mix(in srgb, var(--ordivon-color-success) 14%, var(--ordivon-color-ink-soft))', border: '1px solid var(--ordivon-color-success)'}}>
-          <strong style={{fontSize: 30, color: 'var(--ordivon-color-success)'}}>same Job · same Attempt</strong>
+          <strong style={{fontSize: 30, color: 'var(--ordivon-color-success)'}}>same recorded Job</strong>
           <p style={{margin: '10px 0 0', color: 'var(--ordivon-color-paper-soft)', fontSize: 20}}>
-            Exact replay returns the recorded Job. It does not admit a second Job.
+            Exact replay returns this recorded Job. It does not admit a second Job.
           </p>
         </div>
       </div>

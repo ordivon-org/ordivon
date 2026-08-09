@@ -77,6 +77,9 @@ For expressive judgment, inspect motion over time. A valid frame, OTIO layout, d
 8. **The second attempt exposed a generated-source prerequisite.** A fresh Workspace could not resolve `@ordivon/identity/tokens.css`; supported motion entrypoints now build tokens before render instead of relying on Agent memory.
 9. **The third attempt completed a real local render/review pass.** The 180-frame replay composition rendered, passed the then-observed structural video QC, and produced exact keyframe/source evidence in a disposable review packet. The packet intentionally leaves semantic audit pending rather than promoting technical correctness into expressive correctness.
 10. **A repeated pass exposed H.264 signalling drift.** Raw Remotion output retained BT.709 matrix/range but could omit transfer/primaries. The supported render entrypoint now normalizes H.264 VUI by stream copy before QC. Two consecutive complete loops then produced identical final MP4/keyframe digests and passed complete BT.709 checks.
+11. **C5 found a review-evidence/claim-strength mismatch.** The replay banner asserted `same Job · same Attempt`, while the selected Receipt contract independently encodes `sameJobAfterReplay=true` but not a separate `sameAttemptAfterReplay` invariant. The expression was narrowed to `same recorded Job`; the Attempt remains visible as a recorded identity rather than an independently asserted replay-equality result.
+12. **Review judgment now freezes its authority context.** A packet records exact digests for `production.json`, `cognition.md`, and `claims.json`, so a later Agent can distinguish the artifact it observed from the decision boundary it applied. Paths alone are insufficient for this purpose.
+13. **The C5 revision was physically bounded.** With identical review-frame selection, frame 0 retained the exact previous PNG digest while frames 75/130/165/179 changed after the identity/confirmation wording revision. The candidate render remains unpromoted; `assets.json` is intentionally unchanged.
 
 ### Audit routing
 
@@ -113,6 +116,8 @@ Retain these findings at the narrowest current scope:
 - **production-local C4 observation:** deterministic render prerequisites should be self-satisfied or fail fast; hidden setup and network acquisition directly reduce Agent inner-loop frequency;
 - **production-local C4 observation:** a disposable review packet can combine artifact identity, technical QC, source digests, and exact review frames without becoming a second Production authority;
 - **Motion/technical-baseline observation:** renderer color intent is not sufficient evidence of complete encoded VUI metadata; supported output should be normalized/verified at the byte boundary before downstream editorial use;
-- **no new Art & Expression Core prior promoted by C3/C4.** These production-system findings do not constitute a universal aesthetic law.
+- **production-system C5 observation:** semantic review needs both render evidence and a digest-bound decision-context snapshot; otherwise the Agent can silently judge an old artifact against moving authority;
+- **production-system C5 observation:** critique should remain transient unless its consequence matters; source diff plus before/after artifact evidence is a better default durable trace than an approval transcript;
+- **no new Art & Expression Core prior promoted by C3/C4/C5.** These production-system findings do not constitute a universal aesthetic law.
 
 If later unrelated productions repeatedly need the same record fields, promote only those repeated semantics into a stronger machine schema. Until then, this Markdown record plus the existing Production source pointer is sufficient.

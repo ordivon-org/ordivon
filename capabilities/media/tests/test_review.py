@@ -44,11 +44,12 @@ class ReviewPacketTests(unittest.TestCase):
                             "frameRate": {"numerator": 30, "denominator": 1},
                             "canvas": {"width": 1920, "height": 1080},
                         },
-                        "sources": {"cognition": "cognition.md"},
+                        "sources": {"cognition": "cognition.md", "claims": "claims.json"},
                     }
                 ),
                 encoding="utf-8",
             )
+            (production_root / "claims.json").write_text('{"claims": []}', encoding="utf-8")
             video = root / "out.mp4"
             video.write_bytes(b"video")
             source = root / "source.tsx"
@@ -78,6 +79,8 @@ class ReviewPacketTests(unittest.TestCase):
             self.assertEqual(packet["semanticAudit"]["status"], "pending-agent-inspection")
             self.assertTrue(packet["technicalQc"]["ok"])
             self.assertEqual(packet["sourceFiles"][0]["path"], "source.tsx")
+            self.assertEqual([item["role"] for item in packet["decisionContext"]], ["production", "cognition", "claims"])
+            self.assertTrue(all(item["blob"]["digest"].startswith("sha256:") for item in packet["decisionContext"]))
             self.assertTrue((output / "review.json").is_file())
 
     def test_review_packet_rejects_technical_failure_before_keyframe_evidence(self) -> None:

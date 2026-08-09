@@ -155,6 +155,26 @@ def build_video_review_packet(
 
     sources = production.get("sources")
     cognition = sources.get("cognition") if isinstance(sources, dict) else None
+    claims = sources.get("claims") if isinstance(sources, dict) else None
+
+    decision_context: list[dict[str, Any]] = [
+        {
+            "role": "production",
+            "path": _repository_relative(production_path, repo),
+            "blob": hash_file(production_path).as_dict(),
+        }
+    ]
+    for role, relative in (("cognition", cognition), ("claims", claims)):
+        if isinstance(relative, str):
+            context_path = (production_root / relative).resolve()
+            decision_context.append(
+                {
+                    "role": role,
+                    "path": _repository_relative(context_path, repo),
+                    "blob": hash_file(context_path).as_dict(),
+                }
+            )
+
     packet = {
         "schemaVersion": 1,
         "kind": "ordivon-studio-video-review-packet",
@@ -162,6 +182,7 @@ def build_video_review_packet(
         "productionId": production_id,
         "productionSource": _repository_relative(production_path, repo),
         "cognitionSource": _repository_relative(production_root / cognition, repo) if isinstance(cognition, str) else None,
+        "decisionContext": decision_context,
         "reviewedArtifact": {
             "path": _repository_relative(video_path, repo),
             "blob": video_blob.as_dict(),
