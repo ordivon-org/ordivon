@@ -5,6 +5,11 @@ import { DatabaseSync } from "node:sqlite";
 import { CURRENT_BUILD } from "../build.ts";
 import { canonicalJson, sha256 } from "../digest.ts";
 import { HostStore } from "../host-contract/journal.ts";
+import {
+  canonicalizeStationZeroV3AgentActionBinding,
+  stationZeroV3AgentActionBindingDigest,
+  type StationZeroV3AgentActionBinding,
+} from "./agent-action-admission.ts";
 import { assertStationZeroTurnBatch, assertStationZeroFactionTurnPlan } from "./contracts.ts";
 import { createStationZeroV3Genesis, assertStationZeroV3World } from "./genesis.ts";
 import type {
@@ -106,6 +111,30 @@ interface PlanRow {
   plan_json: string;
   plan_digest: string;
   submitted_at: string;
+}
+
+interface AgentActionAdmissionHeadRow {
+  run_id: string;
+  planning_id: string;
+  world_revision: number;
+  world_digest: string;
+  enabled_at: string;
+}
+
+interface AgentActionAdmissionRow {
+  run_id: string;
+  planning_id: string;
+  actor_id: string;
+  faction_id: string;
+  subject_ref: string;
+  cognition_ref: string;
+  source_authority_id: string;
+  source_evidence_digest: string;
+  binding_digest: string;
+  binding_json: string;
+  plan_digest: string;
+  admission_digest: string;
+  created_at: string;
 }
 
 interface BatchRow {
@@ -368,6 +397,34 @@ export class StationZeroV3Store {
         submitted_at TEXT NOT NULL,
         PRIMARY KEY (run_id, planning_id, faction_id),
         FOREIGN KEY (run_id, planning_id) REFERENCES station_zero_v3_planning_heads(run_id, planning_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS station_zero_v3_agent_action_admission_heads (
+        run_id TEXT NOT NULL,
+        planning_id TEXT NOT NULL,
+        world_revision INTEGER NOT NULL,
+        world_digest TEXT NOT NULL,
+        enabled_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, planning_id),
+        FOREIGN KEY (run_id, planning_id) REFERENCES station_zero_v3_planning_heads(run_id, planning_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS station_zero_v3_agent_action_admissions (
+        run_id TEXT NOT NULL,
+        planning_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        faction_id TEXT NOT NULL,
+        subject_ref TEXT NOT NULL,
+        cognition_ref TEXT NOT NULL,
+        source_authority_id TEXT NOT NULL,
+        source_evidence_digest TEXT NOT NULL,
+        binding_digest TEXT NOT NULL,
+        binding_json TEXT NOT NULL,
+        plan_digest TEXT NOT NULL,
+        admission_digest TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, planning_id, actor_id),
+        FOREIGN KEY (run_id, planning_id) REFERENCES station_zero_v3_agent_action_admission_heads(run_id, planning_id)
       );
 
       CREATE TABLE IF NOT EXISTS station_zero_v3_turn_batches (
@@ -849,6 +906,221 @@ export class StationZeroV3Store {
     }
   }
 
+  enableAgentActionAdmission(runId: string, planningId: string): { worldRevision: number; worldDigest: string } {
+    const planning = this.getPlanning(runId, planningId);
+    if (planning.status !== "open") throw new TypeError("Agent Action admission can be enabled only for open Planning");
+    const existing = this.db.prepare(`SELECT * FROM station_zero_v3_agent_action_admission_heads
+      WHERE run_id = ? AND planning_id = ?`).get(runId, planningId) as AgentActionAdmissionHeadRow | undefined;
+    if (existing) {
+      if (Number(existing.world_revision) !== planning.worldRevision || existing.world_digest !== planning.worldDigest) {
+        throw new StationZeroV3StorageError("station_zero_v3_corrupt", "Agent Action admission head differs from Planning");
+      }
+      return { worldRevision: planning.worldRevision, worldDigest: planning.worldDigest };
+    }
+    this.db.prepare(`INSERT INTO station_zero_v3_agent_action_admission_heads
+      (run_id, planning_id, world_revision, world_digest, enabled_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(runId, planningId, planning.worldRevision, planning.worldDigest, new Date().toISOString());
+    return { worldRevision: planning.worldRevision, worldDigest: planning.worldDigest };
+  }
+
+  admitAgentActionBinding(input: {
+    runId: string;
+    planningId: string;
+    actorId: string;
+    binding: StationZeroV3AgentActionBinding;
+    bindingDigest: string;
+  }): {
+    admissionDigest: string;
+    bindingDigest: string;
+    planDigest: string;
+    subjectRef: string;
+    cognitionRef: string;
+    sourceEvidenceDigest: string;
+  } {
+    const { runId, planningId, actorId } = input;
+    const planning = this.getPlanning(runId, planningId);
+    if (planning.status !== "open") throw new TypeError("Agent Action admission requires open Planning");
+    const head = this.db.prepare(`SELECT * FROM station_zero_v3_agent_action_admission_heads
+      WHERE run_id = ? AND planning_id = ?`).get(runId, planningId) as AgentActionAdmissionHeadRow | undefined;
+    if (!head || Number(head.world_revision) !== planning.worldRevision || head.world_digest !== planning.worldDigest) {
+      throw new StationZeroV3StorageError("station_zero_v3_constraint", "Agent Action admission is not enabled for this exact Planning");
+    }
+    const state = this.stateAtRevision(runId, planning.worldRevision);
+    const actor = state.actors[actorId];
+    if (!actor || actor.lifeState !== "active" || actor.controllerKind !== "agent" || actor.factionId === null) {
+      throw new StationZeroV3StorageError("station_zero_v3_constraint", "Agent Action Binding can target only one active Agent-controlled Actor");
+    }
+    const plans = this.submittedPlans(runId, planningId);
+    const record = plans[actor.factionId];
+    const actorIntent = record?.plan.actorIntents.find((intent) => intent.actorId === actorId);
+    if (!record || !actorIntent) {
+      throw new StationZeroV3StorageError("station_zero_v3_constraint", "Agent Action admission requires an exact submitted Actor Intent");
+    }
+
+    let binding: StationZeroV3AgentActionBinding;
+    try {
+      binding = canonicalizeStationZeroV3AgentActionBinding(input.binding);
+    } catch (error) {
+      throw new StationZeroV3StorageError("station_zero_v3_constraint", "Agent Action Binding is invalid", { cause: error });
+    }
+    const bindingDigest = stationZeroV3AgentActionBindingDigest(binding);
+    if (
+      input.bindingDigest !== bindingDigest ||
+      binding.runId !== runId || binding.planningId !== planningId ||
+      binding.worldRevision !== planning.worldRevision || binding.worldDigest !== planning.worldDigest ||
+      binding.actorId !== actorId || binding.intentDigest !== `sha256:${sha256(actorIntent)}`
+    ) {
+      throw new StationZeroV3StorageError(
+        "station_zero_v3_constraint",
+        "Agent Action Binding does not authorize this exact Actor Intent",
+      );
+    }
+    const bindingJson = canonicalJson(binding);
+    const value = {
+      schemaVersion: 1,
+      kind: "ordivon.game.station-zero-v3-agent-action-admission",
+      runId,
+      planningId,
+      worldRevision: planning.worldRevision,
+      worldDigest: planning.worldDigest,
+      actorId,
+      factionId: actor.factionId,
+      subjectRef: binding.subjectRef,
+      cognitionRef: binding.cognitionRef,
+      sourceAuthorityId: binding.sourceAuthorityId,
+      sourceEvidenceDigest: binding.sourceEvidenceDigest,
+      bindingDigest,
+      planDigest: record.planDigest,
+    };
+    const admissionDigest = sha256(value);
+    const existing = this.db.prepare(`SELECT * FROM station_zero_v3_agent_action_admissions
+      WHERE run_id = ? AND planning_id = ? AND actor_id = ?`).get(runId, planningId, actorId) as AgentActionAdmissionRow | undefined;
+    if (existing) {
+      if (
+        existing.faction_id !== actor.factionId || existing.subject_ref !== binding.subjectRef ||
+        existing.cognition_ref !== binding.cognitionRef ||
+        existing.source_authority_id !== binding.sourceAuthorityId ||
+        existing.source_evidence_digest !== binding.sourceEvidenceDigest ||
+        existing.binding_digest !== bindingDigest || existing.binding_json !== bindingJson ||
+        existing.plan_digest !== record.planDigest || existing.admission_digest !== admissionDigest
+      ) {
+        throw new StationZeroV3StorageError(
+          "station_zero_v3_constraint",
+          "Agent-controlled Actor is already admitted under another Subject, Cognition, evidence, or Plan",
+        );
+      }
+      return {
+        admissionDigest,
+        bindingDigest,
+        planDigest: record.planDigest,
+        subjectRef: binding.subjectRef,
+        cognitionRef: binding.cognitionRef,
+        sourceEvidenceDigest: binding.sourceEvidenceDigest,
+      };
+    }
+    this.db.prepare(`INSERT INTO station_zero_v3_agent_action_admissions
+      (run_id, planning_id, actor_id, faction_id, subject_ref, cognition_ref, source_authority_id,
+       source_evidence_digest, binding_digest, binding_json, plan_digest, admission_digest, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(
+        runId, planningId, actorId, actor.factionId, binding.subjectRef, binding.cognitionRef,
+        binding.sourceAuthorityId, binding.sourceEvidenceDigest, bindingDigest, bindingJson,
+        record.planDigest, admissionDigest, new Date().toISOString(),
+      );
+    return {
+      admissionDigest,
+      bindingDigest,
+      planDigest: record.planDigest,
+      subjectRef: binding.subjectRef,
+      cognitionRef: binding.cognitionRef,
+      sourceEvidenceDigest: binding.sourceEvidenceDigest,
+    };
+  }
+
+  private requireAgentActionAdmissions(
+    planning: StationZeroV3PlanningHead,
+    plans: Partial<Record<StationZeroFactionId, { plan: StationZeroFactionTurnPlan; planDigest: string }>>,
+  ): void {
+    const head = this.db.prepare(`SELECT * FROM station_zero_v3_agent_action_admission_heads
+      WHERE run_id = ? AND planning_id = ?`).get(planning.runId, planning.planningId) as AgentActionAdmissionHeadRow | undefined;
+    if (!head) return;
+    if (Number(head.world_revision) !== planning.worldRevision || head.world_digest !== planning.worldDigest) {
+      throw new StationZeroV3StorageError("station_zero_v3_corrupt", "Agent Action admission head drifted from Planning");
+    }
+    const state = this.stateAtRevision(planning.runId, planning.worldRevision);
+    for (const factionId of STATION_ZERO_FACTION_IDS) {
+      const record = plans[factionId];
+      if (!record) continue;
+      for (const intent of record.plan.actorIntents) {
+        const actor = state.actors[intent.actorId];
+        if (!actor || actor.controllerKind !== "agent") continue;
+        const admission = this.db.prepare(`SELECT * FROM station_zero_v3_agent_action_admissions
+          WHERE run_id = ? AND planning_id = ? AND actor_id = ?`).get(
+            planning.runId, planning.planningId, intent.actorId,
+          ) as AgentActionAdmissionRow | undefined;
+        if (!admission) {
+          throw new StationZeroV3StorageError(
+            "station_zero_v3_constraint",
+            `Agent-controlled Actor lacks exact Agent Action admission: ${intent.actorId}`,
+          );
+        }
+        let binding: StationZeroV3AgentActionBinding;
+        try {
+          binding = canonicalizeStationZeroV3AgentActionBinding(
+            parseJson<unknown>(admission.binding_json, `Agent Action Binding for ${intent.actorId}`),
+          );
+        } catch (error) {
+          throw new StationZeroV3StorageError(
+            "station_zero_v3_corrupt",
+            `Agent Action Binding is unreadable for Actor ${intent.actorId}`,
+            { cause: error },
+          );
+        }
+        const bindingJson = canonicalJson(binding);
+        const bindingDigest = stationZeroV3AgentActionBindingDigest(binding);
+        if (
+          bindingJson !== admission.binding_json || bindingDigest !== admission.binding_digest ||
+          binding.subjectRef !== admission.subject_ref || binding.cognitionRef !== admission.cognition_ref ||
+          binding.sourceAuthorityId !== admission.source_authority_id ||
+          binding.sourceEvidenceDigest !== admission.source_evidence_digest ||
+          binding.runId !== planning.runId || binding.planningId !== planning.planningId ||
+          binding.worldRevision !== planning.worldRevision || binding.worldDigest !== planning.worldDigest ||
+          binding.actorId !== intent.actorId || binding.intentDigest !== `sha256:${sha256(intent)}`
+        ) {
+          throw new StationZeroV3StorageError(
+            "station_zero_v3_corrupt",
+            `Agent Action Binding drifted for Actor ${intent.actorId}`,
+          );
+        }
+        const expected = {
+          schemaVersion: 1,
+          kind: "ordivon.game.station-zero-v3-agent-action-admission",
+          runId: planning.runId,
+          planningId: planning.planningId,
+          worldRevision: planning.worldRevision,
+          worldDigest: planning.worldDigest,
+          actorId: intent.actorId,
+          factionId,
+          subjectRef: binding.subjectRef,
+          cognitionRef: binding.cognitionRef,
+          sourceAuthorityId: binding.sourceAuthorityId,
+          sourceEvidenceDigest: binding.sourceEvidenceDigest,
+          bindingDigest,
+          planDigest: record.planDigest,
+        };
+        if (
+          admission.faction_id !== factionId || admission.plan_digest !== record.planDigest ||
+          admission.admission_digest !== sha256(expected)
+        ) {
+          throw new StationZeroV3StorageError(
+            "station_zero_v3_corrupt",
+            `Agent Action admission drifted for Actor ${intent.actorId}`,
+          );
+        }
+      }
+    }
+  }
+
   commitPlanning(runId: string, planningId: string): StationZeroV3PreparedTurn {
     try {
       const planning = this.getPlanning(runId, planningId);
@@ -871,6 +1143,7 @@ export class StationZeroV3Store {
       const plans = this.submittedPlans(runId, planningId);
       const missing = STATION_ZERO_FACTION_IDS.filter((factionId) => !plans[factionId]);
       if (missing.length > 0) throw new TypeError(`Planning requires one Plan from every Faction; missing: ${missing.join(", ")}`);
+      this.requireAgentActionAdmissions(planning, plans);
       const identity = identityFor(runId, planning.worldRevision);
       const batch = canonicalizeStationZeroV3TurnBatch({
         turnBatchId: identity.turnBatchId,
@@ -961,6 +1234,11 @@ export class StationZeroV3Store {
     ) {
       throw new StationZeroV3StorageError("station_zero_v3_corrupt", `Committed Turn Batch differs from Planning Head: ${planning.planningId}`);
     }
+    const admissionPlans: Partial<Record<StationZeroFactionId, { plan: StationZeroFactionTurnPlan; planDigest: string }>> = {};
+    for (const plan of canonical.factionPlans) {
+      admissionPlans[plan.factionId] = { plan, planDigest: planDigest(plan) };
+    }
+    this.requireAgentActionAdmissions(planning, admissionPlans);
     return {
       planning,
       batch: canonical,

@@ -119,6 +119,7 @@ Target form: three-faction deterministic turn-based tactical encounter
 P1: reducer and pure replay complete
 P2: durable Turn authority and recovery complete
 P3: isolated playable planning layer and /v3 browser complete
+Optional exact Agent Action admission: implemented in the unregistered v3 path
 ```
 
 The v3 preview is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. Replacement is deferred until repeated human playtesting and live-Provider evaluation justify deleting the v2 approval loop.

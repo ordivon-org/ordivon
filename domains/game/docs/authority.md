@@ -45,6 +45,8 @@ The accepted unregistered v3 target is jointly defined by [`STATION_ZERO_V3_P0.m
 
 `src/registry.ts`, source code, SQLite schema, deterministic tests, generated or retained receipts, replay verification, product acceptance scripts, and the running service remain stronger owners for exact executable registration, fields, transitions, and observed behavior. `AGENTS.md` governs repository work rather than product truth.
 
+For the unregistered v3 target, Agent cognition evidence and Game action authority remain separate. When exact Agent Action admission is enabled for one Planning Head, Game owns the normalized binding from Subject + Cognition + source-evidence identity to the exact Game Run, Planning, World revision/digest, Actor, and Intent digest. The upstream `sourceEvidenceDigest` is opaque provenance: Game does not parse Harness/World-private evidence schemas, and possession of that evidence alone does not authorize an Actor Intent. Game also does not acquire a global Embodiment, Presence, Subject, or Cognition registry.
+
 ## Consequences
 
 The current executable and v3 target can evolve without pretending they are already the same system. P0/P1/P2/P3 phase-coded paths remain temporarily canonical because they contain accepted target contracts; later human-centered stable documents should supersede them explicitly after registration or redesign. Older milestones and evidence will be handled only after the higher-priority authority and implementation work is complete.
