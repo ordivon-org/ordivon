@@ -186,7 +186,7 @@
     ],
     "protocolAuthority": "research/expression/protocol.md",
     "knowledgeModel": "research/expression/knowledge-model.md",
-    "profileIndex": "research/expression/profiles/README.md",
+    "profileIndex": "research/expression/profiles/index.json",
     "researchBranch": "Research is conditional: use it only when durable uncertainty survives normal production."
   },
   "knowledgeLayers": {
@@ -196,5 +196,5 @@
     "context_signal": "culture/platform/audience/time-sensitive signal; retrieve near use",
     "local_observation": "bounded Ordivon evidence; retain exact scope and provenance"
   },
-  "profileRegistry": "research/expression/profiles/medium-baseline.json"
+  "profileRegistry": "research/expression/profiles/index.json"
 }

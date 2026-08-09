@@ -113,6 +113,8 @@ Creative infrastructure is incomplete if it preserves media perfectly but has no
 
 Medium-specific systems remain free to specialize these priors. Web, for example, can bias toward fluency, trust, hierarchy, and accessibility while a film can spend substantially more uncertainty on tension, surprise, and temporal expression.
 
+C2 makes that specialization explicit in [`research/expression/profiles/`](research/expression/profiles/). Motion/Video and Writing now have operational medium profiles; Web remains owned by its own repository and binds Studio as an upstream consumer. Still, Audio, and Interactive remain provisional until real production earns promotion.
+
 ## System shape
 
 ```text

@@ -3,57 +3,8 @@
   "id": "studio.expression-medium-baseline",
   "status": "provisional",
   "authority": "research/expression/profiles/README.md",
-  "note": "Extracted from the original core context during C0/C1. These are starting hypotheses for medium-specific work, not cross-medium core law.",
+  "note": "Remaining provisional profiles after C2 graduated Web ownership, Motion/Video, and Writing into explicit authorities. These are hypotheses, not cross-medium core law.",
   "profiles": {
-    "web": {
-      "primaryOutcomes": [
-        "clarity",
-        "trust",
-        "identity",
-        "appeal"
-      ],
-      "secondaryOutcomes": [
-        "beauty",
-        "interest",
-        "memorability"
-      ],
-      "constraints": [
-        "information hierarchy",
-        "task comprehension",
-        "navigation",
-        "accessibility",
-        "responsive behavior"
-      ],
-      "defaultTensionBias": {
-        "unity-variety": "unity-first",
-        "fluency-challenge": "fluency-first",
-        "familiarity-novelty": "familiar-entry",
-        "restraint-expression": "restrained-base-expressive-peaks"
-      }
-    },
-    "film-video": {
-      "primaryOutcomes": [
-        "transportation",
-        "interest",
-        "presence",
-        "memorability"
-      ],
-      "secondaryOutcomes": [
-        "beauty",
-        "clarity"
-      ],
-      "constraints": [
-        "event comprehension",
-        "temporal continuity",
-        "audio-visual synchronization",
-        "delivery format"
-      ],
-      "defaultTensionBias": {
-        "predictability-surprise": "pattern-then-variation",
-        "continuity-discontinuity": "action-model-first",
-        "restraint-expression": "sequence-dependent"
-      }
-    },
     "still-graphic": {
       "primaryOutcomes": [
         "presence",
@@ -74,28 +25,6 @@
       "defaultTensionBias": {
         "unity-variety": "coherent-differentiation",
         "fluency-challenge": "fast-entry-optional-depth"
-      }
-    },
-    "article-essay": {
-      "primaryOutcomes": [
-        "clarity",
-        "interest",
-        "trust",
-        "memorability"
-      ],
-      "secondaryOutcomes": [
-        "transportation",
-        "identity"
-      ],
-      "constraints": [
-        "argument integrity",
-        "reading rhythm",
-        "source truth",
-        "language"
-      ],
-      "defaultTensionBias": {
-        "explicitness-ambiguity": "explicit-claims-open-interpretation",
-        "density-space": "rhythmic"
       }
     },
     "audio-music": {

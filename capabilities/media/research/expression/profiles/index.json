@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.expression-profile-registry",
+  "coreProtocol": "research/expression/protocol.md",
+  "knowledgeModel": "research/expression/knowledge-model.md",
+  "profiles": [
+    {
+      "id": "web",
+      "status": "active-external-consumer",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "external-consumer",
+        "repository": "/root/projects/ordivon-web",
+        "path": "design/expression-profile.md"
+      },
+      "note": "Web owns browser, responsive, navigation, accessibility and publication-specific craft. The consumer binds an exact Studio revision; Studio does not claim Web currentness."
+    },
+    {
+      "id": "motion-video",
+      "status": "active",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "studio-local",
+        "path": "research/expression/profiles/motion-video.md"
+      },
+      "realConsumers": [
+        "apps/motion-remotion",
+        "productions/runtime-introduction"
+      ],
+      "inspection": [
+        "real-frame",
+        "video-playback",
+        "resolve-editable-state",
+        "ffprobe-qc"
+      ]
+    },
+    {
+      "id": "writing",
+      "status": "active",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "studio-local",
+        "path": "research/expression/profiles/writing.md"
+      },
+      "realConsumers": [
+        "productions/runtime-introduction/story.mdx",
+        "external:ordivon-web/content/articles"
+      ],
+      "inspection": [
+        "complete-text",
+        "claim-structure",
+        "rendered-reading-surface-when-applicable"
+      ]
+    },
+    {
+      "id": "still-graphic",
+      "status": "provisional",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "provisional-baseline",
+        "path": "research/expression/profiles/medium-baseline.json"
+      }
+    },
+    {
+      "id": "audio-music",
+      "status": "provisional",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "provisional-baseline",
+        "path": "research/expression/profiles/medium-baseline.json"
+      }
+    },
+    {
+      "id": "interactive",
+      "status": "provisional",
+      "layer": "medium_prior",
+      "authority": {
+        "kind": "provisional-baseline",
+        "path": "research/expression/profiles/medium-baseline.json"
+      }
+    }
+  ]
+}

@@ -38,10 +38,33 @@ class ExpressionContextTests(unittest.TestCase):
         self.assertEqual(set(data["knowledgeLayers"]), expected_layers)
         profile_registry = ROOT / data["profileRegistry"]
         self.assertTrue(profile_registry.is_file())
-        profiles = json.loads(profile_registry.read_text(encoding="utf-8"))
-        for required in ("web", "film-video", "still-graphic", "article-essay", "audio-music", "interactive"):
-            self.assertIn(required, profiles["profiles"])
-            self.assertTrue(profiles["profiles"][required]["constraints"])
+        registry = json.loads(profile_registry.read_text(encoding="utf-8"))
+        entries = {item["id"]: item for item in registry["profiles"]}
+        self.assertEqual(set(entries), {"web", "motion-video", "writing", "still-graphic", "audio-music", "interactive"})
+        self.assertEqual(entries["web"]["authority"]["kind"], "external-consumer")
+        self.assertEqual(entries["web"]["authority"]["path"], "design/expression-profile.md")
+        for profile_id in ("motion-video", "writing"):
+            self.assertEqual(entries[profile_id]["status"], "active")
+            authority = entries[profile_id]["authority"]
+            self.assertEqual(authority["kind"], "studio-local")
+            self.assertTrue((ROOT / authority["path"]).is_file())
+            self.assertTrue(entries[profile_id]["inspection"])
+        for profile_id in ("still-graphic", "audio-music", "interactive"):
+            self.assertEqual(entries[profile_id]["status"], "provisional")
+        baseline = json.loads((ROOT / "research/expression/profiles/medium-baseline.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(baseline["profiles"]), {"still-graphic", "audio-music", "interactive"})
+        for profile_id in ("motion-video", "writing"):
+            text = (ROOT / entries[profile_id]["authority"]["path"]).read_text(encoding="utf-8")
+            for required_heading in (
+                "## What the medium can manipulate",
+                "## Hard constraints",
+                "## Durable craft priors",
+                "## Common semantic failure modes",
+                "## Render and inspection",
+                "## Protocol specialization",
+                "## Context signals",
+            ):
+                self.assertIn(required_heading, text)
 
     def test_aesthetic_dimensions_and_sources_are_consistent(self) -> None:
         data = json.loads(CONTEXT.read_text(encoding="utf-8"))
