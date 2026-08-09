@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.expression.a33.station-zero-genesis-affect",
+  "source": {
+    "repository": "/root/projects/ordivon-game",
+    "revision": "8d89410e24ba486173ae6f3474962bb26433a6f5",
+    "genesisPath": "src/station-zero-v3/genesis.ts",
+    "genesisSha256": "sha256:830886b75ff65f271ba219896e3266d5aaf1e7e29b9355a7fe9814184c89df06",
+    "p0Path": "docs/STATION_ZERO_V3_P0.md",
+    "p0Sha256": "sha256:944838ef129da50e63d560610b7399d4187b946112dea893da76a843b0b48c41",
+    "genesisDigest": "sha256:6e2735ec8f07ebbddd7bd2e1398bbf3342af42841a2487c9d2895f8865a8b69d"
+  },
+  "encounter": {
+    "title": "Station Zero: Contested Signal",
+    "turn": 0,
+    "turnLimit": 14,
+    "phase": "situation",
+    "playerFactionId": "rescue"
+  },
+  "publicTelemetry": {
+    "batteryCharge": 48,
+    "batteryInitial": 48,
+    "oxygen": 68,
+    "reactorHeat": 62,
+    "alertLevel": 2
+  },
+  "playerVisible": {
+    "discoveredRooms": [
+      "command-center",
+      "power-junction",
+      "medical-bay"
+    ],
+    "discoveredZones": [
+      "rescue-airlock",
+      "command-deck",
+      "junction-console",
+      "junction-cover",
+      "med-console",
+      "med-ward"
+    ],
+    "confirmedActors": [
+      {
+        "actorId": "engineer-imani",
+        "name": "Engineer Imani",
+        "lastKnownZoneId": "rescue-airlock",
+        "healthBand": "healthy"
+      },
+      {
+        "actorId": "medic-reyes",
+        "name": "Medic Reyes",
+        "lastKnownZoneId": "rescue-airlock",
+        "healthBand": "healthy"
+      },
+      {
+        "actorId": "security-chen",
+        "name": "Security Chen",
+        "lastKnownZoneId": "command-deck",
+        "healthBand": "healthy"
+      }
+    ],
+    "knownSystems": [
+      {
+        "systemId": "power-grid",
+        "integrity": 0.72,
+        "powered": true
+      }
+    ],
+    "knownHazards": [],
+    "knownGroundItems": [
+      "ground:medkit"
+    ],
+    "reports": [
+      "report:distress-signal",
+      "report:unknown-life-signs"
+    ]
+  },
+  "mission": {
+    "mandatoryObjectives": [
+      "Extract two civilians",
+      "Extract at least one Specialist"
+    ],
+    "optionalObjectives": [
+      "Recover the Research Core",
+      "Eliminate the Hive Alpha"
+    ]
+  },
+  "playerUnknownAtGenesis": {
+    "exactPirateActorPositions": true,
+    "exactSwarmActorPositions": true,
+    "maintenanceHazards": true,
+    "reactorHazard": true,
+    "communicationsState": true,
+    "coolingState": true,
+    "lifeSupportState": true
+  },
+  "affectBoundary": "A3-3 may use player-visible knowledge and global public telemetry to create atmosphere. It must not reveal hidden faction positions or hidden hazards merely to intensify dread."
+}

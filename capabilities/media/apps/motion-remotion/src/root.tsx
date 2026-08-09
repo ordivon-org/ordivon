@@ -4,6 +4,7 @@ import {RequestReplayComposition} from './request-replay-composition.tsx';
 import {RuntimeFlowComposition} from './runtime-flow-composition.tsx';
 import {RuntimeResponseLossExpression} from './runtime-response-loss-expression.tsx';
 import {SecurityAe0EpistemicExpression} from './security-ae0-epistemic-expression.tsx';
+import {GameStationZeroAffectExpression} from './game-station-zero-affect-expression.tsx';
 
 export function StudioMotionRoot() {
   return (
@@ -43,6 +44,14 @@ export function StudioMotionRoot() {
       <Composition
         id="a32-security-ae0-epistemics"
         component={SecurityAe0EpistemicExpression}
+        durationInFrames={270}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="a33-station-zero-affect"
+        component={GameStationZeroAffectExpression}
         durationInFrames={270}
         fps={30}
         width={1920}
