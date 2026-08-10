@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "browser-perception-note",
+  "title": "When the Browser Changed the Decision",
+  "status": "review",
+  "intent": "Explain one bounded Web ordinary-production case in which source and mechanical correctness were insufficient to establish the initial reading experience, while preserving the Web repository as owner of the finding and refusing to generalize one correction into a universal design rule.",
+  "audiences": ["agent-system-builder", "web-publisher", "technical-reader"],
+  "sourceBindings": [
+    {
+      "id": "web",
+      "repository": "ordivon-web",
+      "revision": "e11a6585b049776e46011289c80197f1183ec330",
+      "role": "owner-source-and-ordinary-production-evidence"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "assets": "assets.json",
+    "article": "story.mdx",
+    "receipts": ["evidence/browser-review.receipt.json"],
+    "cognition": "cognition.md"
+  },
+  "outputs": [
+    {
+      "id": "browser-perception-article-en",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:f6ef709cd0b93a548005b46a2d66af65ceff225f658f11fe91228044753d0ab5"
+    }
+  ]
+}

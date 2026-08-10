@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "productionId": "browser-perception-note",
+  "claims": [
+    {
+      "id": "web-rendered-orientation",
+      "source": {"binding": "web", "path": "design/expression-profile.md"},
+      "meaning": "In the first ordinary-production review of the long-form route /writing/creation-judgment-recoverable-systems, exact browser inspection found a desktop-only orientation defect: publication identity was below the initial 1440×1000 viewport while the 412×915 mobile view already exposed it.",
+      "evidence": ["design/expression-profile.md", "app/globals.css"],
+      "allowedWording": ["browser rendering exposed a desktop orientation defect", "the initial desktop viewport hid publication identity"],
+      "avoid": ["the article was factually wrong", "large titles are generally bad", "mobile had the same defect"]
+    },
+    {
+      "id": "web-bounded-revision",
+      "source": {"binding": "web", "path": "app/globals.css"},
+      "meaning": "Web corrected the finding with a min-width:721px long-form hero revision. The revised desktop model-view bytes changed, while the mobile model-view remained byte-identical; targeted mechanical/browser checks stayed clean.",
+      "evidence": ["app/globals.css", "tests/smoke.spec.ts", "design/expression-profile.md"],
+      "allowedWording": ["desktop-only correction", "mobile remained byte-identical"],
+      "avoid": ["all article heroes should use this exact size", "the change proves higher aesthetic preference"]
+    },
+    {
+      "id": "web-scope-limit",
+      "source": {"binding": "web", "path": "design/expression-profile.md"},
+      "meaning": "Web retains the result only as a local Writing/Web observation for evidence-bound long-form entry; it explicitly does not promote the correction into a universal title-size or cross-medium rule.",
+      "evidence": ["design/expression-profile.md"],
+      "allowedWording": ["local Writing/Web observation", "not a universal title-size rule"],
+      "avoid": ["new Art and Expression Core law", "proven human preference"]
+    }
+  ]
+}

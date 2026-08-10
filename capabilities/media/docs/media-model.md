@@ -75,16 +75,22 @@ A Production may have several editorial sources:
 
 No interchange file is assumed to preserve every editor-specific effect.
 
+## Receipt
+
+A Production may retain selected Receipts when the consequence of an execution, review, generation, or other external step matters to later work. `schemaVersion` and `kind` form the shared envelope; **kind-specific semantics remain owned by that receipt kind**. Runtime Demo Receipts therefore use the Runtime-specific schema and identity checks, while a Web review Receipt is not coerced into Runtime Job/Attempt fields merely because both are called Receipts.
+
+A Receipt is evidence consumed by a Production, not a universal event schema or a new owner of the source system.
+
 ## Production
 
-A Production ties claims, assets, editable sources, timing, color, audio, and outputs together.
+A Production ties claims, assets, editable sources, medium-applicable working state, and outputs together.
 
 It declares:
 
 - semantic production ID and title;
 - source projects and revisions;
 - editorial intent and audiences;
-- time base, frame rate, color, and audio working profiles;
+- only the technical working-profile fields the actual medium uses (for example frame rate/canvas/color/audio for video; no invented AV profile for semantic-text-only work);
 - required Claims and Assets;
 - planned or completed outputs;
 - selected source files and external editor artifacts.

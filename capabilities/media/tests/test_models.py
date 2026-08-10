@@ -5,7 +5,7 @@ import json
 import unittest
 from pathlib import Path
 
-from ordivon_studio.models import _validate_cognition_record, _validate_runtime_receipt, validate_repository
+from ordivon_studio.models import _validate_cognition_record, _validate_runtime_receipt, _validator, validate_repository
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +25,12 @@ class ModelTests(unittest.TestCase):
         self.assertIn("not a second Production manifest", text)
         production = json.loads((ROOT / "productions/runtime-introduction/production.json").read_text(encoding="utf-8"))
         self.assertEqual(production["sources"]["cognition"], "cognition.md")
+
+    def test_working_profile_does_not_force_video_shape_on_writing(self) -> None:
+        production = json.loads((ROOT / "productions/runtime-introduction/production.json").read_text(encoding="utf-8"))
+        production["workingProfile"] = {}
+        errors = list(_validator("production.schema.json").iter_errors(production))
+        self.assertEqual(errors, [])
 
     def test_cognition_rejects_missing_protocol_stage(self) -> None:
         import tempfile

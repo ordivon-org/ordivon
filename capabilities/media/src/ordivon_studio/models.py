@@ -21,6 +21,7 @@ DOCUMENT_SCHEMAS = {
 }
 TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
+RUNTIME_RECEIPT_KIND = "ordivon-runtime-demo-receipt"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -146,6 +147,16 @@ def _validate_cognition_record(path: Path) -> list[str]:
     return errors
 
 
+def _validate_receipt_envelope(path: Path, receipt: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if receipt.get("schemaVersion") != 1:
+        errors.append(f"{path}: receipt schemaVersion must be 1")
+    kind = receipt.get("kind")
+    if not isinstance(kind, str) or not kind:
+        errors.append(f"{path}: receipt kind must be a non-empty string")
+    return errors
+
+
 def _validate_runtime_receipt(path: Path, receipt: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     execution = receipt.get("execution", {})
@@ -258,10 +269,12 @@ def validate_repository() -> list[str]:
                 if not path.is_file():
                     continue
                 receipt = _load(path)
-                for error in sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path)):
-                    location = "/".join(str(part) for part in error.path)
-                    errors.append(f"{path}:{location}: {error.message}")
-                errors.extend(_validate_runtime_receipt(path, receipt))
+                errors.extend(_validate_receipt_envelope(path, receipt))
+                if receipt.get("kind") == RUNTIME_RECEIPT_KIND:
+                    for error in sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path)):
+                        location = "/".join(str(part) for part in error.path)
+                        errors.append(f"{path}:{location}: {error.message}")
+                    errors.extend(_validate_runtime_receipt(path, receipt))
     return errors
 
 

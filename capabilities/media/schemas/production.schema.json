@@ -40,8 +40,8 @@
     },
     "workingProfile": {
       "type": "object",
+      "description": "Medium-applicable technical working profile. Fields are present only when the production medium actually uses them; semantic-text-only productions may use an empty object rather than inventing video or audio parameters.",
       "additionalProperties": false,
-      "required": ["frameRate", "canvas", "color", "audio"],
       "properties": {
         "frameRate": {
           "type": "object",

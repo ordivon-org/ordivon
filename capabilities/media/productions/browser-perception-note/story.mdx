@@ -1,0 +1,78 @@
+# When the browser changed the decision
+
+The source was valid. The publication contract was valid. The page built, the browser returned HTTP 200, there was no horizontal overflow, and the targeted navigation checks passed.
+
+The first real browser view still changed the decision.
+
+That is the useful part of this case. Nothing dramatic was broken. The article *Creation, Judgment, and Recoverable Systems* already had the right words, metadata, and publication identity. But at a 1440×1000 desktop viewport, the long-form hero spent enough space on title scale and entry spacing that the author, date, read time, and research-question identity all fell below the first screen. On the 412×915 mobile surface, those same orientation cues were already visible.
+
+The defect therefore did not live in source truth. It lived in the rendered encounter.
+
+## The correction was narrower than the lesson
+
+Web changed only the desktop long-form hero. A `min-width: 721px` rule reduced the top interval and title scale for that surface class. The next browser review showed the publication identity inside the initial desktop viewport.
+
+The mobile PNG did not merely *look similar*. Its exact bytes were unchanged:
+
+```text
+before mobile
+sha256:79c80f66c34962bb139697edd61a4e6ad7a5f00a41da6b3712ed8de0ae5c8bde
+
+after mobile
+sha256:79c80f66c34962bb139697edd61a4e6ad7a5f00a41da6b3712ed8de0ae5c8bde
+```
+
+The desktop bytes changed from `sha256:3025522f…` to `sha256:22e3dca7…`. Mechanical browser checks remained clean, and the two targeted Playwright checks passed.
+
+This is stronger evidence for *boundedness* than a prose claim that the edit was “desktop only.” It does not prove that the revised page is more beautiful, or that a population prefers it. The decision was about orientation: an evidence-bound article should not make the reader wait to discover what kind of publication they are reading.
+
+## The obvious generalization would be wrong
+
+A tempting conclusion is: make long-form titles smaller.
+
+Web explicitly did not retain that rule.
+
+The issue was not large typography in the abstract. The issue was a relation among title, entry spacing, viewport, and publication identity on one class of evidence-heavy long-form page. Another article may need more expressive scale. Another viewport may already work. A narrative page may deliberately withhold metadata. A different publisher may solve the same problem with composition rather than size.
+
+So the retained Web observation is narrower:
+
+> On evidence-bound long-form pages, expressive entry should not hide the publication identity needed to orient the argument.
+
+Even that remains a local Writing/Web observation until materially different ordinary work repeats it.
+
+## What transfers to Studio
+
+Something else *did* repeat.
+
+Runtime Introduction, a 78-second motion Production, independently reached the same class of failure from another direction. Its source, types, Production model, and H.264/BT.709 QC all passed. Pixel inspection then found that a common footer mislabeled Studio explanatory and current-authority scenes as “receipt-derived evidence.” The pixels exposed a provenance implication the mechanical checks could not establish.
+
+The Web case involved responsive reading orientation. The Studio case involved motion provenance. The corrections were different. What repeated was the need to inspect the final perceptual artifact before claiming semantic completion of the creative decision.
+
+That principle is not new. Studio's expression protocol and Web's Agent production loop already require real rendered inspection. Two materially different ordinary cases therefore **reinforce an existing prior**; they do not justify another framework, score, or schema for “visual truth.”
+
+## What the second Production changed instead
+
+This article itself exposed a different structural assumption in Studio.
+
+The first Production was video, so `Production v1` required every Production to declare frame rate, canvas, color, and audio. A Writing-only Production would have had to invent values such as 30 fps and 48 kHz merely to satisfy a model that had inherited the shape of its first consumer.
+
+That is the kind of false universality a second workload should reveal.
+
+Studio now keeps `workingProfile` but treats those technical fields as medium-applicable. Runtime Introduction continues to declare its full video profile. This Writing Production uses an empty technical profile rather than pretending prose has a frame rate.
+
+The transferable improvement is not “articles need fewer fields.” It is a more general ownership rule: **a shared Production object should require only semantics shared by every Production; medium-specific physical parameters belong only where the medium actually uses them.**
+
+## The resulting model
+
+The two cases leave a compact loop:
+
+```text
+source-bound intent
+→ produce a real artifact
+→ inspect what the consumer can actually encounter
+→ revise only the failed relation
+→ keep evidence of bounded change
+→ widen the lesson only after materially different repetition
+```
+
+Recursive improvement does not require turning every observation into a new law. Often the stronger move is the opposite: preserve the correction, keep the evidence, and refuse to generalize beyond what repeated work has earned.

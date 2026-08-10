@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-studio-selected-web-review-receipt",
+  "sourceAuthority": {
+    "repository": "ordivon-web",
+    "baselineRevision": "dd3147ce6f7e434441d73471e17fa61340a0851a",
+    "acceptedRevision": "e11a6585b049776e46011289c80197f1183ec330",
+    "route": "/writing/creation-judgment-recoverable-systems"
+  },
+  "baseline": {
+    "sourceTreeDigest": "sha256:ffd1de21f397bb6ca967434296752817ef2d2a6ee7fceb04a9a33c68671b6bab",
+    "desktop": {
+      "viewport": {"width": 1440, "height": 1000},
+      "digest": "sha256:3025522fa226115485ef914db15ff52aee2858ebcc224fa6b358b3dcd1b3850a",
+      "byteLength": 112413
+    },
+    "mobile": {
+      "viewport": {"width": 412, "height": 915},
+      "digest": "sha256:79c80f66c34962bb139697edd61a4e6ad7a5f00a41da6b3712ed8de0ae5c8bde",
+      "byteLength": 83317
+    }
+  },
+  "revisedCandidate": {
+    "baseRevision": "dd3147ce6f7e434441d73471e17fa61340a0851a",
+    "committedRevision": "e11a6585b049776e46011289c80197f1183ec330",
+    "sourceTreeDigest": "sha256:91225894ff15b501c94383b3d2a892b32e0f864e05a9bef94defab2613865c22",
+    "desktop": {
+      "viewport": {"width": 1440, "height": 1000},
+      "digest": "sha256:22e3dca7e6dbdf77389fd34f7aa67da17f55ae24fa28ee65b717dd1f38cf9668",
+      "byteLength": 116214
+    },
+    "mobile": {
+      "viewport": {"width": 412, "height": 915},
+      "digest": "sha256:79c80f66c34962bb139697edd61a4e6ad7a5f00a41da6b3712ed8de0ae5c8bde",
+      "byteLength": 83317
+    }
+  },
+  "mechanicalAcceptance": {
+    "browserAudit": "passed",
+    "horizontalOverflow": false,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "targetedPlaywright": {"passed": 2, "failed": 0, "elapsedSeconds": 1.5}
+  },
+  "agentAudit": {
+    "finding": "On desktop, expressive entry pushed author/date/read-time/research-question identity below the initial viewport; the mobile surface already exposed that identity.",
+    "decision": "bounded-desktop-revision",
+    "postRevisionFinding": "Publication identity entered the initial desktop viewport; mobile bytes remained exactly unchanged.",
+    "scope": "Writing/Web local observation only"
+  },
+  "authorityBoundary": "This selected receipt preserves evidence used by Studio. Ordivon Web revision e11a6585b049776e46011289c80197f1183ec330 remains the owner of the layout, browser semantics, and retained local finding."
+}

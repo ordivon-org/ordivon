@@ -22,7 +22,7 @@ owning project facts and executable evidence
 - selected-asset provenance and rights records;
 - production manifests and source packages;
 - deterministic media inspection, transformation, and delivery tooling;
-- the first Runtime introduction production.
+- real source-bound Productions across different media, currently Runtime Introduction motion and the Writing-only Browser Perception Note.
 
 Large media bytes, editor caches, proxies, and exports are intentionally outside Git. Git stores identities, manifests, open interchange snapshots, editable text and code, and checksums that resolve those bytes from a local cache or object store.
 
@@ -37,7 +37,8 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 - [`docs/review-consumption.md`](docs/review-consumption.md) — Agent review consumption, authority snapshots, transient critique, and bounded revision evidence;
 - [`docs/artifact-perception.md`](docs/artifact-perception.md) — temporal observation sampling, model-view preparation, and native image-transport boundary;
 - [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
-- [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real production vertical.
+- [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real motion production vertical;
+- [`productions/browser-perception-note/story.mdx`](productions/browser-perception-note/story.mdx) — second materially different, Writing-only Production pressure-testing cross-medium assumptions.
 
 ## Fresh Workspace bootstrap
 
@@ -62,16 +63,11 @@ The design foundation is executable and verified:
 - progressive perception materializes exact review pixels, and native Runtime `workspace.content` delivery has passed a fresh vision-capable Agent acceptance with a bounded semantic `no-op`;
 - the Resolve Free adapter has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; native OTIO import preserves clip durations and gaps, while explicit Append source ranges are excluded from production assembly.
 
-DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. Resolve editing, real OBS capture, narration, asset registration, and final delivery remain production work rather than repository architecture.
+DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. They are used only when a production actually requires them.
 
-The first complete target is one editable Runtime production that can produce:
+Runtime Introduction now has a source-bound, placeholder-free 78-second landscape **picture master** in `rendered / review` state. English narration text/timing is locked, but no narration audio Asset has yet been produced or continuously playback-audited, so the film is not approved or published. Its other article/vertical/interactive/Upwork outputs remain planned.
 
-- an English technical article;
-- an English landscape project film;
-- a Chinese vertical short;
-- reusable architecture motion;
-- an Upwork portfolio package;
-- a Web publication package.
+The second Production, Browser Perception Note, is Writing-only and has an internally `approved` semantic-text Output bound to Web revision `e11a6585b049776e46011289c80197f1183ec330`. It deliberately uses `workingProfile: {}` rather than inventing video/audio parameters. This second workload also forced generic Receipt validation to dispatch by `kind` instead of treating every Receipt as a Runtime Demo Receipt.
 
 ## Tool split
 
