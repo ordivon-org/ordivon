@@ -71,15 +71,16 @@ The candidate is exactly 78.000 seconds. Video remains 1920×1080 / 30 fps / H.2
 
 `timeline/assembly.v2.otio` is the active picture+narration review snapshot.
 
-## Selected-byte durability gate
+## Selected-byte durability and recovery gate
 
-A committed Asset digest is not enough if its selected bytes disappear with a disposable Workspace. Before a selected media artifact is allowed to become the active Production candidate, copy it through:
+A committed Asset digest is not enough if its selected bytes disappear with a disposable Workspace. For selected media whose canonical payload is outside Git, Studio uses a symmetric local pair:
 
 ```bash
 uv run ordivon-studio archive <path> --cache-root /mnt/d/OrdivonStudio/cache
+uv run ordivon-studio materialize <sha256:digest> <working-path> --cache-root /mnt/d/OrdivonStudio/cache
 ```
 
-The archive command hashes, copies through a temporary file, verifies the copy, admits the content-addressed object without overwrite, and rehashes the selected object. Picture, narration stem, and final A/V candidate have all passed this gate.
+`archive` verifies and admits immutable cache bytes without overwrite. `materialize` verifies the requested cache object before copying, verifies the working copy, and never overwrites different destination bytes. Picture, narration stem, and final A/V candidate passed the archive side in P2; P3 then recovered the final A/V candidate from a fresh Workspace after the P2 Workspace was gone. First recovery created the working copy, exact replay converged to the existing bytes, and a conflicting destination failed closed.
 
 ## Current acceptance
 
@@ -89,7 +90,7 @@ Established:
 - exact picture bytes and complete video/color QC;
 - exact narration bytes, deterministic repeated synthesis, cue fit, sample format, loudness and peak;
 - exact deterministic repeated A/V mux;
-- durable local content-addressed copies of all selected media;
+- durable local content-addressed copies of all selected media plus exact fresh-Workspace recovery of the final candidate through `materialize`;
 - cue-bound visual review showing proof phases in the same semantic order as narration;
 - focused 65–78 second inspection confirming Diff → Boundary → End under the revised edit.
 

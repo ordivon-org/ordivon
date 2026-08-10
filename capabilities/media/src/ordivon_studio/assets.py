@@ -108,6 +108,73 @@ def archive_blob(path: Path, cache_root: Path) -> dict[str, object]:
             temporary_path.unlink(missing_ok=True)
 
 
+def materialize_blob(digest: str, cache_root: Path, destination: Path) -> dict[str, object]:
+    """Recover one exact cached Blob into a working path without mutating the cache.
+
+    The cache object is verified against the requested digest before any copy. The
+    working copy is then copied through a temporary file and reverified before
+    admission. An existing exact destination converges; different existing bytes fail
+    closed instead of being overwritten.
+    """
+    object_key = r2_object_key(digest)
+    source = cache_root / object_key
+    if not source.is_file():
+        raise FileNotFoundError(source)
+
+    archived = hash_file(source)
+    if archived.digest != digest:
+        raise RuntimeError(f"cached object does not match requested digest: {source}")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        existing = hash_file(destination)
+        if existing.digest != digest or existing.size_bytes != archived.size_bytes:
+            raise RuntimeError(f"materialization destination contains different bytes: {destination}")
+        return {
+            "blob": existing.as_dict(),
+            "objectKey": object_key,
+            "cachePath": str(source),
+            "path": str(destination),
+            "disposition": "existing",
+        }
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix=".ordivon-materialize-", dir=destination.parent, delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            with source.open("rb") as cached:
+                shutil.copyfileobj(cached, temporary)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+
+        copied = hash_file(temporary_path)
+        if copied.digest != digest or copied.size_bytes != archived.size_bytes:
+            raise RuntimeError("temporary materialized copy does not match cached Blob")
+
+        try:
+            os.link(temporary_path, destination)
+            disposition = "created"
+        except FileExistsError:
+            existing = hash_file(destination)
+            if existing.digest != digest or existing.size_bytes != archived.size_bytes:
+                raise RuntimeError(f"materialization destination contains different bytes: {destination}")
+            disposition = "existing"
+
+        materialized = hash_file(destination)
+        if materialized.digest != digest or materialized.size_bytes != archived.size_bytes:
+            raise RuntimeError("materialized Blob verification failed")
+        return {
+            "blob": materialized.as_dict(),
+            "objectKey": object_key,
+            "cachePath": str(source),
+            "path": str(destination),
+            "disposition": disposition,
+        }
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
     if not path.is_file():
         raise FileNotFoundError(path)

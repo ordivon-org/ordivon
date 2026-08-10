@@ -64,3 +64,7 @@ Two materially different production pressures now repeat one existing production
 This **reinforces** the existing requirement for rendered artifact inspection. It does not earn a new Art & Expression Core prior because the principle was already explicit before these cases.
 
 The genuinely new reusable structural change from the second Production is narrower: generic Production metadata must not require video/audio parameters from media that do not use them. `workingProfile` therefore becomes medium-applicable while its individual fields retain validation when present.
+
+### P3 durability falsifier
+
+P3 reused this materially different Writing-only Production to test whether the new media durability rule should become universal CAS policy. It should not. The approved Output digest `sha256:f6ef709cd0b93a548005b46a2d66af65ceff225f658f11fe91228044753d0ab5` exactly matches the current `story.mdx` bytes and the bytes recovered from the committed Git object with `git show HEAD:productions/browser-perception-note/story.mdx`. No matching media-cache object exists, yet the exact approved payload remains recoverable because Git is already its owner-native durable byte authority. Retain the stronger invariant—**exact selected bytes must have a recoverable durable authority**—without requiring one storage mechanism across media.

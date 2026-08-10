@@ -18,15 +18,20 @@ D:\OrdivonStudio\
 └── exports\
 ```
 
-The content-addressed cache mirrors remote object keys. Human working directories may use descriptive names, but selected assets are not durable merely because their digest appears in `assets.json`: the selected bytes must also be copied into a verified content-addressed store before disposable production work is closed.
+The content-addressed cache mirrors remote object keys. Human working directories may use descriptive names. For a selected payload whose canonical bytes are **not already retained by Git or another owner-native durable store**, committing only its digest is insufficient: the exact bytes must cross a verified durable storage boundary before disposable production work is closed.
 
-The minimum local gate is:
+The minimum local write/read pair is:
 
 ```bash
 uv run ordivon-studio archive <selected-media> --cache-root /mnt/d/OrdivonStudio/cache
+uv run ordivon-studio materialize <sha256:digest> <working-path> --cache-root /mnt/d/OrdivonStudio/cache
 ```
 
-`archive` hashes the source, derives the immutable object key, copies through a temporary file, verifies the copied bytes, and admits the object without overwriting an existing digest address. Repeating the same exact Blob converges to the existing verified object. This is local byte durability, not a media database or publication system.
+`archive` hashes the source, derives the immutable object key, copies through a temporary file, verifies the copied bytes, and admits the object without overwriting an existing digest address. Repeating the same exact Blob converges to the existing verified object.
+
+`materialize` performs the inverse working operation without changing the cache: it resolves the immutable object key from the requested digest, verifies the cached object **before** copying, copies through a temporary file, verifies the working copy, and admits it without overwriting different destination bytes. Repeating materialization to an exact existing destination converges. A missing or corrupt cache object fails closed.
+
+This pair supplies local byte durability and recovery; it is not a media database or publication system. Git-tracked exact payloads do not need duplicate CAS storage merely because they also have a SHA-256 identity.
 
 ## R2 object keys
 

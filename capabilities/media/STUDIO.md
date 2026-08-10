@@ -68,11 +68,11 @@ identity tokens
 
 This contains Remotion's special licensing and renderer-specific APIs at an adapter boundary.
 
-### 6. Object storage is a remote replica, not the only archive
+### 6. Object storage is a byte authority, not the live workspace
 
-The current working set lives on Windows-local storage. Immutable selected assets and masters are copied to R2 under content-addressed keys. Git stores manifests and checksums.
+The current working set lives on Windows-local storage. Selected large/binary payloads whose canonical bytes are outside Git first cross the verified local content-addressed cache under `D:\OrdivonStudio\cache\objects\sha256\...`; Git stores their semantic identities, provenance, and checksums. P3 has also proven the inverse path: exact bytes can be materialized from that cache into a fresh working location after the producing Workspace is gone.
 
-R2 must not be mounted as the live NLE filesystem. Upload uses copy semantics, never destructive synchronization, and an object is never overwritten at a digest key. Irreplaceable source remains in at least the local working set and the remote object store; a second offline replica can be added without changing identifiers.
+A remote replica such as R2 is a transport/replication option, not an assumed deployed fact and not the live NLE filesystem. When configured, upload must use copy semantics, never destructive synchronization, and an object must never be overwritten at a digest key. Remote replication, retention, and restore are accepted only after their own credentials and recovery behavior are tested; Blob identifiers do not depend on that transport choice.
 
 ### 7. Product truth remains revision-bound
 

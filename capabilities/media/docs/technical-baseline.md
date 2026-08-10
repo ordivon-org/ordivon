@@ -94,4 +94,4 @@ Every approved media Output is inspected for:
 - caption presence and parseability;
 - relationship to the Production and source revision.
 
-The initial `qc-video` command enforces structural video facts. Loudness, caption/package completeness, and publication-specific checks are added only when the corresponding real outputs exist. Human playback review remains required after machine QC.
+The initial `qc-video` command enforces structural video facts. Loudness, caption/package completeness, and publication-specific checks are added only when the corresponding real outputs exist. Human playback or expert calibration is **conditional**, not a universal post-QC ritual: use it when a remaining material decision genuinely depends on human perception, interpretation, culture, or consequence that source truth, machine QC, mature craft, and Agent artifact audit cannot settle. When used, bind the consequential judgment to the exact reviewed artifact identity rather than treating human presence itself as approval authority.

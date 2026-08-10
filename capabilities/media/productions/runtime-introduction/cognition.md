@@ -81,6 +81,14 @@ Three selected exact artifacts now exist and are archived:
 5. **Cue-bound visual inspection is semantically aligned.** Review frames sampled from the actual narration phases show source/Patch, Job observation, recovery, evidence, close, boundary, and end imagery in the same semantic order as the voice cues. A focused 65–78 second review confirms Diff → Boundary → End cut order under the revised timing.
 6. **Human voice quality is still genuinely unresolved.** The available Agent surface can inspect exact audio bytes, timing, levels, generation provenance, and corresponding picture states, but it cannot honestly establish whether the synthetic voice sounds natural, appropriately paced, or publication-worthy to a human listener. No such claim is inferred from waveform or metadata.
 
+### P3 findings
+
+1. **Durability survived the disposable-Workspace boundary.** The P2 Workspace and its render paths were absent in a fresh P3 Workspace, while the committed final Output digest still resolved to the exact 3,369,776-byte cache object and retained the expected 78-second H.264 + AAC structure.
+2. **Write-only durability was still Agent-hostile.** Before P3, recovery required manually reconstructing `objects/sha256/<prefix>/<digest>` from the digest and copying bytes by hand. `ordivon-studio materialize` now provides the inverse verified primitive: verify cached object → temporary copy → verify working copy → no-overwrite admission. Repeating exact recovery converges; different destination bytes and corrupt cache bytes fail closed.
+3. **The human-review model did not require a new approval system.** `Production=review` plus `Output=rendered` already expresses the unresolved auditory claim. The generic Receipt envelope can hold a future actual calibration result by kind, but P3 deliberately does not create a pending human Receipt before a person has supplied a judgment.
+4. **The durability rule does not imply universal CAS.** Browser Perception Note provides the materially different falsifier: its approved article Output digest exactly equals the Git-tracked `story.mdx` bytes and the same bytes recovered through `git show HEAD:<path>`, while no media-cache object exists. Git is already the durable byte authority for that exact text artifact.
+5. **The exact audition object is now independently materialized for human use.** The current candidate digest is present at `D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4`; this working copy is recoverable evidence, not an approval claim.
+
 ### Audit routing
 
 ```text
@@ -96,13 +104,13 @@ voice naturalness / human response  → conditional human audition
 
 This is materially stronger than P1. The current output digest now identifies a complete, recoverable picture+narration candidate rather than a silent picture master. Selected picture, narration stem, and final mux are all archived by exact digest; cue fit, A/V structure, color/video facts, audio stream facts, loudness/peak, and deterministic rebuild/mux behavior are established.
 
-Promotion is withheld for one precise reason only: the remaining uncertainty is a real **human auditory-response claim** about the selected synthetic voice. Static pixels, hashes, ffprobe, loudness analysis, and knowledge of the input text do not prove that claim. The next gate is therefore a bounded audition of this exact candidate Blob, not another Studio architecture project.
+Promotion is withheld for one precise reason only: the remaining uncertainty is a real **human auditory-response claim** about the selected synthetic voice. Static pixels, hashes, ffprobe, loudness analysis, and knowledge of the input text do not prove that claim. P3 has already materialized the exact candidate at `D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4`; the next gate is therefore a bounded human audition of **that exact digest**, not another Studio architecture project. No human-review Receipt exists until an actual judgment is supplied.
 
 ## LEARNING
 
-Retain the P2 learning at the narrowest justified scope:
+Retain the P2/P3 learning at the narrowest justified scope:
 
-- **production-system, promoted by real failure:** a selected media Asset is not durably recoverable merely because its digest is committed; before disposable production state is closed, selected bytes must cross a verified content-addressed durability boundary;
+- **production-system, promoted and narrowed by cross-medium falsification:** a digest identifies selected bytes but does not establish recoverability. Selected payloads need an exact durable byte authority appropriate to their medium: verified CAS for large/binary media intentionally outside Git, while exact Git-tracked text/code may use Git itself. For CAS-backed media, the durability boundary must support verified recovery as well as archive;
 - **production-system:** media-specific materialization may legitimately revise a previously locked abstract timing plan. “Locked text/timing” means the current editorial decision, not immunity from physical evidence produced by the medium itself;
 - **production-local:** Windows System.Speech / Zira rate `1` is an exact-byte-repeatable local candidate generator on this workstation. That does not make it a universal Studio voice provider or quality default;
 - **Motion/Audio:** cue-bound temporal sampling can establish semantic ordering and slot fit, but it does not establish voice naturalness or audience preference;

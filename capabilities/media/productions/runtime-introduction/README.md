@@ -66,7 +66,19 @@ The narration stem was independently built twice with exact-byte equality. The f
 
 Voice materialization was allowed to challenge the edit. At the selected Zira rate `1`, the old 68–75 second Boundary and 75–78 second End slots did not fit. Rather than globally speed the voice up, the final tail was revised to 59–67 / 67–74 / 74–78 narration timing and 65–67 / 67–74 / 74–78 picture phases for Diff / Boundary / End.
 
-P2 also found that P1 had committed the picture Asset digest without moving the selected bytes into durable storage before its Workspace closed. `ordivon-studio archive` now provides the minimum verified local content-addressed durability gate.
+P2 also found that P1 had committed the picture Asset digest without moving the selected bytes into durable storage before its Workspace closed. `ordivon-studio archive` established the verified local write-side durability gate.
+
+## What P3 changed
+
+P3 reopened Studio in a fresh Workspace after the P2 producing Workspace had been removed. The committed final Output digest still resolved to the exact cached 3,369,776-byte A/V Blob, proving that the bytes survived the disposable-Workspace boundary. The remaining friction was recovery ergonomics: an Agent had to reconstruct the cache object path manually. `ordivon-studio materialize` now provides the verified inverse operation and was accepted against the real final candidate: first recovery `created`, exact replay `existing`, different destination bytes fail closed, and the recovered MP4 retains the exact digest and A/V structure.
+
+The same candidate is materialized for bounded human audition at:
+
+```text
+D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4
+```
+
+This file is a recoverable working copy of the exact selected Blob, not a separate master and not an approval record.
 
 ## Current output decision
 

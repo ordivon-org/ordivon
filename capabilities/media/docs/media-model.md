@@ -32,7 +32,7 @@ Important fields:
 
 An Asset can select a new Blob without pretending the old bytes never existed.
 
-**Blob identity and Blob durability are separate facts.** A `selectedBlob.digest` proves which bytes were selected; it does not prove those bytes still exist after a disposable render or Workspace disappears. Before selected media becomes the durable Production candidate, its exact bytes must cross a verified content-addressed storage boundary and remain recoverable by that digest. Git keeps the identity and provenance record; the byte store keeps the immutable payload.
+**Blob identity and Blob durability are separate facts.** A `selectedBlob.digest` proves which bytes were selected; it does not by itself prove those bytes still exist after a disposable render or Workspace disappears. A selected payload therefore needs one exact durable byte authority. For large/binary media that authority is normally the verified content-addressed byte store; for an exact Git-tracked text/code payload, Git itself may already be the durable byte authority. Do not duplicate every digested Output into media CAS merely for uniformity. The invariant is recoverability of the exact selected bytes, not one universal storage mechanism.
 
 ## Claim
 
@@ -83,6 +83,8 @@ A Production may retain selected Receipts when the consequence of an execution, 
 
 A Receipt is evidence consumed by a Production, not a universal event schema or a new owner of the source system.
 
+Human/expert calibration follows the same rule. Do not create a pending or ceremonial approval Receipt merely because a person could review an artifact. If an actual human-response judgment materially changes or closes a Production decision, retain only the consequential evidence needed to recover that decision: the exact reviewed artifact digest, the bounded question/claim being calibrated, the supplied judgment, and enough context to avoid treating one observation as universal taste authority. Until such a judgment exists, the Production/Cognition state may truthfully remain `review` without fabricating a human Receipt.
+
 ## Production
 
 A Production ties claims, assets, editable sources, medium-applicable working state, and outputs together.
@@ -114,7 +116,7 @@ Examples:
 - WebVTT caption track;
 - audio-only master.
 
-Every published Output records its Blob digest and source Production revision.
+Every published Output records its Blob digest and source Production revision. Its exact bytes must also remain recoverable from the appropriate durable authority for that medium: source control for an exact canonical text/code artifact, or a verified byte/object store for payloads intentionally kept outside Git.
 
 ## Canonical versus generated
 
