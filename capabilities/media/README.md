@@ -39,6 +39,16 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 - [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
 - [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real production vertical.
 
+## Fresh Workspace bootstrap
+
+JavaScript production commands fail fast when workspace dependencies are absent instead of running Python/media checks first and discovering `tsc` late. Materialize them once with:
+
+```bash
+pnpm bootstrap
+```
+
+`pnpm deps:check` is the cheap readiness probe. Python-only model and test commands remain usable without JavaScript bootstrap.
+
 ## Current state
 
 The design foundation is executable and verified:
@@ -49,6 +59,7 @@ The design foundation is executable and verified:
 - the Preview app builds;
 - the Runtime motion composition renders at 1920×1080, 30 fps;
 - QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track;
+- progressive perception materializes exact review pixels, and native Runtime `workspace.content` delivery has passed a fresh vision-capable Agent acceptance with a bounded semantic `no-op`;
 - the Resolve Free adapter has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; native OTIO import preserves clip durations and gaps, while explicit Append source ranges are excluded from production assembly.
 
 DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. Resolve editing, real OBS capture, narration, asset registration, and final delivery remain production work rather than repository architecture.

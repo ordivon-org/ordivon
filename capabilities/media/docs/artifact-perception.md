@@ -96,7 +96,7 @@ Studio can decide **which pixels should be available to perception** and can mat
 
 The first C6 acceptance exposed a concrete boundary in the WSL MCP surface available at that time: a generated JPEG/PNG could be hashed and Base64-encoded into a text Job Artifact, but the tool surface could not present an arbitrary Workspace image as native `image/jpeg` / `image/png` model content. That experiment remains the historical evidence that motivated the cross-project requirement; Base64 text is not an acceptable long-term perception transport.
 
-As of Runtime source revision `66b87a90d1701c5f04aa42b327024e6aeecc8fb3`, that source-level gap is implemented by generic `workspace.content`: Runtime binds the read to an opened Workspace-confined file descriptor, bounds the bytes, verifies the caller-selected SHA-256 digest and PNG/JPEG signature, and projects the result as native MCP image content. Production deployment and a fresh vision-capable Agent consuming the image remain separate acceptance boundaries; Studio therefore does not claim that the current production MCP session has already delivered these pixels to a model.
+Runtime later implemented generic `workspace.content`: it binds the read to an opened Workspace-confined file descriptor, bounds the bytes, verifies the caller-selected SHA-256 digest and PNG/JPEG signature, and projects the result as native MCP image content. The fresh-client acceptance is now complete as well. A vision-capable Agent received the retained C6 contact sheet at exact digest `sha256:75ddc76bc93c271d5c19e97158ed2e8864d311d43c1deb1059f4e6334363b716`, then inspected exact full-resolution frame 179 at `sha256:a0235db424abe64290c0d4245891e94a60bca8bdcdcc1310d4acadfa2094c01b`. The bounded visual audit found no renewed `same Attempt` or external-effect-idempotency implication, so that C6 observation ended in `no-op` rather than a source revision.
 
 The cross-project requirement is therefore:
 
@@ -112,7 +112,7 @@ vision-capable Agent
 
 This belongs with Agent transport / artifact exposure, not with aesthetic reasoning. Studio should not embed image Base64 in review JSON or introduce a private vision API merely to bypass that boundary.
 
-The cross-project continuation is registered in Host as `task:studio:c6-native-model-view-transport-20260809` under `goal:agent-perception:native-media-transport`, so Runtime/Host work can resume from the exact requirement without making Studio own the transport implementation.
+The cross-project continuation was tracked in Host as `task:studio:c6-native-model-view-transport-20260809` under `goal:agent-perception:native-media-transport`. It is now completed at Host task revision 8. Studio still does not own the transport implementation; the completed task is evidence that the existing ownership split can carry a real perceptual input end to end.
 
 ## Why progressive perception matters
 
@@ -138,7 +138,7 @@ C6 does not establish:
 - scene-score importance;
 - a universal image embedding or CV stack;
 - that contact sheets can replace playback;
-- that the currently deployed production MCP session already supplies the Runtime source-level native image capability to a fresh vision-capable Agent;
+- that one static contact-sheet/frame audit establishes timing, pacing, animation or audio-image correctness;
 - that every medium should share the video perception representation.
 
-The accepted result is narrower: **Studio can deterministically compile a real time-based artifact into a bounded, progressive model-view surface while keeping mechanical sampling separate from semantic interpretation.**
+The accepted result is narrower: **Studio can deterministically compile a real time-based artifact into a bounded, progressive model-view surface, Runtime can transport an exact selected image natively, and a fresh vision-capable Agent can consume those pixels for a scoped semantic decision while mechanical sampling remains separate from interpretation.**
