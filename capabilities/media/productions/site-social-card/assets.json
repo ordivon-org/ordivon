@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "productionId": "site-social-card",
+  "assets": [
+    {
+      "id": "site-social-card-svg",
+      "role": "editable-vector-source",
+      "origin": "generated",
+      "selectedBlob": {
+        "digest": "sha256:08e7436bb09bbd2aa8b89c84854f964d99acb0fffc7fff9c129ac40fb766d9c6",
+        "sizeBytes": 3311,
+        "mediaType": "image/svg+xml"
+      },
+      "source": {
+        "tool": "agent-authored-svg",
+        "settings": {
+          "canvas": "1200x630",
+          "designTokenSource": "ordivon-web/design/tokens.json"
+        }
+      },
+      "technical": {
+        "width": 1200,
+        "height": 630,
+        "format": "svg"
+      },
+      "rights": {
+        "status": "owned",
+        "notes": "Original Ordivon visual assembled from owner-authored copy and design tokens."
+      }
+    },
+    {
+      "id": "site-social-card-png",
+      "role": "selected-root-social-card",
+      "origin": "rendered",
+      "selectedBlob": {
+        "digest": "sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807",
+        "sizeBytes": 110038,
+        "mediaType": "image/png"
+      },
+      "parents": [
+        "site-social-card-svg"
+      ],
+      "source": {
+        "tool": "rsvg-convert",
+        "inputAssets": [
+          "site-social-card-svg"
+        ],
+        "settings": {
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "technical": {
+        "width": 1200,
+        "height": 630,
+        "format": "png"
+      },
+      "rights": {
+        "status": "owned",
+        "notes": "Rendered from the owned SVG source."
+      }
+    }
+  ]
+}

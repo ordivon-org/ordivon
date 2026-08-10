@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "productionId": "site-social-card",
+  "claims": [
+    {
+      "id": "root-social-surface",
+      "source": {
+        "binding": "web",
+        "path": "app/layout.tsx"
+      },
+      "meaning": "The Web root metadata uses /opengraph-image.png as the default 1200\u00d7630 OpenGraph image and as the default Twitter summary-large-image for non-article surfaces.",
+      "evidence": [
+        "app/layout.tsx"
+      ],
+      "allowedWording": [
+        "default social preview",
+        "1200\u00d7630 OpenGraph card",
+        "non-article root social image"
+      ],
+      "avoid": [
+        "every Writing article uses this image",
+        "the image is an execution authority"
+      ]
+    },
+    {
+      "id": "durable-work-position",
+      "source": {
+        "binding": "web",
+        "path": "components/site-footer.tsx"
+      },
+      "meaning": "The current public Web position summarizes Ordivon as durable work, replaceable intelligence, and evidence that survives interruption.",
+      "evidence": [
+        "components/site-footer.tsx",
+        "app/layout.tsx"
+      ],
+      "allowedWording": [
+        "Durable work, replaceable intelligence, evidence that survives interruption.",
+        "Durable work for AI agents"
+      ],
+      "avoid": [
+        "all Ordivon projects must use one execution stack",
+        "models are disposable or unimportant"
+      ]
+    },
+    {
+      "id": "current-visual-language",
+      "source": {
+        "binding": "web",
+        "path": "design/tokens.json"
+      },
+      "meaning": "The current Web visual language uses the dark ink canvas, high-contrast paper foreground, purple accent, and green success signal defined by the owner design tokens.",
+      "evidence": [
+        "design/tokens.json"
+      ],
+      "allowedWording": [
+        "current Web visual language",
+        "owner design tokens"
+      ],
+      "avoid": [
+        "a new universal Ordivon brand law",
+        "human preference has been proven"
+      ]
+    }
+  ]
+}
