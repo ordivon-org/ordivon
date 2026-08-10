@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio src/index.ts --config=remotion.config.ts",
+    "render:introduction": "remotion render src/index.ts runtime-introduction-master ../../out/runtime-introduction-master.mp4 --config=remotion.config.ts",
     "render:runtime": "remotion render src/index.ts runtime-flow ../../out/runtime-flow.mp4 --config=remotion.config.ts",
     "render:replay": "remotion render src/index.ts runtime-request-replay ../../out/runtime-request-replay.mp4 --config=remotion.config.ts",
     "render:close": "remotion render src/index.ts runtime-exact-close ../../out/runtime-exact-close.mp4 --config=remotion.config.ts"

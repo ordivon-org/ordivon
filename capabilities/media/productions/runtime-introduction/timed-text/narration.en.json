@@ -7,9 +7,14 @@
     "frameRate": {"numerator": 30, "denominator": 1}
   },
   "cues": [
-    {"id": "en-001", "startTick": 0, "endTick": 2400, "text": "AI agents can write code.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-002", "startTick": 2600, "endTick": 5200, "text": "Reliable execution is a different problem.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-003", "startTick": 5400, "endTick": 12100, "text": "A command may outlive the conversation, lose its response, spawn child processes, or leave behind an ambiguous result.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-004", "startTick": 12400, "endTick": 17400, "text": "Ordivon Runtime is a durable local execution layer for AI-agent and automation workflows.", "status": "provisional", "kind": "dialogue", "speaker": "narrator"}
+    {"id": "en-001", "startTick": 0, "endTick": 6000, "text": "When a response disappears, reliable automation cannot guess whether the work happened.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-002", "startTick": 6000, "endTick": 13000, "text": "Runtime separates source, Workspace, durable Job, owned Attempt, evidence, and recovery.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-003", "startTick": 13000, "endTick": 24000, "text": "This proof starts from an exact source revision. A guarded Patch changes one file and binds the request to what was actually read.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-004", "startTick": 24000, "endTick": 37000, "text": "The operation becomes a durable Job with a recorded Attempt. Observation exposes real progress—inspect, verify, report—until the process tree finishes cleanly.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-005", "startTick": 37000, "endTick": 48000, "text": "If delivery is uncertain, the client reconnects and replays the exact request identity. Runtime returns the same recorded Job; it does not admit a second Job.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-006", "startTick": 48000, "endTick": 59000, "text": "That Job retains bounded terminal evidence tied to its Workspace, source revision, and Attempt. The receipt records execution and delivery dispositions without claiming semantic completion.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-007", "startTick": 59000, "endTick": 68000, "text": "The source effect remains visible as one modified path. After review, compare-and-close succeeds only against the exact reviewed Workspace state.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-008", "startTick": 68000, "endTick": 75000, "text": "The boundary matters: Runtime does not prove external-effect idempotency, hostile multi-tenant isolation, or the user's semantic objective.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-009", "startTick": 75000, "endTick": 78000, "text": "Recover the same work. Inspect the evidence.", "status": "locked", "kind": "dialogue", "speaker": "narrator"}
   ]
 }

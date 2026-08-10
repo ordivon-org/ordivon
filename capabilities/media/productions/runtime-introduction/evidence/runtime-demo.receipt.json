@@ -2,7 +2,7 @@
   "close": {
     "exactStateMatched": true,
     "removed": true,
-    "sourceStateDigest": "sha256:ed871689ffff59888e460d3d91aeccbed48577de48413fe127ece12fc2d52875"
+    "sourceStateDigest": "sha256:440d9ab5c3f55ced72438a8c7251acc5949d059e39bd43c697b0f17bbe5b030c"
   },
   "diff": {
     "changedPaths": [
@@ -15,106 +15,96 @@
     "truncated": false
   },
   "evidence": {
-    "artifactId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.terminal-evidence.e3b23107fa8e0bb9c0f52b07fedc3d3fb03470b6266eb4a7fbf024232ca94d86",
-    "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+    "artifactId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef.terminal-evidence.18773b25153fd0e4bbd78c486775022af75bb2f8353997d4b03fdb50b8340535",
+    "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
     "cancellationDisposition": "not_requested",
     "deliveryDisposition": "committed",
-    "digest": "sha256:e3b23107fa8e0bb9c0f52b07fedc3d3fb03470b6266eb4a7fbf024232ca94d86",
+    "digest": "sha256:18773b25153fd0e4bbd78c486775022af75bb2f8353997d4b03fdb50b8340535",
     "executionDisposition": "succeeded",
     "executionProfile": "trusted_local",
-    "jobId": "job-019fcb91-3892-7780-9f4c-2ad0c7e29b70",
-    "observedAtMs": 1785826723281,
+    "jobId": "job-019fea5e-6d1a-7432-bef0-3f11a28f8c43",
+    "observedAtMs": 1786343488201,
     "processTreeDisposition": "terminal_clean",
     "reasonCode": "PROCESS_EXIT_ZERO",
     "schemaVersion": 1,
-    "sourceRevision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c",
+    "sourceRevision": "69cfe0c29c5e3dbb542ec4fe9235e712d6198d9c",
     "startDisposition": "identity_bound",
     "terminalArtifactIds": [
-      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.stdout",
-      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.stderr",
-      "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3.result"
+      "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef.stdout",
+      "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef.stderr",
+      "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef.result"
     ],
-    "workspaceId": "runtime-demo-de1061323e7840e4955a10eca1e2d5a1"
+    "workspaceId": "runtime-demo-aff5257f879d466392d5631a8105417f"
   },
   "execution": {
-    "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
-    "clientRequestId": "demo:runtime-flow:exec:de1061323e7840e4955a10eca1e2d5a1",
-    "elapsedMs": 3322,
+    "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
+    "clientRequestId": "demo:runtime-flow:exec:aff5257f879d466392d5631a8105417f",
+    "elapsedMs": 3511,
     "exitCode": 0,
-    "jobId": "job-019fcb91-3892-7780-9f4c-2ad0c7e29b70",
+    "jobId": "job-019fea5e-6d1a-7432-bef0-3f11a28f8c43",
     "observations": [
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 0,
         "currentStepId": "inspect",
         "currentStepIndex": 0,
-        "elapsedMs": 650,
+        "elapsedMs": 777,
         "progressRevision": 2,
         "status": "working",
         "totalSteps": 3
       },
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 1,
         "currentStepId": "verify",
         "currentStepIndex": 1,
-        "elapsedMs": 1127,
+        "elapsedMs": 1200,
         "progressRevision": 4,
         "status": "working",
         "totalSteps": 3
       },
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 1,
         "currentStepId": "verify",
         "currentStepIndex": 1,
-        "elapsedMs": 1161,
+        "elapsedMs": 1732,
         "progressRevision": 4,
         "status": "working",
         "totalSteps": 3
       },
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
-        "completedSteps": 1,
-        "currentStepId": "verify",
-        "currentStepIndex": 1,
-        "elapsedMs": 1674,
-        "progressRevision": 4,
-        "status": "working",
-        "totalSteps": 3
-      },
-      {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
-        "completedSteps": 2,
-        "elapsedMs": 2189,
-        "progressRevision": 5,
-        "status": "working",
-        "totalSteps": 3
-      },
-      {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 2,
         "currentStepId": "report",
         "currentStepIndex": 2,
-        "elapsedMs": 2706,
+        "elapsedMs": 2248,
         "progressRevision": 6,
         "status": "working",
         "totalSteps": 3
       },
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 2,
         "currentStepId": "report",
         "currentStepIndex": 2,
-        "elapsedMs": 3232,
+        "elapsedMs": 2772,
         "progressRevision": 6,
         "status": "working",
         "totalSteps": 3
       },
       {
-        "attemptId": "attempt-019fcb91-3892-7780-9f4c-2ae7337c41d3",
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
         "completedSteps": 3,
-        "elapsedMs": 3322,
+        "elapsedMs": 3296,
+        "progressRevision": 8,
+        "status": "working",
+        "totalSteps": 3
+      },
+      {
+        "attemptId": "attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef",
+        "completedSteps": 3,
+        "elapsedMs": 3511,
         "exitCode": 0,
         "progressRevision": 8,
         "status": "succeeded",
@@ -127,33 +117,33 @@
   },
   "kind": "ordivon-runtime-demo-receipt",
   "patch": {
-    "clientRequestId": "demo:runtime-flow:patch:de1061323e7840e4955a10eca1e2d5a1",
+    "clientRequestId": "demo:runtime-flow:patch:aff5257f879d466392d5631a8105417f",
     "files": [
       "policy.py"
     ],
-    "operationId": "patch-019fcb91-382a-7052-885a-833532114f10",
+    "operationId": "patch-019fea5e-6cc6-7161-a7ff-0de4177ab0c2",
     "replayed": false,
-    "requestDigest": "sha256:144c764c3331c89f2e10649ea347eb70eb9d8095308b1e20f70ff8ae7676f632"
+    "requestDigest": "sha256:2a750915ec7e07daf0dca4c3c4f748b8a9b4850756142c8795d909ba556d0cf3"
   },
   "presentation": [
     {
-      "detail": "1be3fcd5aea1\u2026",
+      "detail": "69cfe0c29c5e\u2026",
       "kind": "source"
     },
     {
-      "detail": "runtime-demo\u2026  detached  1be3fcd5aea1\u2026",
+      "detail": "runtime-demo\u2026  detached  69cfe0c29c5e\u2026",
       "kind": "workspace"
     },
     {
-      "detail": "committed  sha256:144c764c3331\u2026",
+      "detail": "committed  sha256:2a750915ec7e\u2026",
       "kind": "patch"
     },
     {
-      "detail": "job-019fcb91\u2026  attempt-019f\u2026",
+      "detail": "job-019fea5e\u2026  attempt-019f\u2026",
       "kind": "job"
     },
     {
-      "detail": "same job-019fcb91\u2026",
+      "detail": "same job-019fea5e\u2026",
       "kind": "recover"
     },
     {
@@ -169,7 +159,7 @@
       "kind": "step"
     },
     {
-      "detail": "terminal-evidence  sha256:e3b23107fa8e\u2026",
+      "detail": "terminal-evidence  sha256:18773b25153f\u2026",
       "kind": "evidence"
     },
     {
@@ -177,21 +167,21 @@
       "kind": "diff"
     },
     {
-      "detail": "exact state matched  sha256:ed871689ffff\u2026",
+      "detail": "exact state matched  sha256:440d9ab5c3f5\u2026",
       "kind": "close"
     }
   ],
   "protocolVersion": "2026-07-28",
   "schemaVersion": 1,
   "source": {
-    "revision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c"
+    "revision": "69cfe0c29c5e3dbb542ec4fe9235e712d6198d9c"
   },
   "status": "passed",
-  "toolCatalogDigest": "sha256:115e7762e12a8711fbf3338106f483145107b1c09a916a8f1871716eac9ae051",
+  "toolCatalogDigest": "sha256:72a51ce5a904da6fa2fc0ae3df414148e2d858c69e5455a17b4ffbcbe0e6a384",
   "workspace": {
     "closed": true,
-    "sourceRevision": "1be3fcd5aea134ec6d650da1456f4a7f7b85ab2c",
-    "sourceStateDigest": "sha256:ed871689ffff59888e460d3d91aeccbed48577de48413fe127ece12fc2d52875",
-    "workspaceId": "runtime-demo-de1061323e7840e4955a10eca1e2d5a1"
+    "sourceRevision": "69cfe0c29c5e3dbb542ec4fe9235e712d6198d9c",
+    "sourceStateDigest": "sha256:440d9ab5c3f55ced72438a8c7251acc5949d059e39bd43c697b0f17bbe5b030c",
+    "workspaceId": "runtime-demo-aff5257f879d466392d5631a8105417f"
   }
 }

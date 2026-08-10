@@ -1,19 +1,19 @@
-# English narration draft
+# English narration — locked 78-second master
 
-AI agents can write code. Reliable execution is a different problem.
+When a response disappears, reliable automation cannot guess whether the work happened.
 
-A command may outlive the conversation, lose its response, spawn child processes, or leave behind an ambiguous result.
+Runtime separates source, Workspace, durable Job, owned Attempt, evidence, and recovery.
 
-Ordivon Runtime is a durable local execution layer for Agent and automation workflows.
+This proof starts from an exact source revision. A guarded Patch changes one file and binds the request to what was actually read.
 
-In this demonstration, work begins from an exact source revision. A guarded Patch changes only the file state that was read, then a stable request identity admits a durable Job with an owned Attempt.
+The operation becomes a durable Job with a recorded Attempt. Observation exposes real progress—inspect, verify, report—until the process tree finishes cleanly.
 
-The client observes real step progress and bounded output. Then it reconnects and replays the same operation request. Runtime returns the same recorded Job instead of silently dispatching new work.
+If delivery is uncertain, the client reconnects and replays the exact request identity. Runtime returns the same recorded Job; it does not admit a second Job.
 
-The Job retains Artifacts and terminal evidence that bind the execution to its Workspace, source revision and Attempt. The source effect remains visible as a structured diff.
+That Job retains bounded terminal evidence tied to its Workspace, source revision, and Attempt. The receipt records execution and delivery dispositions without claiming semantic completion.
 
-After review, the client reads the complete source-state digest and closes only that exact Workspace state.
+The source effect remains visible as one modified path. After review, compare-and-close succeeds only against the exact reviewed Workspace state.
 
-Runtime does not claim that every external effect is idempotent. It preserves physical execution identity, process ownership and evidence so uncertainty can be observed and recovered deliberately.
+The boundary matters: Runtime does not prove external-effect idempotency, hostile multi-tenant isolation, or the user's semantic objective.
 
-It is operational for owner-trusted Linux environments. It is not a hostile-code sandbox, and it does not decide whether the user's semantic objective is complete.
+Recover the same work. Inspect the evidence.

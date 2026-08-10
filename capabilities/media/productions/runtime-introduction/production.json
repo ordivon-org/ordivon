@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "runtime-introduction",
   "title": "Ordivon Runtime Introduction",
-  "status": "production",
+  "status": "review",
   "intent": "Explain why reliable Agent execution requires durable identity, process ownership, bounded evidence, observation, and recovery, then demonstrate those properties through a real Runtime workflow.",
   "audiences": [
     "potential-client",
@@ -14,13 +14,19 @@
     {
       "id": "runtime",
       "repository": "https://github.com/zycxfyh/ordivon-runtime",
-      "revision": "f0784919e56a3fe9c7767781fd6c71563f8c5f8e",
+      "revision": "5dd206c74a2b9151fb0a87579ba2200aaf892633",
       "role": "product-facts-and-executable-demonstration"
     }
   ],
   "workingProfile": {
-    "frameRate": {"numerator": 30, "denominator": 1},
-    "canvas": {"width": 1920, "height": 1080},
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "canvas": {
+      "width": 1920,
+      "height": 1080
+    },
     "color": {
       "still": "sRGB",
       "video": "Rec.709 Gamma 2.4 SDR"
@@ -34,22 +40,59 @@
     "claims": "claims.json",
     "assets": "assets.json",
     "article": "story.mdx",
-    "scripts": ["script/narration.en.md", "script/narration.zh.md"],
-    "timedText": ["timed-text/narration.en.json"],
-    "receipts": ["evidence/runtime-demo.receipt.json"],
+    "scripts": [
+      "script/narration.en.md",
+      "script/narration.zh.md"
+    ],
+    "timedText": [
+      "timed-text/narration.en.json"
+    ],
+    "receipts": [
+      "evidence/runtime-demo.receipt.json"
+    ],
     "motion": [
+      "../../apps/motion-remotion/src/runtime-introduction-master-composition.tsx",
       "../../apps/motion-remotion/src/runtime-flow-composition.tsx",
       "../../apps/motion-remotion/src/request-replay-composition.tsx",
       "../../apps/motion-remotion/src/exact-close-composition.tsx"
     ],
-    "otioSnapshots": ["timeline/assembly.v0.otio"],
+    "otioSnapshots": [
+      "timeline/assembly.v1.otio",
+      "timeline/assembly.v0.otio"
+    ],
     "cognition": "cognition.md"
   },
   "outputs": [
-    {"id": "runtime-article-en", "kind": "article", "status": "planned", "profile": "web-en"},
-    {"id": "runtime-film-en-landscape", "kind": "video", "status": "planned", "profile": "youtube-upwork-1080p"},
-    {"id": "runtime-short-zh-vertical", "kind": "video", "status": "planned", "profile": "douyin-1080x1920"},
-    {"id": "runtime-architecture-interactive", "kind": "interactive", "status": "planned", "profile": "web-react"},
-    {"id": "runtime-upwork-package", "kind": "publication-package", "status": "planned", "profile": "upwork-portfolio"}
+    {
+      "id": "runtime-article-en",
+      "kind": "article",
+      "status": "planned",
+      "profile": "web-en"
+    },
+    {
+      "id": "runtime-film-en-landscape",
+      "kind": "video",
+      "status": "rendered",
+      "profile": "youtube-upwork-1080p",
+      "blobDigest": "sha256:56276cf3fb25fb42f1174f1ed2f2fc209090502a0b3b3dda1adc59cb527cb535"
+    },
+    {
+      "id": "runtime-short-zh-vertical",
+      "kind": "video",
+      "status": "planned",
+      "profile": "douyin-1080x1920"
+    },
+    {
+      "id": "runtime-architecture-interactive",
+      "kind": "interactive",
+      "status": "planned",
+      "profile": "web-react"
+    },
+    {
+      "id": "runtime-upwork-package",
+      "kind": "publication-package",
+      "status": "planned",
+      "profile": "upwork-portfolio"
+    }
   ]
 }
