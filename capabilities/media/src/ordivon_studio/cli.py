@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .assets import archive_blob, hash_file, materialize_blob, probe_media, r2_object_key
 from .qc import validate_video_probe
+from .r2 import replicate_r2_blob, restore_r2_blob
 from .review import build_video_review_packet
 from .resolve_adapter import (
     discover_resolve_paths,
@@ -42,6 +43,31 @@ def _command_archive(args: argparse.Namespace) -> int:
 
 def _command_materialize(args: argparse.Namespace) -> int:
     _write_json(materialize_blob(args.digest, Path(args.cache_root), Path(args.destination)))
+    return 0
+
+
+def _command_r2_replicate(args: argparse.Namespace) -> int:
+    _write_json(
+        replicate_r2_blob(
+            Path(args.path),
+            bucket=args.bucket,
+            credentials_path=Path(args.credentials),
+            curl=args.curl,
+        )
+    )
+    return 0
+
+
+def _command_r2_restore(args: argparse.Namespace) -> int:
+    _write_json(
+        restore_r2_blob(
+            args.digest,
+            Path(args.cache_root),
+            bucket=args.bucket,
+            credentials_path=Path(args.credentials),
+            curl=args.curl,
+        )
+    )
     return 0
 
 
@@ -273,6 +299,24 @@ def build_parser() -> argparse.ArgumentParser:
     materialize_parser.add_argument("destination")
     materialize_parser.add_argument("--cache-root", required=True)
     materialize_parser.set_defaults(handler=_command_materialize)
+
+    r2_parser = commands.add_parser("r2", help="replicate and restore exact selected Blobs through Cloudflare R2")
+    r2_commands = r2_parser.add_subparsers(dest="r2_command", required=True)
+
+    r2_replicate = r2_commands.add_parser("replicate", help="copy one exact local Blob to R2 and redownload-verify it")
+    r2_replicate.add_argument("path")
+    r2_replicate.add_argument("--bucket", required=True)
+    r2_replicate.add_argument("--credentials", required=True, help="JSON containing account_id and api_token")
+    r2_replicate.add_argument("--curl", default="/usr/bin/curl")
+    r2_replicate.set_defaults(handler=_command_r2_replicate)
+
+    r2_restore = r2_commands.add_parser("restore", help="restore one exact R2 Blob into the local content-addressed cache")
+    r2_restore.add_argument("digest")
+    r2_restore.add_argument("--cache-root", required=True)
+    r2_restore.add_argument("--bucket", required=True)
+    r2_restore.add_argument("--credentials", required=True, help="JSON containing account_id and api_token")
+    r2_restore.add_argument("--curl", default="/usr/bin/curl")
+    r2_restore.set_defaults(handler=_command_r2_restore)
 
     probe_parser = commands.add_parser("probe", help="hash and inspect one media file")
     probe_parser.add_argument("path")

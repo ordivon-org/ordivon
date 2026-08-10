@@ -20,7 +20,7 @@ This file records the **current creative judgment needed to continue the work**.
 
 **Narration authority.** [`timed-text/narration.en.json`](timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
 
-**Byte authority.** Selected picture, narration, and muxed candidate bytes are now copied into the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...` and reverified after archival. An Asset digest without recoverable selected bytes is no longer treated as sufficient durability evidence.
+**Byte authority.** Selected picture, narration, and muxed candidate bytes are stored and verified in the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...`. P4 additionally retains independently redownload-verified copies in the private Cloudflare R2 bucket `ordivon-artifacts`; [`evidence/r2-replica.receipt.json`](evidence/r2-replica.receipt.json) records the exact object keys and destructive local-loss restore acceptance. An Asset digest without recoverable bytes at the failure boundary being claimed is not sufficient durability evidence.
 
 ## EXPRESS
 
@@ -89,6 +89,15 @@ Three selected exact artifacts now exist and are archived:
 4. **The durability rule does not imply universal CAS.** Browser Perception Note provides the materially different falsifier: its approved article Output digest exactly equals the Git-tracked `story.mdx` bytes and the same bytes recovered through `git show HEAD:<path>`, while no media-cache object exists. Git is already the durable byte authority for that exact text artifact.
 5. **The exact audition object is now independently materialized for human use.** The current candidate digest is present at `D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4`; this working copy is recoverable evidence, not an approval claim.
 
+### P4 findings
+
+1. **Local CAS was still one failure domain.** P3 proved recovery after Workspace loss, but the selected media still depended on the workstation/D: volume. P4 therefore tested the stronger claim rather than relabeling local storage as redundancy.
+2. **A real private R2 replica now exists.** The selected picture master, narration stem, and final A/V candidate were copied into the existing private `ordivon-artifacts` bucket under their exact `objects/sha256/...` keys. `r2.dev` was disabled and no custom domain was attached during acceptance. Every object was independently downloaded and SHA-256 verified.
+3. **Destructive local-loss restore is proven through the productized path.** The picture-master CAS object was quarantined, ordinary local `materialize` failed, then `ordivon-studio r2 restore` reconstructed the local CAS object from R2 alone. The restored CAS and working MP4 both matched `sha256:77d8ea…` and the 78-second H.264 BT.709 structure remained intact.
+4. **Remote replication justified a provider adapter, not a storage platform.** Hand-written curl was real operational friction only after the destructive experiment succeeded. Studio now exposes the narrow `r2 replicate/restore` pair while Blob/Production identity remains provider-independent.
+5. **The exercised Account Object API is not an atomic multi-writer admission boundary.** Sending `If-None-Match: *` while PUTting an already-existing exact object returned HTTP 200. The accepted adapter is therefore explicitly single-writer: preflight GET, PUT only when absent, then mandatory redownload/hash verification. Concurrent create-only semantics remain unproven.
+6. **Off-machine durability does not change the creative decision.** Storage recovery evidence closes a different failure class; it provides no evidence about whether Zira sounds natural or publication-worthy.
+
 ### Audit routing
 
 ```text
@@ -102,15 +111,17 @@ voice naturalness / human response  → conditional human audition
 
 **Current decision for `runtime-film-en-landscape`: keep `rendered / review`; do not promote to `approved` or `published`.**
 
-This is materially stronger than P1. The current output digest now identifies a complete, recoverable picture+narration candidate rather than a silent picture master. Selected picture, narration stem, and final mux are all archived by exact digest; cue fit, A/V structure, color/video facts, audio stream facts, loudness/peak, and deterministic rebuild/mux behavior are established.
+This is materially stronger than P1. The current output digest now identifies a complete, recoverable picture+narration candidate rather than a silent picture master. Selected picture, narration stem, and final mux are archived locally by exact digest and independently redownload-verified from private R2; destructive local-CAS-loss restore is proven for the picture master. Cue fit, A/V structure, color/video facts, audio stream facts, loudness/peak, and deterministic rebuild/mux behavior are also established.
 
 Promotion is withheld for one precise reason only: the remaining uncertainty is a real **human auditory-response claim** about the selected synthetic voice. Static pixels, hashes, ffprobe, loudness analysis, and knowledge of the input text do not prove that claim. P3 has already materialized the exact candidate at `D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4`; the next gate is therefore a bounded human audition of **that exact digest**, not another Studio architecture project. No human-review Receipt exists until an actual judgment is supplied.
 
 ## LEARNING
 
-Retain the P2/P3 learning at the narrowest justified scope:
+Retain the P2/P3/P4 learning at the narrowest justified scope:
 
 - **production-system, promoted and narrowed by cross-medium falsification:** a digest identifies selected bytes but does not establish recoverability. Selected payloads need an exact durable byte authority appropriate to their medium: verified CAS for large/binary media intentionally outside Git, while exact Git-tracked text/code may use Git itself. For CAS-backed media, the durability boundary must support verified recovery as well as archive;
+- **production-system, promoted by destructive failure testing:** local CAS proves Workspace/process recovery but not workstation/volume-loss tolerance. When that stronger failure boundary matters, selected bytes outside Git need at least one independently verified replica and a proven restore from that replica after the local object is unavailable;
+- **provider-local:** the accepted Cloudflare Account Object API adapter is a single-writer verified replica path, not an atomic multi-writer content store. Do not generalize its preflight/PUT/redownload protocol into a universal storage law;
 - **production-system:** media-specific materialization may legitimately revise a previously locked abstract timing plan. “Locked text/timing” means the current editorial decision, not immunity from physical evidence produced by the medium itself;
 - **production-local:** Windows System.Speech / Zira rate `1` is an exact-byte-repeatable local candidate generator on this workstation. That does not make it a universal Studio voice provider or quality default;
 - **Motion/Audio:** cue-bound temporal sampling can establish semantic ordering and slot fit, but it does not establish voice naturalness or audience preference;

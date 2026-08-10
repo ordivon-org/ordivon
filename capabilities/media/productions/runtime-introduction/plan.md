@@ -73,14 +73,23 @@ The candidate is exactly 78.000 seconds. Video remains 1920×1080 / 30 fps / H.2
 
 ## Selected-byte durability and recovery gate
 
-A committed Asset digest is not enough if its selected bytes disappear with a disposable Workspace. For selected media whose canonical payload is outside Git, Studio uses a symmetric local pair:
+A committed Asset digest is not enough if its selected bytes disappear with a disposable Workspace. For selected media whose canonical payload is outside Git, Studio first uses a symmetric local pair:
 
 ```bash
 uv run ordivon-studio archive <path> --cache-root /mnt/d/OrdivonStudio/cache
 uv run ordivon-studio materialize <sha256:digest> <working-path> --cache-root /mnt/d/OrdivonStudio/cache
 ```
 
-`archive` verifies and admits immutable cache bytes without overwrite. `materialize` verifies the requested cache object before copying, verifies the working copy, and never overwrites different destination bytes. Picture, narration stem, and final A/V candidate passed the archive side in P2; P3 then recovered the final A/V candidate from a fresh Workspace after the P2 Workspace was gone. First recovery created the working copy, exact replay converged to the existing bytes, and a conflicting destination failed closed.
+P2/P3 proved local CAS admission and fresh-Workspace recovery. P4 then tested the stronger workstation/volume-loss boundary using a private Cloudflare R2 replica:
+
+```bash
+uv run ordivon-studio r2 replicate <local-blob> --bucket ordivon-artifacts --credentials <secret-json>
+uv run ordivon-studio r2 restore <sha256:digest> --cache-root /mnt/d/OrdivonStudio/cache --bucket ordivon-artifacts --credentials <secret-json>
+```
+
+All three selected media Blobs are now redownload-verified in R2. The picture-master local CAS object was quarantined; local `materialize` failed; `r2 restore` reconstructed the exact CAS object from R2; the restored working MP4 retained exact SHA-256 and its 78-second H.264 BT.709 structure.
+
+The current Account Object API path is a **single-writer** replica mechanism, not an atomic multi-writer store: a real `If-None-Match: *` PUT probe against an existing object returned HTTP 200. The adapter therefore preflights existing keys and always redownload-verifies after PUT. Multi-writer admission is outside this acceptance.
 
 ## Current acceptance
 
@@ -90,7 +99,9 @@ Established:
 - exact picture bytes and complete video/color QC;
 - exact narration bytes, deterministic repeated synthesis, cue fit, sample format, loudness and peak;
 - exact deterministic repeated A/V mux;
-- durable local content-addressed copies of all selected media plus exact fresh-Workspace recovery of the final candidate through `materialize`;
+- durable local content-addressed copies of all selected media plus exact fresh-Workspace recovery through `materialize`;
+- private off-machine R2 replicas of picture, narration and final A/V, each verified by redownloading and SHA-256 hashing actual remote bytes;
+- productized destructive-local-CAS-loss restore of the picture master through `ordivon-studio r2 restore`;
 - cue-bound visual review showing proof phases in the same semantic order as narration;
 - focused 65–78 second inspection confirming Diff → Boundary → End under the revised edit.
 

@@ -32,7 +32,9 @@ Important fields:
 
 An Asset can select a new Blob without pretending the old bytes never existed.
 
-**Blob identity and Blob durability are separate facts.** A `selectedBlob.digest` proves which bytes were selected; it does not by itself prove those bytes still exist after a disposable render or Workspace disappears. A selected payload therefore needs one exact durable byte authority. For large/binary media that authority is normally the verified content-addressed byte store; for an exact Git-tracked text/code payload, Git itself may already be the durable byte authority. Do not duplicate every digested Output into media CAS merely for uniformity. The invariant is recoverability of the exact selected bytes, not one universal storage mechanism.
+**Blob identity and Blob durability are separate facts.** A `selectedBlob.digest` proves which bytes were selected; it does not by itself prove those bytes still exist after a disposable render or Workspace disappears. A selected payload therefore needs an exact durable byte authority. For large/binary media that authority is normally a verified local content-addressed store; for an exact Git-tracked text/code payload, Git itself may already be the durable byte authority. Do not duplicate every digested Output into media CAS merely for uniformity.
+
+A local byte authority proves recovery from process/Workspace loss, not from loss of that machine or volume. When machine-loss tolerance matters for selected bytes kept outside Git, retain at least one **independent verified replica** and prove restore from that replica after the local object is unavailable. The replica does not become a second Asset or Production authority; its consequence may be retained as a kind-specific Receipt. The invariant is exact-byte recoverability at the failure boundary being claimed, not one universal storage mechanism.
 
 ## Claim
 

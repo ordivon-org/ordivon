@@ -70,16 +70,21 @@ This baseline exists to prevent information loss and cross-medium drift. It is n
 
 ```text
 Git
-  source text, code, SVG, DTCG, schemas, manifests, TimedText, OTIO
+  exact text/code authority, schemas, manifests, TimedText, OTIO, provenance
 
-Windows local workspace
-  current raw files, editor projects, caches, proxies, renders
+Windows working paths
+  current raw files, editor projects, proxies, renders, audition/review copies
 
-R2
-  immutable selected source, editable binary milestones, and approved masters
+D:\OrdivonStudio\cache\objects\sha256
+  verified local CAS for selected binary/media bytes outside Git
+
+Cloudflare R2 · ordivon-artifacts
+  independently verified off-machine replica of selected Studio media
 ```
 
-R2 keys use Blob digests. Upload is non-destructive copy with verification. Live editing does not stream directly from object storage.
+Local CAS handles Workspace/process recovery. P4 additionally proved one destructive-local-loss restore from private R2: the local picture-master CAS object was removed from service, local materialization failed, R2 restored the exact digest, and the recovered media structure remained intact. Remote keys use Blob digests and actual downloaded bytes are SHA-256 verified.
+
+The current Cloudflare Account Object API adapter is deliberately single-writer because its exercised PUT path did not enforce `If-None-Match: *`. It uses preflight GET plus mandatory post-PUT redownload verification; it does not claim atomic multi-writer admission. Live editing never streams directly from object storage.
 
 ## QC
 

@@ -70,9 +70,11 @@ This contains Remotion's special licensing and renderer-specific APIs at an adap
 
 ### 6. Object storage is a byte authority, not the live workspace
 
-The current working set lives on Windows-local storage. Selected large/binary payloads whose canonical bytes are outside Git first cross the verified local content-addressed cache under `D:\OrdivonStudio\cache\objects\sha256\...`; Git stores their semantic identities, provenance, and checksums. P3 has also proven the inverse path: exact bytes can be materialized from that cache into a fresh working location after the producing Workspace is gone.
+The current working set lives on Windows-local storage. Selected large/binary payloads whose canonical bytes are outside Git first cross the verified local content-addressed cache under `D:\OrdivonStudio\cache\objects\sha256\...`; Git stores their semantic identities, provenance, and checksums. P3 proved the inverse path: exact bytes can be materialized from that cache into a fresh working location after the producing Workspace is gone.
 
-A remote replica such as R2 is a transport/replication option, not an assumed deployed fact and not the live NLE filesystem. When configured, upload must use copy semantics, never destructive synchronization, and an object must never be overwritten at a digest key. Remote replication, retention, and restore are accepted only after their own credentials and recovery behavior are tested; Blob identifiers do not depend on that transport choice.
+P4 adds one independently verified off-machine replica rather than another storage control plane. The current Runtime Introduction picture, narration stem, and final English A/V candidate are replicated to the private Cloudflare R2 bucket `ordivon-artifacts` under the same digest keys. One picture-master CAS object was deliberately removed from service; local materialization failed, then the provider-specific `ordivon-studio r2 restore` path reconstructed the exact CAS bytes from R2 and the recovered media probe remained intact.
+
+R2 is still a replica, not the live NLE filesystem or a new Production authority. The currently exercised Cloudflare Account Object API did not enforce `If-None-Match: *` for PUT, so the adapter is explicitly single-writer: preflight an existing key, upload only when absent, and always redownload/hash after PUT. Multi-writer atomic admission is not claimed. Credentials stay outside Git, and remote replication never changes Blob identifiers.
 
 ### 7. Product truth remains revision-bound
 

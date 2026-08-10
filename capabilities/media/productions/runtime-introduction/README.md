@@ -21,6 +21,7 @@ ordivon-runtime
 - `timed-text/narration.en.json` — nine locked English voice cues covering exactly 0–78 seconds;
 - `evidence/runtime-demo.receipt.json` — selected current live MCP proof;
 - `evidence/narration-sapi.receipt.json` — exact local narration generation, cue-fit, repeatability, audio facts, archive identity, and human-response boundary;
+- `evidence/r2-replica.receipt.json` — private R2 replica identities, redownload verification, destructive local-CAS-loss restore, and single-writer boundary;
 - `assets.json` — selected picture, narration, A/V candidate and historical media identities;
 - `timeline/assembly.v2.otio` — active picture+narration review snapshot;
 - `timeline/assembly.v1.otio` — previous picture-only milestone;
@@ -80,10 +81,18 @@ D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en
 
 This file is a recoverable working copy of the exact selected Blob, not a separate master and not an approval record.
 
+## What P4 changed
+
+P4 moved the selected media from single-machine recovery to independently replicated recovery. The private Cloudflare R2 bucket `ordivon-artifacts` now holds verified digest-addressed replicas of the selected picture master, narration stem, and final A/V candidate. Every replica was validated by downloading the remote object and hashing the returned bytes rather than trusting names or ETags.
+
+The picture master then supplied a destructive-loss acceptance. Its local CAS object was quarantined and ordinary `materialize` failed as expected. The productized `ordivon-studio r2 restore` command downloaded only the R2 digest key, verified SHA-256, re-admitted the local CAS object, and the resulting working MP4 retained the exact digest and 78-second H.264/BT.709 structure.
+
+The current Cloudflare Account Object API write path is **single-writer only**. An `If-None-Match: *` probe against an existing object returned HTTP 200 instead of a create-only precondition failure. Studio therefore performs preflight GET plus mandatory post-PUT redownload verification and does not claim atomic multi-writer object admission.
+
 ## Current output decision
 
 `runtime-film-en-landscape` remains **`rendered / review`**, not approved or published. The current Output digest now points to a complete, archived picture+narration candidate rather than a silent picture.
 
-Machine evidence now covers source/claim binding, exact selected bytes, archive recoverability, cue fit, picture sequence semantics, video/color structure, audio stream structure, loudness/peak, and deterministic local rebuild/mux behavior.
+Machine evidence now covers source/claim binding, exact selected bytes, local archive/materialization, private off-machine R2 replication and destructive-loss restore, cue fit, picture sequence semantics, video/color structure, audio stream structure, loudness/peak, and deterministic local rebuild/mux behavior.
 
 One material uncertainty remains: whether the selected synthetic voice is natural and publication-worthy to a human listener. The current Agent surface cannot truthfully establish that auditory-response claim. The next gate is therefore a bounded audition of this exact candidate Blob—not another architecture cycle.
