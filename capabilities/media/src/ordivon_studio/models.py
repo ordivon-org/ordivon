@@ -17,7 +17,6 @@ PRODUCTION_DIRECTORY = ROOT / "productions"
 DOCUMENT_SCHEMAS = {
     "production.json": "production.schema.json",
     "claims.json": "claims.schema.json",
-    "assets.json": "asset.schema.json",
 }
 TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
@@ -56,14 +55,14 @@ def _validate_production_semantics(
     production_path: Path,
     production: dict[str, Any],
     claims: dict[str, Any],
-    assets: dict[str, Any],
+    assets: dict[str, Any] | None,
 ) -> list[str]:
     errors: list[str] = []
     prefix = str(production_path.parent)
 
     if claims.get("productionId") != production.get("id"):
         errors.append(f"{prefix}: claims productionId does not match production id")
-    if assets.get("productionId") != production.get("id"):
+    if assets is not None and assets.get("productionId") != production.get("id"):
         errors.append(f"{prefix}: assets productionId does not match production id")
 
     binding_ids = [
@@ -98,7 +97,7 @@ def _validate_production_semantics(
 
     asset_ids = [
         item["id"]
-        for item in assets.get("assets", [])
+        for item in (assets or {}).get("assets", [])
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     ]
     for duplicate in sorted(_duplicates(asset_ids)):
@@ -234,13 +233,26 @@ def validate_repository() -> list[str]:
                 errors.append(f"{path}:{location}: {error.message}")
 
         production = documents.get("production.json")
-        if set(documents) == set(DOCUMENT_SCHEMAS):
+        assets: dict[str, Any] | None = None
+        if isinstance(production, dict):
+            sources = production.get("sources", {})
+            asset_reference = sources.get("assets") if isinstance(sources, dict) else None
+            if isinstance(asset_reference, str):
+                asset_path = production_directory / asset_reference
+                if asset_path.is_file():
+                    assets = _load(asset_path)
+                    asset_validator = _validator("asset.schema.json")
+                    for error in sorted(asset_validator.iter_errors(assets), key=lambda item: list(item.path)):
+                        location = "/".join(str(part) for part in error.path)
+                        errors.append(f"{asset_path}:{location}: {error.message}")
+
+        if set(documents) == set(DOCUMENT_SCHEMAS) and isinstance(production, dict):
             errors.extend(
                 _validate_production_semantics(
                     production_directory / "production.json",
-                    documents["production.json"],
+                    production,
                     documents["claims.json"],
-                    documents["assets.json"],
+                    assets,
                 )
             )
 

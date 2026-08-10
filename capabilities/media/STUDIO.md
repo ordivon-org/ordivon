@@ -44,6 +44,8 @@ Different media preserve different truths:
 
 Studio retains the narrow source required to reconstruct each layer instead of declaring OTIO, Resolve, or MP4 the sole canonical object.
 
+Resolve/OTIO is **optional NLE equipment**, not Studio Core. Core Production/model/media checks do not require OpenTimelineIO; the Resolve extra and its compatibility suite are invoked only when an actual Production uses that equipment.
+
 ### 3. Timed text is richer than a delivery subtitle file
 
 WebVTT and SRT are delivery formats. Internal timed text needs stable cue identity, language relationships, speaker, semantic kind, provisional or locked timing, and frame-rate context.

@@ -16,6 +16,7 @@ ordivon-runtime
 ## Current production sources
 
 - [`cognition.md`](cognition.md) — current FRAME/BIND/EXPRESS/RENDER/AUDIT/DECIDE/LEARNING judgment;
+- [`history/cognition-through-p4.md`](history/cognition-through-p4.md) — frozen pre-C1 P2/P3/P4 cognition ledger retained as historical evidence;
 - [`plan.md`](plan.md) — current proof and A/V construction;
 - `claims.json` — bounded Runtime claims;
 - `timed-text/narration.en.json` — nine locked English voice cues covering exactly 0–78 seconds;

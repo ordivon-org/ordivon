@@ -5,6 +5,10 @@ description = "Asset, timed-text, timeline, and media inspection tools for Ordiv
 requires-python = ">=3.12"
 dependencies = [
   "jsonschema==4.25.1",
+]
+
+[project.optional-dependencies]
+resolve = [
   "opentimelineio==0.18.1",
 ]
 

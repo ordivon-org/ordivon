@@ -60,14 +60,19 @@ version = "0.1.0a0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
+]
+
+[package.optional-dependencies]
+resolve = [
     { name = "opentimelineio" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = "==4.25.1" },
-    { name = "opentimelineio", specifier = "==0.18.1" },
+    { name = "opentimelineio", marker = "extra == 'resolve'", specifier = "==0.18.1" },
 ]
+provides-extras = ["resolve"]
 
 [package.metadata.requires-dev]
 dev = []

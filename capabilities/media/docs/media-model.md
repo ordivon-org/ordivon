@@ -89,7 +89,7 @@ Human/expert calibration follows the same rule. Do not create a pending or cerem
 
 ## Production
 
-A Production ties claims, assets, editable sources, medium-applicable working state, and outputs together.
+A Production ties its applicable claims, assets, editable sources, medium working state, and outputs together. Claims remain required for the current evidence-bound Productions; Asset manifests are medium-applicable and are declared only when the Production actually owns Asset records.
 
 It declares:
 
@@ -97,11 +97,13 @@ It declares:
 - source projects and revisions;
 - editorial intent and audiences;
 - only the technical working-profile fields the actual medium uses (for example frame rate/canvas/color/audio for video; no invented AV profile for semantic-text-only work);
-- required Claims and Assets;
+- required Claims for the current source-bound/public work, plus Assets only when that medium actually uses them;
 - planned or completed outputs;
 - selected source files and external editor artifacts.
 
 The Production manifest does not track every creative thought or temporary generation.
+
+`Production.status` and `Output.status` answer different questions. Production status is the lifecycle of the **whole work** (`design → production → review → published/archived`); Output status is acceptance/delivery state of one concrete deliverable (`planned → rendered → approved → published`). Therefore an approved article Output may legitimately exist while its parent Production remains `review` because other publication or whole-work decisions are still open. Never infer Production publication or closure from one Output being approved.
 
 A Production may point to one lightweight `cognition` Markdown source when current creative judgment must be recoverable across Agent/session replacement. That record indexes the six-stage `FRAME → BIND → EXPRESS → RENDER → AUDIT → DECIDE` protocol plus scoped post-decision `LEARNING`; it does not duplicate Claims, Assets, Timeline state, or evidence. See [`production-cognition.md`](production-cognition.md).
 

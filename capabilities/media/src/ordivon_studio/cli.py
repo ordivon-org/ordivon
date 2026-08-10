@@ -9,16 +9,6 @@ from .assets import archive_blob, hash_file, materialize_blob, probe_media, r2_o
 from .qc import validate_video_probe
 from .r2 import replicate_r2_blob, restore_r2_blob
 from .review import build_video_review_packet
-from .resolve_adapter import (
-    discover_resolve_paths,
-    install_runner,
-    prepare_assembly,
-    prepare_assembly_conform,
-    prepare_compatibility,
-    prepare_probe,
-    prepare_smoke,
-    read_result,
-)
 from .timed_text import export_srt, export_webvtt
 from .video import normalize_h264_bt709
 
@@ -183,8 +173,21 @@ def _optional_path(value: str | None) -> Path | None:
     return Path(value) if value else None
 
 
+def _resolve_adapter():
+    try:
+        from . import resolve_adapter
+    except ModuleNotFoundError as error:
+        if error.name == "opentimelineio":
+            raise RuntimeError(
+                "Resolve/OTIO equipment is optional; install the 'resolve' extra "
+                "or run through `uv run --extra resolve ...`"
+            ) from error
+        raise
+    return resolve_adapter
+
+
 def _command_resolve_paths(args: argparse.Namespace) -> int:
-    paths = discover_resolve_paths()
+    paths = _resolve_adapter().discover_resolve_paths()
     _write_json(
         {
             "scriptsDirectory": str(paths.scripts_directory),
@@ -197,7 +200,7 @@ def _command_resolve_paths(args: argparse.Namespace) -> int:
 
 def _command_resolve_install(args: argparse.Namespace) -> int:
     _write_json(
-        install_runner(
+        _resolve_adapter().install_runner(
             scripts_directory=_optional_path(args.scripts_directory),
             control_directory=_optional_path(args.control_directory),
             windows_control_directory=args.windows_control_directory,
@@ -208,7 +211,7 @@ def _command_resolve_install(args: argparse.Namespace) -> int:
 
 def _command_resolve_prepare_probe(args: argparse.Namespace) -> int:
     _write_json(
-        prepare_probe(
+        _resolve_adapter().prepare_probe(
             control_directory=_optional_path(args.control_directory),
             operation_id=args.operation_id,
         )
@@ -218,7 +221,7 @@ def _command_resolve_prepare_probe(args: argparse.Namespace) -> int:
 
 def _command_resolve_prepare_smoke(args: argparse.Namespace) -> int:
     _write_json(
-        prepare_smoke(
+        _resolve_adapter().prepare_smoke(
             control_directory=_optional_path(args.control_directory),
             media_path=_optional_path(args.media),
             windows_media_path=args.windows_media_path,
@@ -230,7 +233,7 @@ def _command_resolve_prepare_smoke(args: argparse.Namespace) -> int:
 
 def _command_resolve_prepare_compatibility(args: argparse.Namespace) -> int:
     _write_json(
-        prepare_compatibility(
+        _resolve_adapter().prepare_compatibility(
             control_directory=_optional_path(args.control_directory),
             media_path=_optional_path(args.media),
             windows_media_path=args.windows_media_path,
@@ -243,7 +246,7 @@ def _command_resolve_prepare_compatibility(args: argparse.Namespace) -> int:
 
 def _command_resolve_prepare_assembly_conform(args: argparse.Namespace) -> int:
     _write_json(
-        prepare_assembly_conform(
+        _resolve_adapter().prepare_assembly_conform(
             production_id=args.production_id,
             production_root=_optional_path(args.production_root),
             control_directory=_optional_path(args.control_directory),
@@ -260,7 +263,7 @@ def _command_resolve_prepare_assembly_conform(args: argparse.Namespace) -> int:
 
 def _command_resolve_prepare_assembly(args: argparse.Namespace) -> int:
     _write_json(
-        prepare_assembly(
+        _resolve_adapter().prepare_assembly(
             production_id=args.production_id,
             production_root=_optional_path(args.production_root),
             control_directory=_optional_path(args.control_directory),
@@ -273,7 +276,7 @@ def _command_resolve_prepare_assembly(args: argparse.Namespace) -> int:
 
 
 def _command_resolve_result(args: argparse.Namespace) -> int:
-    result = read_result(
+    result = _resolve_adapter().read_result(
         control_directory=_optional_path(args.control_directory),
         expected_operation_id=args.operation_id,
     )

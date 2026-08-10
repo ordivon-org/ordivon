@@ -84,7 +84,7 @@
     "sources": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["claims", "assets"],
+      "required": ["claims"],
       "properties": {
         "claims": {"type": "string"},
         "assets": {"type": "string"},

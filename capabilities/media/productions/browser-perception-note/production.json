@@ -16,7 +16,6 @@
   "workingProfile": {},
   "sources": {
     "claims": "claims.json",
-    "assets": "assets.json",
     "article": "story.mdx",
     "receipts": ["evidence/browser-review.receipt.json"],
     "cognition": "cognition.md"

@@ -62,7 +62,7 @@ The design foundation is executable and verified:
 - the Runtime motion composition renders at 1920×1080, 30 fps;
 - QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track;
 - progressive perception materializes exact review pixels, and native Runtime `workspace.content` delivery has passed a fresh vision-capable Agent acceptance with a bounded semantic `no-op`;
-- the Resolve Free adapter has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; native OTIO import preserves clip durations and gaps, while explicit Append source ranges are excluded from production assembly.
+- optional Resolve/OTIO equipment has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; it is excluded from the default Core dependency/check path and is validated explicitly with `pnpm check:equipment:resolve` when that NLE path is used.
 
 DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. They are used only when a production actually requires them.
 
@@ -77,7 +77,7 @@ React / SVG             reusable visual primitives
 Remotion adapter        deterministic motion rendering
 DaVinci Resolve         selected editorial, color, and Fairlight environment
 Resolve adapter         bounded internal operations for Resolve Free
-OpenTimelineIO          open editorial interchange snapshots
+OpenTimelineIO          optional NLE interchange snapshots (`resolve` extra)
 OBS                     selected real-product capture environment
 FFmpeg / ffprobe        media transforms and machine QC
 Python                  asset, timeline, caption, and storage tooling

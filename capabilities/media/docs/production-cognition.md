@@ -60,3 +60,6 @@ A cognition detail earns schema only when unrelated real productions repeatedly 
 ## First acceptance case
 
 [`../productions/runtime-introduction/cognition.md`](../productions/runtime-introduction/cognition.md) is the first record. It demonstrates that the existing production substrate already contains most necessary facts; the missing layer is a thin current-decision index connecting those facts to `FRAME → BIND → EXPRESS → RENDER → AUDIT → DECIDE` and retaining only scoped learning.
+
+
+A cognition record is a **current frontier**, not an append-only historical ledger. Move completed-stage detail into durable evidence/history and keep the active record bounded to what a replacement Agent needs next.

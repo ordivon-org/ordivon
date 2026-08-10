@@ -41,6 +41,28 @@ class ModelTests(unittest.TestCase):
             errors = _validate_cognition_record(path)
             self.assertTrue(any("missing cognition section EXPRESS" in error for error in errors))
 
+
+    def test_assetless_writing_does_not_require_empty_asset_manifest(self) -> None:
+        production_root = ROOT / "productions/browser-perception-note"
+        production = json.loads((production_root / "production.json").read_text(encoding="utf-8"))
+        self.assertNotIn("assets", production["sources"])
+        self.assertFalse((production_root / "assets.json").exists())
+        self.assertEqual(validate_repository(), [])
+
+    def test_declared_media_assets_still_fail_schema_when_invalid(self) -> None:
+        assets = json.loads((ROOT / "productions/runtime-introduction/assets.json").read_text(encoding="utf-8"))
+        assets["assets"][0].pop("rights")
+        errors = list(_validator("asset.schema.json").iter_errors(assets))
+        self.assertTrue(any("rights" in error.message for error in errors))
+
+    def test_active_cognition_is_bounded_frontier_with_historical_link(self) -> None:
+        active = ROOT / "productions/runtime-introduction/cognition.md"
+        history = ROOT / "productions/runtime-introduction/history/cognition-through-p4.md"
+        self.assertEqual(_validate_cognition_record(active), [])
+        self.assertTrue(history.is_file())
+        self.assertLess(len(active.read_text(encoding="utf-8").split()), 700)
+        self.assertGreater(len(history.read_text(encoding="utf-8").split()), len(active.read_text(encoding="utf-8").split()) * 2)
+
     def test_receipt_rejects_identity_drift(self) -> None:
         receipt = copy.deepcopy(RECEIPT)
         receipt["evidence"]["jobId"] = "job-different"
