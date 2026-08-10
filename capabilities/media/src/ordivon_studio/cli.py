@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .assets import hash_file, probe_media, r2_object_key
+from .assets import archive_blob, hash_file, probe_media, r2_object_key
 from .qc import validate_video_probe
 from .review import build_video_review_packet
 from .resolve_adapter import (
@@ -32,6 +32,11 @@ def _command_hash(args: argparse.Namespace) -> int:
     output = blob.as_dict()
     output["r2ObjectKey"] = r2_object_key(blob.digest)
     _write_json(output)
+    return 0
+
+
+def _command_archive(args: argparse.Namespace) -> int:
+    _write_json(archive_blob(Path(args.path), Path(args.cache_root)))
     return 0
 
 
@@ -252,6 +257,11 @@ def build_parser() -> argparse.ArgumentParser:
     hash_parser = commands.add_parser("hash", help="hash one immutable media Blob")
     hash_parser.add_argument("path")
     hash_parser.set_defaults(handler=_command_hash)
+
+    archive_parser = commands.add_parser("archive", help="copy one exact Blob into a verified local content-addressed cache")
+    archive_parser.add_argument("path")
+    archive_parser.add_argument("--cache-root", required=True)
+    archive_parser.set_defaults(handler=_command_archive)
 
     probe_parser = commands.add_parser("probe", help="hash and inspect one media file")
     probe_parser.add_argument("path")

@@ -13,8 +13,8 @@
     {"id": "en-004", "startTick": 24000, "endTick": 37000, "text": "The operation becomes a durable Job with a recorded Attempt. Observation exposes real progress—inspect, verify, report—until the process tree finishes cleanly.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
     {"id": "en-005", "startTick": 37000, "endTick": 48000, "text": "If delivery is uncertain, the client reconnects and replays the exact request identity. Runtime returns the same recorded Job; it does not admit a second Job.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
     {"id": "en-006", "startTick": 48000, "endTick": 59000, "text": "That Job retains bounded terminal evidence tied to its Workspace, source revision, and Attempt. The receipt records execution and delivery dispositions without claiming semantic completion.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-007", "startTick": 59000, "endTick": 68000, "text": "The source effect remains visible as one modified path. After review, compare-and-close succeeds only against the exact reviewed Workspace state.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-008", "startTick": 68000, "endTick": 75000, "text": "The boundary matters: Runtime does not prove external-effect idempotency, hostile multi-tenant isolation, or the user's semantic objective.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
-    {"id": "en-009", "startTick": 75000, "endTick": 78000, "text": "Recover the same work. Inspect the evidence.", "status": "locked", "kind": "dialogue", "speaker": "narrator"}
+    {"id": "en-007", "startTick": 59000, "endTick": 67000, "text": "The source effect remains one modified path. Compare-and-close succeeds only against the exact reviewed Workspace state.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-008", "startTick": 67000, "endTick": 74000, "text": "Runtime does not prove external idempotency, hostile multi-tenant isolation, or semantic Task completion.", "status": "locked", "kind": "dialogue", "speaker": "narrator"},
+    {"id": "en-009", "startTick": 74000, "endTick": 78000, "text": "Recover the same work. Inspect the evidence.", "status": "locked", "kind": "dialogue", "speaker": "narrator"}
   ]
 }

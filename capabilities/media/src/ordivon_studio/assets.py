@@ -3,7 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import mimetypes
+import os
+import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -44,6 +47,65 @@ def r2_object_key(digest: str) -> str:
         raise ValueError(f"unsupported digest: {digest}")
     int(hexadecimal, 16)
     return f"objects/sha256/{hexadecimal[:2]}/{hexadecimal}"
+
+
+def archive_blob(path: Path, cache_root: Path) -> dict[str, object]:
+    """Copy one exact Blob into the local content-addressed cache.
+
+    Existing objects are reused only after byte verification. New objects are first
+    copied and verified under a temporary name, then admitted without overwriting an
+    existing digest address.
+    """
+    blob = hash_file(path)
+    object_key = r2_object_key(blob.digest)
+    destination = cache_root / object_key
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    if destination.exists():
+        existing = hash_file(destination)
+        if existing.digest != blob.digest or existing.size_bytes != blob.size_bytes:
+            raise RuntimeError(f"content-addressed destination conflicts with source: {destination}")
+        return {
+            "blob": blob.as_dict(),
+            "objectKey": object_key,
+            "cachePath": str(destination),
+            "disposition": "existing",
+        }
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix=".ordivon-blob-", dir=destination.parent, delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            with path.open("rb") as source:
+                shutil.copyfileobj(source, temporary)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+
+        copied = hash_file(temporary_path)
+        if copied.digest != blob.digest or copied.size_bytes != blob.size_bytes:
+            raise RuntimeError("temporary archive copy does not match source Blob")
+
+        try:
+            os.link(temporary_path, destination)
+            disposition = "created"
+        except FileExistsError:
+            existing = hash_file(destination)
+            if existing.digest != blob.digest or existing.size_bytes != blob.size_bytes:
+                raise RuntimeError(f"content-addressed destination conflicts with source: {destination}")
+            disposition = "existing"
+
+        archived = hash_file(destination)
+        if archived.digest != blob.digest or archived.size_bytes != blob.size_bytes:
+            raise RuntimeError("archived Blob verification failed")
+        return {
+            "blob": blob.as_dict(),
+            "objectKey": object_key,
+            "cachePath": str(destination),
+            "disposition": disposition,
+        }
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:

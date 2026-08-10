@@ -1,100 +1,109 @@
 # Runtime Introduction — production cognition
 
-Status: active production decision record  
-Protocol: [`../../research/expression/protocol.md`](../../research/expression/protocol.md)  
+Status: active production decision record
+Protocol: [`../../research/expression/protocol.md`](../../research/expression/protocol.md)
 Profiles: [`motion-video`](../../research/expression/profiles/motion-video.md) + [`writing`](../../research/expression/profiles/writing.md)
 
-This file records the **current creative judgment needed to continue the work**. It is **not a second Production manifest**. Physical and factual authority remains in the Production, Claim, Asset, TimedText, Receipt, Timeline, and owning Runtime sources.
+This file records the **current creative judgment needed to continue the work**. It is **not a second Production manifest**. Physical and factual authority remains in the Production, Claim, Asset, TimedText, Receipt, Timeline, archive, and owning Runtime sources.
 
 ## FRAME
 
-**Target experience.** A technically literate viewer should understand one narrow proposition: after uncertain response delivery, reliable Agent execution needs durable operation identity, recoverable evidence, and an exact reviewed-state cleanup boundary. Runtime is not presented as a generic command runner or complete autonomous Agent platform.
+**Target experience.** A technically literate viewer should understand one bounded proposition: after uncertain response delivery, reliable Agent execution needs durable operation identity, recoverable evidence, and an exact reviewed-state cleanup boundary. Runtime is not presented as a generic command runner or complete autonomous Agent platform.
 
-**Primary proof.** One current live trajectory: exact source → guarded Patch → durable Job and recorded Attempt → observe progress → exact request replay recovers the same recorded Job → inspect bounded terminal evidence and structured diff → compare-and-close the exact reviewed Workspace state.
+**Primary proof.** One current live trajectory remains authoritative: exact source → guarded Patch → durable Job and recorded Attempt → observe progress → exact request replay recovers the same recorded Job → inspect bounded terminal evidence and structured diff → compare-and-close the exact reviewed Workspace state.
 
-**Audience.** The audience remains the one declared in [`production.json`](production.json). The 78-second landscape film is the first output pushed through a real review decision; the other distribution outputs remain planned rather than being mechanically derived before this one is credible.
+**Current P2 gate.** The landscape output is no longer missing audio. P2 asks a narrower question: does the exact picture+narration candidate have enough evidence to move from `rendered / review` to `approved`, or is a human-response uncertainty still material?
 
 ## BIND
 
-**Current Runtime authority.** The Production is rebound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. Current Runtime README/status boundaries were rechecked before this picture-master decision and remain compatible with the selected claims: owner-trusted local execution; durable Jobs/Attempts/evidence/recovery; no semantic Task completion, hostile multi-tenant sandbox, or universal external-effect-idempotency claim.
+**Runtime authority.** Product claims remain bound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. [`evidence/runtime-demo.receipt.json`](evidence/runtime-demo.receipt.json), digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`, remains the selected execution proof.
 
-**Selected proof.** [`evidence/runtime-demo.receipt.json`](evidence/runtime-demo.receipt.json) is a fresh live MCP demonstration Receipt with exact byte digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`. It records guarded Patch admission, Job `job-019fea5e-6d1a-7432-bef0-3f11a28f8c43`, recorded Attempt `attempt-019fea5e-6d1a-7432-bef0-3f2783d713ef`, non-terminal three-step observations, `sameJobAfterReplay=true`, bounded terminal evidence, exactly one changed path (`policy.py`), and exact-state close.
+**Narration authority.** [`timed-text/narration.en.json`](timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
 
-**Focalization.** Receipt-derived views may show only the selected proof identities and dispositions. Studio explanatory framing and current-product boundary framing must identify themselves as such; they must not be visually mislabeled as receipt-derived evidence.
+**Byte authority.** Selected picture, narration, and muxed candidate bytes are now copied into the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...` and reverified after archival. An Asset digest without recoverable selected bytes is no longer treated as sufficient durability evidence.
 
 ## EXPRESS
 
-The production composes Writing and Motion/Video responsibilities without merging their authorities.
+The picture still distinguishes three provenance classes:
 
-The current picture strategy deliberately **does not impersonate a terminal recording**. Runtime has no public presentation CLI that corresponds cleanly to the MCP production surface, and staging fake terminal footage would weaken provenance. The master therefore combines:
+- receipt-derived evidence views for selected Runtime proof facts;
+- deterministic explanatory motion for structure/replay/close;
+- Studio explanatory/current-authority framing for the hook, boundary, and end state.
 
-- the existing deterministic Runtime flow, replay, and exact-close motion;
-- explicitly labeled receipt-derived evidence views for Patch, Job/Attempt, observation, evidence, and diff facts;
-- explicitly labeled Studio explanatory/current-authority framing for the problem, product boundary, and end state.
+P2 added real voice pressure. A first Zira `rate=1` duration scan showed that the old 68–75 second Boundary and 75–78 second End timing did not physically fit the intended natural, consistent speech rate. The production did **not** globally accelerate narration to preserve a prior timing assumption. Instead the final 19 seconds were revised to:
 
-English narration is now locked structurally to the 78-second picture in [`script/narration.en.md`](script/narration.en.md) and [`timed-text/narration.en.json`](timed-text/narration.en.json). All nine cues are `locked` and cover exactly 0–78 seconds. This locks text and timing, **not recorded voice audio**.
+```text
+59–67  source effect / exact reviewed-state close narration
+67–74  Runtime boundary
+74–78  end statement
+```
+
+The corresponding picture sequence is now 65–67 seconds Diff, 67–74 Boundary, and 74–78 End. Cue wording was narrowed rather than spoken faster.
 
 ## RENDER
 
-The active editable picture master is `runtime-introduction-master` in [`../../apps/motion-remotion/src/runtime-introduction-master-composition.tsx`](../../apps/motion-remotion/src/runtime-introduction-master-composition.tsx).
+Three selected exact artifacts now exist and are archived:
 
-The final current render is registered as Asset `runtime-introduction-master-motion`:
+1. **Picture master** `runtime-introduction-master-motion`
+   - Blob `sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736`
+   - 2,326,600 bytes
+   - 78.000 seconds / 2,340 frames
+   - 1920×1080, 30 fps, H.264, `yuv420p`, complete BT.709
+   - archive key `objects/sha256/77/77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736`
 
-- exact Blob: `sha256:56276cf3fb25fb42f1174f1ed2f2fc209090502a0b3b3dda1adc59cb527cb535`;
-- 2,328,194 bytes;
-- exactly 2,340 frames / 78.000 seconds;
-- 1920×1080, 30 fps, H.264, `yuv420p`;
-- complete BT.709 range/space/transfer/primaries signaling;
-- intentionally no audio stream.
+2. **English narration stem** `runtime-introduction-narration-en-sapi`
+   - Blob `sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d`
+   - 11,232,102 bytes
+   - exactly 78.000 seconds
+   - 48 kHz, mono, PCM 24-bit
+   - integrated loudness `-20.5 LUFS`, true peak `-2.2 dBFS`
+   - two independent complete builds produced byte-identical output
+   - archive key `objects/sha256/79/798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d`
 
-[`timeline/assembly.v1.otio`](timeline/assembly.v1.otio) is the active placeholder-free picture-master snapshot. [`timeline/assembly.v0.otio`](timeline/assembly.v0.otio) and its placeholder Assets remain historical assembly evidence and are no longer the active picture path.
+3. **English A/V review candidate** `runtime-introduction-en-av-candidate`
+   - Blob `sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`
+   - 3,369,776 bytes
+   - exactly 78.000 seconds
+   - picture stream copied without re-encoding; AAC 48 kHz mono narration
+   - two independent muxes produced byte-identical output
+   - archive key `objects/sha256/7d/7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`
+
+[`timeline/assembly.v2.otio`](timeline/assembly.v2.otio) is the active A/V review snapshot. v1 remains the prior picture-only milestone; v0 remains historical placeholder assembly evidence.
 
 ## AUDIT
 
-### Findings carried forward
+### P2 findings
 
-C3–C6 established the narrow production-system facts already recorded in repository history: cognition should not duplicate physical authority; must-not-imply constraints are semantic rather than lexical; render prerequisites should self-satisfy/fail fast; encoded color signaling requires byte-boundary verification; semantic review must bind exact decision context; critique is transient by default; temporal sampling prepares perception but does not infer meaning; native image transport is now accepted end to end.
-
-### P1 findings
-
-1. **Currentness rebind succeeded.** A fresh Runtime live demonstration at the current source authority re-established the intended proof rather than relying on the older production Receipt.
-2. **The old “real terminal capture” requirement was too implementation-shaped.** Runtime’s actual product boundary is MCP/Runtime service, not a presentation CLI. Requiring terminal footage would either record an incidental wrapper or encourage fabricated UI. Receipt-derived evidence views preserve the proof more faithfully when they are explicitly labeled.
-3. **The first complete 78-second render exposed a provenance-expression defect that typecheck, Production validation, and technical QC could not see.** A common footer labeled Hook, Boundary, and End scenes as “receipt-derived evidence view” even though those scenes came from Studio framing/current Runtime authority. Pixel inspection caught the overclaim. The source was revised so only actual Receipt views carry that label.
-4. **No stronger replay claim reappeared.** The master says exact replay returns the same recorded Job and does not admit a second Job. The Attempt is shown as a recorded execution identity, not asserted as a separate replay-equality invariant. External-effect idempotency remains explicitly outside the claim.
-5. **Picture QC is complete; experience QC is not.** The exact silent master passes mechanical video QC. Static model-view inspection establishes scene-level hierarchy/provenance legibility, but does not establish continuous pacing or future narration/audio-image quality.
+1. **Asset identity was not byte durability.** P1 registered the old picture digest but closed its disposable Workspace before those bytes were copied into any durable local object store. P2 proved the exact old Blob was absent from the documented cache locations. The new `ordivon-studio archive` gate now performs content-addressed copy, temporary-copy verification, no-overwrite admission, exact final rehash, and idempotent reuse.
+2. **Voice materialization falsified part of the previous timing lock.** Zira rate `1` was exact-byte repeatable, but the old Boundary/End slots were physically too short. Audio therefore revised picture timing rather than being forced into the prior edit.
+3. **Every selected narration cue now fits its assigned slot.** Voice durations are recorded in the narration Receipt; the tightest cue is the 7-second Boundary at `6.927937s`.
+4. **Picture+audio mux is mechanically stable.** Two independent muxes produced the same exact MP4 digest. Video QC passes with one audio stream; final audio is 48 kHz mono AAC and retains the source stem's measured `-20.5 LUFS` integrated loudness and `-2.2 dBFS` true peak.
+5. **Cue-bound visual inspection is semantically aligned.** Review frames sampled from the actual narration phases show source/Patch, Job observation, recovery, evidence, close, boundary, and end imagery in the same semantic order as the voice cues. A focused 65–78 second review confirms Diff → Boundary → End cut order under the revised timing.
+6. **Human voice quality is still genuinely unresolved.** The available Agent surface can inspect exact audio bytes, timing, levels, generation provenance, and corresponding picture states, but it cannot honestly establish whether the synthetic voice sounds natural, appropriately paced, or publication-worthy to a human listener. No such claim is inferred from waveform or metadata.
 
 ### Audit routing
 
 ```text
-wrong Runtime fact/currentness        → BIND
-wrong proof/audience                  → FRAME
-misleading wording/provenance label   → EXPRESS
-bad timing/render/audio               → RENDER
+wrong Runtime fact/currentness      → BIND
+wrong claim / narration meaning     → FRAME or EXPRESS
+cue overflow / bad cut / bad level  → RENDER
+voice naturalness / human response  → conditional human audition
 ```
 
 ## DECIDE
 
-**Current decision for `runtime-film-en-landscape`: `rendered / review`, not `approved` or `published`.**
+**Current decision for `runtime-film-en-landscape`: keep `rendered / review`; do not promote to `approved` or `published`.**
 
-This is a real advancement from `planned`: the picture master exists, is source-bound, placeholder-free on the active v1 path, exact-byte registered, mechanically QC’d, and has survived a bounded Agent visual audit plus one corrective render loop.
+This is materially stronger than P1. The current output digest now identifies a complete, recoverable picture+narration candidate rather than a silent picture master. Selected picture, narration stem, and final mux are all archived by exact digest; cue fit, A/V structure, color/video facts, audio stream facts, loudness/peak, and deterministic rebuild/mux behavior are established.
 
-Promotion is intentionally withheld because the final human-facing film is expected to include narration, and no narration audio has yet been produced or continuously audited against the 78-second picture. The next admissible film decision is therefore:
-
-1. produce/select narration audio from the locked English script;
-2. register the selected audio Asset;
-3. assemble and continuously playback-audit picture + narration for pacing, readability, and audio-image implication;
-4. run final delivery QC;
-5. then decide `approved`, `revise`, or remain in `review`.
-
-The absence of audio is an explicit output boundary, not a reason to reopen Studio architecture or return to placeholder planning.
+Promotion is withheld for one precise reason only: the remaining uncertainty is a real **human auditory-response claim** about the selected synthetic voice. Static pixels, hashes, ffprobe, loudness analysis, and knowledge of the input text do not prove that claim. The next gate is therefore a bounded audition of this exact candidate Blob, not another Studio architecture project.
 
 ## LEARNING
 
-Retain at the narrowest scope:
+Retain the P2 learning at the narrowest justified scope:
 
-- **production-system, repeated:** final rendered artifacts can expose semantic/provenance defects that source/type/mechanical QC cannot establish. This is reinforced by P1 rather than promoted into a new schema because the principle already exists in the expression protocol;
-- **production-system:** evidence presentation must label its provenance class; receipt-derived, explanatory, and current-authority framing are not interchangeable even when all are truthful;
-- **production-local:** for Runtime Introduction, receipt-derived evidence views are more truthful than staging a terminal UI that Runtime does not actually own;
-- **Motion/Video:** static model views are sufficient for bounded hierarchy/provenance checks, but not for claims about pacing or audio-image relation;
-- **Writing/Motion composition:** locked TimedText can bind narration wording/timing before an audio Asset exists, as long as “locked text/timing” is not confused with “final voiced master”;
-- **no new Art & Expression Core prior is promoted from this Production alone.** Cross-production transfer must be tested on a materially different second Production before widening any local result.
+- **production-system, promoted by real failure:** a selected media Asset is not durably recoverable merely because its digest is committed; before disposable production state is closed, selected bytes must cross a verified content-addressed durability boundary;
+- **production-system:** media-specific materialization may legitimately revise a previously locked abstract timing plan. “Locked text/timing” means the current editorial decision, not immunity from physical evidence produced by the medium itself;
+- **production-local:** Windows System.Speech / Zira rate `1` is an exact-byte-repeatable local candidate generator on this workstation. That does not make it a universal Studio voice provider or quality default;
+- **Motion/Audio:** cue-bound temporal sampling can establish semantic ordering and slot fit, but it does not establish voice naturalness or audience preference;
+- **no new aesthetic Core law is promoted.** The P2 structural gains concern byte durability and evidence boundaries, not a universal style or voice prior.

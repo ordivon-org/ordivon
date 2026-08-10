@@ -204,9 +204,9 @@ export function RuntimeIntroductionMasterComposition() {
       <Sequence from={1290} durationInFrames={150}><RecoveryScene /></Sequence>
       <Sequence from={1440} durationInFrames={330}><EvidenceScene /></Sequence>
       <Sequence from={1770} durationInFrames={180}><Unlabelled><ExactCloseComposition /></Unlabelled></Sequence>
-      <Sequence from={1950} durationInFrames={90}><DiffScene /></Sequence>
-      <Sequence from={2040} durationInFrames={210}><BoundaryScene /></Sequence>
-      <Sequence from={2250} durationInFrames={90}><EndScene /></Sequence>
+      <Sequence from={1950} durationInFrames={60}><DiffScene /></Sequence>
+      <Sequence from={2010} durationInFrames={210}><BoundaryScene /></Sequence>
+      <Sequence from={2220} durationInFrames={120}><EndScene /></Sequence>
     </AbsoluteFill>
   );
 }

@@ -32,6 +32,8 @@ Important fields:
 
 An Asset can select a new Blob without pretending the old bytes never existed.
 
+**Blob identity and Blob durability are separate facts.** A `selectedBlob.digest` proves which bytes were selected; it does not prove those bytes still exist after a disposable render or Workspace disappears. Before selected media becomes the durable Production candidate, its exact bytes must cross a verified content-addressed storage boundary and remain recoverable by that digest. Git keeps the identity and provenance record; the byte store keeps the immutable payload.
+
 ## Claim
 
 A Claim binds public wording to one owning source revision.

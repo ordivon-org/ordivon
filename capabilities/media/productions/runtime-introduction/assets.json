@@ -389,8 +389,8 @@
       "role": "selected 78-second Runtime Introduction picture master",
       "origin": "rendered",
       "selectedBlob": {
-        "digest": "sha256:56276cf3fb25fb42f1174f1ed2f2fc209090502a0b3b3dda1adc59cb527cb535",
-        "sizeBytes": 2328194,
+        "digest": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+        "sizeBytes": 2326600,
         "mediaType": "video/mp4"
       },
       "source": {
@@ -421,7 +421,96 @@
       "rights": {
         "status": "owned"
       },
-      "notes": "Picture master. Receipt-derived views are explicitly labeled and do not impersonate terminal capture. Intentionally silent until narration audio is produced and audited."
+      "notes": "P2 revised picture master. Voice materialization moved Diff/Boundary/End to 65–67s / 67–74s / 74–78s. Archived and reverified at objects/sha256/77/77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736."
+    },
+    {
+      "id": "runtime-introduction-narration-en-sapi",
+      "role": "selected English narration candidate aligned to the 78-second master",
+      "origin": "generated",
+      "selectedBlob": {
+        "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+        "sizeBytes": 11232102,
+        "mediaType": "audio/x-wav"
+      },
+      "source": {
+        "tool": "Windows System.Speech + FFmpeg",
+        "provider": "Microsoft Speech API",
+        "model": "Microsoft Zira Desktop",
+        "inputAssets": [
+          "timed-text/narration.en.json",
+          "../../scripts/build_sapi_narration.py",
+          "../../scripts/synthesize-sapi-cues.ps1"
+        ],
+        "settings": {
+          "rate": 1,
+          "voice": "Microsoft Zira Desktop",
+          "assembly": "cue-bound 48 kHz mono PCM"
+        }
+      },
+      "technical": {
+        "fileName": "runtime-introduction-narration-en.wav",
+        "durationSeconds": 78.0,
+        "sampleRate": 48000,
+        "channels": 1,
+        "codec": "pcm_s24le",
+        "sourceBitDepth": 24,
+        "integratedLoudnessLufs": -20.5,
+        "truePeakDbfs": -2.2
+      },
+      "rights": {
+        "status": "owned"
+      },
+      "notes": "Workstation-local deterministic candidate: two complete independent builds produced the same exact WAV digest. Archived and reverified at objects/sha256/79/798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d. Human voice-quality audition remains pending."
+    },
+    {
+      "id": "runtime-introduction-en-av-candidate",
+      "role": "selected 78-second English picture+narration review candidate",
+      "origin": "rendered",
+      "selectedBlob": {
+        "digest": "sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430",
+        "sizeBytes": 3369776,
+        "mediaType": "video/mp4"
+      },
+      "parents": [
+        "runtime-introduction-master-motion",
+        "runtime-introduction-narration-en-sapi"
+      ],
+      "source": {
+        "tool": "FFmpeg",
+        "inputAssets": [
+          "runtime-introduction-master-motion",
+          "runtime-introduction-narration-en-sapi"
+        ],
+        "settings": {
+          "video": "stream-copy",
+          "audio": "AAC mono 48 kHz",
+          "movflags": "faststart",
+          "creationTime": "1970-01-01T00:00:00Z"
+        }
+      },
+      "technical": {
+        "fileName": "runtime-introduction-en.mp4",
+        "durationSeconds": 78.0,
+        "durationFrames": 2340,
+        "frameRate": "30/1",
+        "width": 1920,
+        "height": 1080,
+        "videoCodec": "h264",
+        "pixelFormat": "yuv420p",
+        "colorSpace": "bt709",
+        "colorTransfer": "bt709",
+        "colorPrimaries": "bt709",
+        "colorRange": "tv",
+        "audioCodec": "aac",
+        "sampleRate": 48000,
+        "channels": 1,
+        "integratedLoudnessLufs": -20.5,
+        "truePeakDbfs": -2.2
+      },
+      "rights": {
+        "status": "owned"
+      },
+      "notes": "Two independent mux runs produced identical bytes. Archived and reverified at objects/sha256/7d/7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430. Rendered review candidate, not human-audition-approved."
     }
   ]
 }

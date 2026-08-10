@@ -18,7 +18,15 @@ D:\OrdivonStudio\
 └── exports\
 ```
 
-The content-addressed cache mirrors remote object keys. Human working directories may use descriptive names, but selected assets are registered by digest before archival.
+The content-addressed cache mirrors remote object keys. Human working directories may use descriptive names, but selected assets are not durable merely because their digest appears in `assets.json`: the selected bytes must also be copied into a verified content-addressed store before disposable production work is closed.
+
+The minimum local gate is:
+
+```bash
+uv run ordivon-studio archive <selected-media> --cache-root /mnt/d/OrdivonStudio/cache
+```
+
+`archive` hashes the source, derives the immutable object key, copies through a temporary file, verifies the copied bytes, and admits the object without overwriting an existing digest address. Repeating the same exact Blob converges to the existing verified object. This is local byte durability, not a media database or publication system.
 
 ## R2 object keys
 

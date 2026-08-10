@@ -48,7 +48,8 @@
       "timed-text/narration.en.json"
     ],
     "receipts": [
-      "evidence/runtime-demo.receipt.json"
+      "evidence/runtime-demo.receipt.json",
+      "evidence/narration-sapi.receipt.json"
     ],
     "motion": [
       "../../apps/motion-remotion/src/runtime-introduction-master-composition.tsx",
@@ -57,6 +58,7 @@
       "../../apps/motion-remotion/src/exact-close-composition.tsx"
     ],
     "otioSnapshots": [
+      "timeline/assembly.v2.otio",
       "timeline/assembly.v1.otio",
       "timeline/assembly.v0.otio"
     ],
@@ -74,7 +76,7 @@
       "kind": "video",
       "status": "rendered",
       "profile": "youtube-upwork-1080p",
-      "blobDigest": "sha256:56276cf3fb25fb42f1174f1ed2f2fc209090502a0b3b3dda1adc59cb527cb535"
+      "blobDigest": "sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430"
     },
     {
       "id": "runtime-short-zh-vertical",
