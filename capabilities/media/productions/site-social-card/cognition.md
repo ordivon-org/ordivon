@@ -48,7 +48,7 @@ Required checks before approval:
 
 Current decision: **Output approved; Production remains review.** The exact PNG `sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807` is 1200×630 and matches the selected Asset digest. Direct full-resolution inspection and real Chromium previews at 600×315 and 400×210 preserve `ORDIVON`, `DURABLE WORK FOR AI AGENTS`, and the supporting durable-work statement. Under the same browser-preview conditions, the previous Web root card `sha256:f07ede4ed1d6e9b4b82eea4411308481e6658157d67a4cdaf76debded9d64f3d` collapses its identity/copy into a tiny corner treatment. V1 therefore resolves the bounded social-preview legibility defect without requiring a second architecture diagram.
 
-Approval does not mean Web publication. Web must deliberately consume these exact bytes at `public/opengraph-image.png` and verify the browser-preview result before this Production can be treated as published.
+Web has now deliberately consumed these exact bytes in local commit `9d7cb2cb521d5a3934176809baafff1f01e9003a`: its only product change is `public/opengraph-image.png`, whose digest remains `sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807`. Web-side Chromium previews at 600×315 and 400×210 are byte-identical to Studio's approved previews (`sha256:bf03fd142a92c60f0020bca66bc970de15305a7e31abfea57d1dceadb15039d1` and `sha256:d0293d50c64eddae5f59ad0ebb0c38d1d0f43816b75547999b592da31a56d1bb`). The Output is therefore accepted by its local Web consumer, but the Production remains `review` because no remote/public deployment has occurred.
 
 ## LEARNING
 
