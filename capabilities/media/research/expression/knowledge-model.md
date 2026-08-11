@@ -117,3 +117,30 @@ proposition / event / observer answer
 A closed ontology label should be promoted only if the label boundary itself survives paraphrase, counterexample, omission and repeated materially different artifacts. Strong grounding with unstable labels is evidence to retain the grounding and narrow or reject the ontology—not a reason to average the labels into false certainty.
 
 Consequence also remains typed. Agent-observer knowledge transfer, human comprehension, memory, attention, trust, preference and behavior are different evidence classes in practice even when they concern the same artifact. One must not silently stand in for another.
+## Research validity, encounter identity, and Creative Alpha
+
+R6 added a further boundary between a local creative observation and a reusable prior. A result is not stronger merely because an Agent searched harder. The search process, the exact encounter and the evidence class supporting the result are themselves part of the knowledge provenance.
+
+For searched creative hypotheses, retain at least:
+
+```text
+registration / hypothesis family
++ complete search history
++ frozen candidate / intervention identity
++ assignment and propensity when exposure is randomized
++ exact rendered encounter
++ typed consequence and observer class
++ search-aware evidence
++ independent holdout / OOS scope
++ uncertainty and decay state
+```
+
+R6 showed three distinct failure modes that should remain visible rather than averaged away:
+
+1. best-of-N search can make pure noise look extraordinary;
+2. a correctly calibrated search-aware test can still produce an ordinary Type-I false positive;
+3. a positive effect direction can survive one content holdout while its magnitude shrinks enough that a stable effect-size claim remains unsupported.
+
+Therefore `Creative Alpha` is not a new knowledge layer and is never a quality scalar. It is a scoped evidence object: an incremental **typed consequence** under a controlled intervention and explicit context. Promotion still follows the existing local → medium → cross-medium path, and every broader step requires new evidence along the dimension being generalized (artifact, observer, encounter, time, medium, or human population).
+
+A pristine holdout is a separate evidence class. Once revealed, it may diagnose the already-frozen candidate but must not be reused as pristine evidence for post-hoc tuning. Likewise, Agent-observer consequence cannot silently promote into human-response knowledge.

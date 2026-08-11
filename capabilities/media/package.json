@@ -5,7 +5,9 @@
   "type": "module",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.33.2",
-  "engines": {"node": ">=22.12 <23"},
+  "engines": {
+    "node": ">=22.12 <23"
+  },
   "scripts": {
     "bootstrap": "pnpm install --frozen-lockfile",
     "deps:check": "node scripts/require-js-deps.mjs",
@@ -18,6 +20,8 @@
     "culture:r4:article": "uv run python scripts/run-r4-article-experiment.py",
     "culture:r5:build": "uv run python scripts/run-r5-grounded-meaning.py build",
     "culture:r5:score": "uv run python scripts/run-r5-grounded-meaning.py score --receipt out/r5/provider-receipt.json",
+    "culture:r6:calibrate": "uv run python scripts/run-r6-creative-validity.py calibrate",
+    "culture:r6:score": "uv run python scripts/run-r6-creative-validity.py score",
     "preview:dev": "pnpm deps:check && pnpm --filter @ordivon/studio-preview dev",
     "preview:build": "pnpm deps:check && pnpm --filter @ordivon/studio-preview build",
     "motion:studio": "pnpm deps:check && pnpm tokens:build && pnpm --filter @ordivon/studio-motion studio",
@@ -34,13 +38,20 @@
     "motion:qc:replay": "uv run ordivon-studio qc-video out/runtime-request-replay.mp4 --width 1920 --height 1080 --frame-rate 30/1 --codec h264 --pixel-format yuv420p --color-space bt709 --color-range tv --no-audio",
     "motion:qc:close": "uv run ordivon-studio qc-video out/runtime-exact-close.mp4 --width 1920 --height 1080 --frame-rate 30/1 --codec h264 --pixel-format yuv420p --color-space bt709 --color-range tv --no-audio",
     "typecheck": "pnpm deps:check && tsc --noEmit -p tsconfig.json",
-    "python:test:core": "uv run python -m unittest tests.test_assets tests.test_expression_context tests.test_grounded_meaning tests.test_models tests.test_observatory tests.test_perception tests.test_qc tests.test_r2 tests.test_review tests.test_rich_perception tests.test_timed_text tests.test_video -v",
+    "python:test:core": "uv run python -m unittest tests.test_assets tests.test_expression_context tests.test_grounded_meaning tests.test_models tests.test_observatory tests.test_perception tests.test_qc tests.test_r2 tests.test_research_validity tests.test_creative_alpha tests.test_review tests.test_rich_perception tests.test_timed_text tests.test_video -v",
     "python:test:resolve": "uv run --extra resolve python -m unittest tests.test_resolve_adapter -v",
     "python:test": "pnpm python:test:core && pnpm python:test:resolve",
     "check:core": "pnpm tokens:build && pnpm models:check && pnpm python:test:core",
     "check": "pnpm deps:check && pnpm check:core && pnpm typecheck && pnpm preview:build",
     "check:equipment:resolve": "pnpm python:test:resolve",
-    "check:all": "pnpm check && pnpm check:equipment:resolve"
+    "check:all": "pnpm check && pnpm check:equipment:resolve",
+    "culture:r6:uncertainty": "uv run python scripts/run-r6-creative-alpha.py uncertainty",
+    "culture:r6:portfolio": "uv run python scripts/run-r6-creative-alpha.py portfolio"
   },
-  "devDependencies": {"@types/node": "22.20.1", "@types/react": "19.2.17", "@types/react-dom": "19.2.3", "typescript": "6.0.2"}
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "6.0.2"
+  }
 }

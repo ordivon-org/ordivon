@@ -7,7 +7,8 @@
     "Human preference is conditional but structured; use evidence as scoped priors rather than universal taste laws.",
     "Compelling expression often emerges by resolving tensions rather than maximizing one variable.",
     "Medium, audience, task, culture, expertise, genre, and temporal context can change the desirable tension profile.",
-    "Agents may make creative judgments; external human evaluation is a sensor for uncertain human-experience claims, not a mandatory approval gate."
+    "Agents may make creative judgments; external human evaluation is a sensor for uncertain human-experience claims, not a mandatory approval gate.",
+    "High-throughput creative search is itself statistical evidence; complete search history, explicit encounter identity, typed consequence, and independent OOS support precede any Creative Alpha claim."
   ],
   "outcomes": [
     "beauty",
@@ -93,7 +94,8 @@
     "Do not treat one observer as universal taste authority.",
     "Do not treat a current trend as a stable aesthetic principle.",
     "Do not turn diagnostic metrics into a universal beauty score.",
-    "Do not let expressive framing contradict source-bound factual claims."
+    "Do not let expressive framing contradict source-bound factual claims.",
+    "Do not treat the best searched candidate, one Reward/judge score, or one corrected statistical test as creative truth."
   ],
   "aestheticDimensions": [
     {
@@ -228,7 +230,38 @@
         "pnpm culture:collect",
         "pnpm culture:analyze",
         "pnpm culture:loop"
-      ]
+      ],
+      "creativeAlphaResearch": {
+        "authority": "research/expression/experiments/r6-creative-alpha.md",
+        "definition": "Incremental typed consequence under a controlled creative intervention and explicit context; never a universal quality or Reward score.",
+        "researchInstitutions": [
+          "search-is-data",
+          "candidate-freeze",
+          "search-replay-null",
+          "pristine-holdout",
+          "assignment-and-propensity",
+          "realized-encounter",
+          "typed-consequence",
+          "explicit-oos-scope",
+          "program-marginal-context"
+        ],
+        "retainedEvidence": [
+          "r6a-zero-alpha-search-attacks",
+          "r6b-web-encounter-receipts",
+          "r6c-browser-grounded-agent-observer-consequence",
+          "r6d-pristine-content-oos",
+          "r6e-program-portfolio-counterfactual"
+        ],
+        "oosDimensions": [
+          "artifact-content",
+          "observer-class",
+          "encounter",
+          "time",
+          "medium",
+          "human-population"
+        ],
+        "boundary": "R6 establishes research-validity and one Agent-observer artifact-content OOS direction. It does not establish human consequence, stable effect size, cross-provider, time, encounter, or medium generalization."
+      }
     },
     "slowCoreResponsibilities": [
       "experiential-target",

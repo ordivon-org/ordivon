@@ -190,3 +190,20 @@ A Web project state remains Web/owner truth. A Game world state remains Game/Wor
 The next development phase should be planned from this architecture rather than from individual media tools. Web, Studio production, video, audio, writing, still-image work and later media should share the same cognitive core while exposing their own medium and encounter profiles.
 
 The goal is not to make every artifact look alike. The goal is to make every Agent able to reason about **why this work should exist, what it is allowed to imply, how this medium should carry the experience, what the real artifact actually communicates, and what new evidence deserves to survive into the next work**.
+## Creative production and empirical research remain two loops
+
+R6 confirmed that the production scaffold must not be replaced by a reward-maximization pipeline. The production question remains:
+
+```text
+FRAME → BIND → EXPRESS → RENDER → AUDIT → DECIDE
+```
+
+When a durable uncertainty becomes a research question, a second loop now has a tested minimum discipline:
+
+```text
+REGISTER → SEARCH → FREEZE → INTERVENE → EXPOSE → MEASURE → VALIDATE → OOS → UPDATE
+```
+
+The second loop owns research validity, not creative authority. Search history is evidence because Agent-scale generation can manufacture false winners rapidly. Web/encounter systems own realized exposure facts; Studio owns the creative intervention and consequence interpretation; Harness owns Provider authority; Runtime owns exact execution/artifact boundaries.
+
+R6 uses **Creative Alpha** only for the incremental typed consequence of a controlled intervention under an explicit context. It is not `quality = f(artifact)`, and one Reward, engagement number, judge score, or corrected p-value must not become the production objective. The same candidate can also have different marginal value in different creative-program compositions, so standalone performance and program-level contribution remain separate decisions.
