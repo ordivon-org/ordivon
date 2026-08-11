@@ -33,6 +33,11 @@ class ExpressionContextTests(unittest.TestCase):
         self.assertIn("encounter-mode", creative["variableProfiles"])
         self.assertEqual(creative["learningPromotion"][0], "artifact-local")
         self.assertIn("human experience", creative["twoSpeedLearning"]["boundary"])
+        observatory = creative["culturalObservatory"]
+        self.assertTrue((ROOT / observatory["authority"]).is_file())
+        self.assertIn("corpus-with-controls", observatory["responsibilities"])
+        self.assertIn("none is a universal quality label", observatory["selectionBoundary"])
+        self.assertIn("pnpm culture:loop", observatory["commands"])
 
         expected_layers = {"hard_constraint", "durable_prior", "medium_prior", "context_signal", "local_observation"}
         self.assertEqual(set(data["knowledgeLayers"]), expected_layers)

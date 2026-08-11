@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-cultural-observatory-acceptance",
+  "observedAt": "2026-08-11",
+  "sourceRevisions": {
+    "studio": "bbb4e6eaeecb4cbf0ffe03573aa1c35e78b623c8",
+    "web": "cb39939ec868385548bb77b97e19c8a324c95dfa",
+    "world": "8ddbb6a646a77a9180f4d988a23ccbf314aef044"
+  },
+  "r0": {
+    "focusedTests": 5,
+    "status": "passed",
+    "observationKind": "ordivon.studio-cultural-observation",
+    "byteDefault": "reference-metadata-only"
+  },
+  "r1": {
+    "runtimeJobId": "job-019fef96-5450-7e51-a590-2192f65f87a5",
+    "observationCount": 840,
+    "providerFailures": 0,
+    "countsByProvider": {
+      "hacker-news": 400,
+      "apple-music": 100,
+      "guardian": 340
+    },
+    "snapshotSemanticDigest": "sha256:cf6dba1598ca30cc1566a8d99e33f3f2d330cda4757baba6de8844b579173919",
+    "snapshotBlob": {
+      "digest": "sha256:4d730f6d13345a2585eaa971acfeef5d14abaff6c10187b755d08c5769102594",
+      "sizeBytes": 990011,
+      "authority": "local-studio-cas"
+    }
+  },
+  "r2": {
+    "runtimeJobId": "job-019fef97-b6f3-73d2-adac-e25c82bea8db",
+    "clusterCount": 8,
+    "matchedPairCount": 266,
+    "pairsByProvider": {
+      "hacker-news": 160,
+      "guardian": 106
+    },
+    "topShallowContrasts": [
+      {"feature": "hasNumber", "meanDifference": 0.10150375939849623, "pairedStandardizedDifference": 0.17621483362519663},
+      {"feature": "titleWords", "meanDifference": 0.20676691729323307, "pairedStandardizedDifference": 0.09777240889216446},
+      {"feature": "hasParenthetical", "meanDifference": 0.03007518796992481, "pairedStandardizedDifference": 0.09664542714103853},
+      {"feature": "hasDash", "meanDifference": -0.041353383458646614, "pairedStandardizedDifference": -0.09486636977633708}
+    ],
+    "reportSemanticDigest": "sha256:3749ecefc006e1f8b4a5c738485b782fd9c2ac228d30fa6586c14d077f3efc1e",
+    "reportBlob": {
+      "digest": "sha256:4b2b014d7985c55c3fea5ede10a5bce29c7f9d05d59198c6c986568d6f83b3da",
+      "sizeBytes": 21295,
+      "authority": "local-studio-cas"
+    },
+    "decision": "shallow title structure is insufficient for production optimization"
+  },
+  "r3": {
+    "artifact": "/writing/runtime-after-core",
+    "intervention": "Ten-Tool -> 10-Tool",
+    "baselineSourceTreeDigest": "sha256:7bc9c5f16e35554a9cda7ca1c337efcf32d9663647ba11e74508815b654e284c",
+    "candidateSourceTreeDigest": "sha256:0a19b009c3bcc36b44b4a90e975e71b7c188418b9a996cd9ac79078d14696c30",
+    "baselinePixels": {
+      "desktop": "sha256:e8ce0c867dc6c438a45cef7dcd8eb968db59f10f5f3e10bb9d0c42588c7ca386",
+      "mobile": "sha256:75c8bbaf0e3de51f26fc19552eb627c56fc32eb6e3cf5019d2ef91fa9ced34e0"
+    },
+    "candidatePixels": {
+      "desktop": "sha256:082b42bd0c030c8c27f7510416f25eca94e9e2b5c2be84143be0fb0fb896bfd8",
+      "mobile": "sha256:10d5709d9a4dffd2bf9f73faf9c26fd274a90a58abd24946e4f5a4f8af139b55"
+    },
+    "baselineMechanicalAudit": "passed",
+    "candidateMechanicalAudit": "passed",
+    "finalBaselineSourceTreeDigest": "sha256:c322dad4c7c1c250d2853cb9b0bddafe8423419e9a13b570f6ca20b6aaddc89e",
+    "finalBaselineReviewJobId": "job-019fefb0-d33c-79e3-9c9d-84d1795b9a89",
+    "decision": "no-op",
+    "reason": "weak observational prior plus ambiguous line-break change and no consequence evidence"
+  },
+  "webEquipment": {
+    "browserReviewTempInvariant": "short writable temp root; automatic /tmp fallback when Runtime Workspace path would exceed Chromium Unix socket budget",
+    "playwrightCacheInvariant": "discover and bind an existing provisioned Playwright browser cache instead of assuming a disposable Workspace-local browser install",
+    "fullCheckJobId": "job-019fefad-4b22-7232-ab7a-b1bcd66256f3",
+    "playwrightTestsPassed": 138,
+    "playwrightTestsFailed": 0
+  },
+  "boundaryFindings": [
+    "winner-only corpus rejected",
+    "platform rank is attention evidence rather than aesthetic truth",
+    "provider-secret model invocation remains outside Studio and should use Harness/Host authority",
+    "generic World connector remains rejected until a second real consumer exists",
+    "human review is conditional rather than a mandatory inner-loop gate"
+  ]
+}

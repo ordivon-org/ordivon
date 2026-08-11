@@ -31,6 +31,7 @@ Large media bytes, editor caches, proxies, and exports are intentionally outside
 - [`STUDIO.md`](STUDIO.md) — first-principles architecture and corrected technical choices;
 - [`research/expression/README.md`](research/expression/README.md) — Art & Expression Laboratory, its research boundary, tensions, and Agent loop;
 - [`research/expression/evidence-map.md`](research/expression/evidence-map.md) — evidence-backed aesthetic and narrative priors with explicit scope limits;
+- [`research/expression/cultural-observatory.md`](research/expression/cultural-observatory.md) — live cultural/attention observation, winner-control corpus discipline, and autonomous hypothesis testing;
 - [`docs/media-model.md`](docs/media-model.md) — Asset, Blob, Production, Claim, TimedText, and Output objects;
 - [`docs/technical-baseline.md`](docs/technical-baseline.md) — time, color, audio, storage, editor, and rendering baseline;
 - [`docs/storage-layout.md`](docs/storage-layout.md) — selected-byte durability boundary, verified local archive/materialization, and accepted private R2 replica/restore path;

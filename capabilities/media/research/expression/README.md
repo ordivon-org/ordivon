@@ -115,6 +115,8 @@ Research is a conditional branch from production when a durable uncertainty surv
 
 [`knowledge-model.md`](./knowledge-model.md) separates hard constraints, durable cross-medium priors, medium priors, current context signals, and local observations. Evidence class and reuse scope are intentionally orthogonal.
 
+[`cultural-observatory.md`](./cultural-observatory.md) now operationalizes the slow culture/distribution side of the system. It acquires bounded external reference/metadata observations, preserves winner/control and selection-mechanism distinctions, runs cheap large-sample comparisons, and can feed a reversible creative intervention. Popularity remains attention-world evidence rather than aesthetic truth, and `no-op` is a normal experimental result.
+
 ## Experiment families
 
 Useful experiments include:
@@ -159,4 +161,4 @@ This foundation does **not** yet claim:
 
 ## Current pressure
 
-A3-1 through A3-3 already established that the cross-medium model can change real production decisions and can be falsified by rendered artifacts. The next pressure is structural: consume the single protocol in ordinary Web, motion/video, and writing work; keep medium knowledge downstream; and promote new shared priors only when repeated production earns them.
+A3-1 through A3-3 established that the cross-medium model can change real production decisions and can be falsified by rendered artifacts. Cultural Observatory R0-R3 then proved the first live outer-loop slice: 840 external observations, 266 matched controls, a shallow-feature falsifier, and one reversible Web intervention correctly rejected as `no-op`. The next pressure is richer legitimate perception and consequence evidence—video/audio/semantic decomposition through admitted equipment and Provider authority, followed by owned-surface retention, comprehension, behavior, or memory signals when they actually exist.

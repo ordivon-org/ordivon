@@ -159,6 +159,24 @@
       "culture-history-current-environment",
       "local-production-evidence"
     ],
+    "culturalObservatory": {
+      "authority": "research/expression/cultural-observatory.md",
+      "role": "Acquire bounded external cultural and attention-world evidence for hypothesis generation without turning platform selection into aesthetic truth.",
+      "responsibilities": [
+        "observe",
+        "corpus-with-controls",
+        "structure-compare",
+        "creative-intervention",
+        "consequence-when-observable"
+      ],
+      "selectionBoundary": "Winner, rank, most-viewed, editorial selection, and trend are distinct observed mechanisms; none is a universal quality label.",
+      "commands": [
+        "pnpm culture:capabilities",
+        "pnpm culture:collect",
+        "pnpm culture:analyze",
+        "pnpm culture:loop"
+      ]
+    },
     "slowCoreResponsibilities": [
       "experiential-target",
       "truth-and-focalization-binding",
