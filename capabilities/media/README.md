@@ -1,93 +1,110 @@
 # Ordivon Studio
 
-Ordivon Studio is the creative-technology and multi-medium production environment for Ordivon.
+A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
 
-It turns facts and executable evidence owned by Ordivon projects into articles, visual systems, audio, video, interactive explanations, demonstrations, and platform-specific publication packages. It also uses those productions to expose product-entry, comprehension, and experience failures.
+The film still expresses what was bound at `R`; it does **not** become the current Runtime authority because it is polished, approved, or published.
 
-Studio does **not** become a second owner of Runtime, Host, Harness, research, or public-site facts.
+**Ordivon Studio turns source-owned reality into editable medium-specific expression without creating a second truth store.**
 
 ```text
-owning project facts and executable evidence
-→ Studio narrative, visual, audio, motion, and interaction sources
-→ editable production masters
-→ deterministic delivery variants
-→ Web, GitHub, YouTube, Douyin, Upwork, and other surfaces
+exact owner revision + bounded Claim
+→ editable writing / visual / audio / motion / interaction source
+→ selected Assets and exact bytes
+→ render or composition
+→ factual/mechanical review
+→ medium craft judgment
+→ human-response calibration only when the claim requires it
+→ Output / publication package
 ```
 
-## What this repository owns
+## Purpose
 
-- the Ordivon cross-medium identity source;
-- the Art & Expression Laboratory for cross-medium aesthetics, narrative, rhetoric, motion, sound, and style research;
-- reusable editorial, visual, motion, caption, and interactive primitives;
-- selected-asset provenance and rights records;
-- production manifests and source packages;
-- deterministic media inspection, transformation, delivery, verified local CAS archive/materialization, and narrow Cloudflare R2 replica/restore tooling;
-- real source-bound Productions across different media, currently Runtime Introduction motion and the Writing-only Browser Perception Note.
+Facts and code do not decide how a reader should encounter them. Studio owns the remaining creative responsibility: medium choice, narrative structure, editable production state, selected expression, rendering, review preparation, and replaceable delivery variants.
 
-Large media bytes, editor caches, proxies, and exports are intentionally outside Git. Git stores identities, manifests, open interchange snapshots, editable text and code, and checksums that resolve those bytes from a local cache or object store.
+The source owner keeps current product/research truth. Studio keeps the expression bound to the exact source revision.
+
+## One expression journey
+
+For a video explaining Runtime recovery:
+
+1. Runtime owns the fact and evidence.
+2. Studio binds an exact Runtime revision through a Claim that limits what may be said.
+3. Studio chooses narration, diagrams, pacing, typography, motion, sound, and edit structure.
+4. Render evidence proves what artifact was observed; decision context proves which Claim/Production boundary governed review.
+5. An Agent may revise or no-op; intermediate critique is transient unless its consequence matters later.
+6. A later Runtime change does not silently float the old Claim. Studio keeps a historical expression or explicitly rebases it.
+
+## Responsibility boundary
+
+| Responsibility | Owner |
+| --- | --- |
+| current product/research fact | source repository/native owner |
+| revision-bound allowed expression | Studio Claim |
+| creative intent and editable production state | Studio |
+| exact selected bytes | the named durable byte authority for that medium |
+| render/QC evidence | Studio tooling and retained receipts |
+| public site orientation/publication | Web or destination platform |
+| human comprehension, preference, trust, recall, or other audience response | scoped human-response evidence |
+
+Persisting or presenting another owner's fact does not transfer that fact to Studio.
+
+## Human-response boundary
+
+Studio separates three claims:
+
+```text
+mechanical / factual → verify against source, bytes and render evidence
+medium craft         → conventions + explicit intent + bounded critique
+human experience     → human/expert evidence when uncertainty matters
+```
+
+A vision-capable Agent can falsify obvious semantic or visual problems. It cannot establish that people understood, preferred, trusted, remembered, or enjoyed the work. One person's preference is not universal taste authority either.
+
+This is why a Production may remain in `review` after technical, factual, storage, and Agent-perception checks pass when the unresolved decision is genuinely human-response dependent.
+
+## Current boundary
+
+Studio currently retains:
+
+- the cross-medium identity source and Art & Expression Laboratory;
+- Production, Claim, Asset/Blob, TimedText, Receipt, and Output contracts;
+- editable production sources and reusable expression primitives;
+- provenance/rights records for selected Assets;
+- deterministic media inspection, rendering, QC, review preparation, and selected-byte recovery;
+- optional Resolve/OTIO equipment behind explicit compatibility checks;
+- real motion and Writing-only Productions that pressure-test the model.
+
+Large media bytes, caches, proxies, and exports stay outside Git. Git stores identities, manifests, editable text/code, provenance, interchange snapshots, and checksums. Exact selected bytes use the durable authority appropriate to their medium and failure boundary; Git itself may already be sufficient for canonical tracked text/code.
+
+Current production status and storage evidence remain in the production and technical documents rather than this entry page.
 
 ## Start here
 
-- [`STUDIO.md`](STUDIO.md) — first-principles architecture and corrected technical choices;
-- [`research/expression/README.md`](research/expression/README.md) — Art & Expression Laboratory, its research boundary, tensions, and Agent loop;
-- [`research/expression/evidence-map.md`](research/expression/evidence-map.md) — evidence-backed aesthetic and narrative priors with explicit scope limits;
-- [`research/expression/cultural-observatory.md`](research/expression/cultural-observatory.md) — live cultural/attention observation, winner-control corpus discipline, and autonomous hypothesis testing;
-- [`docs/media-model.md`](docs/media-model.md) — Asset, Blob, Production, Claim, TimedText, and Output objects;
-- [`docs/technical-baseline.md`](docs/technical-baseline.md) — time, color, audio, storage, editor, and rendering baseline;
-- [`docs/storage-layout.md`](docs/storage-layout.md) — selected-byte durability boundary, verified local archive/materialization, and accepted private R2 replica/restore path;
-- [`docs/fast-inner-loop.md`](docs/fast-inner-loop.md) — local render/review iteration, hidden-precondition handling, and technical-versus-semantic audit boundary;
-- [`docs/review-consumption.md`](docs/review-consumption.md) — Agent review consumption, authority snapshots, transient critique, and bounded revision evidence;
-- [`docs/artifact-perception.md`](docs/artifact-perception.md) — temporal observation sampling, model-view preparation, and native image-transport boundary;
-- [`docs/resolve-adapter.md`](docs/resolve-adapter.md) — the bounded Resolve Free internal-runner bridge;
-- [`productions/runtime-introduction/README.md`](productions/runtime-introduction/README.md) — first real motion production vertical;
-- [`productions/browser-perception-note/story.mdx`](productions/browser-perception-note/story.mdx) — second materially different, Writing-only Production pressure-testing cross-medium assumptions.
+| Need | Read |
+| --- | --- |
+| understand why Studio exists | this README |
+| determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
+| first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |
+| Production/Claim/Asset/Blob/Output model | [`docs/media-model.md`](docs/media-model.md) |
+| Agent review consumption and transient critique | [`docs/review-consumption.md`](docs/review-consumption.md) |
+| perception/model-view preparation | [`docs/artifact-perception.md`](docs/artifact-perception.md) |
+| Art & Expression research | [`research/expression/README.md`](research/expression/README.md) |
+| local render/review loop | [`docs/fast-inner-loop.md`](docs/fast-inner-loop.md) |
+| storage/recovery boundaries | [`docs/storage-layout.md`](docs/storage-layout.md) |
 
 ## Fresh Workspace bootstrap
 
-JavaScript production commands fail fast when workspace dependencies are absent instead of running Python/media checks first and discovering `tsc` late. Materialize them once with:
-
 ```bash
 pnpm bootstrap
+pnpm check
 ```
 
-`pnpm deps:check` is the cheap readiness probe. Python-only model and test commands remain usable without JavaScript bootstrap.
+Resolve is optional equipment:
 
-## Current state
-
-The design foundation is executable and verified:
-
-- Production, Claim, Asset, and TimedText contracts validate;
-- DTCG source generates shared CSS and TypeScript tokens;
-- one React/SVG Runtime visual is consumed by both Preview and Remotion;
-- the Preview app builds;
-- the Runtime motion composition renders at 1920×1080, 30 fps;
-- QC verifies H.264, `yuv420p`, limited range, complete BT.709 signaling, and no empty audio track;
-- progressive perception materializes exact review pixels, and native Runtime `workspace.content` delivery has passed a fresh vision-capable Agent acceptance with a bounded semantic `no-op`;
-- optional Resolve/OTIO equipment has passed real read-only, bounded-mutation, and six-case compatibility acceptances against Resolve Free 21.0.3.7; it is excluded from the default Core dependency/check path and is validated explicitly with `pnpm check:equipment:resolve` when that NLE path is used.
-
-DaVinci Resolve 21, OBS Studio 32, and Figma Desktop are installed on the current workstation. They are used only when a production actually requires them.
-
-Runtime Introduction now has a complete source-bound 78-second English **picture+narration review candidate**. P2 established exact local selected bytes; P3 proved fresh-Workspace recovery through `materialize`; P4 then replicated the selected picture, narration stem, and final A/V candidate to the private Cloudflare R2 bucket `ordivon-artifacts`, redownload-hashed all three, and restored the picture master after deliberately removing its local CAS object. The productized `ordivon-studio r2 restore` path recreated the exact local digest and a valid 78-second H.264 BT.709 working picture. The audition copy remains at `D:\OrdivonStudio\productions\runtime-introduction\review\runtime-introduction-en-7d994f806279.mp4`. The film remains `rendered / review`, not approved or published, because off-machine durability does not answer the remaining human auditory-response claim about the selected voice.
-
-The second Production, Browser Perception Note, is Writing-only and has an internally `approved` semantic-text Output bound to Web revision `e11a6585b049776e46011289c80197f1183ec330`. Its approved Output digest exactly matches the Git-tracked `story.mdx` payload and recovers from the Git object without a media-cache copy. This materially different case narrows the durability invariant: exact selected bytes need a durable authority, but that authority need not be the media CAS when source control already owns the exact payload. The workload also keeps `workingProfile: {}` rather than inventing video/audio parameters and preserves generic Receipt dispatch by `kind`.
-
-## Tool split
-
-```text
-React / SVG             reusable visual primitives
-Remotion adapter        deterministic motion rendering
-DaVinci Resolve         selected editorial, color, and Fairlight environment
-Resolve adapter         bounded internal operations for Resolve Free
-OpenTimelineIO          optional NLE interchange snapshots (`resolve` extra)
-OBS                     selected real-product capture environment
-FFmpeg / ffprobe        media transforms and machine QC
-Python                  asset, timeline, caption, and storage tooling
-MDX                     editorial and interactive source
-DTCG JSON               cross-medium design-token source
-Local CAS               selected binary/media byte authority and working recovery
-Cloudflare R2 adapter   private off-machine replica + destructive-loss restore path
+```bash
+pnpm check:equipment:resolve
 ```
 
 ## License
 
-Apache-2.0. Production assets may carry their own rights and usage records in their Asset metadata.
+Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.
