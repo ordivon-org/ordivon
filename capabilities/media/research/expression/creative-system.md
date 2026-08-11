@@ -162,6 +162,8 @@ Examples already observed include:
 
 Therefore the work system must audit **rendered semantics**, not only explicit claims and source correctness.
 
+R5 sharpened what a semantic audit should return. The durable object is not merely an Agent's interpretation; it should be an interpretation that can point back to the artifact. Evidence-addressed propositions, time ranges, frame/source identities and visible disagreement are preferable to one ungrounded semantic score. When a model can produce a plausible interpretation but cannot ground the requested specificity after an evidence omission, the audit should fail rather than reward narrative coherence.
+
 ## Distribution and encounter are part of the work
 
 A rendered artifact is not encountered in the abstract. YouTube, a short-video feed, a Web page, a presentation, a game scene, headphones and a large display impose different attention, duration, interaction, sound and comparison conditions.

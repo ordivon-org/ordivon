@@ -127,6 +127,54 @@
         "expression-presence",
         "comparative-judgment"
       ]
+    },
+    {
+      "id": "beyond-chunking-2026",
+      "year": 2026,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "Beyond Chunking: Discourse-Aware Hierarchical Retrieval for Long Document Question Answering",
+      "doi": "10.18653/v1/2026.acl-long.829",
+      "concepts": [
+        "meaning-context",
+        "perceptual-legibility"
+      ]
+    },
+    {
+      "id": "museg-2026",
+      "year": 2026,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "MUSEG: Reinforcing Video Temporal Understanding via Timestamp-Aware Multi-Segment Grounding",
+      "doi": "10.18653/v1/2026.acl-long.1644",
+      "concepts": [
+        "meaning-context",
+        "continuity-discontinuity"
+      ]
+    },
+    {
+      "id": "video-mmmu-2026",
+      "year": 2026,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "Video-MMMU: Evaluating Knowledge Acquisition from Multidisciplinary Professional Videos",
+      "doi": "10.18653/v1/2026.acl-long.1281",
+      "concepts": [
+        "meaning-context",
+        "aftereffect"
+      ]
+    },
+    {
+      "id": "multimedia-event-evaluation-pitfalls-2026",
+      "year": 2026,
+      "kind": "peer-reviewed",
+      "evidenceClass": "bounded_empirical",
+      "title": "Evaluation Pitfalls and Challenges in Multimedia Event Extraction",
+      "doi": "10.18653/v1/2026.acl-long.1426",
+      "concepts": [
+        "meaning-context",
+        "comparative-judgment"
+      ]
     }
   ]
 }

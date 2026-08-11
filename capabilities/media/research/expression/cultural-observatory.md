@@ -159,7 +159,9 @@ R4 then pressure-tested richer artifact perception rather than assuming that mor
 
 See [`experiments/r4-rich-perception.md`](./experiments/r4-rich-perception.md) for the exact acceptance evidence.
 
-Future semantic, rhetorical, shot/event, musical, and cross-modal meaning decomposition should be added only through actual equipment and evaluated against controls. Model-provider calls must use the admitted Harness/Host provider boundary rather than giving Studio its own secret-loading path.
+R5 then pressure-tested meaning itself. Its strongest retained structure is not a larger ontology but an evidence boundary: candidate semantic observations must point to exact evidence, omission/counterexample tests must be able to falsify them, replicate disagreement remains uncertainty evidence, and downstream consequence is measured separately from annotation. The official R5 run kept Provider authority in Harness, completed 28 structured observations with zero Provider failures, and found near-perfect grounding despite substantial instability in fine discourse and speech-act labels. A separate eight-replicate Agent-observer consequence extension reached 97.9% grounded substantive knowledge acquisition while a no-artifact control abstained completely. See [`experiments/r5-grounded-meaning.md`](./experiments/r5-grounded-meaning.md).
+
+Future native visual/audio semantic perception should still be admitted only through real equipment and explicit capability evidence. Model-provider calls must use the admitted Harness/Host provider boundary rather than giving Studio its own secret-loading path. R5's time-coded video branch is source-semantics + transcript with sampled real-pixel validation, not a hidden claim that the text Provider natively perceived raw video.
 
 ## Evidence retention
 

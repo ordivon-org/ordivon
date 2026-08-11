@@ -192,6 +192,37 @@
         ],
         "boundary": "More perception earns reuse only when it reduces uncertainty at the tested scope. Shared structural operators do not imply shared medium semantics, quality, or success direction."
       },
+      "groundedMeaning": {
+        "authority": "research/expression/experiments/r5-grounded-meaning.md",
+        "acceptance": [
+          "grounding",
+          "controlled-sensitivity",
+          "meaning-preserving-invariance",
+          "counterexample-resistance",
+          "disagreement-visibility",
+          "typed-consequence"
+        ],
+        "retainedEquipment": [
+          "evidence-addressed-semantic-observations",
+          "time-coded-event-checks",
+          "grounding-validity-tests",
+          "event-omission-falsifiers",
+          "crossmodal-relation-hypotheses",
+          "agent-observer-knowledge-transfer"
+        ],
+        "withheld": [
+          "fine-relation-label-as-semantic-truth",
+          "closed-speech-act-taxonomy",
+          "native-raw-video-vlm-capability",
+          "human-consequence-claim"
+        ],
+        "providerAuthority": "Harness structured completion owns Provider credentials and calls; Studio owns experiment/oracle/scoring and never treats Provider output as truth.",
+        "commands": [
+          "pnpm culture:r5:build",
+          "pnpm culture:r5:score"
+        ],
+        "boundary": "Meaning observations retain exact evidence and visible uncertainty. Relation labels are hypotheses when granularity is unstable, and consequence must name its observer class."
+      },
       "commands": [
         "pnpm culture:capabilities",
         "pnpm culture:collect",

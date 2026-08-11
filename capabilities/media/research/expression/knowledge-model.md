@@ -99,3 +99,21 @@ The goal is not an ever-growing canon. It is a compact set of useful, revisable 
 Agent generation, rendering, ablation and semantic audit can produce evidence quickly. Human response, culture, distribution and long-term consequence move more slowly.
 
 Fast evidence can rapidly falsify implementation and local expressive hypotheses. It cannot accelerate the underlying human or cultural phenomenon merely by sampling itself more often.
+
+## Grounded meaning and semantic uncertainty
+
+R5 established an additional reuse boundary for semantic evidence. A model-generated semantic label is not itself a knowledge layer. Reusable semantic observations should preserve the evidence that supports them and the uncertainty exposed by controlled variants or replicate disagreement.
+
+A preferred local form is therefore:
+
+```text
+proposition / event / observer answer
++ exact evidence locator
++ candidate relation when useful
++ disagreement / uncertainty
++ consequence type when measured
+```
+
+A closed ontology label should be promoted only if the label boundary itself survives paraphrase, counterexample, omission and repeated materially different artifacts. Strong grounding with unstable labels is evidence to retain the grounding and narrow or reject the ontology—not a reason to average the labels into false certainty.
+
+Consequence also remains typed. Agent-observer knowledge transfer, human comprehension, memory, attention, trust, preference and behavior are different evidence classes in practice even when they concern the same artifact. One must not silently stand in for another.

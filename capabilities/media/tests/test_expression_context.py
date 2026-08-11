@@ -43,6 +43,12 @@ class ExpressionContextTests(unittest.TestCase):
         self.assertIn("video-temporal-structure", rich["retainedEquipment"])
         self.assertIn("pnpm culture:r4:article", rich["commands"])
         self.assertIn("Shared structural operators do not imply shared medium semantics", rich["boundary"])
+        grounded = observatory["groundedMeaning"]
+        self.assertTrue((ROOT / grounded["authority"]).is_file())
+        self.assertIn("grounding-validity-tests", grounded["retainedEquipment"])
+        self.assertIn("fine-relation-label-as-semantic-truth", grounded["withheld"])
+        self.assertIn("pnpm culture:r5:build", grounded["commands"])
+        self.assertIn("Provider output as truth", grounded["providerAuthority"])
 
         expected_layers = {"hard_constraint", "durable_prior", "medium_prior", "context_signal", "local_observation"}
         self.assertEqual(set(data["knowledgeLayers"]), expected_layers)

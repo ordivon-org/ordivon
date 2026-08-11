@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-r5-grounded-meaning-acceptance",
+  "observedAt": "2026-08-11",
+  "sourceRevision": "346ec9fb0dcbf541062adec890ada5200910e18a",
+  "provider": {
+    "authority": "ordivon-harness",
+    "adapterId": "deepseek.chat-completions.non-thinking.v1",
+    "requestedModelId": "deepseek-v4-flash",
+    "credentialScopeId": "credential-scope:deepseek:flash:0",
+    "studioOwnsProviderSecret": false
+  },
+  "officialExperiment": {
+    "taskCount": 14,
+    "replicatesPerTask": 2,
+    "providerCalls": 28,
+    "providerFailures": 0,
+    "bundleSemanticDigest": "sha256:90857cc48766c837b81f226b5abd2c6731a8276679b307d7602d196887c255a4",
+    "harnessReceiptInternalDigest": "sha256:5efb28e46b17c1e36459f39676f21d6be8817ba702d64ad4ec7119f5d4ae5f83",
+    "studioScoreDigest": "sha256:e376c6410704c41d5966f18f43a538ead87f339204e62d33616f9a9ea5242b02",
+    "runtimeJobId": "job-019ff030-c8d6-7370-9bea-824941fe5120"
+  },
+  "acceptanceSignals": {
+    "articleParaphraseInvariance": 0.5,
+    "runtimeOmissionSensitivity": 0.75,
+    "minimumTaskGroundingValidity": 0.75,
+    "meanTaskGroundingValidity": 0.9821428571428571,
+    "agentObserverArtifactTaskAccuracy": 0.9444444444444443,
+    "agentObserverKnowledgeAcquisitionRate": 0.9444444444444443,
+    "agentObserverOrderInvariance": 0.8333333333333333,
+    "noArtifactEpistemicAccuracy": 1.0,
+    "noArtifactUnsupportedAssertionRate": 0.0
+  },
+  "r5a": {
+    "baseline": {"exactLabelAccuracy": 0.625, "groundingValidity": 1.0, "replicateAgreement": 0.75},
+    "paraphrase": {"exactLabelAccuracy": 0.75, "groundingValidity": 1.0, "replicateAgreement": 0.5},
+    "causalBreak": {"exactLabelAccuracy": 0.125, "groundingValidity": 1.0, "replicateAgreement": 0.5},
+    "contradiction": {"exactLabelAccuracy": 0.5, "groundingValidity": 1.0, "replicateAgreement": 0.75},
+    "decision": "retain-evidence-addressed-relation-hypotheses-not-closed-label-truth"
+  },
+  "r5b": {
+    "baseline": {"presenceAccuracy": 1.0, "groundingValidity": 1.0},
+    "recoveryOmitted": {"presenceAccuracy": 0.75, "groundingValidity": 0.75},
+    "overInference": "Both replicates inferred a specific same-request/same-Job recovery event from generic failure/recoverability evidence after specific recovery evidence was removed.",
+    "providerPerceptionBoundary": "time-coded video-source semantics plus exact transcript; not native raw-video VLM",
+    "sampledPixelValidation": [
+      {"timeSeconds": 2, "digest": "sha256:a345de49443cf6d6a27026a5954edb54cde0a05e70b83cd513d469981caf0393"},
+      {"timeSeconds": 16, "digest": "sha256:46bdf812f95de261a5965f07686bd5950793ae45f4e5e648d545691a60278076"},
+      {"timeSeconds": 30, "digest": "sha256:b1b782cbcb2cdc82af77e7aaf7f256aa98b1da28323ac60a10ba34354a717152"},
+      {"timeSeconds": 45, "digest": "sha256:6f38caa677650804be478bc31a7d0e9ced2df8d9501f90198f6fc5c56caab55f"},
+      {"timeSeconds": 52, "digest": "sha256:5c4602171d5dbaaad09db10d723d4c15f8c0f57af9e8cfd2336dbc7e32c75249"},
+      {"timeSeconds": 70, "digest": "sha256:44ddb1c9ed0353814ea7aec8680b3c851a151c0a8f9a769e2435cb8877ba9cff"}
+    ],
+    "decision": "retain-grounded-event-checking-and-omission-falsifiers"
+  },
+  "r5c": {
+    "baseline": {"exactLabelAccuracy": 0.8333333333333334, "groundingValidity": 1.0, "replicateAgreement": 0.8333333333333334},
+    "boundaryParaphrase": {"exactLabelAccuracy": 0.6666666666666667, "groundingValidity": 1.0, "replicateAgreement": 0.5},
+    "boundaryPolarityFlip": {"exactLabelAccuracy": 0.41666666666666663, "groundingValidity": 1.0, "replicateAgreement": 0.16666666666666666},
+    "perceptionBoundary": "exact transcript and timing only; not ASR, prosody, emotion, or music semantics",
+    "decision": "do-not-retain-current-closed-speech-act-taxonomy"
+  },
+  "r5d": {
+    "exactRelationAccuracy": 0.8,
+    "groundingValidity": 1.0,
+    "replicateAgreement": 1.0,
+    "stableDisagreement": "SUPPORTS versus DUPLICATES boundary on one controlled pair",
+    "decision": "retain-grounded-crossmodal-relation-hypotheses-with-granularity-uncertainty"
+  },
+  "r5eReplication": {
+    "tasks": 4,
+    "replicatesPerTask": 8,
+    "providerCalls": 32,
+    "providerFailures": 0,
+    "bundleDigest": "sha256:f8a6ad01826e628806b9075f8386ffbbe82d37a66e84ce2d648091906ba5bbce",
+    "harnessReceiptInternalDigest": "sha256:253837b6e7efc9834fde44e127d55c793da091a015aba6c63c5b22d5f74d06f4",
+    "studioScoreDigest": "sha256:0e08234721df18fb30576dafd50190ab31db8e2e457677142b1502e2b0584e0d",
+    "runtimeJobId": "job-019ff036-796b-7cc2-bed3-c535f8d074f2",
+    "artifactTaskAccuracy": 0.9791666666666666,
+    "groundedSubstantiveKnowledgeAcquisitionRate": 0.9791666666666666,
+    "presentationOrderInvariance": 0.9583333333333334,
+    "groundingValidity": 1.0,
+    "noArtifactEpistemicAccuracy": 1.0,
+    "noArtifactUnsupportedAssertionRate": 0.0,
+    "consequenceType": "Agent-observer knowledge transfer; not human comprehension"
+  },
+  "cas": {
+    "officialBundle": {"digest": "sha256:391e6d6c2a2f3bb02d036f8ba96fbb17c6a6eca3a87136feaffb571c4675fd30", "sizeBytes": 92712},
+    "officialReceipt": {"digest": "sha256:22324ed2028bbe8886d13224e303d6a92e4a0aa3e87dc5d676a01cdafb35fcda", "sizeBytes": 36064},
+    "officialScore": {"digest": "sha256:2be18e882062cd165356b39eac86ad89257ac5ff79bdfb4d051459bfa26a2f67", "sizeBytes": 5484},
+    "replicationBundle": {"digest": "sha256:6e16e66e53a90167606a9822e822ad3c970afaaeeae321af19ebc98ea9483ecc", "sizeBytes": 16330},
+    "replicationReceipt": {"digest": "sha256:4a5fc35c86e160971f650a051ebd65313f5c71609394426e0047180fd2e6e438", "sizeBytes": 36495},
+    "replicationScore": {"digest": "sha256:82120203a623fcba7b24f4eace78c4ddfda7b82fc891bcccf3d1021af5b9fcd1", "sizeBytes": 3147}
+  },
+  "retainedWorldModel": [
+    "Evidence-addressed semantic observations are more stable than fine closed ontology labels in this experiment.",
+    "Plausible semantic inference is insufficient when its cited evidence does not establish the requested specificity.",
+    "Replicate disagreement is evidence about semantic ambiguity and must remain visible.",
+    "Crossmodal relation hypotheses are more useful than one congruence scalar, but relation granularity remains conditional.",
+    "Knowledge-transfer consequence can be measured separately from semantic annotation quality and must retain its observer type.",
+    "Provider output is a candidate observation; Studio retains independent oracle and scoring authority."
+  ],
+  "rejectedClaims": [
+    "The R5 relation vocabulary is a universal semantic ontology.",
+    "The R5 speech-act taxonomy is stable enough for promotion.",
+    "The current Harness Provider performed native raw-video semantic perception.",
+    "R5-C measures ASR, prosodic affect, or music semantics.",
+    "Agent-observer knowledge transfer establishes human comprehension or preference.",
+    "Provider semantic output should directly become a creative prior."
+  ]
+}
