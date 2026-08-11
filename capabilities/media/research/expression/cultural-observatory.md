@@ -149,7 +149,17 @@ R2 intentionally starts with transparent shallow structure:
 
 These are diagnostics and hypothesis generators, not a model of creative quality. R2's first live run falsified the idea that such shallow features are sufficient: the largest paired standardized difference was only about `0.176`.
 
-Future semantic, visual, audio, temporal, rhetorical, and cross-modal decomposition should be added only through actual equipment and evaluated against controls. Model-provider calls must use the admitted Harness/Host provider boundary rather than giving Studio its own secret-loading path.
+R4 then pressure-tested richer artifact perception rather than assuming that more features equal more knowledge. The retained boundary is:
+
+- full-article mechanical structure is useful as context/local evidence, but its first 48-pair live test produced no pooled attention-selection gain and showed strong section-level direction reversals;
+- video temporal change/luma/saturation profiles earned controlled sensitivity when shallow technical metadata was held fixed;
+- audio energy/ZCR/spectral profiles earned the same controlled-sensitivity status;
+- audiovisual change↔audio coupling produced a bounded alignment signal under circular-shift falsification, but did **not** earn promotion as a semantic congruence detector;
+- generic positional operators such as variation, entropy, repetition, peak position, and early/late balance can be shared as measurement grammar while medium semantics and effect direction remain local.
+
+See [`experiments/r4-rich-perception.md`](./experiments/r4-rich-perception.md) for the exact acceptance evidence.
+
+Future semantic, rhetorical, shot/event, musical, and cross-modal meaning decomposition should be added only through actual equipment and evaluated against controls. Model-provider calls must use the admitted Harness/Host provider boundary rather than giving Studio its own secret-loading path.
 
 ## Evidence retention
 

@@ -170,6 +170,28 @@
         "consequence-when-observable"
       ],
       "selectionBoundary": "Winner, rank, most-viewed, editorial selection, and trend are distinct observed mechanisms; none is a universal quality label.",
+      "richPerception": {
+        "authority": "research/expression/experiments/r4-rich-perception.md",
+        "sharedMeasurementGrammar": [
+          "coefficient-of-variation",
+          "normalized-entropy",
+          "lag-1-correlation",
+          "peak-position",
+          "early-late-balance",
+          "turning-point-rate"
+        ],
+        "retainedEquipment": [
+          "article-full-content-structure-as-context-evidence",
+          "video-temporal-structure",
+          "audio-temporal-spectral-structure",
+          "bounded-av-alignment-diagnostic"
+        ],
+        "commands": [
+          "pnpm culture:r4:article",
+          "uv run python scripts/run-r4-media-experiment.py --help"
+        ],
+        "boundary": "More perception earns reuse only when it reduces uncertainty at the tested scope. Shared structural operators do not imply shared medium semantics, quality, or success direction."
+      },
       "commands": [
         "pnpm culture:capabilities",
         "pnpm culture:collect",

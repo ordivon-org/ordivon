@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-r4-rich-perception-acceptance",
+  "observedAt": "2026-08-11",
+  "sourceRevision": "4dfddd2ab43dbd6bd66c33cd577eee85062a620f",
+  "r4a": {
+    "provider": "guardian",
+    "selection": "most-viewed-vs-same-section-newest-control",
+    "sections": ["world", "technology", "culture", "business", "science", "lifeandstyle"],
+    "matchedPairs": 48,
+    "uniqueArticles": 96,
+    "realizedFetchFailures": 0,
+    "rawBodyRetention": false,
+    "shallow": {"accuracy": 0.5416666666666666, "pairedPermutationP": 0.3866133866133866},
+    "richOnly": {"accuracy": 0.4375, "pairedPermutationP": 0.8101898101898102},
+    "combined": {"accuracy": 0.3541666666666667, "pairedPermutationP": 0.9310689310689311},
+    "accuracyGainOverShallow": -0.18749999999999994,
+    "permutationMethod": "paired whole-vector sign flip; 1000 permutations",
+    "semanticReportDigest": "sha256:5c6860c4ca4195077c0a1bf6d392fa8e98335a37a5b05d304119ff8fbb304146",
+    "reportBlob": {
+      "digest": "sha256:090bd9922ea3cadf34f08a48a1c9d07c2499952dfec01c999535d1b650e2715d",
+      "sizeBytes": 174219,
+      "authority": "local-studio-cas"
+    },
+    "liveRunJobId": "job-019fefde-834a-7af1-b3ea-2b8de6c5881f",
+    "correctedNullJobId": "job-019fefea-9fab-7900-a949-14b21d40e796",
+    "decision": "no-strong-selection-gain",
+    "keyFalsifier": "full-content mechanical features do not support one pooled cross-section attention-selection direction"
+  },
+  "r4bVideo": {
+    "ownedSourceDigest": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+    "controlDistance": 0.0,
+    "minimumPerturbationDistance": 0.524660196848906,
+    "medianPerturbationDistance": 0.8990926672969054,
+    "shallowTechnicalMetadataMatched": true,
+    "decision": "earned-controlled-sensitivity"
+  },
+  "r4cAudio": {
+    "ownedSourceDigest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "controlDistance": 0.0,
+    "minimumPerturbationDistance": 0.38827315953866925,
+    "medianPerturbationDistance": 0.8023747662383383,
+    "shallowTechnicalMetadataMatched": true,
+    "decision": "earned-controlled-sensitivity"
+  },
+  "r4bMultimodal": {
+    "cueBoundaryBaselineZ": 0.2840515144743849,
+    "cueBoundaryBestTestedShiftZ": 0.3514664459763876,
+    "cueBoundaryDecision": "rejected-as-reliable-alignment-detector",
+    "videoChangeVsAudioFlux": {
+      "baselineCorrelation": 0.15270612621518218,
+      "rankHigh": 7,
+      "totalCircularAlignments": 156,
+      "percentile": 0.9615384615384616,
+      "twoSidedAbsExceedRate": 0.1032258064516129
+    },
+    "videoChangeVsAudioRms": {
+      "baselineCorrelation": 0.16259676907789114,
+      "rankHigh": 6,
+      "totalCircularAlignments": 156,
+      "percentile": 0.967948717948718,
+      "twoSidedAbsExceedRate": 0.09032258064516129
+    },
+    "decision": "bounded-alignment-diagnostic",
+    "promotionDecision": "do-not-promote-as-congruence-detector"
+  },
+  "r4d": {
+    "retained": "shared positional/variation measurement grammar with medium-owned observables and context-conditioned interpretation",
+    "rejected": "one cross-medium feature vector with one universal success direction"
+  },
+  "mediaExperimentJobId": "job-019fefee-685a-77b3-9118-773711d07276",
+  "mediaSemanticReportDigest": "sha256:4971d45994ff4374b54db3d0452c7d49366b7d28d8cab4959240fd5443d5d85a",
+  "mediaReportBlob": {
+    "digest": "sha256:10837fcf0f8ece3e48ca61a72caf3051c92447d8392742e32587253a91fe3275",
+    "sizeBytes": 24144,
+    "authority": "local-studio-cas"
+  },
+  "retainedEquipment": [
+    "full-article transient structural perception as context/local evidence, not global attention model",
+    "video temporal change/luma/saturation profiles",
+    "audio energy/ZCR/spectral profiles",
+    "generic position/variation profile signatures",
+    "bounded circular-shift audiovisual coupling diagnostic"
+  ],
+  "rejectedClaims": [
+    "more features necessarily increase predictive information",
+    "one full-content mechanical article law generalizes across Guardian sections",
+    "cue-boundary silence is a reliable audiovisual alignment detector",
+    "crossmodal correlation establishes semantic congruence",
+    "shared cross-medium operators imply shared semantics or success direction"
+  ]
+}

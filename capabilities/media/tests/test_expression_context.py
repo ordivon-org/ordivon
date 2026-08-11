@@ -38,6 +38,11 @@ class ExpressionContextTests(unittest.TestCase):
         self.assertIn("corpus-with-controls", observatory["responsibilities"])
         self.assertIn("none is a universal quality label", observatory["selectionBoundary"])
         self.assertIn("pnpm culture:loop", observatory["commands"])
+        rich = observatory["richPerception"]
+        self.assertTrue((ROOT / rich["authority"]).is_file())
+        self.assertIn("video-temporal-structure", rich["retainedEquipment"])
+        self.assertIn("pnpm culture:r4:article", rich["commands"])
+        self.assertIn("Shared structural operators do not imply shared medium semantics", rich["boundary"])
 
         expected_layers = {"hard_constraint", "durable_prior", "medium_prior", "context_signal", "local_observation"}
         self.assertEqual(set(data["knowledgeLayers"]), expected_layers)
