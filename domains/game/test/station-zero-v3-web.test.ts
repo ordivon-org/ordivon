@@ -23,6 +23,9 @@ test("v3 browser renderer exposes strategic controls and sealed enemy plans with
     assert.match(html, /Generate team plan/);
     assert.match(html, /Commit simultaneous Turn/);
     assert.equal((html.match(/data-testid="rescue-intent"/g) ?? []).length, 3);
+    assert.equal((html.match(/data-testid="rescue-responsibility"/g) ?? []).length, 1);
+    assert.match(html, /Search civilian sector: med-ward/);
+    assert.doesNotMatch(html, /civilian-kade/);
     assert.equal((html.match(/data-testid="sealed-enemy-plan"/g) ?? []).length, 2);
     assert.doesNotMatch(html, /Captain Veyra/);
     assert.doesNotMatch(html, /swarm-drone-one|swarm-stalker-kappa/);

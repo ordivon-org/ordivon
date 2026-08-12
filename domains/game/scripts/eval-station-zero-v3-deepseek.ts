@@ -55,7 +55,7 @@ interface EvaluatedRun {
   runId: string;
   profileId: string;
   replica: number;
-  status: "completed" | "provider_failed" | "execution_failed";
+  status: "completed" | "bounded" | "provider_failed" | "execution_failed";
   startedAt: string;
   elapsedMs: number;
   turnsCommitted: number;
@@ -225,6 +225,7 @@ async function evaluateRun(
   pool: StationZeroV3DeepSeekProviderPool,
   profile: EvaluationProfile,
   replica: number,
+  maximumTurns: number | null,
 ): Promise<EvaluatedRun> {
   const runId = `run:deepseek-eval:${profile.profileId}:${replica}`;
   const store = new StationZeroV3Store(":memory:");
@@ -239,6 +240,10 @@ async function evaluateRun(
 
   try {
     while (view.run.status === "running") {
+      if (maximumTurns !== null && turns.length >= maximumTurns) {
+        status = "bounded";
+        break;
+      }
       play.saveOrder(runId, profile.order);
       const sourceState = store.loadState(runId);
       const previewStarted = performance.now();
@@ -373,6 +378,7 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
     runs: {
       requested: runs.length,
       completed: runs.filter((run) => run.status === "completed").length,
+      bounded: runs.filter((run) => run.status === "bounded").length,
       providerFailed: runs.filter((run) => run.status === "provider_failed").length,
       executionFailed: runs.filter((run) => run.status === "execution_failed").length,
       verified: runs.filter((run) => run.verified).length,
@@ -381,6 +387,7 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
         return [profile.profileId, {
           requested: profileRuns.length,
           completed: profileRuns.filter((run) => run.status === "completed").length,
+          bounded: profileRuns.filter((run) => run.status === "bounded").length,
           averageTurns: profileRuns.length ? round(profileRuns.reduce((sum, run) => sum + run.turnsCommitted, 0) / profileRuns.length, 2) : 0,
           rescueOutcomes: countBy(profileRuns, (run) => run.outcomes.rescue),
           pirateOutcomes: countBy(profileRuns, (run) => run.outcomes.pirate),
@@ -448,6 +455,9 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
 
 const replicasPerProfile = positiveInteger(process.env.ORDIVON_EVAL_REPLICAS_PER_PROFILE, 2, "ORDIVON_EVAL_REPLICAS_PER_PROFILE");
 const runConcurrency = positiveInteger(process.env.ORDIVON_EVAL_RUN_CONCURRENCY, 4, "ORDIVON_EVAL_RUN_CONCURRENCY");
+const maximumTurns = process.env.ORDIVON_EVAL_MAX_TURNS
+  ? positiveInteger(process.env.ORDIVON_EVAL_MAX_TURNS, 1, "ORDIVON_EVAL_MAX_TURNS")
+  : null;
 const thinkingMode = process.env.ORDIVON_GAME_V3_DEEPSEEK_THINKING === "enabled" ? "enabled" : "disabled";
 const pool = new StationZeroV3DeepSeekProviderPool({
   credentialSources: stationZeroV3DeepSeekCredentialSources(process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS),
@@ -479,7 +489,7 @@ const cases = PROFILES.flatMap((profile) => Array.from({ length: replicasPerProf
 })));
 const evaluationStartedAt = new Date().toISOString();
 const evaluationStarted = performance.now();
-const runs = await mapConcurrent(cases, runConcurrency, ({ profile, replica }) => evaluateRun(pool, profile, replica));
+const runs = await mapConcurrent(cases, runConcurrency, ({ profile, replica }) => evaluateRun(pool, profile, replica, maximumTurns));
 const providerEvidence = pool.evidenceSnapshot();
 const calls = providerEvidence.calls;
 const report = {
@@ -493,6 +503,7 @@ const report = {
     thinkingMode,
     replicasPerProfile,
     runConcurrency,
+    maximumTurns,
     credentialPool: providerEvidence.credentialPool,
     configuredTotalConcurrency: providerEvidence.credentials.reduce((sum, credential) => sum + credential.maximumConcurrency, 0),
     profiles: PROFILES,

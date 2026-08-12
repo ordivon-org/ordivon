@@ -16,6 +16,7 @@ import type {
   StationZeroV3PlayRunSummary,
   StationZeroV3PlayView,
   StationZeroV3PreviewReceipt,
+  StationZeroV3ResponsibilityFeedback,
 } from "./p3-model.ts";
 import { StationZeroV3Store } from "./persistence.ts";
 import { StationZeroV3TurnService } from "./turn-service.ts";
@@ -129,6 +130,36 @@ export class StationZeroV3PlayService {
       return { preview: retained, idempotent: true, view: this.state(runId) };
     }
     const state = this.store.stateAtRevision(runId, planning.worldRevision);
+    const responsibilityFeedbackByActor: Record<string, StationZeroV3ResponsibilityFeedback> = {};
+    const previousTurn = this.store.latestTurnReceipt(runId);
+    if (previousTurn && previousTurn.turnSequence === planning.turn - 1) {
+      const previousHead = this.planning.headOrNull(runId, previousTurn.planningId);
+      const previousPreview = previousHead?.committedPreviewId
+        ? this.planning.getPreview(runId, previousTurn.planningId, previousHead.committedPreviewId)
+        : null;
+      if (previousPreview) {
+        for (const context of previousPreview.contexts.filter((entry) => entry.factionId === "rescue" && entry.responsibility !== null)) {
+          const agent = previousPreview.agentDecisions.find((entry) => entry.actorId === context.actor.actorId);
+          const policy = previousPreview.policyDecisions.find((entry) => entry.actorId === context.actor.actorId);
+          const candidateId = agent?.candidateId ?? policy?.candidateId ?? null;
+          const candidate = candidateId ? context.candidates.find((entry) => entry.candidateId === candidateId) : null;
+          if (!candidate) throw new TypeError(`Committed responsibility lacks selected Candidate for ${context.actor.actorId}`);
+          const resolution = previousTurn.record.resolution.intentResolutions.find((entry) =>
+            entry.actorId === context.actor.actorId && entry.intentId === candidate.intent.intentId);
+          if (!resolution) throw new TypeError(`Committed responsibility lacks authoritative Intent Resolution for ${context.actor.actorId}`);
+          responsibilityFeedbackByActor[context.actor.actorId] = {
+            turnSequence: previousTurn.turnSequence,
+            planningId: previousTurn.planningId,
+            responsibility: structuredClone(context.responsibility!),
+            candidateId: candidate.candidateId,
+            candidateLabel: candidate.label,
+            intent: structuredClone(candidate.intent),
+            status: resolution.status,
+            reason: resolution.reason,
+          };
+        }
+      }
+    }
     const preview = await buildStationZeroV3PlanPreview({
       state,
       planning,
@@ -136,6 +167,7 @@ export class StationZeroV3PlayService {
       order: current.order,
       orderDigest: current.orderDigest,
       providerFactory: this.providerFactory,
+      responsibilityFeedbackByActor,
     });
     const receipt = this.planning.savePreview(preview);
     return { ...receipt, view: this.state(runId) };
