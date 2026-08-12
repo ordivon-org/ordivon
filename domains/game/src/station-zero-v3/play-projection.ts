@@ -48,6 +48,8 @@ function playerPreview(state: StationZeroV3WorldState, preview: StationZeroV3Pla
       action: entry.label,
       rationale: entry.rationale,
       confidence: entry.confidence,
+      responsibility: entry.responsibility ? structuredClone(entry.responsibility) : null,
+      responsibilityFeedback: entry.responsibilityFeedback ? structuredClone(entry.responsibilityFeedback) : null,
     })),
     enemyPlansSealed: (["pirate", "swarm"] as const).map((factionId) => ({
       factionId,

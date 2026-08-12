@@ -23,6 +23,8 @@ import type {
   StationZeroV3AgentDecision,
   StationZeroV3AgentProvider,
   StationZeroV3AgentProviderFactory,
+  StationZeroV3AgentResponsibility,
+  StationZeroV3ResponsibilityFeedback,
   StationZeroV3CommanderDirectiveId,
   StationZeroV3CommanderOrder,
   StationZeroV3FactionPlanExplanation,
@@ -125,6 +127,125 @@ function confirmedCurrentContact(
   return Boolean(known && known.confidence === "confirmed" && known.observedAtTurn === state.encounter.turn);
 }
 
+function rescueResponsibilities(
+  state: StationZeroV3WorldState,
+  planning: StationZeroV3PlanningHead,
+  order: StationZeroV3CommanderOrder | null,
+): Map<string, StationZeroV3AgentResponsibility> {
+  const responsibilities = new Map<string, StationZeroV3AgentResponsibility>();
+  if (!order || order.primaryObjectiveId !== "rescue-two-civilians") return responsibilities;
+  const knowledge = state.factionKnowledge.rescue;
+  const knownCivilianContacts = Object.values(knowledge.knownActors)
+    .filter((known) => state.actors[known.actorId]?.kind === "civilian")
+    .sort((left, right) => left.actorId.localeCompare(right.actorId));
+  const knownCivilians = knownCivilianContacts.filter((known) => known.observedLifeState === "active");
+  const assignedTargets = new Set<string>();
+  const assignedActors = new Set<string>();
+
+  for (const known of knownCivilians) {
+    const retained = state.actors[known.actorId]!;
+    const escortStatus = retained.statusIds.find((statusId) => statusId.startsWith("escorted-by:"));
+    const escortActorId = escortStatus?.slice("escorted-by:".length) ?? null;
+    const escortActor = escortActorId ? state.actors[escortActorId] : null;
+    if (!escortActorId || escortActor?.factionId !== "rescue" || escortActor.lifeState !== "active") continue;
+    assignedTargets.add(known.actorId);
+    assignedActors.add(escortActorId);
+    responsibilities.set(escortActorId, {
+      responsibilityId: `responsibility:p3:${planning.planningId}:${escortActorId}:recover:${known.actorId}`,
+      kind: "recover-civilian",
+      objectiveId: "rescue-two-civilians",
+      targetActorId: known.actorId,
+      targetZoneId: "rescue-airlock",
+      blockerActorIds: [],
+    });
+  }
+
+  const ownerPriority = ["medic-reyes", "engineer-imani", "security-chen"]
+    .map((actorId) => state.actors[actorId])
+    .filter((actor): actor is StationZeroActorState => Boolean(actor && actor.factionId === "rescue" && actor.lifeState === "active" && !assignedActors.has(actor.actorId)));
+  for (const owner of ownerPriority) {
+    const target = knownCivilians
+      .filter((known) => !assignedTargets.has(known.actorId))
+      .map((known) => ({ known, distance: stationZeroShortestDistance(state, owner.position.zoneId, known.lastKnownZoneId, "rescue") }))
+      .sort((left, right) => (left.distance ?? Number.MAX_SAFE_INTEGER) - (right.distance ?? Number.MAX_SAFE_INTEGER) || left.known.actorId.localeCompare(right.known.actorId))[0];
+    if (!target) break;
+    assignedTargets.add(target.known.actorId);
+    assignedActors.add(owner.actorId);
+    responsibilities.set(owner.actorId, {
+      responsibilityId: `responsibility:p3:${planning.planningId}:${owner.actorId}:recover:${target.known.actorId}`,
+      kind: "recover-civilian",
+      objectiveId: "rescue-two-civilians",
+      targetActorId: target.known.actorId,
+      targetZoneId: target.known.lastKnownZoneId,
+      blockerActorIds: [],
+    });
+  }
+
+  const knownCivilianRooms = new Set(knownCivilianContacts.map((known) => state.zones[known.lastKnownZoneId]?.roomId).filter((roomId): roomId is string => Boolean(roomId)));
+  const searchFronts = knowledge.discoveredRoomIds
+    .map((roomId) => state.rooms[roomId])
+    .filter((room): room is NonNullable<typeof room> => Boolean(room?.tags.includes("civilian") && !knownCivilianRooms.has(room.roomId)))
+    .map((room) => {
+      const discoveredZones = room.zoneIds
+        .map((zoneId) => state.zones[zoneId])
+        .filter((zone): zone is NonNullable<typeof zone> => Boolean(zone && knowledge.discoveredZoneIds.includes(zone.zoneId)));
+      return discoveredZones.find((zone) => zone.tags.includes("civilian"))
+        ?? discoveredZones.find((zone) => zone.tags.includes("console"))
+        ?? discoveredZones[0]
+        ?? null;
+    })
+    .filter((zone): zone is NonNullable<typeof zone> => Boolean(zone))
+    .sort((left, right) => left.zoneId.localeCompare(right.zoneId));
+  const unassignedOwners = ownerPriority.filter((owner) => !assignedActors.has(owner.actorId));
+  for (const owner of unassignedOwners) {
+    const targetZone = searchFronts.splice(0, 1)[0];
+    if (!targetZone) break;
+    assignedActors.add(owner.actorId);
+    responsibilities.set(owner.actorId, {
+      responsibilityId: `responsibility:p3:${planning.planningId}:${owner.actorId}:search:${targetZone.zoneId}`,
+      kind: "search-civilian",
+      objectiveId: "rescue-two-civilians",
+      targetActorId: null,
+      targetZoneId: targetZone.zoneId,
+      blockerActorIds: [],
+    });
+  }
+
+  const blockersFor = (actor: StationZeroActorState, targetZoneId: string): string[] => {
+    const step = stationZeroMovementStepToward(state, actor.position.zoneId, targetZoneId, "rescue", actor.movementRange);
+    const relevantZones = new Set([targetZoneId, ...(step ? [step] : [])]);
+    return Object.values(knowledge.knownActors)
+      .filter((known) => {
+        const retained = state.actors[known.actorId];
+        return retained?.factionId !== null && retained?.factionId !== "rescue" && known.observedLifeState === "active" && relevantZones.has(known.lastKnownZoneId);
+      })
+      .map((known) => known.actorId)
+      .sort();
+  };
+  for (const [actorId, responsibility] of responsibilities) {
+    const actor = state.actors[actorId]!;
+    responsibility.blockerActorIds = blockersFor(actor, responsibility.targetZoneId);
+  }
+
+  const security = state.actors["security-chen"];
+  if (security?.lifeState === "active" && security.factionId === "rescue" && !responsibilities.has(security.actorId)) {
+    const supported = [...responsibilities.entries()]
+      .filter(([actorId, responsibility]) => actorId !== security.actorId && responsibility.kind === "recover-civilian")
+      .sort(([leftId], [rightId]) => (leftId === "engineer-imani" ? -1 : rightId === "engineer-imani" ? 1 : leftId.localeCompare(rightId)))[0]?.[1];
+    if (supported) {
+      responsibilities.set(security.actorId, {
+        responsibilityId: `responsibility:p3:${planning.planningId}:${security.actorId}:support:${supported.targetActorId ?? supported.targetZoneId}`,
+        kind: "support-civilian-recovery",
+        objectiveId: "rescue-two-civilians",
+        targetActorId: supported.targetActorId,
+        targetZoneId: supported.targetZoneId,
+        blockerActorIds: blockersFor(security, supported.targetZoneId),
+      });
+    }
+  }
+  return responsibilities;
+}
+
 function moveCandidates(
   state: StationZeroV3WorldState,
   planning: StationZeroV3PlanningHead,
@@ -159,13 +280,19 @@ function moveCandidates(
       entry.statusIds.includes(`escorted-by:${actor.actorId}`))
     .map((entry) => entry.actorId)
     .sort();
+  const movementFootprint = 1 + escortedCivilianIds.length;
   return Object.values(state.zones)
     .filter((zone) => zone.zoneId !== actor.position.zoneId)
     .map((zone) => ({
       zone,
       distance: stationZeroShortestDistance(state, actor.position.zoneId, zone.zoneId, actor.factionId),
+      guaranteedFriendlyOccupancy: Object.values(state.actors).filter((entry) =>
+        entry.lifeState === "active" && entry.factionId === actor.factionId && entry.position.zoneId === zone.zoneId).length,
     }))
-    .filter(({ zone, distance }) => distance !== null && distance <= actor.movementRange && (known.has(zone.zoneId) || frontier.has(zone.zoneId)))
+    .filter(({ zone, distance, guaranteedFriendlyOccupancy }) =>
+      distance !== null && distance <= actor.movementRange &&
+      (known.has(zone.zoneId) || frontier.has(zone.zoneId)) &&
+      movementFootprint <= Math.max(0, zone.capacity - guaranteedFriendlyOccupancy))
     .sort((left, right) => left.zone.zoneId.localeCompare(right.zone.zoneId))
     .map(({ zone }) => candidate({
       intentId: intentIdentity(planning.planningId, actor.actorId, `move:${zone.zoneId}`),
@@ -248,7 +375,7 @@ function localInteractionCandidates(
     .filter((hazard) => hazard.zoneId === actor.position.zoneId && state.factionKnowledge[factionId].knownHazardIds.includes(hazard.hazardId))
     .sort((left, right) => left.hazardId.localeCompare(right.hazardId));
 
-  if (actor.capabilityIds.includes("repair")) {
+  if (actor.capabilityIds.includes("repair") && actor.inventoryItemIds.includes("spare-parts")) {
     for (const system of localSystems.filter((entry) => entry.integrity < 1)) {
       candidates.push(candidate({
         intentId: intentIdentity(planning.planningId, actor.actorId, `repair:${system.systemId}`),
@@ -555,11 +682,28 @@ function allowedDirectiveIds(factionId: StationZeroFactionId): string[] {
   return [];
 }
 
+function markResponsibilityProgressCandidates(
+  candidates: StationZeroV3AgentCandidate[],
+  responsibility: StationZeroV3AgentResponsibility | null,
+): StationZeroV3AgentCandidate[] {
+  if (!responsibility || responsibility.kind === "support-civilian-recovery") return candidates;
+  return candidates.map((entry) => {
+    const advancesRoute = entry.tags.includes(`route:${responsibility.targetZoneId}`);
+    const advancesCustody = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
+      entry.tags.includes("rescue") && entry.tags.includes(`target:${responsibility.targetActorId}`);
+    const advancesExtraction = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
+      entry.intent.kind === "extract" && entry.tags.includes(`escort:${responsibility.targetActorId}`);
+    if (!advancesRoute && !advancesCustody && !advancesExtraction) return entry;
+    return { ...entry, tags: [...new Set([...entry.tags, "responsibility:advance"])].sort() };
+  });
+}
+
 export function compileStationZeroV3AgentContext(
   state: StationZeroV3WorldState,
   planning: StationZeroV3PlanningHead,
   actorId: string,
   playerOrder: StationZeroV3CommanderOrder | null,
+  previousResponsibilityFeedback: StationZeroV3ResponsibilityFeedback | null = null,
 ): StationZeroV3AgentContext {
   const actor = state.actors[actorId];
   if (!actor || !actor.factionId || actor.lifeState !== "active") throw new TypeError(`Cannot compile Agent Context for inactive or unknown Actor ${actorId}`);
@@ -579,6 +723,18 @@ export function compileStationZeroV3AgentContext(
       observedAtTurn: known.observedAtTurn,
     };
   });
+  const responsibility = factionId === "rescue" ? rescueResponsibilities(state, planning, playerOrder).get(actor.actorId) ?? null : null;
+  const previousResponsibility = previousResponsibilityFeedback?.responsibility ?? null;
+  const responsibilityFeedback = responsibility && previousResponsibilityFeedback && previousResponsibility &&
+      previousResponsibility.objectiveId === responsibility.objectiveId &&
+      previousResponsibility.kind === responsibility.kind &&
+      previousResponsibility.targetActorId === responsibility.targetActorId &&
+      (responsibility.targetActorId !== null || previousResponsibility.targetZoneId === responsibility.targetZoneId)
+    ? structuredClone(previousResponsibilityFeedback)
+    : null;
+  const candidates = markResponsibilityProgressCandidates(
+    stationZeroV3AgentCandidates(state, planning, actorId), responsibility,
+  );
   const contextBase = {
     schemaVersion: 1 as const,
     kind: "ordivon.game.station-zero-v3-agent-context" as const,
@@ -620,8 +776,10 @@ export function compileStationZeroV3AgentContext(
     },
     objectiveIds: STATION_ZERO_V3_OBJECTIVES.filter((objective) => objective.factionId === factionId).map((objective) => objective.objectiveId),
     playerOrder: factionId === "rescue" ? playerOrder : null,
+    responsibility,
+    responsibilityFeedback,
     allowedDirectiveIds: allowedDirectiveIds(factionId),
-    candidates: stationZeroV3AgentCandidates(state, planning, actorId),
+    candidates,
   };
   return { ...contextBase, contextDigest: sha256(contextBase) };
 }
@@ -729,6 +887,7 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
     }
   }
   if (candidateTag(candidate, "extract") && actor.inventoryItemIds.includes("research-core")) score += 700;
+  if (candidateTag(candidate, "extract") && candidateTag(candidate, "escorting-civilian")) score += 2_000;
   if (candidateTag(candidate, "escorting-civilian")) score += 1_000;
   return score;
 }
@@ -867,15 +1026,24 @@ export function defaultStationZeroV3CommanderOrder(
   state: StationZeroV3WorldState,
 ): StationZeroV3CommanderOrder {
   const knowledge = state.factionKnowledge.rescue;
+  const faction = state.factions.rescue;
+  const abilityAvailable = (abilityId: string): boolean => {
+    const definition = STATION_ZERO_V3_COMMANDER_ABILITIES.find((entry) => entry.commanderAbilityId === abilityId);
+    if (!definition) return false;
+    const charges = faction.commanderAbilityCharges[abilityId];
+    return (charges === null || (charges !== undefined && charges > 0)) &&
+      (faction.commanderAbilityCooldowns[abilityId] ?? 0) === 0 &&
+      definition.commandPointCost <= faction.commandPoints;
+  };
   let commanderDirectiveId: StationZeroV3CommanderDirectiveId = "hold-command";
-  if (!knowledge.knownSystemIds.includes("cooling")) {
+  if (!knowledge.knownSystemIds.includes("cooling") && abilityAvailable("orbital-scan")) {
     commanderDirectiveId = "scan-reactor";
-  } else if (!state.systems.cooling?.powered && (state.factions.rescue.commanderAbilityCooldowns["power-reroute"] ?? 0) === 0) {
+  } else if (!state.systems.cooling?.powered && abilityAvailable("power-reroute")) {
     commanderDirectiveId = "reroute-cooling";
-  } else if (!knowledge.discoveredZoneIds.includes("maintenance-entry")) {
-    commanderDirectiveId = "scan-maintenance";
-  } else if (!knowledge.knownSystemIds.includes("life-support")) {
+  } else if (!knowledge.knownSystemIds.includes("life-support") && abilityAvailable("orbital-scan")) {
     commanderDirectiveId = "scan-life-support";
+  } else if (!knowledge.discoveredZoneIds.includes("maintenance-entry") && abilityAvailable("orbital-scan")) {
+    commanderDirectiveId = "scan-maintenance";
   }
   return {
     schemaVersion: 1,
@@ -1122,6 +1290,8 @@ function explanation(
       label: candidate?.label ?? intent.kind,
       rationale: agent?.rationale ?? policy?.rationale ?? "Deterministic faction policy selected this admitted action.",
       confidence: agent?.confidence ?? null,
+      responsibility: context?.responsibility ? structuredClone(context.responsibility) : null,
+      responsibilityFeedback: context?.responsibilityFeedback ? structuredClone(context.responsibilityFeedback) : null,
     };
   });
   const risks: string[] = [];
@@ -1144,6 +1314,7 @@ export async function buildStationZeroV3PlanPreview(input: {
   order: StationZeroV3CommanderOrder;
   orderDigest: string;
   providerFactory?: StationZeroV3AgentProviderFactory;
+  responsibilityFeedbackByActor?: Readonly<Record<string, StationZeroV3ResponsibilityFeedback>>;
 }): Promise<StationZeroV3PlanPreview> {
   const { state, planning, orderRevision, order, orderDigest } = input;
   assertStationZeroV3CommanderOrder(state, planning, order);
@@ -1156,7 +1327,9 @@ export async function buildStationZeroV3PlanPreview(input: {
     .map((actorId) => state.actors[actorId])
     .filter((actor): actor is StationZeroActorState => Boolean(actor && actor.lifeState === "active"));
   const highFidelitySettled = await Promise.allSettled(highFidelityActors.map(async (actor) => {
-    const context = compileStationZeroV3AgentContext(state, planning, actor.actorId, order);
+    const context = compileStationZeroV3AgentContext(
+      state, planning, actor.actorId, order, input.responsibilityFeedbackByActor?.[actor.actorId] ?? null,
+    );
     const provider = providerFactory(actor.factionId!, actor.actorId);
     const decision = await provider.decide(context);
     assertStationZeroV3AgentDecision(context, decision);

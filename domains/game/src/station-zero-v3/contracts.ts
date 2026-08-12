@@ -118,6 +118,37 @@ function actorAbilityTargetKind(
   throw new TypeError(`Ability Intent ${intent.intentId} requires one target`);
 }
 
+function assertInteractionAuthority(
+  actor: StationZeroV3WorldState["actors"][string],
+  factionId: StationZeroFactionId,
+  operationId: Extract<StationZeroActorIntent, { kind: "interact" }>["operationId"],
+): void {
+  const requiredCapability = {
+    repair: "repair",
+    hack: "hack",
+    stabilize: "stabilize",
+    rescue: null,
+    capture: "capture",
+    devour: "devour",
+    infect: "infect",
+  }[operationId];
+  if (requiredCapability !== null && !actor.capabilityIds.includes(requiredCapability)) {
+    throw new TypeError(`Actor ${actor.actorId} lacks Capability ${requiredCapability}`);
+  }
+  const requiredFaction: StationZeroFactionId | null = ({
+    repair: null,
+    hack: "pirate",
+    stabilize: null,
+    rescue: "rescue",
+    capture: "pirate",
+    devour: "swarm",
+    infect: "swarm",
+  } as const)[operationId];
+  if (requiredFaction !== null && factionId !== requiredFaction) {
+    throw new TypeError(`Faction ${factionId} cannot perform Interaction ${operationId}`);
+  }
+}
+
 function assertActorIntent(
   state: StationZeroV3WorldState,
   factionId: StationZeroFactionId,
@@ -164,6 +195,7 @@ function assertActorIntent(
     }
     case "interact": {
       if (!intent.targetId.trim()) throw new TypeError(`Interaction Intent ${intent.intentId} requires a target`);
+      assertInteractionAuthority(actor, factionId, intent.operationId);
       switch (intent.operationId) {
         case "repair":
           if (!state.systems[intent.targetId]) throw new TypeError(`Repair Intent targets unknown System ${intent.targetId}`);
@@ -201,6 +233,12 @@ function assertActorIntent(
       if (!intent.extractionId.trim()) throw new TypeError(`Extract Intent ${intent.intentId} requires an extraction identity`);
       return;
     case "guard":
+      if (!actorAbilityIds(state, actor.actorId).has("overwatch")) {
+        throw new TypeError(`Actor ${actor.actorId} lacks Ability overwatch`);
+      }
+      if ((actor.abilityCooldowns.overwatch ?? 0) > 0) {
+        throw new TypeError(`Ability overwatch is on cooldown`);
+      }
       if ((intent.protectedActorId === null) === (intent.watchedZoneId === null)) {
         throw new TypeError(`Guard Intent ${intent.intentId} requires exactly one protected Actor or watched Zone`);
       }
