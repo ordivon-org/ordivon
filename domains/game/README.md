@@ -231,7 +231,7 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 ## Project family
 
 - [Public project directory](https://ordivon.com/projects) — current product, v3 preview status, project role, and next steps.
-- [Cross-project map](https://github.com/zycxfyh/ordivon-computing/blob/main/projects/README.md) — stable roles, repository links, and authority entry points for all nine repositories.
+- [Cross-project map](https://github.com/zycxfyh/ordivon-computing/blob/main/projects/README.md) — stable roles, repository links, and authority entry points for the current project family.
 - Related owners: Game owns authoritative game World state and player-facing rules; [Ordivon Host](https://github.com/zycxfyh/ordivon-host), [Harness](https://github.com/zycxfyh/ordivon-harness), and [Runtime](https://github.com/zycxfyh/ordivon-runtime) own their generic boundaries only when a Game path consumes them.
 
 ## License
