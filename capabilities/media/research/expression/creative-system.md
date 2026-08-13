@@ -52,9 +52,11 @@ The medium profile owns the craft-specific translation of the core. Examples inc
 - **audio / music:** rhythm, meter, harmony, timbre, dynamics, spectral space, silence, stereo field, loudness and playback context;
 - **writing:** argument structure, sentence and paragraph rhythm, voice, quotation, metaphor, revelation, rhetorical distance and source citation;
 - **still / graphic / image:** frame, composition, figure-ground, scale, color, light, texture, symbol, crop and negative space;
-- **interactive / game expression:** agency, feedback, state legibility, uncertainty, consequence, recovery, information access and temporal response.
+- **interactive / game expression:** agency, feedback, state legibility, uncertainty, consequence, recovery, information access and temporal response;
+- **spatial / 3D:** reference spaces, viewpoint, scale, depth, occlusion, anchoring, locomotion, embodiment and spatial persistence;
+- **live / realtime:** unresolved future state, liveness/currentness, latency, improvisation, turn-taking, interruption, correction, moderation and audience/world feedback.
 
-These profiles are faster-moving than the core. They should absorb domain craft and tool change without cloning a new theory of good work for every medium.
+The current seven-foundation research topology and the rule for distinguishing foundations from composite formats live in [`media-topology.md`](./media-topology.md). These profiles are faster-moving than the core. They should absorb domain craft and tool change without cloning a new theory of good work for every medium.
 
 ## Knowledge inputs
 
