@@ -4,7 +4,7 @@
 
 Ordivon Studio needs a media world model that is broader than its current production equipment without degenerating into one profile per platform, file type, genre, or distribution format.
 
-This document defines a **provisional seven-foundation topology** for research:
+This document defines a **first-pass seven-foundation topology** for research:
 
 ```text
 Writing
@@ -16,7 +16,7 @@ Spatial / 3D
 Live / Realtime
 ```
 
-The seven are research hypotheses, not seven permanent ministries. A foundation survives only if it exposes an observer relation, manipulable variable, semantic failure, render/inspection boundary, or hard constraint that cannot be represented adequately by the cross-medium Core plus the other foundations.
+The seven are research hypotheses, not a closed periodic table and not seven permanent ministries. A foundation survives only if it exposes an observer relation, manipulable variable, semantic failure, render/inspection boundary, or hard constraint that cannot be represented adequately by the cross-medium Core plus the other foundations. Candidate media outside the first-pass set remain in a challenger lane; current reconnaissance already identifies Haptic / Physical expression as one serious challenger because tactile output can survive independently of visual/audio representation and appears in both XR and general device standards.
 
 Existing active Writing and Motion / Video profiles remain authoritative. Web remains an externally owned consumer profile. Existing Still / Graphic, Audio / Music, and Interactive baselines remain provisional. Spatial / 3D and Live / Realtime begin as candidates and must earn profile authority through real evidence.
 

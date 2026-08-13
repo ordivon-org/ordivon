@@ -16,7 +16,7 @@ Live / Realtime
 
 The goal is not profile count. The goal is to discover the smallest set of medium distinctions that lets an Agent predict meaningful production failures, choose medium-native expression, inspect the real artifact, and transfer learning without confusing platform fashion with durable structure.
 
-The canonical topology is [`media-topology.md`](./media-topology.md).
+The canonical topology is [`media-topology.md`](./media-topology.md). The actual Studio/Web substrate and external-discipline cross-check are recorded in [`m7-world-model-audit.md`](./m7-world-model-audit.md); the audit is a source-state-bound research input, not a second ontology authority.
 
 ## Research contract
 
@@ -239,11 +239,15 @@ For each pair record:
 - new semantic leaks introduced by translation;
 - alternate representations that preserve meaning versus merely preserve content fragments.
 
-## M7-3 — Three mandatory ablation families
+## M7-3 — Mandatory deletion, distinction, and economics families
 
-### A. Medium-profile ablation
+The program must test whether profile knowledge is not only useful, but **specific enough and cheap enough to deserve persistent authority**.
 
-Core + all other media, but remove the target profile. Does failure detection or production quality degrade on target-medium tasks?
+### A. Medium-profile deletion
+
+Core + all other media, but remove the target profile. Does target-medium failure detection, first-pass production quality, or revision efficiency degrade?
+
+Deletion is the primary existence test. If repeated target work is unchanged, narrow or delete the profile.
 
 ### B. Encounter freezing
 
@@ -262,6 +266,92 @@ Measure which consequences disappear. The lost consequences help locate irreduci
 ### C. Surface-transfer falsifier
 
 Mechanically copy the successful surface form from one medium into another while retaining meaning. If it fails while event/focal/tension transfer succeeds, that is evidence for medium-native craft rather than universal style.
+
+### D. Wrong-profile swap
+
+Replace the correct target profile with the most plausible neighboring profile while keeping context budget approximately comparable.
+
+Examples:
+
+```text
+Still Visual task  ← Motion profile
+Audio task         ← Writing + Motion timing priors
+Interactive task   ← Web/static publication priors
+Spatial task       ← Motion + Interactive priors
+Live task          ← prerecorded Motion/Audio priors
+```
+
+A useful target-specific profile should outperform the wrong profile on failures that only the target observer relation exposes. If `correct ≈ wrong`, the retained knowledge is likely generic Core advice or badly scoped.
+
+### E. Sham-profile control
+
+Provide a fluent control profile containing generic creative advice—clarity, balance, coherence, rhythm, hierarchy, contrast, interest—with similar token/context mass but no target-specific failure model.
+
+The sham control protects against a dangerous false result: an Agent may improve merely because it received more reflective language, not because the medium theory contains information.
+
+Desired ordering for target-specific consequence is normally:
+
+```text
+correct profile > Core only > wrong/sham profile
+```
+
+The exact ordering is not a universal scalar-quality law; it is a falsifiable expectation for target-specific error detection and decisions.
+
+### F. Collapse / merge test
+
+Replace two candidate profiles with one shared compressed profile.
+
+Priority collapse questions:
+
+```text
+Audio             vs Audio + Music specialization
+Still Visual      vs Still Visual + Data/Diagram specialization
+Visual/Motion     vs separate Still and Motion profiles
+Interactive/Web   vs generic Interactive + Web publisher specialization
+Spatial           vs Motion + Interactive composition
+Live              vs Interactive + low-latency distribution context
+```
+
+If the merged profile preserves consequence at lower cost, prefer the merge. Profile count is not a success metric.
+
+### G. Profile economics / ROI
+
+Record incremental cost as well as benefit.
+
+Minimum cost ledger:
+
+```text
+context / retrieval tokens
+Provider or model calls
+render / encode / browser / simulator compute
+tool calls and execution time
+new equipment or dependency burden
+storage / artifact retention
+maintenance and schema complexity
+new failure surface
+```
+
+Minimum benefit ledger:
+
+```text
+semantic defects detected or prevented
+hard-constraint defects detected or prevented
+revision count / rework reduction
+typed communication or observer consequence when measured
+transfer to a materially different production
+recovery / inspectability improvement
+```
+
+Use local marginal comparisons rather than inventing one universal media-quality score:
+
+```text
+Core
+Core + target profile
+Core + target + specialization
+Core + target + current context retrieval
+```
+
+A profile can be real but still not be worth keeping resident. High-cost/low-marginal knowledge should remain retrievable specialization or context rather than permanent profile mass.
 
 ## M7-4 — Graduation rules
 
