@@ -184,6 +184,9 @@ test("command admission returns explicit rejection codes across all action famil
   junction.resources.batteryCharge = 1;
   junction.resources.energyConsumed = 55;
   assert.equal(code(junction, { ...base, kind: "set_power", targetSystemId: "cooling", enabled: true }), "insufficient_power");
+  junction.resources.batteryCharge = junction.systems.cooling!.powerDraw;
+  junction.resources.energyConsumed = junction.resources.batteryInitial - junction.resources.batteryCharge;
+  assert.equal(code(junction, { ...base, kind: "set_power", targetSystemId: "cooling", enabled: true }), null);
 
   assert.equal(code(clone(), { ...base, kind: "seal_hull", targetHazardId: "missing" }), "unknown_target");
   const maintenance = clone();
