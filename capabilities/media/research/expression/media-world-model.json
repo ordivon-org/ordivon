@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.media-world-model",
+  "authority": "research/expression/media-topology.md",
+  "evidence": "research/expression/evidence/m7-foundational-media-20260813.json",
+  "core": "research/expression/creative-system.md",
+  "profiles": "research/expression/profiles/index.json",
+  "foundationHypotheses": [
+    {"id": "writing", "state": "active", "authority": "research/expression/profiles/writing.md"},
+    {"id": "still-visual", "state": "provisional", "authority": "research/expression/profiles/still-visual.md"},
+    {"id": "audio", "state": "active", "authority": "research/expression/profiles/audio.md"},
+    {"id": "motion-video", "state": "active", "authority": "research/expression/profiles/motion-video.md"},
+    {"id": "interactive", "state": "provisional", "authority": "research/expression/profiles/interactive.md"},
+    {"id": "spatial-3d", "state": "candidate", "authority": "research/expression/media-topology.md"},
+    {"id": "live-realtime", "state": "candidate", "authority": "research/expression/media-topology.md"}
+  ],
+  "challengers": [
+    {"id": "haptic-physical", "state": "no-profile", "reason": "no verified physical encounter"},
+    {"id": "data-diagram-grammar", "state": "specialization-question", "reason": "currently explained by Still Visual and Interactive until repeated failures justify a split"},
+    {"id": "embodied-performance-social", "state": "specialization-question", "reason": "currently explained by Spatial/Interactive/Live composition until evidence says otherwise"}
+  ],
+  "compositionRule": "production-form = foundations + specializations + encounter + distribution-context + tool/delivery constraints",
+  "compositeForms": {
+    "article-report-book": ["writing", "still-visual?"],
+    "poster-key-visual-social-card": ["still-visual", "writing?"],
+    "podcast-audio-drama": ["audio", "writing?"],
+    "film-video-essay": ["motion-video", "audio?", "writing?", "still-visual?"],
+    "website-app-interactive-article": ["writing?", "still-visual?", "interactive", "motion-video?", "audio?"],
+    "presentation": ["writing", "still-visual", "audio?", "live-realtime?"],
+    "game": ["interactive", "motion-video?", "still-visual?", "audio?", "spatial-3d?", "live-realtime?"],
+    "livestream-live-event": ["live-realtime", "audio?", "motion-video?", "interactive?"],
+    "xr": ["spatial-3d", "interactive?", "audio?", "motion-video?", "live-realtime?", "haptic-physical?"],
+    "installation": ["still-visual?", "audio?", "motion-video?", "interactive?", "spatial-3d?", "live-realtime?", "haptic-physical?"]
+  },
+  "distributionContexts": ["web", "print", "cinema", "broadcast", "social-feed", "headphones", "large-display", "headset", "stage"],
+  "nonFoundationalByDefault": ["YouTube", "TikTok", "X", "Instagram", "Xiaohongshu", "podcast", "presentation", "game", "livestream", "file-type", "codec", "editing-tool"]
+}

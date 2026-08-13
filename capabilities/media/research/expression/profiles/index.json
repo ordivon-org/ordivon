@@ -3,6 +3,7 @@
   "id": "studio.expression-profile-registry",
   "coreProtocol": "research/expression/protocol.md",
   "knowledgeModel": "research/expression/knowledge-model.md",
+  "mediaWorldModel": "research/expression/media-world-model.json",
   "profiles": [
     {
       "id": "web",
@@ -13,7 +14,7 @@
         "repository": "/root/projects/ordivon-web",
         "path": "design/expression-profile.md"
       },
-      "note": "Web owns browser, responsive, navigation, accessibility and publication-specific craft. The consumer binds an exact Studio revision; Studio does not claim Web currentness."
+      "note": "Web owns browser, responsive, navigation, accessibility, publication and its concrete interaction craft. Studio does not mirror that authority."
     },
     {
       "id": "motion-video",
@@ -53,31 +54,60 @@
       ]
     },
     {
-      "id": "still-graphic",
-      "status": "provisional",
+      "id": "audio",
+      "status": "active",
       "layer": "medium_prior",
       "authority": {
-        "kind": "provisional-baseline",
-        "path": "research/expression/profiles/medium-baseline.json"
-      }
+        "kind": "studio-local",
+        "path": "research/expression/profiles/audio.md"
+      },
+      "realConsumers": [
+        "productions/runtime-introduction"
+      ],
+      "inspection": [
+        "audible-master",
+        "ffprobe-qc",
+        "temporal-spectral-structure",
+        "representative-playback",
+        "crossmodal-alignment-when-applicable"
+      ],
+      "evidence": "research/expression/evidence/m7-foundational-media-20260813.json"
     },
     {
-      "id": "audio-music",
+      "id": "still-visual",
       "status": "provisional",
       "layer": "medium_prior",
       "authority": {
-        "kind": "provisional-baseline",
-        "path": "research/expression/profiles/medium-baseline.json"
-      }
+        "kind": "studio-local-provisional",
+        "path": "research/expression/profiles/still-visual.md"
+      },
+      "realConsumers": [
+        "productions/site-social-card"
+      ],
+      "inspection": [
+        "exact-rendered-image",
+        "crop-scale-reproduction"
+      ],
+      "evidence": "research/expression/evidence/m7-foundational-media-20260813.json"
     },
     {
       "id": "interactive",
       "status": "provisional",
       "layer": "medium_prior",
       "authority": {
-        "kind": "provisional-baseline",
-        "path": "research/expression/profiles/medium-baseline.json"
-      }
+        "kind": "studio-local-provisional",
+        "path": "research/expression/profiles/interactive.md"
+      },
+      "realConsumers": [
+        "external:ordivon-web"
+      ],
+      "inspection": [
+        "state-action-trajectory",
+        "transient-feedback",
+        "error-recovery-path"
+      ],
+      "evidence": "research/expression/evidence/m7-foundational-media-20260813.json",
+      "note": "Generic candidate remains provisional because current mature interaction craft is already owned by Web; non-Web reuse is required before separate graduation."
     }
   ]
 }

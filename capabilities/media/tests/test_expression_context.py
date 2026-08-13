@@ -56,20 +56,31 @@ class ExpressionContextTests(unittest.TestCase):
         self.assertTrue(profile_registry.is_file())
         registry = json.loads(profile_registry.read_text(encoding="utf-8"))
         entries = {item["id"]: item for item in registry["profiles"]}
-        self.assertEqual(set(entries), {"web", "motion-video", "writing", "still-graphic", "audio-music", "interactive"})
+        self.assertEqual(set(entries), {"web", "motion-video", "writing", "audio", "still-visual", "interactive"})
         self.assertEqual(entries["web"]["authority"]["kind"], "external-consumer")
         self.assertEqual(entries["web"]["authority"]["path"], "design/expression-profile.md")
-        for profile_id in ("motion-video", "writing"):
+        for profile_id in ("motion-video", "writing", "audio"):
             self.assertEqual(entries[profile_id]["status"], "active")
             authority = entries[profile_id]["authority"]
             self.assertEqual(authority["kind"], "studio-local")
             self.assertTrue((ROOT / authority["path"]).is_file())
             self.assertTrue(entries[profile_id]["inspection"])
-        for profile_id in ("still-graphic", "audio-music", "interactive"):
+        for profile_id in ("still-visual", "interactive"):
             self.assertEqual(entries[profile_id]["status"], "provisional")
-        baseline = json.loads((ROOT / "research/expression/profiles/medium-baseline.json").read_text(encoding="utf-8"))
-        self.assertEqual(set(baseline["profiles"]), {"still-graphic", "audio-music", "interactive"})
-        for profile_id in ("motion-video", "writing"):
+            authority = entries[profile_id]["authority"]
+            self.assertEqual(authority["kind"], "studio-local-provisional")
+            self.assertTrue((ROOT / authority["path"]).is_file())
+            self.assertTrue(entries[profile_id]["inspection"])
+        world_model = ROOT / data["mediaWorldModel"]
+        self.assertTrue(world_model.is_file())
+        world = json.loads(world_model.read_text(encoding="utf-8"))
+        states = {item["id"]: item["state"] for item in world["foundationHypotheses"]}
+        self.assertEqual(states["audio"], "active")
+        self.assertEqual(states["still-visual"], "provisional")
+        self.assertEqual(states["spatial-3d"], "candidate")
+        self.assertEqual(states["live-realtime"], "candidate")
+        self.assertEqual(world["challengers"][0]["id"], "haptic-physical")
+        for profile_id in ("motion-video", "writing", "audio"):
             text = (ROOT / entries[profile_id]["authority"]["path"]).read_text(encoding="utf-8")
             for required_heading in (
                 "## What the medium can manipulate",

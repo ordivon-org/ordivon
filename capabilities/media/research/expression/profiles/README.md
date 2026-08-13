@@ -13,8 +13,10 @@ Current C2 split:
 - **Web** — owned by `/root/projects/ordivon-web/design/expression-profile.md`; Web binds the exact Studio Core it consumes. Studio records the ownership edge but does not mirror Web's browser/publication theory.
 - **Motion / Video** — owned here in [`motion-video.md`](./motion-video.md) because Studio owns the current motion, video, NLE, media and QC production substrate.
 - **Writing** — owned here in [`writing.md`](./writing.md) as cross-publication writing craft. Web remains authority for the browser publication surface and article temporal/publication state.
-- **Still / Graphic, Audio / Music, Interactive** — remain in [`medium-baseline.json`](./medium-baseline.json) as provisional hypotheses until real production earns a stronger profile.
-- **Spatial / 3D, Live / Realtime** — are candidate foundations in [`../media-topology.md`](../media-topology.md), not registry authorities yet. They must survive discriminating production and ablation before promotion.
+- **Audio** — active here in [`audio.md`](./audio.md). M7-A rejected collapse into Writing + Motion and graduated Audio after controlled same-words/different-sound evidence plus ordinary narration reuse; speech, music and sound design remain specializations rather than separate foundations.
+- **Still Visual** — compact provisional candidate in [`still-visual.md`](./still-visual.md). M7-S found target-specific information, but ordinary social-card work also showed Core + rendered inspection can solve a real Still defect without a large resident profile.
+- **Interactive** — compact provisional generic candidate in [`interactive.md`](./interactive.md). M7-I proved trajectory-specific defects, but Web already owns mature concrete browser interaction craft; non-Web reuse is required before Studio creates a second active authority.
+- **Spatial / 3D, Live / Realtime** — remain candidate foundations in [`../media-topology.md`](../media-topology.md), not registry authorities yet. Haptic / Physical remains a challenger with no profile because no verified tactile encounter exists.
 
 The seven-foundation expansion program is tracked in [`../m7-foundational-media-program.md`](../m7-foundational-media-program.md). Its topology is deliberately falsifiable: a candidate that can be explained more compactly as a specialization, composition, encounter, distribution context, or tool adapter should not become a foundational profile.
 

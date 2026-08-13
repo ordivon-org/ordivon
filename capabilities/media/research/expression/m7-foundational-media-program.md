@@ -1,5 +1,7 @@
 # M7 — Foundational Media Expansion Program
 
+**Program status:** completed on 2026-08-13. The execution/result authority is [`experiments/m7-foundational-media.md`](./experiments/m7-foundational-media.md), retained bounded evidence is [`evidence/m7-foundational-media-20260813.json`](./evidence/m7-foundational-media-20260813.json), and the current Agent-readable topology is [`media-world-model.json`](./media-world-model.json). This document remains the experimental contract that the completed round was tested against.
+
 ## Objective
 
 Expand Studio's media world model from three mature/current consumers plus three provisional baselines into a falsifiable seven-foundation research program:

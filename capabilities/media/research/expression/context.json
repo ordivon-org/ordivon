@@ -300,5 +300,6 @@
     "context_signal": "culture/platform/audience/time-sensitive signal; retrieve near use",
     "local_observation": "bounded Ordivon evidence; retain exact scope and provenance"
   },
-  "profileRegistry": "research/expression/profiles/index.json"
+  "profileRegistry": "research/expression/profiles/index.json",
+  "mediaWorldModel": "research/expression/media-world-model.json"
 }

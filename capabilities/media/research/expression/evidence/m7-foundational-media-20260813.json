@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-m7-retained-evidence",
+  "observedDate": "2026-08-13",
+  "sourceProposition": "The response was lost. The operation outcome is unknown. Recover the same operation identity before concluding success or failure.",
+  "studioExperiment": {
+    "replayCommand": "pnpm research:m7:foundations",
+    "ephemeralEvidencePath": "out/m7-foundations/evidence.json",
+    "evidenceDigest": "sha256:cbdf6a131e213d31fa78318d415f1741d0b1eeaa25cdaf540bbcf930529671b7"
+  },
+  "webInteractiveExperiment": {
+    "repository": "/root/projects/ordivon-web",
+    "observedSourceRevision": "6ac291ab5d04d04f0fdb81084edd3e33d37f6efe",
+    "replayCommand": "pnpm research:m7:interaction",
+    "ephemeralEvidencePath": "out/m7-interaction/evidence.json",
+    "evidenceDigest": "sha256:05a664a69844b6ee329851d40e5e9bcdb10d0b9e8af1cd211bb4741ce69fc45c"
+  },
+  "results": {
+    "writing": {
+      "status": "active-control",
+      "decision": "retain-active",
+      "basis": "Existing Writing profile and ordinary Web/Studio long-form consumers remain the semantic-text control; M7 found no evidence requiring a new language foundation below it."
+    },
+    "still-visual": {
+      "status": "provisional",
+      "decision": "retain-provisional-compress",
+      "registeredFailureRecall": {"coreOnly": 0.25, "correct": 1.0, "wrongMotion": 0.0, "sham": 0.0},
+      "renderedControlDistance": 0.0,
+      "minRegisteredPerturbationDistance": 0.1505539630571599,
+      "ordinaryCounterevidence": "site-social-card solved a real viewing-distance/legibility defect using Core + rendered preview while Still was provisional"
+    },
+    "audio": {
+      "status": "active",
+      "decision": "graduate",
+      "registeredFailureRecall": {"coreOnly": 0.2, "correct": 1.0, "wrongWritingMotion": 0.2, "sham": 0.0},
+      "renderedControlDistance": 0.0,
+      "perturbationDistances": {"fast": 0.15838418423122327, "slow": 0.11589295909811968, "loud": 0.10133819161885807, "masked": 0.9766379977331249, "delayedOnset": 1.2289591864073146},
+      "ordinaryReuse": "runtime-introduction narration + TimedText + declared audio working profile"
+    },
+    "motion-video": {
+      "status": "active-control",
+      "decision": "retain-active",
+      "basis": "Existing real Remotion/Resolve/OTIO consumers and prior temporal/montage ablations remain sufficient; M7 encounter-freezing model retains Motion → contact-sheet as a valid falsifier."
+    },
+    "interactive": {
+      "status": "provisional",
+      "decision": "retain-provisional-generic-web-active-consumer",
+      "registeredFailureRecall": {"coreOnly": 0.5, "correct": 1.0, "wrongStaticPublication": 0.0, "sham": 0.0},
+      "encounterFreeze": "initial+final static states",
+      "allRegisteredDefectsRequireTrajectory": true,
+      "boundary": "generic authority not graduated because current evidence is Web-hosted and Web already owns mature interaction craft"
+    },
+    "spatial-3d": {
+      "status": "candidate",
+      "decision": "retain-candidate-no-profile",
+      "viewpointDisplacement": 0.225,
+      "referenceFrameError": 0.625,
+      "boundary": "controlled projection proves reference-space/viewpoint dependence but no real XR/embodiment encounter exists"
+    },
+    "live-realtime": {
+      "status": "candidate",
+      "decision": "retain-candidate-no-profile",
+      "replicates": 5,
+      "allGuardedFlagStale": true,
+      "allNaiveExposeStaleAsCurrent": true,
+      "meanNaiveMisleadingExposureMs": 9.2935376,
+      "boundary": "real-time software trace proves unknown-future/currentness/correction pressure but no ordinary public live production exists"
+    },
+    "haptic-physical": {
+      "status": "challenger",
+      "decision": "no-profile",
+      "localPhysicalEncounter": false,
+      "boundary": "standards support a tactile output modality, but synthetic traces cannot substitute for verified physical perception"
+    }
+  }
+}
