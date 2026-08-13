@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-equipment-world-e0-e7-evidence",
+  "observedDate": "2026-08-13",
+  "sourceRevision": "8d034bd6b616c254ca7705a5f1ebef4010fc68c5",
+  "installedEquipment": {
+    "ffmpeg": "n9.0",
+    "ffprobe": "n9.0",
+    "rsvg-convert": "2.62.3",
+    "typst": "0.15.1",
+    "imagemagick": "7.1.2-29",
+    "godot": "4.7.1.stable.arch_linux.a13da4feb",
+    "davinci-resolve": "21.0.3.7",
+    "obs-studio": "32.2.1",
+    "figma": "126.7.10"
+  },
+  "notInstalled": {
+    "inkscape": "1.4.4 candidate; provisioning timed out before transaction",
+    "blender": "5.2.0 candidate; provisioning timed out before transaction",
+    "touchdesigner": "candidate; no local installation evidence",
+    "stream-deck": "challenger; no device/software evidence",
+    "bhaptics": "challenger; no physical tactile device"
+  },
+  "portableSamples": {
+    "reaper": {
+      "version": "7.78",
+      "archiveMiB": 12.97,
+      "binarySha256": "26eda629227de216724d1d623f239af9a9198d2733d43b44406beed3f4601606",
+      "observedCliTokens": ["-renderproject", "-batchconvert", "-cfgfile", "-newinst", "-saveas"],
+      "headlessProbe": "stock Linux build failed before application start at libSwell undefined symbol gdk_init_check",
+      "boundary": "Official portable package and binary surface were inspected. No REAPER production render was claimed."
+    }
+  },
+  "e6CrossEquipmentDogfood": {
+    "commonProposition": "The response was lost. The operation outcome is unknown. Recover the same operation identity before concluding success or failure.",
+    "executedEquipment": ["typst", "rsvg-convert", "imagemagick", "godot", "ffmpeg"],
+    "withheldEquipment": {"blender": "not installed after high-friction provisioning attempt"},
+    "timingsMs": {
+      "typstCompile": 20.893372,
+      "rsvgExport": 37.602477,
+      "imagemagickPreview": 33.482201,
+      "spatialFallbackCopy": 40.977535,
+      "godotTrace": 532.970523,
+      "ffmpegCompose": 189.998159
+    },
+    "artifacts": {
+      "documentPdf": {"sha256": "ff5794369cb09eeacf7b7199c8c53e11a5ae321aa38650703354b2ca3110084d", "bytes": 14273, "facts": ["PDF 1.7", "1 page", "tagged", "A4 landscape"]},
+      "vectorPng": {"sha256": "84bb9741e2eef4f4ae3962f219eabfe31ad5d4ae65473fea0a61d0546a9018ec", "dimensions": "1200x630"},
+      "previewPng": {"sha256": "87071fe9b75a39bf1e3671caa500a28894b194dd74b443f0e81680f11f121f38", "dimensions": "600x315", "visuallyInspected": true},
+      "interactiveTrace": {"sha256": "99d967d0a7c044d978e60f400a1d8df1b108e709848fc37a52bfdd7f403b26f9", "statePath": ["unknown", "checking", "unknown"]},
+      "motionSequence": {"sha256": "c0c3217b5f7ead89ef5767d95a20f5436d62059c73676b41b4bec327b9db7bd3", "facts": ["H.264", "640x360", "30fps", "2.0s", "yuv420p"]}
+    },
+    "spatialBoundary": "The generated second motion frame used an explicit non-3D fallback; E6 therefore does not claim Blender/3D production success."
+  },
+  "e7Benchmarks": {
+    "imageResize": {
+      "imagemagickMedianMs": 64.051603,
+      "ffmpegMedianMs": 64.060199,
+      "wallTimeRatio": 0.999865813716876,
+      "argumentCount": {"imagemagick": 4, "ffmpeg": 10},
+      "finding": "No meaningful speed gain, but ImageMagick preserves itself through lower command/semantic friction and image-specific batchability."
+    },
+    "simpleStateTrace": {
+      "pythonMedianMs": 15.774473,
+      "godotMedianMs": 565.133153,
+      "wallTimeRatio": 35.82580242141845,
+      "finding": "Godot is inappropriate for trivial state traces but adds a genuine non-Web application/game/input/export/XR ceiling, so it becomes specialist-on-demand rather than core equipment."
+    },
+    "svgRaster": {
+      "rsvgMedianMs": 64.097058,
+      "inkscapeMedianMs": null,
+      "finding": "Inkscape never reached an installed executable; no fabricated performance comparison is retained."
+    }
+  },
+  "provisioningEvidence": {
+    "initialFiveToolAttempt": {
+      "requested": ["typst", "imagemagick", "inkscape", "blender", "godot"],
+      "plannedDownloadMiB": 902.28,
+      "plannedInstalledMiB": 3717.24,
+      "result": "timed-out-before-package-transaction"
+    },
+    "typstAndImageMagick": {
+      "downloadMiB": 24.83,
+      "installedMiB": 67.41,
+      "postcondition": "installed",
+      "runtimeDisposition": "EXECUTABLE_RUNTIME_DRIFT after the package effect physically completed"
+    },
+    "godot": {
+      "downloadMiB": 88.12,
+      "installedMiB": 229.29,
+      "postcondition": "installed",
+      "runtimeDisposition": "EXECUTABLE_RUNTIME_DRIFT after the package effect physically completed"
+    },
+    "blender": {
+      "plannedDownloadMiB": 743.2,
+      "plannedInstalledMiB": 3069.84,
+      "deadlineMs": 900000,
+      "postcondition": "not-installed",
+      "result": "timed-out-during-dependency-download"
+    },
+    "inkscape": {
+      "plannedDownloadMiB": 77.89,
+      "plannedInstalledMiB": 524.97,
+      "deadlineMs": 300000,
+      "postcondition": "not-installed",
+      "result": "timed-out-during-dependency-download",
+      "recoveryObservation": "one orphan aria2 downloader remained in uninterruptible I/O after parent termination; its pacman lock was deliberately not removed while the process remained alive"
+    },
+    "architectureFinding": "Host-level package provisioning changes executable topology during execution and conflicts by design with normal Runtime Workspace executable-drift invariants. Provisioning belongs in Host/Computer authority, followed by postcondition inventory; Studio should not weaken Runtime execution invariants to install creative software."
+  },
+  "externalWorkstations": {
+    "davinciResolve": {"decision": "retain", "basis": "real existing OTIO conform/editable-master production evidence"},
+    "obsStudio": {"decision": "integration-provisional", "installed": true, "webSocketAuthRequired": true, "webSocketServerEnabled": false, "port": 4455, "secretRetainedOutsideEvidence": true},
+    "figma": {"decision": "integration-provisional", "installed": true, "basis": "professional/plugin capability exists but no ordinary Studio production receipt was found"},
+    "reaper": {"decision": "candidate-headless-integration", "basis": "strong ReaScript/OSC/CLI surface but stock WSL headless probe failed"},
+    "touchdesigner": {"decision": "candidate", "basis": "high Live/installation potential without local production evidence"}
+  },
+  "physicalEquipment": {
+    "present": ["integrated-camera", "microphone-input", "audio-output", "integrated-display", "generic-HID"],
+    "notObserved": ["stream-deck", "XR-headset", "drawing-tablet", "3D-mouse", "specialist-MIDI-controller", "specialist-audio-interface", "depth-camera", "haptic-wearable"],
+    "boundary": "Only device presence was inspected; no camera, microphone or other sensor content was captured."
+  },
+  "finalRetention": {
+    "coreEquipment": ["ffmpeg", "ffprobe", "rsvg-convert", "typst", "imagemagick"],
+    "specialistOnDemand": ["godot"],
+    "externalWorkstationRetained": ["davinci-resolve"],
+    "externalIntegrationProvisional": ["obs-studio", "figma"],
+    "candidates": ["inkscape", "blender", "reaper", "touchdesigner"],
+    "challengers": ["stream-deck", "bhaptics"]
+  },
+  "decisionRule": "A tool can earn persistence through unique capability OR material friction reduction OR a used professional/editable-master ceiling. Capability deletion alone is insufficient. Capability, friction, ceiling and cost remain typed rather than collapsed into one score."
+}

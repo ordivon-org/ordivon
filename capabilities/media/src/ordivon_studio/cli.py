@@ -202,6 +202,34 @@ def _optional_path(value: str | None) -> Path | None:
     return Path(value) if value else None
 
 
+def _equipment_module():
+    from . import equipment
+    return equipment
+
+
+def _command_equipment_inventory(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    world = module.load_equipment_world(Path(args.world))
+    inventory = module.discover_equipment(world)
+    _write_json(inventory)
+    return 0
+
+
+def _command_equipment_select(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    world = module.load_equipment_world(Path(args.world))
+    inventory = module.discover_equipment(world) if args.local else None
+    _write_json({"capability": args.capability, "matches": module.select_for_capability(world, args.capability, inventory=inventory)})
+    return 0
+
+
+def _command_equipment_plan(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    parameters = json.loads(args.parameters) if args.parameters else {}
+    _write_json(module.compile_operation(args.equipment_id, args.capability, parameters).as_dict())
+    return 0
+
+
 def _resolve_adapter():
     try:
         from . import resolve_adapter
@@ -417,6 +445,25 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     production_context_parser.set_defaults(handler=_command_production_context)
+
+    equipment_parser = commands.add_parser("equipment", help="inspect and plan Studio professional equipment without executing it")
+    equipment_commands = equipment_parser.add_subparsers(dest="equipment_command", required=True)
+
+    equipment_inventory = equipment_commands.add_parser("inventory", help="probe the current machine against the Equipment World registry")
+    equipment_inventory.add_argument("--world", default="research/equipment/equipment-world.json")
+    equipment_inventory.set_defaults(handler=_command_equipment_inventory)
+
+    equipment_select = equipment_commands.add_parser("select", help="rank equipment candidates for one exact capability")
+    equipment_select.add_argument("capability")
+    equipment_select.add_argument("--world", default="research/equipment/equipment-world.json")
+    equipment_select.add_argument("--local", action="store_true", help="prefer equipment physically present on this machine")
+    equipment_select.set_defaults(handler=_command_equipment_select)
+
+    equipment_plan = equipment_commands.add_parser("plan", help="compile one Studio equipment intent into a Runtime-ready exact proposal without executing it")
+    equipment_plan.add_argument("equipment_id")
+    equipment_plan.add_argument("capability")
+    equipment_plan.add_argument("--parameters", help="JSON object of operation parameters")
+    equipment_plan.set_defaults(handler=_command_equipment_plan)
 
     resolve_parser = commands.add_parser("resolve", help="operate the DaVinci Resolve-specific adapter")
     resolve_commands = resolve_parser.add_subparsers(dest="resolve_command", required=True)

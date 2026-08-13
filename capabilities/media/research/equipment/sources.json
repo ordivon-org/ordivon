@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.equipment-source-ledger",
+  "observedDate": "2026-08-13",
+  "sources": [
+    {"equipment": "typst", "authority": "official", "url": "https://typst.app/docs/", "supports": ["compiler", "CLI", "PDF/image/Web output", "open-source compiler"]},
+    {"equipment": "imagemagick", "authority": "official", "url": "https://imagemagick.org/command-line-tools/", "supports": ["command-line image manipulation", "batch/repeated operations"]},
+    {"equipment": "blender", "authority": "official", "url": "https://docs.blender.org/api/dev/info_quickstart.html", "supports": ["Python API", "scene/data/tool mutation"]},
+    {"equipment": "blender", "authority": "official", "url": "https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html", "supports": ["background execution", "render CLI", "Python script argument boundary"]},
+    {"equipment": "godot", "authority": "official", "url": "https://docs.godotengine.org/en/latest/tutorials/editor/command_line_tutorial.html", "supports": ["headless", "script", "export", "write-movie", "CLI workflow"]},
+    {"equipment": "davinci-resolve", "authority": "vendor-documentation-mirror", "url": "https://wiki.dvresolve.com/developer-docs/scripting-api", "supports": ["Python/Lua scripting", "external scripting boundary", "project/timeline API"]},
+    {"equipment": "obs-studio", "authority": "official-project", "url": "https://github.com/obsproject/obs-websocket", "supports": ["built-in obs-websocket since OBS 28", "remote control", "authentication", "default 5.x port 4455"]},
+    {"equipment": "figma", "authority": "official", "url": "https://developers.figma.com/docs/plugins/", "supports": ["Plugin API", "read/write editor content", "node mutation"]},
+    {"equipment": "reaper", "authority": "official", "url": "https://www.reaper.fm/sdk/reascript/reascript.php", "supports": ["ReaScript", "Lua/EEL/Python", "REAPER API access"]},
+    {"equipment": "reaper", "authority": "official", "url": "https://www.reaper.fm/sdk/osc/osc.php", "supports": ["OSC control surface"]},
+    {"equipment": "touchdesigner", "authority": "official", "url": "https://docs.derivative.ca/", "supports": ["Python", "realtime media", "OSC/MIDI/sensor-oriented workflows"]},
+    {"equipment": "stream-deck", "authority": "official", "url": "https://docs.elgato.com/streamdeck/sdk/v1/introduction/getting-started/", "supports": ["plugin SDK", "device events", "Node-based plugin runtime"]},
+    {"equipment": "bhaptics", "authority": "official", "url": "https://docs.bhaptics.com/", "supports": ["haptic SDKs", "physical tactile output integration"]}
+  ],
+  "boundary": "Documentation establishes available control surfaces and constraints. Equipment retention is decided by Ordivon execution/friction/production evidence, not vendor capability claims alone."
+}

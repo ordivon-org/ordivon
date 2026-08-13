@@ -5,6 +5,7 @@
   "evidence": "research/expression/evidence/m7-foundational-media-20260813.json",
   "core": "research/expression/creative-system.md",
   "profiles": "research/expression/profiles/index.json",
+  "equipmentWorld": "research/equipment/equipment-world.json",
   "foundationHypotheses": [
     {"id": "writing", "state": "active", "authority": "research/expression/profiles/writing.md"},
     {"id": "still-visual", "state": "provisional", "authority": "research/expression/profiles/still-visual.md"},

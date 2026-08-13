@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.equipment-world",
+  "principle": "Equipment earns persistence through capability gain, friction reduction, quality/ceiling gain, observability/recoverability, or a justified combination; fame and GUI richness are not authority.",
+  "ownership": {
+    "studio": [
+      "medium-aware selection",
+      "production intent",
+      "equipment capability model",
+      "artifact inspection expectation",
+      "equipment ROI evidence"
+    ],
+    "runtime": [
+      "exact executable",
+      "environment",
+      "Windows authority",
+      "immutable input materialization",
+      "process lifecycle",
+      "execution artifacts",
+      "recovery semantics"
+    ],
+    "host": [
+      "machine/device presence",
+      "version/capability projection",
+      "license/configuration state when safely observable"
+    ],
+    "web": [
+      "browser/publication runtime",
+      "Web-specific interaction and accessibility",
+      "real browser encounter evidence"
+    ]
+  },
+  "retentionClasses": [
+    "core-equipment",
+    "specialist-on-demand",
+    "external-workstation",
+    "candidate",
+    "challenger",
+    "reject"
+  ],
+  "evaluationAxes": {
+    "capabilityGain": [
+      "new output class",
+      "new editable master",
+      "new observer relation",
+      "new domain operation"
+    ],
+    "frictionReduction": [
+      "fewer commands",
+      "fewer manual handoffs",
+      "lower wall time",
+      "fewer environment assumptions",
+      "better batchability",
+      "better recovery",
+      "better deterministic replay"
+    ],
+    "qualityCeilingGain": [
+      "domain-native editability",
+      "professional finishing",
+      "higher fidelity",
+      "specialized inspection/control"
+    ],
+    "cost": [
+      "install footprint",
+      "dependency footprint",
+      "license",
+      "authentication",
+      "GUI/state coupling",
+      "version volatility",
+      "maintenance",
+      "failure surface"
+    ]
+  },
+  "equipment": [
+    {
+      "id": "ffmpeg",
+      "family": "deterministic-cli",
+      "media": [
+        "audio",
+        "motion-video",
+        "still-visual",
+        "live-realtime"
+      ],
+      "capabilities": [
+        "media.probe",
+        "media.transcode",
+        "video.encode",
+        "audio.transform",
+        "image.extract",
+        "timeline.compose-basic",
+        "stream.capture-basic"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/ffmpeg",
+          "versionArgs": [
+            "-version"
+          ]
+        }
+      ],
+      "retention": "core-equipment",
+      "reason": "Already-proven exact CLI substrate for transform, QC, experiments and delivery."
+    },
+    {
+      "id": "ffprobe",
+      "family": "deterministic-cli",
+      "media": [
+        "audio",
+        "motion-video",
+        "still-visual"
+      ],
+      "capabilities": [
+        "media.probe",
+        "stream.inspect",
+        "duration.inspect",
+        "codec.inspect"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/ffprobe",
+          "versionArgs": [
+            "-version"
+          ]
+        }
+      ],
+      "retention": "core-equipment",
+      "reason": "Low-cost structural truth boundary used throughout Studio."
+    },
+    {
+      "id": "rsvg-convert",
+      "family": "deterministic-cli",
+      "media": [
+        "still-visual"
+      ],
+      "capabilities": [
+        "svg.rasterize"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/rsvg-convert",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "core-equipment",
+      "reason": "Tiny focused SVG rasterizer and strong baseline for larger vector tools."
+    },
+    {
+      "id": "typst",
+      "family": "deterministic-cli",
+      "media": [
+        "writing",
+        "still-visual"
+      ],
+      "capabilities": [
+        "document.compile.pdf",
+        "document.compile.png",
+        "document.compile.svg",
+        "document.query",
+        "document.template"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/typst",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "core-equipment",
+      "reason": "E6 produced a tagged one-page PDF in ~21 ms; E7 retained Typst for Studio-local deterministic publishing, batchability and low persistent cost."
+    },
+    {
+      "id": "imagemagick",
+      "family": "deterministic-cli",
+      "media": [
+        "still-visual"
+      ],
+      "capabilities": [
+        "image.resize",
+        "image.crop",
+        "image.convert",
+        "image.compose",
+        "image.inspect",
+        "image.batch"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/magick",
+          "versionArgs": [
+            "-version"
+          ]
+        }
+      ],
+      "retention": "core-equipment",
+      "reason": "E7 found no speed gain over FFmpeg for resize, but the same operation used 4 arguments versus 10 and the image-specific batch surface materially reduces friction at low cost."
+    },
+    {
+      "id": "inkscape",
+      "family": "deterministic-cli-plus-gui",
+      "media": [
+        "still-visual"
+      ],
+      "capabilities": [
+        "vector.render",
+        "vector.export",
+        "vector.query",
+        "vector.editable-master"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/inkscape",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "candidate",
+      "reason": "Two provisioning attempts never reached package transaction under current network/Runtime conditions; rsvg-convert plus installed Figma cover ordinary work, so local vector-specialist installation remains demand-pulled."
+    },
+    {
+      "id": "blender",
+      "family": "scripted-workstation-headless",
+      "media": [
+        "spatial-3d",
+        "still-visual",
+        "motion-video"
+      ],
+      "capabilities": [
+        "scene.create",
+        "scene.edit",
+        "scene.render",
+        "animation.render",
+        "asset.export.gltf",
+        "geometry.procedural",
+        "camera.control",
+        "material.control"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/blender",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "candidate",
+      "reason": "The Arch closure required ~743 MiB download and ~3.0 GiB installed and timed out before transaction. Spatial/3D capability remains valuable, but local provisioning is specialist/on-demand work rather than core-equipment pressure."
+    },
+    {
+      "id": "godot",
+      "family": "scripted-runtime-headless",
+      "media": [
+        "interactive",
+        "spatial-3d",
+        "audio",
+        "motion-video"
+      ],
+      "capabilities": [
+        "interactive.run",
+        "interactive.run.headless",
+        "interactive.script",
+        "application.export",
+        "movie.write",
+        "state.trace",
+        "xr.runtime"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/godot",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Real headless trace succeeded, but a trivial state trace was ~35.8x slower than Python; retain for genuine non-Web runtime/export/input/XR encounters rather than simple state machines."
+    },
+    {
+      "id": "davinci-resolve",
+      "family": "scripted-professional-workstation",
+      "media": [
+        "motion-video",
+        "audio",
+        "still-visual"
+      ],
+      "capabilities": [
+        "timeline.create",
+        "timeline.conform.otio",
+        "media.import",
+        "project.inspect",
+        "color.finish",
+        "fusion.compose",
+        "audio.fairlight",
+        "deliver.render"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "path": "/mnt/c/Program Files/Blackmagic Design/DaVinci Resolve/Resolve.exe",
+          "versionKind": "windows-file"
+        }
+      ],
+      "retention": "external-workstation",
+      "reason": "Already earned through real OTIO conform and editable-master acceptance; Studio adapter remains version-specific."
+    },
+    {
+      "id": "obs-studio",
+      "family": "realtime-workstation",
+      "media": [
+        "live-realtime",
+        "motion-video",
+        "audio",
+        "interactive"
+      ],
+      "capabilities": [
+        "live.scene.switch",
+        "live.source.update",
+        "record.start",
+        "record.stop",
+        "stream.start",
+        "stream.stop",
+        "live.state.observe",
+        "event.subscribe"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "path": "/mnt/c/Program Files/obs-studio/bin/64bit/obs64.exe",
+          "versionKind": "windows-file"
+        }
+      ],
+      "configuration": [
+        {
+          "kind": "glob",
+          "pattern": "/mnt/c/Users/*/AppData/Roaming/obs-studio/plugin_config/obs-websocket/config.json",
+          "redact": [
+            "server_password"
+          ]
+        }
+      ],
+      "retention": "external-workstation",
+      "reason": "Installed OBS 32.2.1 has authenticated obs-websocket configuration but the server is currently disabled; integration remains provisional until a real Live production enables and consumes it."
+    },
+    {
+      "id": "figma",
+      "family": "scripted-collaborative-workstation",
+      "media": [
+        "still-visual",
+        "interactive",
+        "writing"
+      ],
+      "capabilities": [
+        "design.node.read",
+        "design.node.write.plugin",
+        "design.variables",
+        "design.prototype",
+        "design.export",
+        "design.collaborate"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "glob": "/mnt/c/Users/*/AppData/Local/Figma/Figma.exe",
+          "versionKind": "windows-file"
+        }
+      ],
+      "retention": "external-workstation",
+      "reason": "Installed Figma 126.7.10 exposes professional collaborative design/plugin capabilities, but current Studio evidence has no ordinary Figma production receipt; integration remains provisional."
+    },
+    {
+      "id": "reaper",
+      "family": "scripted-professional-workstation",
+      "media": [
+        "audio"
+      ],
+      "capabilities": [
+        "audio.multitrack",
+        "audio.edit",
+        "audio.mix",
+        "audio.master",
+        "audio.automation",
+        "midi.edit",
+        "script.reascript",
+        "control.osc"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "path": "/mnt/c/Program Files/REAPER (x64)/reaper.exe",
+          "versionKind": "windows-file"
+        },
+        {
+          "platform": "linux",
+          "path": "/usr/bin/reaper",
+          "versionArgs": [
+            "-version"
+          ]
+        }
+      ],
+      "retention": "candidate",
+      "reason": "Official REAPER 7.78 portable Linux sample exposed render/batch CLI plus ReaScript/OSC potential, but the stock WSL headless launch failed in libSwell at gdk_init_check; keep as an Audio specialist integration candidate."
+    },
+    {
+      "id": "touchdesigner",
+      "family": "realtime-scripted-workstation",
+      "media": [
+        "live-realtime",
+        "interactive",
+        "spatial-3d",
+        "audio",
+        "motion-video"
+      ],
+      "capabilities": [
+        "realtime.visual",
+        "realtime.audio",
+        "sensor.integrate",
+        "control.osc",
+        "control.midi",
+        "python.script",
+        "projection.mapping"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "glob": "/mnt/c/Program Files/Derivative/TouchDesigner*/bin/TouchDesigner.exe",
+          "versionKind": "windows-file"
+        }
+      ],
+      "retention": "candidate",
+      "reason": "High-potential Live/installation consumer, but no local production evidence."
+    },
+    {
+      "id": "stream-deck",
+      "family": "physical-control-surface",
+      "media": [
+        "live-realtime",
+        "interactive"
+      ],
+      "capabilities": [
+        "human.action.low-latency",
+        "state.display",
+        "dial.input",
+        "plugin.node",
+        "plugin.cli"
+      ],
+      "discovery": [
+        {
+          "platform": "windows",
+          "path": "/mnt/c/Program Files/Elgato/StreamDeck/StreamDeck.exe",
+          "versionKind": "windows-file"
+        }
+      ],
+      "retention": "challenger",
+      "reason": "Potential human↔Agent low-latency control surface; requires real device evidence."
+    },
+    {
+      "id": "bhaptics",
+      "family": "physical-output",
+      "media": [
+        "haptic-physical",
+        "interactive",
+        "spatial-3d"
+      ],
+      "capabilities": [
+        "haptic.play",
+        "haptic.stop",
+        "haptic.pattern",
+        "body-location.output"
+      ],
+      "discovery": [],
+      "retention": "challenger",
+      "reason": "Software SDK evidence exists but M7 correctly withheld graduation without physical tactile hardware."
+    }
+  ]
+}
