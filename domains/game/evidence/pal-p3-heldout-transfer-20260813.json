@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.pal-p3-heldout-transfer",
+  "status": "falsified-heldout-l4-transfer",
+  "gameRevision": "b034b87548b7f14ace4188a10a3c77099e4c95cc",
+  "design": {
+    "persistentDelta": "current DeepSeek responsibility ownership + responsibilityFeedback system-prompt prior",
+    "baseline": "same current Game evaluator/provider/world with only the two responsibility-specific prompt paragraphs removed process-locally",
+    "pairedRuns": 8,
+    "rescuePairs": 4,
+    "replicasPerProfile": 2,
+    "turnBound": 6,
+    "plannerAnswerCompilation": false,
+    "candidateSetChanged": false,
+    "worldRulesChanged": false
+  },
+  "runtimeJobs": {
+    "treatment": "job-019ffb1e-7006-73f2-8595-29b79c8b0ab5",
+    "baseline": "job-019ffb20-6ad4-7fc3-bfe2-1ffb8a73ea9f"
+  },
+  "rawArtifactDigests": {
+    "treatment": "sha256:8ac80d642f3fbbf8455fe1be533593c42b46e5080fceb19aa21b278d7d65b012",
+    "baseline": "sha256:960f6b044249b5be89a2249313673ec526d6e0c4e644a6acfa36a7fdff771b2c"
+  },
+  "aggregate": {
+    "allOwnerVerified": true,
+    "treatmentHiddenReferences": 0,
+    "baselineHiddenReferences": 0,
+    "treatmentProviderSuccessfulCalls": 234,
+    "baselineProviderSuccessfulCalls": 239,
+    "treatmentRescueProgress": [0, 0, 0, 0],
+    "baselineRescueProgress": [0, 0, 0, 0],
+    "rescueProgressDeltas": [0, 0, 0, 0],
+    "treatmentMovementOscillations": 25,
+    "baselineMovementOscillations": 9
+  },
+  "gates": {
+    "allRunsOwnerVerified": true,
+    "noHiddenReferenceLeak": true,
+    "treatmentChangesResponsibilityBehavior": true,
+    "treatmentImprovesHeldoutRescueProgress": false,
+    "treatmentAvoidsWorseAggregateOscillation": false
+  },
+  "counterexample": {
+    "profile": "rescue treatment",
+    "observation": "The Medic can bind custody of Navigator Sato and later still choose a non-extraction responsibility:advance move to Power Console.",
+    "meaning": "The prior is model-visible and behavior-changing but is not reliably model-realized as the intended transfer policy."
+  },
+  "interpretation": {
+    "l4Earned": false,
+    "law": "behavior change != held-out objective transfer",
+    "retainDisposition": "Keep the wording only as a Game-local product prompt hypothesis; do not promote it as a shared RSI prior.",
+    "reopen": "Only with a materially different held-out world/model or a predeclared full-horizon objective campaign; do not add a planner that compiles the desired answer."
+  }
+}
