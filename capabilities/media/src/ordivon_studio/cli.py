@@ -5,7 +5,14 @@ import json
 import sys
 from pathlib import Path
 
-from .assets import archive_blob, hash_file, materialize_blob, probe_media, r2_object_key
+from .assets import (
+    archive_blob,
+    hash_file,
+    materialize_blob,
+    probe_media,
+    r2_object_key,
+)
+from .production_context import build_production_context
 from .qc import validate_video_probe
 from .r2 import replicate_r2_blob, restore_r2_blob
 from .review import build_video_review_packet
@@ -166,6 +173,28 @@ def _command_timed_text(args: argparse.Namespace) -> int:
         Path(args.output).write_text(rendered, encoding="utf-8")
     else:
         sys.stdout.write(rendered)
+    return 0
+
+
+def _parse_source_repositories(values: list[str]) -> dict[str, Path]:
+    repositories: dict[str, Path] = {}
+    for value in values:
+        binding_id, separator, path = value.partition("=")
+        if not separator or not binding_id or not path:
+            raise ValueError("--source-repo must use BINDING_ID=PATH")
+        if binding_id in repositories:
+            raise ValueError(f"duplicate --source-repo binding: {binding_id}")
+        repositories[binding_id] = Path(path)
+    return repositories
+
+
+def _command_production_context(args: argparse.Namespace) -> int:
+    _write_json(
+        build_production_context(
+            Path(args.production_root),
+            source_repositories=_parse_source_repositories(args.source_repo),
+        )
+    )
     return 0
 
 
@@ -369,6 +398,26 @@ def build_parser() -> argparse.ArgumentParser:
     timed_parser.add_argument("--output")
     timed_parser.set_defaults(handler=_command_timed_text)
 
+    production_context_parser = commands.add_parser(
+        "production-context",
+        help=(
+            "project one Production, Claims, Outputs, and optional source-binding Git relation "
+            "without rendering or editing"
+        ),
+    )
+    production_context_parser.add_argument("production_root")
+    production_context_parser.add_argument(
+        "--source-repo",
+        action="append",
+        default=[],
+        metavar="BINDING_ID=PATH",
+        help=(
+            "optionally revalidate one source binding against a local Git repository; "
+            "repeat for multiple bindings"
+        ),
+    )
+    production_context_parser.set_defaults(handler=_command_production_context)
+
     resolve_parser = commands.add_parser("resolve", help="operate the DaVinci Resolve-specific adapter")
     resolve_commands = resolve_parser.add_subparsers(dest="resolve_command", required=True)
 
@@ -443,7 +492,14 @@ def main() -> None:
     args = build_parser().parse_args()
     try:
         raise SystemExit(args.handler(args))
-    except (FileNotFoundError, OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+    except (
+        FileNotFoundError,
+        OSError,
+        TypeError,
+        ValueError,
+        RuntimeError,
+        json.JSONDecodeError,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         raise SystemExit(2) from error
 

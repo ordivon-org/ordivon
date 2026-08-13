@@ -80,8 +80,9 @@ Current production status and storage evidence remain in the production and tech
 
 ## Start here
 
-| Need | Read |
+| Need | Read / invoke |
 | --- | --- |
+| inspect one Production, its Claims/Outputs, and optional source-binding Git relation without rendering or editing | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
 | understand why Studio exists | this README |
 | determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
 | first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |
