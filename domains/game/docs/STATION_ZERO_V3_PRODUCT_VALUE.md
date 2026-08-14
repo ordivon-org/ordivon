@@ -722,7 +722,8 @@ Current evidence map:
 | initial / acquired Knowledge | Life Support and Maintenance scans alter next planning surface | **PROVEN** |
 | encounter time budget | 14-Turn falsifier vs 20-Turn viable rescue basin | **PROVEN** |
 | coupled system pressure | Heat/Oxygen thresholds alter scoring and cause authoritative damage | **PROVEN SYSTEMIC AXIS** |
-| enemy faction objective package | Pirate/Swarm create current pressure, but alternate doctrine set not yet ablated | **UNPROVEN VARIATION AXIS** |
+| enemy directive doctrine | G5-P3 126-Run matched counterfactual: existing legal Pirate/Swarm directives can change selection/command and authoritative outcomes while Turn-0 Candidate legality stays fixed | **PROVEN OUTER CONTENT AXIS** |
+| alternate enemy objective package | current Objective definitions were not changed in G5-P3; a new objective package remains untested | **UNPROVEN VARIATION AXIS** |
 | topology / choke geometry | G5-P1 108-Run counterfactual: multiple bounded choke/capacity variants change Candidate surfaces, selected actions, and authoritative outcome vectors | **PROVEN OUTER CONTENT AXIS** |
 | civilian / item placement | important in current solution paths, no controlled relocation study yet | **UNPROVEN VARIATION AXIS** |
 | specialist loadout | mechanical content exists, but alternate loadout has not been isolated | **UNPROVEN VARIATION AXIS** |
@@ -822,7 +823,53 @@ capacity=1 = current Case content, not a Game core law
 
 This evaluator is an **outer production instrument**, not a new permanent product authority. Retain it while G5 topology production remains decision-relevant; archive/localize it after the production grammar stabilizes.
 
-G4 does not authorize a mission factory. With G4 exit accepted, G5 may now produce **one bounded second encounter/variant as a production-grammar proof** only if it deliberately varies the Content Grammar v0 axes above and is evaluated for a different strategy/action/outcome signature. Broad mission volume, campaign/meta progression, and random-content scaling remain unauthorized.
+## G5-P3 — enemy directive doctrine admission
+
+The next independent outer-axis test changes **no World law, Candidate admission, Objective definition, or production Case**. `scripts/eval-station-zero-v3-enemy-doctrine-axis.ts` supplies a research-only Provider that forces one already-valid Pirate or Swarm directive while preserving the real first-Turn Context/Candidate identities. The canonical planner still expands the leader directive into policy-follower actions, enemy Commander actions, Plans, and deterministic World consequence.
+
+The evaluator runs 18 Rescue strategy profiles across adaptive baseline plus all six fixed enemy directives, for 126 full deterministic Runs. A directive treatment passes only when:
+
+```text
+Turn-0 Candidate surface remains unchanged for all 18 profiles
+directive changes materially
+selected enemy action or Commander action changes materially
+authoritative strategic consequence changes
+the directive's own named Objective improves in >= 1 profile
+```
+
+Two consecutive runs were byte-identical:
+
+```text
+artifact bytes: 14,921,660
+SHA-256: 0012ec1fff35e27223f40c00934b5d7499360b7b6a5ccf2044850da6aa38e820
+Runs: 126
+```
+
+Current results:
+
+| Treatment | Selected-action divergence | Strategic profiles changed | Named Objective improved | Judgment |
+| --- | ---: | ---: | ---: | --- |
+| `pirate-steal-core` | 7.41% | 2 / 18 | 0 / 18 | **reject**; adaptive baseline already covers it strongly |
+| `pirate-capture-prize` | 68.80% | 18 / 18 | 0 / 18 Capture Engineer | **reject**; large difference without semantic delivery |
+| `pirate-extract-crew` | 66.94% | 18 / 18 | 18 / 18 Pirate crew survival/extraction | **admit** |
+| `swarm-hunt-biomass` | 31.67% | 18 / 18 | 18 / 18 Biomass | **admit axis proof; currently too dominant for direct production** |
+| `swarm-infect-life-support` | 3.70% | 4 / 18 | 2 / 18 infection | **reject**; too close to adaptive baseline |
+| `swarm-preserve-hive` | 26.02% | 10 / 18 | 0 / 18 Hive survival | **reject**; label and consequence diverge |
+
+The two most important negative results are `capture-prize` and `preserve-hive`: both create obvious behavior/outcome differences, but neither improves the Objective its label claims to pursue. G5 therefore rejects **difference-only** doctrine admission. This also reopens the older existence pressure on `mark-prize`/capture semantics as a local mechanic question without promoting a new core cleanup campaign.
+
+`swarm-hunt-biomass` proves the axis strongly but currently pushes Swarm to victory in 16/18 profiles and collapses Rescue's Hive-focus completion from 6/6 to 0/6. It is therefore an outer stress treatment, not the preferred next production Case. `pirate-extract-crew` is the current cleaner production candidate: it improves its own named objective in all 18 profiles while preserving more of the existing Rescue viability surface.
+
+The admitted statement is deliberately narrow:
+
+```text
+enemy directive doctrine = proven outer Content Grammar axis
+pirate-extract-crew = current bounded production candidate
+alternate enemy Objective package = still unproven
+forced-doctrine Provider = research instrument, not product architecture
+```
+
+G4 does not authorize a mission factory. G5 now has one bounded second Case plus two independently proven outer content axes; broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
 
 ---
 
@@ -840,8 +887,8 @@ V3-D Specialist behavioral identity DONE
 V4  synthesize proven defects       DONE
     → surfaced control subtraction + bounded system evidence
 
-V5  content grammar definition      DONE (v0)
-    → no second mission yet
+V5  content grammar definition      DONE (v0 + bounded G5 evidence)
+    → one second Scenario Case produced; no mission factory
 
 Later product validation
     → human behavior / preference / replay evidence during G5/G6 as appropriate

@@ -30,7 +30,10 @@ test("G4 Product Value authority records comparative design evidence and empiric
   assert.match(valueDoc, /retreat threshold[\s\S]*OBSERVED_CONTEXTUAL_LEVERAGE/);
   assert.match(valueDoc, /priority target[\s\S]*OBSERVED_CONTEXTUAL_LEVERAGE/);
   assert.match(valueDoc, /Content Grammar v0/);
-  assert.match(valueDoc, /one bounded second encounter\/variant as a production-grammar proof/);
+  assert.match(valueDoc, /one bounded second Case plus two independently proven outer content axes/);
+  assert.match(valueDoc, /enemy directive doctrine = proven outer Content Grammar axis/);
+  assert.match(valueDoc, /alternate enemy Objective package = still unproven/);
+  assert.match(valueDoc, /mission factory/);
   assert.match(valueDoc, /G4 Product Value is accepted and bounded G5 Production is admitted/);
 });
 
