@@ -20,7 +20,8 @@
     "eval:v3:g4": "node scripts/eval-station-zero-v3-g4-calibration.ts",
     "eval:v3:product-value": "node scripts/eval-station-zero-v3-product-value.ts",
     "eval:v3:g5-topology": "node scripts/eval-station-zero-v3-topology-axis.ts",
-    "eval:v3:g5-doctrine": "node scripts/eval-station-zero-v3-enemy-doctrine-axis.ts"
+    "eval:v3:g5-doctrine": "node scripts/eval-station-zero-v3-enemy-doctrine-axis.ts",
+    "eval:v3:g5-placement": "node scripts/eval-station-zero-v3-placement-axis.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

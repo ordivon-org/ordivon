@@ -30,7 +30,9 @@ test("G4 Product Value authority records comparative design evidence and empiric
   assert.match(valueDoc, /retreat threshold[\s\S]*OBSERVED_CONTEXTUAL_LEVERAGE/);
   assert.match(valueDoc, /priority target[\s\S]*OBSERVED_CONTEXTUAL_LEVERAGE/);
   assert.match(valueDoc, /Content Grammar v0/);
-  assert.match(valueDoc, /one bounded second Case plus two independently proven outer content axes/);
+  assert.match(valueDoc, /one bounded second Case plus \*\*three\*\* independently proven outer axes/);
+  assert.match(valueDoc, /objective-bearing civilian \/ Research Core placement = proven outer Content Grammar axis/);
+  assert.match(valueDoc, /optional resource\/item placement = still unproven/);
   assert.match(valueDoc, /enemy directive doctrine = proven outer Content Grammar axis/);
   assert.match(valueDoc, /alternate enemy Objective package = still unproven/);
   assert.match(valueDoc, /mission factory/);

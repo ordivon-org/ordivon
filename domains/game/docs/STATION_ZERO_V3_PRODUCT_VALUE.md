@@ -725,7 +725,8 @@ Current evidence map:
 | enemy directive doctrine | G5-P3 126-Run matched counterfactual: existing legal Pirate/Swarm directives can change selection/command and authoritative outcomes while Turn-0 Candidate legality stays fixed | **PROVEN OUTER CONTENT AXIS** |
 | alternate enemy objective package | current Objective definitions were not changed in G5-P3; a new objective package remains untested | **UNPROVEN VARIATION AXIS** |
 | topology / choke geometry | G5-P1 108-Run counterfactual: multiple bounded choke/capacity variants change Candidate surfaces, selected actions, and authoritative outcome vectors | **PROVEN OUTER CONTENT AXIS** |
-| civilian / item placement | important in current solution paths, no controlled relocation study yet | **UNPROVEN VARIATION AXIS** |
+| objective-bearing civilian / Research Core placement | G5-P4 126-Run relocation study: bounded Actor/ground-item placement changes Candidate/action surfaces and objective-relevant extraction outcomes without changing topology/rules/Objectives/loadouts | **PROVEN OUTER CONTENT AXIS** |
+| optional resource/item placement | medkit/spare-parts/sealant placement was not isolated in G5-P4 | **UNPROVEN VARIATION AXIS** |
 | specialist loadout | mechanical content exists, but alternate loadout has not been isolated | **UNPROVEN VARIATION AXIS** |
 | optional loot abundance | 46 opportunities with zero loot-policy leverage in current slice | **NOT YET A PRODUCT AXIS** |
 
@@ -870,6 +871,53 @@ forced-doctrine Provider = research instrument, not product architecture
 ```
 
 G4 does not authorize a mission factory. G5 now has one bounded second Case plus two independently proven outer content axes; broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
+
+## G5-P4 — objective-bearing placement admission
+
+The third independent outer-axis test changes only authored Genesis placement. `scripts/eval-station-zero-v3-placement-axis.ts` relocates civilians or the Research Core in a cloned `fixed-genesis` state, synchronizes existing bounded Actor last-known location where that Actor was already known, validates the mutated World, then reuses the canonical Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. Topology, Objectives, rules, loadouts, and production Scenario Cases remain unchanged.
+
+The matrix uses 18 Rescue strategy profiles across baseline plus six placement treatments, for 126 full deterministic Runs. A treatment passes the research-axis gate only when:
+
+```text
+Candidate-surface divergence >= 10%
+selected-action divergence >= 10%
+authoritative strategic consequence changes
+the moved objective-bearing object changes its own extraction consequence
+```
+
+Two consecutive runs were byte-identical:
+
+```text
+artifact bytes: 14,779,500
+SHA-256: 83a2e9822127d37acbb0c848ecbc34e413bb2f5908a825bbf84d6c76e1ba9122
+Runs: 126
+```
+
+Current results:
+
+| Treatment | Candidate divergence | Selected-action divergence | Strategic profiles changed | Objective-relevant profiles | Judgment |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `civilian-swap-rooms` | 28.38% | 3.77% | 0 / 18 | 0 / 18 | **reject**; identity/location swap does not survive into consequence |
+| `civilians-cluster-med` | 67.78% | 41.04% | 17 / 18 | 4 / 18 | **admit axis proof; stress treatment** — Rescue civilian focus 3/6→1/6 |
+| `civilians-cluster-life` | 46.80% | 22.40% | 7 / 18 | 6 / 18 | **admit axis proof; too destructive** — Rescue civilian focus 3/6→0/6 |
+| `core-reactor-cover` | 12.87% | 11.07% | 6 / 18 | 1 / 18 | **admit micro-placement proof; negative direction** — Core 1/6→0/6 |
+| `core-junction-cover` | 33.73% | 27.42% | 10 / 18 | 2 / 18 | **admit basin-reordering proof** — one Core profile gains, one loses; aggregate 1/6 unchanged |
+| `core-crate-cover` | 59.31% | 46.24% | 13 / 18 | 1 / 18 | **admit axis proof, reject production direction** — Rescue Core 1/6→0/6 and Pirate Core extraction improves 0/18 |
+
+The negative cases matter as much as the admitted axis. `civilian-swap-rooms` demonstrates that a large Candidate-surface difference can disappear before authoritative consequence. `core-crate-cover` shows that moving the Core toward the Pirate route creates large tactical divergence without actually improving Pirate Core extraction. Placement therefore cannot graduate on geometry/difference alone.
+
+The admitted statement is intentionally narrower than “randomize objectives/items”:
+
+```text
+objective-bearing civilian / Research Core placement = proven outer Content Grammar axis
+current tested placements = no direct production Case admitted yet
+optional resource/item placement = still unproven
+placement mutation machinery = research-only, not product architecture
+```
+
+No current treatment is promoted into the stable Case catalog. The axis remains available as high-potential outer content while the hard core and two existing Cases stay unchanged.
+
+G4 does not authorize a mission factory. G5 now has one bounded second Case plus **three** independently proven outer axes—topology/choke, enemy directive doctrine, and objective-bearing placement. Broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
 
 ---
 
