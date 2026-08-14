@@ -107,7 +107,7 @@ Situation
 - Commander Ability use;
 - objectives and priority targets;
 - protection and retreat rules;
-- lethal-force, collateral, and loot policies;
+- exact Order fields for lethal-force, collateral, and loot policy. G4 product-value work currently surfaces lethal-force to the player, retains loot internally at `mission-only`, and does not surface collateral because the current World has no collateral-damage semantic;
 - the decision to commit or extract.
 
 ### Agents own

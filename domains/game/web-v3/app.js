@@ -32,7 +32,6 @@ const ORDER_FIELDS = [
   "formation",
   "commanderDirectiveId",
   "lethalForce",
-  "lootPolicy",
   "retreatHealthThreshold",
   "protectedActorId",
 ];
@@ -43,7 +42,6 @@ const DESCRIPTION_CATALOG = {
   formation: ["formations", "formation"],
   commanderDirectiveId: ["commanderDirectives", "directiveId"],
   lethalForce: ["lethalForce", "value"],
-  lootPolicy: ["lootPolicies", "value"],
 };
 
 const CONTROL_LABELS = {
@@ -52,7 +50,6 @@ const CONTROL_LABELS = {
   formation: "Formation",
   commanderDirectiveId: "Remote capability",
   lethalForce: "Lethal force",
-  lootPolicy: "Loot policy",
   retreatHealthThreshold: "Retreat threshold",
   protectedActorId: "Protected specialist",
 };
@@ -154,7 +151,7 @@ function collectOrder() {
     formation: data.get("formation"),
     commanderDirectiveId: data.get("commanderDirectiveId"),
     lethalForce: data.get("lethalForce"),
-    lootPolicy: data.get("lootPolicy"),
+    lootPolicy: model.view?.experience?.order?.lootPolicy ?? "mission-only",
     retreatHealthThreshold: Number(data.get("retreatHealthThreshold")),
     protectedActorId: data.get("protectedActorId") || null,
   };
@@ -174,6 +171,16 @@ function catalogEntry(field, value) {
 }
 
 function guidanceFor(field, value) {
+  if (field === "commanderDirectiveId" && value === "reroute-cooling") {
+    const cooling = model.view?.known?.systems?.find((system) => system.systemId === "cooling");
+    if (!cooling) return "Power Cooling during committed resolution. Effective cooling requires at least 60% integrity; current condition is not yet observed.";
+    const integrity = Math.round(cooling.observedIntegrity * 100);
+    const age = model.view.run.turn - cooling.observedAtTurn;
+    const freshness = age === 0 ? "observed this Turn" : `last observed ${age} Turn${age === 1 ? "" : "s"} ago`;
+    return cooling.observedIntegrity < 0.6
+      ? `Cooling was ${integrity}% integrity and ${cooling.observedPowered ? "powered" : "unpowered"} when ${freshness}. Power alone will not reduce heat until a local repair raises integrity to 60%.`
+      : `Cooling was ${integrity}% integrity and ${cooling.observedPowered ? "powered" : "unpowered"} when ${freshness}. Power can make it operational if that observed condition still holds.`;
+  }
   const entry = catalogEntry(field, value);
   if (entry?.description) return entry.description;
   if (field === "retreatHealthThreshold") {
@@ -198,10 +205,9 @@ function refreshContingencySummary(order) {
   const target = document.querySelector("[data-contingency-summary]");
   if (!target || !order) return;
   const lethal = catalogEntry("lethalForce", order.lethalForce)?.label ?? order.lethalForce;
-  const loot = catalogEntry("lootPolicy", order.lootPolicy)?.label ?? order.lootPolicy;
   const protectedActor = model.view?.ownActors?.find((actor) => actor.actorId === order.protectedActorId);
   const protectedLabel = protectedActor ? `protect ${protectedActor.actorName ?? protectedActor.name}` : "no protection priority";
-  target.textContent = `${lethal} · retreat ≤ ${Math.round(order.retreatHealthThreshold * 100)}% · ${loot} · ${protectedLabel}`;
+  target.textContent = `${lethal} · retreat ≤ ${Math.round(order.retreatHealthThreshold * 100)}% · ${protectedLabel}`;
 }
 
 function syncOrderDirtyState() {

@@ -28,10 +28,13 @@ async function fixtureChoice(
 
 test("Commander catalog explains every surfaced option and defaults protection to explicit opt-in", () => {
   const catalog = createStationZeroV3PlayCatalog();
-  for (const collection of [catalog.objectives, catalog.postures, catalog.formations, catalog.commanderDirectives, catalog.lethalForce, catalog.lootPolicies]) {
+  for (const collection of [catalog.objectives, catalog.postures, catalog.formations, catalog.commanderDirectives, catalog.lethalForce]) {
     assert.ok(collection.length > 0);
     assert.ok(collection.every((entry) => typeof entry.description === "string" && entry.description.trim().length > 0));
   }
+  assert.equal("lootPolicies" in catalog, false, "non-leveraged loot configuration must not consume player-facing catalog bandwidth");
+  assert.match(catalog.commanderDirectives.find((entry) => entry.directiveId === "reroute-cooling")?.description ?? "", /60% Cooling integrity/);
+  assert.match(catalog.commanderDirectives.find((entry) => entry.directiveId === "scan-reactor")?.description ?? "", /next Planning Head/);
 
   const store = new StationZeroV3Store(":memory:");
   try {
@@ -44,7 +47,7 @@ test("Commander catalog explains every surfaced option and defaults protection t
   }
 });
 
-test("situational retreat and loot controls change fixture decisions only when their opportunity exists", async () => {
+test("internal retreat and loot policies retain deterministic semantics even when loot is not player-surfaced", async () => {
   const store = new StationZeroV3Store(":memory:");
   try {
     const play = new StationZeroV3PlayService(store);

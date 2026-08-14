@@ -40,11 +40,13 @@ Station Zero v3 is the accepted **unregistered replacement target** for the curr
 Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 World schema: 3
-Development stage: G4 admitted — Vertical Slice
+Development stage: G5 admitted — bounded Production
 Registered replacement: not yet approved
 ```
 
 This document owns the stable human-facing definition of the v3 target. It does not register v3 and does not replace the exact contracts in P0–P3.
+
+Comparative product-value research and G4-V experiment evidence are owned by `STATION_ZERO_V3_PRODUCT_VALUE.md`; that document may narrow the surfaced controls or identify production gaps without redefining World authority.
 
 The registered root product remains `station-zero@2 / station-zero-core@3` until a later explicit replacement decision.
 
@@ -78,7 +80,7 @@ The player should feel responsible for:
 - information acquisition;
 - posture and formation;
 - protection and retreat policy;
-- lethal/collateral/loot policy;
+- lethal-force policy, retreat threshold, and an explicit protected-specialist contingency;
 - known priority targets;
 - scarce Commander abilities;
 - whether the current simultaneous Turn is worth committing;
@@ -452,7 +454,7 @@ G3 completion does **not** approve v3 registration or deletion of v2.
 
 ## G4 Vertical Slice objective
 
-G4 must answer two product questions with one representative slice:
+G4 answered two product questions with one representative slice:
 
 ```text
 Is this final-ish form worth playing?

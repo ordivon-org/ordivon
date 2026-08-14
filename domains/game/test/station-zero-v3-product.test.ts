@@ -10,7 +10,7 @@ const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url
 
 test("stable v3 product target owns human-facing G4 identity without registering v3", () => {
   assert.match(product, /^id: game\.product\.station-zero-v3$/m);
-  assert.match(product, /Development stage: G4 admitted — Vertical Slice/);
+  assert.match(product, /Development stage: G5 admitted — bounded Production/);
   assert.match(product, /Delegated Agentic Tactical Command/);
   assert.match(product, /## Conventional Form Profile/);
   assert.match(product, /## Agent Participation Profile/);
@@ -27,6 +27,6 @@ test("repository navigation and authority route v3 product identity through the 
   for (const source of [readme, authority, agents, project]) assert.match(source, /STATION_ZERO_V3_PRODUCT\.md/);
   assert.match(authority, /owns the stable human-facing definition/);
   assert.match(authority, /P0\/P1\/P2\/P3 remain canonical for their exact owner-local contracts/);
-  assert.match(readme, /Current development stage: G4 Vertical Slice admitted/);
+  assert.match(readme, /Current development stage: G5 bounded Production admitted/);
   assert.match(readme, /Encounter budget: 20 Turns/);
 });

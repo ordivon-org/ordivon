@@ -117,6 +117,17 @@ export function createStationZeroV3MissionControlView(
       roomIds: [...knowledge.discoveredRoomIds].sort(),
       zoneIds: [...knowledge.discoveredZoneIds].sort(),
       systemIds: [...knowledge.knownSystemIds].sort(),
+      systems: [...knowledge.knownSystemIds].sort().map((systemId) => {
+        const observed = knowledge.knownSystems[systemId];
+        if (!observed) throw new Error(`Missing observed System state ${systemId}`);
+        return {
+          systemId,
+          name: state.systems[systemId]?.name ?? systemId,
+          observedIntegrity: observed.observedIntegrity,
+          observedPowered: observed.observedPowered,
+          observedAtTurn: observed.observedAtTurn,
+        };
+      }),
       hazardIds: [...knowledge.knownHazardIds].sort(),
       groundItemIds: [...knowledge.knownGroundItemIds]
         .filter((groundItemId) => state.groundItems[groundItemId] !== undefined)

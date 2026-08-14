@@ -79,8 +79,8 @@ The explicit decision boundary is the complete simultaneous Turn.
 - cohesive or split formation;
 - retreat threshold;
 - lethal-force policy;
-- collateral policy;
-- loot policy;
+- internal collateral policy field (not surfaced in the current G4 browser because the current encounter has no collateral-damage semantic);
+- internal loot policy field (current G4 browser fixes this to `mission-only` after 46 relevant pickup opportunities produced zero player-decision leverage);
 - protected specialist;
 - a known priority target;
 - one remote Commander directive;

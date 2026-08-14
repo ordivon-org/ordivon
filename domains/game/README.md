@@ -39,7 +39,7 @@ Ordivon Game currently ships one executable world: **Station Zero**, a determini
 
 ## Current boundary
 
-The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, durable execution, planning layer, dedicated API, and separate `/v3` first-playable are implemented as an accepted replacement target, but v3 remains unregistered and does not replace the root product. Replacement is deferred until repeated human playtesting and live-Provider evaluation justify deleting the v2 approval loop.
+The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, durable execution, planning layer, dedicated API, and separate `/v3` product are implemented as an accepted replacement target and have exited G4 into bounded G5 Production, but v3 remains unregistered and does not replace the root product. Root replacement is a later explicit decision requiring production-stage evidence and a direct v2↔v3 product comparison before deleting the v2 approval loop.
 
 ## Start here
 
@@ -47,8 +47,9 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
 - [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
-- [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G4-admitted product form, G3 strategic/live-Agent evidence, production profile, and replacement boundary.
-- [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the active G4 production slice, accepted machine-production evidence, and the remaining human perceptual gate before G5.
+- [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G5-admitted product form, G3/G4 evidence, production profile, and replacement boundary.
+- [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the accepted G4 Vertical Slice, production/calibration evidence, and G4 exit judgment.
+- [`docs/STATION_ZERO_V3_PRODUCT_VALUE.md`](docs/STATION_ZERO_V3_PRODUCT_VALUE.md) owns G4 comparative product-design research, control/information/pressure/identity experiments, and Content Grammar v0.
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the exact encounter, reducer, durable execution, and planning/browser contracts beneath that target.
 - [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
@@ -126,12 +127,12 @@ P1: reducer and pure replay complete
 P2: durable Turn authority and recovery complete
 P3: isolated playable planning layer and /v3 browser complete
 G3: strategic viability, plurality, and bounded live-Agent realization accepted
-Current development stage: G4 Vertical Slice admitted
+Current development stage: G5 bounded Production admitted
 Encounter budget: 20 Turns
 Optional exact Agent Action admission: implemented in the unregistered v3 path
 ```
 
-The v3 preview is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. Replacement is deferred until repeated human playtesting and live-Provider evaluation justify deleting the v2 approval loop.
+The v3 product is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. G5 Production may expand only the proven Content Grammar; root replacement remains a separate later product decision.
 
 ## Run
 

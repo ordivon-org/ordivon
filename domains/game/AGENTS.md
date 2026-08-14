@@ -125,6 +125,7 @@ A meaningful change should state:
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
 - `docs/STATION_ZERO_V3_PRODUCT.md` defines the stable unregistered v3 product target, current G-stage, G3 evidence, production profile, and replacement boundary.
 - `docs/STATION_ZERO_V3_VERTICAL_SLICE.md` defines the active G4 production slice, accepted machine-production evidence, and the residual perceptual gate that blocks G5.
+- `docs/STATION_ZERO_V3_PRODUCT_VALUE.md` defines G4 comparative product-value evidence, proven/dead control surface, pressure/information findings, and Content Grammar v0; read it before adding player controls or producing a second encounter.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
 - `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.

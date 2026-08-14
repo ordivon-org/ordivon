@@ -350,6 +350,12 @@ test("Agent Context omits repair Candidates after the Actor exhausts Spare Parts
   if (!state.factionKnowledge.rescue.knownSystemIds.includes("cooling")) {
     state.factionKnowledge.rescue.knownSystemIds.push("cooling");
   }
+  state.factionKnowledge.rescue.knownSystems.cooling = {
+    systemId: "cooling",
+    observedIntegrity: state.systems.cooling!.integrity,
+    observedPowered: state.systems.cooling!.powered,
+    observedAtTurn: state.encounter.turn,
+  };
   const planning = planningFor(state);
 
   const withParts = compileStationZeroV3AgentContext(state, planning, engineer.actorId, null);

@@ -453,7 +453,6 @@ export interface StationZeroV3PlayCatalog {
   formations: Array<{ formation: StationZeroV3Formation; label: string; description: string }>;
   commanderDirectives: Array<{ directiveId: StationZeroV3CommanderDirectiveId; label: string; description: string }>;
   lethalForce: Array<{ value: StationZeroV3CommanderOrder["lethalForce"]; label: string; description: string }>;
-  lootPolicies: Array<{ value: StationZeroV3CommanderOrder["lootPolicy"]; label: string; description: string }>;
 }
 
 export interface StationZeroV3PlayRunSummary {

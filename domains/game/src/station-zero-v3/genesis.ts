@@ -197,6 +197,7 @@ function knowledge(
     discoveredZoneIds: [...discoveredZoneIds],
     knownActors,
     knownSystemIds: [...knownSystemIds],
+    knownSystems: {},
     knownHazardIds: [...knownHazardIds],
     knownGroundItemIds: [...knownGroundItemIds],
     reportIds: [...reportIds],
@@ -543,6 +544,19 @@ export function createStationZeroV3Genesis(seed = "station-zero-v3-fixed-encount
       activePlanRevision: 0,
     },
   };
+  for (const factionId of STATION_ZERO_FACTION_IDS) {
+    const knowledgeState = state.factionKnowledge[factionId];
+    for (const systemId of knowledgeState.knownSystemIds) {
+      const system = state.systems[systemId];
+      if (!system) continue;
+      knowledgeState.knownSystems[systemId] = {
+        systemId,
+        observedIntegrity: system.integrity,
+        observedPowered: system.powered,
+        observedAtTurn: 0,
+      };
+    }
+  }
   assertStationZeroV3World(state);
   return state;
 }
@@ -659,6 +673,12 @@ export function assertStationZeroV3World(state: StationZeroV3WorldState): void {
     for (const zoneId of factionKnowledge.discoveredZoneIds) if (!state.zones[zoneId]) throw new TypeError(`Faction ${factionId} knows invalid Zone ${zoneId}`);
     for (const [actorId, known] of Object.entries(factionKnowledge.knownActors)) {
       if (!state.actors[actorId] || !state.zones[known.lastKnownZoneId]) throw new TypeError(`Faction ${factionId} knows invalid Actor state ${actorId}`);
+    }
+    for (const systemId of factionKnowledge.knownSystemIds) {
+      const observed = factionKnowledge.knownSystems[systemId];
+      if (!state.systems[systemId] || !observed || observed.systemId !== systemId) throw new TypeError(`Faction ${factionId} lacks observed System state ${systemId}`);
+      assertBounded(observed.observedIntegrity, `Faction ${factionId} observed system integrity`, 0, 1);
+      if (!Number.isSafeInteger(observed.observedAtTurn) || observed.observedAtTurn < 0) throw new TypeError(`Faction ${factionId} observed System turn is invalid`);
     }
   }
 

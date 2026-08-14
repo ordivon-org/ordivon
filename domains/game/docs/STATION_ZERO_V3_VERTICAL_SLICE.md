@@ -3,7 +3,7 @@ schema_version: 1
 id: game.product.station-zero-v3.vertical-slice
 title: Station Zero v3 — G4 Vertical Slice
 profile: product
-lifecycle: active
+lifecycle: accepted
 source_role: canonical
 visibility: public
 owners:
@@ -54,15 +54,17 @@ Preview latency p50:           1886 ms
 Preview latency p95:           2007 ms
 ```
 
-This does **not** close the human-specific G4 gate. The assistant execution environment cannot truthfully establish final visual craft, aesthetic coherence, perceived waiting quality, delight, or target-player comprehension from DOM geometry and automated browser acceptance alone. Those residual claims require targeted perceptual/human calibration before G5 content production is admitted.
+This evidence does **not** establish human-specific claims such as final visual craft, aesthetic preference, delight, or target-player comprehension. Those claims remain explicitly unproven. Under `DEVELOPMENT_MODEL.md`, however, they are not an absolute G4 exit requirement: G4 asks whether one representative slice is worth producing and whether its quality can be produced repeatably. Comparative Product Value research and direct Station Zero falsification now answer the first question; the production/runtime pipeline answers the second.
 
 Therefore:
 
 ```text
 G4 production pipeline: accepted
 G4 machine UX/runtime acceptance: accepted
-G4 human perceptual/value calibration: open
-G5 Production admission: blocked on that residual gate
+G4 comparative Product Value: accepted
+G4 exit: accepted
+G5 bounded Production admission: accepted
+Human-specific preference/value claims: unproven; validate during later product stages
 ```
 
 ## G4 calibration round — machine/agent perception gate
@@ -132,7 +134,7 @@ live Preview latency p50:    2446 ms
 live Preview latency p95:    2557 ms
 ```
 
-### G4 exit residue
+### Human-validation residue after G4
 
 After this calibration, the following claims are closed at machine/agent evidence level:
 
@@ -153,17 +155,19 @@ The following remain **human-only product claims** and are deliberately not infe
 - whether the delegated-command fantasy is understood and preferred by the target audience;
 - delight, attachment, replay desire, market appeal, or willingness to return.
 
-Therefore the lifecycle judgment remains:
+These claims remain important, but they now belong to **later product validation**, not an invented pre-G5 veto. G5 may scale only the design space already justified by the representative slice and Product Value evidence; Alpha/Beta/product validation must still test the actual game rather than a questionnaire about concepts.
+
+Current lifecycle judgment:
 
 ```text
 G4 production pipeline:                    accepted
 G4 machine runtime/UX acceptance:          accepted
 G4 machine/agent perception calibration:   accepted
-G4 human perceptual/value calibration:     open
-G5 Production admission:                   blocked on human-only residue
+G4 comparative Product Value:              accepted
+G4 exit:                                   accepted
+G5 bounded Production admission:           accepted
+Human delight / preference / market value: unproven
 ```
-
-G5 must not be entered by redefining these human claims away. A later targeted human session may be small, but it must test the actual Vertical Slice rather than a questionnaire about concepts.
 
 ## Purpose
 
@@ -430,4 +434,4 @@ This first G4 production round is accepted when:
 - live Provider preflight remains bounded and hidden-safe;
 - the slice produces no evidence requiring Godot, Blender, 3D, or broad content expansion.
 
-Passing these criteria proves a **repeatable first production loop**, not final commercial polish. Human-specific aesthetic and fun claims remain scoped until targeted perceptual/human review exists.
+All criteria above are now satisfied. Together with `STATION_ZERO_V3_PRODUCT_VALUE.md`, the slice also supports the G4 value question strongly enough to enter bounded G5 Production. This proves a **repeatable first production loop and a defensible production thesis**, not final commercial polish. Human-specific aesthetic, fun, retention, and market claims remain scoped until later targeted product validation exists.

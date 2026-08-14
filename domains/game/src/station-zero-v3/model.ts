@@ -248,12 +248,20 @@ export interface StationZeroKnownActorState {
   confidence: StationZeroKnowledgeConfidence;
 }
 
+export interface StationZeroKnownSystemState {
+  systemId: string;
+  observedIntegrity: number;
+  observedPowered: boolean;
+  observedAtTurn: number;
+}
+
 export interface StationZeroFactionKnowledgeState {
   factionId: StationZeroFactionId;
   discoveredRoomIds: string[];
   discoveredZoneIds: string[];
   knownActors: Record<string, StationZeroKnownActorState>;
   knownSystemIds: string[];
+  knownSystems: Record<string, StationZeroKnownSystemState>;
   knownHazardIds: string[];
   knownGroundItemIds: string[];
   reportIds: string[];
@@ -452,6 +460,7 @@ export interface StationZeroFactionObservation {
   discoveredZoneIds: string[];
   knownActorIds: string[];
   knownSystemIds: string[];
+  knownSystems: StationZeroKnownSystemState[];
   knownHazardIds: string[];
   knownGroundItemIds: string[];
   observationDigest: string;

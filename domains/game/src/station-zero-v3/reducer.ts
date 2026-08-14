@@ -331,7 +331,14 @@ function revealZone(context: MutableContext, factionId: StationZeroFactionId, zo
   for (const system of Object.values(context.state.systems)
     .filter((entry) => entry.zoneId === zoneId)
     .sort((left, right) => left.systemId.localeCompare(right.systemId))) {
-    if (addUnique(knowledge.knownSystemIds, system.systemId)) {
+    const systemIsNew = addUnique(knowledge.knownSystemIds, system.systemId);
+    knowledge.knownSystems[system.systemId] = {
+      systemId: system.systemId,
+      observedIntegrity: system.integrity,
+      observedPowered: system.powered,
+      observedAtTurn: context.state.encounter.turn,
+    };
+    if (systemIsNew) {
       emitFact(context, { kind: "knowledge_revealed", factionId, subjectId: system.systemId, subjectKind: "system" });
     }
   }
@@ -1321,6 +1328,17 @@ function refreshCooldownsAndBudgets(state: StationZeroV3WorldState): void {
 function refreshFactionKnowledge(context: MutableContext): void {
   for (const factionId of STATION_ZERO_FACTION_IDS) {
     const knowledge = context.state.factionKnowledge[factionId];
+    for (const fact of context.facts.filter((entry) => entry.kind === "system_changed")) {
+      if (fact.kind !== "system_changed" || !knowledge.knownSystemIds.includes(fact.systemId)) continue;
+      const system = context.state.systems[fact.systemId];
+      if (!system) continue;
+      knowledge.knownSystems[fact.systemId] = {
+        systemId: fact.systemId,
+        observedIntegrity: system.integrity,
+        observedPowered: system.powered,
+        observedAtTurn: context.state.encounter.turn,
+      };
+    }
     for (const actor of Object.values(context.state.actors)
       .filter((entry) => entry.factionId === factionId)
       .sort((left, right) => left.actorId.localeCompare(right.actorId))) {
@@ -1393,6 +1411,7 @@ function buildObservations(context: MutableContext): Record<StationZeroFactionId
       discoveredZoneIds: [...knowledge.discoveredZoneIds].sort(),
       knownActorIds: Object.keys(knowledge.knownActors).sort(),
       knownSystemIds: [...knowledge.knownSystemIds].sort(),
+      knownSystems: [...knowledge.knownSystemIds].sort().map((systemId) => knowledge.knownSystems[systemId]).filter((entry) => entry !== undefined),
       knownHazardIds: [...knowledge.knownHazardIds].sort(),
       knownGroundItemIds: [...knowledge.knownGroundItemIds].filter((groundItemId) => context.state.groundItems[groundItemId] !== undefined).sort(),
     };

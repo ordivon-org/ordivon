@@ -226,6 +226,7 @@ export interface StationZeroV3MissionControlView {
     roomIds: string[];
     zoneIds: string[];
     systemIds: string[];
+    systems: Array<{ systemId: string; name: string; observedIntegrity: number; observedPowered: boolean; observedAtTurn: number }>;
     hazardIds: string[];
     groundItemIds: string[];
     reportIds: string[];

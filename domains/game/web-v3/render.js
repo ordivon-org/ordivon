@@ -89,12 +89,10 @@ function renderOrder(view, catalog) {
   const disabled = !view.experience.canEditOrder ? " disabled" : "";
   const selectedDescription = (items, key, value) => items.find((item) => item[key] === value)?.description ?? "";
   const lethal = catalog.lethalForce.find((item) => item.value === order.lethalForce);
-  const loot = catalog.lootPolicies.find((item) => item.value === order.lootPolicy);
   const protectedActor = view.ownActors.find((actor) => actor.actorId === order.protectedActorId);
   const contingencySummary = [
     lethal?.label ?? order.lethalForce,
     `retreat ≤ ${Math.round(order.retreatHealthThreshold * 100)}%`,
-    loot?.label ?? order.lootPolicy,
     protectedActor ? `protect ${protectedActor.actorName ?? protectedActor.name}` : "no protection priority",
   ].join(" · ");
   const initialGuidance = selectedDescription(catalog.objectives, "objectiveId", order.primaryObjectiveId);
@@ -121,7 +119,6 @@ function renderOrder(view, catalog) {
         <summary><span><b>Standing contingencies</b><small>Only matter when matching local opportunities arise.</small></span><em data-contingency-summary>${escapeHtml(contingencySummary)}</em></summary>
         <div class="order-grid contingency-grid">
           <label>Lethal force<select name="lethalForce"${disabled}>${catalog.lethalForce.map((item) => option(item.value, item.label, order.lethalForce)).join("")}</select></label>
-          <label>Loot policy<select name="lootPolicy"${disabled}>${catalog.lootPolicies.map((item) => option(item.value, item.label, order.lootPolicy)).join("")}</select></label>
           <label>Retreat below <output id="retreat-output">${Math.round(order.retreatHealthThreshold * 100)}%</output><input name="retreatHealthThreshold" type="range" min="0" max="0.8" step="0.05" value="${order.retreatHealthThreshold}"${disabled}></label>
           <label>Protected specialist<select name="protectedActorId"${disabled}><option value="">None</option>${view.ownActors.map((actor) => option(actor.actorId, actor.actorName ?? actor.name, order.protectedActorId)).join("")}</select></label>
         </div>
@@ -372,6 +369,11 @@ function renderTerminal(view) {
   </section>`;
 }
 
+function renderSystemEvidence(view) {
+  if (!view.known?.systems?.length) return "";
+  return `<section class="system-evidence" data-testid="system-evidence"><div class="section-heading"><div><p class="eyebrow">Observed systems</p><h2>Last known condition</h2></div><span>bounded evidence</span></div><div class="system-evidence-list">${view.known.systems.map((system) => `<article data-system-id="${escapeHtml(system.systemId)}"><strong>${escapeHtml(system.name)}</strong><span>${Math.round(system.observedIntegrity * 100)}% integrity · ${system.observedPowered ? "powered" : "unpowered"}</span><small>Last confirmed Turn ${escapeHtml(system.observedAtTurn)} · known-system telemetry updates on visible system changes</small></article>`).join("")}</div></section>`;
+}
+
 function renderBusyState(busy, view) {
   if (!busy) return "";
   if (busy.kind === "deliberation" && view) {
@@ -410,6 +412,7 @@ function renderMission(view, catalog, expressionTurnSequence = null, audioMuted 
       ${metric("Reactor heat", view.resources.reactorHeat, 100, 85)}
       ${metric("Alert", view.resources.alertLevel, 5, 4)}
     </section>
+    ${renderSystemEvidence(view)}
     ${renderTerminal(view)}
     ${renderAftermath(view, expressionTurnSequence)}
     ${renderFirstCommand(view)}

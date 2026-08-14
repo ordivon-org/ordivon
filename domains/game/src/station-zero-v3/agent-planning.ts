@@ -1255,10 +1255,10 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
     ],
     commanderDirectives: [
       { directiveId: "hold-command", label: "Hold remote capability", description: "Spend no Commander Ability this Turn." },
-      { directiveId: "scan-reactor", label: "Scan Reactor", description: "Reveal the Reactor Console sector." },
-      { directiveId: "scan-maintenance", label: "Scan Maintenance", description: "Reveal the Maintenance Entry sector." },
-      { directiveId: "scan-life-support", label: "Scan Life Support", description: "Reveal the Life Support Console sector." },
-      { directiveId: "reroute-cooling", label: "Power Cooling", description: "Remotely power the Cooling system if available." },
+      { directiveId: "scan-reactor", label: "Scan Reactor", description: "Reveal the Reactor Console during committed resolution; the new evidence informs the next Planning Head." },
+      { directiveId: "scan-maintenance", label: "Scan Maintenance", description: "Reveal Maintenance Entry during committed resolution; the new evidence informs the next Planning Head." },
+      { directiveId: "scan-life-support", label: "Scan Life Support", description: "Reveal the Life Support Console during committed resolution; the new evidence informs the next Planning Head." },
+      { directiveId: "reroute-cooling", label: "Power Cooling", description: "Power the Cooling system. Heat reduction requires at least 60% Cooling integrity; damaged Cooling must be repaired locally." },
       { directiveId: "lock-maintenance", label: "Lock Maintenance route", description: "Close the Storage–Maintenance bulkhead." },
       { directiveId: "emergency-uplink", label: "Emergency Uplink", description: "Share the current local visibility envelope across Rescue." },
       { directiveId: "call-extraction", label: "Call extraction", description: "Mark the Rescue Airlock as an extraction Zone." },
@@ -1267,11 +1267,6 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
       { value: "forbidden", label: "Avoid lethal force", description: "Strongly suppress attack choices even when a legal target is available." },
       { value: "permitted", label: "Lethal force permitted", description: "Allow legal attacks to compete with movement, guard, rescue, and system work." },
       { value: "preferred", label: "Lethal force preferred", description: "Bias specialists toward legal attacks when mission and survival constraints permit." },
-    ],
-    lootPolicies: [
-      { value: "ignore", label: "Ignore loot", description: "Prefer mission progress over non-essential pickups." },
-      { value: "mission-only", label: "Mission items only", description: "Recover items when they directly support the selected mission objective." },
-      { value: "opportunistic", label: "Opportunistic recovery", description: "Allow useful local pickups to compete when they do not block stronger priorities." },
     ],
   };
 }

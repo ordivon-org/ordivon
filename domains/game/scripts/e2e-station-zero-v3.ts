@@ -114,11 +114,11 @@ try {
   await page.locator('[name="posture"]').selectOption("aggressive");
   await page.locator('[name="formation"]').selectOption("cohesive");
   await page.locator('[name="commanderDirectiveId"]').selectOption("scan-reactor");
+  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /next Planning Head/);
   await page.getByTestId("order-contingencies").locator("summary").click();
-  await page.locator('[name="lootPolicy"]').selectOption("opportunistic");
-  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /Allow useful local pickups/);
+  assert.equal(await page.locator('[name="lootPolicy"]').count(), 0, "Product Value audit removed non-leveraged Loot policy from the player surface");
+  assert.doesNotMatch(await page.getByTestId("order-contingencies").textContent() ?? "", /Loot policy/);
   await page.getByTestId("order-contingencies").locator("summary").click();
-  assert.equal(await page.locator('[name="lootPolicy"]').isVisible(), false);
 
   let delayedPreview = false;
   await page.route("**/api/station-zero-v3/preview?**", async (route) => {
@@ -146,7 +146,7 @@ try {
   assert.equal(retainedAfterGenerate.experience.order.primaryObjectiveId, "recover-research-core");
   assert.equal(retainedAfterGenerate.experience.order.posture, "aggressive");
   assert.equal(retainedAfterGenerate.experience.order.formation, "cohesive");
-  assert.equal(retainedAfterGenerate.experience.order.lootPolicy, "opportunistic");
+  assert.equal(retainedAfterGenerate.experience.order.lootPolicy, "mission-only");
   assert.equal(retainedAfterGenerate.experience.order.commanderDirectiveId, "scan-reactor");
   const previewText = await page.getByTestId("plan-preview").textContent();
   assert.ok(previewText?.includes("Rescue plan preview"));
@@ -176,8 +176,15 @@ try {
   assert.equal(await page.locator('[name="primaryObjectiveId"]').inputValue(), "recover-research-core");
   assert.equal(await page.locator('[name="posture"]').inputValue(), "aggressive");
   assert.equal(await page.locator('[name="formation"]').inputValue(), "cohesive");
-  assert.equal(await page.locator('[name="lootPolicy"]').inputValue(), "opportunistic");
+  assert.equal(await page.locator('[name="lootPolicy"]').count(), 0);
   assert.equal(await page.locator('[name="commanderDirectiveId"]').inputValue(), "reroute-cooling", "Turn-local Remote capability should be recalculated from the new World state");
+  const coolingEvidence = page.locator('[data-testid="system-evidence"] [data-system-id="cooling"]');
+  assert.equal(await coolingEvidence.count(), 1, "Reactor observation must expose bounded Cooling condition on the next Planning Head");
+  assert.match(await coolingEvidence.textContent() ?? "", /58% integrity · unpowered/);
+  assert.match(await coolingEvidence.textContent() ?? "", /Last confirmed Turn 0/);
+  await page.locator('[name="commanderDirectiveId"]').selectOption("reroute-cooling");
+  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /last observed 1 Turn ago/);
+  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /Power alone will not reduce heat until a local repair raises integrity to 60%/);
   assert.equal((await page.locator('.revision').textContent())?.trim(), "Revision 1");
   await page.getByTestId("temporal-expression-strip").waitFor();
   assert.equal(await page.getByTestId("plan-review").count(), 1);

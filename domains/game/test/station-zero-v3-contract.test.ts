@@ -76,6 +76,23 @@ test("content catalogs are closed, referenced, deterministic, and faction-distin
   }
 });
 
+test("system knowledge retains last-observed condition instead of exposing omniscient current state", () => {
+  const state = createStationZeroV3Genesis();
+  assert.deepEqual(state.factionKnowledge.rescue.knownSystems["power-grid"], {
+    systemId: "power-grid",
+    observedIntegrity: 0.72,
+    observedPowered: true,
+    observedAtTurn: 0,
+  });
+  assert.equal(state.factionKnowledge.rescue.knownSystems.cooling, undefined);
+  assert.deepEqual(state.factionKnowledge.pirate.knownSystems.cooling, {
+    systemId: "cooling",
+    observedIntegrity: 0.58,
+    observedPowered: false,
+    observedAtTurn: 0,
+  });
+});
+
 test("fixed Genesis contains the complete three-faction tactical problem and limited information", () => {
   const state = createStationZeroV3Genesis();
   assert.doesNotThrow(() => assertStationZeroV3World(state));
