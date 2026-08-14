@@ -483,7 +483,6 @@ export interface StationZeroV3CommitReceipt {
   previewId: string;
   turnSequence: number;
   worldRevision: number;
-  hostState: string;
   nextPlanningId: string | null;
 }
 

@@ -96,7 +96,7 @@ export class StationZeroV3PlayService {
 
   state(runId: string): StationZeroV3PlayView {
     this.store.getRun(runId);
-    return createStationZeroV3PlayView(this.store, this.turns, this.planning, runId);
+    return createStationZeroV3PlayView(this.store, this.planning, runId);
   }
 
   saveOrder(runId: string, patch: StationZeroV3CommanderOrderPatch): StationZeroV3OrderSaveReceipt & { view: StationZeroV3PlayView } {
@@ -224,7 +224,6 @@ export class StationZeroV3PlayService {
       previewId: preview.previewId,
       turnSequence: execution.observation.turnSequence,
       worldRevision: state.revision,
-      hostState: execution.host.state,
       nextPlanningId,
       view: this.state(runId),
     };

@@ -108,7 +108,6 @@ test("v3 preview API is isolated from the current executable and supports one ex
       body: JSON.stringify({ previewId: generated.previewId }),
     }));
     assert.equal(committed.worldRevision, 1);
-    assert.equal(committed.hostState, "completed");
     assert.equal(committed.view.run.turn, 1);
     assert.ok(committed.view.aftermath.visibleFacts.length > 0);
     assert.equal(game.v3Store.turnCount(runId), 1);

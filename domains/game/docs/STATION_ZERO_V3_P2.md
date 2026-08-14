@@ -15,7 +15,7 @@ audience:
   - operator
   - agent
 updated: 2026-08-14
-summary: Accepted target architecture for unregistered Station Zero v3 durable Planning, atomic Turn commit, embedded Host execution, recovery, verification, replay, and bounded Mission Control projection.
+summary: Accepted target architecture for unregistered Station Zero v3 durable Planning, atomic Game-owned Turn commit, exact receipt recovery, verification, replay, and bounded Mission Control projection.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -29,27 +29,27 @@ related:
 
 ## Purpose
 
-Turn the pure v3 reducer into a durable, restart-safe execution path without allowing Planning, Host projections, Runtime-like receipts, or Mission Control views to become alternate World authorities.
+Turn the pure v3 reducer into a durable, restart-safe execution path without allowing Planning, execution receipts, or Mission Control views to become alternate World authorities.
 
 ## Boundaries
 
-The v3 domain owns World state, Plans, Turn Batch construction, reducer semantics, World Events, and Turn Records. SQLite owns retained rows and atomic commit. The embedded Host owns Task, Effect, Dispatch, Observation, Verification, and Outcome continuity. Providers do not own plans, world state, or completion.
+The v3 domain owns World state, Plans, Turn Batch construction, reducer semantics, World Events, Turn Records, exact execution receipt identity, and recovery. SQLite owns retained rows and atomic commit. Providers do not own plans, world state, retry authority, or completion.
 
 ## Components
 
-The architecture contains the v3 Store, Planning Head, faction Plan records, canonical Turn Batch, deterministic executor, embedded Host authority, World Event and Turn Record streams, recovery and historical verification, and a bounded Mission Control projection.
+The architecture contains the v3 Store, Planning Head, faction Plan records, canonical Turn Batch, deterministic executor, World Event and Turn Record streams, exact receipt observation, recovery and historical verification, and a bounded Mission Control projection.
 
 ## Data flow
 
-Genesis creates the retained Run; one Planning Head binds the current World revision; faction Plans are submitted and committed into one canonical Turn Batch; Host prepares and dispatches the deterministic executor; SQLite atomically commits the next World revision and evidence; Host reconciles the retained receipt and admits verification; Mission Control projects current progress.
+Genesis creates the retained Run; one Planning Head binds the current World revision; faction Plans are submitted and committed into one canonical Turn Batch; the deterministic executor delivers that exact Batch; SQLite atomically commits the next World revision and evidence; later callers observe the retained Turn receipt and deterministic replay before another Planning Head opens; Mission Control projects current progress.
 
 ## Failure modes
 
-The path fails closed on stale or divergent World heads, incomplete faction Plans, mismatched commitment digests, ambiguous or repeated Batch identity, response loss without retained receipt, Host incompleteness after World commit, broken event chains, corruption, and any attempt to redispatch after an already committed Turn.
+The path fails closed on stale or divergent World heads, incomplete faction Plans, mismatched commitment digests, ambiguous or repeated Batch identity, a resolved Planning without retained Turn evidence, broken Event/Record chains, corruption, and any attempt to create a second consequence for an already committed Turn.
 
 ## Verification
 
-Verification rebuilds history from Genesis, checks every Planning Head, submitted Plan, Batch, World Event, Turn Record, digest chain, reducer output, and Host lifecycle relationship, and confirms that bounded projections are reconstructable. The encounter contract is [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md), the reducer contract is [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md), and registration and first-playable browser evidence remain deferred to the next product stage.
+Verification rebuilds history from Genesis, checks every Planning Head, submitted Plan, Batch, World Event, Turn Record, digest chain and reducer output, and confirms that bounded projections are reconstructable. The encounter contract is [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P0.md), the reducer contract is [`STATION_ZERO_V3_P1.md`](STATION_ZERO_V3_P1.md), and the current playable planning layer is defined by P3.
 
 ## Status
 
@@ -61,7 +61,7 @@ Target Ruleset: station-zero-core@4
 World schema: 3
 Reducer: complete
 SQLite Turn persistence: complete
-Embedded Host lifecycle: complete
+Game-owned Turn receipt/recovery: complete
 Crash recovery and replay: complete
 Bounded Mission Control projection: complete
 P3 planning and /v3 first-playable: complete
@@ -85,15 +85,13 @@ P2 preserves the existing ownership boundary rather than creating another generi
 - faction Knowledge and bounded player projection;
 - replay and recovery from domain evidence.
 
-### Embedded Host owns
+### Game-owned execution evidence owns
 
-- Task identity;
-- Effect and executor request artifacts;
-- Dispatch identity and idempotency key;
-- Observation;
-- Verification Receipt;
-- Task Outcome;
-- Host Journal integrity.
+- exact Planning and Turn Batch identity;
+- one authoritative World Event and Turn Record per committed Batch;
+- idempotent receipt observation after response loss;
+- deterministic replay and historical verification;
+- next-Planning admission only after exact prior consequence evidence exists.
 
 ### Providers do not own
 
@@ -114,11 +112,9 @@ open Planning Head
 → submit Pirate Plan
 → submit Swarm Plan
 → freeze canonical Turn Batch
-→ prepare one Host Task / Effect / Dispatch
-→ deliver the original Batch to the World executor
+→ deliver that exact Batch to the deterministic World executor
 → atomically retain World Event + Turn Record + World Head
-→ observe the retained World result
-→ retain Host Observation + Verification + Outcome
+→ observe/replay the retained result by original Batch identity
 → permit the next Planning Head
 ```
 
@@ -131,12 +127,10 @@ All identities derive from the Run and source World revision.
 ```text
 planning:station-zero-v3:<run>:r<revision>
 turn-batch:station-zero-v3:<run>:r<revision>
-task:station-zero-v3:<run>:r<revision>
-effect:station-zero-v3:<run>:r<revision>
-dispatch:station-zero-v3:<run>:r<revision>
+world-event:<turn-batch-id>
 ```
 
-The same source revision cannot produce a second Planning Head, Turn Batch, Task, Effect, or Dispatch identity.
+The same source revision cannot produce a second Planning Head or Turn Batch identity. One committed Batch can retain at most one authoritative World Event/Record consequence.
 
 An uncertain execution is observed using these original identities. It is never retried under a new ID.
 
@@ -152,7 +146,6 @@ A Planning Head binds:
 - Planning revision;
 - submitted Faction Plan digests;
 - canonical Turn Batch digest;
-- Host Task, Effect, and Dispatch identities;
 - lifecycle state.
 
 Planning lifecycle:
@@ -257,7 +250,6 @@ The World Event contains the bounded domain summary:
 - Intent status counts;
 - encounter status and reason;
 - per-faction outcomes;
-- Task and Dispatch identity.
 
 ### Turn Record
 
@@ -273,31 +265,25 @@ The Turn Record retains the complete deterministic proof:
 
 The Event stream and Record stream must have identical sequence, Planning identity, Batch identity, and cross-digests.
 
-## Host lifecycle
+## Historical Embedded Host dogfood
 
-P2 reuses `EmbeddedHostAuthority` and `HostContractStore`.
+The first accepted P2 implementation wrapped every v3 Turn in Game-local `TaskDescriptor → Dispatch → Observation → Verification → Outcome` objects. That dogfood was useful: it established the response-loss law that an uncertain caller must observe the original committed effect identity rather than invent a fresh execution.
 
-One Turn creates:
+The 2026-08-15 GC2 contraction then removed the v3 Embedded Host transcript and re-ran the exact recovery pressure. Game-owned Planning, Turn Batch, World Event and Turn Record evidence preserved:
 
 ```text
-TaskDescriptor
-→ DispatchEnvelope
-→ ObservationEnvelope
-→ VerificationReceipt
-→ TaskOutcome
+response-loss observation
+no redelivery
+restart recovery
+committed-Turn gating
+historical verification
+tamper rejection
+v2 + v3 browser behavior
 ```
 
-The Dispatch binds:
+The law survives; the duplicate local transcript does not. Registered v2/Team Host authority remains separate and unchanged.
 
-- exact Turn Batch request digest;
-- exact source World digest;
-- exact Planning commitment digest;
-- executor identity;
-- Batch identity as idempotency key.
-
-The Verification Receipt contains one item per committed Intent. An Intent may be tactically interrupted, contested, or invalidated while its authoritative execution remains correctly verified.
-
-Host completion therefore verifies the retained reducer result; it does not rewrite tactical success.
+Four old Host-era columns remain only as an SQLite compatibility shell in `station_zero_v3_turn_batches`; they do not participate in Game models, Events, receipts, admission, verification, or recovery. Creating a schema-migration subsystem solely to remove those columns would cost more than the current semantic benefit, so physical removal is deferred to a future v3 schema replacement.
 
 ## Failure and recovery semantics
 
@@ -326,20 +312,14 @@ Recovery:
 observe original Turn Batch identity
 → read retained Event and Record
 → verify deterministic replay
-→ retain Observation / Verification / Outcome under original Dispatch
+→ return the original idempotent Turn observation
 ```
 
 No duplicate World effect occurs.
 
-### Host incomplete after World commit
+### Restart before World execution
 
-A resolved World Turn may still have a Host Task in `reconciling` state. Recovery reconstructs the exact expected Host objects and idempotently fills the missing stages.
-
-A new Planning Head is not opened until the previous Turn has an authoritative World result and the original Host Task reaches `completed`.
-
-### Restart before Host preparation
-
-A committed Planning Head and canonical Batch survive restart. P2 recreates the same Task, Effect, request, and Dispatch identities from retained domain state.
+A committed Planning Head and canonical Batch survive restart. A fresh process recovers the same Planning/Batch identity. If no authoritative receipt exists, the same Batch remains the only executable consequence. If the receipt already exists, execution becomes observation/idempotent reuse rather than a second World effect.
 
 ### Corruption
 
@@ -354,8 +334,6 @@ Recovery fails closed on:
 - divergent World Head;
 - Genesis mismatch;
 - deterministic replay mismatch;
-- Host Journal corruption;
-- retained Host objects that differ from the expected lifecycle.
 
 ## Historical verification
 
@@ -373,7 +351,6 @@ historical World state
 → Turn Record
 → deterministic reducer replay
 → resulting World state
-→ Host lifecycle
 ```
 
 This allows multi-Turn Runs to be verified without treating old Plans as if they targeted the current World.
@@ -392,7 +369,6 @@ It exposes:
 - player-faction objectives;
 - known Rooms, Zones, Systems, Hazards, Items, and reports;
 - enemy contacts only through player-faction Knowledge;
-- bounded Host execution state;
 - visible Fact identities from the latest player Observation.
 
 It does not expose:
@@ -415,7 +391,7 @@ src/station-zero-v3/turn-service.ts
 src/station-zero-v3/mission-control.ts
 ```
 
-`EmbeddedHostAuthority` now accepts any owner exposing the shared `DatabaseSync`, allowing both the current `GameStore` and the v3 Store to reuse the same Host authority without introducing a new Host implementation.
+`StationZeroV3TurnService` now coordinates only Game-owned prepared-Batch delivery and retained receipt observation; it does not create a second Host transcript for v3.
 
 ## P2 tests
 
@@ -424,8 +400,8 @@ src/station-zero-v3/mission-control.ts
 1. Planning Head idempotency and CAS;
 2. immutable one-Plan-per-faction slots;
 3. canonical Batch identity;
-4. complete durable Turn and Host lifecycle;
-5. response-loss observation under the original identity;
+4. one durable Game-owned Turn receipt per committed Batch;
+5. response-loss observation under the original Batch identity;
 6. atomic rollback at multiple pre-commit fault points;
 7. after-commit recovery without redelivery;
 8. missing World Head reconstruction;
@@ -433,12 +409,13 @@ src/station-zero-v3/mission-control.ts
 10. submission-order independence;
 11. Knowledge-limited Mission Control projection;
 12. cross-faction identity collision rejection;
-13. restart after commitment but before Host preparation;
-14. aligned multi-Turn World and Host recovery;
+13. restart after commitment but before World execution;
+14. aligned multi-Turn Planning/Event/Record recovery;
 15. blocking the next Planning while the prior World result is absent;
-16. reconciling a response-lost result before opening the next Planning;
+16. observing a response-lost result before opening the next Planning;
 17. canonical Batch and Planning tamper detection;
-18. independently retained Faction Plan tamper detection.
+18. independently retained Faction Plan tamper detection;
+19. absence of a second v3 Host transcript schema.
 
 ## Implemented by P3
 

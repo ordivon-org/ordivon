@@ -101,10 +101,6 @@ function planningFor(state: StationZeroV3WorldState): StationZeroV3PlanningHead 
     submittedPlanDigests: {},
     turnBatchId: null,
     batchDigest: null,
-    taskId: null,
-    goalId: null,
-    effectId: null,
-    dispatchId: null,
     createdAt: "2026-08-03T00:00:00.000Z",
     updatedAt: "2026-08-03T00:00:00.000Z",
   };
@@ -493,7 +489,6 @@ test("Preview remains non-authoritative until explicit Commit, then binds all th
     const committed = await play.commitPreview(runId, preview.previewId);
     assert.equal(committed.turnSequence, 0);
     assert.equal(committed.worldRevision, 1);
-    assert.equal(committed.hostState, "completed");
     assert.ok(committed.nextPlanningId);
     assert.equal(store.turnCount(runId), 1);
     const resolved = store.getPlanning(runId, planning.planningId);

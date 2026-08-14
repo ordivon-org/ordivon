@@ -51,7 +51,7 @@ Target Scenario: station-zero@3
 Target Ruleset: station-zero-core@4
 World schema: 3
 Execution status: pure reducer and replay complete
-P2 persistence and Host execution: complete
+P2 durable Game-owned persistence/execution: complete
 P3 player/Agent planning and /v3 first-playable: complete
 Current executable replacement: deferred
 ```
@@ -408,13 +408,13 @@ P2 supplies the sole durable Turn execution path:
 open Planning Head
 → retain one immutable Plan per faction
 → commit one canonical Turn Batch
-→ prepare one Embedded Host Dispatch
+→ prepare one exact durable Turn Batch
 → execute outside model ownership
 → atomically retain World Event + Turn Record + World Head
 → recover uncertain response by original identity
 → expose bounded Mission Control state
 ```
 
-See [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) for persistence, Host lifecycle, crash recovery, evidence-chain, and projection boundaries.
+See [`STATION_ZERO_V3_P2.md`](STATION_ZERO_V3_P2.md) for persistence, exact Turn receipt/recovery, evidence-chain, and projection boundaries.
 
 P1 remains the sole deterministic rules owner. Persistence and Host orchestration must invoke the reducer rather than reimplementing combat or environment rules.

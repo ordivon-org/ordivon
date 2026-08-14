@@ -1,4 +1,3 @@
-import type { EmbeddedHostState } from "../host-contract/embedded-authority.ts";
 import type {
   StationZeroFactionId,
   StationZeroFactionOutcome,
@@ -52,10 +51,6 @@ export interface StationZeroV3PlanningHead {
   submittedPlanDigests: Partial<Record<StationZeroFactionId, string>>;
   turnBatchId: string | null;
   batchDigest: string | null;
-  taskId: string | null;
-  goalId: string | null;
-  effectId: string | null;
-  dispatchId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,10 +68,6 @@ export interface StationZeroV3PreparedTurn {
   planning: StationZeroV3PlanningHead;
   batch: StationZeroTurnBatch;
   batchDigest: string;
-  taskId: string;
-  goalId: string;
-  effectId: string;
-  dispatchId: string;
 }
 
 export interface StationZeroV3WorldEvent {
@@ -87,8 +78,6 @@ export interface StationZeroV3WorldEvent {
   turnSequence: number;
   planningId: string;
   turnBatchId: string;
-  taskId: string;
-  dispatchId: string;
   worldRevisionBefore: number;
   worldRevisionAfter: number;
   turnBefore: number;
@@ -109,8 +98,6 @@ export interface StationZeroV3TurnReceipt {
   turnSequence: number;
   planningId: string;
   turnBatchId: string;
-  taskId: string;
-  dispatchId: string;
   batch: StationZeroTurnBatch;
   event: StationZeroV3WorldEvent;
   eventDigest: string;
@@ -138,8 +125,6 @@ export interface StationZeroV3ExecutorObservation {
   runId: string;
   planningId: string;
   turnBatchId: string;
-  taskId: string;
-  dispatchId: string;
   status: "succeeded";
   idempotent: boolean;
   turnSequence: number;
@@ -148,18 +133,6 @@ export interface StationZeroV3ExecutorObservation {
   turnRecordDigest: string;
   worldAfterDigest: string;
   verificationPassed: true;
-}
-
-export interface StationZeroV3HostExecutionView {
-  taskId: string;
-  dispatchId: string;
-  state: EmbeddedHostState;
-  hostRevision: number;
-  descriptorDigest: string;
-  dispatchDigest: string | null;
-  observationDigest: string | null;
-  verificationDigest: string | null;
-  outcomeDigest: string | null;
 }
 
 export interface StationZeroV3MissionControlActorView {
@@ -193,7 +166,6 @@ export interface StationZeroV3MissionControlView {
     worldRevision: number;
     worldDigest: string;
     planningRevision: number | null;
-    hostSequence: number;
   };
   run: {
     runId: string;
@@ -240,7 +212,6 @@ export interface StationZeroV3MissionControlView {
     target: number;
     reason: string | null;
   }>;
-  hostExecution: StationZeroV3HostExecutionView | null;
   latestTurn: {
     turnSequence: number;
     turnBatchId: string;

@@ -43,8 +43,6 @@ export class StationZeroV3TurnExecutor {
     if (
       receipt.planningId !== prepared.planning.planningId ||
       receipt.turnBatchId !== prepared.batch.turnBatchId ||
-      receipt.taskId !== prepared.taskId ||
-      receipt.dispatchId !== prepared.dispatchId ||
       canonicalJson(receipt.batch) !== canonicalJson(prepared.batch)
     ) {
       throw new Error("retained Station Zero v3 Turn differs from executor request");
@@ -59,8 +57,6 @@ export class StationZeroV3TurnExecutor {
       runId: receipt.runId,
       planningId: receipt.planningId,
       turnBatchId: receipt.turnBatchId,
-      taskId: receipt.taskId,
-      dispatchId: receipt.dispatchId,
       status: "succeeded",
       idempotent,
       turnSequence: receipt.turnSequence,

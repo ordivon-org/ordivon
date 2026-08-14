@@ -90,22 +90,23 @@ test("P2 persists one Planning Head, exactly one Plan per Faction, and one canon
 
     service.submitPlan(runId, planning.planningId, waitPlan(planning, "swarm"));
     service.submitPlan(runId, planning.planningId, waitPlan(planning, "pirate"));
-    const prepared = service.prepare(runId, planning.planningId);
-    assert.equal(prepared.prepared.planning.status, "committed");
-    assert.deepEqual(prepared.prepared.batch.factionPlans.map((plan) => plan.factionId), ["rescue", "pirate", "swarm"]);
-    assert.equal(prepared.prepared.batch.turnBatchId, `turn-batch:station-zero-v3:${runId}:r0`);
-    assert.equal(prepared.host.state, "reconciling");
-    assert.equal(prepared.host.revision, 2);
+    const prepared = service.prepare(runId, planning.planningId).prepared;
+    assert.equal(prepared.planning.status, "committed");
+    assert.deepEqual(prepared.batch.factionPlans.map((plan) => plan.factionId), ["rescue", "pirate", "swarm"]);
+    assert.equal(prepared.batch.turnBatchId, `turn-batch:station-zero-v3:${runId}:r0`);
+    assert.equal(store.turnReceiptByBatch(runId, prepared.batch.turnBatchId), null);
     assert.equal(tableCount(store, "station_zero_v3_faction_plans", runId), 3);
     assert.equal(tableCount(store, "station_zero_v3_turn_batches", runId), 1);
-    assert.equal(service.prepare(runId, planning.planningId).prepared.batchDigest, prepared.prepared.batchDigest);
+    assert.equal(service.prepare(runId, planning.planningId).prepared.batchDigest, prepared.batchDigest);
+    const hostTables = store.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'host_%' ORDER BY name").all();
+    assert.deepEqual(hostTables, [], "v3 store must not create a second Host transcript schema");
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test("P2 executes one durable Turn and completes the existing Embedded Host lifecycle", () => {
+test("P2 executes one durable Turn and closes from Game-owned authoritative evidence", () => {
   const { directory, runId, store, service } = fixture("execute");
   try {
     const planning = service.openPlanning(runId);
@@ -114,15 +115,11 @@ test("P2 executes one durable Turn and completes the existing Embedded Host life
 
     assert.equal(result.observation.status, "succeeded");
     assert.equal(result.observation.idempotent, false);
-    assert.equal(result.host.state, "completed");
-    assert.equal(result.host.revision, 5);
     assert.equal(store.loadState(runId).revision, 1);
     assert.equal(store.loadState(runId).encounter.turn, 1);
     assert.equal(store.getPlanning(runId, planning.planningId).status, "resolved");
     assert.equal(tableCount(store, "station_zero_v3_world_events", runId), 1);
     assert.equal(tableCount(store, "station_zero_v3_turn_records", runId), 1);
-    assert.equal(store.hostSequence(runId), 4);
-    assert.equal(service.authority.contracts.transcript(runId).length, 5);
 
     const receipt = store.latestTurnReceipt(runId);
     assert.ok(receipt);
@@ -130,19 +127,19 @@ test("P2 executes one durable Turn and completes the existing Embedded Host life
     assert.equal(receipt.event.worldDigestAfter, receipt.stateDigest);
     assert.equal(receipt.record.resolution.intentResolutions.length, 3);
     assert.ok(receipt.record.resolution.intentResolutions.every((entry) => entry.verificationPassed));
+    assert.equal(store.verify(runId).verified, true);
 
     const duplicate = service.execute(runId, planning.planningId);
     assert.equal(duplicate.observation.idempotent, true);
-    assert.equal(duplicate.host.state, "completed");
     assert.equal(tableCount(store, "station_zero_v3_world_events", runId), 1);
-    assert.equal(service.authority.contracts.transcript(runId).length, 5);
+    assert.equal(store.latestTurnReceipt(runId)?.eventDigest, receipt.eventDigest);
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test("response loss after World commit is recovered by observing the original Turn identity", () => {
+test("response loss after World commit is recovered from the original Game Turn identity", () => {
   const { directory, path, runId, store, service } = fixture("response-loss");
   try {
     const planning = service.openPlanning(runId);
@@ -155,7 +152,10 @@ test("response loss after World commit is recovered by observing the original Tu
     });
     assert.throws(() => crashingExecutor.deliver(prepared), /injected:response-loss/);
     assert.equal(tableCount(store, "station_zero_v3_world_events", runId), 1);
-    assert.equal(service.authority.projection(runId, prepared.taskId).state, "reconciling");
+    assert.equal(store.getPlanning(runId, planning.planningId).status, "resolved");
+    const retained = store.turnReceiptByBatch(runId, prepared.batch.turnBatchId);
+    assert.ok(retained);
+    const retainedEventDigest = retained.eventDigest;
     store.close();
 
     const freshStore = new StationZeroV3Store(path);
@@ -167,11 +167,14 @@ test("response loss after World commit is recovered by observing the original Tu
       assert.equal(observed.turnBatchId, prepared.batch.turnBatchId);
       const recovered = freshService.recover(runId);
       assert.equal(recovered.world.turnCount, 1);
-      assert.equal(recovered.host?.state, "completed");
+      assert.equal(recovered.world.verified, true);
       assert.equal(freshStore.turnCount(runId), 1);
-      assert.equal(freshService.authority.contracts.transcript(runId).length, 5);
+      assert.equal(freshStore.latestTurnReceipt(runId)?.eventDigest, retainedEventDigest);
       assert.equal(freshService.execute(runId, planning.planningId).observation.idempotent, true);
       assert.equal(freshStore.turnCount(runId), 1);
+      const next = freshService.openPlanning(runId);
+      assert.equal(next.worldRevision, 1);
+      assert.equal(next.turn, 1);
     } finally {
       freshStore.close();
     }
@@ -303,30 +306,31 @@ test("canonical persistence is independent from Faction submission order", () =>
   }
 });
 
-test("Mission Control projection exposes player Knowledge rather than hidden World truth", () => {
+test("Mission Control projection exposes player Knowledge and Game-owned execution state", () => {
   const { directory, runId, store, service } = fixture("projection");
   try {
-    let view = createStationZeroV3MissionControlView(store, service, runId);
+    let view = createStationZeroV3MissionControlView(store, runId);
     assert.equal(view.run.playerFactionId, "rescue");
     assert.deepEqual(view.knownContacts, []);
     assert.deepEqual(view.ownActors.map((actor) => actor.actorId), ["engineer-imani", "medic-reyes", "security-chen"]);
     assert.equal(view.planning.planningId, null);
-    assert.equal(view.generatedFrom.hostSequence, -1);
+    assert.equal("hostExecution" in view, false);
+    assert.equal("hostSequence" in view.generatedFrom, false);
 
     const planning = service.openPlanning(runId);
     submitAll(service, runId, planning);
     service.prepare(runId, planning.planningId);
-    view = createStationZeroV3MissionControlView(store, service, runId);
+    view = createStationZeroV3MissionControlView(store, runId);
     assert.equal(view.planning.status, "committed");
     assert.equal(view.planning.canExecute, true);
-    assert.equal(view.hostExecution?.state, "reconciling");
     assert.equal(view.knownContacts.some((contact) => contact.actorId === "pirate-captain-veyra"), false);
     assert.equal(view.knownContacts.some((contact) => contact.actorId === "hive-alpha"), false);
 
     service.execute(runId, planning.planningId);
-    view = createStationZeroV3MissionControlView(store, service, runId);
+    view = createStationZeroV3MissionControlView(store, runId);
     assert.equal(view.generatedFrom.worldRevision, 1);
-    assert.equal(view.hostExecution?.state, "completed");
+    assert.equal(view.planning.status, "resolved");
+    assert.equal(view.planning.canExecute, false);
     assert.equal(view.latestTurn?.turnSequence, 0);
     assert.ok(view.latestTurn?.visibleFactIds.length);
     assert.equal(view.latestTurn?.visibleFactIds.some((factId) => !factId.startsWith("fact:")), false);
@@ -355,27 +359,27 @@ test("Turn Batch admission rejects duplicate Intent identities across Factions b
 });
 
 
-test("a committed Planning Head survives restart before Host preparation and keeps the same identities", () => {
+test("a committed Planning Head survives restart before World execution and keeps the same identities", () => {
   const { directory, path, runId, store, service } = fixture("planning-restart");
   try {
     const planning = service.openPlanning(runId);
     submitAll(service, runId, planning);
     const committed = store.commitPlanning(runId, planning.planningId);
-    assert.equal(store.hostSequence(runId), -1);
+    assert.equal(store.turnReceiptByBatch(runId, committed.batch.turnBatchId), null);
     store.close();
 
     const freshStore = new StationZeroV3Store(path);
     const freshService = new StationZeroV3TurnService(freshStore);
     try {
-      const prepared = freshService.prepare(runId, planning.planningId);
-      assert.equal(prepared.prepared.taskId, committed.taskId);
-      assert.equal(prepared.prepared.dispatchId, committed.dispatchId);
-      assert.equal(prepared.prepared.batchDigest, committed.batchDigest);
-      assert.equal(prepared.host.state, "reconciling");
-      assert.equal(freshStore.hostSequence(runId), 1);
+      const prepared = freshService.prepare(runId, planning.planningId).prepared;
+      assert.equal(prepared.planning.planningId, committed.planning.planningId);
+      assert.equal(prepared.batch.turnBatchId, committed.batch.turnBatchId);
+      assert.equal(prepared.batchDigest, committed.batchDigest);
+      assert.equal(freshStore.turnReceiptByBatch(runId, prepared.batch.turnBatchId), null);
       const executed = freshService.execute(runId, planning.planningId);
-      assert.equal(executed.host.state, "completed");
+      assert.equal(executed.observation.status, "succeeded");
       assert.equal(freshStore.turnCount(runId), 1);
+      assert.equal(freshStore.verify(runId).verified, true);
     } finally {
       freshStore.close();
     }
@@ -384,13 +388,13 @@ test("a committed Planning Head survives restart before Host preparation and kee
   }
 });
 
-test("multiple durable Turns recover through aligned World and Host histories", () => {
+test("multiple durable Turns recover through aligned Game Planning, Event, and Record histories", () => {
   const { directory, path, runId, store, service } = fixture("multi-turn");
   try {
     const firstPlanning = service.openPlanning(runId);
     submitAll(service, runId, firstPlanning);
     const first = service.execute(runId, firstPlanning.planningId);
-    assert.equal(first.host.state, "completed");
+    assert.equal(first.observation.status, "succeeded");
 
     const secondPlanning = service.openPlanning(runId);
     assert.equal(secondPlanning.worldRevision, 1);
@@ -398,11 +402,10 @@ test("multiple durable Turns recover through aligned World and Host histories", 
     assert.equal(secondPlanning.standingOrderRevision, 1);
     submitAll(service, runId, secondPlanning, ["pirate", "swarm", "rescue"]);
     const second = service.execute(runId, secondPlanning.planningId);
-    assert.equal(second.host.state, "completed");
+    assert.equal(second.observation.status, "succeeded");
     assert.equal(store.loadState(runId).revision, 2);
     assert.equal(store.turnCount(runId), 2);
-    assert.equal(service.authority.contracts.transcript(runId).length, 10);
-    assert.equal(store.hostSequence(runId), 9);
+    assert.equal(store.verify(runId).verified, true);
     store.close();
 
     const freshStore = new StationZeroV3Store(path);
@@ -412,10 +415,10 @@ test("multiple durable Turns recover through aligned World and Host histories", 
       assert.equal(recovered.world.turnCount, 2);
       assert.equal(recovered.world.state.revision, 2);
       assert.equal(recovered.world.state.encounter.turn, 2);
-      assert.equal(recovered.host?.state, "completed");
-      assert.equal(freshService.authority.listDispatches(runId).length, 2);
-      assert.equal(freshService.authority.listObservations(runId).length, 2);
+      assert.equal(recovered.world.verified, true);
       assert.equal(freshStore.latestTurnReceipt(runId)?.turnSequence, 1);
+      const lastPlanning = freshStore.listPlanning(runId).at(-1)!;
+      assert.equal(freshService.observe(runId, lastPlanning.planningId)?.idempotent, true);
     } finally {
       freshStore.close();
     }
@@ -423,7 +426,6 @@ test("multiple durable Turns recover through aligned World and Host histories", 
     rmSync(directory, { recursive: true, force: true });
   }
 });
-
 
 test("a prepared Turn without a World result blocks the next Planning Head", () => {
   const { directory, runId, store, service } = fixture("planning-gate-prepared");
@@ -442,7 +444,7 @@ test("a prepared Turn without a World result blocks the next Planning Head", () 
   }
 });
 
-test("a response-lost World result is reconciled under the original Dispatch before the next Planning opens", () => {
+test("a response-lost World result is observed under the original Turn identity before the next Planning opens", () => {
   const { directory, runId, store, service } = fixture("planning-gate-reconcile");
   try {
     const planning = service.openPlanning(runId);
@@ -454,15 +456,17 @@ test("a response-lost World result is reconciled under the original Dispatch bef
       },
     });
     assert.throws(() => crashing.deliver(prepared), /response-loss-before-next-planning/);
-    assert.equal(service.authority.projection(runId, prepared.taskId).state, "reconciling");
+    const retained = store.turnReceiptByBatch(runId, prepared.batch.turnBatchId);
+    assert.ok(retained);
+    assert.equal(service.observe(runId, planning.planningId)?.turnBatchId, prepared.batch.turnBatchId);
 
     const next = service.openPlanning(runId);
-    assert.equal(service.authority.projection(runId, prepared.taskId).state, "completed");
     assert.equal(next.worldRevision, 1);
     assert.equal(next.turn, 1);
     assert.equal(next.planningId, `planning:station-zero-v3:${runId}:r1`);
     assert.equal(store.listPlanning(runId).length, 2);
     assert.equal(store.turnCount(runId), 1);
+    assert.equal(store.latestTurnReceipt(runId)?.eventDigest, retained.eventDigest);
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });

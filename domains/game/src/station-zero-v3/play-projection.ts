@@ -19,7 +19,6 @@ import type { StationZeroV3PlanningStore } from "./planning-store.ts";
 import { createStationZeroV3PlanImpact } from "./plan-impact.ts";
 import type { StationZeroV3Store } from "./persistence.ts";
 import { createStationZeroV3TemporalExpressions, stationZeroV3BoundedFactSummary } from "./temporal-expression.ts";
-import type { StationZeroV3TurnService } from "./turn-service.ts";
 
 function targetLabel(state: StationZeroV3WorldState, preview: StationZeroV3PlanPreview): string {
   const action = preview.commanderAction;
@@ -274,11 +273,10 @@ function buildMap(state: StationZeroV3WorldState) {
 
 export function createStationZeroV3PlayView(
   store: StationZeroV3Store,
-  turnService: StationZeroV3TurnService,
   planningStore: StationZeroV3PlanningStore,
   runId: string,
 ): StationZeroV3PlayView {
-  const base = createStationZeroV3MissionControlView(store, turnService, runId);
+  const base = createStationZeroV3MissionControlView(store, runId);
   const state = store.loadState(runId);
   const planning = store.latestPlanning(runId);
   const head = planning ? planningStore.headOrNull(runId, planning.planningId) : null;

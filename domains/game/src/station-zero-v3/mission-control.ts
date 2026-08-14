@@ -2,7 +2,6 @@ import { STATION_ZERO_FACTION_IDS, type StationZeroV3WorldState } from "./model.
 import { STATION_ZERO_V3_OBJECTIVES } from "./content.ts";
 import type { StationZeroV3MissionControlView } from "./p2-model.ts";
 import type { StationZeroV3Store } from "./persistence.ts";
-import type { StationZeroV3TurnService } from "./turn-service.ts";
 
 export function stationZeroV3PlayerObjectiveViews(
   state: StationZeroV3WorldState,
@@ -27,7 +26,6 @@ export function stationZeroV3PlayerObjectiveViews(
 
 export function createStationZeroV3MissionControlView(
   store: StationZeroV3Store,
-  service: StationZeroV3TurnService,
   runId: string,
 ): StationZeroV3MissionControlView {
   const head = store.loadWorldHead(runId);
@@ -41,7 +39,6 @@ export function createStationZeroV3MissionControlView(
   const missingFactions = planning
     ? STATION_ZERO_FACTION_IDS.filter((factionId) => planning.submittedPlanDigests[factionId] === undefined)
     : [...STATION_ZERO_FACTION_IDS];
-  const hostExecution = planning?.taskId ? service.hostProjection(runId, planning.planningId) : null;
   const latestTurn = store.latestTurnReceipt(runId);
 
   const ownActors = Object.values(state.actors)
@@ -83,7 +80,6 @@ export function createStationZeroV3MissionControlView(
       worldRevision: head.revision,
       worldDigest: head.stateDigest,
       planningRevision: planning?.planningRevision ?? null,
-      hostSequence: store.hostSequence(runId),
     },
     run: {
       runId,
@@ -100,8 +96,7 @@ export function createStationZeroV3MissionControlView(
       missingFactions,
       canSubmitPlans: state.encounter.status === "running" && planning?.status === "open",
       canCommit: state.encounter.status === "running" && planning?.status === "open" && missingFactions.length === 0,
-      canExecute: state.encounter.status === "running" && planning?.status === "committed" &&
-        (hostExecution?.state === "reconciling" || hostExecution?.state === "ready"),
+      canExecute: state.encounter.status === "running" && planning?.status === "committed",
     },
     resources: {
       batteryCharge: state.environment.batteryCharge,
@@ -135,17 +130,6 @@ export function createStationZeroV3MissionControlView(
       reportIds: [...knowledge.reportIds].sort(),
     },
     objectives,
-    hostExecution: hostExecution ? {
-      taskId: hostExecution.taskId,
-      dispatchId: planning?.dispatchId ?? "",
-      state: hostExecution.state,
-      hostRevision: hostExecution.revision,
-      descriptorDigest: hostExecution.descriptorDigest,
-      dispatchDigest: hostExecution.dispatchDigest,
-      observationDigest: hostExecution.observationDigest,
-      verificationDigest: hostExecution.verificationDigest,
-      outcomeDigest: hostExecution.outcomeDigest,
-    } : null,
     latestTurn: latestTurn ? {
       turnSequence: latestTurn.turnSequence,
       turnBatchId: latestTurn.turnBatchId,

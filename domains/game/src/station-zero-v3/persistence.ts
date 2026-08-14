@@ -4,7 +4,6 @@ import { DatabaseSync } from "node:sqlite";
 
 import { CURRENT_BUILD } from "../build.ts";
 import { canonicalJson, sha256 } from "../digest.ts";
-import { HostStore } from "../host-contract/journal.ts";
 import { assertStationZeroTurnBatch, assertStationZeroFactionTurnPlan } from "./contracts.ts";
 import { createStationZeroV3Genesis, assertStationZeroV3World } from "./genesis.ts";
 import type {
@@ -258,6 +257,14 @@ function identityFor(runId: string, revision: number) {
   return {
     planningId: `planning:station-zero-v3:${suffix}`,
     turnBatchId: `turn-batch:station-zero-v3:${suffix}`,
+  };
+}
+
+// These columns are a compatibility shell for existing unregistered-v3 SQLite files.
+// They no longer participate in Game models, Events, admission, verification, or recovery.
+function legacyBatchColumns(runId: string, revision: number) {
+  const suffix = `${runId}:r${revision}`;
+  return {
     taskId: `task:station-zero-v3:${suffix}`,
     goalId: `goal:station-zero-v3:${runId}`,
     effectId: `effect:station-zero-v3:${suffix}`,
@@ -280,7 +287,6 @@ function resolutionCounts(record: StationZeroTurnRecord): Record<StationZeroInte
 export class StationZeroV3Store {
   readonly db: DatabaseSync;
   readonly dbPath: string;
-  readonly host: HostStore;
   readonly createdWithBuild: string;
   readonly faultInjector: ((point: StationZeroV3StorageFaultPoint) => void) | undefined;
 
@@ -298,7 +304,6 @@ export class StationZeroV3Store {
         PRAGMA synchronous = FULL;
       `);
       this.createSchema();
-      this.host = new HostStore(this.db);
     } catch (error) {
       try { this.db.close(); } catch {}
       mapStorageError(error);
@@ -689,10 +694,6 @@ export class StationZeroV3Store {
         submittedPlanDigests: {},
         turnBatchId: null,
         batchDigest: null,
-        taskId: null,
-        goalId: null,
-        effectId: null,
-        dispatchId: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -872,6 +873,7 @@ export class StationZeroV3Store {
       const missing = STATION_ZERO_FACTION_IDS.filter((factionId) => !plans[factionId]);
       if (missing.length > 0) throw new TypeError(`Planning requires one Plan from every Faction; missing: ${missing.join(", ")}`);
       const identity = identityFor(runId, planning.worldRevision);
+      const legacy = legacyBatchColumns(runId, planning.worldRevision);
       const batch = canonicalizeStationZeroV3TurnBatch({
         turnBatchId: identity.turnBatchId,
         expectedWorldRevision: planning.worldRevision,
@@ -891,17 +893,13 @@ export class StationZeroV3Store {
           (run_id, planning_id, turn_batch_id, batch_json, batch_digest, task_id, goal_id, effect_id, dispatch_id, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(runId, planningId, identity.turnBatchId, canonicalJson(batch), batchDigest,
-            identity.taskId, identity.goalId, identity.effectId, identity.dispatchId, now);
+            legacy.taskId, legacy.goalId, legacy.effectId, legacy.dispatchId, now);
         next = {
           ...current,
           planningRevision: current.planningRevision + 1,
           status: "committed",
           turnBatchId: identity.turnBatchId,
           batchDigest,
-          taskId: identity.taskId,
-          goalId: identity.goalId,
-          effectId: identity.effectId,
-          dispatchId: identity.dispatchId,
           updatedAt: now,
         };
         this.updatePlanning(current, next);
@@ -910,10 +908,6 @@ export class StationZeroV3Store {
         planning: next,
         batch,
         batchDigest,
-        taskId: identity.taskId,
-        goalId: identity.goalId,
-        effectId: identity.effectId,
-        dispatchId: identity.dispatchId,
       };
     } catch (error) {
       if (sqliteCode(error).includes("CONSTRAINT")) {
@@ -955,9 +949,7 @@ export class StationZeroV3Store {
     if (
       row.run_id !== planning.runId || row.planning_id !== planning.planningId ||
       sha256(canonical) !== row.batch_digest || canonicalJson(canonical) !== row.batch_json ||
-      planning.turnBatchId !== row.turn_batch_id || planning.batchDigest !== row.batch_digest ||
-      planning.taskId !== row.task_id || planning.goalId !== row.goal_id ||
-      planning.effectId !== row.effect_id || planning.dispatchId !== row.dispatch_id
+      planning.turnBatchId !== row.turn_batch_id || planning.batchDigest !== row.batch_digest
     ) {
       throw new StationZeroV3StorageError("station_zero_v3_corrupt", `Committed Turn Batch differs from Planning Head: ${planning.planningId}`);
     }
@@ -965,10 +957,6 @@ export class StationZeroV3Store {
       planning,
       batch: canonical,
       batchDigest: row.batch_digest,
-      taskId: row.task_id,
-      goalId: row.goal_id,
-      effectId: row.effect_id,
-      dispatchId: row.dispatch_id,
     };
   }
 
@@ -1024,8 +1012,6 @@ export class StationZeroV3Store {
           turnSequence,
           planningId,
           turnBatchId: currentPrepared.batch.turnBatchId,
-          taskId: currentPrepared.taskId,
-          dispatchId: currentPrepared.dispatchId,
           worldRevisionBefore: world.revision,
           worldRevisionAfter: applied.state.revision,
           turnBefore: world.turn,
@@ -1113,8 +1099,6 @@ export class StationZeroV3Store {
           turnSequence,
           planningId,
           turnBatchId: currentPrepared.batch.turnBatchId,
-          taskId: currentPrepared.taskId,
-          dispatchId: currentPrepared.dispatchId,
           batch: currentPrepared.batch,
           event,
           eventDigest,
@@ -1227,8 +1211,6 @@ export class StationZeroV3Store {
       turnSequence: Number(eventRow.turn_sequence),
       planningId: eventRow.planning_id,
       turnBatchId: eventRow.turn_batch_id,
-      taskId: batchRow.task_id,
-      dispatchId: batchRow.dispatch_id,
       batch: canonicalBatch,
       event,
       eventDigest: eventRow.event_digest,
@@ -1352,7 +1334,6 @@ export class StationZeroV3Store {
           sha256(event) !== eventRow.event_digest || event.eventId !== eventRow.event_id ||
           event.runId !== runId || event.turnSequence !== index || event.planningId !== eventRow.planning_id ||
           event.turnBatchId !== eventRow.turn_batch_id || event.turnBatchId !== prepared.batch.turnBatchId ||
-          event.taskId !== prepared.taskId || event.dispatchId !== prepared.dispatchId ||
           event.turnRecordDigest !== record.recordDigest || record.recordDigest !== recordRow.record_digest ||
           record.stateDigestBefore !== recordRow.before_digest || record.stateDigestAfter !== recordRow.after_digest ||
           canonicalJson(record.batch) !== canonicalJson(prepared.batch) || event.worldDigestBefore !== sha256(state) ||
@@ -1461,16 +1442,7 @@ export class StationZeroV3Store {
   }
 
   verify(runId: string): StationZeroV3RecoveryResult {
-    const recovery = this.recover(runId);
-    this.host.verifyJournal(runId);
-    return recovery;
-  }
-
-  hostSequence(runId: string): number {
-    this.getRun(runId);
-    const row = this.db.prepare("SELECT COALESCE(MAX(sequence), -1) sequence FROM host_journal WHERE run_id = ?")
-      .get(runId) as { sequence: number };
-    return Number(row.sequence);
+    return this.recover(runId);
   }
 
   turnCount(runId: string): number {

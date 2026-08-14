@@ -32,7 +32,7 @@ Rescue vs Pirate vs Swarm
 /v3 preview surface
 ```
 
-Its stable product definition lives in `docs/STATION_ZERO_V3_PRODUCT.md`. Exact content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, bounded player/Agent planning, policy expansion, and first-playable browser contracts remain under `src/station-zero-v3/`, `web-v3/`, and `docs/STATION_ZERO_V3_P0.md` through `docs/STATION_ZERO_V3_P3.md`.
+Its stable product definition lives in `docs/STATION_ZERO_V3_PRODUCT.md`. Exact content, deterministic reducer, durable SQLite Turn authority, exact receipt/recovery, bounded player/Agent planning, policy expansion, and first-playable browser contracts remain under `src/station-zero-v3/`, `web-v3/`, and `docs/STATION_ZERO_V3_P0.md` through `docs/STATION_ZERO_V3_P3.md`.
 
 The v3 preview is intentionally absent from `src/registry.ts` and uses its own API namespace and database. Do not replace the current root product until repeated playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
@@ -41,7 +41,7 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 1. The Game World is authoritative for all physical, numerical, temporal, and terminal state.
 2. Model output is a Proposal or Candidate selection, never a direct mutation or completion claim.
 3. Capability, authority, admission, execution, observation, and verification remain distinct.
-4. Team or faction planning state owns coordination; embedded Host state owns generic commitment identity.
+4. Team/faction planning owns coordination. Registered v2 Team paths may use embedded Host commitment evidence; v3 owns exact Planning/Turn Batch/Event/Record identity directly after GC2.
 5. Provider sessions do not own actor identity, task continuity, World state, Planning state, or replay.
 6. Mission Control and Play views are pure bounded projections and own no second database.
 7. Replay, diagnosis, deployment, comparison, and Aftermath derive from retained evidence rather than storing alternative truth.
@@ -60,7 +60,7 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 20. Do not expose the pure v3 reducer as raw stepping or mutation controls through the product API.
 21. One Faction may retain only one immutable Plan per Planning Head; replacement requires a new World revision and Planning identity.
 22. World Event, Turn Record, World Head, Planning resolution, and Run status must commit atomically.
-23. The Embedded Host owns Task and Dispatch continuity; Station Zero owns Planning, World, Event, Record, and Faction Knowledge.
+23. Registered v2 Team work retains its Host authority. Station Zero v3 owns Planning, Turn Batch, World Event, Turn Record, recovery, and Faction Knowledge directly; do not reintroduce a second local Host transcript without a new irreducible continuity need.
 24. A new Planning Head must not open while the previous Turn lacks an authoritative World result or Host completion.
 25. Historical verification must reconstruct the World at each Planning revision rather than validating old Plans against the latest Head.
 26. Player projections must expose enemy state only through retained Rescue Knowledge and visible Fact identities.
@@ -129,7 +129,7 @@ A meaningful change should state:
 - `docs/STATION_ZERO_V3_PRODUCT_VALUE.md` defines G4 comparative product-value evidence, proven/dead control surface, pressure/information findings, and Content Grammar v0; read it before adding player controls or producing a second encounter.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
-- `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.
+- `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite Turn execution, exact receipt/recovery, and bounded projection boundaries.
 - `docs/STATION_ZERO_V3_P3.md` defines Commander Orders, Agent Context and Candidate admission, sealed Preview, explicit Commit, policy hierarchy, and browser first-playable boundaries.
 - GitHub Issues own active work and discussion.
 - Git history owns deleted implementation history.

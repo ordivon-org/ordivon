@@ -111,7 +111,7 @@ The explicit decision boundary is the complete simultaneous Turn.
 
 - immutable Faction Plan submission;
 - canonical Batch identity;
-- Host Task and Dispatch continuity;
+- exact Planning/Turn Batch continuity and retained receipt recovery;
 - atomic Event / Record / World Head persistence;
 - crash recovery and replay.
 
@@ -170,7 +170,7 @@ selected Preview
 → submit its exact Swarm Plan
 → bind Order Head to selected Preview
 → P2 canonical Batch
-→ P2 Host execution and World commit
+→ P2 durable Turn execution and World commit
 ```
 
 After the first durable Faction Plan is submitted, the Commander Order and selected Preview are immutable.
@@ -421,9 +421,9 @@ The selected Preview survives restart before Commit.
 
 If execution stops after only some Faction Plans were submitted, the Order and Preview become non-editable but the same Preview remains committable. Identical retained Plans are reused and missing Plans are submitted under their original identities.
 
-If P2 already prepared the canonical Batch and Host Dispatch but the World result is absent, the same Commit resumes that prepared execution. It does not generate a replacement Preview, Task, Batch, or Dispatch.
+If P2 already prepared the canonical Batch but the World result is absent, the same Commit resumes that exact prepared execution. It does not generate a replacement Preview or Batch.
 
-A response-lost World result is reconciled under its original Dispatch before another Planning Head opens.
+A response-lost World result is observed under its original Turn Batch identity before another Planning Head opens.
 
 ## Evidence verification
 

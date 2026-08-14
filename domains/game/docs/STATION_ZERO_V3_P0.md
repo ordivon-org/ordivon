@@ -36,7 +36,7 @@ Freeze one deterministic three-faction encounter contract for Rescue, Pirate, an
 
 ## Consequences
 
-Reducer, persistence, planning, Host execution, Agent integration, and product registration must conform to this encounter contract. The phase-coded path remains the current target authority until a stable human-oriented product specification explicitly supersedes it; it does not make v3 the registered executable.
+Reducer, persistence, planning, durable Turn execution, Agent integration, and product registration must conform to this encounter contract. The phase-coded path remains the current target authority until a stable human-oriented product specification explicitly supersedes it; it does not make v3 the registered executable.
 
 ## Status
 

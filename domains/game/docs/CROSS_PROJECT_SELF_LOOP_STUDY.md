@@ -1432,6 +1432,44 @@ Canonical integration remains revision-fenced and is still separate from this re
 
 ---
 
+# 19.7 Second consumption result — GC2 v3 Embedded Host contraction
+
+GC2 tested the most serious deletion hypothesis instead of assuming that Host-like structure was ceremony.
+
+### GC2-A — remove the v3 transcript, keep Turn-era identities
+
+The experiment removed v3 runtime creation/consumption of `TaskDescriptor`, Effect, Dispatch, Observation, Verification, Outcome and Host Journal state. Mission Control became a pure projection of Game-owned Planning/World evidence; `canExecute` is derived from committed Planning state.
+
+High-pressure tests were rewritten to preserve the original properties rather than deleting the assertions. Response loss, no-redelivery, restart recovery, committed-Turn gating, deterministic replay and tamper rejection remained green. The v3 Store also stopped creating Host transcript tables.
+
+### GC2-B — contract semantic identity
+
+`taskId`, `goalId`, `effectId`, and `dispatchId` were deterministic aliases of the same Run/revision that already produced `planningId` and `turnBatchId`. They had no independent owner, entropy, consumer or consequence. They were removed from Planning, prepared Turn, World Event, Turn Receipt, Executor Observation and recovery checks.
+
+The four physical SQLite columns remain temporarily below the semantic waist solely for compatibility with existing unregistered-v3 databases. There is no v3 schema-migration framework, and creating one only to remove four dead columns would cost more than the semantic benefit. They can disappear with a future schema replacement.
+
+Combined GC2 evidence after GC1:
+
+```text
+repository tests:       297 / 297 PASS
+registered v2 E2E:     PASS
+v3 20-Turn E2E:        PASS
+browser errors:         []
+response-loss retry:    original Turn observed, no redelivery
+Host transcript schema: absent from v3 Store
+```
+
+The conclusion is scoped:
+
+```text
+Host is not redundant.
+Station Zero v3's local duplicate consumption of Host was redundant.
+```
+
+Registered v2/Team Host work remains intact and passed the same full suite.
+
+---
+
 # 20. Recommended next Game sequence
 
 This study changes the order of work.
@@ -1449,9 +1487,9 @@ GC1  dormant capability deletion probes        DONE experimentally
      - Message Issuance
      - Entity Departure
 
-GC2  Embedded Host ablation
-     compare full current v3 Turn path
-     vs Game-owned Planning/Turn evidence only
+GC2  Embedded Host ablation                       DONE experimentally
+     v3 now uses Game-owned Planning/Turn evidence only
+     legacy physical columns remain below semantic waist
 
 GC3  semantic-waist audit
      determine whether DeepSeek credential/pool mechanics

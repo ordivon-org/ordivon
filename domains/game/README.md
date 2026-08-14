@@ -117,7 +117,7 @@ The next Station Zero form is retained under `src/station-zero-v3/`. Its stable 
 
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
 - [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and pure replay contract;
-- [`docs/STATION_ZERO_V3_P2.md`](docs/STATION_ZERO_V3_P2.md): durable SQLite execution, Embedded Host lifecycle, crash recovery, and bounded Mission Control projection;
+- [`docs/STATION_ZERO_V3_P2.md`](docs/STATION_ZERO_V3_P2.md): durable SQLite Turn execution, exact receipt/recovery, and bounded Mission Control projection;
 - [`docs/STATION_ZERO_V3_P3.md`](docs/STATION_ZERO_V3_P3.md): Commander Orders, bounded Agent planning, policy expansion, sealed three-faction Preview, explicit Commit, and browser first-playable.
 
 ```text
@@ -224,7 +224,7 @@ src/server.ts, web/
     current product HTTP service and browser interface
 
 src/station-zero-v3/
-    v3 content, Genesis, deterministic reducer, Planning/Turn authority, Host execution, Agent Context and Candidate admission, policy expansion, Play Service, recovery, and bounded projections
+    v3 content, Genesis, deterministic reducer, Planning/Turn authority, exact Game-owned execution evidence, Agent Context and Candidate admission, policy expansion, Play Service, recovery, and bounded projections
 
 web-v3/
     isolated Station Zero v3 first-playable browser
