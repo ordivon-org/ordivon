@@ -15,7 +15,8 @@
     "check": "pnpm typecheck && pnpm webcheck && pnpm test",
     "e2e": "node scripts/e2e-first-playable.ts",
     "e2e:v3": "node scripts/e2e-station-zero-v3.ts",
-    "eval:v3:fixture-strategies": "node scripts/eval-station-zero-v3-fixture-strategies.ts"
+    "eval:v3:fixture-strategies": "node scripts/eval-station-zero-v3-fixture-strategies.ts",
+    "eval:v3:g4": "node scripts/eval-station-zero-v3-g4-calibration.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

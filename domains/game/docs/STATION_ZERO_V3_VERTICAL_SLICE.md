@@ -65,6 +65,106 @@ G4 human perceptual/value calibration: open
 G5 Production admission: blocked on that residual gate
 ```
 
+## G4 calibration round — machine/agent perception gate
+
+A second G4 round converted the remaining machine-falsifiable perception claims into a repeatable evaluator:
+
+```text
+pnpm eval:v3:g4
+```
+
+The accepted 2026-08-14 calibration run produced:
+
+```text
+findings:           25
+passed:             25
+failed:              0
+critical failures:   0
+major failures:      0
+```
+
+The evaluator covers desktop/mobile hierarchy, horizontal overflow, mobile DOM/Tab reading order, repeated three-Turn deliberation/resolution, exact Preview→Aftermath action/front continuity, specialist silhouette discrimination, media-failure fallback, reduced-motion behavior, a dedicated status announcer, and key-text contrast proxies.
+
+### Defects found and corrected
+
+The calibration was not a ceremonial pass. It falsified three production assumptions:
+
+1. **Busy overlay authority was incomplete.** Pointer input was blocked, but keyboard focus could still enter stale Mission controls. Busy Mission content is now `inert` with `aria-busy=true`, so pointer and keyboard authority agree while the World is frozen.
+2. **The whole application was an over-broad live region.** `#app aria-live=polite` could cause large repeated Mission re-announcements on each render. It is now ordinary content plus one persistent atomic status announcer that emits only short truthful lifecycle boundaries: deliberation started, plan ready, resolution started, aftermath ready.
+3. **Mobile visual order disagreed with accessibility reading order.** CSS placed Commander Order before Situation, but the DOM remained Situation-first; the scrollable map therefore entered Tab order before controls that appeared visually above it. Runtime presentation now reorders the mobile DOM itself (`Planning → Situation`) while restoring `Situation → Planning` on desktop, aligning visual, screen-reader and keyboard order.
+
+### Calibration evidence
+
+Representative retained facts from the passing evaluator:
+
+```text
+Mobile Commander Order top:           411 px
+Mobile tactical map top:             1642 px
+Mobile DOM order:                    topbar → resources → first-command → planning → situation
+Mobile first map Tab stop:           after all Commander Order controls
+Specialist alpha-silhouette minimum: 51 / 576 pixels different
+Media failure:                       E/M/S + aria-label identity retained
+Reduced motion:                      specialist animation = none
+Repeated deliberation Turns:         3 / 3 frozen, inert, announced, sealed
+Preview Rescue intents:              3 each Turn
+Sealed enemy plans:                  2 each Turn
+Preview→Aftermath planned actions:   exact for all sampled Actors/Turns
+Plan Impact→Plan Review fronts:      exact for all sampled Turns
+Minimum sampled text contrast:       6.70 : 1
+```
+
+These measurements establish **structural perceptual legibility and accessibility consistency**, not subjective visual quality.
+
+Post-calibration regression receipt:
+
+```text
+repository tests:             305 / 305 passed
+registered v2 browser E2E:   passed
+v3 20-Turn browser E2E:      passed
+v3 browser errors:           0
+live holdout preflight:      3 / 3 verified Runs
+live Provider calls:         15 / 15 successful
+live retries:                0
+live hidden references:      0
+live Provider latency p50:   1932 ms
+live Provider latency p95:   2520 ms
+live Preview latency p50:    2446 ms
+live Preview latency p95:    2557 ms
+```
+
+### G4 exit residue
+
+After this calibration, the following claims are closed at machine/agent evidence level:
+
+- command appears before detailed Situation on mobile in geometry, DOM and keyboard order;
+- live deliberation/resolution cannot accidentally expose stale controls or advance World state;
+- lifecycle changes are announced without turning the entire app into a live region;
+- three Rescue specialists retain distinct shape identity plus textual fallback;
+- current sampled critical text clears contrast proxy thresholds;
+- reduced-motion and missing-media paths retain usable semantics;
+- Preview actions/fronts are the same commitments later shown in Aftermath review.
+
+The following remain **human-only product claims** and are deliberately not inferred from the evaluator:
+
+- whether the tactical art direction feels coherent, attractive, or distinctive;
+- whether players recognize the three specialist marks quickly without being told their mapping;
+- whether repeated 1.5–2.0s live deliberation feels suspenseful/meaningful rather than slow;
+- whether Plan Impact/Preview/Aftermath explanations improve real player decisions instead of merely being readable;
+- whether the delegated-command fantasy is understood and preferred by the target audience;
+- delight, attachment, replay desire, market appeal, or willingness to return.
+
+Therefore the lifecycle judgment remains:
+
+```text
+G4 production pipeline:                    accepted
+G4 machine runtime/UX acceptance:          accepted
+G4 machine/agent perception calibration:   accepted
+G4 human perceptual/value calibration:     open
+G5 Production admission:                   blocked on human-only residue
+```
+
+G5 must not be entered by redefining these human claims away. A later targeted human session may be small, but it must test the actual Vertical Slice rather than a questionnaire about concepts.
+
 ## Purpose
 
 G3 proved that the Station Zero v3 kernel is playable, strategically non-trivial, and capable of bounded live-Agent realization. G4 now asks a different pair of questions:

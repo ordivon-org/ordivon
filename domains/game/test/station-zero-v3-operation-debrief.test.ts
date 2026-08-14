@@ -55,13 +55,13 @@ test("default operation debrief reports exact focus and required milestones with
     const civilians = view.debrief.objectives.find((entry) => entry.objectiveId === "rescue-two-civilians")!;
     assert.equal(civilians.finalProgress, 1);
     assert.equal(civilians.target, 2);
-    assert.equal(civilians.firstProgressTurn, 9);
+    assert.equal(civilians.firstProgressTurn, 10);
     assert.equal(civilians.completedTurn, null);
     const survival = view.debrief.objectives.find((entry) => entry.objectiveId === "rescue-team-survives")!;
     assert.equal(survival.finalProgress, 1);
     assert.equal(survival.finalStatus, "completed");
-    assert.equal(survival.firstProgressTurn, 9);
-    assert.equal(survival.completedTurn, 9);
+    assert.equal(survival.firstProgressTurn, 10);
+    assert.equal(survival.completedTurn, 10);
     assert.equal(JSON.stringify(view.debrief).includes("recover-research-core"), false);
     assert.equal(JSON.stringify(view.debrief).includes("hive-alpha"), false);
   } finally {

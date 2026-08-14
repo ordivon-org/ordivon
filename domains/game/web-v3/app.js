@@ -2,6 +2,8 @@ import { stationZeroV3Api } from "/v3/api.js";
 import { renderStationZeroV3App } from "/v3/render.js";
 
 const root = document.querySelector("#app");
+const statusAnnouncer = document.querySelector("#status-announcer");
+const mobileReadingOrder = matchMedia("(max-width: 600px)");
 const AUDIO_STORAGE_KEY = "station-zero-v3-audio-muted";
 const AUDIO_CUES = {
   "plan-ready": "/v3/assets/audio/plan-ready.ogg",
@@ -55,9 +57,25 @@ const CONTROL_LABELS = {
   protectedActorId: "Protected specialist",
 };
 
+function announceStatus(message) {
+  if (!statusAnnouncer) return;
+  statusAnnouncer.textContent = "";
+  requestAnimationFrame(() => { statusAnnouncer.textContent = message; });
+}
+
+function applyResponsiveReadingOrder() {
+  const mission = root.querySelector(".mission");
+  const situation = mission?.querySelector(":scope > .situation-grid");
+  const planning = mission?.querySelector(":scope > .planning-grid");
+  if (!mission || !situation || !planning) return;
+  if (mobileReadingOrder.matches) mission.insertBefore(planning, situation);
+  else mission.insertBefore(situation, planning);
+}
+
 function render() {
   const expressionTurnSequence = model.expressionTurnSequence;
   root.innerHTML = renderStationZeroV3App(model);
+  applyResponsiveReadingOrder();
   bind();
   if (expressionTurnSequence !== null) {
     model.expressionTurnSequence = null;
@@ -103,6 +121,8 @@ function setAudioMuted(muted) {
 async function perform(label, operation, kind = "generic") {
   model.busy = { label, kind, startedAt: performance.now() };
   model.error = null;
+  if (kind === "deliberation" && model.view) announceStatus(`Deliberation started. World paused at Turn ${model.view.run.turn}.`);
+  if (kind === "resolution" && model.view) announceStatus(`Turn ${model.view.run.turn + 1} committed. Resolving all factions.`);
   render();
   startBusyClock();
   try {
@@ -263,6 +283,7 @@ function bind() {
       model.view = saved.view;
       const generated = await stationZeroV3Api.preview(model.runId);
       model.view = generated.view;
+      announceStatus(`Plan ready for Turn ${model.view.run.turn + 1}. Review three Rescue intents before Commit.`);
       playCue("plan-ready");
     }, "deliberation");
   });
@@ -273,6 +294,7 @@ function bind() {
       model.view = committed.view;
       model.expressionTurnSequence = committed.view.aftermath?.turnSequence ?? null;
       model.runs = (await stationZeroV3Api.runs()).runs;
+      announceStatus(`Turn ${model.view.run.turn} resolved. Review Aftermath and mission-front changes.`);
       playCue("aftermath");
     }, "resolution");
   });
@@ -284,6 +306,8 @@ function bind() {
     render();
   });
 }
+
+mobileReadingOrder.addEventListener("change", applyResponsiveReadingOrder);
 
 async function boot() {
   await perform("Loading Mission Control…", async () => {

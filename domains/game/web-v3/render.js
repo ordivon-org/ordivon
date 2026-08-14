@@ -400,8 +400,9 @@ function renderBusyState(busy, view) {
   return `<div class="busy generic-busy" data-testid="busy" data-busy-kind="${escapeHtml(busy.kind ?? "generic")}"><div class="spinner"></div><strong>${escapeHtml(busy.label ?? busy)}</strong><small>Elapsed <b data-busy-elapsed>0.0s</b></small></div>`;
 }
 
-function renderMission(view, catalog, expressionTurnSequence = null, audioMuted = false) {
-  return `<main class="mission">
+function renderMission(view, catalog, expressionTurnSequence = null, audioMuted = false, busy = null) {
+  const busyAttrs = busy ? ' inert aria-busy="true"' : "";
+  return `<main class="mission"${busyAttrs}>
     <header class="topbar"><div><p class="eyebrow">Station Zero v3 · Contested Signal</p><h1>Mission Control</h1></div><div class="topbar-controls"><button type="button" class="audio-toggle" data-action="toggle-audio" data-testid="audio-toggle" aria-pressed="${audioMuted ? "true" : "false"}" title="Presentation audio does not affect Game state">${audioMuted ? "Audio off" : "Audio on"}</button><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></div></header>
     <section class="resource-grid">
       ${metric("Battery", view.resources.batteryCharge, view.resources.batteryInitial)}
@@ -421,6 +422,6 @@ function renderMission(view, catalog, expressionTurnSequence = null, audioMuted 
 }
 
 export function renderStationZeroV3App({ view, catalog, runs, busy, error, expressionTurnSequence = null, audioMuted = false }) {
-  const content = view ? renderMission(view, catalog, expressionTurnSequence, audioMuted) : renderLanding(runs, catalog);
+  const content = view ? renderMission(view, catalog, expressionTurnSequence, audioMuted, busy) : renderLanding(runs, catalog);
   return `${content}${renderBusyState(busy, view)}${error ? `<div class="toast error" role="alert">${escapeHtml(error)}</div>` : ""}`;
 }

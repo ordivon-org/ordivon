@@ -50,6 +50,11 @@ test("G4 audio keeps deterministic local source, mute state, and post-boundary c
   assert.match(app, /playCue\("aftermath"\)/);
 });
 
+test("busy presentation freezes the stale Mission surface for keyboard and assistive semantics", () => {
+  assert.match(render, /inert aria-busy="true"/);
+  assert.match(render, /renderMission\(view, catalog, expressionTurnSequence, audioMuted, busy\)/);
+});
+
 test("deliberation is a truthful presentation state and mobile CSS routes Command before full Situation", () => {
   assert.match(render, /World paused at Turn/);
   assert.match(render, /Enemy plans sealed/);
@@ -59,4 +64,17 @@ test("deliberation is a truthful presentation state and mobile CSS routes Comman
   assert.match(styles, /\.mission > \.situation-grid \{ order: 7; \}/);
   assert.match(styles, /prefers-reduced-motion/);
   assert.match(styles, /\.deliberating, \.spinner \{ animation: none; \}/);
+});
+
+
+test("G4 calibration owns focused lifecycle announcements and responsive reading order", () => {
+  const index = readFileSync(new URL("../web-v3/index.html", import.meta.url), "utf8");
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.doesNotMatch(index, /id="app" aria-live/);
+  assert.match(index, /id="status-announcer"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(app, /applyResponsiveReadingOrder/);
+  assert.match(app, /mobileReadingOrder\.matches/);
+  assert.match(app, /Plan ready for Turn/);
+  assert.match(app, /Review Aftermath and mission-front changes/);
+  assert.equal(pkg.scripts["eval:v3:g4"], "node scripts/eval-station-zero-v3-g4-calibration.ts");
 });
