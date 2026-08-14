@@ -17,6 +17,8 @@ managed_paths:
   - docs/ARCHITECTURE.md
   - docs/VISION.md
   - docs/DEVELOPMENT_MODEL.md
+  - docs/STATION_ZERO_V3_PRODUCT.md
+  - docs/STATION_ZERO_V3_VERTICAL_SLICE.md
   - docs/STATION_ZERO_V3_P0.md
   - docs/STATION_ZERO_V3_P1.md
   - docs/STATION_ZERO_V3_P2.md

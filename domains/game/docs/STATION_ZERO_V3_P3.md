@@ -14,7 +14,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-08
+updated: 2026-08-14
 summary: Accepted target architecture for the unregistered Station Zero v3 Commander Orders, bounded Agent planning, sealed Plan Preview, explicit Commit, dedicated API, first-playable browser, and recovery.
 evidence_status: verified
 readiness: READY
@@ -45,7 +45,7 @@ Dedicated v3 HTTP API: complete
 Dedicated /v3 browser first-playable: complete
 Process-restart recovery: complete
 Current station-zero@2 replacement: deferred
-Live model Provider certification: deferred
+G3 bounded live Provider realization: accepted; G4 production-experience validation pending
 ```
 
 Station Zero v3 remains absent from `src/registry.ts`. The current root product and its v2/v3 execution contract remain unchanged. P3 is exposed only through a separate v3 database, API namespace, and `/v3` preview surface.
@@ -313,9 +313,9 @@ The fixture Provider:
 - selects Pirate and Swarm directives;
 - supports deterministic browser tests and replay diagnosis.
 
-`StationZeroV3AgentProviderFactory` allows a future live Provider implementation to replace the fixture without changing World, Planning, persistence, or browser contracts.
+`StationZeroV3AgentProviderFactory` allows the live Provider to replace the fixture without changing World, Planning, persistence, or browser contracts. The current server can select the DeepSeek Provider pool through `ORDIVON_GAME_V3_PROVIDER=deepseek`; the deterministic World remains independent from model availability.
 
-A live Provider is deliberately deferred until prompt, latency, fallback, and evaluation evidence exists. P3 does not make the deterministic World depend on model availability.
+G3 live holdouts established bounded Candidate admission, hidden-information safety, stable Provider execution, and real strategic realization. `objective:advance` and `responsibility:advance` now expose Game-owned current-action meaning without compiling a winning sequence into Provider instructions. Shipping-quality planning latency, waiting experience, and outcome distribution remain G4/later product questions rather than P3 architecture claims.
 
 ## Tactical route behavior
 
@@ -476,7 +476,7 @@ Changing an Order row or Preview row independently fails closed.
 7. escorted civilian movement and extraction;
 8. restart with retained Order and Preview;
 9. deterministic policy-unit expansion;
-10. complete 14-Turn execution without admission or recovery failure;
+10. complete 20-Turn execution without admission or recovery failure;
 11. Order and Preview tamper detection;
 12. continuation of the selected Preview after partial Plan submission or P2 preparation.
 

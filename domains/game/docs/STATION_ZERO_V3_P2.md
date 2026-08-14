@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-03
+updated: 2026-08-14
 summary: Accepted target architecture for unregistered Station Zero v3 durable Planning, atomic Turn commit, embedded Host execution, recovery, verification, replay, and bounded Mission Control projection.
 evidence_status: verified
 readiness: READY
@@ -454,6 +454,6 @@ player Commander Order
 → bounded Aftermath
 ```
 
-The dedicated `/v3` surface proves process-restart recovery and a complete 14-Turn browser journey without exposing raw reducer controls, omniscient enemy state, or model-owned World mutation.
+The dedicated `/v3` surface proves process-restart recovery and a complete 20-Turn browser journey without exposing raw reducer controls, omniscient enemy state, or model-owned World mutation.
 
 See [`STATION_ZERO_V3_P3.md`](STATION_ZERO_V3_P3.md) for Order revision, Agent Context, Candidate admission, sealed enemy plans, policy hierarchy, browser, and first-playable boundaries.

@@ -2,6 +2,7 @@ import { sha256 } from "../digest.ts";
 import {
   STATION_ZERO_V3_COMMANDER_ABILITIES,
   STATION_ZERO_V3_EQUIPMENT,
+  STATION_ZERO_V3_P0_CONTRACT,
   STATION_ZERO_V3_ITEMS,
   STATION_ZERO_V3_OBJECTIVES,
 } from "./content.ts";
@@ -537,7 +538,7 @@ export function createStationZeroV3Genesis(seed = "station-zero-v3-fixed-encount
       status: "running",
       reason: null,
       turn: 0,
-      turnLimit: 14,
+      turnLimit: STATION_ZERO_V3_P0_CONTRACT.runBoundary.turnLimit,
       phase: "situation",
       activePlanRevision: 0,
     },

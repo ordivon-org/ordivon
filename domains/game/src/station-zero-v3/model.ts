@@ -78,6 +78,7 @@ export interface StationZeroP0Contract {
     hiddenHitRolls: false;
   };
   runBoundary: {
+    turnLimit: number;
     encounterOwnsLoot: true;
     encounterOwnsFactionOutcomes: true;
     routeMapDeferred: true;

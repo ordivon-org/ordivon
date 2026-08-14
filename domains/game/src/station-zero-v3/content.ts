@@ -49,6 +49,7 @@ export const STATION_ZERO_V3_P0_CONTRACT: StationZeroP0Contract = {
     hiddenHitRolls: false,
   },
   runBoundary: {
+    turnLimit: 20,
     encounterOwnsLoot: true,
     encounterOwnsFactionOutcomes: true,
     routeMapDeferred: true,

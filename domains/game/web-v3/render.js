@@ -26,6 +26,18 @@ function tokenLabel(value) {
     .join(" ");
 }
 
+const SPECIALIST_VISUALS = {
+  "engineer-imani": { role: "engineer", glyph: "E", x: 0 },
+  "medic-reyes": { role: "medic", glyph: "M", x: 24 },
+  "security-chen": { role: "security", glyph: "S", x: 48 },
+};
+
+function specialistToken(actorId, className = "") {
+  const visual = SPECIALIST_VISUALS[actorId];
+  if (!visual) return "";
+  return `<span class="specialist-token ${escapeHtml(visual.role)} ${escapeHtml(className)}" style="--portrait-x:-${visual.x}px" title="${escapeHtml(tokenLabel(actorId))}" aria-label="${escapeHtml(tokenLabel(actorId))}"><span aria-hidden="true">${escapeHtml(visual.glyph)}</span></span>`;
+}
+
 function metric(label, value, maximum, warningAt = null) {
   const danger = warningAt !== null && value >= warningAt;
   return `<article class="metric${danger ? " danger" : ""}">
@@ -35,7 +47,7 @@ function metric(label, value, maximum, warningAt = null) {
   </article>`;
 }
 
-function renderLanding(runs) {
+function renderLanding(runs, catalog) {
   const retained = runs.length ? `<section class="panel retained-runs">
     <div class="section-heading"><div><p class="eyebrow">Retained operations</p><h2>Resume a command</h2></div></div>
     <div class="run-list">${runs.map((run) => `<button class="run-card" data-action="resume-run" data-run-id="${escapeHtml(run.runId)}">
@@ -50,14 +62,14 @@ function renderLanding(runs) {
       <p class="lede">Command a rescue team inside a station contested by pirates and a biological swarm. You set mission intent and authority; specialists choose legal local actions; all factions resolve simultaneously.</p>
       <div class="hero-grid">
         <div><b>3</b><span>asymmetric factions</span></div>
-        <div><b>14</b><span>turn limit</span></div>
+        <div><b>${escapeHtml(catalog?.turnLimit ?? "—")}</b><span>turn limit</span></div>
         <div><b>1</b><span>simultaneous resolution</span></div>
       </div>
       <form id="new-run-form" class="start-form">
         <label>Operation call sign<input id="new-run-id" value="station-zero-${Date.now().toString(36)}" autocomplete="off"></label>
         <button class="primary" type="submit" data-testid="start-run">Begin operation</button>
       </form>
-      <p class="small-note">Simulation build: deterministic specialist Agents. Enemy plans remain sealed until resolution.</p>
+      <p class="small-note">Bounded specialist cognition · deterministic World consequence · enemy plans remain sealed until resolution.</p>
     </section>
     ${retained}
   </main>`;
@@ -184,7 +196,7 @@ function renderPreview(view) {
 function renderActors(view) {
   return `<section class="panel"><div class="section-heading"><div><p class="eyebrow">Rescue team</p><h2>Specialists</h2></div></div>
     <div class="actor-list">${view.ownActors.map((actor) => `<article class="actor-card ${escapeHtml(actor.lifeState)}">
-      <div><span>${escapeHtml(actor.roleId)}</span><h3>${escapeHtml(actor.name)}</h3></div>
+      <div class="actor-identity">${specialistToken(actor.actorId, "card-portrait")}<div><span>${escapeHtml(actor.roleId)}</span><h3>${escapeHtml(actor.name)}</h3></div></div>
       <strong>${escapeHtml(actor.health)} / ${escapeHtml(actor.maximumHealth)} HP</strong>
       <small>${escapeHtml(actor.zoneName)} · ${escapeHtml(actor.lifeState)}</small>
     </article>`).join("")}</div>
@@ -204,12 +216,12 @@ function pointList(points) {
 }
 
 function compactToken(id, kind) {
+  if (kind === "rescue" && SPECIALIST_VISUALS[id]) return specialistToken(id, "map-specialist");
   const label = tokenLabel(id);
-  const glyph = kind === "rescue" ? label.split(" ").at(-1)?.slice(0, 1) ?? "R"
-    : kind === "contact" ? "?"
-      : kind === "system" ? "◆"
-        : kind === "hazard" ? "!"
-          : "◇";
+  const glyph = kind === "contact" ? "?"
+    : kind === "system" ? "◆"
+      : kind === "hazard" ? "!"
+        : "◇";
   return `<span class="map-token ${kind}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${escapeHtml(glyph)}</span>`;
 }
 
@@ -360,9 +372,37 @@ function renderTerminal(view) {
   </section>`;
 }
 
-function renderMission(view, catalog, expressionTurnSequence = null) {
+function renderBusyState(busy, view) {
+  if (!busy) return "";
+  if (busy.kind === "deliberation" && view) {
+    return `<div class="busy deliberation" data-testid="busy" data-busy-kind="deliberation">
+      <section class="deliberation-card" data-testid="deliberation-state">
+        <div class="deliberation-heading"><div><p class="eyebrow">Deliberation</p><h2>World paused at Turn ${escapeHtml(view.run.turn)}</h2></div><span class="status">Enemy plans sealed</span></div>
+        <p>Binding the Commander Order. Engineer, Medic, and Security are selecting admitted local actions from bounded Knowledge. No World consequence has happened yet.</p>
+        <div class="deliberation-team">
+          <div>${specialistToken("engineer-imani", "deliberating")}<span>Engineer</span></div>
+          <div>${specialistToken("medic-reyes", "deliberating")}<span>Medic</span></div>
+          <div>${specialistToken("security-chen", "deliberating")}<span>Security</span></div>
+        </div>
+        <small>Elapsed <b data-busy-elapsed>0.0s</b> · client-observed wait only · no fake progress</small>
+      </section>
+    </div>`;
+  }
+  if (busy.kind === "resolution" && view) {
+    return `<div class="busy resolution-busy" data-testid="busy" data-busy-kind="resolution">
+      <section class="deliberation-card resolution-card">
+        <div class="deliberation-heading"><div><p class="eyebrow">Commit</p><h2>Resolving all factions</h2></div><span class="status">Turn ${escapeHtml(view.run.turn + 1)}</span></div>
+        <p>The selected Preview has been committed. Waiting for authoritative simultaneous resolution; no result is shown before the World response.</p>
+        <small>Elapsed <b data-busy-elapsed>0.0s</b></small>
+      </section>
+    </div>`;
+  }
+  return `<div class="busy generic-busy" data-testid="busy" data-busy-kind="${escapeHtml(busy.kind ?? "generic")}"><div class="spinner"></div><strong>${escapeHtml(busy.label ?? busy)}</strong><small>Elapsed <b data-busy-elapsed>0.0s</b></small></div>`;
+}
+
+function renderMission(view, catalog, expressionTurnSequence = null, audioMuted = false) {
   return `<main class="mission">
-    <header class="topbar"><div><p class="eyebrow">Station Zero v3 · Contested Signal</p><h1>Mission Control</h1></div><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></header>
+    <header class="topbar"><div><p class="eyebrow">Station Zero v3 · Contested Signal</p><h1>Mission Control</h1></div><div class="topbar-controls"><button type="button" class="audio-toggle" data-action="toggle-audio" data-testid="audio-toggle" aria-pressed="${audioMuted ? "true" : "false"}" title="Presentation audio does not affect Game state">${audioMuted ? "Audio off" : "Audio on"}</button><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></div></header>
     <section class="resource-grid">
       ${metric("Battery", view.resources.batteryCharge, view.resources.batteryInitial)}
       ${metric("Oxygen", view.resources.oxygen, 100)}
@@ -380,7 +420,7 @@ function renderMission(view, catalog, expressionTurnSequence = null) {
   </main>`;
 }
 
-export function renderStationZeroV3App({ view, catalog, runs, busy, error, expressionTurnSequence = null }) {
-  const content = view ? renderMission(view, catalog, expressionTurnSequence) : renderLanding(runs);
-  return `${content}${busy ? `<div class="busy" data-testid="busy"><div class="spinner"></div><strong>${escapeHtml(busy)}</strong></div>` : ""}${error ? `<div class="toast error" role="alert">${escapeHtml(error)}</div>` : ""}`;
+export function renderStationZeroV3App({ view, catalog, runs, busy, error, expressionTurnSequence = null, audioMuted = false }) {
+  const content = view ? renderMission(view, catalog, expressionTurnSequence, audioMuted) : renderLanding(runs, catalog);
+  return `${content}${renderBusyState(busy, view)}${error ? `<div class="toast error" role="alert">${escapeHtml(error)}</div>` : ""}`;
 }

@@ -22,6 +22,8 @@ applies_to:
   - ordivon-game
 related:
   - game.product.station-zero
+  - game.product.station-zero-v3
+  - game.product.station-zero-v3.vertical-slice
   - game.architecture
   - game.vision
   - game.development-model
@@ -45,7 +47,9 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
 - [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
-- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the accepted but unregistered v3 target slices.
+- [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G4-admitted product form, G3 strategic/live-Agent evidence, production profile, and replacement boundary.
+- [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the active G4 production slice, accepted machine-production evidence, and the remaining human perceptual gate before G5.
+- [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the exact encounter, reducer, durable execution, and planning/browser contracts beneath that target.
 - [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
 ## Station Zero
@@ -107,7 +111,7 @@ Only this Scenario and Ruleset are registered as the current product. Older exec
 
 ## Station Zero v3 preview
 
-The next Station Zero form is retained under `src/station-zero-v3/` and documented in:
+The next Station Zero form is retained under `src/station-zero-v3/`. Its stable product definition is [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md); exact implementation contracts remain:
 
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
 - [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and pure replay contract;
@@ -121,6 +125,9 @@ Target form: three-faction deterministic turn-based tactical encounter
 P1: reducer and pure replay complete
 P2: durable Turn authority and recovery complete
 P3: isolated playable planning layer and /v3 browser complete
+G3: strategic viability, plurality, and bounded live-Agent realization accepted
+Current development stage: G4 Vertical Slice admitted
+Encounter budget: 20 Turns
 Optional exact Agent Action admission: implemented in the unregistered v3 path
 ```
 

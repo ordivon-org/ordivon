@@ -32,7 +32,7 @@ Rescue vs Pirate vs Swarm
 /v3 preview surface
 ```
 
-Its content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, bounded player/Agent planning, policy expansion, and first-playable browser live under `src/station-zero-v3/`, `web-v3/`, and `docs/STATION_ZERO_V3_P0.md` through `docs/STATION_ZERO_V3_P3.md`.
+Its stable product definition lives in `docs/STATION_ZERO_V3_PRODUCT.md`. Exact content, deterministic reducer, durable SQLite Turn authority, Embedded Host lifecycle, recovery, bounded player/Agent planning, policy expansion, and first-playable browser contracts remain under `src/station-zero-v3/`, `web-v3/`, and `docs/STATION_ZERO_V3_P0.md` through `docs/STATION_ZERO_V3_P3.md`.
 
 The v3 preview is intentionally absent from `src/registry.ts` and uses its own API namespace and database. Do not replace the current root product until repeated playtesting and live-Provider evaluation justify deleting the v2 approval loop.
 
@@ -123,6 +123,8 @@ A meaningful change should state:
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
+- `docs/STATION_ZERO_V3_PRODUCT.md` defines the stable unregistered v3 product target, current G-stage, G3 evidence, production profile, and replacement boundary.
+- `docs/STATION_ZERO_V3_VERTICAL_SLICE.md` defines the active G4 production slice, accepted machine-production evidence, and the residual perceptual gate that blocks G5.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
 - `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.

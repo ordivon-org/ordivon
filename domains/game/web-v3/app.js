@@ -2,6 +2,17 @@ import { stationZeroV3Api } from "/v3/api.js";
 import { renderStationZeroV3App } from "/v3/render.js";
 
 const root = document.querySelector("#app");
+const AUDIO_STORAGE_KEY = "station-zero-v3-audio-muted";
+const AUDIO_CUES = {
+  "plan-ready": "/v3/assets/audio/plan-ready.ogg",
+  commit: "/v3/assets/audio/commit.ogg",
+  aftermath: "/v3/assets/audio/aftermath.ogg",
+};
+
+function storedAudioMuted() {
+  try { return localStorage.getItem(AUDIO_STORAGE_KEY) === "1"; } catch { return false; }
+}
+
 const model = {
   catalog: null,
   runs: [],
@@ -10,6 +21,7 @@ const model = {
   busy: null,
   error: null,
   expressionTurnSequence: null,
+  audioMuted: storedAudioMuted(),
 };
 
 const ORDER_FIELDS = [
@@ -53,16 +65,53 @@ function render() {
   }
 }
 
-async function perform(label, operation) {
-  model.busy = label;
+let busyTimer = null;
+
+function updateBusyElapsed() {
+  const target = document.querySelector("[data-busy-elapsed]");
+  if (!target || !model.busy?.startedAt) return;
+  target.textContent = `${((performance.now() - model.busy.startedAt) / 1000).toFixed(1)}s`;
+}
+
+function startBusyClock() {
+  clearInterval(busyTimer);
+  updateBusyElapsed();
+  busyTimer = setInterval(updateBusyElapsed, 100);
+}
+
+function stopBusyClock() {
+  clearInterval(busyTimer);
+  busyTimer = null;
+}
+
+function playCue(name) {
+  if (model.audioMuted) return;
+  const src = AUDIO_CUES[name];
+  if (!src) return;
+  try {
+    const audio = new Audio(src);
+    audio.volume = 0.34;
+    audio.play().catch(() => {});
+  } catch {}
+}
+
+function setAudioMuted(muted) {
+  model.audioMuted = Boolean(muted);
+  try { localStorage.setItem(AUDIO_STORAGE_KEY, model.audioMuted ? "1" : "0"); } catch {}
+}
+
+async function perform(label, operation, kind = "generic") {
+  model.busy = { label, kind, startedAt: performance.now() };
   model.error = null;
   render();
+  startBusyClock();
   try {
     await operation();
   } catch (error) {
     console.error(error);
     model.error = error.message ?? String(error);
   } finally {
+    stopBusyClock();
     model.busy = null;
     render();
   }
@@ -165,6 +214,10 @@ function onOrderInput(event) {
 }
 
 function bind() {
+  document.querySelector('[data-action="toggle-audio"]')?.addEventListener("click", () => {
+    setAudioMuted(!model.audioMuted);
+    render();
+  });
   document.querySelector("#new-run-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const runId = document.querySelector("#new-run-id").value.trim();
@@ -205,19 +258,24 @@ function bind() {
   document.querySelector('[data-action="generate-preview"]')?.addEventListener("click", () => {
     const order = collectOrder();
     if (!order) return;
-    perform("Agents are deliberating…", async () => {
+    perform("Team deliberation", async () => {
       const saved = await stationZeroV3Api.saveOrder(model.runId, order);
       model.view = saved.view;
       const generated = await stationZeroV3Api.preview(model.runId);
       model.view = generated.view;
-    });
+      playCue("plan-ready");
+    }, "deliberation");
   });
-  document.querySelector('[data-action="commit-turn"]')?.addEventListener("click", (event) => perform("Resolving all factions…", async () => {
-    const committed = await stationZeroV3Api.commit(model.runId, event.currentTarget.dataset.previewId);
-    model.view = committed.view;
-    model.expressionTurnSequence = committed.view.aftermath?.turnSequence ?? null;
-    model.runs = (await stationZeroV3Api.runs()).runs;
-  }));
+  document.querySelector('[data-action="commit-turn"]')?.addEventListener("click", (event) => {
+    playCue("commit");
+    perform("Resolving all factions", async () => {
+      const committed = await stationZeroV3Api.commit(model.runId, event.currentTarget.dataset.previewId);
+      model.view = committed.view;
+      model.expressionTurnSequence = committed.view.aftermath?.turnSequence ?? null;
+      model.runs = (await stationZeroV3Api.runs()).runs;
+      playCue("aftermath");
+    }, "resolution");
+  });
   document.querySelector('[data-action="new-operation"]')?.addEventListener("click", () => {
     model.view = null;
     model.runId = null;

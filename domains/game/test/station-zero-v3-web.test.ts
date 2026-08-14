@@ -5,13 +5,17 @@ import { StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zer
 // @ts-expect-error Browser module intentionally has no Node declaration.
 import { renderStationZeroV3App } from "../web-v3/render.js";
 
-test("v3 landing uses player-facing operation language while retaining simulation truth", () => {
-  const html = renderStationZeroV3App({ view: null, catalog: null, runs: [], busy: null, error: null });
+test("v3 landing uses player-facing operation language while retaining Game-owned turn truth", () => {
+  const store = new StationZeroV3Store(":memory:");
+  const play = new StationZeroV3PlayService(store);
+  const html = renderStationZeroV3App({ view: null, catalog: play.catalog(), runs: [], busy: null, error: null });
   assert.match(html, /Ordivon Game · Mission Control/);
   assert.match(html, /Operation call sign/);
   assert.match(html, /simultaneous resolution/);
-  assert.match(html, /Simulation build: deterministic specialist Agents/);
-  assert.doesNotMatch(html, /first-playable preview|Run identity|explicit commit boundary/);
+  assert.match(html, />20<\/b><span>turn limit<\/span>/);
+  assert.match(html, /Bounded specialist cognition · deterministic World consequence · enemy plans remain sealed until resolution/);
+  assert.doesNotMatch(html, /first-playable preview|Run identity|explicit commit boundary|Simulation build/);
+  store.close();
 });
 
 test("first-command orientation disappears once the first plan is generated", async () => {
@@ -111,7 +115,7 @@ test("v3 browser renderer shows bounded aftermath and asymmetric terminal outcom
     assert.match(html, /Turn limit reached/);
     assert.ok(html.includes("1 / 2 required fronts completed"));
     assert.match(html, /Committed focus/);
-    assert.ok(html.includes("14 / 14 Turns"));
+    assert.ok(html.includes("20 / 20 Turns"));
     assert.match(html, /First progress Turn 9/);
     assert.match(html, /Completed Turn 9/);
     assert.match(html, /data-testid="aftermath"/);

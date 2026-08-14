@@ -104,3 +104,107 @@ test("explicit protection and lethal preference have distinct deterministic fixt
     store.close();
   }
 });
+
+test("fixture carries acquired mission cargo toward extraction and honors assigned rescue responsibility", async () => {
+  const store = new StationZeroV3Store(":memory:");
+  try {
+    const play = new StationZeroV3PlayService(store);
+    const runId = "run:station-zero-v3:successor-commitment";
+    play.initialize({ runId });
+    const planning = store.latestPlanning(runId);
+    assert.ok(planning);
+    const initial = store.loadState(runId);
+
+    const cargoState = structuredClone(initial);
+    cargoState.actors["engineer-imani"]!.position.zoneId = "reactor-console";
+    cargoState.actors["engineer-imani"]!.inventoryItemIds.push("research-core");
+    cargoState.factionKnowledge.rescue.discoveredZoneIds.push("reactor-entry", "reactor-console");
+    const cargoChoice = await fixtureChoice(cargoState, planning, runId, "engineer-imani", {
+      primaryObjectiveId: "recover-research-core",
+      posture: "balanced",
+      formation: "split",
+    });
+    assert.equal(cargoChoice.intent.kind, "move");
+    assert.ok(cargoChoice.tags.includes("route:rescue-airlock"));
+    assert.ok(cargoChoice.tags.includes("objective:advance"));
+
+    const acquireState = structuredClone(initial);
+    acquireState.actors["engineer-imani"]!.position.zoneId = "junction-console";
+    acquireState.factionKnowledge.rescue.discoveredZoneIds.push("reactor-entry", "reactor-console");
+    const acquireOrder = {
+      ...defaultStationZeroV3CommanderOrder(runId, planning, acquireState),
+      primaryObjectiveId: "recover-research-core" as const,
+      posture: "cautious" as const,
+      formation: "split" as const,
+    };
+    const acquireContext = compileStationZeroV3AgentContext(acquireState, planning, "engineer-imani", acquireOrder);
+    const reactorRoute = acquireContext.candidates.find((candidate) => candidate.tags.includes("route:reactor-console"));
+    assert.ok(reactorRoute);
+    assert.ok(reactorRoute.tags.includes("objective:advance"));
+
+    const responsibilityState = structuredClone(initial);
+    const kade = responsibilityState.actors["civilian-kade"]!;
+    responsibilityState.factionKnowledge.rescue.knownActors[kade.actorId] = {
+      actorId: kade.actorId,
+      lastKnownZoneId: kade.position.zoneId,
+      observedLifeState: "active",
+      observedHealthBand: "wounded",
+      confidence: "confirmed",
+      observedAtTurn: 0,
+    };
+    responsibilityState.factionKnowledge.rescue.discoveredZoneIds.push("life-entry", "life-console");
+    const responsibilityChoice = await fixtureChoice(responsibilityState, planning, runId, "engineer-imani", {
+      primaryObjectiveId: "rescue-two-civilians",
+      posture: "cautious",
+      formation: "cohesive",
+    });
+    assert.ok(responsibilityChoice.tags.includes("responsibility:advance"));
+  } finally {
+    store.close();
+  }
+});
+
+test("Hive focus can route through known Maintenance Entry before the Nest is revealed", async () => {
+  const store = new StationZeroV3Store(":memory:");
+  try {
+    const play = new StationZeroV3PlayService(store);
+    const runId = "run:station-zero-v3:hive-route-commitment";
+    play.initialize({ runId });
+    const planning = store.latestPlanning(runId);
+    assert.ok(planning);
+    const state = store.loadState(runId);
+    state.factionKnowledge.rescue.discoveredZoneIds.push("maintenance-entry");
+    const selected = await fixtureChoice(state, planning, runId, "security-chen", {
+      primaryObjectiveId: "eliminate-hive-alpha",
+      posture: "aggressive",
+      formation: "split",
+      lethalForce: "preferred",
+    });
+    assert.equal(selected.intent.kind, "move");
+    assert.ok(selected.tags.includes("route:maintenance-entry"));
+    assert.ok(selected.tags.includes("objective:advance"));
+
+    const contactState = structuredClone(state);
+    contactState.factionKnowledge.rescue.discoveredZoneIds.push("life-entry");
+    contactState.factionKnowledge.rescue.knownActors["hive-alpha"] = {
+      actorId: "hive-alpha",
+      lastKnownZoneId: "life-entry",
+      observedLifeState: "active",
+      observedHealthBand: "healthy",
+      confidence: "confirmed",
+      observedAtTurn: 0,
+    };
+    const contactOrder = {
+      ...defaultStationZeroV3CommanderOrder(runId, planning, contactState),
+      primaryObjectiveId: "eliminate-hive-alpha" as const,
+      posture: "aggressive" as const,
+      formation: "split" as const,
+    };
+    const contactContext = compileStationZeroV3AgentContext(contactState, planning, "security-chen", contactOrder);
+    const pursuit = contactContext.candidates.find((candidate) => candidate.tags.includes("route:life-entry"));
+    assert.ok(pursuit);
+    assert.ok(pursuit.tags.includes("objective:advance"));
+  } finally {
+    store.close();
+  }
+});

@@ -50,10 +50,32 @@ page.on("console", (message) => {
 try {
   await page.goto(`${base}/v3`, { waitUntil: "networkidle" });
   await page.getByTestId("start-run").waitFor();
+  assert.match(await page.locator(".hero-grid").textContent() ?? "", /20turn limit/);
+  const productionAssets = await page.evaluate(async () => {
+    const paths = [
+      "/v3/assets/rescue-specialists.png",
+      "/v3/assets/audio/plan-ready.ogg",
+      "/v3/assets/audio/commit.ogg",
+      "/v3/assets/audio/aftermath.ogg",
+    ];
+    return Promise.all(paths.map(async (path) => {
+      const response = await fetch(path);
+      return { path, status: response.status, type: response.headers.get("content-type"), size: Number(response.headers.get("content-length") ?? 0) };
+    }));
+  });
+  for (const asset of productionAssets) assert.equal(asset.status, 200, `missing G4 runtime asset ${asset.path}`);
   await page.locator("#new-run-id").fill(runId);
   await page.getByTestId("start-run").click();
   await page.getByTestId("turn-number").waitFor();
   assert.equal(await page.getByTestId("turn-number").textContent(), "0");
+  assert.equal(await page.locator(".map-specialist").count(), 3, "each own specialist should have a distinct tactical atlas token");
+  assert.equal(await page.locator(".card-portrait").count(), 3, "Specialist cards should consume the same authored atlas");
+  assert.equal(await page.getByTestId("audio-toggle").textContent(), "Audio on");
+  await page.getByTestId("audio-toggle").click();
+  assert.equal(await page.getByTestId("audio-toggle").getAttribute("aria-pressed"), "true");
+  assert.equal(await page.evaluate(() => localStorage.getItem("station-zero-v3-audio-muted")), "1");
+  await page.getByTestId("audio-toggle").click();
+  assert.equal(await page.getByTestId("audio-toggle").getAttribute("aria-pressed"), "false");
   assert.equal(await page.getByTestId("first-command").getAttribute("data-phase"), "order");
   assert.match(await page.getByTestId("first-command").textContent() ?? "", /Mission intent persists/);
   assert.match(await page.getByTestId("first-command").textContent() ?? "", /Remote capability is per-Turn/);
@@ -64,6 +86,28 @@ try {
   assert.equal(await page.locator('[name="formation"]').isVisible(), true);
   assert.equal(await page.locator('[name="commanderDirectiveId"]').isVisible(), true);
   assert.equal(await page.locator('[name="lootPolicy"]').isVisible(), false);
+
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  mobile.on("pageerror", (error) => browserErrors.push(`mobile-pageerror:${error.message}`));
+  mobile.on("console", (message) => { if (message.type() === "error") browserErrors.push(`mobile-console:${message.text()}`); });
+  await mobile.goto(`${base}/v3`, { waitUntil: "networkidle" });
+  await mobile.locator("#new-run-id").fill("run:station-zero-v3:g4-mobile");
+  await mobile.getByTestId("start-run").click();
+  await mobile.getByTestId("commander-order").waitFor();
+  const mobileFlow = await mobile.evaluate(() => {
+    const order = document.querySelector('[data-testid="commander-order"]')?.getBoundingClientRect();
+    const map = document.querySelector('[data-testid="spatial-map"]')?.getBoundingClientRect();
+    return {
+      orderTop: order ? Math.round(order.top + scrollY) : null,
+      mapTop: map ? Math.round(map.top + scrollY) : null,
+      viewportHeight: innerHeight,
+      specialistTokens: document.querySelectorAll('.map-specialist').length,
+    };
+  });
+  assert.ok(mobileFlow.orderTop !== null && mobileFlow.orderTop < 900, `mobile Commander Order should begin before y=900, got ${mobileFlow.orderTop}`);
+  assert.ok(mobileFlow.mapTop !== null && mobileFlow.orderTop < mobileFlow.mapTop, `mobile Command should precede full tactical map: ${JSON.stringify(mobileFlow)}`);
+  assert.equal(mobileFlow.specialistTokens, 3);
+  await mobile.close();
 
   await page.locator('[name="primaryObjectiveId"]').selectOption("recover-research-core");
   assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /Optional side objective/);
@@ -76,8 +120,22 @@ try {
   await page.getByTestId("order-contingencies").locator("summary").click();
   assert.equal(await page.locator('[name="lootPolicy"]').isVisible(), false);
 
+  let delayedPreview = false;
+  await page.route("**/api/station-zero-v3/preview?**", async (route) => {
+    if (!delayedPreview) { delayedPreview = true; await new Promise((resolve) => setTimeout(resolve, 450)); }
+    await route.continue();
+  });
   await page.getByTestId("generate-preview").click();
+  await page.getByTestId("deliberation-state").waitFor();
+  assert.equal(await page.getByTestId("busy").getAttribute("data-busy-kind"), "deliberation");
+  assert.match(await page.getByTestId("deliberation-state").textContent() ?? "", /World paused at Turn 0/);
+  assert.match(await page.getByTestId("deliberation-state").textContent() ?? "", /Enemy plans sealed/);
+  assert.equal(await page.getByTestId("turn-number").textContent(), "0", "Preview waiting must not advance the World");
+  await page.waitForTimeout(180);
+  const deliberationElapsed = Number.parseFloat((await page.locator('[data-busy-elapsed]').textContent() ?? "0").replace("s", ""));
+  assert.ok(deliberationElapsed >= 0.1, `deliberation elapsed time must be client-observed, got ${deliberationElapsed}`);
   await page.getByTestId("plan-preview").waitFor();
+  await page.unroute("**/api/station-zero-v3/preview?**");
   assert.equal(await page.getByTestId("first-command").count(), 0, "first-command orientation should disappear once a real plan exists");
   assert.equal(await page.getByTestId("rescue-intent").count(), 3);
   assert.equal(await page.getByTestId("sealed-enemy-plan").count(), 2);
@@ -157,7 +215,7 @@ try {
   let committedTurns = 1;
   while (await page.getByTestId("terminal-summary").count() === 0) {
     const before = Number(await page.getByTestId("turn-number").textContent());
-    assert.ok(Number.isSafeInteger(before) && before < 14);
+    assert.ok(Number.isSafeInteger(before) && before < 20);
     if (await page.getByTestId("commit-turn").count() === 0) {
       await page.getByTestId("generate-preview").click();
       await page.getByTestId("commit-turn").waitFor();
@@ -171,7 +229,7 @@ try {
     committedTurns += 1;
   }
 
-  assert.equal(await page.getByTestId("turn-number").textContent(), "14");
+  assert.equal(await page.getByTestId("turn-number").textContent(), "20");
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Rescue/);
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Pirate/);
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Swarm/);
@@ -181,7 +239,7 @@ try {
   assert.ok(debriefText.includes("0 / 2 required fronts completed"));
   assert.match(debriefText, /Recover the Research Core/);
   assert.equal(await page.getByTestId("debrief-focus").count(), 1);
-  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="recover-research-core"]').textContent() ?? "").includes("14 / 14 Turns"));
+  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="recover-research-core"]').textContent() ?? "").includes("20 / 20 Turns"));
   assert.equal(await page.locator('[data-testid="debrief-focus"][data-objective-id="rescue-two-civilians"]').count(), 0);
   assert.match(debriefText, /No verified progress/);
   assert.equal(debriefText.includes("Eliminate the Hive Alpha"), false);
@@ -200,9 +258,9 @@ try {
     return response.json();
   }, runId);
   assert.equal(retained.run.status, "terminal");
-  assert.equal(retained.run.turn, 14);
-  assert.equal(game.v3Store.turnCount(runId), 14);
-  assert.equal(game.v3Play.turns.recover(runId).world.turnCount, 14);
+  assert.equal(retained.run.turn, 20);
+  assert.equal(game.v3Store.turnCount(runId), 20);
+  assert.equal(game.v3Play.turns.recover(runId).world.turnCount, 20);
 
   console.log(JSON.stringify({
     runId,
@@ -212,6 +270,7 @@ try {
     pirateOutcome: retained.outcomes.pirate,
     swarmOutcome: retained.outcomes.swarm,
     visibleAftermathFacts: retained.aftermath.visibleFacts.length,
+    g4: { mobileFlow, productionAssets, delayedPreview, specialistAtlasTokens: 3 },
     browserErrors,
   }, null, 2));
 } finally {

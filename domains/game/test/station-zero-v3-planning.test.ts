@@ -193,18 +193,21 @@ test("Rescue Knowledge records its own civilian extraction before the next respo
   try {
     play.initialize({ runId });
     let preview = (await play.generatePreview(runId)).preview;
-    for (let turn = 0; turn <= 8; turn += 1) {
+    let extractionTurn: number | null = null;
+    for (let turn = 0; turn < 12; turn += 1) {
       const medic = preview.contexts.find((context) => context.actor.actorId === "medic-reyes");
       const decision = preview.agentDecisions.find((entry) => entry.actorId === "medic-reyes");
-      if (turn === 8) {
-        assert.equal(medic?.actor.zoneId, "rescue-airlock");
-        assert.equal(medic?.responsibility?.targetActorId, "civilian-sato");
-        const selected = medic?.candidates.find((candidate) => candidate.candidateId === decision?.candidateId);
-        assert.equal(selected?.intent.kind, "extract");
+      const selected = medic?.candidates.find((candidate) => candidate.candidateId === decision?.candidateId);
+      if (selected?.intent.kind === "extract" && medic?.responsibility?.targetActorId === "civilian-sato") {
+        assert.equal(medic.actor.zoneId, "rescue-airlock");
+        extractionTurn = turn;
+        await play.commitPreview(runId, preview.previewId);
+        break;
       }
       await play.commitPreview(runId, preview.previewId);
-      if (turn < 8) preview = (await play.generatePreview(runId)).preview;
+      preview = (await play.generatePreview(runId)).preview;
     }
+    assert.notEqual(extractionTurn, null, "fixture must still extract civilian-sato within the bounded rescue window");
     const state = store.loadState(runId);
     assert.equal(state.actors["civilian-sato"]?.lifeState, "extracted");
     assert.equal(state.factionKnowledge.rescue.knownActors["civilian-sato"]?.observedLifeState, "extracted");
@@ -586,7 +589,7 @@ test("deterministic policy units expand leader directives without full Agent cal
   }
 });
 
-test("the bounded fixture planner can drive a complete 14-Turn encounter without admission or recovery failure", async () => {
+test("the bounded fixture planner can drive a complete 20-Turn encounter without admission or recovery failure", async () => {
   const { directory, runId, store, play } = fixture("full-encounter");
   try {
     let view = play.initialize({ runId });
@@ -596,18 +599,18 @@ test("the bounded fixture planner can drive a complete 14-Turn encounter without
       assert.equal(generated.preview.factionPlans.rescue.actorIntents.length, view.ownActors.filter((actor) => actor.lifeState === "active").length);
       view = (await play.commitPreview(runId, generated.preview.previewId)).view;
     }
-    assert.equal(view.run.turn, 14);
+    assert.equal(view.run.turn, 20);
     assert.equal(view.run.status, "terminal");
-    assert.equal(store.turnCount(runId), 14);
+    assert.equal(store.turnCount(runId), 20);
     assert.notEqual(view.outcomes.rescue, "failure");
     const civilianObjective = view.objectives.find((objective) => objective.objectiveId === "rescue-two-civilians");
     const survivalObjective = view.objectives.find((objective) => objective.objectiveId === "rescue-team-survives");
     assert.ok(civilianObjective);
     assert.ok(civilianObjective.progress >= 1);
     assert.equal(survivalObjective?.status, "completed");
-    assert.equal(view.aftermath?.turnSequence, 13);
+    assert.equal(view.aftermath?.turnSequence, 19);
     assert.doesNotThrow(() => play.planning.verifyRun(runId));
-    assert.equal(play.turns.recover(runId).world.turnCount, 14);
+    assert.equal(play.turns.recover(runId).world.turnCount, 20);
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });
@@ -681,4 +684,41 @@ test("the selected Preview remains resumable after partial Plan submission or P2
     prepared.store.close();
     rmSync(prepared.directory, { recursive: true, force: true });
   }
+});
+
+test("Security support prefers an unfinished unescorted civilian front over an escorted return chain", () => {
+  const state = createStationZeroV3Genesis();
+  const planning = planningFor(state);
+  const order = {
+    ...defaultStationZeroV3CommanderOrder(planning.runId, planning, state),
+    primaryObjectiveId: "rescue-two-civilians" as const,
+  };
+
+  const sato = state.actors["civilian-sato"]!;
+  const kade = state.actors["civilian-kade"]!;
+  sato.statusIds.push("escorted-by:engineer-imani");
+  state.actors["engineer-imani"]!.position.zoneId = sato.position.zoneId;
+  state.factionKnowledge.rescue.knownActors[sato.actorId] = {
+    actorId: sato.actorId,
+    lastKnownZoneId: sato.position.zoneId,
+    observedLifeState: "active",
+    observedHealthBand: "wounded",
+    observedAtTurn: state.encounter.turn,
+    confidence: "confirmed",
+  };
+  state.factionKnowledge.rescue.knownActors[kade.actorId] = {
+    actorId: kade.actorId,
+    lastKnownZoneId: kade.position.zoneId,
+    observedLifeState: "active",
+    observedHealthBand: "healthy",
+    observedAtTurn: state.encounter.turn,
+    confidence: "confirmed",
+  };
+  for (const zoneId of ["life-entry", "life-console", "maintenance-entry", "maintenance-console"]) {
+    if (!state.factionKnowledge.rescue.discoveredZoneIds.includes(zoneId)) state.factionKnowledge.rescue.discoveredZoneIds.push(zoneId);
+  }
+
+  const security = compileStationZeroV3AgentContext(state, planning, "security-chen", order);
+  assert.equal(security.responsibility?.kind, "support-civilian-recovery");
+  assert.equal(security.responsibility?.targetActorId, "civilian-kade");
 });

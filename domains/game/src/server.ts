@@ -60,6 +60,10 @@ const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
   "/v3/api.js": { file: "api.js", contentType: "text/javascript; charset=utf-8" },
   "/v3/render.js": { file: "render.js", contentType: "text/javascript; charset=utf-8" },
   "/v3/assets/rescue-expression.png": { file: "assets/rescue-expression.png", contentType: "image/png" },
+  "/v3/assets/rescue-specialists.png": { file: "assets/rescue-specialists.png", contentType: "image/png" },
+  "/v3/assets/audio/plan-ready.ogg": { file: "assets/audio/plan-ready.ogg", contentType: "audio/ogg" },
+  "/v3/assets/audio/commit.ogg": { file: "assets/audio/commit.ogg", contentType: "audio/ogg" },
+  "/v3/assets/audio/aftermath.ogg": { file: "assets/audio/aftermath.ogg", contentType: "audio/ogg" },
   "/v3/assets/system-signal.svg": { file: "assets/system-signal.svg", contentType: "image/svg+xml; charset=utf-8" },
   "/v3/assets/hazard-signal.svg": { file: "assets/hazard-signal.svg", contentType: "image/svg+xml; charset=utf-8" },
 };

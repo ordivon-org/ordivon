@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zero-v3/index.ts";
+import { FixtureStationZeroV3AgentProvider, StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zero-v3/index.ts";
 
 const recoverOrder = {
   primaryObjectiveId: "recover-research-core" as const,
@@ -49,7 +49,7 @@ test("next Planning carries exact one-Turn own-action feedback without hidden Wo
   }
 });
 
-test("fixture planner avoids immediate semantic repetition after no-effect and contested actions", async () => {
+test("fixture adapts after no-effect and generic contest while allowing transient strategic capacity retry", async () => {
   const store = new StationZeroV3Store(":memory:");
   try {
     const play = new StationZeroV3PlayService(store);
@@ -75,7 +75,34 @@ test("fixture planner avoids immediate semantic repetition after no-effect and c
 
     assert.equal(actions[5]!["engineer-imani"], "Move to Command Deck");
     assert.equal(results[5]!["engineer-imani"]!.status, "contested");
-    assert.notEqual(actions[6]!["engineer-imani"], "Move to Command Deck");
+    assert.equal(results[5]!["engineer-imani"]!.reason, "target_zone_capacity_lost");
+    assert.equal(actions[6]!["engineer-imani"], "Move to Command Deck", "strategic route may retry after transient simultaneous capacity loss");
+
+    const synthetic = new StationZeroV3Store(":memory:");
+    try {
+      const syntheticPlay = new StationZeroV3PlayService(synthetic);
+      const syntheticRun = "run:station-zero-v3:action-feedback:generic-contest";
+      syntheticPlay.initialize({ runId: syntheticRun });
+      syntheticPlay.saveOrder(syntheticRun, recoverOrder);
+      const generated = await syntheticPlay.generatePreview(syntheticRun);
+      const context = rescueContext(generated.preview, "security-chen");
+      const decision = generated.preview.agentDecisions.find((entry) => entry.contextId === context.contextId);
+      const candidate = context.candidates.find((entry) => entry.candidateId === decision?.candidateId);
+      assert.ok(candidate);
+      const contestedContext = structuredClone(context);
+      contestedContext.previousActionFeedback = {
+        turnSequence: 0,
+        planningId: context.planningId,
+        candidateLabel: candidate.label,
+        intent: structuredClone(candidate.intent),
+        status: "contested",
+        reason: "prior_attempt_contested",
+      };
+      const adapted = await new FixtureStationZeroV3AgentProvider().decide(contestedContext);
+      assert.notEqual(adapted.candidateId, candidate.candidateId, "generic contested action must still trigger immediate adaptation");
+    } finally {
+      synthetic.close();
+    }
   } finally {
     store.close();
   }
@@ -87,24 +114,39 @@ test("Recover fixture has no consecutive identical failed semantic action after 
     const play = new StationZeroV3PlayService(store);
     const runId = "run:station-zero-v3:action-feedback:no-loop";
     let view = play.initialize({ runId });
-    const previousFailure = new Map<string, string>();
+    const previousFailure = new Map<string, { action: string; status: string; reason: string }>();
     while (view.run.status === "running") {
       play.saveOrder(runId, recoverOrder);
       const generated = await play.generatePreview(runId);
       const planned = new Map(generated.view.experience.preview!.actorIntents.map((entry) => [entry.actorId, entry.action]));
+      const selectedTags = new Map<string, string[]>();
+      for (const context of generated.preview.contexts.filter((entry) => entry.factionId === "rescue")) {
+        const decision = generated.preview.agentDecisions.find((entry) => entry.contextId === context.contextId);
+        const candidate = context.candidates.find((entry) => entry.candidateId === decision?.candidateId);
+        selectedTags.set(context.actor.actorId, candidate?.tags ?? []);
+      }
       view = (await play.commitPreview(runId, generated.preview.previewId)).view;
       for (const result of view.aftermath!.ownIntentResults) {
         const action = planned.get(result.actorId)!;
         const failed = ["contested", "interrupted", "invalidated", "no_effect"].includes(result.status);
         if (failed) {
-          assert.notEqual(previousFailure.get(result.actorId), action, `${result.actorName} repeated failed action ${action}`);
-          previousFailure.set(result.actorId, action);
+          const prior = previousFailure.get(result.actorId);
+          const tags = selectedTags.get(result.actorId) ?? [];
+          const transientStrategicRetry =
+            prior?.action === action &&
+            prior.status === "contested" &&
+            prior.reason === "target_zone_capacity_lost" &&
+            (tags.includes("responsibility:advance") || tags.includes("objective:advance"));
+          if (!transientStrategicRetry) {
+            assert.notEqual(prior?.action, action, `${result.actorName} repeated failed action ${action}`);
+          }
+          previousFailure.set(result.actorId, { action, status: result.status, reason: result.reason });
         } else {
           previousFailure.delete(result.actorId);
         }
       }
     }
-    assert.equal(view.run.turn, 14);
+    assert.equal(view.run.turn, 20);
   } finally {
     store.close();
   }

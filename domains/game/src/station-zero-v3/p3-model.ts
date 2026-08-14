@@ -447,6 +447,7 @@ export interface StationZeroV3PlayView extends StationZeroV3MissionControlView {
 export interface StationZeroV3PlayCatalog {
   schemaVersion: 1;
   kind: "ordivon.game.station-zero-v3-play-catalog";
+  turnLimit: number;
   objectives: Array<{ objectiveId: StationZeroV3CommanderOrder["primaryObjectiveId"]; label: string; description: string }>;
   postures: Array<{ posture: StationZeroV3CommandPosture; label: string; description: string }>;
   formations: Array<{ formation: StationZeroV3Formation; label: string; description: string }>;

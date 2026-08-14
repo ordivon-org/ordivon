@@ -40,7 +40,7 @@ test("default operation debrief reports exact focus and required milestones with
     const play = new StationZeroV3PlayService(store);
     const view = await terminalRun(play, "run:station-zero-v3:debrief:default", null);
     assert.ok(view.debrief);
-    assert.equal(view.debrief.committedTurns, 14);
+    assert.equal(view.debrief.committedTurns, 20);
     assert.equal(view.debrief.terminalReason, "turn_limit");
     assert.equal(view.debrief.terminalReasonLabel, "Turn limit reached");
     assert.equal(view.debrief.requiredCompleted, 1);
@@ -48,8 +48,8 @@ test("default operation debrief reports exact focus and required milestones with
     assert.deepEqual(view.debrief.focus, [{
       objectiveId: "rescue-two-civilians",
       name: "Extract two civilians",
-      turns: 14,
-      totalTurns: 14,
+      turns: 20,
+      totalTurns: 20,
     }]);
     assert.equal(view.debrief.objectives.length, 2);
     const civilians = view.debrief.objectives.find((entry) => entry.objectiveId === "rescue-two-civilians")!;
@@ -80,8 +80,8 @@ test("Recover operation debrief exposes selected focus without claiming required
     assert.deepEqual(view.debrief.focus, [{
       objectiveId: "recover-research-core",
       name: "Recover the Research Core",
-      turns: 14,
-      totalTurns: 14,
+      turns: 20,
+      totalTurns: 20,
     }]);
     assert.deepEqual(view.debrief.objectives.map((entry) => entry.objectiveId), [
       "rescue-two-civilians",

@@ -77,19 +77,22 @@ test("Plan Review records visible mission-front completion after a direct extrac
     const play = new StationZeroV3PlayService(store);
     const runId = "run:station-zero-v3:plan-review:extraction";
     let view = play.initialize({ runId });
-    while (view.run.status === "running" && view.run.turn <= 8) {
+    let extractingActorId: string | null = null;
+    while (view.run.status === "running" && view.run.turn < 15 && extractingActorId === null) {
       const generated = await play.generatePreview(runId);
+      extractingActorId = generated.view.experience.preview?.actorIntents
+        .find((entry) => entry.action === "Extract from Station Zero")?.actorId ?? null;
       view = (await play.commitPreview(runId, generated.preview.previewId)).view;
     }
-    assert.equal(view.run.turn, 9);
+    assert.ok(extractingActorId, "fixture must expose a direct specialist extraction within the bounded review window");
     const survival = front(view, "rescue-team-survives");
     assert.equal(survival.plannedImpact, "direct");
     assert.equal(survival.beforeProgress, 0);
     assert.equal(survival.afterProgress, 1);
     assert.equal(survival.beforeStatus, "active");
     assert.equal(survival.afterStatus, "completed");
-    assert.equal(intent(view, "medic-reyes").plannedAction, "Extract from Station Zero");
-    assert.equal(intent(view, "medic-reyes").reason, "actor_extracted");
+    assert.equal(intent(view, extractingActorId).plannedAction, "Extract from Station Zero");
+    assert.equal(intent(view, extractingActorId).reason, "actor_extracted");
   } finally {
     store.close();
   }

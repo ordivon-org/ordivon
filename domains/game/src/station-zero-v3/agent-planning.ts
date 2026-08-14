@@ -4,6 +4,7 @@ import {
   STATION_ZERO_V3_COMMANDER_ABILITIES,
   STATION_ZERO_V3_EQUIPMENT,
   STATION_ZERO_V3_OBJECTIVES,
+  STATION_ZERO_V3_P0_CONTRACT,
 } from "./content.ts";
 import { assertStationZeroFactionTurnPlan, assertStationZeroStandingOrder } from "./contracts.ts";
 import type {
@@ -197,7 +198,9 @@ function rescueResponsibilities(
     })
     .filter((zone): zone is NonNullable<typeof zone> => Boolean(zone))
     .sort((left, right) => left.zoneId.localeCompare(right.zoneId));
-  const unassignedOwners = ownerPriority.filter((owner) => !assignedActors.has(owner.actorId));
+  const hasActiveRecovery = [...responsibilities.values()].some((entry) => entry.kind === "recover-civilian");
+  const unassignedOwners = ownerPriority.filter((owner) =>
+    !assignedActors.has(owner.actorId) && !(owner.actorId === "security-chen" && hasActiveRecovery));
   for (const owner of unassignedOwners) {
     const targetZone = searchFronts.splice(0, 1)[0];
     if (!targetZone) break;
@@ -232,7 +235,18 @@ function rescueResponsibilities(
   if (security?.lifeState === "active" && security.factionId === "rescue" && !responsibilities.has(security.actorId)) {
     const supported = [...responsibilities.entries()]
       .filter(([actorId, responsibility]) => actorId !== security.actorId && responsibility.kind === "recover-civilian")
-      .sort(([leftId], [rightId]) => (leftId === "engineer-imani" ? -1 : rightId === "engineer-imani" ? 1 : leftId.localeCompare(rightId)))[0]?.[1];
+      .sort(([leftId, left], [rightId, right]) => {
+        const leftTarget = left.targetActorId ? state.actors[left.targetActorId] : null;
+        const rightTarget = right.targetActorId ? state.actors[right.targetActorId] : null;
+        const leftEscorted = Boolean(leftTarget?.statusIds.some((statusId) => statusId.startsWith("escorted-by:")));
+        const rightEscorted = Boolean(rightTarget?.statusIds.some((statusId) => statusId.startsWith("escorted-by:")));
+        if (leftEscorted !== rightEscorted) return Number(leftEscorted) - Number(rightEscorted);
+        if (left.blockerActorIds.length !== right.blockerActorIds.length) return right.blockerActorIds.length - left.blockerActorIds.length;
+        const leftDistance = stationZeroShortestDistance(state, security.position.zoneId, left.targetZoneId, "rescue") ?? -1;
+        const rightDistance = stationZeroShortestDistance(state, security.position.zoneId, right.targetZoneId, "rescue") ?? -1;
+        if (leftDistance !== rightDistance) return rightDistance - leftDistance;
+        return (left.targetActorId ?? leftId).localeCompare(right.targetActorId ?? rightId);
+      })[0]?.[1];
     if (supported) {
       responsibilities.set(security.actorId, {
         responsibilityId: `responsibility:p3:${planning.planningId}:${security.actorId}:support:${supported.targetActorId ?? supported.targetZoneId}`,
@@ -260,7 +274,10 @@ function moveCandidates(
     "med-ward",
     "life-console",
     "reactor-console",
+    "maintenance-entry",
+    "maintenance-console",
     "maintenance-nest",
+    "life-entry",
     "cargo-airlock",
   ].filter((zoneId) => known.has(zoneId));
   const routeSteps = new Map(routeTargetIds.map((zoneId) => [
@@ -683,18 +700,60 @@ function allowedDirectiveIds(factionId: StationZeroFactionId): string[] {
   return [];
 }
 
+function withSemanticTag(candidate: StationZeroV3AgentCandidate, tag: string): StationZeroV3AgentCandidate {
+  if (candidate.tags.includes(tag)) return candidate;
+  return { ...candidate, tags: [...candidate.tags, tag].sort() };
+}
+
+function markPrimaryObjectiveProgressCandidates(
+  candidates: StationZeroV3AgentCandidate[],
+  actor: StationZeroActorState,
+  playerOrder: StationZeroV3CommanderOrder | null,
+  knownActors: StationZeroV3AgentContext["known"]["actors"],
+  knownZoneIds: string[],
+): StationZeroV3AgentCandidate[] {
+  if (!playerOrder || actor.factionId !== "rescue") return candidates;
+  if (playerOrder.primaryObjectiveId === "recover-research-core" && actor.roleId === "engineer") {
+    const carryingCore = actor.inventoryItemIds.includes("research-core");
+    return candidates.map((candidate) => {
+      const advances = carryingCore
+        ? candidate.tags.includes("route:rescue-airlock") || candidate.intent.kind === "extract"
+        : candidate.tags.includes("route:reactor-console") || candidate.tags.includes("item:research-core");
+      return advances ? withSemanticTag(candidate, "objective:advance") : candidate;
+    });
+  }
+  if (playerOrder.primaryObjectiveId === "eliminate-hive-alpha") {
+    const hive = knownActors.find((known) => known.actorId === "hive-alpha" && known.observedLifeState === "active");
+    return candidates.map((candidate) => {
+      const directHiveAction = candidate.tags.includes("objective:eliminate-hive-alpha");
+      if (directHiveAction) return withSemanticTag(candidate, "objective:advance");
+      if (actor.roleId !== "security" && actor.roleId !== "engineer") return candidate;
+      const advancesSearch = hive
+        ? candidate.tags.includes(`route:${hive.lastKnownZoneId}`)
+        : !knownZoneIds.includes("maintenance-nest")
+          ? candidate.tags.includes("route:maintenance-entry")
+          : candidate.tags.includes("route:maintenance-console");
+      return advancesSearch ? withSemanticTag(candidate, "objective:advance") : candidate;
+    });
+  }
+  return candidates;
+}
+
 function markResponsibilityProgressCandidates(
   candidates: StationZeroV3AgentCandidate[],
   responsibility: StationZeroV3AgentResponsibility | null,
 ): StationZeroV3AgentCandidate[] {
-  if (!responsibility || responsibility.kind === "support-civilian-recovery") return candidates;
+  if (!responsibility) return candidates;
   return candidates.map((entry) => {
     const advancesRoute = entry.tags.includes(`route:${responsibility.targetZoneId}`);
     const advancesCustody = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
       entry.tags.includes("rescue") && entry.tags.includes(`target:${responsibility.targetActorId}`);
     const advancesExtraction = responsibility.kind === "recover-civilian" && responsibility.targetActorId !== null &&
       entry.intent.kind === "extract" && entry.tags.includes(`escort:${responsibility.targetActorId}`);
-    if (!advancesRoute && !advancesCustody && !advancesExtraction) return entry;
+    const advancesBlocker = responsibility.blockerActorIds.some((actorId) => entry.tags.includes(`target:${actorId}`));
+    const advancesGuard = responsibility.kind === "support-civilian-recovery" &&
+      entry.tags.includes("guard") && entry.tags.includes(`zone:${responsibility.targetZoneId}`);
+    if (!advancesRoute && !advancesCustody && !advancesExtraction && !advancesBlocker && !advancesGuard) return entry;
     return { ...entry, tags: [...new Set([...entry.tags, "responsibility:advance"])].sort() };
   });
 }
@@ -734,8 +793,12 @@ export function compileStationZeroV3AgentContext(
       (responsibility.targetActorId !== null || previousResponsibility.targetZoneId === responsibility.targetZoneId)
     ? structuredClone(previousResponsibilityFeedback)
     : null;
-  const candidates = markResponsibilityProgressCandidates(
-    stationZeroV3AgentCandidates(state, planning, actorId), responsibility,
+  const visibleZoneIds = knownZoneIds(state, factionId);
+  const candidates = markPrimaryObjectiveProgressCandidates(
+    markResponsibilityProgressCandidates(
+      stationZeroV3AgentCandidates(state, planning, actorId), responsibility,
+    ),
+    actor, playerOrder, actors, visibleZoneIds,
   );
   const contextBase = {
     schemaVersion: 1 as const,
@@ -768,7 +831,7 @@ export function compileStationZeroV3AgentContext(
       alertLevel: state.environment.alertLevel,
     },
     known: {
-      zoneIds: knownZoneIds(state, factionId),
+      zoneIds: visibleZoneIds,
       frontierZoneIds: frontierZoneIds(state, factionId),
       actors,
       systemIds: [...knowledge.knownSystemIds].sort(),
@@ -839,8 +902,10 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
   const actor = context.actor;
   let score = candidateTag(candidate, "wait") ? 0 : 10;
   const healthRatio = actor.maximumHealth === 0 ? 0 : actor.health / actor.maximumHealth;
-  if (candidateTag(candidate, "extract") && healthRatio <= order.retreatHealthThreshold) score += 900;
+  if (candidateTag(candidate, "extract") && healthRatio <= order.retreatHealthThreshold) score += 5_000;
   if (candidateTag(candidate, `objective:${order.primaryObjectiveId}`)) score += 300;
+  if (order.primaryObjectiveId === "eliminate-hive-alpha" && candidateTag(candidate, "objective:eliminate-hive-alpha")) score += 1_000;
+  if (candidateTag(candidate, "responsibility:advance")) score += 900;
   if (candidateTag(candidate, "objective:rescue-two-civilians")) score += order.primaryObjectiveId === "rescue-two-civilians" ? 350 : 180;
   if (candidateTag(candidate, "medical")) score += actor.roleId === "medic" ? 260 : 40;
   if (candidateTag(candidate, "repair")) {
@@ -878,12 +943,23 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
     if (actor.roleId === "engineer") {
       if (context.environment.reactorHeat >= 72 && context.known.systemIds.includes("cooling") && candidateTag(candidate, "route:reactor-console")) score += 800;
       if (context.environment.oxygen <= 55 && context.known.systemIds.includes("life-support") && candidateTag(candidate, "route:life-console")) score += 700;
-      if (order.primaryObjectiveId === "recover-research-core" && candidateTag(candidate, "route:reactor-console")) score += 650;
+      if (order.primaryObjectiveId === "recover-research-core" && !actor.inventoryItemIds.includes("research-core") && candidateTag(candidate, "route:reactor-console")) score += 650;
+      if (order.primaryObjectiveId === "recover-research-core" && actor.inventoryItemIds.includes("research-core") && candidateTag(candidate, "route:rescue-airlock")) score += 1_500;
       if (order.primaryObjectiveId === "rescue-two-civilians" && context.known.systemIds.includes("life-support") &&
           context.environment.reactorHeat < 88 && candidateTag(candidate, "route:life-console")) score += 620;
-      if (order.primaryObjectiveId === "eliminate-hive-alpha" && candidateTag(candidate, "route:maintenance-nest")) score += 650;
     }
-    if (actor.roleId === "security" && order.primaryObjectiveId === "eliminate-hive-alpha" && candidateTag(candidate, "route:maintenance-nest")) score += 650;
+    if (order.primaryObjectiveId === "eliminate-hive-alpha" && (actor.roleId === "security" || actor.roleId === "engineer")) {
+      const hiveContact = context.known.actors.find((known) =>
+        known.actorId === "hive-alpha" && known.observedLifeState === "active");
+      const huntWeight = actor.roleId === "security" ? 1_000 : 750;
+      if (hiveContact && candidateTag(candidate, `route:${hiveContact.lastKnownZoneId}`)) {
+        score += huntWeight;
+      } else if (!hiveContact && !context.known.zoneIds.includes("maintenance-nest") && candidateTag(candidate, "route:maintenance-entry")) {
+        score += huntWeight;
+      } else if (!hiveContact && context.known.zoneIds.includes("maintenance-nest") && candidateTag(candidate, "route:maintenance-console")) {
+        score += huntWeight;
+      }
+    }
     const roleTargets: Record<string, string[]> = {
       medic: order.primaryObjectiveId === "rescue-two-civilians"
         ? ["med-ward", "med-console", "life-console", "life-entry", "junction-cover", "command-deck"]
@@ -912,8 +988,13 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
   if (candidateTag(candidate, "escorting-civilian")) score += 1_000;
   const feedback = context.previousActionFeedback;
   if (feedback && intentSemanticKey(feedback.intent) === intentSemanticKey(candidate.intent)) {
-    if (feedback.status === "contested" || feedback.status === "interrupted" || feedback.status === "invalidated") score -= 900;
-    if (feedback.status === "no_effect") score -= 280;
+    const transientStrategicContention =
+      feedback.status === "contested" &&
+      feedback.reason === "target_zone_capacity_lost" &&
+      (candidateTag(candidate, "responsibility:advance") || candidateTag(candidate, "objective:advance"));
+    if (transientStrategicContention) score -= 250;
+    else if (feedback.status === "contested" || feedback.status === "interrupted" || feedback.status === "invalidated") score -= 10_000;
+    if (feedback.status === "no_effect") score -= 1_500;
   }
   return score;
 }
@@ -1157,6 +1238,7 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
   return {
     schemaVersion: 1,
     kind: "ordivon.game.station-zero-v3-play-catalog",
+    turnLimit: STATION_ZERO_V3_P0_CONTRACT.runBoundary.turnLimit,
     objectives: [
       { objectiveId: "rescue-two-civilians", label: "Rescue the crew", description: "Required mission priority: locate, escort, and extract both civilians." },
       { objectiveId: "recover-research-core", label: "Recover the Research Core", description: "Optional side objective: divert specialists toward the Reactor and extract the objective cargo, accepting pressure on required rescue work." },

@@ -82,7 +82,7 @@ test("fixed Genesis contains the complete three-faction tactical problem and lim
   assert.equal(state.schemaVersion, 3);
   assert.equal(state.scenarioVersion, 3);
   assert.equal(state.rulesetVersion, 4);
-  assert.equal(state.encounter.turnLimit, 14);
+  assert.equal(state.encounter.turnLimit, 20);
   assert.equal(state.encounter.playerFactionId, "rescue");
   assert.equal(Object.keys(state.rooms).length, 8);
   assert.equal(Object.keys(state.zones).length, 20);

@@ -126,7 +126,71 @@ const PROFILES: EvaluationProfile[] = [
       protectedActorId: "security-chen",
     },
   },
+  {
+    profileId: "g3-rescue-cautious-cohesive",
+    label: "G3 holdout / Rescue / cautious / cohesive",
+    order: {
+      primaryObjectiveId: "rescue-two-civilians",
+      posture: "cautious",
+      formation: "cohesive",
+      retreatHealthThreshold: 0.3,
+      lethalForce: "permitted",
+      collateralPolicy: "forbidden",
+      lootPolicy: "mission-only",
+      protectedActorId: null,
+      priorityTargetActorId: null,
+    },
+  },
+  {
+    profileId: "g3-core-cautious-split",
+    label: "G3 holdout / Research Core / cautious / split",
+    order: {
+      primaryObjectiveId: "recover-research-core",
+      posture: "cautious",
+      formation: "split",
+      retreatHealthThreshold: 0.3,
+      lethalForce: "permitted",
+      collateralPolicy: "forbidden",
+      lootPolicy: "mission-only",
+      protectedActorId: null,
+      priorityTargetActorId: null,
+    },
+  },
+  {
+    profileId: "g3-hive-balanced-split",
+    label: "G3 holdout / Hive Alpha / balanced / split",
+    order: {
+      primaryObjectiveId: "eliminate-hive-alpha",
+      posture: "balanced",
+      formation: "split",
+      retreatHealthThreshold: 0.3,
+      lethalForce: "permitted",
+      collateralPolicy: "forbidden",
+      lootPolicy: "mission-only",
+      protectedActorId: null,
+      priorityTargetActorId: null,
+    },
+  },
 ];
+
+function objectiveDiscoveryDirective(
+  state: StationZeroV3WorldState,
+  profile: EvaluationProfile,
+): StationZeroV3CommanderOrder["commanderDirectiveId"] | null {
+  const charges = state.factions.rescue.commanderAbilityCharges["orbital-scan"];
+  const available =
+    (charges === null || (charges !== undefined && charges > 0)) &&
+    (state.factions.rescue.commanderAbilityCooldowns["orbital-scan"] ?? 0) === 0 &&
+    state.factions.rescue.commandPoints >= 1;
+  if (!available) return null;
+  if (profile.order.primaryObjectiveId === "rescue-two-civilians" &&
+      !state.factionKnowledge.rescue.discoveredZoneIds.includes("life-console")) return "scan-life-support";
+  if (profile.order.primaryObjectiveId === "recover-research-core" &&
+      !state.factionKnowledge.rescue.discoveredZoneIds.includes("reactor-console")) return "scan-reactor";
+  if (profile.order.primaryObjectiveId === "eliminate-hive-alpha" &&
+      !state.factionKnowledge.rescue.discoveredZoneIds.includes("maintenance-entry")) return "scan-maintenance";
+  return null;
+}
 
 function positiveInteger(value: string | undefined, fallback: number, label: string): number {
   if (value === undefined || value === "") return fallback;
@@ -244,8 +308,12 @@ async function evaluateRun(
         status = "bounded";
         break;
       }
-      play.saveOrder(runId, profile.order);
       const sourceState = store.loadState(runId);
+      const discoveryDirective = objectiveDiscoveryDirective(sourceState, profile);
+      play.saveOrder(runId, {
+        ...profile.order,
+        ...(discoveryDirective ? { commanderDirectiveId: discoveryDirective } : {}),
+      });
       const previewStarted = performance.now();
       let generated: Awaited<ReturnType<StationZeroV3PlayService["generatePreview"]>>;
       try {
@@ -382,13 +450,21 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
       providerFailed: runs.filter((run) => run.status === "provider_failed").length,
       executionFailed: runs.filter((run) => run.status === "execution_failed").length,
       verified: runs.filter((run) => run.verified).length,
-      byProfile: Object.fromEntries(PROFILES.map((profile) => {
-        const profileRuns = runs.filter((run) => run.profileId === profile.profileId);
-        return [profile.profileId, {
+      byProfile: Object.fromEntries([...new Set(runs.map((run) => run.profileId))].sort().map((profileId) => {
+        const profileRuns = runs.filter((run) => run.profileId === profileId);
+        const profile = PROFILES.find((entry) => entry.profileId === profileId);
+        const primaryObjectiveId = profile?.order.primaryObjectiveId ?? null;
+        const focusRows = primaryObjectiveId
+          ? profileRuns.map((run) => run.objectives.find((objective) => objective.objectiveId === primaryObjectiveId)).filter((objective) => objective !== undefined)
+          : [];
+        return [profileId, {
           requested: profileRuns.length,
           completed: profileRuns.filter((run) => run.status === "completed").length,
           bounded: profileRuns.filter((run) => run.status === "bounded").length,
           averageTurns: profileRuns.length ? round(profileRuns.reduce((sum, run) => sum + run.turnsCommitted, 0) / profileRuns.length, 2) : 0,
+          primaryObjectiveId,
+          focusCompleted: focusRows.filter((objective) => objective.status === "completed").length,
+          focusProgress: focusRows.map((objective) => `${objective.progress}/${objective.target}`),
           rescueOutcomes: countBy(profileRuns, (run) => run.outcomes.rescue),
           pirateOutcomes: countBy(profileRuns, (run) => run.outcomes.pirate),
           swarmOutcomes: countBy(profileRuns, (run) => run.outcomes.swarm),
@@ -429,6 +505,8 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
       byActor: countBy(decisions, (decision) => decision.actorId),
       byDirective: countBy(decisions.filter((decision) => decision.directiveId !== null), (decision) => decision.directiveId!),
       waitCount: decisions.filter((decision) => decision.tags.includes("wait")).length,
+      objectiveAdvanceCount: decisions.filter((decision) => decision.tags.includes("objective:advance")).length,
+      responsibilityAdvanceCount: decisions.filter((decision) => decision.tags.includes("responsibility:advance")).length,
       attackCount: decisions.filter((decision) => decision.tags.includes("combat")).length,
       guardCount: decisions.filter((decision) => decision.tags.includes("guard")).length,
       interactionCount: decisions.filter((decision) => decision.tags.includes("interaction")).length,
@@ -483,7 +561,19 @@ const pool = new StationZeroV3DeepSeekProviderPool({
   temperature: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TEMPERATURE ?? 0.1),
 });
 
-const cases = PROFILES.flatMap((profile) => Array.from({ length: replicasPerProfile }, (_, index) => ({
+const requestedProfileIds = (process.env.ORDIVON_EVAL_PROFILE_IDS ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const requestedProfileSet = new Set(requestedProfileIds);
+const selectedProfiles = requestedProfileIds.length === 0
+  ? PROFILES
+  : PROFILES.filter((profile) => requestedProfileSet.has(profile.profileId));
+if (requestedProfileIds.length > 0) {
+  const missing = requestedProfileIds.filter((profileId) => !selectedProfiles.some((profile) => profile.profileId === profileId));
+  if (missing.length) throw new TypeError(`Unknown ORDIVON_EVAL_PROFILE_IDS: ${missing.join(", ")}`);
+}
+const cases = selectedProfiles.flatMap((profile) => Array.from({ length: replicasPerProfile }, (_, index) => ({
   profile,
   replica: index + 1,
 })));
@@ -506,7 +596,7 @@ const report = {
     maximumTurns,
     credentialPool: providerEvidence.credentialPool,
     configuredTotalConcurrency: providerEvidence.credentials.reduce((sum, credential) => sum + credential.maximumConcurrency, 0),
-    profiles: PROFILES,
+    profiles: selectedProfiles,
   },
   aggregate: aggregate(calls, runs),
   calls,

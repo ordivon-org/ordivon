@@ -13,7 +13,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-03
+updated: 2026-08-14
 summary: Accepted target decision for the unregistered Station Zero v3 three-faction encounter, player role, deterministic turn contract, tactical space, and fixed Genesis.
 evidence_status: not_applicable
 readiness: READY
@@ -68,7 +68,15 @@ The fixed P0 encounter contains:
 - mandatory and optional objectives for every faction;
 - faction-specific victory, partial-success, and failure outcomes.
 
-The first playable v3 encounter remains bounded to 14 Turns.
+The first playable v3 encounter is bounded to 20 Turns.
+
+### G3 viability correction
+
+The original P0 budget was 14 Turns. G3 strategic-viability falsification showed that this budget made the mandatory Rescue objective effectively fake under the bounded game surface: objective-consistent Rescue play could reach and recover one civilian but could not complete both extraction chains before the terminal Turn. The same World rules, enemy policies, bounded Knowledge, Candidate admission, and Rescue policy completed both mandatory objectives at Turn 20 when only the encounter budget was extended.
+
+The audit separately tested and rejected narrower explanations before changing the contract: a `life-console` capacity increase from two to three did not create a 14-Turn victory; bounded `emergency-uplink` and known-contact priority targeting did not create one; fixture responsibility/successor-state defects for cargo extraction, civilian support, and moving Hive pursuit were fixed independently rather than compensated by the budget. The 20-Turn limit is therefore a content/balance correction, not an authority or reducer change.
+
+This does not guarantee victory. Enemy movement, Zone contention, casualties, partial objectives, and competing priorities remain capable of consuming the additional Turns.
 
 ## Mature genre mechanisms retained
 
