@@ -1396,6 +1396,42 @@ The player/human owner should not have to understand every internal improvement.
 
 ---
 
+# 19.6 First consumption result — GC1 dormant-surface contraction
+
+The first owner-local consumption experiment was run after this synthesis instead of treating the hypotheses above as refactor authorization.
+
+GC1 removed four dormant research surfaces from the experimental Game branch:
+
+```text
+Resource Egress
+Message Issuance
+Entity Departure
+Optional exact Agent Action Admission
+```
+
+The first three had no current product caller outside their own implementation/tests. Agent Action Admission was more deeply embedded—two SQLite tables plus conditional commit/reopen verification—but `enableAgentActionAdmission()` had no production caller, so the hot-path check was always a no-op in the actual v3 product.
+
+Combined contraction:
+
+```text
+source / persistence / dedicated-test maintenance removed: 2132 lines
+remaining repository tests:                              297 / 297 PASS
+v3 20-Turn browser E2E:                                 PASS
+browser errors:                                          []
+```
+
+The earlier Resource/Message/Entity research remains useful evidence about cross-owner consequence boundaries, and the Agent Action work remains useful evidence that Provider choice is not Game action authority. What failed the deletion test was **continued product ownership of the dormant implementations**, not the historical research result.
+
+Therefore GC1 upgrades those four candidates from `PROVEN RESIDUE` to:
+
+```text
+CONTRACTION ACCEPTED in the experimental Game branch
+```
+
+Canonical integration remains revision-fenced and is still separate from this research document's original observation table.
+
+---
+
 # 20. Recommended next Game sequence
 
 This study changes the order of work.
@@ -1407,7 +1443,7 @@ First run a bounded **Game Contraction / Responsibility Audit**:
 ```text
 GC0  establish current product/recovery baseline
 
-GC1  dormant capability deletion probes
+GC1  dormant capability deletion probes        DONE experimentally
      - Agent Action Admission
      - Resource Egress
      - Message Issuance

@@ -54,7 +54,7 @@ The exact v3 target contracts remain [`STATION_ZERO_V3_P0.md`](STATION_ZERO_V3_P
 
 `src/registry.ts`, source code, SQLite schema, deterministic tests, generated or retained receipts, replay verification, product acceptance scripts, and the running service remain stronger owners for exact executable registration, fields, transitions, and observed behavior. `AGENTS.md` governs repository work rather than product truth.
 
-For the unregistered v3 target, Agent cognition evidence and Game action authority remain separate. When exact Agent Action admission is enabled for one Planning Head, Game owns the normalized binding from Subject + Cognition + source-evidence identity to the exact Game Run, Planning, World revision/digest, Actor, and Intent digest. The upstream `sourceEvidenceDigest` is opaque provenance: Game does not parse Harness/World-private evidence schemas, and possession of that evidence alone does not authorize an Actor Intent. Game also does not acquire a global Embodiment, Presence, Subject, or Cognition registry.
+For the unregistered v3 target, Agent cognition and Game action authority remain separate through Game-owned Candidate admission, exact Faction Plans, canonical Turn Batch admission, and authoritative World resolution. Historical P3 research also proved a stronger `Subject × Cognition × Actor × Intent` binding without importing Harness/World-private schemas; GC1 removed that dormant optional mechanism after confirming that no production caller enabled it and current product/recovery behavior was unchanged. The law remains; the unused binding machinery does not. Game still acquires no global Embodiment, Presence, Subject, or Cognition registry.
 
 ## Consequences
 

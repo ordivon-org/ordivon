@@ -38,14 +38,13 @@ Target Ruleset: station-zero-core@4
 World schema: 3
 Commander Orders: complete
 Agent Context / Candidate / Decision contract: complete
-Optional exact Agent Action admission: complete
 Policy-unit expansion: complete
 Plan Preview and explicit Commit: complete
 Dedicated v3 HTTP API: complete
 Dedicated /v3 browser first-playable: complete
 Process-restart recovery: complete
 Current station-zero@2 replacement: deferred
-G3 bounded live Provider realization: accepted; G4 production-experience validation pending
+G3 bounded live Provider realization: accepted; G4 exited; bounded G5 Production admitted
 ```
 
 Station Zero v3 remains absent from `src/registry.ts`. The current root product and its v2/v3 execution contract remain unchanged. P3 is exposed only through a separate v3 database, API namespace, and `/v3` preview surface.
@@ -233,37 +232,17 @@ Admission rejects:
 
 The selected Candidate is copied into the Faction Plan. Free-form Provider prose never becomes a privileged operation.
 
-## Optional exact Agent Action admission
+## Historical exact Agent Action admission research
 
-Candidate admission proves that a Provider selected a legal local action. It does not by itself prove which continuing Subject and which concrete Cognition instance are authorized to embody that Actor for the submitted Intent.
-
-The v3 Store therefore exposes an optional stronger admission boundary. It is deliberately disabled unless a caller enables it for one exact open Planning Head. When disabled, existing P3 planning and execution behavior is unchanged.
-
-When enabled, every Agent-controlled Actor Intent in that Planning must have one exact `StationZeroV3AgentActionBinding`:
+P3 previously carried an optional stronger `Subject × Cognition × Actor × Intent` admission boundary on top of native Candidate, Planning and Turn admission. That research proved an important law:
 
 ```text
-Subject identity
-+ Cognition identity
-+ source authority / evidence digest
-+ Run identity
-+ Planning identity
-+ World revision / digest
-+ Actor identity
-+ exact Intent digest
+Agent Provider choice != Game action authority
 ```
 
-Game canonicalizes this Game-owned binding and retains its digest with the admission. It rejects:
+The feature was deliberately disabled by default and no production caller ever enabled it. The 2026-08-15 Game contraction audit removed its module, two SQLite tables, persistence hot-path checks and dedicated tests after the complete current Game suite and v3 browser journey remained unchanged.
 
-- a binding for another Run, Planning, World revision, Actor, or Intent;
-- a supplied binding digest that differs from the canonical Game binding;
-- Subject laundering under an old digest;
-- replacing an already admitted Actor with another Cognition, Subject, evidence identity, or Plan;
-- upstream-private fields that are not part of the Game contract;
-- persistent admission rows whose binding, Cognition, Plan, or admission digest drifts after restart.
-
-`sourceEvidenceDigest` is opaque provenance. Game does not parse a Harness Run, World embodiment object, Provider transcript, or other upstream-private schema to decide action authority. An adapter may normalize upstream evidence into the Game binding, but the Game boundary remains stable if the upstream evidence format changes.
-
-This is **action-scoped embodiment admission**, not a Presence system. It creates no global Subject registry, Cognition registry, Embodiment manager, Presence registry, or cross-world identity service. The World still decides whether the admitted Intent can produce a consequence when the Turn executes.
+The research result remains in Git history and retained acceptance evidence; the dormant mechanism is no longer part of the current v3 execution contract. Current Game action authority is carried by legal Candidate admission, exact submitted Faction Plans, canonical Turn Batch admission and authoritative World resolution.
 
 ## High-fidelity and policy Actors
 
@@ -479,8 +458,6 @@ Changing an Order row or Preview row independently fails closed.
 10. complete 20-Turn execution without admission or recovery failure;
 11. Order and Preview tamper detection;
 12. continuation of the selected Preview after partial Plan submission or P2 preparation.
-
-`test/station-zero-v3-agent-action-admission.test.ts` separately verifies the optional stronger Agent boundary: unchanged execution when admission is disabled, rejection of upstream-private binding fields, exact Subject × Cognition × Actor × Intent binding, wrong-action and Subject-laundering rejection, single-Cognition admission per Actor/Planning, successful execution under exact bindings, and restart-time failure after persisted Cognition tampering.
 
 `test/station-zero-v3-server.test.ts` verifies the isolated v3 API, current-product separation, and that raw HTTP responses do not disclose internal Pirate or Swarm Plans.
 

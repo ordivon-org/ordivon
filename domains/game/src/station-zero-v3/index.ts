@@ -1,4 +1,3 @@
-export * from "./agent-action-admission.ts";
 export * from "./deepseek-credentials.ts";
 export * from "./deepseek-provider.ts";
 export * from "./agent-planning.ts";
@@ -17,9 +16,6 @@ export * from "./plan-impact.ts";
 export * from "./play-projection.ts";
 export * from "./play-service.ts";
 export * from "./reducer.ts";
-export * from "./resource-egress.ts";
-export * from "./message-issuance.ts";
-export * from "./entity-departure.ts";
 export * from "./topology.ts";
 export * from "./spatial-layout.ts";
 export * from "./expression-assets.ts";

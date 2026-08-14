@@ -130,7 +130,6 @@ P3: isolated playable planning layer and /v3 browser complete
 G3: strategic viability, plurality, and bounded live-Agent realization accepted
 Current development stage: G5 bounded Production admitted
 Encounter budget: 20 Turns
-Optional exact Agent Action admission: implemented in the unregistered v3 path
 ```
 
 The v3 product is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. G5 Production may expand only the proven Content Grammar; root replacement remains a separate later product decision.
