@@ -69,7 +69,18 @@ test("v3 browser renderer shows bounded aftermath and asymmetric terminal outcom
     assert.match(html, /Encounter complete/);
     assert.match(html, /Pirate/);
     assert.match(html, /Swarm/);
+    assert.match(html, /data-testid="operation-debrief"/);
+    assert.match(html, /Verified operation debrief/);
+    assert.match(html, /Turn limit reached/);
+    assert.ok(html.includes("1 / 2 required fronts completed"));
+    assert.match(html, /Committed focus/);
+    assert.ok(html.includes("14 / 14 Turns"));
+    assert.match(html, /First progress Turn 9/);
+    assert.match(html, /Completed Turn 9/);
     assert.match(html, /data-testid="aftermath"/);
+    assert.doesNotMatch(html, /data-testid="commander-order"/);
+    assert.doesNotMatch(html, /data-testid="plan-preview"/);
+    assert.doesNotMatch(html, /data-testid="commit-turn"/);
     assert.doesNotMatch(html, /factionPlans/);
   } finally {
     store.close();

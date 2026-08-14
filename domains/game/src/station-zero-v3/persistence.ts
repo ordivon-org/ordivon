@@ -1431,6 +1431,26 @@ export class StationZeroV3Store {
     }
   }
 
+  turnReceipt(runId: string, turnSequence: number): StationZeroV3TurnReceipt | null {
+    try {
+      this.getRun(runId);
+      requireSafeInteger(turnSequence, "Station Zero v3 Turn sequence");
+      const eventRow = this.db.prepare(`SELECT * FROM station_zero_v3_world_events
+        WHERE run_id = ? AND turn_sequence = ?`).get(runId, turnSequence) as EventRow | undefined;
+      if (!eventRow) return null;
+      const recordRow = this.db.prepare(`SELECT * FROM station_zero_v3_turn_records
+        WHERE run_id = ? AND turn_sequence = ?`).get(runId, turnSequence) as RecordRow | undefined;
+      const batchRow = this.db.prepare(`SELECT * FROM station_zero_v3_turn_batches
+        WHERE run_id = ? AND turn_batch_id = ?`).get(runId, eventRow.turn_batch_id) as BatchRow | undefined;
+      if (!recordRow || !batchRow) {
+        throw new StationZeroV3StorageError("station_zero_v3_corrupt", "Turn sequence lacks aligned retained evidence");
+      }
+      return this.receiptFromRows(eventRow, recordRow, batchRow, true);
+    } catch (error) {
+      mapStorageError(error);
+    }
+  }
+
   latestTurnReceipt(runId: string): StationZeroV3TurnReceipt | null {
     try {
       this.getRun(runId);

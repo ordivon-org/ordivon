@@ -366,6 +366,35 @@ export interface StationZeroV3AftermathView {
   }>;
 }
 
+export interface StationZeroV3OperationDebriefObjective {
+  objectiveId: string;
+  name: string;
+  mandatory: boolean;
+  focusTurns: number;
+  finalProgress: number;
+  target: number;
+  finalStatus: "active" | "completed" | "failed";
+  firstProgressTurn: number | null;
+  completedTurn: number | null;
+}
+
+export interface StationZeroV3OperationDebriefFocus {
+  objectiveId: string;
+  name: string;
+  turns: number;
+  totalTurns: number;
+}
+
+export interface StationZeroV3OperationDebrief {
+  committedTurns: number;
+  terminalReason: string;
+  terminalReasonLabel: string;
+  requiredCompleted: number;
+  requiredTotal: number;
+  focus: StationZeroV3OperationDebriefFocus[];
+  objectives: StationZeroV3OperationDebriefObjective[];
+}
+
 export interface StationZeroV3PlayView extends StationZeroV3MissionControlView {
   experience: {
     order: StationZeroV3CommanderOrder | null;
@@ -406,6 +435,7 @@ export interface StationZeroV3PlayView extends StationZeroV3MissionControlView {
     }>;
   };
   aftermath: StationZeroV3AftermathView | null;
+  debrief: StationZeroV3OperationDebrief | null;
   outcomes: {
     rescue: StationZeroV3WorldState["factions"]["rescue"]["outcome"];
     pirate: StationZeroV3WorldState["factions"]["pirate"]["outcome"];

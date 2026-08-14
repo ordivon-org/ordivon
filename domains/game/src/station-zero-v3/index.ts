@@ -8,6 +8,7 @@ export * from "./executor.ts";
 export * from "./genesis.ts";
 export * from "./mission-control.ts";
 export * from "./model.ts";
+export * from "./operation-debrief.ts";
 export * from "./p2-model.ts";
 export * from "./p3-model.ts";
 export * from "./persistence.ts";

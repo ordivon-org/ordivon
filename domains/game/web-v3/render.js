@@ -324,12 +324,31 @@ function renderAftermath(view, expressionTurnSequence = null) {
   </section>`;
 }
 
+function renderOperationDebrief(debrief) {
+  if (!debrief) return "";
+  const statusLabel = (objective) => objective.finalStatus === "completed" ? "completed" : "incomplete";
+  const milestone = (objective) => objective.completedTurn !== null
+    ? `Completed Turn ${objective.completedTurn}`
+    : objective.firstProgressTurn !== null
+      ? `First progress Turn ${objective.firstProgressTurn}`
+      : "No verified progress";
+  return `<section class="operation-debrief" data-testid="operation-debrief">
+    <div class="debrief-heading"><div><span>Verified operation debrief</span><strong>${escapeHtml(debrief.terminalReasonLabel)} · ${escapeHtml(debrief.requiredCompleted)} / ${escapeHtml(debrief.requiredTotal)} required fronts completed</strong></div><small>Retained committed-plan and objective history · no counterfactual claim</small></div>
+    <div class="debrief-focus">${debrief.focus.map((focus) => `<article data-testid="debrief-focus" data-objective-id="${escapeHtml(focus.objectiveId)}"><span>Committed focus</span><strong>${escapeHtml(focus.name)}</strong><small>${escapeHtml(focus.turns)} / ${escapeHtml(focus.totalTurns)} Turns</small></article>`).join("")}</div>
+    <div class="debrief-objectives">${debrief.objectives.map((objective) => `<article class="debrief-objective ${objective.finalStatus === "completed" ? "completed" : "incomplete"}" data-testid="debrief-objective" data-objective-id="${escapeHtml(objective.objectiveId)}">
+      <span>${objective.mandatory ? "Required" : "Selected optional"}${objective.focusTurns ? ` · focus ${escapeHtml(objective.focusTurns)} Turns` : ""}</span>
+      <strong>${escapeHtml(objective.name)}</strong>
+      <small>${escapeHtml(objective.finalProgress)} / ${escapeHtml(objective.target)} · ${escapeHtml(statusLabel(objective))} · ${escapeHtml(milestone(objective))}</small>
+    </article>`).join("")}</div>
+  </section>`;
+}
+
 function renderTerminal(view) {
   if (view.run.status !== "terminal") return "";
   return `<section class="panel terminal" data-testid="terminal-summary">
-    <p class="eyebrow">Encounter complete</p><h2>${escapeHtml(view.outcomes.rescue)} · Rescue</h2>
+    <div class="terminal-heading"><div><p class="eyebrow">Encounter complete</p><h2>${escapeHtml(view.outcomes.rescue)} · Rescue</h2></div><button data-action="new-operation">Start another operation</button></div>
     <div class="outcomes"><span>Rescue <b>${escapeHtml(view.outcomes.rescue)}</b></span><span>Pirate <b>${escapeHtml(view.outcomes.pirate)}</b></span><span>Swarm <b>${escapeHtml(view.outcomes.swarm)}</b></span></div>
-    <p>${escapeHtml(view.outcomes.reason)}</p><button data-action="new-operation">Start another operation</button>
+    ${renderOperationDebrief(view.debrief)}
   </section>`;
 }
 
@@ -348,7 +367,7 @@ function renderMission(view, catalog, expressionTurnSequence = null) {
       ${renderMap(view, expressionTurnSequence)}
       <div class="situation-stack">${renderActors(view)}${renderObjectives(view)}</div>
     </div>
-    <div class="planning-grid">${renderOrder(view, catalog)}${renderPreview(view)}</div>
+    ${view.run.status === "terminal" ? "" : `<div class="planning-grid">${renderOrder(view, catalog)}${renderPreview(view)}</div>`}
   </main>`;
 }
 

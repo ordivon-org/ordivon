@@ -165,6 +165,24 @@ try {
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Rescue/);
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Pirate/);
   assert.match(await page.getByTestId("terminal-summary").textContent() ?? "", /Swarm/);
+  assert.equal(await page.getByTestId("operation-debrief").count(), 1);
+  const debriefText = (await page.getByTestId("operation-debrief").textContent() ?? "").replace(/\s+/g, " " ).trim();
+  assert.match(debriefText, /Turn limit reached/);
+  assert.ok(debriefText.includes("0 / 2 required fronts completed"));
+  assert.match(debriefText, /Recover the Research Core/);
+  assert.equal(await page.getByTestId("debrief-focus").count(), 2);
+  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="rescue-two-civilians"]').textContent() ?? "").includes("13 / 14 Turns"));
+  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="recover-research-core"]').textContent() ?? "").includes("1 / 14 Turns"));
+  assert.match(debriefText, /No verified progress/);
+  assert.equal(debriefText.includes("Eliminate the Hive Alpha"), false);
+  assert.equal(await page.getByTestId("commander-order").count(), 0);
+  assert.equal(await page.getByTestId("plan-preview").count(), 0);
+  assert.equal(await page.getByTestId("commit-turn").count(), 0);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByTestId("operation-debrief").waitFor();
+  const reloadedDebriefText = (await page.getByTestId("operation-debrief").textContent() ?? "").replace(/\s+/g, " " ).trim();
+  assert.equal(reloadedDebriefText, debriefText, "terminal debrief should reconstruct identically after reload");
+  assert.equal(await page.getByTestId("commander-order").count(), 0);
   assert.equal(browserErrors.length, 0, browserErrors.join("\n"));
 
   const retained = await page.evaluate(async (retainedRunId) => {

@@ -2,6 +2,7 @@ import { sha256 } from "../digest.ts";
 import { STATION_ZERO_V3_COMMANDER_ABILITIES } from "./content.ts";
 import { createStationZeroV3MissionControlView, stationZeroV3PlayerObjectiveViews } from "./mission-control.ts";
 import type { StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
+import { createStationZeroV3OperationDebrief } from "./operation-debrief.ts";
 import {
   assertStationZeroV3SpatialLayout,
   stationZeroV3PassageVisibleToRescueTopology,
@@ -311,6 +312,7 @@ export function createStationZeroV3PlayView(
     },
     map,
     aftermath: buildAftermath(store, planningStore, runId, state, map),
+    debrief: createStationZeroV3OperationDebrief(store, planningStore, runId),
     outcomes: {
       rescue: state.factions.rescue.outcome,
       pirate: state.factions.pirate.outcome,
