@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "productionId": "studio-expression-card",
+  "claims": [
+    {
+      "id": "studio-core-responsibility",
+      "source": {
+        "binding": "studio",
+        "path": "README.md"
+      },
+      "meaning": "Studio turns source-owned reality into editable medium-specific expression without becoming a second truth store; the source owner retains current factual authority.",
+      "evidence": [
+        "README.md",
+        "STUDIO.md"
+      ],
+      "allowedWording": [
+        "Source-bound reality → editable expression",
+        "Facts stay with their owner. Expression stays editable.",
+        "Turn source-owned reality into editable expression"
+      ],
+      "avoid": [
+        "Studio owns current truth for every Ordivon project",
+        "a polished render is itself factual authority"
+      ]
+    },
+    {
+      "id": "studio-expression-journey",
+      "source": {
+        "binding": "studio",
+        "path": "README.md"
+      },
+      "meaning": "The ordinary Studio path binds an exact owner revision and bounded Claim, keeps editable medium source, renders an artifact, reviews it, and selects an Output or publication package.",
+      "evidence": [
+        "README.md",
+        "docs/review-consumption.md"
+      ],
+      "allowedWording": [
+        "BIND · EDIT · RENDER · REVIEW · OUTPUT",
+        "from bounded claim to selected output"
+      ],
+      "avoid": [
+        "every Production must use every Studio subsystem",
+        "review automatically proves human preference"
+      ]
+    },
+    {
+      "id": "studio-visual-baseline",
+      "source": {
+        "binding": "studio",
+        "path": "packages/identity/tokens/baseline.tokens.json"
+      },
+      "meaning": "Studio's current cross-medium baseline includes dark ink and surface colors, paper foregrounds, purple accent, green success and orange signal values, while explicitly remaining subject to future visual-direction review.",
+      "evidence": [
+        "packages/identity/tokens/baseline.tokens.json"
+      ],
+      "allowedWording": [
+        "current Studio visual baseline",
+        "cross-medium identity tokens"
+      ],
+      "avoid": [
+        "permanent universal Ordivon brand law",
+        "empirically proven human preference"
+      ]
+    }
+  ]
+}

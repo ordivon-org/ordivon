@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="violetGlow" cx="18%" cy="14%" r="78%">
+      <stop offset="0" stop-color="#9187ff" stop-opacity="0.22"/>
+      <stop offset="0.42" stop-color="#9187ff" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#0b0e14" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9187ff"/>
+      <stop offset="0.76" stop-color="#9187ff" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#70cba2"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="#0b0e14"/>
+  <rect width="1200" height="630" fill="url(#violetGlow)"/>
+
+  <path d="M66 70 H1134" stroke="#e2e7ef" stroke-opacity="0.10"/>
+  <path d="M66 560 H1134" stroke="#e2e7ef" stroke-opacity="0.10"/>
+  <path d="M816 70 V560" stroke="#e2e7ef" stroke-opacity="0.08"/>
+
+  <!-- identity -->
+  <g transform="translate(68 90)">
+    <rect width="34" height="34" fill="none" stroke="#9187ff" stroke-width="2"/>
+    <rect x="7" y="7" width="8" height="8" fill="#9187ff"/>
+    <rect x="19" y="7" width="8" height="8" fill="#70cba2"/>
+    <rect x="7" y="19" width="8" height="8" fill="#e2e7ef" fill-opacity="0.82"/>
+    <text x="50" y="23" fill="#e2e7ef" font-family="Inter, DejaVu Sans, sans-serif" font-size="17" font-weight="650" letter-spacing="2.4">ORDIVON STUDIO</text>
+  </g>
+
+  <!-- main statement -->
+  <text x="68" y="214" fill="#7f8a9a" font-family="JetBrains Mono, DejaVu Sans Mono, monospace" font-size="15" letter-spacing="2.6">SOURCE-BOUND REALITY</text>
+  <text x="68" y="286" fill="#e2e7ef" font-family="Inter, DejaVu Sans, sans-serif" font-size="68" font-weight="720" letter-spacing="-2.6">
+    <tspan x="68" dy="0">FACTS STAY</tspan>
+    <tspan x="68" dy="76">WITH THEIR OWNER.</tspan>
+  </text>
+
+  <g transform="translate(68 411)">
+    <rect x="0" y="0" width="620" height="2" fill="#9187ff"/>
+    <circle cx="620" cy="1" r="6" fill="#9187ff"/>
+    <text x="0" y="52" fill="#b2abff" font-family="Inter, DejaVu Sans, sans-serif" font-size="31" font-weight="620" letter-spacing="-0.5">Expression stays editable.</text>
+    <text x="0" y="88" fill="#bdc6d3" font-family="Inter, DejaVu Sans, sans-serif" font-size="19">Bounded claim → medium-specific source → selected output</text>
+  </g>
+
+  <!-- process rail -->
+  <g transform="translate(858 108)">
+    <text x="0" y="0" fill="#7f8a9a" font-family="JetBrains Mono, DejaVu Sans Mono, monospace" font-size="13" letter-spacing="2.1">EXPRESSION JOURNEY</text>
+
+    <rect x="18" y="48" width="2" height="352" fill="url(#flow)" opacity="0.85"/>
+    <circle cx="19" cy="69" r="24" fill="#9187ff" opacity="0.10" filter="url(#softGlow)"/>
+
+    <g font-family="JetBrains Mono, DejaVu Sans Mono, monospace" font-size="13" letter-spacing="1.7">
+      <g transform="translate(0 69)">
+        <circle cx="19" cy="0" r="7" fill="#9187ff"/>
+        <text x="52" y="5" fill="#e2e7ef">BIND</text>
+        <text x="132" y="5" fill="#7f8a9a">revision + claim</text>
+      </g>
+      <g transform="translate(0 145)">
+        <circle cx="19" cy="0" r="6" fill="#9187ff"/>
+        <text x="52" y="5" fill="#e2e7ef">EDIT</text>
+        <text x="132" y="5" fill="#7f8a9a">source stays live</text>
+      </g>
+      <g transform="translate(0 221)">
+        <circle cx="19" cy="0" r="6" fill="#9187ff"/>
+        <text x="52" y="5" fill="#e2e7ef">RENDER</text>
+        <text x="132" y="5" fill="#7f8a9a">exact bytes</text>
+      </g>
+      <g transform="translate(0 297)">
+        <circle cx="19" cy="0" r="6" fill="#9187ff"/>
+        <text x="52" y="5" fill="#e2e7ef">REVIEW</text>
+        <text x="132" y="5" fill="#7f8a9a">evidence + craft</text>
+      </g>
+      <g transform="translate(0 373)">
+        <circle cx="19" cy="0" r="8" fill="#70cba2"/>
+        <text x="52" y="5" fill="#e2e7ef">OUTPUT</text>
+        <text x="132" y="5" fill="#70cba2">selected</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- footer -->
+  <text x="68" y="594" fill="#7f8a9a" font-family="JetBrains Mono, DejaVu Sans Mono, monospace" font-size="13" letter-spacing="1.4">SOURCE OWNER ≠ EXPRESSION OWNER</text>
+  <text x="1132" y="594" text-anchor="end" fill="#b2abff" font-family="JetBrains Mono, DejaVu Sans Mono, monospace" font-size="13" letter-spacing="1.4">EDITABLE · REPLACEABLE · TRACEABLE</text>
+</svg>
