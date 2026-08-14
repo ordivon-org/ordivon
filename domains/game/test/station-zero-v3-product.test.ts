@@ -8,7 +8,7 @@ const authority = readFileSync(new URL("../docs/authority.md", import.meta.url),
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
 
-test("stable v3 product target owns human-facing G4 identity without registering v3", () => {
+test("stable v3 product target owns human-facing G5 identity without registering v3", () => {
   assert.match(product, /^id: game\.product\.station-zero-v3$/m);
   assert.match(product, /Development stage: G5 admitted — bounded Production/);
   assert.match(product, /Delegated Agentic Tactical Command/);
@@ -20,7 +20,7 @@ test("stable v3 product target owns human-facing G4 identity without registering
   assert.match(product, /G3 live-Agent evidence/);
   assert.match(product, /live Provider calls:\s+950/);
   assert.match(product, /v2 = registered product truth/);
-  assert.match(product, /v3 = accepted G4 target/);
+  assert.match(product, /v3 = accepted G5 target/);
 });
 
 test("repository navigation and authority route v3 product identity through the stable document", () => {

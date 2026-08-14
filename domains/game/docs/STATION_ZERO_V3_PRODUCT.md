@@ -16,7 +16,7 @@ audience:
   - agent
   - producer
 updated: 2026-08-14
-summary: Stable human-facing product definition for the unregistered Station Zero v3 target: a delegated single-player asymmetric tactical command game that has completed G3 playable-prototype validation and is admitted to G4 Vertical Slice production.
+summary: Stable human-facing product definition for the unregistered Station Zero v3 target: a delegated single-player asymmetric tactical command game that completed G3/G4 validation and is admitted to bounded G5 Production.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -494,7 +494,7 @@ Until that decision:
 
 ```text
 v2 = registered product truth
-v3 = accepted G4 target
+v3 = accepted G5 target
 ```
 
 ---
