@@ -76,14 +76,19 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 
 ## Working method
 
+For product development, first locate the work in the canonical lifecycle from `docs/DEVELOPMENT_MODEL.md`:
+
 ```text
-identify a current player or World problem
-→ locate the sole state owner
-→ make the smallest owner-local change
-→ test success, rejection, interruption, recovery, and hidden-information boundaries
-→ verify the real browser journey when product behavior changes
-→ delete replaced structure
+identify the current development stage and false exit gate
+→ classify the blocker as gameplay, Agent participation, content, expression, runtime, or production throughput
+→ locate the sole owner
+→ make the smallest owner-local experiment/change
+→ test the relevant success/falsifier/recovery/information boundaries
+→ verify real play or real produced artifacts at the stage boundary
+→ retain, shrink, or delete the treatment
 ```
+
+A research series is a search method inside a development stage; it is never the product lifecycle itself.
 
 ## Required change evidence
 
@@ -117,6 +122,7 @@ A meaningful change should state:
 - `docs/PRODUCT.md` defines the current Station Zero product.
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
+- `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.
 - `docs/STATION_ZERO_V3_P2.md` defines durable Planning, SQLite execution, Embedded Host, recovery, and bounded projection boundaries.

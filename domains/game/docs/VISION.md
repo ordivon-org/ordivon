@@ -41,7 +41,7 @@ This vision admits possibilities and principles, not an implementation roadmap. 
 
 ## Related work
 
-[`PRODUCT.md`](PRODUCT.md) defines the current Station Zero experience, [`ARCHITECTURE.md`](ARCHITECTURE.md) defines the registered executable boundary, and [`authority.md`](authority.md) separates current fact from future direction.
+[`PRODUCT.md`](PRODUCT.md) defines the current Station Zero experience, [`ARCHITECTURE.md`](ARCHITECTURE.md) defines the registered executable boundary, [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) defines the cross-game development lifecycle and Agent/Studio production boundaries, and [`authority.md`](authority.md) separates current fact from future direction.
 
 ## Thesis
 

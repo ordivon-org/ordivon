@@ -43,6 +43,7 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
+- [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the accepted but unregistered v3 target slices.
 - [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
