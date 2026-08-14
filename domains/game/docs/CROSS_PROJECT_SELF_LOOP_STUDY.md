@@ -1470,6 +1470,148 @@ Registered v2/Team Host work remains intact and passed the same full suite.
 
 ---
 
+# 19.8 Third consumption result — GC3 Provider semantic waist
+
+GC3 tested the ownership-pressure hypothesis around Station Zero's local DeepSeek implementation instead of moving code merely because another Ordivon project also speaks to DeepSeek.
+
+The upper Game semantic boundary is already small:
+
+```text
+StationZeroV3AgentProvider.decide(context)
+→ one Game-admitted Candidate identity
+```
+
+The local implementation below that boundary is much larger and owns multi-credential mechanics such as hot discovery/reload, weighted selection, per-credential concurrency, 429 cooldown, 401 quarantine, retry timing and pool evidence.
+
+Two plausible lower owners were checked at their revision-bound study heads. Harness has a mature DeepSeek Adapter and durable Provider-call continuity, but its `DeepSeekSettings` binds one credential scope/secret and its retry lifecycle belongs to Harness Run semantics; no multi-credential pool/hot-reload/quarantine owner exists there. Workstation owns provider/network credentials and transport admission without disclosure, not model-credential pool scheduling.
+
+Therefore the superficially similar capabilities do not represent one reproduced responsibility:
+
+```text
+Harness Provider continuity
+≠ Game multi-credential equipment pool
+≠ Workstation network-provider credential authority
+```
+
+There is also no second real consumer currently demanding Game's exact pool semantics. Moving the code now would create cross-repository coupling and a new shared abstraction without demonstrating lower total maintenance or broader useful work.
+
+GC3 decision:
+
+```text
+KEEP LOCAL BELOW GAME SEMANTIC WAIST FOR NOW
+```
+
+This is not a claim that credential plumbing is Game product meaning. It remains lower-level implementation behind the existing Provider interface. Revisit ownership only when a materially different second consumer reproduces the same multi-credential pressure or when current maintenance friction becomes owner-native evidence for extraction.
+
+---
+
+# 19.9 Fourth consumption result — GC4 planning cohesion
+
+GC4 tested whether `agent-planning.ts` should be split because it is large. The test used change history and responsibility-local blame rather than line count.
+
+Current responsibility bands are approximately:
+
+```text
+Candidate generation                  633 lines
+Context / Decision admission          182
+Fixture policy                        251
+Commander Order / catalog             190
+Commander actions / Plan assembly     255
+```
+
+The current file is 1,574 lines, but historical coupling is concentrated in semantically legitimate changes. The only commits with meaningful edits across several bands were primarily:
+
+- the original v3 first-playable construction, which introduced the full planning loop together;
+- the G4 Vertical Slice validation, which changed bounded planning semantics and fixture realization together;
+- causal Commander Order work, where player-facing policy and fixture response must change together;
+- responsibility feedback work, where Context and Plan assembly are one consequence chain.
+
+Later responsibility-specific changes were generally local: Rescue responsibilities changed Candidate/Context + planning tests; action feedback changed Context/scoring + feedback tests; mission-intent persistence changed Commander Order state + its inheritance tests.
+
+The history therefore does **not** currently show a stable false-coupling pattern in which unrelated product changes repeatedly force edits across independent responsibilities. A file split today would mostly rearrange physical source boundaries while increasing imports and navigation, without proving lower change cost.
+
+GC4 decision:
+
+```text
+KEEP CO-LOCATED UNTIL REAL G5 CHANGE/TEST COUPLING APPEARS
+```
+
+Revisit only if bounded G5 production supplies repeated evidence that one responsibility cannot change without unrelated test/source blast radius. Physical size alone is not sufficient.
+
+---
+
+# 19.10 Fifth consumption result — GC5 retained-value regression
+
+GC5 treated contraction as a product claim that had to survive the same owner-native gates as a feature addition. It also re-ran the strategic baseline from the exact pre-GC canonical revision `c192b0b65ade0f4c50e9d3919303ceda35496743` in an independent Workspace after an apparent discrepancy with an older remembered Pareto vector. The baseline and contracted branch matched exactly; the discrepancy belonged to an earlier historical stage, not GC1/GC2.
+
+Final retained-value evidence:
+
+```text
+repository tests:              297 / 297 PASS
+registered v2 browser E2E:    PASS
+v3 20-Turn browser E2E:       PASS
+v3 browser errors:            []
+
+G3 baseline vs contracted:
+  Rescue focus/victory:       3 / 6 == 3 / 6
+  Core focus:                 1 / 6 == 1 / 6
+  Hive focus:                 6 / 6 == 6 / 6
+  Pareto profiles:            8 == 8
+  unique signatures:          3 == 3
+  raw Pareto vectors:         exact match
+
+G4 calibration:               PASS
+Product Value evaluator:      PASS
+  primary objective:          39 / 40 same-state selection leverage
+  retreat threshold:           7 / 8 relevant-state leverage
+  priority target:            22 / 63 relevant-state leverage
+  loot policy:                 0 / 46 relevant-state leverage
+  pressure:                   planning + damage thresholds reached
+  specialist identity:        distinct; max selected-tag Jaccard ~0.476
+
+live DeepSeek preflight:
+  bounded Runs verified:       3 / 3
+  Provider calls:             15 / 15 successful
+  retries:                     0
+  hidden references:           0
+  Provider latency p50/p95:  1671 / 1993 ms
+  Preview latency p50/p95:   1931 / 2048 ms
+```
+
+GC5 therefore accepts the scoped contractions on **retained owner-native value**, not on code-size reduction. The removed tests belonged to removed dormant mechanisms; the surviving 297 tests plus browser, strategic, product-value, calibration and live-Provider gates protect the current product.
+
+The resulting Game responsibility boundary is smaller:
+
+```text
+KEEP DURABLE / GAME-OWNED
+  selected live-model Preview
+  Commander Order ↔ Preview binding
+  Faction Plans
+  canonical Turn Batch
+  World Event / Turn Record
+  exact receipt observation / deterministic recovery
+  bounded Faction Knowledge
+
+REMOVED FROM CURRENT PRODUCT
+  optional Agent Action Admission machinery
+  Resource Egress / Message Issuance / Entity Departure research implementations
+  v3-local Embedded Host transcript
+  Host-era task/effect/dispatch identities from the semantic model
+
+KEPT BELOW SEMANTIC WAIST FOR NOW
+  legacy four SQLite compatibility columns
+  Game-local DeepSeek multi-credential plumbing
+
+NOT REFACTORED WITHOUT EVIDENCE
+  agent-planning.ts physical file boundary
+```
+
+This is the intended outcome of the cross-project self-loop: **preserve the law, remove the ceremony, and stop when the remaining structure still has a named owner-local responsibility.**
+
+The contraction audit is complete. Game may now return to bounded G5 Content Grammar production from the smaller architecture.
+
+---
+
 # 20. Recommended next Game sequence
 
 This study changes the order of work.
@@ -1491,18 +1633,19 @@ GC2  Embedded Host ablation                       DONE experimentally
      v3 now uses Game-owned Planning/Turn evidence only
      legacy physical columns remain below semantic waist
 
-GC3  semantic-waist audit
-     determine whether DeepSeek credential/pool mechanics
-     can remain below a provider/equipment boundary without migration theater
+GC3  semantic-waist audit                         DONE
+     keep Game multi-credential pool local behind the existing Provider interface
+     until a real second consumer / maintenance pressure justifies extraction
 
-GC4  planning cohesion audit
-     measure change/test coupling before any file split
+GC4  planning cohesion audit                      DONE
+     keep agent-planning.ts co-located; history does not show false coupling
+     strong enough to justify a split
 
-GC5  rerun product/recovery/live gates
-     retain only contractions that preserve or improve owner-native outcomes
+GC5  rerun product/recovery/live gates            DONE
+     contractions retained only after exact baseline/product/live equivalence
 ```
 
-Only after GC0–GC5 should Game return to the bounded G5 Content Grammar proof.
+GC0–GC5 are complete. Game may now return to the bounded G5 Content Grammar proof on the contracted architecture.
 
 The priority is not LOC reduction. It is to enter production with the smallest architecture that still preserves:
 
