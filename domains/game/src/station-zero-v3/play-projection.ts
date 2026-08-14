@@ -2,6 +2,12 @@ import { sha256 } from "../digest.ts";
 import { STATION_ZERO_V3_COMMANDER_ABILITIES } from "./content.ts";
 import { createStationZeroV3MissionControlView } from "./mission-control.ts";
 import type { StationZeroFact, StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
+import {
+  assertStationZeroV3SpatialLayout,
+  stationZeroV3PassageVisibleToRescueTopology,
+  stationZeroV3SpatialLayout,
+  type StationZeroV3SpatialPoint,
+} from "./spatial-layout.ts";
 import type {
   StationZeroV3AftermathView,
   StationZeroV3PlanPreview,
@@ -108,50 +114,132 @@ function buildAftermath(store: StationZeroV3Store, runId: string, state: Station
   };
 }
 
+function clippedPolyline(points: StationZeroV3SpatialPoint[], maximumLength: number): StationZeroV3SpatialPoint[] {
+  if (points.length < 2) return points.map((point) => ({ ...point }));
+  const retained: StationZeroV3SpatialPoint[] = [{ ...points[0]! }];
+  let remaining = maximumLength;
+  for (let index = 1; index < points.length && remaining > 0; index += 1) {
+    const from = points[index - 1]!;
+    const to = points[index]!;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.hypot(dx, dy);
+    if (length === 0) continue;
+    if (length <= remaining) {
+      retained.push({ ...to });
+      remaining -= length;
+      continue;
+    }
+    const ratio = remaining / length;
+    retained.push({ x: from.x + dx * ratio, y: from.y + dy * ratio });
+    remaining = 0;
+  }
+  return retained;
+}
+
 function buildMap(state: StationZeroV3WorldState) {
+  const layout = stationZeroV3SpatialLayout();
+  assertStationZeroV3SpatialLayout(layout, state);
   const knowledge = state.factionKnowledge.rescue;
   const knownZones = new Set(knowledge.discoveredZoneIds);
   const contactByZone = new Map<string, string[]>();
   for (const contact of Object.values(knowledge.knownActors)) {
-    if (state.actors[contact.actorId]?.factionId === "rescue") continue;
+    if (state.actors[contact.actorId]?.factionId === "rescue" || !knownZones.has(contact.lastKnownZoneId)) continue;
     const list = contactByZone.get(contact.lastKnownZoneId) ?? [];
     list.push(contact.actorId);
     contactByZone.set(contact.lastKnownZoneId, list);
   }
   const ownByZone = new Map<string, string[]>();
-  for (const actor of Object.values(state.actors).filter((entry) => entry.factionId === "rescue")) {
+  for (const actor of Object.values(state.actors).filter((entry) => entry.factionId === "rescue" && knownZones.has(entry.position.zoneId))) {
     const list = ownByZone.get(actor.position.zoneId) ?? [];
     list.push(actor.actorId);
     ownByZone.set(actor.position.zoneId, list);
   }
-  const visibleRoomIds = new Set(knowledge.discoveredRoomIds);
-  for (const zoneId of knownZones) {
-    const roomId = state.zones[zoneId]?.roomId;
-    if (roomId) visibleRoomIds.add(roomId);
+
+  const zoneRows = [...knownZones].sort().map((zoneId) => {
+    const zoneState = state.zones[zoneId]!;
+    const geometry = layout.zones[zoneId]!;
+    return {
+      zoneId,
+      roomId: zoneState.roomId,
+      roomName: state.rooms[zoneState.roomId]?.name ?? zoneState.roomId,
+      name: zoneState.name,
+      cover: zoneState.cover,
+      geometry: { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height },
+      ownActorIds: [...(ownByZone.get(zoneId) ?? [])].sort(),
+      contactActorIds: [...(contactByZone.get(zoneId) ?? [])].sort(),
+      systemIds: Object.values(state.systems)
+        .filter((entry) => entry.zoneId === zoneId && knowledge.knownSystemIds.includes(entry.systemId))
+        .map((entry) => entry.systemId).sort(),
+      hazardIds: Object.values(state.hazards)
+        .filter((entry) => entry.zoneId === zoneId && knowledge.knownHazardIds.includes(entry.hazardId))
+        .map((entry) => entry.hazardId).sort(),
+      groundItemIds: Object.values(state.groundItems)
+        .filter((entry) => entry.zoneId === zoneId && knowledge.knownGroundItemIds.includes(entry.groundItemId))
+        .map((entry) => entry.groundItemId).sort(),
+    };
+  });
+
+  const passageRows = Object.values(state.passages)
+    .filter((passage) => knownZones.has(passage.zoneAId) && knownZones.has(passage.zoneBId) && stationZeroV3PassageVisibleToRescueTopology(passage))
+    .sort((left, right) => left.passageId.localeCompare(right.passageId))
+    .map((passage) => ({
+      passageId: passage.passageId,
+      zoneAId: passage.zoneAId,
+      zoneBId: passage.zoneBId,
+      points: layout.passages[passage.passageId]!.points.map((point) => ({ ...point })),
+    }));
+
+  const frontierRows = Object.values(state.passages)
+    .filter((passage) => stationZeroV3PassageVisibleToRescueTopology(passage))
+    .flatMap((passage) => {
+      const aKnown = knownZones.has(passage.zoneAId);
+      const bKnown = knownZones.has(passage.zoneBId);
+      if (aKnown === bKnown) return [];
+      const fromZoneId = aKnown ? passage.zoneAId : passage.zoneBId;
+      const route = layout.passages[passage.passageId]!.points;
+      const fromKnown = aKnown ? route : [...route].reverse();
+      const points = clippedPolyline(fromKnown, 42);
+      return [{
+        frontierId: `frontier:${sha256({ fromZoneId, points }).slice(0, 12)}`,
+        fromZoneId,
+        points,
+      }];
+    })
+    .sort((left, right) => left.frontierId.localeCompare(right.frontierId));
+
+  const xValues: number[] = [];
+  const yValues: number[] = [];
+  for (const zone of zoneRows) {
+    xValues.push(zone.geometry.x, zone.geometry.x + zone.geometry.width);
+    yValues.push(zone.geometry.y, zone.geometry.y + zone.geometry.height);
   }
+  for (const row of [...passageRows, ...frontierRows]) {
+    for (const point of row.points) {
+      xValues.push(point.x);
+      yValues.push(point.y);
+    }
+  }
+  if (xValues.length === 0 || yValues.length === 0) throw new TypeError("Player spatial projection has no known geometry");
+  const padding = 48;
+  const minimumX = Math.min(...xValues);
+  const maximumX = Math.max(...xValues);
+  const minimumY = Math.min(...yValues);
+  const maximumY = Math.max(...yValues);
+  const offsetX = padding - minimumX;
+  const offsetY = padding - minimumY;
+  const translatePoint = (point: StationZeroV3SpatialPoint) => ({ x: point.x + offsetX, y: point.y + offsetY });
+
   return {
-    rooms: Object.values(state.rooms)
-      .filter((room) => visibleRoomIds.has(room.roomId))
-      .sort((left, right) => left.roomId.localeCompare(right.roomId))
-      .map((room) => ({
-        roomId: room.roomId,
-        name: room.name,
-        known: true,
-        zones: room.zoneIds.filter((zoneId) => knownZones.has(zoneId)).map((zoneId) => {
-          const zoneState = state.zones[zoneId]!;
-          return {
-            zoneId,
-            name: zoneState.name,
-            known: true,
-            cover: zoneState.cover,
-            ownActorIds: [...(ownByZone.get(zoneId) ?? [])].sort(),
-            contactActorIds: [...(contactByZone.get(zoneId) ?? [])].sort(),
-            systemIds: Object.values(state.systems).filter((entry) => entry.zoneId === zoneId && knowledge.knownSystemIds.includes(entry.systemId)).map((entry) => entry.systemId).sort(),
-            hazardIds: Object.values(state.hazards).filter((entry) => entry.zoneId === zoneId && knowledge.knownHazardIds.includes(entry.hazardId)).map((entry) => entry.hazardId).sort(),
-            groundItemIds: Object.values(state.groundItems).filter((entry) => entry.zoneId === zoneId && knowledge.knownGroundItemIds.includes(entry.groundItemId)).map((entry) => entry.groundItemId).sort(),
-          };
-        }),
-      })),
+    layoutDigest: layout.layoutDigest,
+    width: maximumX - minimumX + padding * 2,
+    height: maximumY - minimumY + padding * 2,
+    zones: zoneRows.map((zone) => ({
+      ...zone,
+      geometry: { ...zone.geometry, x: zone.geometry.x + offsetX, y: zone.geometry.y + offsetY },
+    })),
+    passages: passageRows.map((passage) => ({ ...passage, points: passage.points.map(translatePoint) })),
+    frontiers: frontierRows.map((frontier) => ({ ...frontier, points: frontier.points.map(translatePoint) })),
   };
 }
 

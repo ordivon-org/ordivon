@@ -1,0 +1,1379 @@
+{
+  "compressionlevel": -1,
+  "height": 24,
+  "infinite": false,
+  "layers": [
+    {
+      "id": 1,
+      "name": "Zones",
+      "type": "objectgroup",
+      "draworder": "topdown",
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "objects": [
+        {
+          "id": 1,
+          "name": "rescue-airlock",
+          "class": "zone",
+          "type": "",
+          "x": 60,
+          "y": 330,
+          "width": 70,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "rescue-airlock"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "command-deck",
+          "class": "zone",
+          "type": "",
+          "x": 150,
+          "y": 300,
+          "width": 120,
+          "height": 120,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "command-deck"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "junction-console",
+          "class": "zone",
+          "type": "",
+          "x": 360,
+          "y": 270,
+          "width": 110,
+          "height": 90,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "junction-console"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "junction-cover",
+          "class": "zone",
+          "type": "",
+          "x": 490,
+          "y": 270,
+          "width": 100,
+          "height": 90,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "junction-cover"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "storage-floor",
+          "class": "zone",
+          "type": "",
+          "x": 630,
+          "y": 430,
+          "width": 130,
+          "height": 120,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "storage-floor"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "crate-cover",
+          "class": "zone",
+          "type": "",
+          "x": 780,
+          "y": 430,
+          "width": 100,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "crate-cover"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "cargo-airlock",
+          "class": "zone",
+          "type": "",
+          "x": 790,
+          "y": 530,
+          "width": 90,
+          "height": 70,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "cargo-airlock"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "maintenance-entry",
+          "class": "zone",
+          "type": "",
+          "x": 900,
+          "y": 440,
+          "width": 90,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "maintenance-entry"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "maintenance-console",
+          "class": "zone",
+          "type": "",
+          "x": 1010,
+          "y": 440,
+          "width": 110,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "maintenance-console"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "maintenance-nest",
+          "class": "zone",
+          "type": "",
+          "x": 1010,
+          "y": 550,
+          "width": 120,
+          "height": 100,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "maintenance-nest"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "name": "med-console",
+          "class": "zone",
+          "type": "",
+          "x": 360,
+          "y": 540,
+          "width": 100,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "med-console"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "med-ward",
+          "class": "zone",
+          "type": "",
+          "x": 480,
+          "y": 520,
+          "width": 120,
+          "height": 120,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "med-ward"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "reactor-entry",
+          "class": "zone",
+          "type": "",
+          "x": 360,
+          "y": 100,
+          "width": 90,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "reactor-entry"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "name": "reactor-console",
+          "class": "zone",
+          "type": "",
+          "x": 480,
+          "y": 80,
+          "width": 110,
+          "height": 90,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "reactor-console"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "reactor-cover",
+          "class": "zone",
+          "type": "",
+          "x": 480,
+          "y": 190,
+          "width": 110,
+          "height": 70,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "reactor-cover"
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "name": "comms-entry",
+          "class": "zone",
+          "type": "",
+          "x": 650,
+          "y": 270,
+          "width": 90,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "comms-entry"
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "name": "comms-console",
+          "class": "zone",
+          "type": "",
+          "x": 760,
+          "y": 270,
+          "width": 120,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "comms-console"
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "name": "life-entry",
+          "class": "zone",
+          "type": "",
+          "x": 900,
+          "y": 230,
+          "width": 90,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "life-entry"
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "name": "life-console",
+          "class": "zone",
+          "type": "",
+          "x": 1010,
+          "y": 210,
+          "width": 110,
+          "height": 90,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "life-console"
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "name": "life-duct",
+          "class": "zone",
+          "type": "",
+          "x": 1010,
+          "y": 330,
+          "width": 110,
+          "height": 70,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zoneId",
+              "type": "string",
+              "value": "life-duct"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Passages",
+      "type": "objectgroup",
+      "draworder": "topdown",
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "objects": [
+        {
+          "id": 21,
+          "name": "passage:rescue-deck",
+          "class": "passage",
+          "type": "",
+          "x": 130,
+          "y": 366.96,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": -1.74
+            },
+            {
+              "x": 20,
+              "y": -1.74
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:rescue-deck"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "rescue-airlock"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "command-deck"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "name": "passage:deck-junction",
+          "class": "passage",
+          "type": "",
+          "x": 270,
+          "y": 346.83,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 45,
+              "y": 0
+            },
+            {
+              "x": 45,
+              "y": -19.76
+            },
+            {
+              "x": 90,
+              "y": -19.76
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:deck-junction"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "command-deck"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "junction-console"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "name": "passage:deck-reactor",
+          "class": "passage",
+          "type": "",
+          "x": 263.18,
+          "y": 300,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": -60
+            },
+            {
+              "x": 106.36,
+              "y": -60
+            },
+            {
+              "x": 106.36,
+              "y": -120
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:deck-reactor"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "command-deck"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "reactor-entry"
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "name": "passage:junction-machinery",
+          "class": "passage",
+          "type": "",
+          "x": 470,
+          "y": 315,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 20,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:junction-machinery"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "junction-console"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "junction-cover"
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "name": "passage:junction-storage",
+          "class": "passage",
+          "type": "",
+          "x": 579.86,
+          "y": 360,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 35
+            },
+            {
+              "x": 62,
+              "y": 35
+            },
+            {
+              "x": 62,
+              "y": 70
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:junction-storage"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "junction-cover"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "storage-floor"
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "name": "passage:junction-comms",
+          "class": "passage",
+          "type": "",
+          "x": 470,
+          "y": 314.02,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 90,
+              "y": 0
+            },
+            {
+              "x": 90,
+              "y": -3.21
+            },
+            {
+              "x": 180,
+              "y": -3.21
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:junction-comms"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "junction-console"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "comms-entry"
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "name": "passage:junction-med",
+          "class": "passage",
+          "type": "",
+          "x": 517.92,
+          "y": 360,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 90
+            },
+            {
+              "x": -88.3,
+              "y": 90
+            },
+            {
+              "x": -88.3,
+              "y": 180
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:junction-med"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "junction-cover"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "med-console"
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "name": "passage:storage-crates",
+          "class": "passage",
+          "type": "",
+          "x": 760,
+          "y": 480.37,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": -2.96
+            },
+            {
+              "x": 20,
+              "y": -2.96
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:storage-crates"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "storage-floor"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "crate-cover"
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "name": "passage:storage-airlock",
+          "class": "passage",
+          "type": "",
+          "x": 832.11,
+          "y": 510,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 10
+            },
+            {
+              "x": 1.05,
+              "y": 10
+            },
+            {
+              "x": 1.05,
+              "y": 20
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:storage-airlock"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "crate-cover"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "cargo-airlock"
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "name": "passage:storage-maintenance",
+          "class": "passage",
+          "type": "",
+          "x": 760,
+          "y": 487.4,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 70,
+              "y": 0
+            },
+            {
+              "x": 70,
+              "y": -5.6
+            },
+            {
+              "x": 140,
+              "y": -5.6
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:storage-maintenance"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "storage-floor"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "maintenance-entry"
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "name": "passage:maintenance-console",
+          "class": "passage",
+          "type": "",
+          "x": 990,
+          "y": 480,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 20,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:maintenance-console"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "maintenance-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "maintenance-console"
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "name": "passage:maintenance-nest",
+          "class": "passage",
+          "type": "",
+          "x": 986.67,
+          "y": 520,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 15.63,
+              "y": 0
+            },
+            {
+              "x": 15.63,
+              "y": 30
+            },
+            {
+              "x": 31.25,
+              "y": 30
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:maintenance-nest"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "maintenance-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "maintenance-nest"
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "name": "passage:maintenance-life",
+          "class": "passage",
+          "type": "",
+          "x": 1042.14,
+          "y": 440,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": -65
+            },
+            {
+              "x": -74.29,
+              "y": -65
+            },
+            {
+              "x": -74.29,
+              "y": -130
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:maintenance-life"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "maintenance-console"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "life-entry"
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "name": "passage:med-ward",
+          "class": "passage",
+          "type": "",
+          "x": 460,
+          "y": 580,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 20,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:med-ward"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "med-console"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "med-ward"
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "name": "passage:reactor-console",
+          "class": "passage",
+          "type": "",
+          "x": 450,
+          "y": 134.81,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 15,
+              "y": 0
+            },
+            {
+              "x": 15,
+              "y": -3.46
+            },
+            {
+              "x": 30,
+              "y": -3.46
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:reactor-console"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "reactor-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "reactor-console"
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "name": "passage:reactor-cover",
+          "class": "passage",
+          "type": "",
+          "x": 450,
+          "y": 169.42,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 15.74,
+              "y": 0
+            },
+            {
+              "x": 15.74,
+              "y": 20.58
+            },
+            {
+              "x": 31.47,
+              "y": 20.58
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:reactor-cover"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "reactor-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "reactor-cover"
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "name": "passage:comms-console",
+          "class": "passage",
+          "type": "",
+          "x": 740,
+          "y": 310,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 20,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:comms-console"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "comms-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "comms-console"
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "name": "passage:life-console",
+          "class": "passage",
+          "type": "",
+          "x": 990,
+          "y": 264.38,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": 0
+            },
+            {
+              "x": 10,
+              "y": -2.5
+            },
+            {
+              "x": 20,
+              "y": -2.5
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:life-console"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "life-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "life-console"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "name": "passage:life-duct",
+          "class": "passage",
+          "type": "",
+          "x": 990,
+          "y": 305.63,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 15.39,
+              "y": 0
+            },
+            {
+              "x": 15.39,
+              "y": 24.38
+            },
+            {
+              "x": 30.79,
+              "y": 24.38
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:life-duct"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "life-entry"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "life-duct"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "name": "passage:duct-nest",
+          "class": "passage",
+          "type": "",
+          "x": 1065.74,
+          "y": 400,
+          "width": 0,
+          "height": 0,
+          "rotation": 0,
+          "visible": true,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 75
+            },
+            {
+              "x": 3.19,
+              "y": 75
+            },
+            {
+              "x": 3.19,
+              "y": 150
+            }
+          ],
+          "properties": [
+            {
+              "name": "passageId",
+              "type": "string",
+              "value": "passage:duct-nest"
+            },
+            {
+              "name": "zoneAId",
+              "type": "string",
+              "value": "life-duct"
+            },
+            {
+              "name": "zoneBId",
+              "type": "string",
+              "value": "maintenance-nest"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "nextlayerid": 3,
+  "nextobjectid": 41,
+  "orientation": "orthogonal",
+  "properties": [
+    {
+      "name": "authority",
+      "type": "string",
+      "value": "non-authoritative-spatial-projection"
+    },
+    {
+      "name": "scenarioId",
+      "type": "string",
+      "value": "station-zero"
+    },
+    {
+      "name": "scenarioVersion",
+      "type": "int",
+      "value": 3
+    }
+  ],
+  "renderorder": "right-down",
+  "tiledversion": "1.12.2",
+  "tileheight": 32,
+  "tilesets": [],
+  "tilewidth": 32,
+  "type": "map",
+  "version": "1.10",
+  "width": 38
+}

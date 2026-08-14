@@ -152,15 +152,50 @@ function renderObjectives(view) {
   </section>`;
 }
 
+function pointList(points) {
+  return points.map((point) => `${Number(point.x).toFixed(1)},${Number(point.y).toFixed(1)}`).join(" ");
+}
+
+function compactToken(id, kind) {
+  const label = tokenLabel(id);
+  const glyph = kind === "rescue" ? label.split(" ").at(-1)?.slice(0, 1) ?? "R"
+    : kind === "contact" ? "?"
+      : kind === "system" ? "◆"
+        : kind === "hazard" ? "!"
+          : "◇";
+  return `<span class="map-token ${kind}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${escapeHtml(glyph)}</span>`;
+}
+
 function renderMap(view) {
-  return `<section class="panel map-panel"><div class="section-heading"><div><p class="eyebrow">Known station</p><h2>Operational map</h2></div><span>${view.known.zoneIds.length} zones known</span></div>
-    <div class="room-grid">${view.map.rooms.map((room) => `<article class="room"><h3>${escapeHtml(room.name)}</h3><div>${room.zones.map((zone) => `<section class="zone">
-      <strong>${escapeHtml(zone.name)}</strong><small>${escapeHtml(zone.cover)} cover</small>
-      ${zone.ownActorIds.map((id) => `<span class="token rescue">${escapeHtml(tokenLabel(id))}</span>`).join("")}
-      ${zone.contactActorIds.map((id) => `<span class="token contact">${escapeHtml(tokenLabel(id))}</span>`).join("")}
-      ${zone.systemIds.map((id) => `<span class="token system">${escapeHtml(tokenLabel(id))}</span>`).join("")}
-      ${zone.hazardIds.map((id) => `<span class="token hazard">${escapeHtml(tokenLabel(id))}</span>`).join("")}
-    </section>`).join("")}</div></article>`).join("")}</div>
+  const passageLines = view.map.passages.map((passage) => `<polyline class="map-passage" points="${pointList(passage.points)}" data-passage-id="${escapeHtml(passage.passageId)}"></polyline>`).join("");
+  const frontierLines = view.map.frontiers.map((frontier) => {
+    const tip = frontier.points.at(-1);
+    return `<g class="map-frontier" data-frontier-from="${escapeHtml(frontier.fromZoneId)}"><polyline points="${pointList(frontier.points)}"></polyline>${tip ? `<circle cx="${Number(tip.x).toFixed(1)}" cy="${Number(tip.y).toFixed(1)}" r="5"></circle>` : ""}</g>`;
+  }).join("");
+  const zones = view.map.zones.map((zone) => `<foreignObject x="${Number(zone.geometry.x).toFixed(1)}" y="${Number(zone.geometry.y).toFixed(1)}" width="${Number(zone.geometry.width).toFixed(1)}" height="${Number(zone.geometry.height).toFixed(1)}" data-zone-id="${escapeHtml(zone.zoneId)}">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="map-zone-card cover-${escapeHtml(zone.cover)}">
+      <span class="map-room-label">${escapeHtml(zone.roomName)}</span>
+      <strong>${escapeHtml(zone.name)}</strong>
+      <small>${escapeHtml(zone.cover)} cover</small>
+      <div class="map-zone-tokens">
+        ${zone.ownActorIds.map((id) => compactToken(id, "rescue")).join("")}
+        ${zone.contactActorIds.map((id) => compactToken(id, "contact")).join("")}
+        ${zone.systemIds.map((id) => compactToken(id, "system")).join("")}
+        ${zone.hazardIds.map((id) => compactToken(id, "hazard")).join("")}
+        ${zone.groundItemIds.map((id) => compactToken(id, "item")).join("")}
+      </div>
+    </div>
+  </foreignObject>`).join("");
+  return `<section class="panel map-panel"><div class="section-heading"><div><p class="eyebrow">Known station</p><h2>Operational map</h2></div><span>${view.known.zoneIds.length} zones · ${view.map.frontiers.length} uncharted access</span></div>
+    <div class="spatial-map-shell" data-testid="spatial-map">
+      <svg class="spatial-map" viewBox="0 0 ${Number(view.map.width).toFixed(1)} ${Number(view.map.height).toFixed(1)}" role="img" aria-label="Known Station Zero tactical topology">
+        <g class="map-grid"><path d="M0 0H${Number(view.map.width).toFixed(1)}V${Number(view.map.height).toFixed(1)}H0Z"></path></g>
+        <g class="map-passages">${passageLines}${frontierLines}</g>
+        <g class="map-zones">${zones}</g>
+      </svg>
+    </div>
+    <div class="map-legend"><span><i class="legend-token rescue">R</i> Rescue</span><span><i class="legend-token contact">?</i> Contact</span><span><i class="legend-token system">◆</i> System</span><span><i class="legend-token hazard">!</i> Hazard</span><span><i class="legend-frontier"></i> Uncharted access</span></div>
+    <p class="map-boundary-note">Only Rescue-confirmed geometry is projected. Uncharted destinations remain withheld until discovery.</p>
   </section>`;
 }
 

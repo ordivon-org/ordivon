@@ -32,6 +32,8 @@ test("v3 preview API is isolated from the current executable and supports one ex
     assert.match(previewHtml, /Station Zero v3/);
     const currentHtml = await fetch(`${base}/`).then((response) => response.text());
     assert.match(currentHtml, /ORDIVON GAME/);
+    const rawSpatialLayout = await fetch(`${base}/assets/station-zero-v3/station-zero-layout.tmj`);
+    assert.equal(rawSpatialLayout.status, 404, "full authored topology must never be served to the player browser");
 
     const catalog = await json(await fetch(`${base}/api/station-zero-v3/catalog`));
     assert.equal(catalog.kind, "ordivon.game.station-zero-v3-play-catalog");

@@ -296,21 +296,32 @@ export interface StationZeroV3PlayView extends StationZeroV3MissionControlView {
     canCommitPreview: boolean;
   };
   map: {
-    rooms: Array<{
+    layoutDigest: string;
+    width: number;
+    height: number;
+    zones: Array<{
+      zoneId: string;
       roomId: string;
+      roomName: string;
       name: string;
-      known: boolean;
-      zones: Array<{
-        zoneId: string;
-        name: string;
-        known: boolean;
-        cover: "none" | "half" | "full" | "unknown";
-        ownActorIds: string[];
-        contactActorIds: string[];
-        systemIds: string[];
-        hazardIds: string[];
-        groundItemIds: string[];
-      }>;
+      cover: "none" | "half" | "full" | "unknown";
+      geometry: { x: number; y: number; width: number; height: number };
+      ownActorIds: string[];
+      contactActorIds: string[];
+      systemIds: string[];
+      hazardIds: string[];
+      groundItemIds: string[];
+    }>;
+    passages: Array<{
+      passageId: string;
+      zoneAId: string;
+      zoneBId: string;
+      points: Array<{ x: number; y: number }>;
+    }>;
+    frontiers: Array<{
+      frontierId: string;
+      fromZoneId: string;
+      points: Array<{ x: number; y: number }>;
     }>;
   };
   aftermath: StationZeroV3AftermathView | null;

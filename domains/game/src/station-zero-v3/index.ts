@@ -19,4 +19,5 @@ export * from "./resource-egress.ts";
 export * from "./message-issuance.ts";
 export * from "./entity-departure.ts";
 export * from "./topology.ts";
+export * from "./spatial-layout.ts";
 export * from "./turn-service.ts";

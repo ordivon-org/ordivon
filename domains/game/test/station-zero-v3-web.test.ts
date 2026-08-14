@@ -30,6 +30,11 @@ test("v3 browser renderer exposes strategic controls and sealed enemy plans with
     assert.doesNotMatch(html, /Captain Veyra/);
     assert.doesNotMatch(html, /swarm-drone-one|swarm-stalker-kappa/);
     assert.match(html, /Operational map/);
+    assert.match(html, /data-testid="spatial-map"/);
+    assert.match(html, /6 zones · 3 uncharted access/);
+    assert.match(html, /data-passage-id="passage:deck-junction"/);
+    assert.doesNotMatch(html, /reactor-entry|storage-floor|maintenance-entry|comms-entry/);
+    assert.doesNotMatch(html, /passage:deck-reactor|passage:junction-storage|passage:junction-comms/);
   } finally {
     store.close();
   }
