@@ -1,8 +1,29 @@
-import { STATION_ZERO_FACTION_IDS } from "./model.ts";
+import { STATION_ZERO_FACTION_IDS, type StationZeroV3WorldState } from "./model.ts";
 import { STATION_ZERO_V3_OBJECTIVES } from "./content.ts";
 import type { StationZeroV3MissionControlView } from "./p2-model.ts";
 import type { StationZeroV3Store } from "./persistence.ts";
 import type { StationZeroV3TurnService } from "./turn-service.ts";
+
+export function stationZeroV3PlayerObjectiveViews(
+  state: StationZeroV3WorldState,
+): StationZeroV3MissionControlView["objectives"] {
+  const playerFactionId = state.encounter.playerFactionId;
+  return STATION_ZERO_V3_OBJECTIVES
+    .filter((objective) => objective.factionId === playerFactionId)
+    .map((objective) => {
+      const progress = state.factions[playerFactionId].objectiveProgress[objective.objectiveId];
+      if (!progress) throw new Error(`Player Faction Objective progress is missing: ${objective.objectiveId}`);
+      return {
+        objectiveId: objective.objectiveId,
+        name: objective.name,
+        mandatory: objective.mandatory,
+        status: progress.status,
+        progress: progress.progress,
+        target: progress.target,
+        reason: progress.reason,
+      };
+    });
+}
 
 export function createStationZeroV3MissionControlView(
   store: StationZeroV3Store,
@@ -52,21 +73,7 @@ export function createStationZeroV3MissionControlView(
       observedAtTurn: known.observedAtTurn,
     }));
 
-  const objectives = STATION_ZERO_V3_OBJECTIVES
-    .filter((objective) => objective.factionId === playerFactionId)
-    .map((objective) => {
-      const progress = state.factions[playerFactionId].objectiveProgress[objective.objectiveId];
-      if (!progress) throw new Error(`Player Faction Objective progress is missing: ${objective.objectiveId}`);
-      return {
-        objectiveId: objective.objectiveId,
-        name: objective.name,
-        mandatory: objective.mandatory,
-        status: progress.status,
-        progress: progress.progress,
-        target: progress.target,
-        reason: progress.reason,
-      };
-    });
+  const objectives = stationZeroV3PlayerObjectiveViews(state);
 
   return {
     schemaVersion: 1,

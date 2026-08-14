@@ -317,9 +317,30 @@ export interface StationZeroV3TemporalExpression {
   visual: StationZeroV3TemporalExpressionSprite | StationZeroV3TemporalExpressionIcon | null;
 }
 
+export interface StationZeroV3PlanReviewObjective {
+  objectiveId: string;
+  name: string;
+  mandatory: boolean;
+  selectedPriority: boolean;
+  plannedImpact: StationZeroV3PlanImpactKind;
+  supportingActorNames: string[];
+  beforeProgress: number;
+  afterProgress: number;
+  target: number;
+  beforeStatus: "active" | "completed" | "failed";
+  afterStatus: "active" | "completed" | "failed";
+}
+
+export interface StationZeroV3PlanReview {
+  previewId: string;
+  orderRevision: number;
+  objectives: StationZeroV3PlanReviewObjective[];
+}
+
 export interface StationZeroV3AftermathView {
   turnSequence: number;
   turnBatchId: string;
+  planReview: StationZeroV3PlanReview;
   expressions: StationZeroV3TemporalExpression[];
   visibleFacts: Array<{
     factId: string;
@@ -329,6 +350,7 @@ export interface StationZeroV3AftermathView {
   ownIntentResults: Array<{
     actorId: string;
     actorName: string;
+    plannedAction: string;
     status: StationZeroIntentResolutionStatus;
     reason: string;
   }>;

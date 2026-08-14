@@ -112,6 +112,12 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-testid="turn-number"]')?.textContent === "1");
   await page.getByTestId("aftermath").waitFor();
   await page.getByTestId("temporal-expression-strip").waitFor();
+  assert.equal(await page.getByTestId("plan-review").count(), 1);
+  assert.equal(await page.getByTestId("plan-review-front").count(), 3);
+  assert.equal(await page.locator('[data-testid="plan-review-front"][data-objective-id="recover-research-core"]').getAttribute("data-planned-impact"), "none");
+  assert.equal(await page.getByTestId("intent-review").count(), 3);
+  assert.match(await page.getByTestId("aftermath").textContent() ?? "", /Planned: Overwatch Command Deck/);
+  assert.match(await page.getByTestId("aftermath").textContent() ?? "", /no hostile movement triggered/);
   assert.ok(await page.getByTestId("temporal-expression").count() > 0);
   assert.ok(await page.locator(".temporal-map-event").count() > 0, "freshly committed visible spatial Facts should play once on the tactical map");
   assert.equal(await page.locator(".expression-strip.is-live").count(), 1);

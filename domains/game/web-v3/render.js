@@ -295,12 +295,31 @@ function renderMap(view, expressionTurnSequence = null) {
   </section>`;
 }
 
+function renderPlanReview(review) {
+  const impactLabel = (impact) => impact === "direct" ? "Direct" : impact === "positioning" ? "Positioning" : "None";
+  return `<div class="plan-review" data-testid="plan-review">
+    <div class="plan-review-heading"><span>Mission fronts</span><small>Committed plan → current visible state</small></div>
+    <div class="plan-review-fronts">${review.objectives.map((objective) => {
+      const changed = objective.beforeProgress !== objective.afterProgress || objective.beforeStatus !== objective.afterStatus;
+      const progress = changed
+        ? `${objective.beforeProgress}/${objective.target} → ${objective.afterProgress}/${objective.target} · ${objective.afterStatus}`
+        : `${objective.afterProgress}/${objective.target} · ${objective.afterStatus}`;
+      return `<article class="plan-review-front ${escapeHtml(objective.plannedImpact)}${objective.selectedPriority ? " priority" : ""}" data-testid="plan-review-front" data-objective-id="${escapeHtml(objective.objectiveId)}" data-planned-impact="${escapeHtml(objective.plannedImpact)}">
+        <span>${objective.mandatory ? "Required" : "Optional"}${objective.selectedPriority ? " · Priority" : ""}</span>
+        <strong>${escapeHtml(objective.name)}</strong>
+        <small>Planned ${escapeHtml(impactLabel(objective.plannedImpact))} · ${escapeHtml(progress)}</small>
+      </article>`;
+    }).join("")}</div>
+  </div>`;
+}
+
 function renderAftermath(view, expressionTurnSequence = null) {
   if (!view.aftermath) return "";
   const live = expressionTurnSequence === view.aftermath.turnSequence;
   return `<section class="panel aftermath${live ? " is-live" : ""}" data-testid="aftermath"><div class="section-heading"><div><p class="eyebrow">Aftermath</p><h2>Turn ${view.aftermath.turnSequence + 1} evidence</h2></div><span>${view.aftermath.expressions.length} high-signal events</span></div>
     ${renderTemporalStrip(view, live)}
-    <div class="resolution-list">${view.aftermath.ownIntentResults.map((result) => `<article class="resolution ${escapeHtml(result.status)}"><strong>${escapeHtml(result.actorName)}</strong><span>${escapeHtml(result.status)}</span><small>${escapeHtml(result.reason)}</small></article>`).join("")}</div>
+    ${renderPlanReview(view.aftermath.planReview)}
+    <div class="resolution-list">${view.aftermath.ownIntentResults.map((result) => `<article class="resolution ${escapeHtml(result.status)}" data-testid="intent-review"><div><strong>${escapeHtml(result.actorName)}</strong><small>Planned: ${escapeHtml(result.plannedAction)}</small></div><span>${escapeHtml(result.status)}</span><small class="resolution-reason">${escapeHtml(result.reason.replaceAll("_", " "))}</small></article>`).join("")}</div>
     <details><summary>Visible World facts (${view.aftermath.visibleFacts.length})</summary><ol>${view.aftermath.visibleFacts.map((fact) => `<li><span>${escapeHtml(fact.kind)}</span>${escapeHtml(fact.summary)}</li>`).join("")}</ol></details>
   </section>`;
 }

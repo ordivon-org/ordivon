@@ -1,6 +1,6 @@
 import { sha256 } from "../digest.ts";
 import { STATION_ZERO_V3_COMMANDER_ABILITIES } from "./content.ts";
-import { createStationZeroV3MissionControlView } from "./mission-control.ts";
+import { createStationZeroV3MissionControlView, stationZeroV3PlayerObjectiveViews } from "./mission-control.ts";
 import type { StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
 import {
   assertStationZeroV3SpatialLayout,
@@ -75,17 +75,48 @@ function playerPreview(
 
 function buildAftermath(
   store: StationZeroV3Store,
+  planningStore: StationZeroV3PlanningStore,
   runId: string,
   state: StationZeroV3WorldState,
   map: StationZeroV3PlayView["map"],
 ): StationZeroV3AftermathView | null {
   const latest = store.latestTurnReceipt(runId);
   if (!latest) return null;
+  const committedPreview = planningStore.currentPreview(runId, latest.planningId);
+  if (!committedPreview) throw new TypeError(`Committed Turn lacks retained Plan Preview: ${latest.planningId}`);
+  const sourceState = store.stateAtRevision(runId, latest.record.resolution.worldRevisionBefore);
+  const beforeObjectives = stationZeroV3PlayerObjectiveViews(sourceState);
+  const afterObjectives = stationZeroV3PlayerObjectiveViews(state);
+  const afterById = new Map(afterObjectives.map((objective) => [objective.objectiveId, objective]));
+  const plannedImpact = createStationZeroV3PlanImpact(committedPreview, beforeObjectives);
+  const plannedActions = new Map(committedPreview.explanations.rescue.actorIntents.map((entry) => [entry.actorId, entry.label]));
+  const committedIntentActors = new Map(committedPreview.factionPlans.rescue.actorIntents.map((intent) => [intent.intentId, intent.actorId]));
   const visible = new Set(latest.record.resolution.observations.rescue.visibleFactIds);
   const retainedFacts = latest.record.resolution.facts.filter((fact) => visible.has(fact.factId));
   return {
     turnSequence: latest.turnSequence,
     turnBatchId: latest.turnBatchId,
+    planReview: {
+      previewId: committedPreview.previewId,
+      orderRevision: committedPreview.orderRevision,
+      objectives: plannedImpact.map((impact) => {
+        const after = afterById.get(impact.objectiveId);
+        if (!after) throw new TypeError(`Plan Review objective left the player projection: ${impact.objectiveId}`);
+        return {
+          objectiveId: impact.objectiveId,
+          name: impact.name,
+          mandatory: impact.mandatory,
+          selectedPriority: impact.selectedPriority,
+          plannedImpact: impact.impact,
+          supportingActorNames: [...impact.actorNames],
+          beforeProgress: impact.progress,
+          afterProgress: after.progress,
+          target: impact.target,
+          beforeStatus: impact.status,
+          afterStatus: after.status,
+        };
+      }),
+    },
     expressions: createStationZeroV3TemporalExpressions(state, retainedFacts, map),
     visibleFacts: retainedFacts.map((fact) => ({
       factId: fact.factId,
@@ -94,12 +125,20 @@ function buildAftermath(
     })),
     ownIntentResults: latest.record.resolution.intentResolutions
       .filter((entry) => entry.factionId === "rescue")
-      .map((entry) => ({
-        actorId: entry.actorId,
-        actorName: state.actors[entry.actorId]?.name ?? entry.actorId,
-        status: entry.status,
-        reason: entry.reason,
-      })),
+      .map((entry) => {
+        if (committedIntentActors.get(entry.intentId) !== entry.actorId) {
+          throw new TypeError(`Rescue resolution is not bound to committed Preview intent: ${entry.intentId}`);
+        }
+        const plannedAction = plannedActions.get(entry.actorId);
+        if (!plannedAction) throw new TypeError(`Committed Preview lacks Rescue explanation: ${entry.actorId}`);
+        return {
+          actorId: entry.actorId,
+          actorName: state.actors[entry.actorId]?.name ?? entry.actorId,
+          plannedAction,
+          status: entry.status,
+          reason: entry.reason,
+        };
+      }),
   };
 }
 
@@ -271,7 +310,7 @@ export function createStationZeroV3PlayView(
       canCommitPreview: canCommit,
     },
     map,
-    aftermath: buildAftermath(store, runId, state, map),
+    aftermath: buildAftermath(store, planningStore, runId, state, map),
     outcomes: {
       rescue: state.factions.rescue.outcome,
       pirate: state.factions.pirate.outcome,

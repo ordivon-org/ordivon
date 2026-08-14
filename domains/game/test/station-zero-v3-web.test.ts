@@ -96,6 +96,11 @@ test("v3 browser renderer keeps temporal recap persistent but map playback one-s
     });
     assert.match(staticHtml, /data-testid="temporal-expression-strip"/);
     assert.equal((staticHtml.match(/data-testid="temporal-expression"/g) ?? []).length, view.aftermath.expressions.length);
+    assert.match(staticHtml, /data-testid="plan-review"/);
+    assert.equal((staticHtml.match(/data-testid="plan-review-front"/g) ?? []).length, 2);
+    assert.match(staticHtml, /Committed plan → current visible state/);
+    assert.match(staticHtml, /Planned: Move to Power Console/);
+    assert.match(staticHtml, /data-testid="intent-review"/);
     assert.doesNotMatch(staticHtml, /class="temporal-map-event/);
     assert.match(staticHtml, /<details><summary>Visible World facts/);
     assert.doesNotMatch(staticHtml, /<details open><summary>Visible World facts/);
