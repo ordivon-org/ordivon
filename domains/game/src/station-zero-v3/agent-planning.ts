@@ -4,7 +4,7 @@ import {
   STATION_ZERO_V3_COMMANDER_ABILITIES,
   STATION_ZERO_V3_EQUIPMENT,
   STATION_ZERO_V3_OBJECTIVES,
-  STATION_ZERO_V3_P0_CONTRACT,
+  STATION_ZERO_V3_TURN_LIMIT,
 } from "./content.ts";
 import { assertStationZeroFactionTurnPlan, assertStationZeroStandingOrder } from "./contracts.ts";
 import type {
@@ -1238,7 +1238,7 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
   return {
     schemaVersion: 1,
     kind: "ordivon.game.station-zero-v3-play-catalog",
-    turnLimit: STATION_ZERO_V3_P0_CONTRACT.runBoundary.turnLimit,
+    turnLimit: STATION_ZERO_V3_TURN_LIMIT,
     objectives: [
       { objectiveId: "rescue-two-civilians", label: "Rescue the crew", description: "Required mission priority: locate, escort, and extract both civilians." },
       { objectiveId: "recover-research-core", label: "Recover the Research Core", description: "Optional side objective: divert specialists toward the Reactor and extract the objective cargo, accepting pressure on required rescue work." },

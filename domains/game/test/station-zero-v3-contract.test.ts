@@ -11,7 +11,7 @@ import {
   STATION_ZERO_V3_EQUIPMENT,
   STATION_ZERO_V3_ITEMS,
   STATION_ZERO_V3_OBJECTIVES,
-  STATION_ZERO_V3_P0_CONTRACT,
+  STATION_ZERO_V3_TURN_LIMIT,
   assertStationZeroFactionTurnPlan,
   assertStationZeroStandingOrder,
   assertStationZeroTurnBatch,
@@ -44,20 +44,13 @@ function waitPlan(factionId: "rescue" | "pirate" | "swarm", actorId: string): St
   };
 }
 
-test("P0 freezes one asymmetric deterministic tactical encounter rather than a general engine", () => {
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.productForm, "single-player-asymmetric-turn-based-tactical-encounter");
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.defaultPlayerFactionId, "rescue");
-  assert.deepEqual(STATION_ZERO_V3_P0_CONTRACT.turnPhases, STATION_ZERO_TURN_PHASES);
-  assert.deepEqual(STATION_ZERO_V3_P0_CONTRACT.resolutionPhases, STATION_ZERO_RESOLUTION_PHASES);
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.randomnessPolicy.committedTurnIsDeterministic, true);
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.randomnessPolicy.hiddenHitRolls, false);
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.runBoundary.routeMapDeferred, true);
-  assert.equal(STATION_ZERO_V3_P0_CONTRACT.runBoundary.metaProgressionDeferred, true);
-  assert.ok(STATION_ZERO_V3_P0_CONTRACT.nonGoals.includes("a general RPG engine"));
-  assert.deepEqual(
-    STATION_ZERO_V3_P0_CONTRACT.influences.map((entry) => entry.influenceId),
-    ["roguelite", "tactical-rpg", "sandbox", "systemic-sim", "character-sim"],
-  );
+test("v3 executable contract keeps only the fixed Turn budget and deterministic phase vocabulary in code", () => {
+  assert.equal(STATION_ZERO_V3_TURN_LIMIT, 20);
+  assert.deepEqual(STATION_ZERO_TURN_PHASES, ["situation", "command", "deliberation", "commitment", "resolution", "aftermath"]);
+  assert.deepEqual(STATION_ZERO_RESOLUTION_PHASES, ["commander", "movement", "reaction", "combat", "interaction", "environment", "cleanup"]);
+  const state = createStationZeroV3Genesis();
+  assert.equal(state.encounter.turnLimit, STATION_ZERO_V3_TURN_LIMIT);
+  assert.equal(state.encounter.playerFactionId, "rescue");
 });
 
 test("content catalogs are closed, referenced, deterministic, and faction-distinct", () => {

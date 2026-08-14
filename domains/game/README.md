@@ -14,7 +14,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-14
+updated: 2026-08-15
 summary: Canonical entry to Ordivon Game, its cross-game development model, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
 evidence_status: verified
 readiness: READY
@@ -47,7 +47,7 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
 - [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
-- [`docs/CROSS_PROJECT_SELF_LOOP_STUDY.md`](docs/CROSS_PROJECT_SELF_LOOP_STUDY.md) is a revision-bound cross-project research synthesis used to derive Game contraction hypotheses; it does not own other projects or replace Game product/architecture authority.
+- [`docs/STATION_ZERO_V3_CONTRACTION.md`](docs/STATION_ZERO_V3_CONTRACTION.md) records only Game-local contraction verdicts and reopen conditions; cross-project synthesis stays in Ordivon Computing.
 - [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G5-admitted product form, G3/G4 evidence, production profile, and replacement boundary.
 - [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the accepted G4 Vertical Slice, production/calibration evidence, and G4 exit judgment.
 - [`docs/STATION_ZERO_V3_PRODUCT_VALUE.md`](docs/STATION_ZERO_V3_PRODUCT_VALUE.md) owns G4 comparative product-design research, control/information/pressure/identity experiments, and Content Grammar v0.

@@ -13,7 +13,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-14
+updated: 2026-08-15
 summary: Accepted target decision for the unregistered Station Zero v3 three-faction encounter, player role, deterministic turn contract, tactical space, and fixed Genesis.
 evidence_status: not_applicable
 readiness: READY
@@ -88,7 +88,7 @@ This does not guarantee victory. Enemy movement, Zone contention, casualties, pa
 | FTL-like systemic crisis | coupled power, oxygen, heat and multiple responses to the same failure | real-time pause control and simulation detail without decisions |
 | Character / colony simulation | roles, traits, leaders, death, capture and a path to persistent history | hundreds of full-fidelity Agent calls or social simulation in P0 |
 
-These influences are encoded in `STATION_ZERO_V3_P0_CONTRACT` and tested. They are constraints, not marketing labels.
+These influences are design constraints owned by this document and the stable Product definition. GC6 deliberately removed them from the runtime schema: executable code retains only facts that current World/Planning behavior consumes.
 
 ## Core player loop
 

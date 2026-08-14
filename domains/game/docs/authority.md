@@ -15,7 +15,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-14
+updated: 2026-08-15
 summary: Decision separating the registered Station Zero product, the stable G4-admitted v3 product target, its exact P0-P3 contracts, long-range Game vision, machine truth, and historical evidence.
 evidence_status: not_applicable
 readiness: READY
@@ -42,7 +42,7 @@ Game simultaneously contains one registered executable, one broader product visi
 
 [`../README.md`](../README.md) is the canonical repository entry and must state which Scenario and Ruleset are registered. [`PRODUCT.md`](PRODUCT.md) owns the current Station Zero player experience and acceptance. [`ARCHITECTURE.md`](ARCHITECTURE.md) owns the registered executable architecture and state ownership. [`VISION.md`](VISION.md) owns long-range principles and possibilities but creates no feature commitment. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) owns the cross-game development process: game classification, the Agentic Consequence Loop, stage gates, and the Game↔Studio production boundary. It does not register a product, define a current World transition, or make Station Zero mechanisms universal.
 
-[`CROSS_PROJECT_SELF_LOOP_STUDY.md`](CROSS_PROJECT_SELF_LOOP_STUDY.md) owns only Game's revision-bound research synthesis over other Ordivon projects and the resulting Game contraction hypotheses. It does not own the observed projects, currentness after the recorded revisions, product registration, World rules, or implementation transitions; every proposed Game contraction still requires owner-local falsification.
+[`STATION_ZERO_V3_CONTRACTION.md`](STATION_ZERO_V3_CONTRACTION.md) owns only current Game-local contraction verdicts, negative regions, and reopen conditions. Ordivon Computing owns the cross-project synthesis that informed them. This record does not register v3, define World transitions, or make historical rejections permanent law.
 
 [`STATION_ZERO_V3_PRODUCT.md`](STATION_ZERO_V3_PRODUCT.md) owns the stable human-facing definition of the accepted unregistered v3 target: player fantasy, game form, Agent participation, core loop, product pillars, G-stage, G3 strategic/live-Agent evidence, production profile, and replacement boundary. It does not register v3 or define exact World transitions.
 

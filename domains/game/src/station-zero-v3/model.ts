@@ -50,44 +50,6 @@ export type StationZeroActorLifeState = "active" | "incapacitated" | "dead" | "e
 export type StationZeroObjectiveStatus = "active" | "completed" | "failed";
 export type StationZeroKnowledgeConfidence = "confirmed" | "estimated" | "stale";
 
-export interface StationZeroDesignInfluence {
-  influenceId: "roguelite" | "tactical-rpg" | "sandbox" | "systemic-sim" | "character-sim";
-  retainedMechanics: string[];
-  rejectedMechanics: string[];
-}
-
-export interface StationZeroP0Contract {
-  schemaVersion: 1;
-  kind: "ordivon.game.station-zero-v3-p0-contract";
-  scenario: {
-    id: typeof STATION_ZERO_V3_SCENARIO_ID;
-    version: typeof STATION_ZERO_V3_SCENARIO_VERSION;
-    rulesetId: typeof STATION_ZERO_V3_RULESET_ID;
-    rulesetVersion: typeof STATION_ZERO_V3_RULESET_VERSION;
-    worldSchemaVersion: typeof STATION_ZERO_V3_WORLD_SCHEMA_VERSION;
-  };
-  productForm: "single-player-asymmetric-turn-based-tactical-encounter";
-  defaultPlayerFactionId: StationZeroFactionId;
-  turnPhases: StationZeroTurnPhase[];
-  resolutionPhases: StationZeroResolutionPhase[];
-  playerResponsibilities: string[];
-  agentResponsibilities: string[];
-  randomnessPolicy: {
-    setupMayVary: true;
-    committedTurnIsDeterministic: true;
-    hiddenHitRolls: false;
-  };
-  runBoundary: {
-    turnLimit: number;
-    encounterOwnsLoot: true;
-    encounterOwnsFactionOutcomes: true;
-    routeMapDeferred: true;
-    metaProgressionDeferred: true;
-  };
-  influences: StationZeroDesignInfluence[];
-  nonGoals: string[];
-}
-
 export interface StationZeroRoomState {
   roomId: string;
   name: string;
