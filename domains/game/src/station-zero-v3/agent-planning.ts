@@ -1092,6 +1092,39 @@ export function defaultStationZeroV3CommanderOrder(
   };
 }
 
+export function initialStationZeroV3CommanderOrder(
+  runId: string,
+  planning: StationZeroV3PlanningHead,
+  state: StationZeroV3WorldState,
+  previousOrder: StationZeroV3CommanderOrder | null,
+): StationZeroV3CommanderOrder {
+  const fresh = defaultStationZeroV3CommanderOrder(runId, planning, state);
+  if (!previousOrder) return fresh;
+  const protectedActorId = previousOrder.protectedActorId &&
+    state.actors[previousOrder.protectedActorId]?.factionId === "rescue" &&
+    state.actors[previousOrder.protectedActorId]?.lifeState === "active"
+    ? previousOrder.protectedActorId
+    : null;
+  const priorityKnowledge = previousOrder.priorityTargetActorId
+    ? state.factionKnowledge.rescue.knownActors[previousOrder.priorityTargetActorId]
+    : null;
+  const priorityTargetActorId = priorityKnowledge?.observedLifeState === "active"
+    ? previousOrder.priorityTargetActorId
+    : null;
+  return {
+    ...fresh,
+    primaryObjectiveId: previousOrder.primaryObjectiveId,
+    posture: previousOrder.posture,
+    formation: previousOrder.formation,
+    retreatHealthThreshold: previousOrder.retreatHealthThreshold,
+    lethalForce: previousOrder.lethalForce,
+    collateralPolicy: previousOrder.collateralPolicy,
+    lootPolicy: previousOrder.lootPolicy,
+    protectedActorId,
+    priorityTargetActorId,
+  };
+}
+
 export function assertStationZeroV3CommanderOrder(
   state: StationZeroV3WorldState,
   planning: StationZeroV3PlanningHead,

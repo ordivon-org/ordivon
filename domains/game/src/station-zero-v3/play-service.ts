@@ -85,9 +85,9 @@ export class StationZeroV3PlayService {
       const latest = this.store.latestPlanning(runId);
       if (!latest || latest.status === "resolved") {
         const planning = this.turns.openPlanning(runId);
-        this.planning.ensureDefaultOrder(runId, planning.planningId);
+        this.planning.ensureInitialOrder(runId, planning.planningId);
       } else if (latest.status === "open") {
-        this.planning.ensureDefaultOrder(runId, latest.planningId);
+        this.planning.ensureInitialOrder(runId, latest.planningId);
       }
     }
     this.planning.verifyRun(runId);
@@ -124,7 +124,7 @@ export class StationZeroV3PlayService {
 
   async generatePreview(runId: string): Promise<StationZeroV3PreviewReceipt & { view: StationZeroV3PlayView }> {
     const planning = this.requireOpenPlanning(runId);
-    const head = this.planning.ensureDefaultOrder(runId, planning.planningId);
+    const head = this.planning.ensureInitialOrder(runId, planning.planningId);
     const current = this.planning.currentOrder(runId, planning.planningId);
     const retained = this.planning.currentPreview(runId, planning.planningId);
     if (retained && head.previewDigest === retained.previewDigest && retained.orderDigest === current.orderDigest) {
@@ -214,7 +214,7 @@ export class StationZeroV3PlayService {
     let nextPlanningId: string | null = null;
     if (state.encounter.status === "running") {
       const next = this.turns.openPlanning(runId);
-      this.planning.ensureDefaultOrder(runId, next.planningId);
+      this.planning.ensureInitialOrder(runId, next.planningId);
       nextPlanningId = next.planningId;
     }
     this.planning.verifyRun(runId);

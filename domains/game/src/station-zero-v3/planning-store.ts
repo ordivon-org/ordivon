@@ -4,7 +4,7 @@ import { prepareStationZeroV3Commitment } from "./reducer.ts";
 import {
   assertStationZeroV3AgentDecision,
   assertStationZeroV3CommanderOrder,
-  defaultStationZeroV3CommanderOrder,
+  initialStationZeroV3CommanderOrder,
 } from "./agent-planning.ts";
 import type { StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
 import { STATION_ZERO_FACTION_IDS } from "./model.ts";
@@ -155,13 +155,23 @@ export class StationZeroV3PlanningStore {
     return source;
   }
 
-  ensureDefaultOrder(runId: string, planningId: string): StationZeroV3OrderHead {
+  ensureInitialOrder(runId: string, planningId: string): StationZeroV3OrderHead {
     const retained = this.headOrNull(runId, planningId);
     if (retained) return retained;
     const planning = this.world.getPlanning(runId, planningId);
-    if (planning.status !== "open") throw new TypeError("Default Order can be created only for open Planning");
+    if (planning.status !== "open") throw new TypeError("Initial Order can be created only for open Planning");
     const state = this.planningSource(planning);
-    return this.saveOrder(runId, planningId, defaultStationZeroV3CommanderOrder(runId, planning, state), state).head;
+    let previousOrder: StationZeroV3OrderRevision["order"] | null = null;
+    const previousTurn = this.world.latestTurnReceipt(runId);
+    if (previousTurn && previousTurn.turnSequence === planning.turn - 1) {
+      const previousHead = this.headOrNull(runId, previousTurn.planningId);
+      if (!previousHead || previousHead.status !== "committed" || !previousHead.committedPreviewId) {
+        throw new StationZeroV3PlanningStoreError("station_zero_v3_planning_corrupt", "Previous resolved Turn lacks a committed Commander Order");
+      }
+      previousOrder = this.currentOrder(runId, previousTurn.planningId).order;
+    }
+    const order = initialStationZeroV3CommanderOrder(runId, planning, state, previousOrder);
+    return this.saveOrder(runId, planningId, order, state).head;
   }
 
   saveOrder(

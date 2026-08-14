@@ -111,6 +111,12 @@ try {
   await page.getByTestId("commit-turn").click();
   await page.waitForFunction(() => document.querySelector('[data-testid="turn-number"]')?.textContent === "1");
   await page.getByTestId("aftermath").waitFor();
+  assert.equal(await page.locator('[name="primaryObjectiveId"]').inputValue(), "recover-research-core");
+  assert.equal(await page.locator('[name="posture"]').inputValue(), "aggressive");
+  assert.equal(await page.locator('[name="formation"]').inputValue(), "cohesive");
+  assert.equal(await page.locator('[name="lootPolicy"]').inputValue(), "opportunistic");
+  assert.equal(await page.locator('[name="commanderDirectiveId"]').inputValue(), "reroute-cooling", "Turn-local Remote capability should be recalculated from the new World state");
+  assert.equal((await page.locator('.revision').textContent())?.trim(), "Revision 1");
   await page.getByTestId("temporal-expression-strip").waitFor();
   assert.equal(await page.getByTestId("plan-review").count(), 1);
   assert.equal(await page.getByTestId("plan-review-front").count(), 3);
@@ -170,9 +176,9 @@ try {
   assert.match(debriefText, /Turn limit reached/);
   assert.ok(debriefText.includes("0 / 2 required fronts completed"));
   assert.match(debriefText, /Recover the Research Core/);
-  assert.equal(await page.getByTestId("debrief-focus").count(), 2);
-  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="rescue-two-civilians"]').textContent() ?? "").includes("13 / 14 Turns"));
-  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="recover-research-core"]').textContent() ?? "").includes("1 / 14 Turns"));
+  assert.equal(await page.getByTestId("debrief-focus").count(), 1);
+  assert.ok((await page.locator('[data-testid="debrief-focus"][data-objective-id="recover-research-core"]').textContent() ?? "").includes("14 / 14 Turns"));
+  assert.equal(await page.locator('[data-testid="debrief-focus"][data-objective-id="rescue-two-civilians"]').count(), 0);
   assert.match(debriefText, /No verified progress/);
   assert.equal(debriefText.includes("Eliminate the Hive Alpha"), false);
   assert.equal(await page.getByTestId("commander-order").count(), 0);
