@@ -30,6 +30,12 @@ test("v3 browser renderer exposes strategic controls and sealed enemy plans with
     assert.match(html, /no protection priority/);
     assert.match(html, /Generate team plan/);
     assert.match(html, /Commit simultaneous Turn/);
+    assert.match(html, /data-testid="plan-impact"/);
+    assert.match(html, /Mission fronts touched by admitted Rescue actions/);
+    assert.match(html, /Not an outcome forecast/);
+    assert.match(html, /data-objective-id="rescue-two-civilians" data-impact="direct"/);
+    assert.match(html, /Direct action/);
+    assert.match(html, /Medic Reyes/);
     assert.equal((html.match(/data-testid="rescue-intent"/g) ?? []).length, 3);
     assert.equal((html.match(/data-testid="rescue-responsibility"/g) ?? []).length, 1);
     assert.match(html, /Search civilian sector: med-ward/);

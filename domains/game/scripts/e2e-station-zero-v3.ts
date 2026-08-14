@@ -91,6 +91,14 @@ try {
   assert.ok(previewText?.includes("recover-research-core"));
   assert.equal(previewText?.includes("Captain Veyra"), false);
   assert.equal(previewText?.includes("Hive Alpha"), false);
+  assert.equal(await page.getByTestId("plan-impact").count(), 1);
+  assert.match(await page.getByTestId("plan-impact").textContent() ?? "", /Not an outcome forecast/);
+  assert.equal(await page.locator('.plan-impact-row').count(), 3);
+  assert.equal(await page.locator('[data-objective-id="rescue-two-civilians"]').getAttribute('data-impact'), "none");
+  assert.equal(await page.locator('[data-objective-id="rescue-team-survives"]').getAttribute('data-impact'), "none");
+  const selectedCoreImpact = page.locator('[data-objective-id="recover-research-core"]');
+  assert.equal(await selectedCoreImpact.getAttribute('data-impact'), "none");
+  assert.match(await selectedCoreImpact.textContent() ?? "", /Optional · Priority/);
 
   await page.locator('[name="posture"]').selectOption("cautious");
   assert.equal(await page.getByTestId("commit-turn").isDisabled(), true, "local Order edits must invalidate the visible Preview before Commit");

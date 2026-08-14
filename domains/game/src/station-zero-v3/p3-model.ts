@@ -238,6 +238,21 @@ export interface StationZeroV3PlanPreview {
   previewDigest: string;
 }
 
+export type StationZeroV3PlanImpactKind = "direct" | "positioning" | "none";
+
+export interface StationZeroV3PlanImpactObjective {
+  objectiveId: string;
+  name: string;
+  mandatory: boolean;
+  status: "active" | "completed" | "failed";
+  progress: number;
+  target: number;
+  selectedPriority: boolean;
+  impact: StationZeroV3PlanImpactKind;
+  actorIds: string[];
+  actorNames: string[];
+}
+
 export interface StationZeroV3PlayerPlanView {
   previewId: string;
   previewDigest: string;
@@ -246,6 +261,7 @@ export interface StationZeroV3PlayerPlanView {
   providerId: string;
   summary: string;
   risks: string[];
+  planImpact: StationZeroV3PlanImpactObjective[];
   commanderAction: {
     commanderAbilityId: string;
     label: string;

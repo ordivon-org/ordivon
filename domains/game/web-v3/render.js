@@ -135,6 +135,18 @@ function responsibilityText(responsibility) {
   return `${action}: ${target}${blockers}`;
 }
 
+function renderPlanImpact(preview) {
+  const rows = preview.planImpact.filter((objective) => objective.mandatory || objective.selectedPriority);
+  const impactLabel = (impact) => impact === "direct" ? "Direct action" : impact === "positioning" ? "Positioning" : "No direct action";
+  return `<section class="plan-impact" data-testid="plan-impact">
+    <div class="plan-impact-heading"><div><span>Plan impact</span><strong>Mission fronts touched by admitted Rescue actions</strong></div><small>Not an outcome forecast</small></div>
+    <div class="plan-impact-list">${rows.map((objective) => `<article class="plan-impact-row ${escapeHtml(objective.impact)}${objective.selectedPriority ? " priority" : ""}" data-objective-id="${escapeHtml(objective.objectiveId)}" data-impact="${escapeHtml(objective.impact)}">
+      <div><span>${objective.mandatory ? "Required" : "Optional"}${objective.selectedPriority ? " · Priority" : ""}</span><strong>${escapeHtml(objective.name)}</strong><small>${escapeHtml(objective.progress)} / ${escapeHtml(objective.target)} · ${escapeHtml(objective.status)}</small></div>
+      <p><b>${escapeHtml(impactLabel(objective.impact))}</b>${objective.actorNames.length ? ` · ${escapeHtml(objective.actorNames.join(", "))}` : ""}</p>
+    </article>`).join("")}</div>
+  </section>`;
+}
+
 function renderPreview(view) {
   const preview = view.experience.preview;
   if (!preview) return `<section class="panel empty-preview"><p class="eyebrow">Deliberation</p><h2>No plan generated</h2><p>Save the strategic Order, then ask the specialists and faction leaders to form one simultaneous Turn plan.</p></section>`;
@@ -144,6 +156,7 @@ function renderPreview(view) {
       <span class="provider">${escapeHtml(preview.providerId)}</span>
     </div>
     <p class="plan-summary">${escapeHtml(preview.summary)}</p>
+    ${renderPlanImpact(preview)}
     ${preview.commanderAction ? `<div class="commander-card"><span>Remote action</span><strong>${escapeHtml(preview.commanderAction.label)}</strong><small>${escapeHtml(preview.commanderAction.targetLabel)}</small></div>` : `<div class="commander-card muted"><span>Remote action</span><strong>Capacity held</strong></div>`}
     <div class="intent-list">${preview.actorIntents.map((intent) => `<article class="intent-card" data-testid="rescue-intent">
       <div><span>${escapeHtml(intent.roleId)}</span><h3>${escapeHtml(intent.actorName)}</h3></div>

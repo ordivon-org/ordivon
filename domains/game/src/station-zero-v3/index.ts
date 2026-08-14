@@ -12,6 +12,7 @@ export * from "./p2-model.ts";
 export * from "./p3-model.ts";
 export * from "./persistence.ts";
 export * from "./planning-store.ts";
+export * from "./plan-impact.ts";
 export * from "./play-projection.ts";
 export * from "./play-service.ts";
 export * from "./reducer.ts";

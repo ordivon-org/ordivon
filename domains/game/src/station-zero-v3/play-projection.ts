@@ -15,6 +15,7 @@ import type {
   StationZeroV3PlayerPlanView,
 } from "./p3-model.ts";
 import type { StationZeroV3PlanningStore } from "./planning-store.ts";
+import { createStationZeroV3PlanImpact } from "./plan-impact.ts";
 import type { StationZeroV3Store } from "./persistence.ts";
 import { createStationZeroV3TemporalExpressions, stationZeroV3BoundedFactSummary } from "./temporal-expression.ts";
 import type { StationZeroV3TurnService } from "./turn-service.ts";
@@ -30,7 +31,11 @@ function targetLabel(state: StationZeroV3WorldState, preview: StationZeroV3PlanP
   return "No target";
 }
 
-function playerPreview(state: StationZeroV3WorldState, preview: StationZeroV3PlanPreview): StationZeroV3PlayerPlanView {
+function playerPreview(
+  state: StationZeroV3WorldState,
+  preview: StationZeroV3PlanPreview,
+  objectives: ReturnType<typeof createStationZeroV3MissionControlView>["objectives"],
+): StationZeroV3PlayerPlanView {
   const rescue = preview.explanations.rescue;
   const commanderDefinition = preview.commanderAction
     ? STATION_ZERO_V3_COMMANDER_ABILITIES.find((entry) => entry.commanderAbilityId === preview.commanderAction!.commanderAbilityId)
@@ -43,6 +48,7 @@ function playerPreview(state: StationZeroV3WorldState, preview: StationZeroV3Pla
     providerId: preview.providerId,
     summary: rescue.summary,
     risks: [...rescue.risks],
+    planImpact: createStationZeroV3PlanImpact(preview, objectives),
     commanderAction: preview.commanderAction ? {
       commanderAbilityId: preview.commanderAction.commanderAbilityId,
       label: commanderDefinition?.name ?? preview.commanderAction.commanderAbilityId,
@@ -259,7 +265,7 @@ export function createStationZeroV3PlayView(
       order: order?.order ?? null,
       orderRevision: order?.orderRevision ?? null,
       orderDigest: order?.orderDigest ?? null,
-      preview: preview ? playerPreview(state, preview) : null,
+      preview: preview ? playerPreview(state, preview, base.objectives) : null,
       canEditOrder: canEdit,
       canGeneratePreview: canEdit,
       canCommitPreview: canCommit,
