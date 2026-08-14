@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "studio.equipment-source-ledger",
-  "observedDate": "2026-08-13",
+  "observedDate": "2026-08-14",
   "sources": [
     {"equipment": "typst", "authority": "official", "url": "https://typst.app/docs/", "supports": ["compiler", "CLI", "PDF/image/Web output", "open-source compiler"]},
     {"equipment": "imagemagick", "authority": "official", "url": "https://imagemagick.org/command-line-tools/", "supports": ["command-line image manipulation", "batch/repeated operations"]},
@@ -14,6 +14,11 @@
     {"equipment": "reaper", "authority": "official", "url": "https://www.reaper.fm/sdk/reascript/reascript.php", "supports": ["ReaScript", "Lua/EEL/Python", "REAPER API access"]},
     {"equipment": "reaper", "authority": "official", "url": "https://www.reaper.fm/sdk/osc/osc.php", "supports": ["OSC control surface"]},
     {"equipment": "touchdesigner", "authority": "official", "url": "https://docs.derivative.ca/", "supports": ["Python", "realtime media", "OSC/MIDI/sensor-oriented workflows"]},
+    {"equipment": "blender", "authority": "official", "url": "https://builder.blender.org/download/daily/", "supports": ["current stable portable Windows builds", "SHA-256 sidecars"]},
+    {"equipment": "figma", "authority": "official", "url": "https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/", "supports": ["official Remote MCP", "OAuth connection", "Agent-native Figma context"]},
+    {"equipment": "reaper", "authority": "official", "url": "https://www.reaper.fm/download.php", "supports": ["current Windows x64 release", "small installer payload", "portable use"]},
+    {"equipment": "touchdesigner", "authority": "official", "url": "https://docs.derivative.ca/TouchDesigner_Products", "supports": ["Non-Commercial account/key boundary", "license/resolution limits"]},
+    {"equipment": "touchdesigner", "authority": "official", "url": "https://docs.derivative.ca/Install_TouchDesigner", "supports": ["Windows full/web installer sizes", "installation boundary"]},
     {"equipment": "stream-deck", "authority": "official", "url": "https://docs.elgato.com/streamdeck/sdk/v1/introduction/getting-started/", "supports": ["plugin SDK", "device events", "Node-based plugin runtime"]},
     {"equipment": "bhaptics", "authority": "official", "url": "https://docs.bhaptics.com/", "supports": ["haptic SDKs", "physical tactile output integration"]}
   ],

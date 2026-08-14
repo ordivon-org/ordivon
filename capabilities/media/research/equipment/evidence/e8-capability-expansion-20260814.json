@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-equipment-capability-expansion-evidence",
+  "observedDate": "2026-08-14",
+  "baselineStudioRevision": "1061d740c01aec9272fd3bc50bdbf8a32da2c1b1",
+  "question": "Does an equipment candidate add a genuinely new medium-native observation/action world or materially reduce repeated Agent production friction enough to justify activation or installation before a specific final work requires it?",
+  "trials": {
+    "reaper": {
+      "disposition": "specialist-on-demand",
+      "version": "7.78",
+      "installation": {
+        "kind": "user-local-portable-from-official-windows-payload",
+        "path": "/mnt/c/Users/16663/AppData/Local/Programs/REAPER-Portable",
+        "installerSha256": "e7ad77bdd572c35d205034f871181c7b4d9a4110798131b60acd54cd44453947",
+        "persistentSizeApproxMiB": 156,
+        "note": "Two silent installer invocations returned 199 but later produced delayed full installations in Program Files and the user Programs directory. Those duplicate effects were reconciled and removed through their uninstallers; the registry was verified clean. The verified official NSIS payload was also extractable, so one reversible user-local portable instance is the retained authority.",
+        "delayedInstallerEffectsReconciled": true,
+        "duplicateInstallsRemoved": true,
+        "uninstallRegistryEntriesAfter": 0
+      },
+      "control": {
+        "reaperScriptDelivered": true,
+        "marker": "REASCRIPT_OK",
+        "transport": "running workstation instance + -nonewinst ReaScript delivery"
+      },
+      "nativeProject": {
+        "path": "C:/Users/16663/AppData/Local/Temp/ordivon-studio-reaper/ordivon-reaper-multitrack.rpp",
+        "sha256": "75ba1bdc6c6f520ef679dd6c4f39d72ca17a189153bf0214fd973c71e8c23d92",
+        "trackCount": 2,
+        "trackState": [
+          {"name": "Foundation 440Hz", "positionSeconds": 0.0, "volume": 0.72, "pan": -0.65},
+          {"name": "Counterline 660Hz", "positionSeconds": 0.5, "volume": 0.52, "pan": 0.65}
+        ]
+      },
+      "independentRender": {
+        "transport": "-renderproject persisted-project.rpp",
+        "sha256": "2f38a5f4feb9511a41555ee4c94ab2fc1cdd4aa2c0c6ac21acba8bc835a4e13b",
+        "codec": "pcm_s24le",
+        "sampleRate": 48000,
+        "channels": 2,
+        "durationSeconds": 2.5,
+        "sizeBytes": 720690,
+        "processExited": true
+      },
+      "worldGain": [
+        "native multitrack project state",
+        "track/item identity and temporal placement",
+        "track pan/volume state",
+        "ReaScript action surface",
+        "future routing/envelope/MIDI/automation state"
+      ],
+      "boundary": "REAPER complements rather than replaces FFmpeg or Resolve Fairlight: its retained value is a lightweight scriptable DAW project-state world."
+    },
+    "obs-studio": {
+      "disposition": "external-workstation-default-off",
+      "version": "32.2.1",
+      "obsWebSocketVersion": "5.7.4",
+      "rpcVersion": 1,
+      "authentication": "required-and-successfully-used",
+      "dogfood": {
+        "scenesBefore": 1,
+        "temporarySceneCreated": true,
+        "temporarySceneEventuallyRemoved": true,
+        "programScenePreserved": true
+      },
+      "recovery": {
+        "originalConfigurationSha256": "d5dd9a14a8eff22b6c7c7c8de04f6ba3c9266045edf77badda04c19da30adda5",
+        "configurationRestoredByteExact": true,
+        "serverEnabledAfter": false,
+        "listener4455After": false,
+        "passwordRetainedOutsideEvidence": true
+      },
+      "worldGain": [
+        "live scene graph observation",
+        "live scene/source mutation",
+        "record/stream state and event surface",
+        "realtime convergence rather than offline-only artifact state"
+      ],
+      "learnedBoundaries": [
+        "Launch Windows GUI professional equipment from a native Windows working directory when it has relative resource lookup.",
+        "A workstation process may outlive a Runtime job timeout and therefore needs explicit equipment lifecycle observation.",
+        "WSL loopback is not the Windows loopback; keep the controller on authenticated Windows loopback instead of weakening firewall boundaries.",
+        "OBS scene mutation can converge asynchronously; immediate post-request reads are not sufficient evidence of final state.",
+        "WebSocket remains disabled by default and is restored after bounded Live use."
+      ]
+    },
+    "blender": {
+      "disposition": "specialist-on-demand",
+      "version": "5.2.0 LTS",
+      "buildHash": "fbe6228777e7",
+      "installation": {
+        "kind": "official-windows-x64-portable-zip",
+        "archiveSha256": "aa1256d0a42af2ba0e9909ec95f324238fbfb6e839e6838786a434643849ef58",
+        "archiveBytesApproxMiB": 387,
+        "persistentSizeApproxMiB": 911,
+        "path": "/mnt/c/Users/16663/AppData/Local/Programs/Blender-5.2-Portable"
+      },
+      "dogfood": {
+        "engine": "BLENDER_EEVEE",
+        "meshObjects": 7,
+        "curveObjects": 1,
+        "camera": "Studio Camera",
+        "lightCount": 3,
+        "nativeBlendSha256": "824f06c61e98c9cc24013085bd9a292815b50db3c2c5be72402f908a17f1537c",
+        "renderPngSha256": "f696e5a65aa67f27222a7f0d075e8ab49abe96cc494df66e284fd2d01b92e4be",
+        "glbSha256": "d84e3fa7103af81733c1476aa0cc88d701f1b8804fa6249f463f009f619d95b5",
+        "renderResolution": [640, 360]
+      },
+      "worldGain": [
+        "editable spatial scene graph",
+        "geometry and procedural geometry",
+        "camera/viewpoint",
+        "lighting",
+        "materials",
+        "spatial animation/rendering",
+        "portable glTF scene exchange"
+      ],
+      "learnedBoundaries": [
+        "The current 5.2 runtime uses BLENDER_EEVEE rather than the older BLENDER_EEVEE_NEXT enum.",
+        "A Blender Python traceback may still leave the process exit code at zero; semantic success requires explicit artifact/state postconditions.",
+        "Use -Y when background-opening content so embedded auto-execution remains disabled; the explicit caller-selected --python script remains separate authority."
+      ]
+    },
+    "figma": {
+      "disposition": "external-workstation-auth-pending",
+      "installedVersion": "126.7.10",
+      "remoteMcpConfiguredInCodex": true,
+      "oauthDetected": true,
+      "oauthConsentCompleted": false,
+      "worldGainIfCompleted": [
+        "native design node graph",
+        "variables/design-token state",
+        "components and auto-layout",
+        "prototype state",
+        "collaborative design context"
+      ],
+      "boundary": "No Figma MCP read/write is claimed until the user completes OAuth consent and a real design round is observed."
+    },
+    "touchdesigner": {
+      "disposition": "candidate-user-license-authority-pending",
+      "currentOfficialFamily": "TouchDesigner 2025",
+      "worldGainIfAdmitted": [
+        "realtime operator/dataflow graph",
+        "TOP/CHOP/DAT/POP state",
+        "OSC/MIDI realtime control",
+        "sensor/device integration",
+        "Perform Mode / installation output"
+      ],
+      "boundary": "Non-Commercial first use requires a Derivative account/key and has license/resolution constraints. Do not install merely to create an unlicensed dormant binary."
+    },
+    "inkscape": {
+      "disposition": "candidate-low-incremental-information-gain",
+      "boundary": "Raw SVG + rsvg-convert already cover deterministic vector delivery; Figma is the higher-information design-native candidate once OAuth succeeds. Reconsider Inkscape only when local vector-native query/edit becomes repeated friction."
+    }
+  },
+  "result": {
+    "newlyProvenWorlds": ["audio-project-state", "live-realtime-state-action", "spatial-3d-scene"],
+    "pendingHumanAuthority": ["figma-oauth", "touchdesigner-account-license"],
+    "principle": "Tool value is not capability-count. Admit equipment when it exposes a new medium-native world, retains editable state that simpler tools flatten, or materially reduces repeated Agent friction; keep authority, lifecycle and licensing boundaries explicit."
+  }
+}

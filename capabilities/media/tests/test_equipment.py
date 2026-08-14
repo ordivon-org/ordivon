@@ -32,9 +32,15 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(by_id["typst"]["retention"], "core-equipment")
         self.assertEqual(by_id["imagemagick"]["retention"], "core-equipment")
         self.assertEqual(by_id["godot"]["retention"], "specialist-on-demand")
-        self.assertEqual(by_id["blender"]["retention"], "candidate")
+        self.assertEqual(by_id["blender"]["retention"], "specialist-on-demand")
+        self.assertEqual(by_id["reaper"]["retention"], "specialist-on-demand")
+        self.assertIn("audio.project.render", by_id["reaper"]["capabilities"])
         media_world = json.loads((ROOT / "research/expression/media-world-model.json").read_text(encoding="utf-8"))
         self.assertEqual(media_world["equipmentWorld"], "research/equipment/equipment-world.json")
+        hypotheses = {item["id"]: item["state"] for item in media_world["foundationHypotheses"]}
+        self.assertEqual(hypotheses["spatial-3d"], "provisional")
+        self.assertEqual(hypotheses["live-realtime"], "provisional")
+        self.assertEqual(media_world["expansionEvidence"], "research/equipment/evidence/e8-capability-expansion-20260814.json")
 
     def test_capability_selection_prefers_present_retained_equipment(self) -> None:
         world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
@@ -55,6 +61,14 @@ class EquipmentWorldTests(unittest.TestCase):
             self.assertIsInstance(plan, EquipmentPlan)
             self.assertEqual(plan.transport, "process")
             self.assertIn("scale=10:20", plan.args)
+
+    def test_external_equipment_plans_preserve_authority_boundaries(self) -> None:
+        obs = compile_operation("obs-studio", "live.scene.switch", {})
+        self.assertEqual(obs.transport, "obs-websocket")
+        self.assertTrue(any("disabled by default" in note for note in obs.notes))
+        figma = compile_operation("figma", "design.variables", {})
+        self.assertEqual(figma.transport, "figma-mcp-or-plugin")
+        self.assertTrue(any("OAuth" in note for note in figma.notes))
 
     def test_friction_reduction_can_retain_without_unique_capability(self) -> None:
         report = summarize_trial(

@@ -77,8 +77,8 @@ class ExpressionContextTests(unittest.TestCase):
         states = {item["id"]: item["state"] for item in world["foundationHypotheses"]}
         self.assertEqual(states["audio"], "active")
         self.assertEqual(states["still-visual"], "provisional")
-        self.assertEqual(states["spatial-3d"], "candidate")
-        self.assertEqual(states["live-realtime"], "candidate")
+        self.assertEqual(states["spatial-3d"], "provisional")
+        self.assertEqual(states["live-realtime"], "provisional")
         self.assertEqual(world["challengers"][0]["id"], "haptic-physical")
         for profile_id in ("motion-video", "writing", "audio"):
             text = (ROOT / entries[profile_id]["authority"]["path"]).read_text(encoding="utf-8")

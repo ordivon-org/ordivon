@@ -198,6 +198,14 @@ def _require_existing(path: str) -> str:
     return path
 
 
+def _first_existing(*patterns: str) -> str:
+    for pattern in patterns:
+        for raw in sorted(glob.glob(pattern)):
+            if Path(raw).is_file():
+                return raw
+    raise FileNotFoundError(patterns[0] if patterns else "no equipment path supplied")
+
+
 def compile_operation(equipment_id: str, capability: str, parameters: Mapping[str, Any]) -> EquipmentPlan:
     """Compile one narrow Studio equipment intent into an exact Runtime-ready proposal.
 
@@ -220,10 +228,25 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
         if parameters.get("width") is not None:
             args.extend(["--export-width", str(int(parameters["width"]))])
         return EquipmentPlan(equipment_id, capability, "process", _require_existing("/usr/bin/inkscape"), tuple(args))
-    if equipment_id == "blender" and capability in {"scene.render", "asset.export.gltf", "geometry.procedural"}:
+    if equipment_id == "blender" and capability in {"scene.create", "scene.edit", "scene.render", "animation.render", "asset.export.gltf", "geometry.procedural", "camera.control", "material.control"}:
         script = str(parameters["script"])
-        args = ("--background", "--factory-startup", "--python", script)
-        return EquipmentPlan(equipment_id, capability, "process", _require_existing("/usr/bin/blender"), args, ("Blender Python owns scene mutation; Runtime owns process execution.",))
+        executable = _first_existing(
+            "/usr/bin/blender",
+            "/mnt/c/Users/*/AppData/Local/Programs/Blender-5.2-Portable/blender.exe",
+        )
+        args = ("--background", "--factory-startup", "-Y", "--python", script)
+        return EquipmentPlan(
+            equipment_id,
+            capability,
+            "process",
+            executable,
+            args,
+            (
+                "Blender Python owns native scene mutation; Runtime owns process execution.",
+                "Do not infer script success from Blender exit code alone; require the declared artifact/state postcondition.",
+                "-Y disables automatic execution embedded in opened .blend files; the explicit --python script remains caller-selected authority.",
+            ),
+        )
     if equipment_id == "godot" and capability in {"interactive.run.headless", "interactive.script", "state.trace"}:
         script = str(parameters["script"])
         extra = tuple(str(value) for value in parameters.get("args", []))
@@ -243,11 +266,67 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
     if equipment_id == "davinci-resolve":
         return EquipmentPlan(equipment_id, capability, "existing-studio-adapter", None, (), ("Use `ordivon-studio resolve ...`; current adapter is version-specific and menu-mediated where required.",))
     if equipment_id == "obs-studio":
-        return EquipmentPlan(equipment_id, capability, "obs-websocket", None, (), ("Use authenticated obs-websocket through a secret-bearing authority; do not place the password in Studio source or Runtime argv.",))
+        return EquipmentPlan(
+            equipment_id,
+            capability,
+            "obs-websocket",
+            None,
+            (),
+            (
+                "Use authenticated obs-websocket through a secret-bearing authority; never place the password in Studio source or Runtime argv.",
+                "Keep the WebSocket server disabled by default. A bounded Live operation may enable it temporarily, launch OBS from its native Windows working directory, control it on Windows loopback, then restore the exact prior configuration and verify the listener is gone.",
+                "Treat scene/source mutations as potentially asynchronous and observe the intended state before claiming convergence.",
+            ),
+        )
     if equipment_id == "figma":
-        return EquipmentPlan(equipment_id, capability, "figma-plugin-or-rest", None, (), ("In-editor writes belong to a Figma Plugin; external REST calls require explicit OAuth/token authority and plan capability.",))
+        return EquipmentPlan(
+            equipment_id,
+            capability,
+            "figma-mcp-or-plugin",
+            None,
+            (),
+            (
+                "Prefer the official Figma MCP for Agent-native node/variable/design context when user OAuth authority is available; in-editor plugin writes remain an alternate bounded transport.",
+                "Do not claim remote MCP connectivity until the user has completed Figma OAuth consent and a real design read/write round has been observed.",
+            ),
+        )
     if equipment_id == "reaper":
-        return EquipmentPlan(equipment_id, capability, "reascript-or-osc", None, (), ("ReaScript/OSC adapter remains candidate until a local REAPER installation is validated.",))
+        executable = _first_existing(
+            "/mnt/c/Program Files/REAPER (x64)/reaper.exe",
+            "/mnt/c/Users/*/AppData/Local/Programs/REAPER-Portable/reaper.exe",
+            "/usr/bin/reaper",
+        )
+        if capability == "audio.project.render":
+            project = str(parameters["project"])
+            return EquipmentPlan(
+                equipment_id,
+                capability,
+                "process",
+                executable,
+                ("-nosplash", "-renderproject", project),
+                ("The persisted .rpp owns native track/item/mix state; verify the rendered output independently after REAPER exits.",),
+            )
+        if capability == "script.reascript":
+            script = str(parameters["script"])
+            return EquipmentPlan(
+                equipment_id,
+                capability,
+                "reaper-workstation",
+                executable,
+                ("-nonewinst", script),
+                ("-nonewinst targets an already-running REAPER workstation instance; observe the script's declared postcondition rather than command admission alone.",),
+            )
+        return EquipmentPlan(
+            equipment_id,
+            capability,
+            "reascript-or-osc",
+            executable,
+            (),
+            (
+                "REAPER 7.78 portable is locally validated for ReaScript-created native multitrack project state and independent -renderproject reconstruction.",
+                "Use ReaScript/OSC for native DAW state instead of flattening multitrack editing into FFmpeg command composition.",
+            ),
+        )
     raise ValueError(f"unsupported equipment operation: {equipment_id} {capability}")
 
 

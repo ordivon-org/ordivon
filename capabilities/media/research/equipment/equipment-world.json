@@ -223,7 +223,7 @@
         }
       ],
       "retention": "candidate",
-      "reason": "Two provisioning attempts never reached package transaction under current network/Runtime conditions; rsvg-convert plus installed Figma cover ordinary work, so local vector-specialist installation remains demand-pulled."
+      "reason": "Keep demand-pulled: raw SVG + rsvg-convert already cover deterministic vector delivery, while installed Figma is the higher-information design-native world once OAuth dogfood completes. Inkscape should return only if local vector query/edit operations become repeated friction."
     },
     {
       "id": "blender",
@@ -245,6 +245,11 @@
       ],
       "discovery": [
         {
+          "platform": "windows",
+          "glob": "/mnt/c/Users/*/AppData/Local/Programs/Blender-5.2-Portable/blender.exe",
+          "versionKind": "windows-file"
+        },
+        {
           "platform": "linux",
           "path": "/usr/bin/blender",
           "versionArgs": [
@@ -252,8 +257,9 @@
           ]
         }
       ],
-      "retention": "candidate",
-      "reason": "The Arch closure required ~743 MiB download and ~3.0 GiB installed and timed out before transaction. Spatial/3D capability remains valuable, but local provisioning is specialist/on-demand work rather than core-equipment pressure."
+      "retention": "specialist-on-demand",
+      "reason": "Official Blender 5.2.0 LTS Windows portable was SHA-256 verified and executed headlessly. A real Python-authored scene preserved native geometry, camera, lights, materials and curve state, rendered a PNG and exported GLB. Retain as the Spatial/3D specialist; require artifact/state postconditions because Blender can exit zero after a Python traceback.",
+      "evidence": "research/equipment/evidence/e8-capability-expansion-20260814.json"
     },
     {
       "id": "godot",
@@ -349,7 +355,8 @@
         }
       ],
       "retention": "external-workstation",
-      "reason": "Installed OBS 32.2.1 has authenticated obs-websocket configuration but the server is currently disabled; integration remains provisional until a real Live production enables and consumes it."
+      "reason": "OBS 32.2.1 + obs-websocket 5.7.4 passed a bounded authenticated Windows-loopback dogfood: scene state was observed, a temporary scene was created and removed without changing the program scene, then OBS exited and the exact prior server_enabled=false configuration/listener state was restored. Retain as the default-off Live state/action workstation.",
+      "evidence": "research/equipment/evidence/e8-capability-expansion-20260814.json"
     },
     {
       "id": "figma",
@@ -375,7 +382,8 @@
         }
       ],
       "retention": "external-workstation",
-      "reason": "Installed Figma 126.7.10 exposes professional collaborative design/plugin capabilities, but current Studio evidence has no ordinary Figma production receipt; integration remains provisional."
+      "reason": "Figma 126.7.10 remains installed. The official Remote MCP endpoint is configured in the local Codex client and correctly reached the OAuth consent boundary, but user consent has not yet been completed; no MCP design read/write is claimed. Native nodes/variables/components remain a high-value design world pending one authenticated consumer round.",
+      "evidence": "research/equipment/evidence/e8-capability-expansion-20260814.json"
     },
     {
       "id": "reaper",
@@ -391,9 +399,15 @@
         "audio.automation",
         "midi.edit",
         "script.reascript",
-        "control.osc"
+        "control.osc",
+        "audio.project.render"
       ],
       "discovery": [
+        {
+          "platform": "windows",
+          "glob": "/mnt/c/Users/*/AppData/Local/Programs/REAPER-Portable/reaper.exe",
+          "versionKind": "windows-file"
+        },
         {
           "platform": "windows",
           "path": "/mnt/c/Program Files/REAPER (x64)/reaper.exe",
@@ -407,8 +421,9 @@
           ]
         }
       ],
-      "retention": "candidate",
-      "reason": "Official REAPER 7.78 portable Linux sample exposed render/batch CLI plus ReaScript/OSC potential, but the stock WSL headless launch failed in libSwell at gdk_init_check; keep as an Audio specialist integration candidate."
+      "retention": "specialist-on-demand",
+      "reason": "Official REAPER 7.78 Windows payload was materialized as a reversible user-local portable workstation. ReaScript created a native two-track .rpp with independent item timing, pan and volume; a later independent -renderproject invocation reconstructed a 48 kHz/24-bit stereo WAV and exited cleanly. Retain for scriptable DAW project state rather than generic codec transforms.",
+      "evidence": "research/equipment/evidence/e8-capability-expansion-20260814.json"
     },
     {
       "id": "touchdesigner",
@@ -437,7 +452,8 @@
         }
       ],
       "retention": "candidate",
-      "reason": "High-potential Live/installation consumer, but no local production evidence."
+      "reason": "Current TouchDesigner 2025 Official would add a distinct realtime operator/dataflow world (TOP/CHOP/DAT/POP, Perform Mode, OSC/MIDI, Python, live/sensor composition). Non-Commercial use requires a Derivative account/key and carries license/resolution limits, so installation/dogfood is intentionally paused at the user-account authority boundary rather than bypassed.",
+      "evidence": "research/equipment/evidence/e8-capability-expansion-20260814.json"
     },
     {
       "id": "stream-deck",

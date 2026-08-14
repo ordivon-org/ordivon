@@ -6,14 +6,15 @@
   "core": "research/expression/creative-system.md",
   "profiles": "research/expression/profiles/index.json",
   "equipmentWorld": "research/equipment/equipment-world.json",
+  "expansionEvidence": "research/equipment/evidence/e8-capability-expansion-20260814.json",
   "foundationHypotheses": [
     {"id": "writing", "state": "active", "authority": "research/expression/profiles/writing.md"},
     {"id": "still-visual", "state": "provisional", "authority": "research/expression/profiles/still-visual.md"},
     {"id": "audio", "state": "active", "authority": "research/expression/profiles/audio.md"},
     {"id": "motion-video", "state": "active", "authority": "research/expression/profiles/motion-video.md"},
     {"id": "interactive", "state": "provisional", "authority": "research/expression/profiles/interactive.md"},
-    {"id": "spatial-3d", "state": "candidate", "authority": "research/expression/media-topology.md"},
-    {"id": "live-realtime", "state": "candidate", "authority": "research/expression/media-topology.md"}
+    {"id": "spatial-3d", "state": "provisional", "authority": "research/expression/media-topology.md", "evidence": "Blender 5.2 native scene + render + GLB dogfood; one equipment encounter does not yet establish a mature expression profile."},
+    {"id": "live-realtime", "state": "provisional", "authority": "research/expression/media-topology.md", "evidence": "OBS 32.2.1 authenticated scene observe/mutate/cleanup dogfood; one equipment encounter does not yet establish mature Live craft."}
   ],
   "challengers": [
     {"id": "haptic-physical", "state": "no-profile", "reason": "no verified physical encounter"},
