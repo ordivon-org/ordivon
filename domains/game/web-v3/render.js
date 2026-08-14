@@ -16,6 +16,16 @@ function option(value, label, selected) {
   return `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
 }
 
+function tokenLabel(value) {
+  return String(value ?? "")
+    .split(":")
+    .at(-1)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+    .join(" ");
+}
+
 function metric(label, value, maximum, warningAt = null) {
   const danger = warningAt !== null && value >= warningAt;
   return `<article class="metric${danger ? " danger" : ""}">
@@ -146,10 +156,10 @@ function renderMap(view) {
   return `<section class="panel map-panel"><div class="section-heading"><div><p class="eyebrow">Known station</p><h2>Operational map</h2></div><span>${view.known.zoneIds.length} zones known</span></div>
     <div class="room-grid">${view.map.rooms.map((room) => `<article class="room"><h3>${escapeHtml(room.name)}</h3><div>${room.zones.map((zone) => `<section class="zone">
       <strong>${escapeHtml(zone.name)}</strong><small>${escapeHtml(zone.cover)} cover</small>
-      ${zone.ownActorIds.map((id) => `<span class="token rescue">${escapeHtml(id)}</span>`).join("")}
-      ${zone.contactActorIds.map((id) => `<span class="token contact">${escapeHtml(id)}</span>`).join("")}
-      ${zone.systemIds.map((id) => `<span class="token system">${escapeHtml(id)}</span>`).join("")}
-      ${zone.hazardIds.map((id) => `<span class="token hazard">${escapeHtml(id)}</span>`).join("")}
+      ${zone.ownActorIds.map((id) => `<span class="token rescue">${escapeHtml(tokenLabel(id))}</span>`).join("")}
+      ${zone.contactActorIds.map((id) => `<span class="token contact">${escapeHtml(tokenLabel(id))}</span>`).join("")}
+      ${zone.systemIds.map((id) => `<span class="token system">${escapeHtml(tokenLabel(id))}</span>`).join("")}
+      ${zone.hazardIds.map((id) => `<span class="token hazard">${escapeHtml(tokenLabel(id))}</span>`).join("")}
     </section>`).join("")}</div></article>`).join("")}</div>
   </section>`;
 }
@@ -181,10 +191,12 @@ function renderMission(view, catalog) {
       ${metric("Alert", view.resources.alertLevel, 5, 4)}
     </section>
     ${renderTerminal(view)}
-    <div class="planning-grid">${renderOrder(view, catalog)}${renderPreview(view)}</div>
     ${renderAftermath(view)}
-    <div class="intel-grid">${renderActors(view)}${renderObjectives(view)}</div>
-    ${renderMap(view)}
+    <div class="situation-grid">
+      ${renderMap(view)}
+      <div class="situation-stack">${renderActors(view)}${renderObjectives(view)}</div>
+    </div>
+    <div class="planning-grid">${renderOrder(view, catalog)}${renderPreview(view)}</div>
   </main>`;
 }
 

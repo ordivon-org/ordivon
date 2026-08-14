@@ -53,7 +53,9 @@ input, select { width: 100%; background: #0c1118; color: inherit; border: 1px so
 .meter { height: .3rem; background: #070a0e; border-radius: 99px; overflow: hidden; }
 .meter i { display: block; height: 100%; background: var(--accent); }
 .metric.danger .meter i { background: var(--danger); }
-.planning-grid, .intel-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: .75rem; margin-bottom: .75rem; }
+.situation-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(19rem, .65fr); gap: .75rem; align-items: stretch; margin-bottom: .75rem; }
+.situation-stack { display: grid; gap: .75rem; }
+.planning-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: .75rem; margin-bottom: .75rem; }
 .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem; }
 .order-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .order-grid label:nth-last-child(-n+2) { grid-column: span 1; }
@@ -103,5 +105,5 @@ details li span { color: var(--muted); font-size: .7rem; margin-right: .5rem; te
 .spinner { width: 2rem; height: 2rem; border: 3px solid #334052; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; max-width: 30rem; padding: 1rem; border-radius: .7rem; z-index: 30; }.toast.error { background: #3a1715; border: 1px solid var(--danger); }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 900px) { .planning-grid,.intel-grid { grid-template-columns: 1fr; }.resource-grid { grid-template-columns: 1fr 1fr; }.hero-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .situation-grid,.planning-grid { grid-template-columns: 1fr; }.resource-grid { grid-template-columns: 1fr 1fr; }.hero-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { main { width: min(100% - 1rem, 1440px); padding-top: .75rem; }.order-grid,.start-form { grid-template-columns: 1fr; }.resource-grid { grid-template-columns: 1fr 1fr; }.intent-card { grid-template-columns: 1fr; }.topbar { align-items: center; }.topbar h1 { font-size: 2rem; } }
