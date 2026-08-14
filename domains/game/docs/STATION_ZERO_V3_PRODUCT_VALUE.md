@@ -13,7 +13,7 @@ audience:
   - builder
   - agent
   - producer
-updated: 2026-08-14
+updated: 2026-08-15
 summary: Comparative product-design research for Station Zero v3. Decomposes mature structural analogues, derives transferable laws and incompatible choices, maps Station Zero strengths/gaps, and defines falsifiable G4-V experiments before G5 Production.
 evidence_status: verified
 readiness: READY
@@ -723,7 +723,7 @@ Current evidence map:
 | encounter time budget | 14-Turn falsifier vs 20-Turn viable rescue basin | **PROVEN** |
 | coupled system pressure | Heat/Oxygen thresholds alter scoring and cause authoritative damage | **PROVEN SYSTEMIC AXIS** |
 | enemy faction objective package | Pirate/Swarm create current pressure, but alternate doctrine set not yet ablated | **UNPROVEN VARIATION AXIS** |
-| topology / choke geometry | current topology matters, but alternate topology has not been isolated | **UNPROVEN VARIATION AXIS** |
+| topology / choke geometry | G5-P1 108-Run counterfactual: multiple bounded choke/capacity variants change Candidate surfaces, selected actions, and authoritative outcome vectors | **PROVEN OUTER CONTENT AXIS** |
 | civilian / item placement | important in current solution paths, no controlled relocation study yet | **UNPROVEN VARIATION AXIS** |
 | specialist loadout | mechanical content exists, but alternate loadout has not been isolated | **UNPROVEN VARIATION AXIS** |
 | optional loot abundance | 46 opportunities with zero loot-policy leverage in current slice | **NOT YET A PRODUCT AXIS** |
@@ -741,6 +741,45 @@ and must produce a different strategy/action/outcome signature under evaluation.
 ```
 
 Before scaling any unproven axis, use a research-only counterfactual or one bounded second-scenario slice to establish that it changes decisions.
+
+## G5-P1 — topology/choke outer-axis admission
+
+The first G5 production-grammar proof intentionally changed **no Game core contract**. `scripts/eval-station-zero-v3-topology-axis.ts` clones the canonical Genesis in memory, mutates only bounded Zone capacity, then reuses the existing Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. No Variant Engine, custom-Genesis Store API, or new World abstraction was introduced.
+
+The evaluator runs the exact 18-profile strategy matrix across six conditions (`baseline` plus five bounded topology treatments), for 108 full deterministic Runs. Admission requires all three:
+
+```text
+Candidate-surface divergence >= 10%
+selected-action divergence >= 10%
+>= 1 profile with changed focus / raw outcome vector / faction outcome
+```
+
+Current results:
+
+| Variant | Candidate divergence | Selected-action divergence | Strategic profiles changed | Focus completion | Judgment |
+| --- | ---: | ---: | ---: | --- | --- |
+| `central-choke` | 53.96% | 42.10% | 16 / 18 | Rescue 3/6→0/6; Core 1/6→3/6; Hive 6/6→2/6 | axis proof, **too destructive** as current production candidate |
+| `console-choke` | 13.19% | 9.14% | 3 / 18 | Rescue 3/6→0/6; Core/Hive unchanged | **reject**; misses selected-action threshold |
+| `cover-choke` | 51.09% | 39.96% | 15 / 18 | Rescue 3/6→3/6; Core 1/6→3/6; Hive 6/6→2/6 | **admit**; strongest bounded second-slice candidate |
+| `wide-junction` | 52.67% | 41.02% | 11 / 18 | Rescue 3/6→3/6; Core 1/6→4/6; Hive 6/6→3/6 | **admit**; strong alternate production candidate |
+| `reactor-choke` | 7.28% | 4.90% | 3 / 18 | all focus-completion basins unchanged | **reject**; too weak |
+
+The result is deliberately narrower than “these exact capacities are good level design”:
+
+```text
+topology / choke geometry
+= proven Content Grammar axis
+
+cover-choke / wide-junction
+= current outer production candidates
+
+capacity=1 or capacity=4
+!= Game core law
+```
+
+`cover-choke` is the current first candidate because it materially reshapes Candidate/action/outcome space while preserving the baseline Rescue viability basin. Human play and later production evidence may still reject the concrete treatment.
+
+This evaluator is an **outer production instrument**, not a new permanent product authority. Retain it while G5 topology production remains decision-relevant; archive/localize it after the production grammar stabilizes.
 
 G4 does not authorize a mission factory. With G4 exit accepted, G5 may now produce **one bounded second encounter/variant as a production-grammar proof** only if it deliberately varies the Content Grammar v0 axes above and is evaluated for a different strategy/action/outcome signature. Broad mission volume, campaign/meta progression, and random-content scaling remain unauthorized.
 

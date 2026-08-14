@@ -17,7 +17,8 @@
     "e2e:v3": "node scripts/e2e-station-zero-v3.ts",
     "eval:v3:fixture-strategies": "node scripts/eval-station-zero-v3-fixture-strategies.ts",
     "eval:v3:g4": "node scripts/eval-station-zero-v3-g4-calibration.ts",
-    "eval:v3:product-value": "node scripts/eval-station-zero-v3-product-value.ts"
+    "eval:v3:product-value": "node scripts/eval-station-zero-v3-product-value.ts",
+    "eval:v3:g5-topology": "node scripts/eval-station-zero-v3-topology-axis.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {
