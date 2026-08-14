@@ -5,6 +5,43 @@ import { StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zer
 // @ts-expect-error Browser module intentionally has no Node declaration.
 import { renderStationZeroV3App } from "../web-v3/render.js";
 
+test("v3 landing uses player-facing operation language while retaining simulation truth", () => {
+  const html = renderStationZeroV3App({ view: null, catalog: null, runs: [], busy: null, error: null });
+  assert.match(html, /Ordivon Game · Mission Control/);
+  assert.match(html, /Operation call sign/);
+  assert.match(html, /simultaneous resolution/);
+  assert.match(html, /Simulation build: deterministic specialist Agents/);
+  assert.doesNotMatch(html, /first-playable preview|Run identity|explicit commit boundary/);
+});
+
+test("first-command orientation disappears once the first plan is generated", async () => {
+  const store = new StationZeroV3Store(":memory:");
+  try {
+    const play = new StationZeroV3PlayService(store);
+    const runId = "run:station-zero-v3:first-command";
+    let view = play.initialize({ runId });
+    let html = renderStationZeroV3App({ view, catalog: play.catalog(), runs: play.listRuns(), busy: null, error: null });
+    assert.match(html, /data-testid="first-command" data-phase="order"/);
+    assert.match(html, /Required objectives define success/);
+    assert.match(html, /Mission intent persists/);
+    assert.match(html, /Remote capability is per-Turn/);
+    assert.match(html, /Adjust the Commander Order, then generate one simultaneous Turn plan/);
+    assert.doesNotMatch(html, /Save the strategic Order, then ask/);
+
+    const generated = await play.generatePreview(runId);
+    view = generated.view;
+    html = renderStationZeroV3App({ view, catalog: play.catalog(), runs: play.listRuns(), busy: null, error: null });
+    assert.doesNotMatch(html, /data-testid="first-command"/);
+    assert.match(html, /data-testid="plan-impact"/);
+
+    view = (await play.commitPreview(runId, generated.preview.previewId)).view;
+    html = renderStationZeroV3App({ view, catalog: play.catalog(), runs: play.listRuns(), busy: null, error: null });
+    assert.doesNotMatch(html, /data-testid="first-command"/);
+  } finally {
+    store.close();
+  }
+});
+
 test("v3 browser renderer exposes strategic controls and sealed enemy plans without hidden actions", async () => {
   const store = new StationZeroV3Store(":memory:");
   try {

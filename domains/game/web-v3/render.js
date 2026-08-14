@@ -45,22 +45,30 @@ function renderLanding(runs) {
   </section>` : "";
   return `<main class="landing">
     <section class="hero panel">
-      <p class="eyebrow">Ordivon Game · first-playable preview</p>
+      <p class="eyebrow">Ordivon Game · Mission Control</p>
       <h1>Station Zero <span>v3</span></h1>
-      <p class="lede">Command a rescue team inside a station contested by pirates and a biological swarm. You set intent and authority. Agents choose admitted local actions. The World resolves all factions simultaneously.</p>
+      <p class="lede">Command a rescue team inside a station contested by pirates and a biological swarm. You set mission intent and authority; specialists choose legal local actions; all factions resolve simultaneously.</p>
       <div class="hero-grid">
         <div><b>3</b><span>asymmetric factions</span></div>
-        <div><b>14</b><span>maximum turns</span></div>
-        <div><b>1</b><span>explicit commit boundary</span></div>
+        <div><b>14</b><span>turn limit</span></div>
+        <div><b>1</b><span>simultaneous resolution</span></div>
       </div>
       <form id="new-run-form" class="start-form">
-        <label>Run identity<input id="new-run-id" value="run:station-zero-v3:web:${Date.now()}" autocomplete="off"></label>
+        <label>Operation call sign<input id="new-run-id" value="station-zero-${Date.now().toString(36)}" autocomplete="off"></label>
         <button class="primary" type="submit" data-testid="start-run">Begin operation</button>
       </form>
-      <p class="small-note">Deterministic fixture Agents are used in this preview. Enemy plans are sealed until resolution.</p>
+      <p class="small-note">Simulation build: deterministic specialist Agents. Enemy plans remain sealed until resolution.</p>
     </section>
     ${retained}
   </main>`;
+}
+
+function renderFirstCommand(view) {
+  if (view.run.status !== "running" || view.run.turn !== 0 || view.experience.preview) return "";
+  return `<section class="first-command" data-testid="first-command" data-phase="order">
+    <span>First command</span>
+    <p><b>Required objectives define success.</b> Mission intent persists; Remote capability is per-Turn. Generate a plan, review Plan impact, then Commit. Specialists choose local actions.</p>
+  </section>`;
 }
 
 function renderOrder(view, catalog) {
@@ -149,7 +157,7 @@ function renderPlanImpact(preview) {
 
 function renderPreview(view) {
   const preview = view.experience.preview;
-  if (!preview) return `<section class="panel empty-preview"><p class="eyebrow">Deliberation</p><h2>No plan generated</h2><p>Save the strategic Order, then ask the specialists and faction leaders to form one simultaneous Turn plan.</p></section>`;
+  if (!preview) return `<section class="panel empty-preview"><p class="eyebrow">Deliberation</p><h2>No plan generated</h2><p>Adjust the Commander Order, then generate one simultaneous Turn plan. Review Plan impact and specialist actions before Commit.</p></section>`;
   return `<section class="panel plan-panel" data-testid="plan-preview">
     <div class="section-heading">
       <div><p class="eyebrow">Deliberation</p><h2>Rescue plan preview</h2></div>
@@ -363,6 +371,7 @@ function renderMission(view, catalog, expressionTurnSequence = null) {
     </section>
     ${renderTerminal(view)}
     ${renderAftermath(view, expressionTurnSequence)}
+    ${renderFirstCommand(view)}
     <div class="situation-grid">
       ${renderMap(view, expressionTurnSequence)}
       <div class="situation-stack">${renderActors(view)}${renderObjectives(view)}</div>

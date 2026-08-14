@@ -54,6 +54,9 @@ try {
   await page.getByTestId("start-run").click();
   await page.getByTestId("turn-number").waitFor();
   assert.equal(await page.getByTestId("turn-number").textContent(), "0");
+  assert.equal(await page.getByTestId("first-command").getAttribute("data-phase"), "order");
+  assert.match(await page.getByTestId("first-command").textContent() ?? "", /Mission intent persists/);
+  assert.match(await page.getByTestId("first-command").textContent() ?? "", /Remote capability is per-Turn/);
 
   assert.equal(await page.getByTestId("order-contingencies").evaluate((details) => details.hasAttribute("open")), false);
   assert.equal(await page.locator('[name="primaryObjectiveId"]').isVisible(), true);
@@ -75,6 +78,7 @@ try {
 
   await page.getByTestId("generate-preview").click();
   await page.getByTestId("plan-preview").waitFor();
+  assert.equal(await page.getByTestId("first-command").count(), 0, "first-command orientation should disappear once a real plan exists");
   assert.equal(await page.getByTestId("rescue-intent").count(), 3);
   assert.equal(await page.getByTestId("sealed-enemy-plan").count(), 2);
   const retainedAfterGenerate = await page.evaluate(async (retainedRunId) => {
