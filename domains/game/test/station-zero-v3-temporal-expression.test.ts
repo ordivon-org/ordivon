@@ -158,7 +158,6 @@ test("temporal compiler suppresses only exact damage-health duplicates", () => {
         sourceActorId: "pirate-raider-holt",
         targetActorId: "security-chen",
         amount: 20,
-        damageType: "kinetic",
       },
       {
         factId: "fact:test:damage-health",
@@ -166,6 +165,7 @@ test("temporal compiler suppresses only exact damage-health duplicates", () => {
         actorId: "security-chen",
         before: 110,
         after: 90,
+        causes: ["fact:test:damage"],
       },
       {
         factId: "fact:test:healing",
@@ -173,6 +173,7 @@ test("temporal compiler suppresses only exact damage-health duplicates", () => {
         actorId: "security-chen",
         before: 90,
         after: 100,
+        causes: ["healing"],
       },
     ];
     const expressions = createStationZeroV3TemporalExpressions(state, facts, view.map);
