@@ -67,21 +67,47 @@ function renderOrder(view, catalog) {
   const order = view.experience.order;
   if (!order) return "";
   const disabled = !view.experience.canEditOrder ? " disabled" : "";
+  const selectedDescription = (items, key, value) => items.find((item) => item[key] === value)?.description ?? "";
+  const lethal = catalog.lethalForce.find((item) => item.value === order.lethalForce);
+  const loot = catalog.lootPolicies.find((item) => item.value === order.lootPolicy);
+  const protectedActor = view.ownActors.find((actor) => actor.actorId === order.protectedActorId);
+  const contingencySummary = [
+    lethal?.label ?? order.lethalForce,
+    `retreat ≤ ${Math.round(order.retreatHealthThreshold * 100)}%`,
+    loot?.label ?? order.lootPolicy,
+    protectedActor ? `protect ${protectedActor.actorName ?? protectedActor.name}` : "no protection priority",
+  ].join(" · ");
+  const initialGuidance = selectedDescription(catalog.objectives, "objectiveId", order.primaryObjectiveId);
   return `<section class="panel command-panel" data-testid="commander-order">
     <div class="section-heading">
       <div><p class="eyebrow">Command phase</p><h2>Commander Order</h2></div>
       <span class="revision">Revision ${view.experience.orderRevision}</span>
     </div>
-    <form id="order-form" class="order-grid">
-      <label>Primary objective<select name="primaryObjectiveId"${disabled}>${catalog.objectives.map((item) => option(item.objectiveId, item.label, order.primaryObjectiveId)).join("")}</select></label>
-      <label>Posture<select name="posture"${disabled}>${catalog.postures.map((item) => option(item.posture, item.label, order.posture)).join("")}</select></label>
-      <label>Formation<select name="formation"${disabled}>${catalog.formations.map((item) => option(item.formation, item.label, order.formation)).join("")}</select></label>
-      <label>Remote capability<select name="commanderDirectiveId"${disabled}>${catalog.commanderDirectives.map((item) => option(item.directiveId, item.label, order.commanderDirectiveId)).join("")}</select></label>
-      <label>Lethal force<select name="lethalForce"${disabled}>${catalog.lethalForce.map((item) => option(item.value, item.label, order.lethalForce)).join("")}</select></label>
-      <label>Loot policy<select name="lootPolicy"${disabled}>${catalog.lootPolicies.map((item) => option(item.value, item.label, order.lootPolicy)).join("")}</select></label>
-      <label>Retreat below <output id="retreat-output">${Math.round(order.retreatHealthThreshold * 100)}%</output><input name="retreatHealthThreshold" type="range" min="0" max="0.8" step="0.05" value="${order.retreatHealthThreshold}"${disabled}></label>
-      <label>Protected specialist<select name="protectedActorId"${disabled}><option value="">None</option>${view.ownActors.map((actor) => option(actor.actorId, actor.actorName ?? actor.name, order.protectedActorId)).join("")}</select></label>
+    <form id="order-form" class="commander-order-form" data-dirty="false">
+      <fieldset class="order-section intent-section">
+        <legend>Mission intent</legend>
+        <div class="order-grid core-order-grid">
+          <label>Primary objective<select name="primaryObjectiveId"${disabled}>${catalog.objectives.map((item) => option(item.objectiveId, item.label, order.primaryObjectiveId)).join("")}</select></label>
+          <label>Posture<select name="posture"${disabled}>${catalog.postures.map((item) => option(item.posture, item.label, order.posture)).join("")}</select></label>
+          <label>Formation<select name="formation"${disabled}>${catalog.formations.map((item) => option(item.formation, item.label, order.formation)).join("")}</select></label>
+        </div>
+      </fieldset>
+      <fieldset class="order-section turn-section">
+        <legend>This Turn</legend>
+        <label>Remote capability<select name="commanderDirectiveId"${disabled}>${catalog.commanderDirectives.map((item) => option(item.directiveId, item.label, order.commanderDirectiveId)).join("")}</select></label>
+      </fieldset>
+      <div class="order-guidance" data-testid="order-guidance"><span data-order-guidance-label>Primary objective</span><p data-order-guidance-text>${escapeHtml(initialGuidance)}</p></div>
+      <details class="order-contingencies" data-testid="order-contingencies">
+        <summary><span><b>Standing contingencies</b><small>Only matter when matching local opportunities arise.</small></span><em data-contingency-summary>${escapeHtml(contingencySummary)}</em></summary>
+        <div class="order-grid contingency-grid">
+          <label>Lethal force<select name="lethalForce"${disabled}>${catalog.lethalForce.map((item) => option(item.value, item.label, order.lethalForce)).join("")}</select></label>
+          <label>Loot policy<select name="lootPolicy"${disabled}>${catalog.lootPolicies.map((item) => option(item.value, item.label, order.lootPolicy)).join("")}</select></label>
+          <label>Retreat below <output id="retreat-output">${Math.round(order.retreatHealthThreshold * 100)}%</output><input name="retreatHealthThreshold" type="range" min="0" max="0.8" step="0.05" value="${order.retreatHealthThreshold}"${disabled}></label>
+          <label>Protected specialist<select name="protectedActorId"${disabled}><option value="">None</option>${view.ownActors.map((actor) => option(actor.actorId, actor.actorName ?? actor.name, order.protectedActorId)).join("")}</select></label>
+        </div>
+      </details>
     </form>
+    <p class="order-dirty-notice" data-order-dirty-notice hidden>Order changed locally. Regenerate the team plan before Commit so the preview is bound to these choices.</p>
     <div class="command-actions">
       <button type="button" data-action="save-order"${disabled}>Save Order</button>
       <button type="button" class="accent" data-action="generate-preview"${view.experience.canGeneratePreview ? "" : " disabled"} data-testid="generate-preview">Generate team plan</button>

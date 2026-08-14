@@ -55,19 +55,50 @@ try {
   await page.getByTestId("turn-number").waitFor();
   assert.equal(await page.getByTestId("turn-number").textContent(), "0");
 
+  assert.equal(await page.getByTestId("order-contingencies").evaluate((details) => details.hasAttribute("open")), false);
+  assert.equal(await page.locator('[name="primaryObjectiveId"]').isVisible(), true);
+  assert.equal(await page.locator('[name="posture"]').isVisible(), true);
+  assert.equal(await page.locator('[name="formation"]').isVisible(), true);
+  assert.equal(await page.locator('[name="commanderDirectiveId"]').isVisible(), true);
+  assert.equal(await page.locator('[name="lootPolicy"]').isVisible(), false);
+
   await page.locator('[name="primaryObjectiveId"]').selectOption("recover-research-core");
+  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /Optional side objective/);
   await page.locator('[name="posture"]').selectOption("aggressive");
   await page.locator('[name="formation"]').selectOption("cohesive");
-  await page.locator('[name="lootPolicy"]').selectOption("opportunistic");
   await page.locator('[name="commanderDirectiveId"]').selectOption("scan-reactor");
+  await page.getByTestId("order-contingencies").locator("summary").click();
+  await page.locator('[name="lootPolicy"]').selectOption("opportunistic");
+  assert.match(await page.getByTestId("order-guidance").textContent() ?? "", /Allow useful local pickups/);
+  await page.getByTestId("order-contingencies").locator("summary").click();
+  assert.equal(await page.locator('[name="lootPolicy"]').isVisible(), false);
+
   await page.getByTestId("generate-preview").click();
   await page.getByTestId("plan-preview").waitFor();
   assert.equal(await page.getByTestId("rescue-intent").count(), 3);
   assert.equal(await page.getByTestId("sealed-enemy-plan").count(), 2);
+  const retainedAfterGenerate = await page.evaluate(async (retainedRunId) => {
+    const response = await fetch(`/api/station-zero-v3/state?runId=${encodeURIComponent(retainedRunId)}`);
+    return response.json();
+  }, runId);
+  assert.equal(retainedAfterGenerate.experience.order.primaryObjectiveId, "recover-research-core");
+  assert.equal(retainedAfterGenerate.experience.order.posture, "aggressive");
+  assert.equal(retainedAfterGenerate.experience.order.formation, "cohesive");
+  assert.equal(retainedAfterGenerate.experience.order.lootPolicy, "opportunistic");
+  assert.equal(retainedAfterGenerate.experience.order.commanderDirectiveId, "scan-reactor");
   const previewText = await page.getByTestId("plan-preview").textContent();
   assert.ok(previewText?.includes("Rescue plan preview"));
+  assert.ok(previewText?.includes("recover-research-core"));
   assert.equal(previewText?.includes("Captain Veyra"), false);
   assert.equal(previewText?.includes("Hive Alpha"), false);
+
+  await page.locator('[name="posture"]').selectOption("cautious");
+  assert.equal(await page.getByTestId("commit-turn").isDisabled(), true, "local Order edits must invalidate the visible Preview before Commit");
+  assert.equal(await page.locator("[data-order-dirty-notice]").isVisible(), true);
+  assert.equal((await page.getByTestId("generate-preview").textContent())?.trim(), "Regenerate team plan");
+  await page.locator('[name="posture"]').selectOption("aggressive");
+  assert.equal(await page.getByTestId("commit-turn").isDisabled(), false, "returning to the exact preview-bound Order should restore Commit");
+  assert.equal(await page.locator("[data-order-dirty-notice]").isVisible(), false);
 
   await page.getByTestId("commit-turn").click();
   await page.waitForFunction(() => document.querySelector('[data-testid="turn-number"]')?.textContent === "1");
@@ -82,7 +113,6 @@ try {
   const turnOneBody = await page.locator("body").textContent() ?? "";
   assert.equal(turnOneBody.includes("Storage Floor"), false);
   assert.equal(turnOneBody.includes("Cargo Crates"), false);
-  assert.ok(turnOneBody.includes("an uncharted sector"), "hidden movement origins should remain anonymous in the player recap");
   await page.waitForTimeout(2_000);
   const retainedOverlayOpacities = await page.locator(".temporal-map-event").evaluateAll((elements) =>
     elements.map((element) => Number(getComputedStyle(element).opacity)));

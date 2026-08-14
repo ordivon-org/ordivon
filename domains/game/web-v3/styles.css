@@ -57,9 +57,27 @@ input, select { width: 100%; background: #0c1118; color: inherit; border: 1px so
 .situation-stack { display: grid; gap: .75rem; }
 .planning-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: .75rem; margin-bottom: .75rem; }
 .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem; }
-.order-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.order-grid label:nth-last-child(-n+2) { grid-column: span 1; }
-.command-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+.commander-order-form { display: grid; gap: .5rem; }
+.order-section { margin: 0; padding: .55rem .65rem .65rem; border: 1px solid var(--line); border-radius: .7rem; background: rgba(8,11,16,.24); }
+.order-section legend { padding: 0 .25rem; color: #dce5ef; font-size: .76rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.order-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+.core-order-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.order-guidance { min-height: 3rem; display: grid; grid-template-columns: 7.8rem minmax(0,1fr); gap: .6rem; align-items: center; padding: .55rem .65rem; border-left: 3px solid var(--accent-2); background: rgba(138,168,255,.06); border-radius: .35rem .65rem .65rem .35rem; }
+.order-guidance span { color: var(--accent-2); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.order-guidance p { margin: 0; color: #b9c4d2; font-size: .75rem; line-height: 1.35; }
+.order-contingencies { margin-top: 0; border: 1px solid var(--line); border-radius: .7rem; background: rgba(8,11,16,.24); overflow: hidden; }
+.order-contingencies > summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: minmax(0,.7fr) minmax(0,1.3fr); gap: .7rem; align-items: center; padding: .6rem .65rem; }
+.order-contingencies > summary::-webkit-details-marker { display: none; }
+.order-contingencies[open] > summary { border-bottom: 1px solid var(--line); }
+.order-contingencies > summary > span { display: grid; gap: .08rem; }
+.order-contingencies > summary b { color: #dce5ef; font-size: .78rem; }
+.order-contingencies > summary small { font-size: .66rem; }
+.order-contingencies > summary em { color: var(--muted); font-size: .67rem; font-style: normal; text-align: right; line-height: 1.25; }
+.contingency-grid { padding: .65rem; }
+.order-dirty-notice { margin: .55rem 0 0; padding: .55rem .65rem; border-left: 3px solid var(--warning); background: rgba(255,197,102,.08); color: #dfcda6; font-size: .76rem; }
+.plan-panel.is-stale { border-color: rgba(255,197,102,.55); }
+.plan-panel.is-stale .commit { border-color: var(--warning); }
+.command-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .6rem; }
 .empty-preview { display: grid; align-content: center; min-height: 24rem; color: var(--muted); }
 .plan-summary { color: #c4cfda; }
 .commander-card { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: center; padding: .8rem; background: rgba(105,224,194,.08); border: 1px solid rgba(105,224,194,.28); border-radius: .7rem; margin-bottom: .75rem; }
@@ -158,4 +176,4 @@ details li span { color: var(--muted); font-size: .7rem; margin-right: .5rem; te
   .temporal-map-layer { display: none; }
 }
 @media (max-width: 900px) { .situation-grid,.planning-grid { grid-template-columns: 1fr; }.resource-grid { grid-template-columns: 1fr 1fr; }.hero-grid { grid-template-columns: 1fr; }.aftermath .resolution-list { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { main { width: min(100% - 1rem, 1440px); padding-top: .75rem; }.order-grid,.start-form { grid-template-columns: 1fr; }.resource-grid { grid-template-columns: 1fr 1fr; }.intent-card { grid-template-columns: 1fr; }.topbar { align-items: center; }.topbar h1 { font-size: 2rem; } }
+@media (max-width: 600px) { main { width: min(100% - 1rem, 1440px); padding-top: .75rem; }.order-grid,.start-form,.order-guidance,.order-contingencies>summary { grid-template-columns: 1fr; }.order-contingencies>summary em { text-align: left; }.resource-grid { grid-template-columns: 1fr 1fr; }.intent-card { grid-template-columns: 1fr; }.topbar { align-items: center; }.topbar h1 { font-size: 2rem; } }

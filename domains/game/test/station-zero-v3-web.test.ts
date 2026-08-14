@@ -20,6 +20,14 @@ test("v3 browser renderer exposes strategic controls and sealed enemy plans with
       error: null,
     });
     assert.match(html, /Commander Order/);
+    assert.match(html, /Mission intent/);
+    assert.match(html, /This Turn/);
+    assert.match(html, /data-testid="order-guidance"/);
+    assert.match(html, /Required mission priority: locate, escort, and extract both civilians/);
+    assert.match(html, /data-testid="order-contingencies"/);
+    assert.doesNotMatch(html, /<details class="order-contingencies"[^>]* open/);
+    assert.match(html, /Only matter when matching local opportunities arise/);
+    assert.match(html, /no protection priority/);
     assert.match(html, /Generate team plan/);
     assert.match(html, /Commit simultaneous Turn/);
     assert.equal((html.match(/data-testid="rescue-intent"/g) ?? []).length, 3);

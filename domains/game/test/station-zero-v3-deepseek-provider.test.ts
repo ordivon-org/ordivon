@@ -100,6 +100,9 @@ test("DeepSeek Provider loads only private credentials and returns one admitted 
     assert.equal(decision.directiveId, null);
     assert.equal(decision.providerId, "deepseek-station-zero-v3-v1:deepseek/deepseek-v4-flash:disabled");
     const capturedRequest = request as unknown as Record<string, unknown>;
+    const messages = capturedRequest.messages as Array<{ role: string; content: string }>;
+    assert.match(messages[0]!.content, /Commander contingency semantics are exact/);
+    assert.match(messages[0]!.content, /protectedActorId biases legal guard coverage/);
     assert.deepEqual((capturedRequest.thinking as { type: string }).type, "disabled");
     assert.equal("reasoning_effort" in capturedRequest, false);
     assert.equal(capturedRequest.temperature, 0.1);

@@ -836,11 +836,16 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
     score += actor.roleId === "security" ? 120 : 40;
     score += order.posture === "aggressive" ? 220 : order.posture === "balanced" ? 100 : 10;
     if (order.lethalForce === "forbidden") score -= 500;
+    if (order.lethalForce === "preferred") score += 120;
     if (order.priorityTargetActorId && candidateTag(candidate, `target:${order.priorityTargetActorId}`)) score += 260;
   }
   if (candidateTag(candidate, "guard")) {
     score += actor.roleId === "security" ? 180 : 20;
     score += order.posture === "cautious" ? 150 : 40;
+    if (order.protectedActorId) {
+      const protectedActor = context.known.actors.find((known) => known.actorId === order.protectedActorId);
+      if (protectedActor && candidateTag(candidate, `zone:${protectedActor.lastKnownZoneId}`)) score += 220;
+    }
   }
   if (candidateTag(candidate, "pickup")) {
     score += order.lootPolicy === "opportunistic" ? 100 : order.lootPolicy === "mission-only" ? 40 : -200;
@@ -1059,7 +1064,7 @@ export function defaultStationZeroV3CommanderOrder(
     lethalForce: "permitted",
     collateralPolicy: "forbidden",
     lootPolicy: "mission-only",
-    protectedActorId: "medic-reyes",
+    protectedActorId: null,
     priorityTargetActorId: null,
     commanderDirectiveId,
     issuedBy: "player:mission-control",
@@ -1099,9 +1104,9 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
     schemaVersion: 1,
     kind: "ordivon.game.station-zero-v3-play-catalog",
     objectives: [
-      { objectiveId: "rescue-two-civilians", label: "Rescue the crew", description: "Prioritize locating, escorting, and extracting both civilians." },
-      { objectiveId: "recover-research-core", label: "Recover the Research Core", description: "Divert specialists toward the Reactor and extract the objective cargo." },
-      { objectiveId: "eliminate-hive-alpha", label: "Hunt the Hive Alpha", description: "Accept higher combat exposure to break the Swarm leadership." },
+      { objectiveId: "rescue-two-civilians", label: "Rescue the crew", description: "Required mission priority: locate, escort, and extract both civilians." },
+      { objectiveId: "recover-research-core", label: "Recover the Research Core", description: "Optional side objective: divert specialists toward the Reactor and extract the objective cargo, accepting pressure on required rescue work." },
+      { objectiveId: "eliminate-hive-alpha", label: "Hunt the Hive Alpha", description: "Optional side objective: accept higher combat exposure to break Swarm leadership, potentially delaying required rescue work." },
     ],
     postures: [
       { posture: "cautious", label: "Cautious", description: "Prefer guard, stabilization, and survival over opportunistic combat." },
@@ -1123,14 +1128,14 @@ export function createStationZeroV3PlayCatalog(): StationZeroV3PlayCatalog {
       { directiveId: "call-extraction", label: "Call extraction", description: "Mark the Rescue Airlock as an extraction Zone." },
     ],
     lethalForce: [
-      { value: "forbidden", label: "Avoid lethal force" },
-      { value: "permitted", label: "Lethal force permitted" },
-      { value: "preferred", label: "Lethal force preferred" },
+      { value: "forbidden", label: "Avoid lethal force", description: "Strongly suppress attack choices even when a legal target is available." },
+      { value: "permitted", label: "Lethal force permitted", description: "Allow legal attacks to compete with movement, guard, rescue, and system work." },
+      { value: "preferred", label: "Lethal force preferred", description: "Bias specialists toward legal attacks when mission and survival constraints permit." },
     ],
     lootPolicies: [
-      { value: "ignore", label: "Ignore loot" },
-      { value: "mission-only", label: "Mission items only" },
-      { value: "opportunistic", label: "Opportunistic recovery" },
+      { value: "ignore", label: "Ignore loot", description: "Prefer mission progress over non-essential pickups." },
+      { value: "mission-only", label: "Mission items only", description: "Recover items when they directly support the selected mission objective." },
+      { value: "opportunistic", label: "Opportunistic recovery", description: "Allow useful local pickups to compete when they do not block stronger priorities." },
     ],
   };
 }
