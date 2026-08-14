@@ -7,6 +7,7 @@ import {
 import { createStationZeroV3PlayView } from "./play-projection.ts";
 import { StationZeroV3PlanningStore } from "./planning-store.ts";
 import type {
+  StationZeroV3ActionFeedback,
   StationZeroV3AgentProviderFactory,
   StationZeroV3CommanderOrder,
   StationZeroV3CommitReceipt,
@@ -131,6 +132,7 @@ export class StationZeroV3PlayService {
     }
     const state = this.store.stateAtRevision(runId, planning.worldRevision);
     const responsibilityFeedbackByActor: Record<string, StationZeroV3ResponsibilityFeedback> = {};
+    const actionFeedbackByActor: Record<string, StationZeroV3ActionFeedback> = {};
     const previousTurn = this.store.latestTurnReceipt(runId);
     if (previousTurn && previousTurn.turnSequence === planning.turn - 1) {
       const previousHead = this.planning.headOrNull(runId, previousTurn.planningId);
@@ -138,25 +140,35 @@ export class StationZeroV3PlayService {
         ? this.planning.getPreview(runId, previousTurn.planningId, previousHead.committedPreviewId)
         : null;
       if (previousPreview) {
-        for (const context of previousPreview.contexts.filter((entry) => entry.factionId === "rescue" && entry.responsibility !== null)) {
+        for (const context of previousPreview.contexts.filter((entry) => entry.factionId === "rescue")) {
           const agent = previousPreview.agentDecisions.find((entry) => entry.actorId === context.actor.actorId);
           const policy = previousPreview.policyDecisions.find((entry) => entry.actorId === context.actor.actorId);
           const candidateId = agent?.candidateId ?? policy?.candidateId ?? null;
           const candidate = candidateId ? context.candidates.find((entry) => entry.candidateId === candidateId) : null;
-          if (!candidate) throw new TypeError(`Committed responsibility lacks selected Candidate for ${context.actor.actorId}`);
+          if (!candidate) throw new TypeError(`Committed Rescue context lacks selected Candidate for ${context.actor.actorId}`);
           const resolution = previousTurn.record.resolution.intentResolutions.find((entry) =>
             entry.actorId === context.actor.actorId && entry.intentId === candidate.intent.intentId);
-          if (!resolution) throw new TypeError(`Committed responsibility lacks authoritative Intent Resolution for ${context.actor.actorId}`);
-          responsibilityFeedbackByActor[context.actor.actorId] = {
+          if (!resolution) throw new TypeError(`Committed Rescue context lacks authoritative Intent Resolution for ${context.actor.actorId}`);
+          actionFeedbackByActor[context.actor.actorId] = {
             turnSequence: previousTurn.turnSequence,
             planningId: previousTurn.planningId,
-            responsibility: structuredClone(context.responsibility!),
-            candidateId: candidate.candidateId,
             candidateLabel: candidate.label,
             intent: structuredClone(candidate.intent),
             status: resolution.status,
             reason: resolution.reason,
           };
+          if (context.responsibility) {
+            responsibilityFeedbackByActor[context.actor.actorId] = {
+              turnSequence: previousTurn.turnSequence,
+              planningId: previousTurn.planningId,
+              responsibility: structuredClone(context.responsibility),
+              candidateId: candidate.candidateId,
+              candidateLabel: candidate.label,
+              intent: structuredClone(candidate.intent),
+              status: resolution.status,
+              reason: resolution.reason,
+            };
+          }
         }
       }
     }
@@ -168,6 +180,7 @@ export class StationZeroV3PlayService {
       orderDigest: current.orderDigest,
       providerFactory: this.providerFactory,
       responsibilityFeedbackByActor,
+      actionFeedbackByActor,
     });
     const receipt = this.planning.savePreview(preview);
     return { ...receipt, view: this.state(runId) };

@@ -24,6 +24,7 @@ import type {
   StationZeroV3AgentProvider,
   StationZeroV3AgentProviderFactory,
   StationZeroV3AgentResponsibility,
+  StationZeroV3ActionFeedback,
   StationZeroV3ResponsibilityFeedback,
   StationZeroV3CommanderDirectiveId,
   StationZeroV3CommanderOrder,
@@ -704,6 +705,7 @@ export function compileStationZeroV3AgentContext(
   actorId: string,
   playerOrder: StationZeroV3CommanderOrder | null,
   previousResponsibilityFeedback: StationZeroV3ResponsibilityFeedback | null = null,
+  previousActionFeedback: StationZeroV3ActionFeedback | null = null,
 ): StationZeroV3AgentContext {
   const actor = state.actors[actorId];
   if (!actor || !actor.factionId || actor.lifeState !== "active") throw new TypeError(`Cannot compile Agent Context for inactive or unknown Actor ${actorId}`);
@@ -778,6 +780,7 @@ export function compileStationZeroV3AgentContext(
     playerOrder: factionId === "rescue" ? playerOrder : null,
     responsibility,
     responsibilityFeedback,
+    previousActionFeedback: factionId === "rescue" && previousActionFeedback ? structuredClone(previousActionFeedback) : null,
     allowedDirectiveIds: allowedDirectiveIds(factionId),
     candidates,
   };
@@ -816,6 +819,19 @@ function candidateTag(candidate: StationZeroV3AgentCandidate, tag: string): bool
 
 function moveTarget(candidate: StationZeroV3AgentCandidate): string | null {
   return candidate.intent.kind === "move" ? candidate.intent.targetZoneId : null;
+}
+
+function intentSemanticKey(intent: StationZeroActorIntent): string {
+  switch (intent.kind) {
+    case "move": return `move:${intent.targetZoneId}`;
+    case "attack": return `attack:${intent.abilityId}:${intent.targetActorId}`;
+    case "use_ability": return `use_ability:${intent.abilityId}:${intent.targetActorId ?? ""}:${intent.targetZoneId ?? ""}:${intent.targetSystemId ?? ""}:${intent.targetHazardId ?? ""}`;
+    case "interact": return `interact:${intent.operationId}:${intent.targetId}`;
+    case "pickup": return `pickup:${intent.groundItemId}:${intent.quantity}`;
+    case "extract": return `extract:${intent.extractionId}`;
+    case "guard": return `guard:${intent.protectedActorId ?? ""}:${intent.watchedZoneId ?? ""}`;
+    case "wait": return "wait";
+  }
 }
 
 function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: StationZeroV3AgentCandidate): number {
@@ -894,6 +910,11 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
   if (candidateTag(candidate, "extract") && actor.inventoryItemIds.includes("research-core")) score += 700;
   if (candidateTag(candidate, "extract") && candidateTag(candidate, "escorting-civilian")) score += 2_000;
   if (candidateTag(candidate, "escorting-civilian")) score += 1_000;
+  const feedback = context.previousActionFeedback;
+  if (feedback && intentSemanticKey(feedback.intent) === intentSemanticKey(candidate.intent)) {
+    if (feedback.status === "contested" || feedback.status === "interrupted" || feedback.status === "invalidated") score -= 900;
+    if (feedback.status === "no_effect") score -= 280;
+  }
   return score;
 }
 
@@ -1320,6 +1341,7 @@ export async function buildStationZeroV3PlanPreview(input: {
   orderDigest: string;
   providerFactory?: StationZeroV3AgentProviderFactory;
   responsibilityFeedbackByActor?: Readonly<Record<string, StationZeroV3ResponsibilityFeedback>>;
+  actionFeedbackByActor?: Readonly<Record<string, StationZeroV3ActionFeedback>>;
 }): Promise<StationZeroV3PlanPreview> {
   const { state, planning, orderRevision, order, orderDigest } = input;
   assertStationZeroV3CommanderOrder(state, planning, order);
@@ -1334,6 +1356,7 @@ export async function buildStationZeroV3PlanPreview(input: {
   const highFidelitySettled = await Promise.allSettled(highFidelityActors.map(async (actor) => {
     const context = compileStationZeroV3AgentContext(
       state, planning, actor.actorId, order, input.responsibilityFeedbackByActor?.[actor.actorId] ?? null,
+      input.actionFeedbackByActor?.[actor.actorId] ?? null,
     );
     const provider = providerFactory(actor.factionId!, actor.actorId);
     const decision = await provider.decide(context);

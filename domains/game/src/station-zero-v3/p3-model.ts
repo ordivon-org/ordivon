@@ -122,6 +122,15 @@ export interface StationZeroV3ResponsibilityFeedback {
   reason: string;
 }
 
+export interface StationZeroV3ActionFeedback {
+  turnSequence: number;
+  planningId: string;
+  candidateLabel: string;
+  intent: StationZeroActorIntent;
+  status: StationZeroIntentResolutionStatus;
+  reason: string;
+}
+
 export interface StationZeroV3AgentContext {
   schemaVersion: 1;
   kind: "ordivon.game.station-zero-v3-agent-context";
@@ -165,6 +174,7 @@ export interface StationZeroV3AgentContext {
   playerOrder: StationZeroV3CommanderOrder | null;
   responsibility: StationZeroV3AgentResponsibility | null;
   responsibilityFeedback: StationZeroV3ResponsibilityFeedback | null;
+  previousActionFeedback: StationZeroV3ActionFeedback | null;
   allowedDirectiveIds: string[];
   candidates: StationZeroV3AgentCandidate[];
   contextDigest: string;
