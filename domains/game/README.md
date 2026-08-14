@@ -14,8 +14,8 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-08
-summary: Canonical entry to Ordivon Game, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
+updated: 2026-08-14
+summary: Canonical entry to Ordivon Game, its cross-game development model, the current Station Zero executable, the unregistered v3 target, and their authority boundaries.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -24,13 +24,14 @@ related:
   - game.product.station-zero
   - game.architecture
   - game.vision
+  - game.development-model
   - game.authority
 ---
 # Ordivon Game
 
 ## Purpose
 
-**Intervention-driven worlds for people and Agents.**
+**Authoritative interactive worlds for people and Agents.**
 
 Ordivon Game currently ships one executable world: **Station Zero**, a deterministic multi-Agent mission game. The player commands Engineer, Medic, and Security specialists through standing doctrine and consequential interventions rather than moving units directly.
 

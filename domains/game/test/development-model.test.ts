@@ -44,8 +44,18 @@ test("Game and Studio keep separate production authority", () => {
   assert.match(development, /A polished Output never becomes authoritative game-rule truth\./);
 });
 
+test("development model retains nested product/research roles and scoped learning", () => {
+  assert.match(development, /ordinary game stages only/);
+  assert.match(development, /Agent-first creative loop as the whole lifecycle/);
+  assert.match(development, /reachable future space[\s\S]*policy-accessible future space[\s\S]*model-realized future space/);
+  assert.match(development, /one trajectory \/ ablation[\s\S]*game-medium prior candidate[\s\S]*durable prior candidate/);
+  assert.match(development, /Studio activation follows development stage/);
+});
+
 test("development model is canonical navigation but does not register or redesign Station Zero", () => {
   assert.match(readme, /docs\/DEVELOPMENT_MODEL\.md/);
+  const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
+  assert.match(project, /docs\/DEVELOPMENT_MODEL\.md/);
   assert.match(authority, /DEVELOPMENT_MODEL\.md.*cross-game development process/s);
   assert.match(development, /does \*\*not\*\* reclassify, redesign, balance, register, or replace Station Zero/);
   assert.match(development, /Station Zero-specific Plans, Turns, Commander forms, factions, tactical Zones, sealed enemy Plans and exact Host execution shape do not survive/);

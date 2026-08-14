@@ -60,6 +60,25 @@ game form + experience target
 → tool and equipment consumption
 ```
 
+### Why this model, not the alternatives
+
+Three organizations were tested against the work Game actually has to do:
+
+| Model | What it gets right | What it loses | Verdict |
+| --- | --- | --- | --- |
+| ordinary game stages only | concept, prototype, slice, production, QA, release | no explicit proof that Agent observation/action/consequence is legitimate or valuable | keep as outer lifecycle, insufficient alone |
+| Agent-first creative loop as the whole lifecycle | fast hypothesis search, matched play, falsification | content, art/audio, production throughput, platform and shipping become secondary | reject as outer lifecycle |
+| nested model | normal production outside; Agent consequence/research inside | requires resisting process inflation | **retain** |
+
+Deletion pressure makes the distinction operational:
+
+- remove the outer lifecycle and the project cannot tell when a prototype has earned vertical-slice or production investment;
+- remove the Agent lane and an LLM feature can reach production without proving bounded observation, legal action or meaningful consequence;
+- promote the Agent research loop to the outer lifecycle and Game becomes research-rich but production-poor again;
+- remove classification and current tools/architecture begin choosing the product by accident.
+
+There is one product lifecycle, not two process authorities.
+
 ## 1. What an Ordivon game is
 
 The durable Game thesis remains:
@@ -413,6 +432,45 @@ Useful Agent advantages include:
 
 Do not confuse these with evidence that a feature is fun. Browser/E2E completion proves a journey works; simulation proves trajectories exist; human-response claims still require appropriate experience evidence when they are material.
 
+### Strategy existence and Agent realization are different claims
+
+Prior Game falsification established a durable separation:
+
+```text
+reachable future space
+≠ policy-accessible future space
+≠ model-realized future space
+```
+
+World rules may contain a viable strategy that a current policy cannot reach. A policy may expose that strategy while the current model still fails to preserve the commitment needed to realize it. Therefore:
+
+```text
+Agent failed
+≠ Game has no strategy
+
+counterfactual strategy exists
+≠ current Agent can play it
+```
+
+Do not automatically compile a known winning counterfactual into Harness or policy. That may erase the decision problem instead of improving the Agent or the game.
+
+### Learning scope
+
+A successful treatment is promoted only as far as its evidence supports:
+
+```text
+one trajectory / ablation
+→ local observation
+
+repeated evidence inside one game form
+→ game-medium prior candidate
+
+survives materially different game pressure
+→ durable prior candidate
+```
+
+Counterevidence may narrow, demote or retire any prior. Historical AF/GX/R results therefore remain evidence, not permanent workflow structure.
+
 ## 6. Game ↔ Studio production contract
 
 Game and Studio solve different problems.
@@ -481,6 +539,20 @@ Game should consume:
 - no Studio-private creative history unless the next Game decision depends on it.
 
 Game then owns how the asset participates in gameplay. Studio does not decide hitboxes, objective truth, passage state, damage, AI authority or success conditions unless those are themselves part of a separately owned creative game-design task.
+
+### Studio activation follows development stage
+
+| Stage | Default Studio consumption | Usually premature |
+| --- | --- | --- |
+| G0–G1 Define / preproduction | references, style exploration, rough UX when they resolve product questions | full asset library or final media pipeline |
+| G2 graybox | placeholders and only the media needed for legibility | final character/environment production |
+| G3 playable prototype | targeted readability/UI/audio treatment when presentation blocks playtesting | broad production scale |
+| G4 vertical slice | representative final-ish UI, art, animation/VFX, audio, editable source and QC pipeline | speculative factory beyond slice needs |
+| G5 production | scaled owner-native media production and variants | repeated redesign of an unproven kernel |
+| G6–G7 validation/polish | coherence, accessibility media, optimization, capture and publication preparation | new art direction without critical evidence |
+| G8 release/live | delivery media, patches and justified new content waves | tool-driven redesign unrelated to player evidence |
+
+Some games pull Studio earlier because expression is itself part of the core mechanic. The table is a default pressure model, not a prohibition.
 
 ## 7. Tool consumption follows the production need
 
