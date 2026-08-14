@@ -56,6 +56,17 @@ test("v3 preview API is isolated from the current executable and supports one ex
     const catalog = await json(await fetch(`${base}/api/station-zero-v3/catalog`));
     assert.equal(catalog.kind, "ordivon.game.station-zero-v3-play-catalog");
     assert.equal(catalog.objectives.length, 3);
+    assert.equal(catalog.defaultScenarioCaseId, "fixed-genesis");
+    assert.deepEqual(catalog.cases.map((entry: any) => entry.caseId), ["fixed-genesis", "junction-bottleneck"]);
+
+    const variantRunId = `${runId}:junction-bottleneck`;
+    const variant = await json(await fetch(`${base}/api/station-zero-v3/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runId: variantRunId, scenarioCaseId: "junction-bottleneck" }),
+    }));
+    assert.equal(variant.run.scenarioCaseId, "junction-bottleneck");
+    assert.equal(variant.map.zones.find((zone: any) => zone.zoneId === "junction-cover").capacity, 1);
 
     const initialized = await json(await fetch(`${base}/api/station-zero-v3/runs`, {
       method: "POST",

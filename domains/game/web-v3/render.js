@@ -47,11 +47,15 @@ function metric(label, value, maximum, warningAt = null) {
   </article>`;
 }
 
+function caseLabel(catalog, caseId) {
+  return catalog?.cases?.find((entry) => entry.caseId === caseId)?.label ?? tokenLabel(caseId);
+}
+
 function renderLanding(runs, catalog) {
   const retained = runs.length ? `<section class="panel retained-runs">
     <div class="section-heading"><div><p class="eyebrow">Retained operations</p><h2>Resume a command</h2></div></div>
     <div class="run-list">${runs.map((run) => `<button class="run-card" data-action="resume-run" data-run-id="${escapeHtml(run.runId)}">
-      <span><strong>${escapeHtml(run.runId)}</strong><small>Turn ${run.turn} / ${run.turnLimit}</small></span>
+      <span><strong>${escapeHtml(run.runId)}</strong><small>${escapeHtml(caseLabel(catalog, run.scenarioCaseId))} · Turn ${run.turn} / ${run.turnLimit}</small></span>
       <em class="status ${escapeHtml(run.status)}">${escapeHtml(run.status)}</em>
     </button>`).join("")}</div>
   </section>` : "";
@@ -67,8 +71,10 @@ function renderLanding(runs, catalog) {
       </div>
       <form id="new-run-form" class="start-form">
         <label>Operation call sign<input id="new-run-id" value="station-zero-${Date.now().toString(36)}" autocomplete="off"></label>
+        <label>Encounter profile<select id="new-run-case" data-testid="scenario-case">${(catalog?.cases ?? []).map((entry) => option(entry.caseId, entry.label, catalog?.defaultScenarioCaseId)).join("")}</select></label>
         <button class="primary" type="submit" data-testid="start-run">Begin operation</button>
       </form>
+      <p class="small-note">Encounter profile is retained with the operation and changes actual tactical geometry; it is not a cosmetic seed label.</p>
       <p class="small-note">Bounded specialist cognition · deterministic World consequence · enemy plans remain sealed until resolution.</p>
     </section>
     ${retained}
@@ -288,7 +294,7 @@ function renderMap(view, expressionTurnSequence = null) {
     <div xmlns="http://www.w3.org/1999/xhtml" class="map-zone-card cover-${escapeHtml(zone.cover)}">
       <span class="map-room-label">${escapeHtml(zone.roomName)}</span>
       <strong>${escapeHtml(zone.name)}</strong>
-      <small>${escapeHtml(zone.cover)} cover</small>
+      <small>${escapeHtml(zone.cover)} cover · Cap ${escapeHtml(zone.capacity)}</small>
       <div class="map-zone-tokens">
         ${zone.ownActorIds.map((id) => compactToken(id, "rescue")).join("")}
         ${zone.contactActorIds.map((id) => compactToken(id, "contact")).join("")}
@@ -405,7 +411,7 @@ function renderBusyState(busy, view) {
 function renderMission(view, catalog, expressionTurnSequence = null, audioMuted = false, busy = null) {
   const busyAttrs = busy ? ' inert aria-busy="true"' : "";
   return `<main class="mission"${busyAttrs}>
-    <header class="topbar"><div><p class="eyebrow">Station Zero v3 · Contested Signal</p><h1>Mission Control</h1></div><div class="topbar-controls"><button type="button" class="audio-toggle" data-action="toggle-audio" data-testid="audio-toggle" aria-pressed="${audioMuted ? "true" : "false"}" title="Presentation audio does not affect Game state">${audioMuted ? "Audio off" : "Audio on"}</button><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></div></header>
+    <header class="topbar"><div><p class="eyebrow">Station Zero v3 · ${escapeHtml(caseLabel(catalog, view.run.scenarioCaseId))}</p><h1>Mission Control</h1></div><div class="topbar-controls"><button type="button" class="audio-toggle" data-action="toggle-audio" data-testid="audio-toggle" aria-pressed="${audioMuted ? "true" : "false"}" title="Presentation audio does not affect Game state">${audioMuted ? "Audio off" : "Audio on"}</button><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></div></header>
     <section class="resource-grid">
       ${metric("Battery", view.resources.batteryCharge, view.resources.batteryInitial)}
       ${metric("Oxygen", view.resources.oxygen, 100)}

@@ -23,9 +23,9 @@ function runPath(path, runId) {
 export const stationZeroV3Api = {
   catalog: () => request("/api/station-zero-v3/catalog"),
   runs: () => request("/api/station-zero-v3/runs"),
-  createRun: (runId) => request("/api/station-zero-v3/runs", {
+  createRun: (runId, scenarioCaseId) => request("/api/station-zero-v3/runs", {
     method: "POST",
-    body: JSON.stringify({ runId }),
+    body: JSON.stringify({ runId, scenarioCaseId }),
   }),
   resume: (runId) => request(runPath("/api/station-zero-v3/resume", runId), {
     method: "POST",

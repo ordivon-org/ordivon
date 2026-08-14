@@ -247,9 +247,10 @@ function bind() {
   document.querySelector("#new-run-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const runId = document.querySelector("#new-run-id").value.trim();
+    const scenarioCaseId = document.querySelector("#new-run-case")?.value || model.catalog?.defaultScenarioCaseId || "fixed-genesis";
     if (!runId) return;
     perform("Opening Station Zero…", async () => {
-      model.view = await stationZeroV3Api.createRun(runId);
+      model.view = await stationZeroV3Api.createRun(runId, scenarioCaseId);
       model.runId = runId;
       updateUrl(runId);
       model.runs = (await stationZeroV3Api.runs()).runs;

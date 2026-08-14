@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { CURRENT_BUILD } from "../build.ts";
 import { canonicalJson, sha256 } from "../digest.ts";
 import { assertStationZeroTurnBatch, assertStationZeroFactionTurnPlan } from "./contracts.ts";
+import { STATION_ZERO_V3_SCENARIO_CASES } from "./content.ts";
 import { createStationZeroV3Genesis, assertStationZeroV3World } from "./genesis.ts";
 import type {
   StationZeroFactionId,
@@ -68,6 +69,7 @@ interface RunRow {
   run_id: string;
   scenario_id: string;
   scenario_version: number;
+  scenario_case_id: string;
   ruleset_id: string;
   ruleset_version: number;
   state_schema_version: number;
@@ -234,6 +236,9 @@ function metadataFromRow(row: RunRow): StationZeroV3RunMetadata {
   ) {
     throw new StationZeroV3StorageError("station_zero_v3_corrupt", `Run is not a Station Zero v3 Run: ${row.run_id}`);
   }
+  if (!STATION_ZERO_V3_SCENARIO_CASES.some((entry) => entry.caseId === row.scenario_case_id)) {
+    throw new StationZeroV3StorageError("station_zero_v3_corrupt", `Station Zero v3 Scenario Case is invalid: ${row.scenario_case_id}`);
+  }
   if (row.status !== "running" && row.status !== "terminal") {
     throw new StationZeroV3StorageError("station_zero_v3_corrupt", `Station Zero v3 Run status is invalid: ${row.run_id}`);
   }
@@ -241,6 +246,7 @@ function metadataFromRow(row: RunRow): StationZeroV3RunMetadata {
     runId: row.run_id,
     scenarioId: "station-zero",
     scenarioVersion: 3,
+    scenarioCaseId: row.scenario_case_id,
     rulesetId: "station-zero-core",
     rulesetVersion: 4,
     stateSchemaVersion: 3,
@@ -446,13 +452,16 @@ export class StationZeroV3Store {
     }
   }
 
-  createRun(input: { runId: string; seed?: string; createdWithBuild?: string }): StationZeroV3RunMetadata {
+  createRun(input: { runId: string; seed?: string; scenarioCaseId?: string; createdWithBuild?: string }): StationZeroV3RunMetadata {
     if (!input.runId || input.runId !== input.runId.trim()) throw new TypeError("Station Zero v3 runId is required and must be trimmed");
     try {
       const existing = this.db.prepare("SELECT * FROM runs WHERE run_id = ?").get(input.runId) as RunRow | undefined;
       if (existing) {
         const metadata = metadataFromRow(existing);
-        const expectedGenesis = createStationZeroV3Genesis(input.seed ?? metadata.seed);
+        if (input.scenarioCaseId !== undefined && input.scenarioCaseId !== metadata.scenarioCaseId) {
+          throw new StationZeroV3StorageError("station_zero_v3_constraint", "Station Zero v3 Run identity is bound to another Scenario Case");
+        }
+        const expectedGenesis = createStationZeroV3Genesis(input.seed ?? metadata.seed, metadata.scenarioCaseId);
         if (metadata.genesisDigest !== sha256(expectedGenesis)) {
           throw new StationZeroV3StorageError("station_zero_v3_constraint", "Station Zero v3 Run identity is bound to another Genesis");
         }
@@ -460,7 +469,8 @@ export class StationZeroV3Store {
         return metadata;
       }
 
-      const genesis = createStationZeroV3Genesis(input.seed);
+      const scenarioCaseId = input.scenarioCaseId ?? "fixed-genesis";
+      const genesis = createStationZeroV3Genesis(input.seed, scenarioCaseId);
       assertStationZeroV3World(genesis);
       const genesisDigest = sha256(genesis);
       const createdAt = new Date().toISOString();
@@ -470,13 +480,14 @@ export class StationZeroV3Store {
         scenarioVersion: 3,
         rulesetVersion: 4,
         worldSchemaVersion: 3,
+        scenarioCaseId,
       });
       this.transaction(() => {
         this.db.prepare(`INSERT INTO runs
           (run_id, scenario_id, scenario_version, scenario_case_id, ruleset_id, ruleset_version,
            state_schema_version, seed, genesis_digest, evaluated_inputs_digest, status, created_at, created_with_build)
-          VALUES (?, 'station-zero', 3, 'fixed-genesis', 'station-zero-core', 4, 3, ?, ?, ?, 'running', ?, ?)`)
-          .run(input.runId, genesis.seed, genesisDigest, evaluatedInputsDigest, createdAt, createdWithBuild);
+          VALUES (?, 'station-zero', 3, ?, 'station-zero-core', 4, 3, ?, ?, ?, 'running', ?, ?)`)
+          .run(input.runId, scenarioCaseId, genesis.seed, genesisDigest, evaluatedInputsDigest, createdAt, createdWithBuild);
         this.db.prepare(`INSERT INTO station_zero_v3_genesis
           (run_id, state_json, state_digest, created_at) VALUES (?, ?, ?, ?)`)
           .run(input.runId, canonicalJson(genesis), genesisDigest, createdAt);

@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
   - producer
-updated: 2026-08-14
+updated: 2026-08-15
 summary: Stable human-facing product definition for the unregistered Station Zero v3 target: a delegated single-player asymmetric tactical command game that completed G3/G4 validation and is admitted to bounded G5 Production.
 evidence_status: verified
 readiness: READY
@@ -255,6 +255,15 @@ The current representative encounter contains:
 20 committed Turns maximum
 ```
 
+The current bounded v3 product now exposes two exact **Scenario Cases** over the same ruleset and World schema:
+
+| Case | Product role | Exact current distinction |
+| --- | --- | --- |
+| `fixed-genesis` / **Contested Signal** | canonical baseline slice | original Junction capacity |
+| `junction-bottleneck` / **Junction Bottleneck** | G5 bounded second slice | `junction-cover` capacity `2 → 1` |
+
+`scenario_case_id` is retained with the Run and Genesis digest. A Case is content identity, not a new Ruleset, World schema, or generic mutation language. The player can select the Case before an operation and sees known Zone capacity on the tactical map.
+
 The content grammar combines:
 
 - named persistent Actors;
@@ -266,7 +275,7 @@ The content grammar combines:
 - local movement, combat, repair, stabilization, rescue, capture, devour, hack, pickup, extraction and reaction;
 - deterministic Turn resolution after commitment.
 
-A second encounter, campaign, route map, meta progression, settlement, relationship simulation, or large Agent population is deliberately outside the current production commitment.
+Broad encounter generation, a campaign, route map, meta progression, settlement, relationship simulation, or a large Agent population remain outside the current production commitment. G5 admits one bounded second **Case** only; it does not authorize a mission factory or generic Scenario framework.
 
 ---
 

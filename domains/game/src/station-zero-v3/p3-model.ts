@@ -415,6 +415,7 @@ export interface StationZeroV3PlayView extends StationZeroV3MissionControlView {
       roomName: string;
       name: string;
       cover: "none" | "half" | "full" | "unknown";
+      capacity: number;
       geometry: { x: number; y: number; width: number; height: number };
       ownActorIds: string[];
       contactActorIds: string[];
@@ -448,6 +449,8 @@ export interface StationZeroV3PlayCatalog {
   schemaVersion: 1;
   kind: "ordivon.game.station-zero-v3-play-catalog";
   turnLimit: number;
+  defaultScenarioCaseId: string;
+  cases: Array<{ caseId: string; label: string; description: string }>;
   objectives: Array<{ objectiveId: StationZeroV3CommanderOrder["primaryObjectiveId"]; label: string; description: string }>;
   postures: Array<{ posture: StationZeroV3CommandPosture; label: string; description: string }>;
   formations: Array<{ formation: StationZeroV3Formation; label: string; description: string }>;
@@ -457,6 +460,7 @@ export interface StationZeroV3PlayCatalog {
 
 export interface StationZeroV3PlayRunSummary {
   runId: string;
+  scenarioCaseId: string;
   status: "running" | "terminal";
   turn: number;
   turnLimit: number;

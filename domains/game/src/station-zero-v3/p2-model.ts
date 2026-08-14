@@ -14,6 +14,7 @@ export interface StationZeroV3RunMetadata {
   runId: string;
   scenarioId: "station-zero";
   scenarioVersion: 3;
+  scenarioCaseId: string;
   rulesetId: "station-zero-core";
   rulesetVersion: 4;
   stateSchemaVersion: 3;
@@ -169,6 +170,7 @@ export interface StationZeroV3MissionControlView {
   };
   run: {
     runId: string;
+    scenarioCaseId: string;
     turn: number;
     turnLimit: number;
     status: StationZeroV3WorldState["encounter"]["status"];

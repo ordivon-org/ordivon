@@ -63,6 +63,7 @@ export class StationZeroV3PlayService {
       const state = this.store.loadState(run.runId);
       return {
         runId: run.runId,
+        scenarioCaseId: run.scenarioCaseId,
         status: run.status,
         turn: state.encounter.turn,
         turnLimit: state.encounter.turnLimit,
@@ -72,7 +73,7 @@ export class StationZeroV3PlayService {
     }).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
 
-  initialize(input: { runId: string; seed?: string }): StationZeroV3PlayView {
+  initialize(input: { runId: string; seed?: string; scenarioCaseId?: string }): StationZeroV3PlayView {
     this.store.createRun(input);
     this.resume(input.runId);
     return this.state(input.runId);

@@ -5,6 +5,7 @@ import {
   STATION_ZERO_V3_TURN_LIMIT,
   STATION_ZERO_V3_ITEMS,
   STATION_ZERO_V3_OBJECTIVES,
+  resolveStationZeroV3ScenarioCase,
 } from "./content.ts";
 import type {
   StationZeroActorState,
@@ -204,7 +205,10 @@ function knowledge(
   };
 }
 
-export function createStationZeroV3Genesis(seed = "station-zero-v3-fixed-encounter"): StationZeroV3WorldState {
+export function createStationZeroV3Genesis(
+  seed = "station-zero-v3-fixed-encounter",
+  scenarioCaseId = "fixed-genesis",
+): StationZeroV3WorldState {
   const rooms = Object.fromEntries([
     room("command-center", "Command Center", ["command-deck", "rescue-airlock"], ["rescue-entry"]),
     room("power-junction", "Power Junction", ["junction-console", "junction-cover"], ["power"]),
@@ -544,6 +548,13 @@ export function createStationZeroV3Genesis(seed = "station-zero-v3-fixed-encount
       activePlanRevision: 0,
     },
   };
+  const scenarioCase = resolveStationZeroV3ScenarioCase(scenarioCaseId);
+  for (const [zoneId, capacity] of Object.entries(scenarioCase.zoneCapacityOverrides)) {
+    const zoneState = state.zones[zoneId];
+    if (!zoneState) throw new TypeError(`Scenario Case ${scenarioCase.caseId} references unknown Zone ${zoneId}`);
+    zoneState.capacity = capacity;
+  }
+
   for (const factionId of STATION_ZERO_FACTION_IDS) {
     const knowledgeState = state.factionKnowledge[factionId];
     for (const systemId of knowledgeState.knownSystemIds) {
@@ -694,6 +705,6 @@ export function assertStationZeroV3World(state: StationZeroV3WorldState): void {
   if (!Number.isSafeInteger(state.environment.alertLevel) || state.environment.alertLevel < 0 || state.environment.alertLevel > 5) throw new TypeError("Alert Level is invalid");
 }
 
-export function stationZeroV3GenesisDigest(seed?: string): string {
-  return sha256(createStationZeroV3Genesis(seed));
+export function stationZeroV3GenesisDigest(seed?: string, scenarioCaseId?: string): string {
+  return sha256(createStationZeroV3Genesis(seed, scenarioCaseId));
 }

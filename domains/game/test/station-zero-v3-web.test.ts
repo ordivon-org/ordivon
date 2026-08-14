@@ -11,6 +11,10 @@ test("v3 landing uses player-facing operation language while retaining Game-owne
   const html = renderStationZeroV3App({ view: null, catalog: play.catalog(), runs: [], busy: null, error: null });
   assert.match(html, /Ordivon Game · Mission Control/);
   assert.match(html, /Operation call sign/);
+  assert.match(html, /Encounter profile/);
+  assert.match(html, /Contested Signal/);
+  assert.match(html, /Junction Bottleneck/);
+  assert.match(html, /not a cosmetic seed label/);
   assert.match(html, /simultaneous resolution/);
   assert.match(html, />20<\/b><span>turn limit<\/span>/);
   assert.match(html, /Bounded specialist cognition · deterministic World consequence · enemy plans remain sealed until resolution/);

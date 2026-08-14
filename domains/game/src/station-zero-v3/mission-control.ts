@@ -28,6 +28,7 @@ export function createStationZeroV3MissionControlView(
   store: StationZeroV3Store,
   runId: string,
 ): StationZeroV3MissionControlView {
+  const metadata = store.getRun(runId);
   const head = store.loadWorldHead(runId);
   const state = head.state;
   const playerFactionId = state.encounter.playerFactionId;
@@ -83,6 +84,7 @@ export function createStationZeroV3MissionControlView(
     },
     run: {
       runId,
+      scenarioCaseId: metadata.scenarioCaseId,
       turn: state.encounter.turn,
       turnLimit: state.encounter.turnLimit,
       status: state.encounter.status,

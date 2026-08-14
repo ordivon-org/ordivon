@@ -193,6 +193,7 @@ function buildMap(state: StationZeroV3WorldState) {
       roomName: state.rooms[zoneState.roomId]?.name ?? zoneState.roomId,
       name: zoneState.name,
       cover: zoneState.cover,
+      capacity: zoneState.capacity,
       geometry: { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height },
       ownActorIds: [...(ownByZone.get(zoneId) ?? [])].sort(),
       contactActorIds: [...(contactByZone.get(zoneId) ?? [])].sort(),

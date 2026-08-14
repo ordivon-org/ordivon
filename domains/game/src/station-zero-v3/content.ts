@@ -7,6 +7,37 @@ import type {
 } from "./model.ts";
 export const STATION_ZERO_V3_TURN_LIMIT = 20 as const;
 
+export const STATION_ZERO_V3_SCENARIO_CASE_IDS = ["fixed-genesis", "junction-bottleneck"] as const;
+export type StationZeroV3ScenarioCaseId = (typeof STATION_ZERO_V3_SCENARIO_CASE_IDS)[number];
+
+export interface StationZeroV3ScenarioCaseDefinition {
+  caseId: StationZeroV3ScenarioCaseId;
+  label: string;
+  description: string;
+  zoneCapacityOverrides: Record<string, number>;
+}
+
+export const STATION_ZERO_V3_SCENARIO_CASES: StationZeroV3ScenarioCaseDefinition[] = [
+  {
+    caseId: "fixed-genesis",
+    label: "Contested Signal",
+    description: "Canonical Station Zero encounter with the original Power Junction capacity.",
+    zoneCapacityOverrides: {},
+  },
+  {
+    caseId: "junction-bottleneck",
+    label: "Junction Bottleneck",
+    description: "Junction Machinery admits one active body, turning the central support route into a contested choke without changing World rules.",
+    zoneCapacityOverrides: { "junction-cover": 1 },
+  },
+];
+
+export function resolveStationZeroV3ScenarioCase(caseId = "fixed-genesis"): StationZeroV3ScenarioCaseDefinition {
+  const found = STATION_ZERO_V3_SCENARIO_CASES.find((entry) => entry.caseId === caseId);
+  if (!found) throw new TypeError(`unsupported Station Zero v3 Scenario Case: ${caseId}`);
+  return { ...found, zoneCapacityOverrides: { ...found.zoneCapacityOverrides } };
+}
+
 export const STATION_ZERO_V3_ABILITIES: StationZeroAbilityDefinition[] = [
   {
     abilityId: "pulse-shot",

@@ -287,9 +287,11 @@ The regression test protects only silent resurrection. A deliberate future reope
 
 ## Outer potential remains intentionally broad
 
+G5-P2 has promoted one exact topology treatment, `junction-bottleneck`, into a durable Scenario Case without changing the hard core. That admission does **not** promote topology mutation machinery: the exact Case is content; the wider topology search space remains outer.
+
 None of the contractions prohibit future exploration of:
 
-- new topology/choke geometry;
+- additional topology/choke geometry;
 - enemy doctrine/objective packages;
 - alternate systemic pressure profiles;
 - new specialist loadouts;

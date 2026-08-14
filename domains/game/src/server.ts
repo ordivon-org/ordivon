@@ -296,6 +296,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, 201, v3Play.initialize({
           runId: v3RunId,
           ...(typeof body.seed === "string" && body.seed.trim() ? { seed: body.seed } : {}),
+          ...(typeof body.scenarioCaseId === "string" && body.scenarioCaseId.trim() ? { scenarioCaseId: body.scenarioCaseId } : {}),
         }));
         return;
       }

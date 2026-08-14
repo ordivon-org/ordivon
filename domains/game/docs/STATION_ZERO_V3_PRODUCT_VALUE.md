@@ -777,7 +777,48 @@ capacity=1 or capacity=4
 != Game core law
 ```
 
-`cover-choke` is the current first candidate because it materially reshapes Candidate/action/outcome space while preserving the baseline Rescue viability basin. Human play and later production evidence may still reject the concrete treatment.
+`cover-choke` was selected as the first production candidate because it materially reshapes Candidate/action/outcome space while preserving the baseline Rescue viability basin. Human play and later production evidence may still reject the concrete treatment.
+
+## G5-P2 — one bounded second slice
+
+G5-P2 promotes only that proven treatment into the exact product Case `junction-bottleneck` / **Junction Bottleneck**. The production binding is deliberately smaller than the research evaluator:
+
+```text
+existing runs.scenario_case_id
+→ exact two-case content catalog
+→ case-bound Genesis
+→ existing Genesis digest / persistence / replay / recovery
+```
+
+No database table, migration framework, Variant Engine, mutation DSL, Ruleset version, or World schema was added. The new Case changes exactly one current content fact relative to the same-seed baseline:
+
+```text
+junction-cover capacity: 2 → 1
+```
+
+The difference is player-legible rather than a hidden rule: known Zone cards now expose static capacity (`Cap N`), and the landing surface makes the retained Encounter profile selectable. Reopening the same `runId` under a different Case fails closed.
+
+Production acceptance:
+
+```text
+repository suite:               300 / 300 PASS
+registered v2 browser E2E:     PASS
+canonical v3 baseline E2E:     PASS; 20 Turns; worldRevision 20; browserErrors []
+Junction Bottleneck browser:    PASS; 20 Turns; worldRevision 20; browserErrors []
+second-slice default outcome:   Rescue partial / Pirate failure / Swarm partial
+retained case after recovery:   junction-bottleneck
+retained junction capacity:     1
+G4 calibration:                 25 / 25 PASS; 0 critical/major failures
+Product Value regression:       PASS; prior control/information/pressure/identity findings retained
+```
+
+The admitted statement remains narrow:
+
+```text
+topology/choke = proven outer Content Grammar axis
+junction-bottleneck = one playable bounded Case
+capacity=1 = current Case content, not a Game core law
+```
 
 This evaluator is an **outer production instrument**, not a new permanent product authority. Retain it while G5 topology production remains decision-relevant; archive/localize it after the production grammar stabilizes.
 
