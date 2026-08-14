@@ -61,3 +61,43 @@ test("v3 browser renderer shows bounded aftermath and asymmetric terminal outcom
     store.close();
   }
 });
+
+
+test("v3 browser renderer keeps temporal recap persistent but map playback one-shot", async () => {
+  const store = new StationZeroV3Store(":memory:");
+  try {
+    const play = new StationZeroV3PlayService(store);
+    const runId = "run:station-zero-v3:web-temporal";
+    play.initialize({ runId });
+    const generated = await play.generatePreview(runId);
+    const view = (await play.commitPreview(runId, generated.preview.previewId)).view;
+    assert.ok(view.aftermath?.expressions.length);
+
+    const staticHtml = renderStationZeroV3App({
+      view,
+      catalog: play.catalog(),
+      runs: play.listRuns(),
+      busy: null,
+      error: null,
+    });
+    assert.match(staticHtml, /data-testid="temporal-expression-strip"/);
+    assert.equal((staticHtml.match(/data-testid="temporal-expression"/g) ?? []).length, view.aftermath.expressions.length);
+    assert.doesNotMatch(staticHtml, /class="temporal-map-event/);
+    assert.match(staticHtml, /<details><summary>Visible World facts/);
+    assert.doesNotMatch(staticHtml, /<details open><summary>Visible World facts/);
+
+    const liveHtml = renderStationZeroV3App({
+      view,
+      catalog: play.catalog(),
+      runs: play.listRuns(),
+      busy: null,
+      error: null,
+      expressionTurnSequence: view.aftermath.turnSequence,
+    });
+    assert.match(liveHtml, /expression-strip is-live/);
+    assert.match(liveHtml, /class="temporal-map-event/);
+    assert.match(liveHtml, /\/v3\/assets\/rescue-expression\.png/);
+  } finally {
+    store.close();
+  }
+});

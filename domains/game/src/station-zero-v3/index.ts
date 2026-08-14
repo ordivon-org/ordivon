@@ -20,4 +20,6 @@ export * from "./message-issuance.ts";
 export * from "./entity-departure.ts";
 export * from "./topology.ts";
 export * from "./spatial-layout.ts";
+export * from "./expression-assets.ts";
+export * from "./temporal-expression.ts";
 export * from "./turn-service.ts";

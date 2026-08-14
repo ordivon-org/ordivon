@@ -34,6 +34,24 @@ test("v3 preview API is isolated from the current executable and supports one ex
     assert.match(currentHtml, /ORDIVON GAME/);
     const rawSpatialLayout = await fetch(`${base}/assets/station-zero-v3/station-zero-layout.tmj`);
     assert.equal(rawSpatialLayout.status, 404, "full authored topology must never be served to the player browser");
+    for (const sourceAsset of [
+      "/assets/station-zero-v3/rescue-expression.aseprite",
+      "/assets/station-zero-v3/rescue-expression.json",
+      "/assets/station-zero-v3/expression-signals.svg",
+      "/v3/assets/rescue-expression.aseprite",
+      "/v3/assets/rescue-expression.json",
+      "/v3/assets/expression-signals.svg",
+    ]) {
+      assert.equal((await fetch(`${base}${sourceAsset}`)).status, 404, `authoring source ${sourceAsset} must stay server-private`);
+    }
+    const sprite = await fetch(`${base}/v3/assets/rescue-expression.png`);
+    assert.equal(sprite.status, 200);
+    assert.equal(sprite.headers.get("content-type"), "image/png");
+    for (const vectorAsset of ["system-signal.svg", "hazard-signal.svg"]) {
+      const response = await fetch(`${base}/v3/assets/${vectorAsset}`);
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("content-type") ?? "", /^image\/svg\+xml/);
+    }
 
     const catalog = await json(await fetch(`${base}/api/station-zero-v3/catalog`));
     assert.equal(catalog.kind, "ordivon.game.station-zero-v3-play-catalog");

@@ -269,9 +269,42 @@ export interface StationZeroV3PlayerPlanView {
   warnings: string[];
 }
 
+export type StationZeroV3TemporalExpressionTone = "neutral" | "positive" | "warning" | "danger";
+
+export interface StationZeroV3TemporalExpressionSprite {
+  kind: "sprite";
+  src: string;
+  sheetWidth: number;
+  sheetHeight: number;
+  frame: { x: number; y: number; width: number; height: number; durationMs: number };
+}
+
+export interface StationZeroV3TemporalExpressionIcon {
+  kind: "icon";
+  src: string;
+}
+
+export interface StationZeroV3TemporalExpression {
+  expressionId: string;
+  factId: string;
+  sequence: number;
+  kind: "move" | "impact" | "health" | "passage" | "system" | "hazard" | "objective";
+  tone: StationZeroV3TemporalExpressionTone;
+  label: string;
+  detail: string;
+  map: {
+    from: { x: number; y: number } | null;
+    to: { x: number; y: number } | null;
+    point: { x: number; y: number } | null;
+    points: Array<{ x: number; y: number }>;
+  } | null;
+  visual: StationZeroV3TemporalExpressionSprite | StationZeroV3TemporalExpressionIcon | null;
+}
+
 export interface StationZeroV3AftermathView {
   turnSequence: number;
   turnBatchId: string;
+  expressions: StationZeroV3TemporalExpression[];
   visibleFacts: Array<{
     factId: string;
     kind: string;

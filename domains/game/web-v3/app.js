@@ -9,11 +9,17 @@ const model = {
   runId: new URL(location.href).searchParams.get("runId"),
   busy: null,
   error: null,
+  expressionTurnSequence: null,
 };
 
 function render() {
+  const expressionTurnSequence = model.expressionTurnSequence;
   root.innerHTML = renderStationZeroV3App(model);
   bind();
+  if (expressionTurnSequence !== null) {
+    model.expressionTurnSequence = null;
+    document.querySelector('[data-testid="aftermath"]')?.scrollIntoView({ behavior: "auto", block: "start" });
+  }
 }
 
 async function perform(label, operation) {
@@ -90,11 +96,13 @@ function bind() {
   document.querySelector('[data-action="commit-turn"]')?.addEventListener("click", (event) => perform("Resolving all factions…", async () => {
     const committed = await stationZeroV3Api.commit(model.runId, event.currentTarget.dataset.previewId);
     model.view = committed.view;
+    model.expressionTurnSequence = committed.view.aftermath?.turnSequence ?? null;
     model.runs = (await stationZeroV3Api.runs()).runs;
   }));
   document.querySelector('[data-action="new-operation"]')?.addEventListener("click", () => {
     model.view = null;
     model.runId = null;
+    model.expressionTurnSequence = null;
     updateUrl(null);
     render();
   });

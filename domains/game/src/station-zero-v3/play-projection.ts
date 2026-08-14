@@ -1,7 +1,7 @@
 import { sha256 } from "../digest.ts";
 import { STATION_ZERO_V3_COMMANDER_ABILITIES } from "./content.ts";
 import { createStationZeroV3MissionControlView } from "./mission-control.ts";
-import type { StationZeroFact, StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
+import type { StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";
 import {
   assertStationZeroV3SpatialLayout,
   stationZeroV3PassageVisibleToRescueTopology,
@@ -16,6 +16,7 @@ import type {
 } from "./p3-model.ts";
 import type { StationZeroV3PlanningStore } from "./planning-store.ts";
 import type { StationZeroV3Store } from "./persistence.ts";
+import { createStationZeroV3TemporalExpressions, stationZeroV3BoundedFactSummary } from "./temporal-expression.ts";
 import type { StationZeroV3TurnService } from "./turn-service.ts";
 
 function targetLabel(state: StationZeroV3WorldState, preview: StationZeroV3PlanPreview): string {
@@ -66,43 +67,25 @@ function playerPreview(state: StationZeroV3WorldState, preview: StationZeroV3Pla
   };
 }
 
-function factSummary(state: StationZeroV3WorldState, fact: StationZeroFact): string {
-  const actor = (actorId: string) => state.actors[actorId]?.name ?? actorId;
-  const zone = (zoneId: string) => state.zones[zoneId]?.name ?? zoneId;
-  const system = (systemId: string) => state.systems[systemId]?.name ?? systemId;
-  switch (fact.kind) {
-    case "commander_ability_used": return `${state.factions[fact.factionId].name} used ${fact.commanderAbilityId}.`;
-    case "actor_moved": return `${actor(fact.actorId)} moved from ${zone(fact.fromZoneId)} to ${zone(fact.toZoneId)}.`;
-    case "actor_attacked": return `${actor(fact.actorId)} attacked ${actor(fact.targetActorId)} with ${fact.abilityId}.`;
-    case "damage_dealt": return `${actor(fact.targetActorId)} took ${fact.amount} damage from ${actor(fact.sourceActorId)}.`;
-    case "actor_health_changed": return `${actor(fact.actorId)} health changed from ${fact.before} to ${fact.after}.`;
-    case "actor_life_state_changed": return `${actor(fact.actorId)} became ${fact.after}.`;
-    case "actor_status_changed": return `${actor(fact.actorId)} ${fact.active ? "gained" : "lost"} ${fact.statusId}.`;
-    case "ground_item_dropped": return `${actor(fact.actorId)} dropped an item in ${zone(fact.zoneId)}.`;
-    case "ground_item_picked_up": return `${actor(fact.actorId)} picked up ${fact.quantity} item.`;
-    case "item_consumed": return `${actor(fact.actorId)} consumed ${fact.quantity} ${fact.itemId} for ${fact.purpose}.`;
-    case "item_extracted": return `${actor(fact.actorId)} extracted ${fact.itemId}.`;
-    case "passage_changed": return `${fact.passageId} changed from ${fact.before} to ${fact.after}.`;
-    case "system_changed": return `${system(fact.systemId)} changed integrity ${fact.integrityBefore} → ${fact.integrityAfter} and power ${fact.poweredBefore ? "on" : "off"} → ${fact.poweredAfter ? "on" : "off"}.`;
-    case "hazard_changed": return `${fact.hazardId} severity changed ${fact.severityBefore} → ${fact.severityAfter}.`;
-    case "knowledge_revealed": return `Mission Control confirmed ${fact.subjectKind} ${fact.subjectId}.`;
-    case "objective_changed": return `${fact.objectiveId} became ${fact.after}.`;
-    case "faction_outcome_changed": return `${state.factions[fact.factionId].name} outcome became ${fact.after}.`;
-    case "environment_changed": return `${fact.resourceId} changed ${fact.before} → ${fact.after}.`;
-  }
-}
-
-function buildAftermath(store: StationZeroV3Store, runId: string, state: StationZeroV3WorldState): StationZeroV3AftermathView | null {
+function buildAftermath(
+  store: StationZeroV3Store,
+  runId: string,
+  state: StationZeroV3WorldState,
+  map: StationZeroV3PlayView["map"],
+): StationZeroV3AftermathView | null {
   const latest = store.latestTurnReceipt(runId);
   if (!latest) return null;
   const visible = new Set(latest.record.resolution.observations.rescue.visibleFactIds);
-  const visibleFacts = latest.record.resolution.facts
-    .filter((fact) => visible.has(fact.factId))
-    .map((fact) => ({ factId: fact.factId, kind: fact.kind, summary: factSummary(state, fact) }));
+  const retainedFacts = latest.record.resolution.facts.filter((fact) => visible.has(fact.factId));
   return {
     turnSequence: latest.turnSequence,
     turnBatchId: latest.turnBatchId,
-    visibleFacts,
+    expressions: createStationZeroV3TemporalExpressions(state, retainedFacts, map),
+    visibleFacts: retainedFacts.map((fact) => ({
+      factId: fact.factId,
+      kind: fact.kind,
+      summary: stationZeroV3BoundedFactSummary(state, fact, map),
+    })),
     ownIntentResults: latest.record.resolution.intentResolutions
       .filter((entry) => entry.factionId === "rescue")
       .map((entry) => ({
@@ -269,6 +252,7 @@ export function createStationZeroV3PlayView(
     head.previewDigest === preview.previewDigest &&
     submittedPlansMatchPreview
   );
+  const map = buildMap(state);
   return {
     ...base,
     experience: {
@@ -280,8 +264,8 @@ export function createStationZeroV3PlayView(
       canGeneratePreview: canEdit,
       canCommitPreview: canCommit,
     },
-    map: buildMap(state),
-    aftermath: buildAftermath(store, runId, state),
+    map,
+    aftermath: buildAftermath(store, runId, state, map),
     outcomes: {
       rescue: state.factions.rescue.outcome,
       pirate: state.factions.pirate.outcome,

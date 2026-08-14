@@ -166,7 +166,63 @@ function compactToken(id, kind) {
   return `<span class="map-token ${kind}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${escapeHtml(glyph)}</span>`;
 }
 
-function renderMap(view) {
+function expressionDelay(expression) {
+  return Math.min(Number(expression.sequence) || 0, 12) * 0.12;
+}
+
+function renderExpressionVisual(expression) {
+  const visual = expression.visual;
+  if (visual?.kind === "sprite") {
+    const frame = visual.frame;
+    return `<span class="expression-sprite" aria-hidden="true" style="width:${Number(frame.width)}px;height:${Number(frame.height)}px;background-image:url('${escapeHtml(visual.src)}');background-size:${Number(visual.sheetWidth)}px ${Number(visual.sheetHeight)}px;background-position:-${Number(frame.x)}px -${Number(frame.y)}px"></span>`;
+  }
+  if (visual?.kind === "icon") {
+    return `<img class="expression-icon" src="${escapeHtml(visual.src)}" alt="" aria-hidden="true">`;
+  }
+  const glyph = expression.kind === "move" ? "→" : expression.kind === "impact" || expression.kind === "health" ? "✦" : expression.kind === "objective" ? "◆" : "·";
+  return `<span class="expression-glyph" aria-hidden="true">${escapeHtml(glyph)}</span>`;
+}
+
+function renderTemporalStrip(view, live) {
+  if (!view.aftermath?.expressions.length) return "";
+  return `<div class="expression-strip${live ? " is-live" : ""}" data-testid="temporal-expression-strip" aria-label="Visible Turn events">
+    ${view.aftermath.expressions.map((expression) => `<article class="expression-card ${escapeHtml(expression.kind)} ${escapeHtml(expression.tone)}" data-testid="temporal-expression" data-expression-kind="${escapeHtml(expression.kind)}" data-fact-id="${escapeHtml(expression.factId)}" style="--event-delay:${expressionDelay(expression)}s">
+      ${renderExpressionVisual(expression)}
+      <div><span>${escapeHtml(expression.kind)}</span><strong>${escapeHtml(expression.label)}</strong><small>${escapeHtml(expression.detail)}</small></div>
+    </article>`).join("")}
+  </div>`;
+}
+
+function renderTemporalMapOverlay(view, live) {
+  if (!live || !view.aftermath?.expressions.length) return "";
+  return view.aftermath.expressions.map((expression) => {
+    if (!expression.map) return "";
+    const delay = expressionDelay(expression);
+    if (expression.kind === "move" && expression.map.from && expression.map.to) {
+      const from = expression.map.from;
+      const to = expression.map.to;
+      return `<g class="temporal-map-event move" data-expression-id="${escapeHtml(expression.expressionId)}" style="--event-delay:${delay}s">
+        <line x1="${Number(from.x).toFixed(1)}" y1="${Number(from.y).toFixed(1)}" x2="${Number(to.x).toFixed(1)}" y2="${Number(to.y).toFixed(1)}"></line>
+        <circle class="moving-pip" cx="${Number(from.x).toFixed(1)}" cy="${Number(from.y).toFixed(1)}" r="8">
+          <animate attributeName="cx" from="${Number(from.x).toFixed(1)}" to="${Number(to.x).toFixed(1)}" begin="${delay.toFixed(2)}s" dur="0.7s" fill="freeze"></animate>
+          <animate attributeName="cy" from="${Number(from.y).toFixed(1)}" to="${Number(to.y).toFixed(1)}" begin="${delay.toFixed(2)}s" dur="0.7s" fill="freeze"></animate>
+        </circle>
+      </g>`;
+    }
+    if (expression.map.points?.length > 1) {
+      return `<polyline class="temporal-map-event passage" data-expression-id="${escapeHtml(expression.expressionId)}" points="${pointList(expression.map.points)}" style="--event-delay:${delay}s"></polyline>`;
+    }
+    const point = expression.map.point ?? expression.map.to ?? expression.map.from;
+    if (!point) return "";
+    if (expression.visual?.kind === "icon") {
+      return `<image class="temporal-map-event signal" data-expression-id="${escapeHtml(expression.expressionId)}" href="${escapeHtml(expression.visual.src)}" x="${(Number(point.x) - 18).toFixed(1)}" y="${(Number(point.y) - 18).toFixed(1)}" width="36" height="36" style="--event-delay:${delay}s"></image>`;
+    }
+    return `<circle class="temporal-map-event pulse ${escapeHtml(expression.tone)}" data-expression-id="${escapeHtml(expression.expressionId)}" cx="${Number(point.x).toFixed(1)}" cy="${Number(point.y).toFixed(1)}" r="10" style="--event-delay:${delay}s"></circle>`;
+  }).join("");
+}
+
+function renderMap(view, expressionTurnSequence = null) {
+  const live = Boolean(view.aftermath && expressionTurnSequence === view.aftermath.turnSequence);
   const passageLines = view.map.passages.map((passage) => `<polyline class="map-passage" points="${pointList(passage.points)}" data-passage-id="${escapeHtml(passage.passageId)}"></polyline>`).join("");
   const frontierLines = view.map.frontiers.map((frontier) => {
     const tip = frontier.points.at(-1);
@@ -192,6 +248,7 @@ function renderMap(view) {
         <g class="map-grid"><path d="M0 0H${Number(view.map.width).toFixed(1)}V${Number(view.map.height).toFixed(1)}H0Z"></path></g>
         <g class="map-passages">${passageLines}${frontierLines}</g>
         <g class="map-zones">${zones}</g>
+        <g class="temporal-map-layer">${renderTemporalMapOverlay(view, live)}</g>
       </svg>
     </div>
     <div class="map-legend"><span><i class="legend-token rescue">R</i> Rescue</span><span><i class="legend-token contact">?</i> Contact</span><span><i class="legend-token system">◆</i> System</span><span><i class="legend-token hazard">!</i> Hazard</span><span><i class="legend-frontier"></i> Uncharted access</span></div>
@@ -199,11 +256,13 @@ function renderMap(view) {
   </section>`;
 }
 
-function renderAftermath(view) {
+function renderAftermath(view, expressionTurnSequence = null) {
   if (!view.aftermath) return "";
-  return `<section class="panel aftermath" data-testid="aftermath"><div class="section-heading"><div><p class="eyebrow">Aftermath</p><h2>Turn ${view.aftermath.turnSequence + 1} evidence</h2></div></div>
+  const live = expressionTurnSequence === view.aftermath.turnSequence;
+  return `<section class="panel aftermath${live ? " is-live" : ""}" data-testid="aftermath"><div class="section-heading"><div><p class="eyebrow">Aftermath</p><h2>Turn ${view.aftermath.turnSequence + 1} evidence</h2></div><span>${view.aftermath.expressions.length} high-signal events</span></div>
+    ${renderTemporalStrip(view, live)}
     <div class="resolution-list">${view.aftermath.ownIntentResults.map((result) => `<article class="resolution ${escapeHtml(result.status)}"><strong>${escapeHtml(result.actorName)}</strong><span>${escapeHtml(result.status)}</span><small>${escapeHtml(result.reason)}</small></article>`).join("")}</div>
-    <details open><summary>Visible World facts (${view.aftermath.visibleFacts.length})</summary><ol>${view.aftermath.visibleFacts.map((fact) => `<li><span>${escapeHtml(fact.kind)}</span>${escapeHtml(fact.summary)}</li>`).join("")}</ol></details>
+    <details><summary>Visible World facts (${view.aftermath.visibleFacts.length})</summary><ol>${view.aftermath.visibleFacts.map((fact) => `<li><span>${escapeHtml(fact.kind)}</span>${escapeHtml(fact.summary)}</li>`).join("")}</ol></details>
   </section>`;
 }
 
@@ -216,7 +275,7 @@ function renderTerminal(view) {
   </section>`;
 }
 
-function renderMission(view, catalog) {
+function renderMission(view, catalog, expressionTurnSequence = null) {
   return `<main class="mission">
     <header class="topbar"><div><p class="eyebrow">Station Zero v3 · Contested Signal</p><h1>Mission Control</h1></div><div class="turn"><span>Turn</span><strong data-testid="turn-number">${view.run.turn}</strong><small>/ ${view.run.turnLimit}</small></div></header>
     <section class="resource-grid">
@@ -226,16 +285,16 @@ function renderMission(view, catalog) {
       ${metric("Alert", view.resources.alertLevel, 5, 4)}
     </section>
     ${renderTerminal(view)}
-    ${renderAftermath(view)}
+    ${renderAftermath(view, expressionTurnSequence)}
     <div class="situation-grid">
-      ${renderMap(view)}
+      ${renderMap(view, expressionTurnSequence)}
       <div class="situation-stack">${renderActors(view)}${renderObjectives(view)}</div>
     </div>
     <div class="planning-grid">${renderOrder(view, catalog)}${renderPreview(view)}</div>
   </main>`;
 }
 
-export function renderStationZeroV3App({ view, catalog, runs, busy, error }) {
-  const content = view ? renderMission(view, catalog) : renderLanding(runs);
+export function renderStationZeroV3App({ view, catalog, runs, busy, error, expressionTurnSequence = null }) {
+  const content = view ? renderMission(view, catalog, expressionTurnSequence) : renderLanding(runs);
   return `${content}${busy ? `<div class="busy" data-testid="busy"><div class="spinner"></div><strong>${escapeHtml(busy)}</strong></div>` : ""}${error ? `<div class="toast error" role="alert">${escapeHtml(error)}</div>` : ""}`;
 }

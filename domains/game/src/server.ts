@@ -59,6 +59,9 @@ const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
   "/v3/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
   "/v3/api.js": { file: "api.js", contentType: "text/javascript; charset=utf-8" },
   "/v3/render.js": { file: "render.js", contentType: "text/javascript; charset=utf-8" },
+  "/v3/assets/rescue-expression.png": { file: "assets/rescue-expression.png", contentType: "image/png" },
+  "/v3/assets/system-signal.svg": { file: "assets/system-signal.svg", contentType: "image/svg+xml; charset=utf-8" },
+  "/v3/assets/hazard-signal.svg": { file: "assets/hazard-signal.svg", contentType: "image/svg+xml; charset=utf-8" },
 };
 
 function sendJson(response: ServerResponse, statusCode: number, value: unknown): void {

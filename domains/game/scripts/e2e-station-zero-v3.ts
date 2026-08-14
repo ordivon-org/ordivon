@@ -72,11 +72,33 @@ try {
   await page.getByTestId("commit-turn").click();
   await page.waitForFunction(() => document.querySelector('[data-testid="turn-number"]')?.textContent === "1");
   await page.getByTestId("aftermath").waitFor();
+  await page.getByTestId("temporal-expression-strip").waitFor();
+  assert.ok(await page.getByTestId("temporal-expression").count() > 0);
+  assert.ok(await page.locator(".temporal-map-event").count() > 0, "freshly committed visible spatial Facts should play once on the tactical map");
+  assert.equal(await page.locator(".expression-strip.is-live").count(), 1);
+  assert.equal(await page.locator(".aftermath details").evaluate((details) => details.hasAttribute("open")), false);
+  const aftermathTop = await page.getByTestId("aftermath").evaluate((element) => element.getBoundingClientRect().top);
+  assert.ok(Math.abs(aftermathTop) < 2, `fresh Turn evidence should be brought into view, got top=${aftermathTop}`);
+  const turnOneBody = await page.locator("body").textContent() ?? "";
+  assert.equal(turnOneBody.includes("Storage Floor"), false);
+  assert.equal(turnOneBody.includes("Cargo Crates"), false);
+  assert.ok(turnOneBody.includes("an uncharted sector"), "hidden movement origins should remain anonymous in the player recap");
+  await page.waitForTimeout(2_000);
+  const retainedOverlayOpacities = await page.locator(".temporal-map-event").evaluateAll((elements) =>
+    elements.map((element) => Number(getComputedStyle(element).opacity)));
+  assert.ok(retainedOverlayOpacities.every((opacity) => opacity <= 0.01), `temporal map playback must leave no state-like residue: ${retainedOverlayOpacities.join(",")}`);
 
   await page.reload({ waitUntil: "networkidle" });
   await page.getByTestId("turn-number").waitFor();
   assert.equal(await page.getByTestId("turn-number").textContent(), "1");
   await page.getByTestId("aftermath").waitFor();
+  assert.equal(await page.getByTestId("temporal-expression-strip").count(), 1, "retained recap should survive reload");
+  assert.equal(await page.locator(".expression-strip.is-live").count(), 0, "retained recap must not replay itself");
+  assert.equal(await page.locator(".temporal-map-event").count(), 0, "map playback must be one-shot and absent on resume");
+  assert.equal(await page.locator(".aftermath details").evaluate((details) => details.hasAttribute("open")), false);
+  const resumedBody = await page.locator("body").textContent() ?? "";
+  assert.equal(resumedBody.includes("Storage Floor"), false);
+  assert.equal(resumedBody.includes("Cargo Crates"), false);
 
   let committedTurns = 1;
   while (await page.getByTestId("terminal-summary").count() === 0) {
