@@ -173,12 +173,14 @@ function renderPlanImpact(preview) {
 function renderPreview(view) {
   const preview = view.experience.preview;
   if (!preview) return `<section class="panel empty-preview"><p class="eyebrow">Deliberation</p><h2>No plan generated</h2><p>Adjust the Commander Order, then generate one simultaneous Turn plan. Review Plan impact and specialist actions before Commit.</p></section>`;
+  const objectiveId = view.experience.order?.primaryObjectiveId;
+  const objective = view.objectives.find((entry) => entry.objectiveId === objectiveId)?.name ?? tokenLabel(objectiveId);
+  const remoteAction = preview.commanderAction ? " and 1 remote action" : "";
   return `<section class="panel plan-panel" data-testid="plan-preview">
     <div class="section-heading">
       <div><p class="eyebrow">Deliberation</p><h2>Rescue plan preview</h2></div>
-      <span class="provider">${escapeHtml(preview.providerId)}</span>
     </div>
-    <p class="plan-summary">${escapeHtml(preview.summary)}</p>
+    <p class="plan-summary">Team plan for ${escapeHtml(objective)}: ${escapeHtml(preview.actorIntents.length)} specialist actions${remoteAction}.</p>
     ${renderPlanImpact(preview)}
     ${preview.commanderAction ? `<div class="commander-card"><span>Remote action</span><strong>${escapeHtml(preview.commanderAction.label)}</strong><small>${escapeHtml(preview.commanderAction.targetLabel)}</small></div>` : `<div class="commander-card muted"><span>Remote action</span><strong>Capacity held</strong></div>`}
     <div class="intent-list">${preview.actorIntents.map((intent) => `<article class="intent-card" data-testid="rescue-intent">

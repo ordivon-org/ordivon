@@ -51,6 +51,7 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G5-admitted product form, G3/G4 evidence, production profile, and replacement boundary.
 - [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the accepted G4 Vertical Slice, production/calibration evidence, and G4 exit judgment.
 - [`docs/STATION_ZERO_V3_PRODUCT_VALUE.md`](docs/STATION_ZERO_V3_PRODUCT_VALUE.md) owns G4 comparative product-design research, control/information/pressure/identity experiments, and Content Grammar v0.
+- [`docs/STATION_ZERO_V3_DOMAIN_VALUE_GV.md`](docs/STATION_ZERO_V3_DOMAIN_VALUE_GV.md) owns the failure-driven GV consumer-validation lane, external failure transfer rules, live-vs-fixture ablation evidence, and the fresh-player boundary.
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the exact encounter, reducer, durable execution, and planning/browser contracts beneath that target.
 - [`docs/authority.md`](docs/authority.md) identifies which records may define current or target behavior.
 
