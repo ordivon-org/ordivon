@@ -75,6 +75,8 @@ test("v3 browser renderer exposes strategic controls and sealed enemy plans with
     assert.match(html, /no protection priority/);
     assert.match(html, /Generate team plan/);
     assert.match(html, /Commit simultaneous Turn/);
+    assert.match(html, /Team plan for Extract two civilians: 3 specialist actions and 1 remote action\./);
+    assert.doesNotMatch(html, /class="provider"/);
     assert.match(html, /data-testid="plan-impact"/);
     assert.match(html, /Mission fronts touched by admitted Rescue actions/);
     assert.match(html, /Not an outcome forecast/);
