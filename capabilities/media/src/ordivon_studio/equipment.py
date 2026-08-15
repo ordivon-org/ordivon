@@ -23,6 +23,7 @@ class EquipmentPlan:
     executable: str | None
     args: tuple[str, ...]
     notes: tuple[str, ...] = ()
+    environment: tuple[tuple[str, str], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -32,6 +33,7 @@ class EquipmentPlan:
             "executable": self.executable,
             "args": list(self.args),
             "notes": list(self.notes),
+            "environment": dict(self.environment),
         }
 
 
@@ -53,7 +55,7 @@ def _first_line(value: str) -> str:
     return ""
 
 
-def _run_version(executable: Path, args: Sequence[str]) -> str | None:
+def _run_version(executable: Path, args: Sequence[str], environment: Mapping[str, str] | None = None) -> str | None:
     try:
         result = subprocess.run(
             [str(executable), *args],
@@ -61,7 +63,7 @@ def _run_version(executable: Path, args: Sequence[str]) -> str | None:
             text=True,
             timeout=10,
             check=False,
-            env={**os.environ, "LC_ALL": "C"},
+            env={**os.environ, **dict(environment or {}), "LC_ALL": "C"},
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -98,6 +100,52 @@ def _windows_file_version(path: Path) -> str | None:
         return None
     return _first_line(_decode_process_bytes(result.stdout)) or None
 
+
+
+
+def _workstation_equipment_binding(equipment_id: str, executable: str) -> dict[str, Any] | None:
+    tool = Path(os.environ.get("ORDIVON_EQUIPMENT_BINDING", "/root/tools/bin/equipment-binding"))
+    if not tool.is_file() or not os.access(tool, os.X_OK):
+        return None
+    try:
+        result = subprocess.run(
+            [str(tool), "isolated", "--equipment-id", equipment_id, "--executable", executable],
+            capture_output=True, text=True, timeout=15, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(value, dict):
+        return None
+    if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.workstation-equipment-binding":
+        return None
+    if value.get("state") != "AVAILABLE" or value.get("executionTarget") != "local_linux":
+        return None
+    path = value.get("executable")
+    if not isinstance(path, str) or not Path(path).is_file():
+        return None
+    return value
+
+
+def _binding_environment(binding: Mapping[str, Any]) -> dict[str, str]:
+    projected = binding.get("environment")
+    if not isinstance(projected, Mapping):
+        return {}
+    environment: dict[str, str] = {}
+    library_dirs = projected.get("libraryDirs")
+    if isinstance(library_dirs, list) and all(isinstance(value, str) for value in library_dirs) and library_dirs:
+        existing = os.environ.get("LD_LIBRARY_PATH")
+        environment["LD_LIBRARY_PATH"] = ":".join([*library_dirs, *([existing] if existing else [])])
+    python_sites = projected.get("pythonSitePackages")
+    if isinstance(python_sites, list) and all(isinstance(value, str) for value in python_sites) and python_sites:
+        existing = os.environ.get("PYTHONPATH")
+        environment["PYTHONPATH"] = ":".join([*python_sites, *([existing] if existing else [])])
+    return environment
 
 def _discovery_paths(spec: Mapping[str, Any]) -> list[Path]:
     if "path" in spec:
@@ -137,6 +185,17 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
     for item in world.get("equipment", []):
         candidates: list[dict[str, Any]] = []
         for spec in item.get("discovery", []):
+            if spec.get("kind") == "workstation-isolated-binding":
+                binding = _workstation_equipment_binding(str(spec["equipmentId"]), str(spec["executable"]))
+                if binding is not None:
+                    path = Path(str(binding["executable"]))
+                    version = _run_version(path, spec.get("versionArgs", ["--version"]), _binding_environment(binding))
+                    candidates.append({
+                        "path": str(path), "version": version, "platform": spec.get("platform"),
+                        "provider": binding.get("provider"), "bindingDigest": binding.get("bindingDigest"),
+                        "providerIdentity": binding.get("providerIdentity"), "validUntilMs": binding.get("validUntilMs"),
+                    })
+                continue
             for path in _discovery_paths(spec):
                 if not path.is_file():
                     continue
@@ -227,6 +286,14 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
         args = [input_path, "--export-filename", output]
         if parameters.get("width") is not None:
             args.extend(["--export-width", str(int(parameters["width"]))])
+        binding = _workstation_equipment_binding("game-inkscape-e1", "inkscape")
+        if binding is not None:
+            environment = tuple(sorted(_binding_environment(binding).items()))
+            return EquipmentPlan(
+                equipment_id, capability, "process", str(binding["executable"]), tuple(args),
+                (f"Resolved through Workstation EquipmentBinding {binding.get('bindingDigest')}; Studio retains vector semantics and Runtime retains execution authority.",),
+                environment,
+            )
         return EquipmentPlan(equipment_id, capability, "process", _require_existing("/usr/bin/inkscape"), tuple(args))
     if equipment_id == "blender" and capability in {"scene.create", "scene.edit", "scene.render", "animation.render", "asset.export.gltf", "geometry.procedural", "camera.control", "material.control"}:
         script = str(parameters["script"])
@@ -329,6 +396,68 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
         )
     raise ValueError(f"unsupported equipment operation: {equipment_id} {capability}")
 
+
+
+_PROVIDER_MECHANICS: dict[str, dict[str, Any]] = {
+    "davinci-resolve": {
+        "transport": "studio.resolve-adapter",
+        "stateAuthority": "davinci-resolve-project",
+        "executionAuthority": "runtime-windows-native-plus-studio-adapter",
+        "secretBoundary": "none-for-local-adapter",
+        "convergence": "operation-result-plus-project/postcondition-inspection",
+        "recovery": "operation-id-bound-result-read; restore prior project/cleanup when declared by adapter",
+        "defaultLifecycle": "operator-workstation-state-preserved",
+    },
+    "obs-studio": {
+        "transport": "authenticated-obs-websocket-on-windows-loopback",
+        "stateAuthority": "obs-live-scene/source/recording-state",
+        "executionAuthority": "runtime-windows-controller-process; Studio owns live semantics",
+        "secretBoundary": "external-secret-bearing-authority; never Studio source or Runtime argv",
+        "convergence": "mutation-response-is-not-convergence; re-observe intended OBS state",
+        "recovery": "restore exact prior websocket configuration and verify listener closure",
+        "defaultLifecycle": "websocket-server-disabled-by-default",
+    },
+    "reaper": {
+        "transport": "reascript/osc/or-exact-process",
+        "stateAuthority": "native-rpp-project-and-current-reaper-session",
+        "executionAuthority": "runtime-process; Studio owns audio-project semantics",
+        "secretBoundary": "none-by-default",
+        "convergence": "inspect declared project/render/session postcondition",
+        "recovery": "persist/reopen native .rpp; do not infer state from installer/process exit alone",
+        "defaultLifecycle": "portable-specialist-on-demand",
+    },
+}
+
+
+def local_provider_surface(world: Mapping[str, Any]) -> dict[str, Any]:
+    """Project validated Studio-local provider mechanics without creating another Tool registry.
+
+    The Equipment World remains the semantic source for capabilities. This projection only
+    removes provider-folklore from callers; it neither discovers physical equipment nor
+    grants execution authority.
+    """
+    by_id = {str(item.get("id")): item for item in world.get("equipment", [])}
+    providers: list[dict[str, Any]] = []
+    for equipment_id, mechanics in _PROVIDER_MECHANICS.items():
+        item = by_id.get(equipment_id)
+        if item is None:
+            continue
+        providers.append({
+            "equipmentId": equipment_id,
+            "capabilities": list(item.get("capabilities", [])),
+            "retention": item.get("retention"),
+            **mechanics,
+        })
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.studio-local-provider-surface",
+        "truthRole": "studio-semantic-provider-projection",
+        "providers": providers,
+        "runtimeOwnsPhysicalExecution": True,
+        "workstationOwnsPhysicalEquipmentBinding": True,
+        "mcpRequired": False,
+        "authorityBoundary": "Studio selects and interprets medium-native providers; this surface does not prove physical presence, grant Runtime execution, expose secrets, or create external-provider truth.",
+    }
 
 def summarize_trial(
     *,

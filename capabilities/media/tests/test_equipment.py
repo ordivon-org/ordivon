@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ordivon_studio.equipment import (
     EquipmentPlan,
     compile_operation,
     discover_equipment,
     load_equipment_world,
+    local_provider_surface,
     select_for_capability,
     summarize_trial,
 )
@@ -105,6 +108,50 @@ class EquipmentWorldTests(unittest.TestCase):
             evidence_level="physical-missing",
         )
         self.assertEqual(report["decision"], "challenger")
+
+
+    def test_local_provider_surface_hides_protocol_folklore_but_preserves_owner_boundaries(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        surface = local_provider_surface(world)
+        self.assertFalse(surface["mcpRequired"])
+        self.assertTrue(surface["runtimeOwnsPhysicalExecution"])
+        by_id = {item["equipmentId"]: item for item in surface["providers"]}
+        self.assertEqual(set(by_id), {"davinci-resolve", "obs-studio", "reaper"})
+        self.assertEqual(by_id["obs-studio"]["defaultLifecycle"], "websocket-server-disabled-by-default")
+        self.assertIn("re-observe", by_id["obs-studio"]["convergence"])
+        self.assertIn("native-rpp", by_id["reaper"]["stateAuthority"])
+        self.assertEqual(by_id["davinci-resolve"]["transport"], "studio.resolve-adapter")
+        self.assertNotIn("password", json.dumps(surface).lower())
+
+    def test_workstation_binding_is_physical_discovery_not_semantic_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable = root / "inkscape"
+            executable.write_text("#!/bin/sh\necho Inkscape 1.4\n", encoding="utf-8")
+            executable.chmod(0o755)
+            binding_tool = root / "equipment-binding"
+            binding_tool.write_text(
+                "#!/usr/bin/env python3\nimport json\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.isolated-equipment\",\"bindingDigest\":\"sha256:" + "a"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{\"libraryDirs\":[],\"pythonSitePackages\":[]},\"providerIdentity\":{\"ownerTask\":\"task:test\"},\"validUntilMs\":9999999999999}))\n",
+                encoding="utf-8",
+            )
+            binding_tool.chmod(0o755)
+            world = {
+                "equipment": [{
+                    "id": "inkscape", "family": "vector", "capabilities": ["vector.export"],
+                    "retention": "specialist-on-demand", "reason": "test",
+                    "discovery": [{"kind": "workstation-isolated-binding", "platform": "linux", "equipmentId": "game-inkscape-e1", "executable": "inkscape", "versionArgs": ["--version"]}],
+                }]
+            }
+            with mock.patch.dict(os.environ, {"ORDIVON_EQUIPMENT_BINDING": str(binding_tool)}):
+                inventory = discover_equipment(world)
+                plan = compile_operation("inkscape", "vector.export", {"input": "in.svg", "output": "out.png"})
+            row = inventory["equipment"][0]
+            self.assertTrue(row["present"])
+            self.assertEqual(row["candidates"][0]["provider"], "workstation.isolated-equipment")
+            self.assertTrue(row["candidates"][0]["bindingDigest"].startswith("sha256:"))
+            self.assertEqual(plan.executable, str(executable))
+            self.assertIn("EquipmentBinding", " ".join(plan.notes))
+            self.assertNotIn("capability", row["candidates"][0])
 
     def test_discovery_redacts_secret_like_keys(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

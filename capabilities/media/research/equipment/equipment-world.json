@@ -220,10 +220,19 @@
           "versionArgs": [
             "--version"
           ]
+        },
+        {
+          "kind": "workstation-isolated-binding",
+          "platform": "linux",
+          "equipmentId": "game-inkscape-e1",
+          "executable": "inkscape",
+          "versionArgs": [
+            "--version"
+          ]
         }
       ],
       "retention": "candidate",
-      "reason": "Keep demand-pulled: raw SVG + rsvg-convert already cover deterministic vector delivery, while installed Figma is the higher-information design-native world once OAuth dogfood completes. Inkscape should return only if local vector query/edit operations become repeated friction."
+      "reason": "Retain as an on-demand local vector specialist. Studio may discover an exact Workstation EquipmentBinding without treating PATH or another Consumer's installation as semantic authority; raw SVG + rsvg-convert remain the deterministic baseline, while Figma remains the design-native external world."
     },
     {
       "id": "blender",

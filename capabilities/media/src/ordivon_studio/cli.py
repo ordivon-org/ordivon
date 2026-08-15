@@ -223,10 +223,25 @@ def _command_equipment_select(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_equipment_providers(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    world = module.load_equipment_world(Path(args.world))
+    _write_json(module.local_provider_surface(world))
+    return 0
+
+
 def _command_equipment_plan(args: argparse.Namespace) -> int:
     module = _equipment_module()
     parameters = json.loads(args.parameters) if args.parameters else {}
     _write_json(module.compile_operation(args.equipment_id, args.capability, parameters).as_dict())
+    return 0
+
+
+def _command_figma_route(args: argparse.Namespace) -> int:
+    from .figma_provider import route_figma_operation
+    _write_json(route_figma_operation(
+        args.operation, desktop_state=args.desktop_state, remote_state=args.remote_state, prefer_local=not args.prefer_remote
+    ).as_dict())
     return 0
 
 
@@ -459,11 +474,22 @@ def build_parser() -> argparse.ArgumentParser:
     equipment_select.add_argument("--local", action="store_true", help="prefer equipment physically present on this machine")
     equipment_select.set_defaults(handler=_command_equipment_select)
 
+    equipment_providers = equipment_commands.add_parser("providers", help="project validated Studio-local provider mechanics without exposing provider protocol folklore to callers")
+    equipment_providers.add_argument("--world", default="research/equipment/equipment-world.json")
+    equipment_providers.set_defaults(handler=_command_equipment_providers)
+
     equipment_plan = equipment_commands.add_parser("plan", help="compile one Studio equipment intent into a Runtime-ready exact proposal without executing it")
     equipment_plan.add_argument("equipment_id")
     equipment_plan.add_argument("capability")
     equipment_plan.add_argument("--parameters", help="JSON object of operation parameters")
     equipment_plan.set_defaults(handler=_command_equipment_plan)
+
+    figma_route = equipment_commands.add_parser("figma-route", help="select a Figma provider backend from explicit current backend evidence without performing OAuth or design effects")
+    figma_route.add_argument("operation")
+    figma_route.add_argument("--desktop-state", choices=["available", "unavailable", "unknown"], default="unknown")
+    figma_route.add_argument("--remote-state", choices=["available", "unavailable", "unknown"], default="unknown")
+    figma_route.add_argument("--prefer-remote", action="store_true")
+    figma_route.set_defaults(handler=_command_figma_route)
 
     resolve_parser = commands.add_parser("resolve", help="operate the DaVinci Resolve-specific adapter")
     resolve_commands = resolve_parser.add_subparsers(dest="resolve_command", required=True)
