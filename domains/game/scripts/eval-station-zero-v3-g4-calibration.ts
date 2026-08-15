@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 
 import { createGameServer } from "../src/server.ts";
+import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
 type Severity = "critical" | "major" | "minor";
 interface Finding { id: string; severity: Severity; passed: boolean; evidence: unknown; }
@@ -14,19 +15,6 @@ function finding(id: string, severity: Severity, passed: boolean, evidence: unkn
   findings.push({ id, severity, passed, evidence });
 }
 
-function chromiumExecutable(): string {
-  const candidates = [
-    process.env.ORDIVON_CHROMIUM_EXECUTABLE,
-    chromium.executablePath(),
-    "/root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell",
-    "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-  ].filter((entry): entry is string => Boolean(entry));
-  const selected = candidates.find((entry) => existsSync(entry));
-  if (!selected) throw new Error("No Chromium executable available for G4 calibration");
-  return selected;
-}
 
 async function startRun(page: Page, base: string, runId: string): Promise<void> {
   await page.goto(`${base}/v3`, { waitUntil: "networkidle" });
@@ -260,7 +248,9 @@ await new Promise<void>((resolvePromise) => server.server.listen(0, "127.0.0.1",
 const address = server.server.address();
 if (!address || typeof address === "string") throw new Error("G4 calibration server did not expose a TCP address");
 const base = `http://127.0.0.1:${address.port}`;
-const browser = await chromium.launch({ headless: true, executablePath: chromiumExecutable() });
+const g4ChromiumExecutable = resolveChromiumExecutable(chromium.executablePath());
+if (!g4ChromiumExecutable) throw new Error("No Chromium executable available for G4 calibration");
+const browser = await chromium.launch({ headless: true, executablePath: g4ChromiumExecutable });
 try {
   const silhouettes = silhouetteMetrics();
   finding("specialist-silhouette-discriminability", "major", silhouettes.minimumDifference >= 40, silhouettes);
