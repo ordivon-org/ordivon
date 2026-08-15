@@ -870,7 +870,7 @@ alternate enemy Objective package = still unproven
 forced-doctrine Provider = research instrument, not product architecture
 ```
 
-G4 does not authorize a mission factory. G5 now has one bounded second Case plus two independently proven outer content axes; broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
+At the end of G5-P3, G5 had one bounded second Case plus two independently proven outer content axes. The P4 placement proof below expands that outer evidence set without changing the same anti-factory boundary: broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
 
 ## G5-P4 — objective-bearing placement admission
 

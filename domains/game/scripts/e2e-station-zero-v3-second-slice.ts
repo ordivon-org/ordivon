@@ -19,6 +19,23 @@ function browserExecutable(): string | undefined {
   return candidates.find((candidate) => existsSync(candidate));
 }
 
+interface RetainedV3StateView {
+  run: {
+    scenarioCaseId: string;
+    status: string;
+    turn: number;
+  };
+  generatedFrom: { worldRevision: number };
+  map: { zones: Array<{ zoneId: string; capacity: number }> };
+  outcomes: { rescue: string; pirate: string; swarm: string };
+}
+
+function zoneCapacity(view: RetainedV3StateView, zoneId: string): number {
+  const zone = view.map.zones.find((entry) => entry.zoneId === zoneId);
+  assert.ok(zone, `missing Zone ${zoneId}`);
+  return zone.capacity;
+}
+
 async function listen(game: ReturnType<typeof createGameServer>): Promise<string> {
   await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));
   const address = game.server.address();
@@ -54,9 +71,9 @@ try {
   const opened = await page.evaluate(async (retainedRunId) => {
     const response = await fetch(`/api/station-zero-v3/state?runId=${encodeURIComponent(retainedRunId)}`);
     return response.json();
-  }, runId);
+  }, runId) as RetainedV3StateView;
   assert.equal(opened.run.scenarioCaseId, "junction-bottleneck");
-  assert.equal(opened.map.zones.find((zone: any) => zone.zoneId === "junction-cover").capacity, 1);
+  assert.equal(zoneCapacity(opened, "junction-cover"), 1);
 
   let committedTurns = 0;
   while (await page.getByTestId("terminal-summary").count() === 0) {
@@ -83,12 +100,12 @@ try {
   const retained = await page.evaluate(async (retainedRunId) => {
     const response = await fetch(`/api/station-zero-v3/state?runId=${encodeURIComponent(retainedRunId)}`);
     return response.json();
-  }, runId);
+  }, runId) as RetainedV3StateView;
   assert.equal(retained.run.scenarioCaseId, "junction-bottleneck");
   assert.equal(retained.run.status, "terminal");
   assert.equal(retained.run.turn, 20);
   assert.equal(retained.generatedFrom.worldRevision, 20);
-  assert.equal(retained.map.zones.find((zone: any) => zone.zoneId === "junction-cover").capacity, 1);
+  assert.equal(zoneCapacity(retained, "junction-cover"), 1);
   assert.equal(game.v3Store.getRun(runId).scenarioCaseId, "junction-bottleneck");
   assert.equal(game.v3Store.verify(runId).verified, true);
   assert.equal(game.v3Play.turns.recover(runId).world.turnCount, 20);
@@ -107,7 +124,7 @@ try {
     rescueOutcome: retained.outcomes.rescue,
     pirateOutcome: retained.outcomes.pirate,
     swarmOutcome: retained.outcomes.swarm,
-    junctionCoverCapacity: retained.map.zones.find((zone: any) => zone.zoneId === "junction-cover").capacity,
+    junctionCoverCapacity: zoneCapacity(retained, "junction-cover"),
     browserErrors,
   }, null, 2));
 } finally {

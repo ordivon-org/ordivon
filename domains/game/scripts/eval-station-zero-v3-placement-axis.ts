@@ -49,7 +49,7 @@ interface TurnTrace {
   rescueIntentReasons: Record<string, number>;
 }
 
-interface VariantRun {
+interface PlacementRun {
   variantId: string;
   profile: StrategyProfile;
   turns: number;
@@ -173,7 +173,7 @@ function planningHead(runId: string, state: StationZeroV3WorldState): StationZer
   return {
     schemaVersion: 1,
     kind: "ordivon.game.station-zero-v3-planning-head",
-    planningId: `planning:g5-topology:${runId}:${state.revision}`,
+    planningId: `planning:g5-placement:${runId}:${state.revision}`,
     runId,
     worldRevision: state.revision,
     turn: state.encounter.turn,
@@ -243,9 +243,9 @@ function feedbackFrom(
   return { action, responsibility };
 }
 
-async function runVariant(variant: PlacementVariant, profile: StrategyProfile): Promise<VariantRun> {
-  const runId = `run:g5-topology:${variant.variantId}:${profile.profileId}`;
-  let state = createStationZeroV3Genesis(`g5-topology:${profile.profileId}`);
+async function runPlacementVariant(variant: PlacementVariant, profile: StrategyProfile): Promise<PlacementRun> {
+  const runId = `run:g5-placement:${variant.variantId}:${profile.profileId}`;
+  let state = createStationZeroV3Genesis(`g5-placement:${profile.profileId}`);
   variant.mutate(state);
   assertStationZeroV3World(state);
 
@@ -302,7 +302,7 @@ async function runVariant(variant: PlacementVariant, profile: StrategyProfile): 
 
     const commitment = prepareStationZeroV3Commitment(state);
     const batch: StationZeroTurnBatch = {
-      turnBatchId: `batch:g5-topology:${variant.variantId}:${profile.profileId}:${state.encounter.turn}`,
+      turnBatchId: `batch:g5-placement:${variant.variantId}:${profile.profileId}:${state.encounter.turn}`,
       expectedWorldRevision: state.revision,
       expectedTurn: state.encounter.turn,
       factionPlans: [preview.factionPlans.rescue, preview.factionPlans.pirate, preview.factionPlans.swarm],
@@ -362,7 +362,7 @@ function jaccard(left: string[], right: string[]): number {
   return intersection / union.size;
 }
 
-function compare(baseline: VariantRun, treatment: VariantRun, target: "civilian" | "core") {
+function compare(baseline: PlacementRun, treatment: PlacementRun, target: "civilian" | "core") {
   const turns = Math.max(baseline.traces.length, treatment.traces.length);
   let candidateComparisons = 0;
   let candidateChanged = 0;
@@ -427,10 +427,10 @@ function compare(baseline: VariantRun, treatment: VariantRun, target: "civilian"
 }
 
 const allProfiles = profiles();
-const runs: VariantRun[] = [];
+const runs: PlacementRun[] = [];
 for (const variant of VARIANTS) {
   for (const profile of allProfiles) {
-    const run = await runVariant(variant, profile);
+    const run = await runPlacementVariant(variant, profile);
     runs.push(run);
     console.log(JSON.stringify({
       kind: "ordivon.game.station-zero-v3-placement-axis-progress",
