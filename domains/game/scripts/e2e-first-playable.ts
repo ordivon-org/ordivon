@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium } from "playwright";
+import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
 import type { DeploymentProviderOptions } from "../src/deployment/model.ts";
 import { createGameServer } from "../src/server.ts";
@@ -17,19 +18,6 @@ const fixtureFactory: MissionProviderFactory = (_name, options?: DeploymentProvi
       : "security-contain",
   });
 
-function browserExecutable(): string | undefined {
-  const candidates = [
-    process.env.ORDIVON_CHROMIUM_EXECUTABLE,
-    chromium.executablePath(),
-    "/root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell",
-    "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-  ].filter((candidate): candidate is string => Boolean(candidate));
-  return candidates.find((candidate) => existsSync(candidate));
-}
 
 async function waitIdle(page: import("playwright").Page): Promise<void> {
   await page.waitForFunction(() => !document.querySelector(".busy-overlay"));
@@ -78,7 +66,7 @@ try {
   const address = game.server.address();
   if (!address || typeof address === "string") throw new Error("Game server has no TCP address");
   const base = `http://127.0.0.1:${address.port}`;
-  const executablePath = browserExecutable();
+  const executablePath = resolveChromiumExecutable(chromium.executablePath());
   if (!executablePath) throw new Error("No Chromium-compatible executable is available");
   browser = await chromium.launch({ headless: true, executablePath });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

@@ -1,23 +1,12 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium } from "playwright";
+import { resolveChromiumExecutable } from "./browser-equipment.ts";
 import { createGameServer } from "../src/server.ts";
 
-function browserExecutable(): string | undefined {
-  const candidates = [
-    process.env.ORDIVON_CHROMIUM_EXECUTABLE,
-    chromium.executablePath(),
-    "/root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell",
-    "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-  ].filter((candidate): candidate is string => Boolean(candidate));
-  return candidates.find((candidate) => existsSync(candidate));
-}
 
 interface RetainedV3StateView {
   run: {
@@ -47,7 +36,7 @@ process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-g5-e2e-"));
 const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 const base = await listen(game);
-const executablePath = browserExecutable();
+const executablePath = resolveChromiumExecutable(chromium.executablePath());
 if (!executablePath) throw new Error("No Chromium executable is available for Station Zero v3 G5 E2E");
 const browser = await chromium.launch({ headless: true, executablePath });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
