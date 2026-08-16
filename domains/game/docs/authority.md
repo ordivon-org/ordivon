@@ -16,7 +16,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-15
-summary: Decision separating the registered Station Zero product, the stable G4-admitted v3 product target, its exact P0-P3 contracts, long-range Game vision, machine truth, and historical evidence.
+summary: Decision separating registered Station Zero execution, the current G-Series product-stage reset, the v3 reference experiment and its historical stage evidence, exact P0-P3 contracts, long-range Game vision, and machine truth.
 evidence_status: not_applicable
 readiness: READY
 applies_to:
@@ -40,13 +40,13 @@ Game simultaneously contains one registered executable, one broader product visi
 
 ## Decision
 
-[`../README.md`](../README.md) is the canonical repository entry and must state which Scenario and Ruleset are registered. [`PRODUCT.md`](PRODUCT.md) owns the current Station Zero player experience and acceptance. [`ARCHITECTURE.md`](ARCHITECTURE.md) owns the registered executable architecture and state ownership. [`VISION.md`](VISION.md) owns long-range principles and possibilities but creates no feature commitment. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) owns the cross-game development process: game classification, the Agentic Consequence Loop, stage gates, and the Game↔Studio production boundary. It does not register a product, define a current World transition, or make Station Zero mechanisms universal.
+[`../README.md`](../README.md) is the canonical repository entry and must state which Scenario and Ruleset are registered. [`PRODUCT.md`](PRODUCT.md) owns the registered Station Zero player experience and acceptance. [`ARCHITECTURE.md`](ARCHITECTURE.md) owns the registered executable architecture and state ownership. [`VISION.md`](VISION.md) owns long-range principles and possibilities but creates no feature commitment. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) owns the cross-game development process. [`G_SERIES_RESET.md`](G_SERIES_RESET.md) owns the post-dogfood stage rules; [`G_SERIES_PRODUCT_SEARCH.md`](G_SERIES_PRODUCT_SEARCH.md) owns G1–G4 candidate search/falsifiers; [`G_SERIES_SELECTION.md`](G_SERIES_SELECTION.md) owns the G5 selection; [`G_SERIES_G6_CASEFILE.md`](G_SERIES_G6_CASEFILE.md) owns current Casefile G6 candidate status and its open exit boundary. These records do not register Station Zero v3 or make Casefile a shipped product.
 
 [`STATION_ZERO_V3_CONTRACTION.md`](STATION_ZERO_V3_CONTRACTION.md) owns only current Game-local contraction verdicts, negative regions, and reopen conditions. Ordivon Computing owns the cross-project synthesis that informed them. This record does not register v3, define World transitions, or make historical rejections permanent law.
 
-[`STATION_ZERO_V3_PRODUCT.md`](STATION_ZERO_V3_PRODUCT.md) owns the stable human-facing definition of the accepted unregistered v3 target: player fantasy, game form, Agent participation, core loop, product pillars, G-stage, G3 strategic/live-Agent evidence, production profile, and replacement boundary. It does not register v3 or define exact World transitions.
+[`STATION_ZERO_V3_PRODUCT.md`](STATION_ZERO_V3_PRODUCT.md) owns the stable human-facing definition of the unregistered v3 **reference target**: player fantasy, game form, Agent participation, core loop, product pillars, historical G3/G4/G5 evidence, production profile, and replacement boundary. It does not own the current cross-game product stage after the G-Series reset.
 
-[`STATION_ZERO_V3_VERTICAL_SLICE.md`](STATION_ZERO_V3_VERTICAL_SLICE.md) owns the accepted G4 production claim set, calibration evidence, and G4 exit judgment. It may define media/UX production requirements and record browser/Studio integration evidence, but it does not supersede product identity, World rules, or P0–P3 execution contracts. Human-specific preference and market claims remain unproven without blocking bounded G5 Production under the cross-game G4 exit criteria.
+[`STATION_ZERO_V3_VERTICAL_SLICE.md`](STATION_ZERO_V3_VERTICAL_SLICE.md) owns the historical production/calibration claim set produced by the v3 programme and its then-current G4 exit judgment. Those receipts remain valid for what they measured, but `G_SERIES_RESET.md` supersedes their interpretation as current player-product stage authority.
 
 [`STATION_ZERO_V3_PRODUCT_VALUE.md`](STATION_ZERO_V3_PRODUCT_VALUE.md) owns the G4 comparative product-value lane: mature analogue decomposition, transferable design laws, same-state/relevant-state product experiments, surfaced-control subtraction, and Content Grammar v0. It may narrow what the player is shown when evidence proves a control has no value, but it does not invent World mechanics merely to justify existing schema fields.
 
@@ -58,7 +58,7 @@ For the unregistered v3 target, Agent cognition and Game action authority remain
 
 ## Consequences
 
-The current executable and v3 target can evolve without pretending they are already the same system. `STATION_ZERO_V3_PRODUCT.md` now supersedes phase-coded files only for stable human-facing product identity; P0/P1/P2/P3 remain canonical for their exact owner-local contracts. Research labels such as R/GX/AF remain evidence/history rather than product stages. Older evidence is preserved through Git and bounded evaluation tools instead of competing product authorities.
+The registered Station Zero executable, v3 reference experiment, disposable Concept Lab, and selected Casefile candidate are deliberately separate. `G_SERIES_G6_CASEFILE.md` is the current frontier: G0–G5 are complete for this search, Casefile is the active G6 candidate, human G6 exit is open, and G7/G8 are not admitted. `STATION_ZERO_V3_PRODUCT.md` preserves v3 reference identity and historical programme evidence; P0/P1/P2/P3 remain canonical for their exact owner-local contracts.
 
 ## Status
 

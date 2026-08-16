@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compareRuns, ComparisonError } from "./comparison/compare.ts";
+import { CasefileService, CasefileStore, CasefileStoreError } from "./casefile/index.ts";
 import type { DeploymentProviderOptions } from "./deployment/model.ts";
 import { DeploymentError, DeploymentStore } from "./deployment/store.ts";
 import { createMissionControlCatalog, isMissionProviderName } from "./mission-control/catalog.ts";
@@ -39,8 +40,11 @@ import {
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
 const defaultV3WebRoot = fileURLToPath(new URL("../web-v3", import.meta.url));
+const defaultLabWebRoot = fileURLToPath(new URL("../web-lab", import.meta.url));
+const defaultCasefileWebRoot = fileURLToPath(new URL("../web-casefile", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const defaultV3DbPath = resolve(process.cwd(), "data/station-zero-v3.sqlite3");
+const defaultCasefileDbPath = resolve(process.cwd(), "data/casefile.sqlite3");
 const staticFiles: Record<string, { file: string; contentType: string }> = {
   "/": { file: "index.html", contentType: "text/html; charset=utf-8" },
   "/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
@@ -50,6 +54,20 @@ const staticFiles: Record<string, { file: string; contentType: string }> = {
     "render-shell.js", "render-navigation.js", "render-curves.js", "render-replay.js",
     "render-diagnosis.js", "render-compare.js",
   ].map((file) => [`/${file}`, { file, contentType: "text/javascript; charset=utf-8" }])),
+};
+
+const casefileStaticFiles: Record<string, { file: string; contentType: string }> = {
+  "/casefile": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/casefile/": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/casefile/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/casefile/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
+};
+
+const labStaticFiles: Record<string, { file: string; contentType: string }> = {
+  "/lab": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/lab/": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/lab/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/lab/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
 };
 
 const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
@@ -252,6 +270,9 @@ export interface GameServerOptions {
   providerFactory?: MissionProviderFactory;
   v3DbPath?: string;
   v3WebRoot?: string;
+  labWebRoot?: string;
+  casefileDbPath?: string;
+  casefileWebRoot?: string;
   v3ProviderFactory?: StationZeroV3AgentProviderFactory;
 }
 
@@ -260,6 +281,8 @@ export interface GameServer {
   store: GameStore;
   v3Store: StationZeroV3Store;
   v3Play: StationZeroV3PlayService;
+  casefileStore: CasefileStore;
+  casefile: CasefileService;
   close(): Promise<void>;
 }
 
@@ -269,11 +292,18 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
     ? options.dbPath === ":memory:" ? ":memory:" : `${options.dbPath}.v3`
     : defaultV3DbPath);
   const v3Store = new StationZeroV3Store(v3DbPath);
+  const casefileDbPath = options.casefileDbPath ?? (options.dbPath
+    ? options.dbPath === ":memory:" ? ":memory:" : `${options.dbPath}.casefile`
+    : defaultCasefileDbPath);
+  const casefileStore = new CasefileStore(casefileDbPath);
+  const casefile = new CasefileService(casefileStore);
   const v3Play = new StationZeroV3PlayService(v3Store, {
     ...(options.v3ProviderFactory ? { providerFactory: options.v3ProviderFactory } : {}),
   });
   const webRoot = options.webRoot ?? defaultWebRoot;
   const v3WebRoot = options.v3WebRoot ?? defaultV3WebRoot;
+  const labWebRoot = options.labWebRoot ?? defaultLabWebRoot;
+  const casefileWebRoot = options.casefileWebRoot ?? defaultCasefileWebRoot;
   const providerFactory = options.providerFactory ?? defaultProviderFactory;
   const service = (): MissionControlService => new MissionControlService(store, providerFactory);
 
@@ -281,6 +311,35 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
     try {
       const url = new URL(request.url ?? "/", "http://localhost");
       const runId = url.searchParams.get("runId") ?? store.activeRunId;
+
+      if (request.method === "GET" && url.pathname === "/api/casefile/catalog") {
+        sendJson(response, 200, casefile.catalog());
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/casefile/runs") {
+        sendJson(response, 200, { runs: casefile.listRuns() });
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/casefile/runs") {
+        const body = bodyRecord(await readJson(request));
+        sendJson(response, 201, casefile.initialize(
+          requiredString(body.runId, "runId"),
+          typeof body.scenarioId === "string" && body.scenarioId.trim() ? body.scenarioId : undefined,
+        ));
+        return;
+      }
+      if (request.method === "GET" && url.pathname === "/api/casefile/state") {
+        sendJson(response, 200, casefile.state(requiredString(url.searchParams.get("runId"), "runId")));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/casefile/action") {
+        const body = bodyRecord(await readJson(request));
+        sendJson(response, 200, casefile.act(
+          requiredString(url.searchParams.get("runId"), "runId"),
+          requiredString(body.actionId, "actionId"),
+        ));
+        return;
+      }
 
       if (request.method === "GET" && url.pathname === "/api/station-zero-v3/catalog") {
         sendJson(response, 200, v3Play.catalog());
@@ -417,6 +476,28 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
 
+      const casefileStaticFile = casefileStaticFiles[url.pathname];
+      if (request.method === "GET" && casefileStaticFile) {
+        const body = await readFile(resolve(casefileWebRoot, casefileStaticFile.file));
+        response.writeHead(200, {
+          "content-type": casefileStaticFile.contentType,
+          "content-length": body.length,
+          "cache-control": "no-store",
+        });
+        response.end(body);
+        return;
+      }
+      const labStaticFile = labStaticFiles[url.pathname];
+      if (request.method === "GET" && labStaticFile) {
+        const body = await readFile(resolve(labWebRoot, labStaticFile.file));
+        response.writeHead(200, {
+          "content-type": labStaticFile.contentType,
+          "content-length": body.length,
+          "cache-control": "no-store",
+        });
+        response.end(body);
+        return;
+      }
       const v3StaticFile = v3StaticFiles[url.pathname];
       if (request.method === "GET" && v3StaticFile) {
         const body = await readFile(resolve(v3WebRoot, v3StaticFile.file));
@@ -446,6 +527,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
       else if (error instanceof ComparisonError) sendJson(response, 409, { error: error.code, message: error.message });
       else if (error instanceof TeamStoreError) sendJson(response, error.code === "team_corrupt" ? 500 : 409, { error: error.code, message: error.message });
       else if (error instanceof StationZeroV3PlanningStoreError) sendJson(response, error.code === "station_zero_v3_planning_corrupt" ? 500 : 409, { error: error.code, message: error.message });
+      else if (error instanceof CasefileStoreError) sendJson(response, error.code === "casefile_not_found" ? 404 : error.code === "casefile_conflict" ? 409 : 500, { error: error.code, message: error.message });
       else if (error instanceof StationZeroV3StorageError) sendJson(response,
         error.code === "station_zero_v3_busy" ? 503 : error.code === "station_zero_v3_constraint" ? 409 : 500,
         { error: error.code, message: error.message });
@@ -463,11 +545,14 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
     store,
     v3Store,
     v3Play,
+    casefileStore,
+    casefile,
     close: () => new Promise<void>((resolveClose, reject) => {
       server.close((error) => {
         if (error) return reject(error);
         store.close();
         v3Store.close();
+        casefileStore.close();
         resolveClose();
       });
     }),
@@ -497,6 +582,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const game = createGameServer({
     dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath,
     v3DbPath: process.env.ORDIVON_GAME_V3_DB ?? defaultV3DbPath,
+    casefileDbPath: process.env.ORDIVON_GAME_CASEFILE_DB ?? defaultCasefileDbPath,
     ...(v3Pool ? { v3ProviderFactory: v3Pool.providerFactory() } : {}),
   });
   const v3ProviderDescription = (() => {

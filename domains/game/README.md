@@ -39,7 +39,7 @@ Ordivon Game currently ships one executable world: **Station Zero**, a determini
 
 ## Current boundary
 
-The registered product remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. The v3 encounter, reducer, durable execution, planning layer, dedicated API, and separate `/v3` product are implemented as an accepted replacement target and have exited G4 into bounded G5 Production, but v3 remains unregistered and does not replace the root product. Root replacement is a later explicit decision requiring production-stage evidence and a direct v2↔v3 product comparison before deleting the v2 approval loop.
+The registered executable remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`, and the implemented `/v3` path remains an unregistered reference experiment. The post-dogfood G-Series has now completed G0–G5 selection and built **Casefile** as the bounded G6 playable candidate. G6 engineering/browser and fresh-agent independent-play evidence exist, but human player exit remains open; G7/G8 are not admitted. Historical Station Zero v3 G4/G5 labels remain evidence about that programme, not current product-stage authority.
 
 ## Start here
 
@@ -48,8 +48,12 @@ The registered product remains Station Zero `station-zero@2` with Ruleset `stati
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
 - [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
 - [`docs/STATION_ZERO_V3_CONTRACTION.md`](docs/STATION_ZERO_V3_CONTRACTION.md) records only Game-local contraction verdicts and reopen conditions; cross-project synthesis stays in Ordivon Computing.
-- [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) defines the stable human-facing v3 target, its G5-admitted product form, G3/G4 evidence, production profile, and replacement boundary.
-- [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) owns the accepted G4 Vertical Slice, production/calibration evidence, and G4 exit judgment.
+- [`docs/G_SERIES_RESET.md`](docs/G_SERIES_RESET.md) owns the current product-stage reset and reclassifies Station Zero as a reference experiment rather than the presumed product winner.
+- [`docs/G_SERIES_PRODUCT_SEARCH.md`](docs/G_SERIES_PRODUCT_SEARCH.md) owns the G1–G3 product search, competing experience foundations, survivor set, falsifier contract, and selection rubric.
+- [`docs/G_SERIES_SELECTION.md`](docs/G_SERIES_SELECTION.md) owns the G5 select/kill decision: Casefile selected, Last Light deferred, Echo Hunt rejected as an Agent-cognition investment, Station Zero retained as reference.
+- [`docs/G_SERIES_G6_CASEFILE.md`](docs/G_SERIES_G6_CASEFILE.md) owns the current Casefile playable-candidate status, evidence, architecture boundary, and still-open human G6 exit.
+- [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md) preserves the stable human-facing v3 reference target and the historical G3/G4/G5 evidence produced by that programme.
+- [`docs/STATION_ZERO_V3_VERTICAL_SLICE.md`](docs/STATION_ZERO_V3_VERTICAL_SLICE.md) preserves the historical machine/production slice, calibration evidence, and then-current G4 judgment; its stage interpretation is superseded by the G-Series reset.
 - [`docs/STATION_ZERO_V3_PRODUCT_VALUE.md`](docs/STATION_ZERO_V3_PRODUCT_VALUE.md) owns G4 comparative product-design research, control/information/pressure/identity experiments, and Content Grammar v0.
 - [`docs/STATION_ZERO_V3_DOMAIN_VALUE_GV.md`](docs/STATION_ZERO_V3_DOMAIN_VALUE_GV.md) owns the failure-driven GV consumer-validation lane, external failure transfer rules, live-vs-fixture ablation evidence, and the fresh-player boundary.
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md), [`P1`](docs/STATION_ZERO_V3_P1.md), [`P2`](docs/STATION_ZERO_V3_P2.md), and [`P3`](docs/STATION_ZERO_V3_P3.md) define the exact encounter, reducer, durable execution, and planning/browser contracts beneath that target.
@@ -128,12 +132,14 @@ Target form: three-faction deterministic turn-based tactical encounter
 P1: reducer and pure replay complete
 P2: durable Turn authority and recovery complete
 P3: isolated playable planning layer and /v3 browser complete
-G3: strategic viability, plurality, and bounded live-Agent realization accepted
-Current development stage: G5 bounded Production admitted
+G3-era reference evidence: strategic viability, plurality, and bounded live-Agent realization accepted
+Current player-product stage: G6 Casefile candidate active; human G6 exit OPEN
+G7/G8: not admitted
+Station Zero role: executable reference experiment / baseline
 Encounter budget: 20 Turns
 ```
 
-The v3 product is available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. G5 Production may expand only the proven Content Grammar; root replacement remains a separate later product decision.
+The v3 reference experiment remains available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. During the G-Series reset its content breadth is frozen unless a new product-selection decision explicitly re-admits it.
 
 ## Run
 
@@ -151,8 +157,10 @@ pnpm start
 Open:
 
 ```text
-Current product: http://127.0.0.1:4173/
-Station Zero v3 preview: http://127.0.0.1:4173/v3
+Registered Station Zero: http://127.0.0.1:4173/
+Station Zero v3 reference experiment: http://127.0.0.1:4173/v3
+G-Series Concept Lab: http://127.0.0.1:4173/lab
+Casefile G6 candidate: http://127.0.0.1:4173/casefile
 ```
 
 Browser acceptance journeys:
@@ -160,6 +168,8 @@ Browser acceptance journeys:
 ```bash
 pnpm e2e
 pnpm e2e:v3
+pnpm e2e:lab
+pnpm e2e:casefile
 ```
 
 ## Product API
@@ -184,6 +194,18 @@ GET  /api/replay/frame
 GET  /api/deployments/manifest
 GET  /api/compare
 ```
+
+### Casefile G6 candidate
+
+```text
+GET  /api/casefile/catalog
+GET  /api/casefile/runs
+POST /api/casefile/runs
+GET  /api/casefile/state
+POST /api/casefile/action
+```
+
+Casefile owns a separate SQLite store and exact state-derived action surface. Nonterminal public projections do not expose culprit, motive, reconstruction, or uninspected clue text. The current witness policy is deterministic; Casefile runtime makes no model calls.
 
 ### Station Zero v3 preview
 
@@ -228,7 +250,13 @@ src/station-zero-v3/
     v3 content, Genesis, deterministic reducer, Planning/Turn authority, exact Game-owned execution evidence, Agent Context and Candidate admission, policy expansion, Play Service, recovery, and bounded projections
 
 web-v3/
-    isolated Station Zero v3 first-playable browser
+    isolated Station Zero v3 reference browser
+
+src/casefile/, web-casefile/
+    selected G6 Casefile candidate: hidden incident content, deterministic witness policy, revision-fenced SQLite state, exact legal investigation actions, public projection and browser
+
+web-lab/
+    disposable G4 concept falsifiers; not product authority
 
 docs/STATION_ZERO_V3_P0.md through docs/STATION_ZERO_V3_P3.md
     v3 encounter, reducer, durable execution, and playable planning boundaries

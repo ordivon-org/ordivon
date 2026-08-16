@@ -123,9 +123,13 @@ A meaningful change should state:
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
+- `docs/G_SERIES_RESET.md` defines the current post-dogfood product-stage reset and freezes Station Zero expansion while the first true player product is reselected.
+- `docs/G_SERIES_PRODUCT_SEARCH.md` defines the competing concepts, experience foundations, and cheap falsifier contract.
+- `docs/G_SERIES_SELECTION.md` owns the G5 selection and cognition-ablation decision.
+- `docs/G_SERIES_G6_CASEFILE.md` owns the active Casefile G6 candidate and the still-open human exit gate; G7/G8 are not admitted.
 - `docs/STATION_ZERO_V3_CONTRACTION.md` records compact Game-local contraction decisions and reopen conditions; cross-project theory is not duplicated into Game authority.
-- `docs/STATION_ZERO_V3_PRODUCT.md` defines the stable unregistered v3 product target, current G-stage, G3 evidence, production profile, and replacement boundary.
-- `docs/STATION_ZERO_V3_VERTICAL_SLICE.md` defines the accepted G4 production slice, production/calibration evidence, and G4 exit judgment; G5 is already admitted in bounded form.
+- `docs/STATION_ZERO_V3_PRODUCT.md` preserves the stable unregistered v3 reference target, historical stage evidence, production profile, and replacement boundary.
+- `docs/STATION_ZERO_V3_VERTICAL_SLICE.md` preserves the historical production/calibration slice and then-current G4 judgment; it no longer owns current product-stage admission.
 - `docs/STATION_ZERO_V3_PRODUCT_VALUE.md` defines G4 comparative product-value evidence, proven/dead control surface, pressure/information findings, and Content Grammar v0; read it before adding player controls or producing a second encounter.
 - `docs/STATION_ZERO_V3_P0.md` defines the frozen encounter contract.
 - `docs/STATION_ZERO_V3_P1.md` defines the pure deterministic Turn reducer and replay contract.

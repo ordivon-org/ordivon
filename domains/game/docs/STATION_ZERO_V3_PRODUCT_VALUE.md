@@ -27,6 +27,11 @@ related:
 ---
 # Station Zero v3 — G4 Product Value Research
 
+## Current G-Series interpretation
+
+The 2026-08-16 G-Series reset reclassifies Station Zero as an executable **reference experiment**. Stage labels and admissions below are retained as historical claims about the v3 programme and its measured machine/runtime/production evidence; they no longer authorize current player-product G4/G5 progression. Current stage authority is `G_SERIES_RESET.md`.
+
+
 ## Status
 
 This document owns the **comparative product-value lane** inside Station Zero v3 G4.

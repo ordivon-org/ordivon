@@ -26,6 +26,11 @@ related:
 ---
 # Station Zero v3 — G4 Vertical Slice
 
+## Current G-Series interpretation
+
+The 2026-08-16 G-Series reset reclassifies Station Zero as an executable **reference experiment**. Stage labels and admissions below are retained as historical claims about the v3 programme and its measured machine/runtime/production evidence; they no longer authorize current player-product G4/G5 progression. Current stage authority is `G_SERIES_RESET.md`.
+
+
 ## Current acceptance state
 
 The first G4 production round has passed its **machine-verifiable production acceptance** on the real browser product. This means the source → derivative → runtime pipeline, responsive information order, live deliberation state, presentation audio boundaries, and existing authoritative gameplay journey are all executable together.
