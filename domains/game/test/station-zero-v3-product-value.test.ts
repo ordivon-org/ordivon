@@ -37,7 +37,7 @@ test("G4 Product Value authority records comparative design evidence and empiric
   assert.match(valueDoc, /alternate enemy Objective package = still unproven/);
   assert.match(valueDoc, /mission factory/);
   assert.match(valueDoc, /G4 Product Value is accepted and bounded G5 Production is admitted/);
-  assert.match(valueDoc, /Current G-Series interpretation/);
+  assert.match(valueDoc, /Current Game Core research interpretation/);
   assert.match(valueDoc, /reference experiment/);
 });
 

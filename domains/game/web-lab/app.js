@@ -149,7 +149,7 @@ function echoAction(action,dx=0,dy=0){
 }
 
 function header(){
-  return `<header class="hero"><div><p class="eyebrow">G-series · cheap playable falsifiers</p><h1>Concept Lab</h1><p>Three disposable game kernels and one retained baseline. This surface measures whether an idea creates play before it earns infrastructure or production art.</p></div><div class="mode"><span>autonomy</span><button data-mode="1" class="${autonomy?'active':''}">on</button><button data-mode="0" class="${!autonomy?'active':''}">cheap baseline</button></div></header>
+  return `<header class="hero"><div><p class="eyebrow">Game Core research · cheap falsifiers</p><h1>Concept Lab</h1><p>Three disposable game kernels and one retained baseline. This surface measures whether an idea creates play before it earns infrastructure or production art.</p></div><div class="mode"><span>autonomy</span><button data-mode="1" class="${autonomy?'active':''}">on</button><button data-mode="0" class="${!autonomy?'active':''}">cheap baseline</button></div></header>
   <nav class="tabs">${concepts.map(c=>`<button data-concept="${c.id}" class="${conceptId===c.id?'active':''}"><strong>${c.name}</strong><span>${c.tag} · ${c.promise}</span></button>`).join('')}</nav>`;
 }
 function metric(label,value,detail=''){ return `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong>${detail?`<small>${esc(detail)}</small>`:''}</div>`; }

@@ -15,11 +15,11 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
 }
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
-const directory = mkdtempSync(join(tmpdir(), "ordivon-game-g-series-lab-"));
+const directory = mkdtempSync(join(tmpdir(), "ordivon-game-core-lab-"));
 const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 const base = await listen(game);
 const executablePath = resolveChromiumExecutable(chromium.executablePath());
-if (!executablePath) throw new Error("No Chromium executable is available for G-series Concept Lab E2E");
+if (!executablePath) throw new Error("No Chromium executable is available for Game Core Concept Lab E2E");
 const browser = await chromium.launch({ headless: true, executablePath });
 const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
 const browserErrors: string[] = [];
@@ -30,7 +30,7 @@ try {
   await page.goto(`${base}/lab`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Concept Lab" }).waitFor();
   assert.match(await page.locator("body").textContent() ?? "", /Casefile/);
-  assert.match(await page.locator("body").textContent() ?? "", /cheap playable falsifiers/i);
+  assert.match(await page.locator("body").textContent() ?? "", /Game Core research · cheap falsifiers/i);
 
   // Casefile: the autonomy treatment must react to evidence while the cheap baseline stays fixed.
   await page.locator('[data-question="Sol"]').click();
@@ -79,7 +79,7 @@ try {
   assert.equal(browserErrors.length, 0, browserErrors.join("\n"));
 
   console.log(JSON.stringify({
-    surface: "g-series-concept-lab",
+    surface: "game-core-concept-lab",
     treatments: {
       casefile: { adaptiveEvidenceReaction: true, fixedTestimonyRepeats: true },
       lastLight: { autonomousRefusal: true, puppetRefusal: false },

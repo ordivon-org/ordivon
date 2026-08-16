@@ -123,10 +123,10 @@ A meaningful change should state:
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
-- `docs/G_SERIES_RESET.md` defines the current post-dogfood product-stage reset and freezes Station Zero expansion while the first true player product is reselected.
-- `docs/G_SERIES_PRODUCT_SEARCH.md` defines the competing concepts, experience foundations, and cheap falsifier contract.
-- `docs/G_SERIES_SELECTION.md` owns the G5 selection and cognition-ablation decision.
-- `docs/G_SERIES_G6_CASEFILE.md` owns the active Casefile G6 candidate and the still-open human exit gate; G7/G8 are not admitted.
+- `docs/GAME_CORE_RESEARCH_RESET.md` reserves G0–G8 for `DEVELOPMENT_MODEL.md` and defines current post-dogfood work as Game Core research rather than product-stage progression.
+- `docs/GAME_CORE_DIRECTION_SPACE.md` defines the open Core → Experience direction space and experimental contract.
+- `docs/GAME_CORE_EXPERIMENT_FINDINGS.md` owns cross-treatment findings without selecting a product winner.
+- `docs/GAME_CORE_EXPERIMENT_CASEFILE.md` retains Casefile as an executable epistemic research treatment, not a G-stage candidate.
 - `docs/STATION_ZERO_V3_CONTRACTION.md` records compact Game-local contraction decisions and reopen conditions; cross-project theory is not duplicated into Game authority.
 - `docs/STATION_ZERO_V3_PRODUCT.md` preserves the stable unregistered v3 reference target, historical stage evidence, production profile, and replacement boundary.
 - `docs/STATION_ZERO_V3_VERTICAL_SLICE.md` preserves the historical production/calibration slice and then-current G4 judgment; it no longer owns current product-stage admission.

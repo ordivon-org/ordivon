@@ -278,7 +278,7 @@ async function playSession(
 }
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
-const directory = mkdtempSync(join(tmpdir(), "ordivon-game-g-series-fresh-agent-"));
+const directory = mkdtempSync(join(tmpdir(), "ordivon-game-core-fresh-agent-"));
 const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));
 const address = game.server.address();
@@ -290,8 +290,8 @@ const browser = await chromium.launch({ headless: true, executablePath });
 
 const sessions: SessionEvidence[] = [];
 try {
-  const requestedConcepts = (process.env.G_SERIES_CONCEPTS ?? "casefile,last-light,echo-hunt").split(",").map((value) => value.trim()).filter(Boolean);
-  const requestedTreatments = (process.env.G_SERIES_TREATMENTS ?? "autonomy,baseline").split(",").map((value) => value.trim()).filter(Boolean);
+  const requestedConcepts = (process.env.GAME_CORE_CONCEPTS ?? "casefile,last-light,echo-hunt").split(",").map((value) => value.trim()).filter(Boolean);
+  const requestedTreatments = (process.env.GAME_CORE_TREATMENTS ?? "autonomy,baseline").split(",").map((value) => value.trim()).filter(Boolean);
   for (const concept of ["casefile", "last-light", "echo-hunt"] as const) {
     if (!requestedConcepts.includes(concept)) continue;
     for (const treatment of ["autonomy", "baseline"] as const) {
@@ -325,7 +325,7 @@ try {
   }));
 
   console.log(JSON.stringify({
-    kind: "ordivon.game.g-series-fresh-agent-blind-play",
+    kind: "ordivon.game.core-research-fresh-agent-blind-play",
     evidenceBoundary: "fresh-agent behavioral/self-report evidence; not human fun, retention, or market evidence",
     provider: pool.identity(),
     sessions: summary,

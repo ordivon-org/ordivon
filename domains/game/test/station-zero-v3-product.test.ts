@@ -7,11 +7,11 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
-const reset = readFileSync(new URL("../docs/G_SERIES_RESET.md", import.meta.url), "utf8");
+const reset = readFileSync(new URL("../docs/GAME_CORE_RESEARCH_RESET.md", import.meta.url), "utf8");
 
 test("stable v3 reference preserves historical stage evidence without owning current product stage", () => {
   assert.match(product, /^id: game\.product\.station-zero-v3$/m);
-  assert.match(product, /Current G-Series interpretation/);
+  assert.match(product, /Current Game Core research interpretation/);
   assert.match(product, /reference experiment/);
   assert.match(product, /Stage labels and admissions below are retained as historical claims/);
   assert.match(product, /Development stage: G5 admitted — bounded Production/);
@@ -23,16 +23,16 @@ test("stable v3 reference preserves historical stage evidence without owning cur
   assert.match(product, /G3 strategy plurality evidence/);
   assert.match(product, /G3 live-Agent evidence/);
   assert.match(product, /live Provider calls:\s+950/);
-  assert.match(reset, /G0 Define \| \*\*reopened\*\*/);
-  assert.match(reset, /G5 Production \| not currently admitted/);
+  assert.match(reset, /Research rounds are search methods/);
+  assert.match(reset, /No new Ordivon Game product has been selected/);
 });
 
 test("repository navigation and authority route v3 product identity through the stable document", () => {
   for (const source of [readme, authority, agents, project]) assert.match(source, /STATION_ZERO_V3_PRODUCT\.md/);
   assert.match(authority, /owns the stable human-facing definition/);
   assert.match(authority, /P0\/P1\/P2\/P3 remain canonical for their exact owner-local contracts/);
-  assert.match(readme, /Current player-product stage: G6 Casefile candidate active; human G6 exit OPEN/);
-  assert.match(readme, /Station Zero role: executable reference experiment \/ baseline/);
-  assert.match(readme, /G-Series Concept Lab/);
+  assert.match(readme, /Current research role: delegation \/ tactical Game Core reference experiment/);
+  assert.match(readme, /New product selection: none/);
+  assert.match(readme, /Game Core Concept Lab/);
   assert.match(readme, /Encounter budget: 20 Turns/);
 });
