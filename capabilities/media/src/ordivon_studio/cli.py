@@ -218,8 +218,15 @@ def _command_equipment_inventory(args: argparse.Namespace) -> int:
 def _command_equipment_select(args: argparse.Namespace) -> int:
     module = _equipment_module()
     world = module.load_equipment_world(Path(args.world))
-    inventory = module.discover_equipment(world) if args.local else None
+    inventory = module.discover_equipment_for_capability(world, args.capability) if args.local else None
     _write_json({"capability": args.capability, "matches": module.select_for_capability(world, args.capability, inventory=inventory)})
+    return 0
+
+
+def _command_equipment_coverage(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    world = module.load_equipment_world(Path(args.world))
+    _write_json(module.capability_coverage(world))
     return 0
 
 
@@ -235,6 +242,21 @@ def _command_equipment_plan(args: argparse.Namespace) -> int:
     parameters = json.loads(args.parameters) if args.parameters else {}
     _write_json(module.compile_operation(args.equipment_id, args.capability, parameters).as_dict())
     return 0
+
+
+def _command_equipment_propose(args: argparse.Namespace) -> int:
+    module = _equipment_module()
+    world = module.load_equipment_world(Path(args.world))
+    parameters = json.loads(args.parameters) if args.parameters else {}
+    proposal = module.propose_operation(
+        world,
+        args.capability,
+        parameters,
+        equipment_id=args.equipment_id,
+        local=not args.no_local,
+    )
+    _write_json(proposal)
+    return 0 if proposal.get("ready") else 3
 
 
 def _command_figma_route(args: argparse.Namespace) -> int:
@@ -468,11 +490,15 @@ def build_parser() -> argparse.ArgumentParser:
     equipment_inventory.add_argument("--world", default="research/equipment/equipment-world.json")
     equipment_inventory.set_defaults(handler=_command_equipment_inventory)
 
-    equipment_select = equipment_commands.add_parser("select", help="rank equipment candidates for one exact capability")
+    equipment_select = equipment_commands.add_parser("select", help="rank equipment candidates for one exact capability using truthful readiness")
     equipment_select.add_argument("capability")
     equipment_select.add_argument("--world", default="research/equipment/equipment-world.json")
-    equipment_select.add_argument("--local", action="store_true", help="prefer equipment physically present on this machine")
+    equipment_select.add_argument("--local", action="store_true", help="freshly observe only physical candidates relevant to this capability")
     equipment_select.set_defaults(handler=_command_equipment_select)
+
+    equipment_coverage = equipment_commands.add_parser("coverage", help="classify advertised capabilities by mechanical Agent actionability")
+    equipment_coverage.add_argument("--world", default="research/equipment/equipment-world.json")
+    equipment_coverage.set_defaults(handler=_command_equipment_coverage)
 
     equipment_providers = equipment_commands.add_parser("providers", help="project validated Studio-local provider mechanics without exposing provider protocol folklore to callers")
     equipment_providers.add_argument("--world", default="research/equipment/equipment-world.json")
@@ -483,6 +509,14 @@ def build_parser() -> argparse.ArgumentParser:
     equipment_plan.add_argument("capability")
     equipment_plan.add_argument("--parameters", help="JSON object of operation parameters")
     equipment_plan.set_defaults(handler=_command_equipment_plan)
+
+    equipment_propose = equipment_commands.add_parser("propose", help="select current equipment and compile one truthful Agent-facing operation proposal plus verification contract")
+    equipment_propose.add_argument("capability")
+    equipment_propose.add_argument("--equipment-id")
+    equipment_propose.add_argument("--parameters", help="JSON object of operation parameters")
+    equipment_propose.add_argument("--world", default="research/equipment/equipment-world.json")
+    equipment_propose.add_argument("--no-local", action="store_true", help="do not perform current physical observation; normally unsuitable for executable proposals")
+    equipment_propose.set_defaults(handler=_command_equipment_propose)
 
     figma_route = equipment_commands.add_parser("figma-route", help="select a Figma provider backend from explicit current backend evidence without performing OAuth or design effects")
     figma_route.add_argument("operation")

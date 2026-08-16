@@ -17,8 +17,8 @@ if (missing.length) {
   process.stderr.write([
     "Studio JavaScript dependencies are not materialized in this Workspace.",
     ...missing.map((item) => `- missing: ${item}`),
-    "Run `pnpm bootstrap` (equivalent to `pnpm install --frozen-lockfile`) once, then replay the intended command.",
-    "Python-only checks remain available through `pnpm models:check` and `pnpm python:test` without JavaScript bootstrap.",
+    "Acquire explicitly with `/root/tools/bin/pnpm install --frozen-lockfile`, or request the Studio `studio_dependencies_propose` action for target `js`, then replay the intended command.",
+    "Do not use an ordinary `pnpm run` command as the recovery entry: Workstation intentionally fails closed before project dependencies are materialized.",
     "",
   ].join("\n"));
   process.exit(2);

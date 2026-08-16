@@ -3,13 +3,12 @@ from __future__ import annotations
 import glob
 import json
 import os
-import re
 import subprocess
 import time
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
-
+from typing import Any
 
 DEFAULT_WORLD = Path("research/equipment/equipment-world.json")
 WINDOWS_POWERSHELL = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
@@ -229,31 +228,286 @@ def equipment_by_id(world: Mapping[str, Any], equipment_id: str) -> Mapping[str,
     raise KeyError(equipment_id)
 
 
+def discover_equipment_for_capability(world: Mapping[str, Any], capability: str) -> dict[str, Any]:
+    """Observe only physical candidates relevant to one Studio capability.
+
+    This is deliberately not a cache: every returned candidate is freshly observed, but
+    irrelevant Windows/GUI equipment is not probed merely because it exists in the world.
+    """
+    scoped = dict(world)
+    scoped["equipment"] = [
+        item for item in world.get("equipment", [])
+        if capability in item.get("capabilities", [])
+    ]
+    return discover_equipment(scoped)
+
+
+_DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
+    "typst": frozenset({"document.compile.pdf"}),
+    "imagemagick": frozenset({"image.resize"}),
+    "inkscape": frozenset({"vector.export"}),
+    "blender": frozenset({"scene.create", "scene.edit", "scene.render", "animation.render", "asset.export.gltf", "geometry.procedural", "camera.control", "material.control"}),
+    "godot": frozenset({"interactive.run.headless", "interactive.script", "state.trace"}),
+    "rsvg-convert": frozenset({"svg.rasterize"}),
+    "reaper": frozenset({"audio.project.render"}),
+}
+_PROVIDER_MEDIATED_EQUIPMENT = frozenset({"davinci-resolve"})
+_REAPER_PROVIDER_CAPABILITIES = frozenset({"audio.multitrack", "audio.edit", "audio.mix", "audio.master", "audio.automation", "midi.edit", "script.reascript", "control.osc"})
+_STUDIO_NATIVE_CAPABILITIES: dict[str, frozenset[str]] = {
+    "ffprobe": frozenset({"media.probe", "stream.inspect", "duration.inspect", "codec.inspect"}),
+    "ffmpeg": frozenset({"media.probe", "media.transcode", "video.encode", "audio.transform", "image.extract", "timeline.compose-basic", "stream.capture-basic"}),
+}
+
+
+def operation_support(equipment_id: str, capability: str) -> str:
+    """Classify whether one advertised capability has a mechanical Agent action path."""
+    if equipment_id == "figma":
+        return "AUTH_BLOCKED"
+    if equipment_id == "touchdesigner":
+        return "LICENSE_BLOCKED"
+    if capability in _DIRECT_OPERATION_CAPABILITIES.get(equipment_id, frozenset()):
+        return "DIRECTLY_INVOCABLE"
+    if equipment_id in _PROVIDER_MEDIATED_EQUIPMENT:
+        return "PROVIDER_MEDIATED"
+    if equipment_id == "reaper" and capability in _REAPER_PROVIDER_CAPABILITIES:
+        return "PROVIDER_MEDIATED"
+    if capability in _STUDIO_NATIVE_CAPABILITIES.get(equipment_id, frozenset()):
+        return "STUDIO_NATIVE"
+    if equipment_id in {"stream-deck", "bhaptics"}:
+        return "PHYSICAL_UNPROVEN"
+    return "DESCRIPTIVE_ONLY"
+
+
+def operational_readiness(equipment_id: str, present: bool | None, capability: str) -> str:
+    """Project Studio operational readiness without converting physical presence into authority."""
+    if present is False:
+        return "ABSENT"
+    if present is None:
+        return "UNKNOWN"
+    support = operation_support(equipment_id, capability)
+    if support == "AUTH_BLOCKED":
+        return "AUTH_REQUIRED"
+    if support == "LICENSE_BLOCKED":
+        return "LICENSE_REQUIRED"
+    if support in {"PHYSICAL_UNPROVEN", "DESCRIPTIVE_ONLY"}:
+        return "PRESENT_UNPROVEN"
+    if equipment_id in {"davinci-resolve", "obs-studio"}:
+        return "READY_WITH_STARTUP"
+    if equipment_id == "reaper" and capability != "audio.project.render":
+        return "READY_WITH_STARTUP"
+    return "READY"
+
+
+def capability_coverage(world: Mapping[str, Any]) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for item in world.get("equipment", []):
+        equipment_id = str(item["id"])
+        for capability in item.get("capabilities", []):
+            status = operation_support(equipment_id, capability)
+            counts[status] = counts.get(status, 0) + 1
+            rows.append({"equipmentId": equipment_id, "capability": capability, "actionability": status})
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.studio-equipment-capability-coverage",
+        "counts": counts,
+        "rows": rows,
+        "boundary": "Catalog knowledge and executable affordance are distinct. Only DIRECTLY_INVOCABLE, STUDIO_NATIVE or PROVIDER_MEDIATED rows are mechanically actionable without an external authority transition.",
+    }
+
+
 def select_for_capability(world: Mapping[str, Any], capability: str, *, inventory: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
-    present = None
+    physical: dict[str, bool | None] | None = None
     if inventory is not None:
-        present = {item["id"]: item["present"] for item in inventory.get("equipment", [])}
-    order = {"core-equipment": 0, "external-workstation": 1, "specialist-on-demand": 2, "candidate": 3, "challenger": 4, "reject": 5}
+        physical = {item["id"]: item["present"] for item in inventory.get("equipment", [])}
+    retention_order = {"core-equipment": 0, "external-workstation": 1, "specialist-on-demand": 2, "candidate": 3, "challenger": 4, "reject": 5}
+    readiness_order = {"READY": 0, "READY_WITH_STARTUP": 1, "AUTH_REQUIRED": 2, "LICENSE_REQUIRED": 3, "PRESENT_UNPROVEN": 4, "UNKNOWN": 5, "ABSENT": 6}
     matches = []
     for item in world.get("equipment", []):
         if capability not in item.get("capabilities", []):
             continue
+        equipment_id = str(item["id"])
+        present = physical.get(equipment_id) if physical is not None else None
+        actionability = operation_support(equipment_id, capability)
+        readiness = operational_readiness(equipment_id, present, capability)
+        selectable = readiness in {"READY", "READY_WITH_STARTUP"} and actionability in {"DIRECTLY_INVOCABLE", "STUDIO_NATIVE", "PROVIDER_MEDIATED"}
         matches.append(
             {
-                "id": item["id"],
+                "id": equipment_id,
                 "family": item["family"],
                 "retention": item.get("retention"),
-                "present": present.get(item["id"]) if present is not None else None,
+                "present": present,
+                "readiness": readiness,
+                "actionability": actionability,
+                "selectable": selectable,
                 "reason": item.get("reason"),
             }
         )
-    matches.sort(key=lambda item: (item["present"] is not True, order.get(item["retention"], 99), item["id"]))
+    matches.sort(key=lambda item: (not item["selectable"], readiness_order.get(item["readiness"], 99), retention_order.get(item["retention"], 99), item["id"]))
     return matches
+
+
+def external_authority_transition(equipment_id: str) -> dict[str, Any] | None:
+    """Describe the external authority evidence needed to graduate a blocked provider.
+
+    This is guidance to the owning boundary, not a credential flow and not authority itself.
+    """
+    if equipment_id == "figma":
+        return {
+            "owner": "user-plus-figma-auth-provider",
+            "state": "AUTH_REQUIRED",
+            "automatic": False,
+            "requiredEvidence": [
+                "fresh authenticated provider identity",
+                "one bounded native design read",
+                "one bounded native design write with post-write re-observation",
+            ],
+            "prohibited": ["inventing OAuth success", "moving access tokens into Studio source or Runtime argv"],
+        }
+    if equipment_id == "touchdesigner":
+        return {
+            "owner": "user-plus-derivative-license-authority",
+            "state": "LICENSE_REQUIRED",
+            "automatic": False,
+            "requiredEvidence": [
+                "fresh current TouchDesigner license/account state",
+                "one bounded project open/create",
+                "one machine-observable realtime output or operator-state postcondition",
+            ],
+            "prohibited": ["license bypass", "treating executable presence as licensed capability"],
+        }
+    return None
+
+
+def verification_contract(equipment_id: str, capability: str, parameters: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the semantic completion evidence required after physical execution.
+
+    The contract is intentionally owner-specific. It never claims completion itself and it
+    never reduces provider-native state to process exit status.
+    """
+    if equipment_id == "blender":
+        expected = [str(value) for value in parameters.get("expectedArtifacts", []) if str(value)]
+        return {
+            "kind": "DECLARED_ARTIFACTS",
+            "required": True,
+            "ready": bool(expected),
+            "artifacts": expected,
+            "reason": "Blender can report a Python traceback while exiting zero; every Agent proposal must name the artifacts/state whose existence will establish semantic completion.",
+        }
+    if equipment_id == "reaper" and capability == "audio.project.render":
+        output = parameters.get("expectedOutput")
+        return {
+            "kind": "RENDER_ARTIFACT",
+            "required": True,
+            "ready": isinstance(output, str) and bool(output),
+            "artifacts": [str(output)] if output else [],
+            "reason": "REAPER process exit is insufficient; verify the independently reconstructed render artifact.",
+        }
+    if equipment_id == "reaper":
+        return {
+            "kind": "NATIVE_PROJECT_OR_SESSION_STATE",
+            "required": True,
+            "ready": True,
+            "reason": "Observe the declared .rpp/session/ReaScript postcondition after provider action.",
+        }
+    if equipment_id == "obs-studio":
+        return {
+            "kind": "STATE_REOBSERVE_AND_RECOVER",
+            "required": True,
+            "ready": True,
+            "reason": "Mutation acknowledgement is not convergence; re-observe intended OBS state and restore the exact prior default-off listener configuration after bounded use.",
+        }
+    if equipment_id == "davinci-resolve":
+        return {
+            "kind": "OPERATION_RESULT_RECONCILIATION",
+            "required": True,
+            "ready": True,
+            "reason": "Read the operation-id-bound Resolve result and inspect declared project/artifact postconditions; do not redispatch after response loss.",
+        }
+    output = parameters.get("output")
+    if isinstance(output, str) and output:
+        return {
+            "kind": "ARTIFACT_EXISTS",
+            "required": True,
+            "ready": True,
+            "artifacts": [output],
+            "reason": "Verify the declared deterministic output artifact after process completion.",
+        }
+    return {
+        "kind": "PROCESS_PLUS_DOMAIN_OBSERVATION",
+        "required": False,
+        "ready": True,
+        "reason": "No additional equipment-specific postcondition is required by this narrow plan; Runtime process evidence still does not itself assert Studio semantic quality.",
+    }
+
+
+def propose_operation(
+    world: Mapping[str, Any],
+    capability: str,
+    parameters: Mapping[str, Any],
+    *,
+    equipment_id: str | None = None,
+    local: bool = True,
+) -> dict[str, Any]:
+    """Compile one truthful Agent-facing proposal without executing it.
+
+    Selection, physical currentness, actionability, exact plan and completion contract are
+    projected together so callers do not reconstruct Studio/Workstation folklore.
+    """
+    inventory = discover_equipment_for_capability(world, capability) if local else None
+    matches = select_for_capability(world, capability, inventory=inventory)
+    if equipment_id is not None:
+        matches = [item for item in matches if item["id"] == equipment_id]
+    if not matches:
+        raise ValueError(f"no equipment advertises capability: {capability}")
+    candidate = matches[0]
+    proposal: dict[str, Any] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.studio-equipment-operation-proposal",
+        "capability": capability,
+        "candidate": candidate,
+        "plan": None,
+        "verification": None,
+        "authorityTransition": None,
+        "ready": False,
+        "blockers": [],
+    }
+    if not candidate["selectable"]:
+        proposal["blockers"].append(candidate["readiness"])
+        if candidate["actionability"] not in {"DIRECTLY_INVOCABLE", "STUDIO_NATIVE", "PROVIDER_MEDIATED"}:
+            proposal["blockers"].append(candidate["actionability"])
+        proposal["authorityTransition"] = external_authority_transition(candidate["id"])
+        return proposal
+    if candidate["actionability"] == "STUDIO_NATIVE":
+        proposal["blockers"].append("USE_STUDIO_NATIVE_COMMAND")
+        return proposal
+    plan = compile_operation(candidate["id"], capability, parameters)
+    verification = verification_contract(candidate["id"], capability, parameters)
+    proposal["plan"] = plan.as_dict()
+    proposal["verification"] = verification
+    if verification.get("ready") is not True:
+        proposal["blockers"].append("VERIFICATION_CONTRACT_INCOMPLETE")
+        return proposal
+    proposal["ready"] = True
+    return proposal
 
 
 def _require_existing(path: str) -> str:
     if not Path(path).is_file():
         raise FileNotFoundError(path)
+    return path
+
+
+def _windows_native_argument(path: str) -> str:
+    """Translate a WSL-mounted Windows absolute path for a Windows-native process.
+
+    Relative paths intentionally remain relative: WSL interop can project the Runtime
+    Workspace as the Windows process working directory, as proven by Blender dogfood.
+    """
+    if len(path) >= 7 and path.startswith("/mnt/") and path[5].isalpha() and path[6] == "/":
+        drive = path[5].upper()
+        rest = path[7:].replace("/", "\\")
+        return f"{drive}:\\{rest}"
     return path
 
 
@@ -336,13 +590,13 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
         return EquipmentPlan(
             equipment_id,
             capability,
-            "obs-websocket",
+            "provider-descriptor-only",
             None,
             (),
             (
-                "Use authenticated obs-websocket through a secret-bearing authority; never place the password in Studio source or Runtime argv.",
-                "Keep the WebSocket server disabled by default. A bounded Live operation may enable it temporarily, launch OBS from its native Windows working directory, control it on Windows loopback, then restore the exact prior configuration and verify the listener is gone.",
-                "Treat scene/source mutations as potentially asynchronous and observe the intended state before claiming convergence.",
+                "E8 proved authenticated obs-websocket semantics once, but AF8 falsified a reliable autonomous startup/shutdown lifecycle under OBS 32.x unclean-shutdown handling.",
+                "Keep the WebSocket server disabled by default and treat all current Live actions as descriptive until a real production need re-earns a bounded provider.",
+                "Do not infer current Agent actionability from the installed OBS executable or historical dogfood alone.",
             ),
         )
     if equipment_id == "figma":
@@ -364,7 +618,7 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
             "/usr/bin/reaper",
         )
         if capability == "audio.project.render":
-            project = str(parameters["project"])
+            project = _windows_native_argument(str(parameters["project"]))
             return EquipmentPlan(
                 equipment_id,
                 capability,

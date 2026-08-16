@@ -9,14 +9,17 @@ from unittest import mock
 
 from ordivon_studio.equipment import (
     EquipmentPlan,
+    capability_coverage,
     compile_operation,
     discover_equipment,
+    discover_equipment_for_capability,
     load_equipment_world,
     local_provider_surface,
+    propose_operation,
     select_for_capability,
     summarize_trial,
+    verification_contract,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,15 +47,104 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(hypotheses["spatial-3d"], "provisional")
         self.assertEqual(hypotheses["live-realtime"], "provisional")
         self.assertEqual(media_world["expansionEvidence"], "research/equipment/evidence/e8-capability-expansion-20260814.json")
+        self.assertIn("workstation", world["ownership"])
+        self.assertIn("long-horizon continuity", world["ownership"]["host"][0])
 
     def test_capability_selection_prefers_present_retained_equipment(self) -> None:
         world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
         inventory = {"equipment": [
             {"id": "ffmpeg", "present": True},
-            {"id": "imagemagick", "present": True},
+            {"id": "ffprobe", "present": True},
         ]}
         matches = select_for_capability(world, "media.probe", inventory=inventory)
-        self.assertEqual(matches[0]["id"], "ffmpeg")
+        self.assertTrue(matches[0]["selectable"])
+        self.assertEqual(matches[0]["readiness"], "READY")
+        self.assertEqual(matches[0]["actionability"], "STUDIO_NATIVE")
+
+    def test_physical_presence_does_not_grant_external_authority(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        inventory = {"equipment": [
+            {"id": "figma", "present": True},
+            {"id": "touchdesigner", "present": True},
+            {"id": "blender", "present": True},
+        ]}
+        figma = select_for_capability(world, "design.node.read", inventory=inventory)[0]
+        self.assertTrue(figma["present"])
+        self.assertEqual(figma["readiness"], "AUTH_REQUIRED")
+        self.assertEqual(figma["actionability"], "AUTH_BLOCKED")
+        self.assertFalse(figma["selectable"])
+        touch = select_for_capability(world, "realtime.visual", inventory=inventory)[0]
+        self.assertEqual(touch["readiness"], "LICENSE_REQUIRED")
+        self.assertFalse(touch["selectable"])
+        blender = select_for_capability(world, "scene.render", inventory=inventory)[0]
+        self.assertEqual(blender["readiness"], "READY")
+        self.assertEqual(blender["actionability"], "DIRECTLY_INVOCABLE")
+        self.assertTrue(blender["selectable"])
+
+    def test_capability_scoped_discovery_does_not_probe_unrelated_equipment(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        with mock.patch("ordivon_studio.equipment.discover_equipment", return_value={"equipment": []}) as discover:
+            discover_equipment_for_capability(world, "scene.render")
+        scoped_world = discover.call_args.args[0]
+        self.assertEqual([item["id"] for item in scoped_world["equipment"]], ["blender"])
+
+    def test_capability_coverage_makes_non_actionable_catalog_rows_explicit(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        coverage = capability_coverage(world)
+        by_pair = {(row["equipmentId"], row["capability"]): row["actionability"] for row in coverage["rows"]}
+        self.assertEqual(by_pair[("blender", "scene.render")], "DIRECTLY_INVOCABLE")
+        self.assertEqual(by_pair[("obs-studio", "live.state.observe")], "DESCRIPTIVE_ONLY")
+        self.assertEqual(by_pair[("figma", "design.node.read")], "AUTH_BLOCKED")
+        self.assertEqual(by_pair[("touchdesigner", "realtime.visual")], "LICENSE_BLOCKED")
+        self.assertEqual(by_pair[("typst", "document.query")], "DESCRIPTIVE_ONLY")
+
+    def test_blender_proposal_requires_declared_semantic_postcondition(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        inventory = {"equipment": [{"id": "blender", "present": True}]}
+        with mock.patch("ordivon_studio.equipment.discover_equipment_for_capability", return_value=inventory):
+            incomplete = propose_operation(world, "scene.render", {"script": "scene.py"}, equipment_id="blender")
+            complete = propose_operation(
+                world,
+                "scene.render",
+                {"script": "scene.py", "expectedArtifacts": ["render.png", "scene.blend"]},
+                equipment_id="blender",
+            )
+        self.assertFalse(incomplete["ready"])
+        self.assertIn("VERIFICATION_CONTRACT_INCOMPLETE", incomplete["blockers"])
+        self.assertEqual(incomplete["verification"]["kind"], "DECLARED_ARTIFACTS")
+        self.assertTrue(complete["ready"])
+        self.assertEqual(complete["verification"]["artifacts"], ["render.png", "scene.blend"])
+
+    def test_external_authority_blocker_stops_proposal_before_plan_compilation(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        inventory = {"equipment": [{"id": "figma", "present": True}]}
+        with mock.patch("ordivon_studio.equipment.discover_equipment_for_capability", return_value=inventory):
+            proposal = propose_operation(world, "design.node.read", {}, equipment_id="figma")
+        self.assertFalse(proposal["ready"])
+        self.assertIsNone(proposal["plan"])
+        self.assertIn("AUTH_REQUIRED", proposal["blockers"])
+        self.assertIn("AUTH_BLOCKED", proposal["blockers"])
+        self.assertEqual(proposal["authorityTransition"]["owner"], "user-plus-figma-auth-provider")
+        self.assertFalse(proposal["authorityTransition"]["automatic"])
+        self.assertIn("fresh authenticated provider identity", proposal["authorityTransition"]["requiredEvidence"])
+
+    def test_touchdesigner_blocker_names_license_owner_without_bypass(self) -> None:
+        world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
+        inventory = {"equipment": [{"id": "touchdesigner", "present": True}]}
+        with mock.patch("ordivon_studio.equipment.discover_equipment_for_capability", return_value=inventory):
+            proposal = propose_operation(world, "realtime.visual", {}, equipment_id="touchdesigner")
+        self.assertFalse(proposal["ready"])
+        self.assertEqual(proposal["authorityTransition"]["owner"], "user-plus-derivative-license-authority")
+        self.assertIn("license bypass", proposal["authorityTransition"]["prohibited"])
+
+    def test_provider_verification_contracts_remain_owner_specific(self) -> None:
+        obs = verification_contract("obs-studio", "live.scene.switch", {})
+        resolve = verification_contract("davinci-resolve", "timeline.create", {})
+        reaper = verification_contract("reaper", "audio.project.render", {})
+        self.assertEqual(obs["kind"], "STATE_REOBSERVE_AND_RECOVER")
+        self.assertEqual(resolve["kind"], "OPERATION_RESULT_RECONCILIATION")
+        self.assertEqual(reaper["kind"], "RENDER_ARTIFACT")
+        self.assertFalse(reaper["ready"])
 
     def test_compile_operation_is_plan_only(self) -> None:
         if Path("/usr/bin/ffmpeg").is_file():
@@ -65,10 +157,22 @@ class EquipmentWorldTests(unittest.TestCase):
             self.assertEqual(plan.transport, "process")
             self.assertIn("scale=10:20", plan.args)
 
+    def test_windows_native_reaper_plan_translates_wsl_mounted_project_path(self) -> None:
+        with mock.patch("ordivon_studio.equipment._first_existing", return_value="/mnt/c/reaper.exe"):
+            plan = compile_operation(
+                "reaper",
+                "audio.project.render",
+                {"project": "/mnt/c/Users/test/project.rpp"},
+            )
+        self.assertEqual(plan.args[-1], "C:\\Users\\test\\project.rpp")
+
     def test_external_equipment_plans_preserve_authority_boundaries(self) -> None:
         obs = compile_operation("obs-studio", "live.scene.switch", {})
-        self.assertEqual(obs.transport, "obs-websocket")
+        self.assertEqual(obs.transport, "provider-descriptor-only")
         self.assertTrue(any("disabled by default" in note for note in obs.notes))
+        observe = compile_operation("obs-studio", "live.state.observe", {})
+        self.assertEqual(observe.transport, "provider-descriptor-only")
+        self.assertIsNone(observe.executable)
         figma = compile_operation("figma", "design.variables", {})
         self.assertEqual(figma.transport, "figma-mcp-or-plugin")
         self.assertTrue(any("OAuth" in note for note in figma.notes))

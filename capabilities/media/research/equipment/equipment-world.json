@@ -19,10 +19,13 @@
       "execution artifacts",
       "recovery semantics"
     ],
+    "workstation": [
+      "physical machine/device presence",
+      "exact equipment binding and executable identity",
+      "version/configuration projection when safely observable"
+    ],
     "host": [
-      "machine/device presence",
-      "version/capability projection",
-      "license/configuration state when safely observable"
+      "long-horizon continuity checkpoints only; Host does not own current physical equipment truth"
     ],
     "web": [
       "browser/publication runtime",

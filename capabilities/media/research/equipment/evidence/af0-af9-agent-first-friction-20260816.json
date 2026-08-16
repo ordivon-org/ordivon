@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-agent-first-friction-evidence",
+  "date": "2026-08-16",
+  "truthRole": "executed-local-evidence-summary",
+  "scope": "Studio professional-equipment consumption surface; this evidence does not claim every installed application is Agent-first.",
+  "baseline": {
+    "sourceRevision": "52f646022cc606985a63a5fd290c417fd337e80e",
+    "fiveCapabilityLocalSelectionElapsedMs": 9230,
+    "falseAffordances": [
+      "Figma was physically present and selectable despite ungraduated OAuth design read/write authority.",
+      "TouchDesigner was physically present and selectable despite ungraduated license/account and Agent operation authority.",
+      "Advertised capability knowledge and mechanically actionable operations were not distinguished."
+    ],
+    "freshWorkspace": {
+      "ordinaryPnpmCheck": "fail-closed before dependency acquisition",
+      "sourceContinuityImpliedCapabilityContinuity": false
+    }
+  },
+  "af1TruthfulReadiness": {
+    "states": ["READY", "READY_WITH_STARTUP", "AUTH_REQUIRED", "LICENSE_REQUIRED", "PRESENT_UNPROVEN", "ABSENT", "UNKNOWN"],
+    "physicalPresenceGrantsAuthority": false,
+    "selectionRequiresActionability": true
+  },
+  "af2ScopedDiscovery": {
+    "fiveCapabilityLocalSelectionElapsedMs": 1960,
+    "speedupVsBaseline": 4.71,
+    "cacheAdded": false,
+    "decision": "retain capability-scoped fresh observation; reject cache until real production re-establishes material latency"
+  },
+  "af3Actionability": {
+    "totalAdvertisedCapabilities": 89,
+    "countsAfterContraction": {
+      "STUDIO_NATIVE": 11,
+      "DIRECTLY_INVOCABLE": 16,
+      "DESCRIPTIVE_ONLY": 24,
+      "PROVIDER_MEDIATED": 16,
+      "AUTH_BLOCKED": 6,
+      "LICENSE_BLOCKED": 7,
+      "PHYSICAL_UNPROVEN": 9
+    },
+    "executableAffordanceClasses": ["STUDIO_NATIVE", "DIRECTLY_INVOCABLE", "PROVIDER_MEDIATED"]
+  },
+  "af4CompletionAndRecovery": {
+    "blenderFalsifier": {
+      "realExecutable": "Blender 5.2.0 LTS portable",
+      "fault": "intentional Python RuntimeError",
+      "runtimeProcessExitCode": 0,
+      "semanticCompletion": false,
+      "conclusion": "process exit status cannot establish Blender semantic completion"
+    },
+    "verificationContractsRemainOwnerSpecific": [
+      "Blender declared artifact/state postconditions",
+      "REAPER render/native project state",
+      "Resolve operation-id result reconciliation",
+      "OBS state re-observation semantics remain descriptive until a reliable current provider is re-earned"
+    ]
+  },
+  "af5DependencyMaterialization": {
+    "javascript": {
+      "freshFailClosedElapsedMs": 482,
+      "explicitFrozenInstallElapsedMs": 1582,
+      "packagesReused": 257,
+      "packagesDownloaded": 0,
+      "cacheDecision": "reject new node_modules cache/receipt optimization; local-store reacquisition is already cheap"
+    },
+    "python": {
+      "firstResolveMaterializationElapsedMs": 6570,
+      "implicitUvRunMutationObserved": true,
+      "ordinaryExecutionMayAcquire": false,
+      "retainedMechanism": "explicit materialize-python.py plus digest-bound local .venv receipt and fail-closed require-python-deps.py"
+    }
+  },
+  "af6AgentSurface": {
+    "toolCount": 3,
+    "tools": ["studio_dependencies_status", "studio_dependencies_propose", "studio_equipment_propose"],
+    "mcpRequired": false,
+    "harnessCoreChanged": false,
+    "allThreeProviderSchemaBytes": 1287,
+    "productionTurnEquipmentOnlyBytes": 551,
+    "productionTurnReductionRatio": 0.5719,
+    "dependencyRecoveryTurnBytes": 737,
+    "dependencyRecoveryReductionRatio": 0.4274,
+    "harnessWorkingSetCanExpandAuthority": false
+  },
+  "af7ExternalAuthority": {
+    "figma": "AUTH_REQUIRED with explicit user-plus-provider transition evidence; no OAuth success claimed",
+    "touchdesigner": "LICENSE_REQUIRED with explicit user-plus-license-authority transition evidence; no bypass or licensed capability claimed"
+  },
+  "af8ConsumerDogfood": {
+    "deterministicStill": {
+      "path": "out/af8/deterministic-still.png",
+      "dimensions": "640x360",
+      "sha256": "d60ea3eb673f392537d89e5696db686c68af23ea39c1b95d7d02a1e9d2446ba5",
+      "result": "pass"
+    },
+    "blenderSpatial": {
+      "nativeProject": "out/af8/blender-micro.blend",
+      "nativeProjectSha256": "cd6989c169fa76a71b0971728de79401f191d17b3541972f60cb06f36b8f3102",
+      "render": "out/af8/blender-micro.png",
+      "renderSha256": "26c3805ee52f6b4da0623cdc6cb3feac5f1ecc8e819d0cfbcfdba53286c9c41e",
+      "dimensions": "640x360",
+      "result": "pass"
+    },
+    "reaperAudio": {
+      "preFix": "WSL /mnt/c path was passed raw to Windows REAPER; render timed out after 45 seconds and no target artifact existed",
+      "fix": "Studio translates WSL-mounted Windows absolute arguments to native drive paths at the Windows target adapter boundary",
+      "postFixProcessElapsedMs": 2235,
+      "renderObserved": "48000 Hz, 24-bit, stereo, 2.5 seconds",
+      "priorExternalRenderRestoredSha256": "2f38a5f4feb9511a41555ee4c94ab2fc1cdd4aa2c0c6ac21acba8bc835a4e13b",
+      "result": "pass-after-owner-local-fix"
+    },
+    "obsLive": {
+      "historicalPhysicalCapability": true,
+      "currentAutonomousLifecycleGraduated": false,
+      "observedFailures": [
+        "authenticated WebSocket became available before OBS RPC readiness",
+        "forced cleanup created an unclean-shutdown startup dependency",
+        "startup dialog changed CloseMainWindow semantics and prevented deterministic headless lifecycle closure"
+      ],
+      "experimentalProviderDeleted": true,
+      "currentActionability": "DESCRIPTIVE_ONLY/PRESENT_UNPROVEN",
+      "result": "negative-result-retained-as-truth"
+    }
+  },
+  "af9Contraction": {
+    "rejected": [
+      "global tool/capability registry",
+      "whole-world discovery per capability selection",
+      "dependency cache before recurrence evidence",
+      "Studio-specific Harness core changes",
+      "Studio MCP merely for visibility",
+      "one Tool per advertised capability",
+      "failed custom OBS lifecycle provider",
+      "physical presence as operational readiness",
+      "process exit as semantic completion",
+      "implicit dependency acquisition during ordinary execution"
+    ],
+    "retained": [
+      "truthful readiness/actionability projection",
+      "capability-scoped fresh physical observation",
+      "owner-specific verification contracts",
+      "explicit dependency acquisition plus fail-closed ordinary execution",
+      "three-tool Studio semantic Agent surface",
+      "Harness per-turn subset projection",
+      "Windows-native REAPER path adaptation"
+    ]
+  },
+  "validationBeforeFreshHoldout": {
+    "pnpmCheckCorePythonTests": 94,
+    "resolveAdapterTests": 17,
+    "productionModels": "pass",
+    "typescript": "pass",
+    "vitePreviewBuild": "pass",
+    "pythonCompileChecks": "pass",
+    "ruffTouchedPythonFiles": "pass"
+  }
+}
