@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R18
+title: Ordivon Game Foundations Research Map — R1–R19
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R18 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R19 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational and strategic structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -23,12 +23,13 @@ applies_to:
 related:
   - game.foundations-research.r1-r17
   - game.foundations-research.r18
+  - game.foundations-research.r19
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) plus [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), and [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -42,7 +43,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R18 index
+## R1–R19 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -64,6 +65,7 @@ No new product has been selected.
 | R16 | Space / topology | Topology = structure of reachability/influence; distance is transition cost; exploration grows a usable world model. |
 | R17 | Information / belief | Truth != Signal != Observation != Belief != Statement; bounded knowledge and information topology generate play. |
 | R18 | Motivation / goals | Need, Value and Desire are distinct motive sources; Preference is contextual comparison; Goal is selected pursuit; Commitment stabilizes it; Utility is optional representation/arbitration. |
+| R19 | Strategic interdependence | Strategic relevance depends on policy-contingent mutual consequence; conflict/competition/cooperation/coordination differ; bargaining needs outside options and commitment; equilibrium is an incentive diagnostic; strategy must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -153,7 +155,46 @@ Utility    = optional numerical representation/arbitration
 
 Use the lowest motivational complexity that creates a new playable causal distinction. `Want` is normally a surface-language term rather than a mandatory primitive.
 
-Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, RL, models, humans and hybrids.
+R19 adds the strategic layer:
+
+```text
+StrategicRelevance(j → i)
+= changing i's belief about j's policy can change i's preferred response
+
+StrategicInterdependence(i, j) =
+MutualConsequenceCoupling
++ PolicyContingency
++ Belief / Anticipation
+
+StrategicTopology =
+who can alter whose reachable valued futures
+through policy/consequence influence edges
+```
+
+Key R19 separations:
+
+```text
+Conflict     = incompatible preferred futures
+Competition  = rivalry over scarce/relative outcomes
+Cooperation  = intentional joint strategic benefit
+Coordination = compatible action/convention selection
+Bargaining   = selection among acceptable joint outcomes under disagreement
+Negotiation  = strategic communication around information/proposals/commitments
+Strategy     = policy conditioned on anticipated other-policy
+Equilibrium  = stability under a specified deviation model
+```
+
+R19 discipline:
+
+```text
+Do not maximize opponent intelligence.
+Expose meaningful conditional response.
+Use equilibrium to debug incentives, not to define fun.
+Keep strategic information bounded.
+Soft negotiation + structured strategic transition where persistence matters.
+```
+
+Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
 
@@ -239,6 +280,7 @@ PlayableSociety
 PlayableTopology
 PlayableInformation
 PlayableMotivation
+PlayableStrategy
 ```
 
 Generalized:
@@ -430,18 +472,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R18 is complete. Continue with:
+R19 is complete. Continue with:
 
 ```text
-R19 — Conflict, Cooperation, Competition, Coordination, Bargaining, Strategy and Equilibrium
+R20 — Creation, Creativity, Expression, Authorship, Construction, Customization and Style
 ```
 
 Primary transition:
 
 ```text
-R18: Why does one Subject select one future over another?
+R19: How do multiple Subjects strategically alter one another's futures?
 →
-R19: What happens when multiple Subjects can alter one another's reachable futures?
+R20: How does a participant deliberately bring new artifacts, forms, meanings or possibilities into existence?
 ```
 
-Do not select a product before R19 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R20 and the remaining adjacent foundational dimensions have been examined and then synthesized.
