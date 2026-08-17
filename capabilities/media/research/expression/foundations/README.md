@@ -30,7 +30,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-D — Constitutive Theories I: Global Workspace, Recurrent Processing, Higher-Order & Predictive/Inferential Routes: **complete / provisional theory-comparison frame**
 - MF9-E — Intrinsic Causal Structure, Integrated Information & Composition/Exclusion: **complete / provisional IIT-intrinsic-causal-structure audit**
 - MF9-F — Experiential State, Capacity, Sleep, Anesthesia & Disorders of Consciousness: **complete / provisional experiential-state ontology**
-- Next: **MF9-G — Experience Evidence Beyond Report-Capable Adult Humans: Infants, Animals, Nonverbal Bearers & Artificial Systems**
+- MF9-G — Experience Evidence Beyond Report-Capable Adult Humans: Infants, Animals, Nonverbal Bearers & Artificial Systems: **complete / provisional cross-bearer experience-evidence frame**
+- Next: **MF9-H — Constitutive Theories II: Attention Schema, Sensorimotor/Enactive, Affective/Homeostatic & Illusionist Routes**
 
 Current MF5 canonical closeout:
 
@@ -107,6 +108,10 @@ Current MF9-E IIT/intrinsic-causal-structure round:
 Current MF9-F experiential-state/sleep/anesthesia/DoC round:
 
 [`media-foundations-mf9f-20260818.md`](./media-foundations-mf9f-20260818.md)
+
+Current MF9-G cross-bearer experience-evidence round:
+
+[`media-foundations-mf9g-20260818.md`](./media-foundations-mf9g-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
