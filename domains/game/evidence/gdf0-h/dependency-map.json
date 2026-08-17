@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-h-dependency-map",
+  "frozenSource": "Play/Game Deep Foundations v1",
+  "branches": [
+    {
+      "id": "GDF1",
+      "name": "Action / Control / Skill / Embodiment",
+      "priority": 1,
+      "dependsOn": ["GameStructure", "Gameplay-Enactment", "PlayMode-Experience", "EvaluationLayering", "StructuralExperientialDissociation"],
+      "unresolved": ["intent-to-action mapping", "control fidelity", "sensorimotor skill", "timing/precision", "motor learning", "embodied agency", "execution variability"],
+      "whyFirst": "GDF0 repeatedly falsified information-only accounts and exposed performance/execution/perturbation mechanisms as a major under-modeled dependency across action, rhythm, sport and mastery forms"
+    },
+    {
+      "id": "GDF2",
+      "name": "Challenge / Difficulty / Failure / Mastery",
+      "priority": 2,
+      "dependsOn": ["GDF1", "EvaluationLayering", "ProgressSeparation"],
+      "unresolved": ["difficulty vs challenge", "failure value", "retry/recovery", "learning curves", "mastery", "flow-like dynamics", "fairness"],
+      "whyFirst": "requires a prior theory of action/skill so challenge is not reduced to abstract decision difficulty"
+    },
+    {
+      "id": "GDF3",
+      "name": "Game Feel / Feedback / Sensorimotor Coupling",
+      "priority": 3,
+      "dependsOn": ["GDF1", "Media Perception/Representation", "Gameplay-Enactment"],
+      "unresolved": ["responsiveness", "latency", "impact", "animation/audio/haptics coupling", "control-response legibility", "expressive motion"],
+      "whyFirst": "embodied action must be defined before feel can be mechanistically separated from audiovisual polish"
+    },
+    {
+      "id": "GDF4",
+      "name": "Time / Rhythm / Pacing",
+      "priority": 4,
+      "dependsOn": ["GDF1", "GDF2", "F5 Time"],
+      "unresolved": ["tempo", "timing windows", "anticipation", "rhythm", "pacing", "temporal commitment", "recovery windows"]
+    },
+    {
+      "id": "GDF5",
+      "name": "Space / Level / Navigation",
+      "priority": 5,
+      "dependsOn": ["GDF1", "Media Perception", "R16 topology"],
+      "unresolved": ["spatial action", "navigation", "level structure", "visibility", "cover/choke/route", "place and embodied movement"]
+    },
+    {
+      "id": "GDF6",
+      "name": "Strategy / Counterplay / Balance",
+      "priority": 6,
+      "dependsOn": ["GDF1", "GDF2", "R19 strategy", "AgencyScaffold/PolicyDifferentiation derived views"],
+      "unresolved": ["counterplay", "dominance", "adaptation", "metagame", "balance", "mixed strategy/value", "strategic legibility"]
+    },
+    {
+      "id": "GDF7",
+      "name": "Discovery / Uncertainty / Knowledge Play",
+      "priority": 7,
+      "dependsOn": ["R17 information", "R22 uncertainty", "Media Representation", "Exploration handoff"],
+      "unresolved": ["curiosity", "information scarcity", "discovery", "mystery", "counterfactual exploration", "knowledge progression"]
+    },
+    {
+      "id": "GDF8",
+      "name": "Social Play / Norm / Institution",
+      "priority": 8,
+      "dependsOn": ["PlayPractice", "GameCategory", "FrameAuthorityLocus", "CategoryFeedback", "R15/R25/R28"],
+      "unresolved": ["social frame repair", "competition/cooperation", "rule legitimacy", "community identity", "institutionalization", "spectatorship"]
+    },
+    {
+      "id": "GDF9",
+      "name": "Creation / Expression / Authorship",
+      "priority": 9,
+      "dependsOn": ["R20", "DynamicEvaluationTopology derived view", "GameStructure/PlayMode separation"],
+      "unresolved": ["creative constraints", "player expression", "authorship", "co-creation", "UGC", "creative play vs non-game creation"]
+    },
+    {
+      "id": "GDF10",
+      "name": "Replay / Persistence / History / Meta",
+      "priority": 10,
+      "dependsOn": ["R13/R23/R24/R27", "PracticeLineageContinuity", "GDF2/GDF6"],
+      "unresolved": ["replay value", "run/campaign/meta progression", "history effects", "practice evolution", "identity continuity"]
+    }
+  ],
+  "selection": {
+    "next": "GDF1 Action / Control / Skill / Embodiment",
+    "reason": "highest foundational leverage and largest depth asymmetry exposed by GDF0; it conditions Challenge, Game Feel, Rhythm, Space and mature mastery and corrects prior Ordivon bias toward information/strategy/system forms"
+  }
+}
