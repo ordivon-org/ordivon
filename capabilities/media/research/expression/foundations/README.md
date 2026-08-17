@@ -28,7 +28,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-B — Experiential State, Content, Phenomenal Character & Structure: **complete / provisional experiential-structure ontology**
 - MF9-C — Conscious Access, Availability, Report & Metacognitive Architecture: **complete / provisional access-report-metacognition ontology**
 - MF9-D — Constitutive Theories I: Global Workspace, Recurrent Processing, Higher-Order & Predictive/Inferential Routes: **complete / provisional theory-comparison frame**
-- Next: **MF9-E — Intrinsic Causal Structure, Integrated Information & Composition/Exclusion**
+- MF9-E — Intrinsic Causal Structure, Integrated Information & Composition/Exclusion: **complete / provisional IIT-intrinsic-causal-structure audit**
+- Next: **MF9-F — Experiential State, Capacity, Sleep, Anesthesia & Disorders of Consciousness**
 
 Current MF5 canonical closeout:
 
@@ -97,6 +98,10 @@ Current MF9-C Conscious access/availability/report/metacognition round:
 Current MF9-D constitutive-theory comparison round:
 
 [`media-foundations-mf9d-20260818.md`](./media-foundations-mf9d-20260818.md)
+
+Current MF9-E IIT/intrinsic-causal-structure round:
+
+[`media-foundations-mf9e-20260818.md`](./media-foundations-mf9e-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
