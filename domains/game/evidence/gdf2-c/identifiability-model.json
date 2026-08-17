@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-c-identifiability-model",
+  "status": "research-candidate",
+  "centralVerdict": "CapabilityOutcomeSurface is not a directly observed Game object. It is a probe-relative research model whose only warranted claims are the surface properties identified under an explicit observation/intervention design; unresolved alternatives remain an equivalence class.",
+  "reconstructions": [
+    {"from":"CapabilityOutcomeSurface as if latent truth object","to":"ChallengeResponseModelFamily + IdentifiedChallengeClaims + UnresolvedEquivalenceClass","reason":"finite observational/probe data generally underdetermine the latent response relation"},
+    {"from":"CapabilityThresholdRegion as directly inferable boundary","to":"CriterionRelativeThresholdClaim","reason":"threshold is identifiable only relative to declared capability coordinates, criterion, model assumptions and probes"},
+    {"from":"CapabilityDiscriminationProfile as directly inferable gradient","to":"ProbeRelativeDiscriminationClaim","reason":"gradient/sensitivity is local, coordinate-dependent and can be confounded by latent heterogeneity/chance without repeated/interventional probes"},
+    {"from":"SkillIndependentOutcomeComponent as residual bucket","to":"AttributionResidualClass","reason":"observational residuals do not identify whether variation is RNG, hidden state, teammate/opponent behavior, system automation or unmodeled capability"},
+    {"from":"ConsequenceRecoveryProfile as one severity vector","to":"RecoveryTransitionSet + QuerySpecificRecoveryCostProjection","reason":"authoritative recovery transitions can be structurally known, but severity/cost aggregation requires an evaluation/query"}
+  ],
+  "researchContracts": [
+    {"name":"ChallengeObservationDesign","definition":"Declares observed variables, sampling population/policy family, repeated-trial structure, seeds/exogenous controls, capability proxies, opponent distributions, assistance/mapping conditions, history state and censoring/selection rules."},
+    {"name":"ChallengeInterventionSet","definition":"Exact ProbeTransformations deliberately applied to capability expression, mapping/assist, opponent policy, exogenous seed/process, evaluation criterion, history/knowledge, or recovery transition while other dimensions are held fixed as far as claimed."},
+    {"name":"IdentifiedChallengeClaim","definition":"A challenge property warranted invariantly across all model members consistent with the current observation+intervention evidence and declared assumptions."},
+    {"name":"ChallengeEquivalenceClass","definition":"The set of distinct latent response/recovery explanations still observationally/interventionally indistinguishable under the current evidence design."},
+    {"name":"IdentificationStatus","values":["structurally-proven","intervention-identified-under-assumptions","statistically-estimated-under-model","bounded-only","unidentified"],"definition":"Epistemic status attached to each threshold/discrimination/feasibility/attribution/recovery claim."}
+  ],
+  "minimumProbeFamilies": [
+    {"id":"P0","name":"StructuralReachabilityProbe","identifies":"feasibility/infeasibility under an exact complete-enough transition/action/horizon model","cannotIdentify":"Human difficulty, learning, stochastic support omitted by the structural model"},
+    {"id":"P1","name":"ControlledCapabilitySweep","identifies":"response differences across known/constructed capability-policy probes and approximate threshold/discrimination along intervened directions","cannotIdentify":"unprobed SkillProfile dimensions or Human equivalence to synthetic controllers"},
+    {"id":"P2","name":"RepeatedSameControllerSeedSweep","identifies":"within-controller/exogenous outcome variability under fixed controller and condition","cannotIdentify":"source label of variance unless seeds/process are actually controlled/observed"},
+    {"id":"P3","name":"MappingAssistIntervention","identifies":"causal shift/flatten/relocation of response claims attributable to exact assist/mapping transformation","cannotIdentify":"PlayerValue or independent learning without separate evidence"},
+    {"id":"P4","name":"OpponentCrossPlayMatrix","identifies":"pairwise/multi-controller interaction response across controlled opponent policies/profiles","cannotIdentify":"all strategic adaptation from a sparse opponent sample"},
+    {"id":"P5","name":"HistoryKnowledgeIntervention","identifies":"causal effect of retained/introduced knowledge/history on current response relation","cannotIdentify":"lower Human memory mechanism by Game data alone"},
+    {"id":"P6","name":"RecoveryTransitionIntervention","identifies":"authoritative continuation/retry/history/resource consequences of alternate recovery rules","cannotIdentify":"one universal failure severity scalar"},
+    {"id":"P7","name":"PopulationTransportAudit","identifies":"whether aggregate pass-rate differences survive standardization/reweighting across observed capability/history strata","cannotIdentify":"latent unobserved selection without stronger assumptions/interventions"}
+  ],
+  "identifiabilityLaws": [
+    "AggregatePassRate does not identify a unique challenge response relation",
+    "SameAggregateOutcome can arise from different response surfaces and/or different participant populations",
+    "ObservedVariance != SkillIndependentRandomness without repeated/controlled attribution probes",
+    "Absolute capability location/scale is not identified without a reference/gauge convention in many response models",
+    "Threshold and discrimination claims are coordinate-, criterion-, scope- and model-relative",
+    "One average assistance effect cannot distinguish threshold shift from flattening or dimension relocation",
+    "Synthetic-agent evidence identifies properties of the probed policy family, not Human SkillProfile by identity",
+    "Structural infeasibility may be proven without player samples only relative to a sufficiently complete action/transition/horizon model",
+    "ObservedPerformance may be nonmonotonic even when attainable capability envelope is monotonic under nested action/policy options",
+    "Population pass rate is a convolution/projection of challenge relation and selected population/history distribution",
+    "Opponent effects require controlled opponent distributions or cross-play; adaptive opponents are not interchangeable with IID noise",
+    "Recovery transitions can be structurally identified while recovery severity remains query/value-relative",
+    "Unidentified alternative explanations must remain explicit rather than being collapsed into a fitted parameter story"
+  ],
+  "multidimensionalResults": [
+    {"id":"M1-compensation-manifold","result":"different timing/strategy SkillProfiles can produce identical outcome probability; a single scalar ability ordering is not identified by outcome alone"},
+    {"id":"M2-directional-discrimination","result":"the same point can have high sensitivity along timing and low sensitivity along strategy or vice versa; discrimination is directional in SkillProfile space"},
+    {"id":"M3-observed-nonmonotonicity","result":"higher latent capability with a changed/riskier selected policy can yield worse observed outcome, so observed performance monotonicity is not a capability law"},
+    {"id":"M4-attainable-envelope","result":"if higher capability strictly contains lower-capability admissible policy options under the same evaluation and conditions, best-attainable performance cannot worsen; this is an option-set property, not an empirical average-performance guarantee"}
+  ],
+  "populationResults": [
+    {"id":"POP1-aggregate-equivalence","result":"a steep skill-sensitive surface under a symmetric mixed population and a flat 50% chance surface can both produce 50% aggregate pass rate"},
+    {"id":"POP2-selection-reversal","result":"a structurally harder/high-threshold level reached only by selected experts can show a higher observed pass rate than an easier level faced by a broad novice-heavy population"},
+    {"id":"POP3-transport","result":"reweighting both levels to a shared capability distribution can reverse the naive aggregate comparison, showing pass-rate difficulty is population-bound"}
+  ],
+  "assistanceResults": [
+    {"id":"AS1-one-average-is-insufficient","result":"different assistance transformations can be parameterized to produce the same mean success gain at one sampled population while having different low/mid/high capability effects"},
+    {"id":"AS2-profile-sweep-identifies-shape","result":"matched assistance evaluation across multiple controlled capability probes distinguishes approximate threshold shift, flattening and dimension relocation"}
+  ],
+  "opponentResults": [
+    {"id":"OP1-aggregate-rating-insufficient","result":"same average win rate can arise from different matchup matrices; pairwise cross-play is needed to expose nontransitive or opponent-specific challenge structure"},
+    {"id":"OP2-opponent-not-rng","result":"changing a strategic opponent policy conditionally changes response to target policy; seed-noise averaging cannot substitute for opponent intervention"}
+  ],
+  "recoveryVerdict": {
+    "retain":"RecoveryTransitionSet",
+    "derived":"QuerySpecificRecoveryCostProjection",
+    "reason":"Game authority can often enumerate exact post-outcome transitions and preserved/lost state directly; any scalar severity combines heterogeneous time/resource/history/social/opportunity costs and belongs to a declared evaluation query"
+  },
+  "surfaceVerdict": {
+    "CapabilityOutcomeSurface":"demote-to-research-model-family",
+    "ChallengeConditionSpec":"retain-strong-evidence-contract",
+    "CapabilityThresholdRegion":"retain-as-identified-claim-type",
+    "CapabilityDiscriminationProfile":"retain-as-identified-claim-type",
+    "FeasibilityRegion":"retain-strong-structural/identified-claim",
+    "SkillIndependentOutcomeComponent":"reconstruct-to-AttributionResidualClass",
+    "OpponentInteractionSurface":"retain-derived-probe-model",
+    "FunctionalDifficultyProjection":"retain-query-only",
+    "ConsequenceRecoveryProfile":"reconstruct-to-RecoveryTransitionSet + query projection"
+  },
+  "externalAnchors": [
+    {"id":"IRTIdentifiability2024","source":"PMC11164782","pressure":"IRT models themselves exhibit translation/scale and higher-parameter identifiability problems; latent location/slope/guessing parameters are not automatically unique from response data"},
+    {"id":"CausalInterventionIdentifiability2023","source":"PMLR v202 Squires et al.","pressure":"distinct latent causal models can be observationally indistinguishable and interventions are necessary for identifiability under the studied setting; motivates explicit intervention/equivalence-class discipline without importing the theorem universally"},
+    {"id":"GamePopulationSelection2020","source":"Roohi et al. arXiv:2008.12937","pressure":"level difficulty/churn predictions improve when evolving population skill/persistence selection is modeled, supporting population-pass-rate separation"},
+    {"id":"PuzzleCompletion2023","source":"Kristensen et al. arXiv:2306.14626","pressure":"AI policy performance can correlate with human completion even without matching human absolute ability; synthetic policies provide structural probes but not Human identity"},
+    {"id":"HapticDifficulty2017","source":"Frontiers Neuroscience 11:242","pressure":"game difficulty and haptic assistance can be independently manipulated, supporting intervention-based separation of task-side and capability-expression-side effects"},
+    {"id":"ExternalAssistance2020","source":"Frontiers Computer Science 2:17","pressure":"different assistance techniques target different core tasks and can alter performance/challenge through different mechanisms, opposing one-dimensional assist=difficulty assumptions"}
+  ],
+  "novelty":{"N0":["latent response models have identifiability/gauge issues; interventions can distinguish otherwise equivalent latent explanations in defined causal settings; game pass-rate models are population dependent; assistance dimensions can be independently manipulated"],"N1":["ChallengeObservationDesign","ChallengeInterventionSet","IdentifiedChallengeClaim","ChallengeEquivalenceClass","IdentificationStatus","RecoveryTransitionSet reconstruction","probe-family identifiability contract"],"N2":[],"N3":[]},
+  "foundationReopen":{"ACS":false,"GDF0":false,"R29":false,"reason":"C tightens epistemic status of downstream challenge models and consumes frozen ProbeTransformation/provenance rather than contradicting semantic/action foundations."}
+}
