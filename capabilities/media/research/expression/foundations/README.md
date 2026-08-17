@@ -28,6 +28,10 @@ Current MF7 canonical closeout:
 
 [`media-foundations-mf7h-20260817.md`](./media-foundations-mf7h-20260817.md)
 
+Current MF0→MF7 program closeout / MF8 handoff:
+
+[`media-foundations-mf0-mf7-closeout-20260817.md`](./media-foundations-mf0-mf7-closeout-20260817.md)
+
 Current durable continuity Task:
 
 `task:media-foundations-mf2h-20260817`
