@@ -13,8 +13,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF4 — Composition Foundations v1: **frozen**
 - MF5 — Space Foundations v1: **frozen** after MF5-I falsification/reconstruction
 - MF6 — Time Foundations v1: **frozen** after MF6-F falsification/reconstruction
-- MF7 — State & Dynamics Foundations: **active / UNFROZEN**; MF7-A complete/provisional
-- Next: **MF7-B — Change, Transition, Process & Dynamics**
+- MF7 — State & Dynamics Foundations: **active / UNFROZEN**; MF7-A→B complete/provisional
+- Next: **MF7-C — Determinism, Stochasticity, Markovianity, Memory & Open Systems**
 
 Current MF5 canonical closeout:
 
@@ -26,7 +26,7 @@ Current MF6 canonical closeout:
 
 Current MF7 frontier:
 
-[`media-foundations-mf7a-20260817.md`](./media-foundations-mf7a-20260817.md)
+[`media-foundations-mf7b-20260817.md`](./media-foundations-mf7b-20260817.md)
 
 Current durable continuity Task:
 
