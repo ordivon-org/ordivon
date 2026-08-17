@@ -46,6 +46,10 @@ const r27 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R27.md", import.meta.url),
   "utf8",
 );
+const r28 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R28.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -181,11 +185,32 @@ test("R27 preserves learning, memory, adaptation and self-model distinctions wit
   assert.match(r27, /No product is selected by R27\./);
 });
 
-test("foundation navigation advances the exact post-R27 continuation frontier", () => {
-  const frontier = /R28 — Culture, Convention, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy and Cultural Change/;
+
+
+test("R28 preserves culture, convention, ritual, meaning, legitimacy and memory distinctions without selecting a product", () => {
+  assert.match(r28, /Culture != Lore/);
+  assert.match(r28, /Culture != Institution/);
+  assert.match(r28, /Convention != Norm/);
+  assert.match(r28, /RepeatedBehavior != Tradition/);
+  assert.match(r28, /Routine != Ritual/);
+  assert.match(r28, /Symbol != Meaning/);
+  assert.match(r28, /SharedBelief != SharedMeaning/);
+  assert.match(r28, /Legality != Legitimacy/);
+  assert.match(r28, /History != CollectiveMemory/);
+  assert.match(r28, /CulturalTransmission != ExactCopy/);
+  assert.match(r28, /CulturalCausality/);
+  assert.match(r28, /CulturalTransmissionTopology/);
+  assert.match(r28, /LegitimacyTopology/);
+  assert.match(r28, /PlayableCulture/);
+  assert.match(r28, /PopulationPrompt \/ SharedWeights/);
+  assert.match(r28, /No product is selected by R28\./);
+});
+
+test("foundation navigation advances the exact post-R28 synthesis frontier", () => {
+  const frontier = /R29 — Whole-Corpus Synthesis, Redundancy Audit, Causal Closure and Foundation Falsification/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
-  assert.match(continuation, /AI Game != Agent World/);
+  assert.match(continuation, /R29 should \*\*attack and compress\*\* the corpus rather than extend it/);
   assert.match(continuation, /Do not begin intentional new-product G0/);
 });
 
@@ -202,6 +227,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R25.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R26.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R27.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R28.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

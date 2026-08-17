@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R27
+title: Ordivon Game Foundations Research Map — R1–R28
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R27 Game foundations corpus, including core distinctions, cross-domain abstractions, motivation, strategy, creation, control/embodiment, uncertainty/risk, time, identity, relationship, affect and persistent Subject change, plus the exact continuation point.
+summary: Compact navigation map for the R1–R28 Game foundations corpus, including core distinctions, cross-domain abstractions, motivation, strategy, creation, control/embodiment, uncertainty/risk, time, identity, relationship, affect, persistent Subject change and culture, plus the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -32,12 +32,13 @@ related:
   - game.foundations-research.r25
   - game.foundations-research.r26
   - game.foundations-research.r27
+  - game.foundations-research.r28
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md), [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md), and [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md), [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md), [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md), and [`GAME_FOUNDATIONS_RESEARCH_R28.md`](GAME_FOUNDATIONS_RESEARCH_R28.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -51,7 +52,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R27 index
+## R1–R28 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -82,6 +83,7 @@ No new product has been selected.
 | R25 | Relationship / social bond | Relationship is persistent multi-layer relational structure rather than one affection/trust score; directed and shared state, attachment, intimacy, trust, commitment, obligation, reciprocity, dependence, rivalry and repair separate; dyadic strength differs from network value; relationships must be playable. |
 | R26 | Emotion / affect | Affect differs from Emotion; emotion is a temporally coordinated appraisal-linked episode rather than one scalar; feeling, mood, expression, regulation and empathy separate; affect becomes gameplay when it changes meaningful futures. |
 | R27 | Learning / persistent Subject change | Experience, performance, adaptation, memory, belief revision, skill/habit, personality and self-model separate; Learning is retained experience-linked future difference; Persistent Subject Change and its update topology/authority/provenance become first-class. |
+| R28 | Culture / shared meaning | Culture is distributed socially reproduced structure rather than lore/group essence; convention, custom, tradition, ritual, symbol, shared meaning, legitimacy, collective memory and transmission/change separate; Culture becomes playable through learnable/influenceable cultural causality. |
 
 ## Current multidimensional GameForm model
 
@@ -501,6 +503,46 @@ Treat personality first as slow cross-situational regularity/compression; add ca
 Require explicit target/update/retention/provenance when persistent Agents are claimed to learn.
 ```
 
+R28 adds the cultural layer:
+
+```text
+Culture != Lore != Group != Consensus
+Culture != Institution != Norm != CollectiveIdentity
+Convention != Norm != Rule
+Custom != Habit
+Tradition != Oldness != UnchangedForm
+Routine != Ritual != Tradition
+Signal != Sign != Symbol
+Symbol != Meaning
+SharedMeaning != SharedBelief != IdenticalPrivateMeaning
+Legality != Legitimacy != Power
+History != CollectiveMemory != Archive
+CulturalTransmission != ExactCopy
+SameBehavior != SameCulture
+PopulationPrompt / SharedWeights != Diegetic Cultural Transmission
+```
+
+```text
+Culture =
+DistributedInternalizations
++ PublicPractices / Artifacts / Symbols
++ recurrent Interpretation / Expectations
++ TransmissionTopology
++ reproduction / transformation through time
+```
+
+R28 adds `CulturalDistribution`, `CulturalTopology`, `CulturalContinuity`, `CulturalTransmissionTopology`, `CulturalProvenance`, `LegitimacyTopology`, `CulturalCausality`, `RitualCausality`, `SymbolicCausality`, `TraditionCausality`, `CulturalAgency` and `PlayableCulture`.
+
+R28 discipline:
+
+```text
+Do not infer culture from group labels, common prompts or behavioral similarity.
+Treat culture as distributed and potentially contested rather than homogeneous.
+Separate social transmission/provenance from independent convergence.
+Make symbol/ritual/legitimacy/memory causal only where they change meaningful futures.
+Authored culture is valid; online cultural evolution is optional.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -600,6 +642,7 @@ PlayableContinuity
 PlayableRelationship
 PlayableLearning
 PlayableAdaptation
+PlayableCulture
 ```
 
 Generalized:
@@ -791,18 +834,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R27 is complete. Continue with:
+R28 is complete. Continue with:
 
 ```text
-R28 — Culture, Convention, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy and Cultural Change
+R29 — Whole-Corpus Synthesis, Redundancy Audit, Causal Closure and Foundation Falsification
 ```
 
 Primary transition:
 
 ```text
-R27: How does experience persistently change an individual Subject?
+R28: How do cultural structures persist and transform across Subjects/time?
 →
-R28: How do meanings, expectations, practices and symbols become shared, transmitted and self-reproducing across Subjects and generations?
+R29: Which R1–R28 foundations are genuinely independent, causally necessary and sufficient across Game forms — and which are redundant projections?
 ```
 
-Do not select a product before R28 and the subsequent whole-corpus synthesis/falsification pass.
+R29 should attack/compress the corpus rather than add another domain noun. Do not select a product before this synthesis/falsification pass.
