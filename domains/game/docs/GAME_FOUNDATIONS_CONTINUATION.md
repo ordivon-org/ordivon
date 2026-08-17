@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R26 without depending on the originating conversation context.
+summary: Exact continuity handoff for resuming the Game foundations programme after R1–R27 without depending on conversation context.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -31,6 +31,7 @@ related:
   - game.foundations-research.r24
   - game.foundations-research.r25
   - game.foundations-research.r26
+  - game.foundations-research.r27
   - game.foundations-research.map
   - game.core-research.reset
 ---
@@ -38,14 +39,12 @@ related:
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md) — canonical R26 affect/emotion decomposition.
-2. [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md) — canonical R25 relationship/social-bond decomposition.
-3. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R25 map.
-4. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — identity/continuity layer to which relationship edges bind.
-5. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — trust/reliability/reciprocity/strategy layer.
-6. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — relational value/motivation/commitment layer.
-7. [`GAME_FOUNDATIONS_RESEARCH_R13_R17.md`](GAME_FOUNDATIONS_RESEARCH_R13_R17.md) if present is not canonical; use [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) for R13–R17 history/institution/information foundations.
-8. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+1. [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md) — canonical learning/adaptation/persistent-change synthesis.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R27 map.
+3. [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md) — affect/emotion layer feeding and being changed by learning.
+4. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — identity/self-model continuity.
+5. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — especially R12 feedback, R13 memory/history/learning, R15 norm/institution and R17 information/belief.
+6. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
 
 ## Stable global boundary
 
@@ -58,268 +57,218 @@ Research rounds != G0–G8
 
 ## Current status
 
-R1–R26 are complete. Exact next frontier is now a synthesis-oriented pass over Learning / Adaptation / Memory / Belief revision / Personality / Self-model, subject to the canonical map rather than a product assumption.
-
-## R25 durable result
-
-### Core relational definition
+R1–R27 are complete. Exact next round:
 
 ```text
-Relationship(i,j) =
-persistent relational structure connecting i and j
-such that retained history/current relational state changes
-future affordances, value, expectations, vulnerability,
-obligations, information or policy relative to unrelated entities
+R28 — Culture, Convention, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy and Cultural Change
 ```
 
-### Four-layer Relational State
+## R27 durable result
 
 ```text
-RelationalState(i,j) =
-DirectedState(i→j)
-+ DirectedState(j→i)
-+ SharedDyadicState(i↔j)
-+ External/InstitutionalRelation(i,j)
+Experience != Learning
+PerformanceChange != Learning
+Improvement != Learning
+Learning != Adaptation
+Learning != Memory
+Memory != Storage
+Memory != History
+Retrieval != Replay
+Forgetting != Deletion
+BeliefRevision != InformationAcquisition
+BeliefRevision != TruthConvergence
+Learning != BeliefRevision
+Skill != Knowledge
+Habit != Goal
+Personality != Identity
+Personality != Mood
+PersonalityStability != BehavioralRigidity
+SelfModel != Self
+SelfModel != IdentityAuthority
+SelfModel != WorldTruth
+ModelFineTuning != CharacterLearning by default
 ```
 
-A relationship may be asymmetric, negative, one-sided in some components or maintained through long absence.
-
-### Core separations
+### Learning
 
 ```text
-Interaction != Relationship
-RepeatedInteraction != Relationship by itself
-Relationship != Attitude
-Relationship != OneScalar
-Relationship != PositiveValence
-Mutuality != Symmetry != Reciprocity
-Attachment != Relationship
-Attachment != Dependence
-Trust != Liking
-Trust != Reliability
-Intimacy != InformationQuantity
-Disclosure != Intimacy
-Commitment != Satisfaction
-Commitment != Attachment
-Commitment != Dependence
-Loyalty != Obedience
-Obligation != Affection
-Reciprocity != ExactAccounting
-Alliance != Friendship
-Competition != Rivalry
-Conflict != Enmity
-Betrayal != AnyHarm
-Apology != Repair
-Forgiveness != Reconciliation
-RelationshipEnd != HistoryErase
-TieStrength != NetworkValue
-GeneratedWarmth != RelationshipHistory
+Learning =
+experience/evidence-linked retained update
+that makes a relevant future inference, prediction,
+evaluation, selection, control or policy counterfactually different
 ```
 
-### Relational Authority
+Learning can be latent, maladaptive and not immediately visible in performance.
+
+### Persistent Subject Change
 
 ```text
-RelationalAuthority =
-which Subject / joint commitment / institution / World authority
-owns a particular relational claim or consequence
+PersistentSubjectChange =
+retained change to one or more Subject layers
+whose causal effects survive the immediate episode
+and alter later state transitions / reachable policies
 ```
 
-A likes B, B trusts A, A+B signed a pact and the public believes they are enemies can all coexist.
+Learning is the experience-linked subset; development and adaptation can include other change sources.
 
-### Relational compression
+### Learning Target Topology
+
+Targets can include:
 
 ```text
-InteractionHistory
-→ salience/interpretation
-→ trust evidence / commitments / unresolved harms /
-   obligations / boundaries / milestones / dispositions
-→ future policy
+Belief / world model
+Value / incentive
+Preference / goal policy
+Action policy
+Skill / control mapping
+Habit
+Attention / salience
+Risk calibration
+Relationship expectation
+Identity content / self-model
+Affective appraisal / regulation
+Meta-learning rule
 ```
 
-Routine episodes may compress; still-binding promise/debt/betrayal/boundary claims need adequate provenance.
-
-### Attachment / care / intimacy
+### Memory
 
 ```text
-Attachment = target-specific security/proximity/bond function where relevant
-Care(i→j) = j's welfare/need enters i's evaluative/action structure
-Intimacy = self-relevant disclosure/access + responsive understanding/recognition under boundaries/vulnerability
+Memory = past-derived trace/information/state
+that becomes functionally available
+to influence current/future cognition or action
 ```
 
-Raw dependence, information access and liking are insufficient.
+`StoredPast != FunctionalMemory`. Memory may be episodic, semantic/world-model, procedural/skill, habit/policy, affective, relational, self/identity or external/institutional in role; these are functional distinctions, not mandatory biological modules.
 
-### Communal / exchange norms
+Useful pipeline:
 
 ```text
-Communal: benefit responds primarily to need/welfare
-Exchange: benefit tracks comparable return/claim/accounting
+Experience
+→ encoding / trace
+→ consolidation / compression
+→ retained trace
+→ retrieval cue
+→ reconstruction / activation
+→ current use
+→ possible update / re-storage
 ```
 
-One relationship may use different regimes in different domains.
-
-### Trust / reliability
-
-Preserve R19:
+### Belief revision
 
 ```text
-Trust(j→i) = willingness to accept vulnerability to i
-based on beliefs about future behavior and/or binding commitments
+BeliefRevision = epistemic Learning
 ```
+
+New information need not change belief; revision need not converge to truth. Noise, volatility, provenance and source reliability can alter evidence weighting.
+
+### Skill / habit / adaptation
 
 ```text
-Reliability = evidence/prediction of consistency
+Skill = learned reliable task ability
+Habit = learned cue/context-linked policy relatively less sensitive to current outcome-value/goal reasoning
+Adaptation = changed actor–environment fit under current conditions
 ```
 
-Trust is directional and domain-specific.
+Adaptation can occur without durable learning; learning can occur before any adaptive performance gain becomes visible.
 
-### Commitment / investment / loyalty
+### Personality / Self-model
 
 ```text
-RelationshipCommitment = persistent orientation to maintain/protect/continue relation or obligations
-RelationshipInvestment = resources/history/opportunities/identity/social structure stranded or transformed by exit
-Loyalty = disposition/commitment to preserve/support/not betray target under meaningful competing incentives
+Personality = slow cross-situational/time distribution or regularity
+of appraisal, affect, motivation and policy
 ```
 
-Satisfaction, alternatives, investments, attachment and dependence remain separate.
-
-### Obligation / debt / reciprocity
+Treat it first as descriptive compression; make a trait causal only when lower layers cannot preserve the required counterfactual.
 
 ```text
-Obligation = directed normative/institutional/commitment-grounded requirement
-Debt = specific owed-claim relation
-Reciprocity = policy/norm conditioned on prior treatment/return
+SelfModel = self-referential Belief/Model
+about own identity, capability, state, history, motives,
+roles, relationships, commitments and likely behavior
 ```
 
-Do not convert all relationship value into a ledger.
+False self-models can causally change policy without changing objective capability or identity truth.
 
-### Dependence / interdependence
+### New R27 abstractions
 
 ```text
-Dependence(i→j) = i's valued outcomes/options materially conditioned by j
-Interdependence = material mutual dependence
+LearningTargetTopology
+PersistentSubjectChange
+PersistentChangeTopology
+UpdateAuthority
+UpdateProvenance
+LearningCausality
+AdaptationCausality
+LearningContract
+PlayableLearning
+PlayableAdaptation
 ```
 
-Interdependence can be adversarial and does not itself establish relationship.
-
-### Rivalry / enmity / alliance
+### Learning Contract
 
 ```text
-Alliance = recognized strategic cooperation/support relation
-Rivalry = persistent opponent-specific competition/history
-Enmity = persistent adversarial target-specific relation
+WhatCanChange
+FromWhatEvidence
+WhoCanUpdateIt
+UpdateTimescale
+RetentionBoundary
+GeneralizationScope
+ForgettingRule
+ResetRule
+Observability
+Reversibility
 ```
 
-They are not synonyms for friendship, competition or conflict.
-
-### Relationship Causality
+### Player / character / implementation separation
 
 ```text
-RelationshipCausality =
-otherwise comparable action/world state
-+ different relationship state/history
-→ materially different valued future
+PlayerLearning
+!= CharacterLearning
+!= AgentImplementationLearning
 ```
 
-### Relationship Topology
+A fixed boss can support deep player learning. A scripted authored character can diegetically learn. Long context can imitate local adaptation without durable learning. Model fine-tuning does not automatically mean the character learned from diegetic experience.
+
+## R28 frontier
+
+R15 defined norms/institutions, but Culture itself remains under-founded. R28 should distinguish at least:
 
 ```text
-RelationshipTopology =
-multi-relational graph with multiplex edges such as
-friendship / trust / debt / kinship / rivalry / command /
-alliance / care / dependence / information access
+Culture
+Convention
+Norm
+Custom
+Tradition
+Ritual
+Symbol
+Meaning
+Shared Meaning
+Collective Memory
+Transmission
+Legitimacy
+Ideology
+Subculture
+Cultural Change
 ```
+
+High-priority warnings:
 
 ```text
-TieStrength != NetworkValue
+Institution != Culture
+Norm != Culture
+CollectiveIdentity != Culture
+RepeatedBehavior != Tradition
+SharedBelief != SharedMeaning
+Symbol != Meaning
+Legality != Legitimacy
+PopulationPrompt != Culture
 ```
 
-Weak ties may bridge clusters and matter greatly to information/topology.
+Core R28 question:
 
-### Relational Contract / boundaries / consent
+> How do meanings, expectations, practices and symbols become shared, transmitted and self-reproducing across Subjects and generations?
 
-```text
-RelationalContract =
-explicit/implicit expectations + boundaries + commitments + repair/exit norms
-```
+Connect R13 history/memory, R15 norms/institutions, R17 information, R18 value, R19 conventions, R20 expression/taste, R24 collective identity, R25 networks and R27 learning/transmission.
 
-```text
-Boundary = relation/domain-specific constraint on acceptable access/action/claim/disclosure
-Consent = scoped/contextual authorization
-```
+## Product-selection stop condition
 
-Relationship status never creates blanket consent.
-
-### Betrayal / repair / reconciliation
-
-```text
-Betrayal = relational transgression against prior trust/commitment/expectation under vulnerability
-Repair = process changing damaged evidence/expectations/trust/boundaries/commitments
-Forgiveness != Reconciliation
-```
-
-Apology text alone is not repair.
-
-### Relational Agency
-
-```text
-RelationalAgency =
-capacity to shape, maintain, contest, repair, redefine, deepen or exit relation
-through consequential choices
-```
-
-It never means unilateral authority to overwrite another Subject's attitude.
-
-### Human–AI relational layers
-
-```text
-HumanExperiencedRelation
-SystemAuthoritativeRelationalState
-Agent/CharacterSubjectiveState (only if modeled/fictionally asserted)
-```
-
-Human attachment to an AI does not prove reciprocal AI phenomenology. A system can still provide causally grounded relational continuity through history, policy, boundaries and commitments without claiming sentience.
-
-### Playable Relationship
-
-```text
-PlayableRelationship =
-persistent relational structure whose relevant history,
-expectations, vulnerabilities, commitments and transformations
-can be perceived/inferred/influenced enough that
-relational differences change meaningful future possibilities
-```
-
-### Minimum relational complexity
-
-```text
-RL0 no persistent relation
-RL1 directed trace
-RL2 multi-dimensional dyad
-RL3 shared/joint state
-RL4 transformation/betrayal/repair/separation
-RL5 multi-relational social ecology
-```
-
-Not a maturity ladder.
-
-## Research boundary
-
-No product winner exists. Relationships need not be romantic, positive, reciprocal, symmetric, explicit-metered, LLM-driven or maximally realistic. Keep authored characters, family/care, friendship, rivalry/enmity, alliance, exchange, institutions, creative collaboration, social networks, roleplay and persistent/generative Agent forms open.
-
-## Exact frontier
-
-R1–R26 are complete. Exact next frontier:
-
-```text
-Learning / Adaptation / Memory / Belief revision / Personality / Self-model
-```
-
-Primary transition:
-
-```text
-R26: What changes inside a Subject when events are affectively significant?
-→
-Next: How do persistent Subjects learn, adapt, remember, revise beliefs and maintain a self-model across time?
-```
-
-Do not select a product before this remaining foundation synthesis has been pressure-tested against the canonical map.
+Do not begin intentional new-product G0 before R28 and the subsequent whole-corpus synthesis/falsification pass have tested which dimensions are genuinely independent and which are redundant projections.

@@ -42,6 +42,10 @@ const r26 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R26.md", import.meta.url),
   "utf8",
 );
+const r27 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R27.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -160,12 +164,29 @@ test("R25 preserves relational-state, trust, intimacy, reciprocity and AI-bounda
   assert.match(r25, /No product is selected by R25\./);
 });
 
-test("foundation navigation advances the exact post-R26 synthesis frontier", () => {
-  const frontier = /Learning \/ Adaptation \/ Memory \/ Belief revision \/ Personality \/ Self-model/;
+
+
+test("R27 preserves learning, memory, adaptation and self-model distinctions without selecting a product", () => {
+  assert.match(r27, /PerformanceChange != Learning/);
+  assert.match(r27, /Learning != Adaptation/);
+  assert.match(r27, /Memory != Storage/);
+  assert.match(r27, /BeliefRevision != InformationAcquisition/);
+  assert.match(r27, /PersistentSubjectChange/);
+  assert.match(r27, /LearningTargetTopology/);
+  assert.match(r27, /UpdateAuthority/);
+  assert.match(r27, /LearningCausality/);
+  assert.match(r27, /LearningContract/);
+  assert.match(r27, /PlayableLearning/);
+  assert.match(r27, /ModelFineTuning != CharacterLearning by default/);
+  assert.match(r27, /No product is selected by R27\./);
+});
+
+test("foundation navigation advances the exact post-R27 continuation frontier", () => {
+  const frontier = /R28 — Culture, Convention, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy and Cultural Change/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
-  assert.match(continuation, /R1–R26 are complete/);
+  assert.match(continuation, /Do not begin intentional new-product G0/);
 });
 
 test("foundation research records are managed repository documentation", () => {
@@ -180,6 +201,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R24.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R25.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R26.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R27.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

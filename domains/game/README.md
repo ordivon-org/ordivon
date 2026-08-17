@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R25 foundations corpus without selecting a new product.
+summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R27 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -58,8 +58,10 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R23.md`](docs/GAME_FOUNDATIONS_RESEARCH_R23.md) decomposes temporal frames, sequence/order, simultaneity/concurrency, duration/timing/tempo/rhythm, turns/phases/ticks, windows/deadlines, waiting, persistence and reversibility, and introduces Temporal Causality, Temporal Agency, Temporal Contract and Playable Temporality without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R24.md`](docs/GAME_FOUNDATIONS_RESEARCH_R24.md) separates entity identity, self-model, character, persona, role, social identity, identifiers, recognition, status, rank, reputation and continuity, and introduces Continuity Profile, Identity Authority, Identity/Recognition Topology, Identity Causality, Playable Identity and Playable Continuity without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R25.md`](docs/GAME_FOUNDATIONS_RESEARCH_R25.md) decomposes persistent relational state across directed, shared and institutional layers; separates attachment, care, intimacy, trust, reliability, commitment, loyalty, obligation, reciprocity, dependence, communal/exchange norms, rivalry, betrayal and repair; and introduces Relational Authority, Relationship Causality/Topology, Relational Contract/Affordance/Agency and Playable Relationship without selecting a product.
-- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R25 foundations corpus and its cross-domain abstractions.
-- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R25 the next frontier is R26 Emotion / Affect / Feeling / Mood / Valence / Arousal / Appraisal / Regulation / Empathy / Expression.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R26.md`](docs/GAME_FOUNDATIONS_RESEARCH_R26.md) decomposes Affect, Emotion, Feeling, Mood, Valence, Arousal, Appraisal, Action Tendency, Regulation, Expression and Empathy; emotion is a coordinated temporal episode rather than one scalar, and affective state becomes gameplay only through causal future differences.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R27.md`](docs/GAME_FOUNDATIONS_RESEARCH_R27.md) synthesizes Learning, Adaptation, Memory, Belief Revision, Skill/Habit, Personality and Self-model as Persistent Subject Change, with explicit update targets, authority, provenance, causality, contracts and playable learning/adaptation.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R27 foundations corpus and its cross-domain abstractions.
+- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R27 the next frontier is R28 Culture / Convention / Tradition / Ritual / Symbol / Shared Meaning / Legitimacy / Cultural Change.
 - [`docs/GAME_CORE_DIRECTION_SPACE.md`](docs/GAME_CORE_DIRECTION_SPACE.md) maps the early Core → Experience search space, missing dimensions, and experimental contract.
 - [`docs/GAME_CORE_EXPERIMENT_FINDINGS.md`](docs/GAME_CORE_EXPERIMENT_FINDINGS.md) records what Station Zero, Casefile, Last Light, and Echo Hunt actually established without promoting a product winner.
 - [`docs/GAME_CORE_EXPERIMENT_CASEFILE.md`](docs/GAME_CORE_EXPERIMENT_CASEFILE.md) retains exact Casefile engineering/blind-play evidence as an epistemic Game Core treatment.

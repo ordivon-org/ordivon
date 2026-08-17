@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R25
+title: Ordivon Game Foundations Research Map — R1–R27
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R25 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk, temporal, identity/continuity and relational structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R27 Game foundations corpus, including core distinctions, cross-domain abstractions, motivation, strategy, creation, control/embodiment, uncertainty/risk, time, identity, relationship, affect and persistent Subject change, plus the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -30,12 +30,14 @@ related:
   - game.foundations-research.r23
   - game.foundations-research.r24
   - game.foundations-research.r25
+  - game.foundations-research.r26
+  - game.foundations-research.r27
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), and [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md), [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md), and [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -49,7 +51,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R25 index
+## R1–R27 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -78,6 +80,8 @@ No new product has been selected.
 | R23 | Time / temporality | Time is multi-frame relational structure rather than one clock; ClockOrder differs from CausalOrder; Simultaneity differs from Concurrency; Turn/Phase/Tick and Duration/Timing/Tempo/Rhythm/Pacing separate; waiting, persistence and reversibility can carry causal value; temporality must be playable. |
 | R24 | Identity / continuity | Entity identity differs from similarity, memory, body, persona, role, recognition and reputation; continuity is authority/domain-relative; clone/fork, disguise, succession and model migration require explicit lineage/recognition semantics; identity must be playable. |
 | R25 | Relationship / social bond | Relationship is persistent multi-layer relational structure rather than one affection/trust score; directed and shared state, attachment, intimacy, trust, commitment, obligation, reciprocity, dependence, rivalry and repair separate; dyadic strength differs from network value; relationships must be playable. |
+| R26 | Emotion / affect | Affect differs from Emotion; emotion is a temporally coordinated appraisal-linked episode rather than one scalar; feeling, mood, expression, regulation and empathy separate; affect becomes gameplay when it changes meaningful futures. |
+| R27 | Learning / persistent Subject change | Experience, performance, adaptation, memory, belief revision, skill/habit, personality and self-model separate; Learning is retained experience-linked future difference; Persistent Subject Change and its update topology/authority/provenance become first-class. |
 
 ## Current multidimensional GameForm model
 
@@ -456,6 +460,47 @@ Treat relationship development as multidimensional transformation, not monotonic
 Separate human-experienced AI relationship from system relational state and any claimed Agent subjectivity.
 ```
 
+R27 adds the persistent-change layer:
+
+```text
+Experience != Learning
+PerformanceChange != Learning
+Learning != Adaptation
+Learning != Memory
+Memory != Storage != History
+Retrieval != Replay
+Forgetting != Deletion
+BeliefRevision != InformationAcquisition != TruthConvergence
+Skill != Knowledge
+Personality != Identity != Mood
+SelfModel != IdentityAuthority != WorldTruth
+ModelFineTuning != CharacterLearning by default
+```
+
+```text
+PersistentSubjectChange =
+retained change to one or more Subject layers
+whose causal effects survive the immediate episode
+and alter later transitions / reachable policies
+
+LearningCausality =
+past experience difference
+→ retained update
+→ later Subject difference
+```
+
+R27 adds `LearningTargetTopology`, `PersistentChangeTopology`, `UpdateAuthority`, `UpdateProvenance`, `LearningCausality`, `AdaptationCausality`, `LearningContract`, `PlayableLearning` and `PlayableAdaptation`.
+
+R27 discipline:
+
+```text
+Do not infer learning from current performance alone.
+Do not call stored bytes functional memory unless past state changes current/future cognition or action.
+Keep belief, skill, habit, relationship, identity/self-model and regulation as distinct learning targets.
+Treat personality first as slow cross-situational regularity/compression; add causal traits only when needed.
+Require explicit target/update/retention/provenance when persistent Agents are claimed to learn.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -553,6 +598,8 @@ PlayableTemporality
 PlayableIdentity
 PlayableContinuity
 PlayableRelationship
+PlayableLearning
+PlayableAdaptation
 ```
 
 Generalized:
@@ -744,53 +791,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R25 is complete. Continue with:
+R27 is complete. Continue with:
 
 ```text
-R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression
+R28 — Culture, Convention, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy and Cultural Change
 ```
 
 Primary transition:
 
 ```text
-R25: What persistent structure exists between Subjects?
+R27: How does experience persistently change an individual Subject?
 →
-R26: What changes inside a Subject when events are affectively significant, and how do those states shape perception, action, memory, relationship and expression?
+R28: How do meanings, expectations, practices and symbols become shared, transmitted and self-reproducing across Subjects and generations?
 ```
 
-Do not select a product before R26 and the remaining adjacent foundational dimensions have been examined and then synthesized.
-
-
-## R26 — Emotion / Affect / Feeling / Mood / Appraisal
-
-```text
-Affect != Emotion
-Emotion != OneScalar
-Valence != Value != Reward
-Arousal != Motivation
-Emotion != Action
-ActionTendency != Action
-Feeling != EmotionWhole
-Mood != LongEmotion
-Appraisal != GenericThought
-EmotionRegulation != Suppression
-Expression != InternalAffect
-Expression != EmotionTruth
-EmotionRecognition != EmotionAccess
-Empathy != Contagion != PerspectiveTaking != Compassion != Care
-RelationalEmotion depends on relational appraisal/history
-Emotion can causally alter attention, memory, uncertainty processing and action readiness
-Emotion becomes gameplay when affective counterfactuals change meaningful futures
-```
-
-Candidate causal grammar:
-
-```text
-World / Body / Memory / Relationship / Goal / Norm / Uncertainty
-→ Appraisal → Affective significance → Emotion episode
-→ attention / action tendency / physiology / feeling / expression
-→ regulation / action / learning
-→ World / Relation change → re-appraisal
-```
-
-R26 is complete. Next frontier is synthesis-oriented: Learning / Adaptation / Memory / Belief revision / Personality / Self-model, subject to the remaining canonical map.
+Do not select a product before R28 and the subsequent whole-corpus synthesis/falsification pass.
