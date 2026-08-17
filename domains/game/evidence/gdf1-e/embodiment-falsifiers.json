@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-e-embodiment-falsifiers",
+  "epistemicBoundary": {
+    "proves": [
+      "visual avatar scale and authoritative collision reachability can vary independently in a declared Game model",
+      "collision/passability and vulnerability/damage roles can vary independently",
+      "tool mediation can expand reachable action space without a structural requirement for subjective ownership",
+      "remote control can be effective without anatomical continuity or structural self-location requirement",
+      "sensor and effector envelopes are independent control constraints",
+      "ownership/agency/objective-control targets are logically non-identical",
+      "a sparse ActionCouplingProfile can be optional for symbolic forms and richer for body/tool-coupled forms"
+    ],
+    "doesNotProve": [
+      "human body ownership, self-location or agency effect sizes",
+      "that visual avatar changes never influence performance",
+      "that tools are never experienced as owned/embodied",
+      "a neural body-schema theory",
+      "that every Game needs an ActionCouplingProfile object in implementation"
+    ]
+  },
+  "visualOnlyRescale": {
+    "before": {
+      "avatarMeshScale": 1,
+      "collisionWidth": 0.8
+    },
+    "after": {
+      "avatarMeshScale": 0.5,
+      "collisionWidth": 0.8
+    },
+    "structuralPassabilityUnchanged": true
+  },
+  "collisionOnlyRescale": {
+    "before": {
+      "avatarMeshScale": 1,
+      "collisionWidth": 0.8
+    },
+    "after": {
+      "avatarMeshScale": 1,
+      "collisionWidth": 1.2
+    },
+    "passabilityChanged": true,
+    "visualAvatarUnchanged": true
+  },
+  "collisionVsVulnerability": {
+    "sameCollision": {
+      "collisionWidth": 0.8
+    },
+    "narrowVulnerability": {
+      "vulnerabilityWidth": 0.4
+    },
+    "wideVulnerability": {
+      "vulnerabilityWidth": 1
+    },
+    "movementPassabilitySame": true,
+    "damageExposureDifferent": true
+  },
+  "toolExtension": {
+    "bareReach": 0.7,
+    "toolReach": 1.7,
+    "reachableSetExpanded": true,
+    "bodyOwnershipRequiredByStructuralModel": false
+  },
+  "remoteControl": {
+    "inputEffectorLocation": 0,
+    "controlLocusLocation": 4,
+    "anatomicalContinuity": false,
+    "gameActionEffective": true,
+    "selfLocationRequiredByStructuralModel": false
+  },
+  "sensorEffector": {
+    "configurationA": {
+      "sensorRange": 10,
+      "effectorRange": 2
+    },
+    "configurationB": {
+      "sensorRange": 4,
+      "effectorRange": 2
+    },
+    "sameEffectorReach": true,
+    "differentInformationAccess": true
+  },
+  "agencyOwnershipLogicalTable": [
+    {
+      "case": "owned-and-controlled",
+      "objectiveControl": true,
+      "ownershipEvidenceTarget": true,
+      "agencyEvidenceTarget": true
+    },
+    {
+      "case": "controlled-external-object",
+      "objectiveControl": true,
+      "ownershipEvidenceTarget": false,
+      "agencyEvidenceTarget": true
+    },
+    {
+      "case": "passively-moved-owned-object",
+      "objectiveControl": false,
+      "ownershipEvidenceTarget": true,
+      "agencyEvidenceTarget": false
+    }
+  ],
+  "agencyOwnership": {
+    "ownershipNotNecessaryForObjectiveControl": true,
+    "agencyNotNecessaryForOwnership": true
+  },
+  "actionCouplingProjection": {
+    "symbolicChess": {
+      "fieldsPresent": [
+        "control mapping",
+        "control locus"
+      ],
+      "embodiedFieldsRequired": false
+    },
+    "vrClimb": {
+      "fieldsPresent": [
+        "sensor envelope",
+        "effector envelope",
+        "control mapping",
+        "control locus",
+        "morphology/reach geometry",
+        "collision geometry",
+        "vulnerability/consequence geometry"
+      ],
+      "embodiedFieldsRequired": true
+    },
+    "racingVehicle": {
+      "fieldsPresent": [
+        "control mapping",
+        "control locus",
+        "tool/vehicle mediation",
+        "collision geometry",
+        "dynamic/inertial constraints"
+      ],
+      "embodiedFieldsRequired": true
+    }
+  }
+}
