@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R21
+title: Ordivon Game Foundations Research Map — R1–R22
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R21 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative and control/embodiment structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R22 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment and uncertainty/risk structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -26,12 +26,13 @@ related:
   - game.foundations-research.r19
   - game.foundations-research.r20
   - game.foundations-research.r21
+  - game.foundations-research.r22
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), and [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), and [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -45,7 +46,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R21 index
+## R1–R22 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -70,6 +71,7 @@ No new product has been selected.
 | R19 | Strategic interdependence | Strategic relevance depends on policy-contingent mutual consequence; conflict/competition/cooperation/coordination differ; bargaining needs outside options and commitment; equilibrium is an incentive diagnostic; strategy must be playable. |
 | R20 | Creation / authorship | Creation, Creativity, Expression and Authorship are distinct; creative possibility is structured by material/tool/grammar/constraint; authorship follows meaningful decision locus rather than raw output share; generation is only one mechanism. |
 | R21 | Embodiment / control | Intent, Input, Command, Action and Outcome are distinct; Control Locus is broader than Avatar/Body; agency, body ownership and presence separate; affordance is relational; shared/delegated control must preserve intent; control must be playable. |
+| R22 | Uncertainty / risk | Uncertainty, randomness and unpredictability differ; deterministic systems can remain unpredictable; risk is distributional, Decision Quality differs from Outcome Quality; fairness is procedural/distributive/informational rather than equality alone; uncertainty must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -284,6 +286,55 @@ Do not hide assistance/control authority when attribution matters.
 Preserve resistance that carries intended skill/fantasy; remove access overhead.
 ```
 
+R22 adds the uncertainty/risk layer:
+
+```text
+Uncertainty != Randomness != Unpredictability
+Probability != Uncertainty itself
+Risk != Variance != ExpectedValue
+Luck != Randomness
+Fairness != Symmetry != OutcomeEquality != Balance
+DecisionQuality != OutcomeQuality
+```
+
+```text
+UncertaintyTopology =
+who/model is uncertain
++ uncertain object
++ source
++ model boundary
++ reducibility
++ realization time
++ observability
++ controllability
++ stakes
++ update path
+```
+
+R22 adds:
+
+```text
+OutcomeContributionTopology =
+which choice / skill / opponent / hidden-state / random / system factors shaped realization
+
+DistributionalAgency =
+ability to change meaningful outcome distributions
+without selecting exact realization
+
+UncertaintyContract =
+what is hidden/random/learnable/control-sensitive and how resolution works
+```
+
+R22 discipline:
+
+```text
+Evaluate uncertain decisions ex ante, not from one sample alone.
+Use distributions, not expected value alone, when tails/path/ruin matter.
+Treat randomness placement relative to commitment as a first-class design variable.
+Separate fair procedure from equal outcome.
+Separate sampling variation from model/knowledge uncertainty in generative systems.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -375,6 +426,8 @@ PlayableCreation
 PlayableExpression
 PlayableControl
 PlayableEmbodiment
+PlayableUncertainty
+PlayableRisk
 ```
 
 Generalized:
@@ -566,18 +619,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R21 is complete. Continue with:
+R22 is complete. Continue with:
 
 ```text
-R22 — Uncertainty, Probability, Randomness, Risk, Luck, Variance, Determinism and Fairness
+R23 — Time, Sequence, Simultaneity, Duration, Timing, Rhythm, Turn, Cooldown, Deadline and Temporal Agency
 ```
 
 Primary transition:
 
 ```text
-R21: How does intent become controlled and attributable action?
+R22: What changes when future states and outcomes cannot be known exactly?
 →
-R22: What changes when action outcomes, information or future states cannot be known or controlled exactly?
+R23: How are actions and consequences ordered through time, and how does temporal structure itself create choice, skill, coordination and commitment?
 ```
 
-Do not select a product before R22 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R23 and the remaining adjacent foundational dimensions have been examined and then synthesized.

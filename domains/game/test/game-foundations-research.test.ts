@@ -22,6 +22,10 @@ const r21 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R21.md", import.meta.url),
   "utf8",
 );
+const r22 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R22.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -83,8 +87,21 @@ test("R21 preserves control, agency, embodiment and affordance boundaries withou
   assert.match(r21, /No product is selected by R21\./);
 });
 
-test("foundation navigation advances the exact post-R21 continuation frontier", () => {
-  const frontier = /R22 — Uncertainty, Probability, Randomness, Risk, Luck, Variance, Determinism and Fairness/;
+test("R22 preserves uncertainty, risk, luck and fairness boundaries without selecting a product", () => {
+  assert.match(r22, /Uncertainty != Randomness != Unpredictability/);
+  assert.match(r22, /DecisionQuality != OutcomeQuality/);
+  assert.match(r22, /UncertaintyTopology/);
+  assert.match(r22, /OutcomeContributionTopology/);
+  assert.match(r22, /DistributionalAgency/);
+  assert.match(r22, /PlayableUncertainty/);
+  assert.match(r22, /PlayableRisk/);
+  assert.match(r22, /Fairness != Balance/);
+  assert.match(r22, /SampledOutput/);
+  assert.match(r22, /No product is selected by R22\./);
+});
+
+test("foundation navigation advances the exact post-R22 continuation frontier", () => {
+  const frontier = /R23 — Time, Sequence, Simultaneity, Duration, Timing, Rhythm, Turn, Cooldown, Deadline and Temporal Agency/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -98,6 +115,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R19.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R20.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R21.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R22.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

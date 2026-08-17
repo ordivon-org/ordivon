@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R21 without depending on the originating conversation context.
+summary: Exact continuity handoff for resuming the Game foundations programme after R1–R22 without depending on the originating conversation context.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -26,6 +26,7 @@ related:
   - game.foundations-research.r19
   - game.foundations-research.r20
   - game.foundations-research.r21
+  - game.foundations-research.r22
   - game.foundations-research.map
   - game.core-research.reset
 ---
@@ -33,14 +34,14 @@ related:
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md) — canonical R21 decomposition of embodiment, control, input, skill, affordance, game feel, presence and shared/delegated control.
-2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R21 conceptual map and cross-round abstractions.
-3. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — creation/authorship layer that R21 extends through Action Causality.
-4. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — strategic-interdependence layer used by command/delegation/shared control.
-5. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — motivation/goal/commitment layer used by Intent and delegated goals.
-6. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — canonical snapshot of the first seventeen foundation rounds.
-7. [`GAME_CORE_RESEARCH_RESET.md`](GAME_CORE_RESEARCH_RESET.md) — protects canonical G0–G8 semantics and prevents premature product selection.
-8. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — only authority for G0–G8 product-development meanings.
+1. [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md) — canonical R22 decomposition of uncertainty, probability, randomness, risk, luck, variance, determinism, predictability and fairness.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R22 conceptual map and cross-round abstractions.
+3. [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md) — control/action-causality layer that R22 extends into Distributional Agency.
+4. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — creation/authorship layer.
+5. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — strategic-interdependence layer.
+6. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — motivation/goal/utility layer.
+7. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — canonical snapshot of the first seventeen foundation rounds.
+8. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole authority for G0–G8 product-development meanings.
 
 ## Current research status
 
@@ -68,46 +69,37 @@ R18 Need / Want / Desire / Goal / Preference / Utility / Value / Commitment
 R19 Strategic Interdependence / Conflict / Competition / Cooperation / Coordination / Bargaining / Strategy / Equilibrium
 R20 Creation / Creativity / Construction / Expression / Authorship / Customization / Style / Co-creation
 R21 Embodiment / Control / Input / Skill / Affordance / Game Feel / Presence
+R22 Uncertainty / Probability / Randomness / Risk / Luck / Variance / Determinism / Fairness
 ```
 
 Exact next round:
 
 ```text
-R22 — Uncertainty, Probability, Randomness, Risk, Luck, Variance, Determinism and Fairness
+R23 — Time, Sequence, Simultaneity, Duration, Timing, Rhythm, Turn, Cooldown, Deadline and Temporal Agency
 ```
 
-## R18–R20 results to preserve
+## Stable pre-R22 boundaries
 
 ```text
+AI Game != Agent World
+Agent != LLM
+Generation != gameplay
+Freedom != Agency
+Memory != History
 Need != Desire
 Desire != Goal
 Goal != Intention
 Preference != Utility
-Scalarize late.
-Goal proposal != Goal adoption.
-```
-
-```text
-StrategicRelevance(j → i)
-=
-changing i's belief about j's policy
-can change i's preferred response
-```
-
-```text
-Many moving Actors != Strategic interaction.
-Statement != Commitment.
-Equilibrium != Product Value.
-```
-
-```text
+Communication != Commitment
+Equilibrium != Product Value
 Creation != Creativity
-Generation != Player Creation
 Authorship != Ownership
-More options != More expression
+Control != SenseOfAgency
+Avatar != Body
+Embodiment != Presence
 ```
 
-R20's main authorship test:
+R20:
 
 ```text
 AuthorialCausality =
@@ -115,411 +107,468 @@ important artifact properties counterfactually depend
 on meaningful participant decisions
 ```
 
-## R21 durable result
-
-R21's minimal control chain is:
-
-```text
-Intent
-→ Control Expression
-→ Input / Command
-→ Mapping / Interpretation
-→ Candidate Action
-→ Capability / Affordance / Legality / World Resolution
-→ Executed Action
-→ Consequence
-→ Feedback / Perception
-→ Attribution / Sense of Agency
-→ Learning / Updated Intent
-↺
-```
-
-Core separation:
-
-```text
-Intent != Input != Command != Action != Outcome
-Control != SenseOfAgency
-Avatar != Body
-BodyOwnership != Agency
-Embodiment != Presence
-Affordance != Capability != Legality
-Latency != Responsiveness
-DirectManipulation != Agency
-Automation != AgencyLoss
-```
-
-### Action Causality
+R21:
 
 ```text
 ActionCausality =
 important action/outcome properties counterfactually depend
-on participant intent/control.
+on participant intent/control
 ```
-
-This is the action analogue of R20 Authorial Causality.
-
-### Control Locus
-
-```text
-ControlLocus =
-the entity/state/surface through which participant control
-enters authoritative system change,
-without assuming an avatar/body.
-```
-
-Possible control loci include:
-
-```text
-body
-vehicle
-cursor
-unit/team
-camera
-organization
-text persona
-creative tool
-world-level policy
-```
-
-Use `Embodiment` only when a self-relevant Body participates in self-location, body ownership and/or agency. Do not call every controlled entity a body.
-
-### Body
-
-```text
-Body =
-a self-relevant action–perception substrate whose state
-constrains sensing, capability, vulnerability and reference frame.
-```
-
-Bodies therefore alter reachable futures, affordances, risk and information.
-
-### Embodiment profile
-
-```text
-EmbodimentProfile = {
-  SelfLocation,
-  BodyOwnership,
-  MotorAgency,
-  SensoryContingency,
-  Vulnerability / Stakes,
-  MorphologicalIdentification
-}
-```
-
-No one scalar is sufficient.
-
-### Objective Control versus Sense of Agency
-
-```text
-ObjectiveControl = actual causal influence
-SenseOfAgency   = experienced attribution that “I caused this”
-```
-
-They are related but not identical. Body Ownership is another separate dimension.
-
-Agency can live at different layers:
-
-```text
-Strategic agency
-Tactical agency
-Motor agency
-Outcome agency
-```
-
-Automation may reduce one and preserve another.
-
-### Intent Fidelity
 
 ```text
 IntentFidelity =
-degree to which value-bearing distinctions in participant intent
-survive interpretation, planning and execution.
+value-bearing intent distinctions survive
+interpretation, planning and execution
 ```
 
-Useful components:
+## R22 durable result
+
+Core separations:
 
 ```text
-Goal fidelity
-Constraint fidelity
-Style/manner fidelity
-Timing fidelity
-Target fidelity
-Risk-tolerance fidelity
-Stop/revoke fidelity
+Uncertainty != Randomness != Unpredictability
+Probability != Uncertainty itself
+Risk != Variance != ExpectedValue
+Luck != Randomness
+Fairness != Symmetry != OutcomeEquality != Balance
+DecisionQuality != OutcomeQuality
 ```
 
-For AI/Agent control this is usually more informative than exact low-level command matching.
-
-### Control Contribution Topology
+### Uncertainty
 
 ```text
-ControlContributionTopology =
-who controls which intent/action layer,
-variable, time interval or correction path.
+Uncertainty(subject/model, X, t) =
+multiple materially plausible states/models/outcomes of X
+remain open under accessible evidence/model at time t
 ```
 
-This replaces crude “percent player control” reasoning.
-
-Example:
+Uncertainty requires specifying:
 
 ```text
-Player: goal + target + broad direction
-AI: collision avoidance / stabilization
-World: physics / opponent resolution
+bearer
+object
+time
+information boundary
+model boundary
 ```
 
-### Direct manipulation / command / delegation / automation
-
-Keep separate:
+### World branching versus epistemic spread
 
 ```text
-Direct manipulation = participant directly steers visible/local state
-Command             = participant specifies semantic action
-Delegation          = participant specifies goal/constraints; executor chooses means
-Autonomous execution= system chooses more of goal and/or means
-Supervision         = system acts; participant monitors/intervenes
-Shared control      = multiple controllers influence overlapping trajectory/scope
-```
-
-None is a maturity ladder.
-
-### Control granularity and horizon
-
-```text
-Fine      → trajectory / exact placement
-Medium    → action / target / formation
-Coarse    → goal / policy / constraint
+WorldBranching =
+same conditioning state/action can resolve to multiple next states
+under the chosen authoritative model
 ```
 
 ```text
-Immediate → frame/second/move
-Tactical  → local sequence
-Strategic → longer policy/trajectory
+EpistemicSpread =
+participant/model does not know which state/model/outcome is true,
+even if authoritative reality is fixed
 ```
 
-Control should be exposed at the layer where player value resides.
+Randomness is only one uncertainty source.
 
-### Affordance
+### Uncertainty Topology
 
 ```text
-Affordance(actor, environment) =
-action possibility arising from
-actor capability × environment structure/state
+UncertaintyTopology = {
+  Bearer,
+  Object,
+  Source,
+  ModelBoundary,
+  Reducibility,
+  RealizationTime,
+  Observability,
+  Controllability,
+  Stakes,
+  UpdatePath
+}
 ```
 
-Preserve:
+Sources can include:
 
 ```text
-Capability       = what actor can execute
-Affordance       = what actor–environment relation makes possible
-PerceivedAffordance = what player/actor believes possible
-Legality         = what authoritative rules currently permit
-Cue              = information about possibility, not the possibility itself
+hidden information
+stochastic transition
+other Subject policy
+computational complexity
+chaotic sensitivity
+model ambiguity
+semantic ambiguity
+generative sampling
 ```
 
-### Responsiveness
+### Epistemic / aleatory
 
 ```text
-Responsiveness =
-promptness + predictability + proportionality + feedback coherence
-```
-
-not latency alone.
-
-Intentional/legible wind-up, inertia or command delay can support fantasy and skill; hidden/variable unexplained delay usually harms learnability.
-
-### Game Feel
-
-```text
-GameFeel =
-Control Mapping
-+ Dynamics / Resistance
-+ Timing / Responsiveness
-+ Feedback
-+ Sensory Expression
-+ Consequence / Stakes
-```
-
-Game Feel is causal action–response phenomenology, not merely animation/particles/audio polish.
-
-### Skill
-
-Keep distinct:
-
-```text
-Perceptual skill
-Predictive/model skill
-Decision skill
-Motor/execution skill
-Coordination skill
-Meta-control skill
+EpistemicUncertainty =
+missing knowledge/state/parameter/model uncertainty
+at the current boundary
 ```
 
 ```text
-Difficulty != SkillDepth
-MotorSkill != AllGameSkill
+AleatoryUncertainty =
+variation represented as irreducible random realization
+within the current model boundary
 ```
 
-### Friction
+The distinction is model-relative. A PRNG system can be deterministic under complete seed/state and stochastic at the player-facing abstraction.
 
-Separate:
+### Determinism / predictability
 
 ```text
-Material friction
-Execution friction
-Cognitive friction
-Interface friction
-Coordination friction
-Administrative friction
+Determinism = full state + rules uniquely determine next state
+Predictability = bounded predictor can forecast relevant future accurately enough
 ```
-
-Core rule:
-
-```text
-Preserve resistance that carries intended skill/fantasy/question.
-Remove resistance that only obstructs access to it.
-```
-
-### Automation/shared control
-
-R21 does not assume agency is proportional to raw motor authority.
-
-```text
-Low-level correction can reduce exact command matching
-while improving higher-level intent success and sometimes agency.
-```
-
-But opaque/misaligned/uninterruptible automation can weaken agency.
 
 Therefore:
 
 ```text
-Automate low-value control work.
-Preserve the value-bearing intent distinctions.
+Determinism != Predictability
 ```
 
-### Playable Control / Embodiment
+Hidden state, computation, chaos and strategic opponents can make deterministic systems unpredictable.
+
+### Probability / ambiguity
 
 ```text
-PlayableControl =
-a control relation whose mappings, constraints,
-assistance and consequences can be learned/predicted,
-and whose meaningful outcome differences remain sensitive
-to participant intent.
+Probability =
+quantitative distribution/measure assigned to alternatives
+under a specified model/belief state
+```
+
+Probability needs provenance. `30%` is incomplete without model/conditioning/source.
+
+```text
+Ambiguity =
+uncertainty about distribution/model/parameters,
+not merely which outcome realizes
+```
+
+### Randomness placement
+
+```text
+before decision
+→ adaptation problem
+
+after commitment
+→ risk-bearing resolution
+
+hidden pre-existing state
+→ inference/scouting problem
+
+continuous disturbance
+→ control/robustness problem
+```
+
+Where randomness enters is more important than an undifferentiated “RNG amount.”
+
+### Risk
+
+R7's early heuristic:
+
+```text
+Risk ≈ ProbabilityOfLoss × SubjectiveValueOfLoss
+```
+
+is superseded as a general definition by:
+
+```text
+Risk =
+exposure to materially valued consequence distributions
+under uncertainty,
+especially where adverse outcomes matter
+```
+
+Relevant structure may include:
+
+```text
+probabilities
+loss/gain magnitudes
+variance
+skew
+tails
+ruin thresholds
+reversibility
+correlation
+path dependence
+controllability
+ambiguity
+```
+
+### Expected value / variance
+
+```text
+ExpectedValue = probability-weighted mean
+Variance = one dispersion measure
+```
+
+Neither is the full distribution or universal risk measure.
+
+```text
+ExpectedValue != Distribution
+Variance != Risk
+```
+
+### Luck
+
+```text
+Luck =
+retrospective attribution that a valued realized outcome
+depended materially on factors outside the relevant participant's
+control, skill or available knowledge
+```
+
+Luck can arise without literal random mechanics.
+
+### Outcome Contribution Topology
+
+```text
+OutcomeContributionTopology =
+which factors materially shaped the realized outcome:
+player policy / execution / opponent / hidden state /
+stochastic realization / environment / information / AI interpretation
+```
+
+Do not replace this with one arbitrary “skill vs luck percentage.”
+
+### Decision Quality / Outcome Quality
+
+```text
+DecisionQuality =
+quality of choice given information/model/objectives/constraints
+available at decision time
 ```
 
 ```text
-PlayableEmbodiment =
-body/self-location/agency relations that materially alter
-perception, capability, risk, identity or action choices
-and remain experientially legible.
+OutcomeQuality =
+value of realized consequence
 ```
 
-## Research boundary that must survive the context switch
-
-Do **not** assume Game requires action combat, humanoid avatars, VR, direct input or autonomous Agents.
-
-The search space remains broad:
+Thus:
 
 ```text
-traditional authored games
-action / sensorimotor games
-strategy / command games
-systemic simulations
-social worlds
-creative sandboxes / UGC tools
-procedural games
-SillyTavern-like AI roleplay / co-creation
-generative narrative / character experiences
-persistent Agent worlds
-hybrids among the above
+GoodDecision + BadLuck → BadOutcome
+BadDecision + GoodLuck → GoodOutcome
+```
+
+### Skill under uncertainty
+
+```text
+SkillUnderUncertainty =
+learned ability to improve outcome distributions
+or decision quality under uncertainty,
+not guarantee every sample
+```
+
+Skill may include:
+
+```text
+hedging
+information acquisition
+variance management
+robust policy
+reserve management
+adaptation
+```
+
+### Distributional Agency
+
+```text
+DistributionalAgency =
+ability to intentionally change the distribution/set
+of meaningful future outcomes
+without selecting the exact realization
+```
+
+This is how R21 ActionCausality survives chance.
+
+### Fairness
+
+```text
+Fairness =
+judgment that rules, procedures, opportunities, information,
+uncertainty and outcomes are acceptably justified
+relative to the relevant game/social contract
+```
+
+Keep distinct:
+
+```text
+Procedural Fairness
+Opportunity / ex-ante Fairness
+Informational Fairness
+Causal / Skill Fairness
+Distributive Fairness
+Perceived Fairness
 ```
 
 Preserve:
 
 ```text
-AI Game != Agent World
-Agent != LLM
-Generation != gameplay
-Freedom != Agency
-More buttons != More control
-Direct input != More agency
-Control != Sense of Agency
-Avatar != Body
-Embodiment != Presence
-Affordance != UI cue
-Lower latency != Always better
-Automation != Agency loss
-TechnicalCreativePower != PlayerCreativeAgency
+Fairness != OutcomeEquality
+Fairness != Symmetry
+Fairness != Balance
 ```
 
-No product winner currently exists. Foundation rounds do not redefine G0–G8.
+A fair lottery can generate unequal outcomes; an equal outcome can come from an unfair process.
 
-## How to continue R22
+### Uncertainty Contract
 
-Start from uncertainty as a property of information/outcomes/models, not from “RNG systems” or loot tables.
+```text
+UncertaintyContract =
+what is random?
+what is hidden?
+what can be learned?
+what can be controlled?
+when is chance resolved?
+how severe can outcomes be?
+are odds stable?
+can exposure be mitigated?
+```
 
-The core problem is:
+A bad beat can be painful, unlucky and still fair when the process/uncertainty contract is sufficiently clear.
 
-> What changes when future states, action consequences or hidden facts cannot be known or controlled exactly, and how do probability, risk, luck and fairness differ?
+### Playable Uncertainty / Risk
+
+```text
+PlayableUncertainty =
+uncertainty whose relevant alternatives/sources can be
+partially modeled, investigated, anticipated or acted around,
+and whose resolution provides useful causal evidence
+```
+
+```text
+PlayableRisk =
+valued uncertain consequence exposure
+that players can understand enough to choose,
+mitigate, hedge, accept, reject or increase
+```
+
+### Generative systems
+
+Keep distinct:
+
+```text
+Sampling variation
+Knowledge/model uncertainty
+Instruction ambiguity
+Unknown external state
+```
+
+Their remedies differ:
+
+```text
+sampling variation → constrain/resample if useful
+knowledge uncertainty → seek evidence / represent epistemic status
+instruction ambiguity → interpret cautiously / expose consequential interpretation
+external state uncertainty → observe authoritative source
+```
+
+Preserve:
+
+```text
+SampledOutput != WorldTruth
+```
+
+## Research boundary that must survive the context switch
+
+Do not assume uncertainty means casino mechanics or explicit probabilities.
+
+Search space remains broad:
+
+```text
+deterministic authored games
+hidden-information games
+stochastic/systemic games
+action games
+strategy/command games
+social deduction / bargaining
+creative sandboxes
+procedural/generative worlds
+SillyTavern-like roleplay
+persistent Agent worlds
+hybrids
+```
+
+No product winner exists. Foundation rounds do not redefine G0–G8.
+
+## How to continue R23
+
+Start from **temporal ordering and temporal possibility**, not from animation timing or current Station Zero turn code.
+
+Core question:
+
+> How are actions, opportunities and consequences ordered through time, and how does temporal structure itself create choice, skill, coordination, commitment and meaning?
 
 Distinguish at least:
 
 ```text
-Uncertainty
-Ignorance
-Probability
-Randomness
-Stochasticity
-Determinism
-Unpredictability
-Risk
-Ambiguity
-Variance
-Luck
-Chance
-Expected Value
-Distribution
-Fairness
-Procedural Fairness
-Perceived Fairness
-Control
-Skill Attribution
+Game Time
+Real Time
+Simulation Time
+Subjective / Player Time
+Sequence
+Order
+Simultaneity
+Concurrency
+Turn
+Phase
+Tick
+Duration
+Timing
+Tempo
+Rhythm
+Cooldown
+Wind-up
+Recovery
+Deadline
+Waiting
+Delay
+Commitment Window
+Initiative
+Asynchrony
+Persistence
+Reversibility
+Pause
+Rewind
+Save/Load
+Temporal Agency
 ```
 
 Questions worth attacking:
 
-1. What distinguishes uncertainty from randomness and from ignorance?
-2. How do epistemic uncertainty and aleatory uncertainty differ for play?
-3. Can deterministic systems still produce uncertainty through hidden state or computational complexity?
-4. What is Risk relative to uncertainty, stakes, probability and controllability?
-5. What is Luck as an experienced attribution rather than merely random sampling?
-6. How do random input, random transition, random information and random reward differ?
-7. How do distribution shape and variance matter beyond expected value?
-8. When does randomness create replayability/tension versus destroy skill/agency attribution?
-9. How should players learn uncertainty when exact numeric probabilities are hidden?
-10. How do fairness, symmetry, procedural fairness and outcome equality differ?
-11. When is bad luck acceptable because the process is legible/anticipated?
-12. How does uncertainty interact with R21 Action Causality — did I fail, or did chance dominate?
-13. How should risk-sensitive Subjects differ from scalar expected-utility maximizers?
-14. How should generative systems communicate uncertainty instead of presenting one sample as confident truth?
+1. What kinds of Time exist in a game, and which are authoritative?
+2. When does ordering itself change causality/strategy?
+3. How do simultaneity, turns, phases, ticks and asynchronous action differ?
+4. How do Duration, Timing, Tempo and Rhythm differ?
+5. What are wind-up/recovery/cooldown as temporal constraints rather than UI timers?
+6. When does waiting become strategic commitment rather than dead time?
+7. How do deadlines/time pressure transform preference and risk?
+8. What is initiative/turn-order advantage?
+9. How should concurrent conflicting actions resolve fairly?
+10. How do pause, rewind, undo and save/load alter consequence/commitment?
+11. How do persistent/offline/asynchronous worlds change agency and social coordination?
+12. How should Agent systems act over continuous, turn-based and long-horizon asynchronous time?
+13. How does R21 responsiveness differ from Game-world time?
+14. How does R22 risk evolve with time, decay, hazard and information arrival?
 
-## Expected R22 output shape
+## Expected R23 output shape
 
 ```text
-1. separate uncertainty/randomness/risk/luck/fairness terms;
-2. derive minimal uncertainty structure;
-3. separate epistemic vs aleatory sources;
-4. test deterministic hidden-information games and stochastic games;
-5. test action/strategy/economy/social/generative forms;
-6. analyze skill/chance attribution and fairness;
-7. identify distribution/variance effects beyond expected value;
-8. identify collapse/failure modes;
-9. reconnect tension, belief, utility, strategy and control;
-10. end with the next foundational question rather than product selection.
+1. separate time/sequence/timing/tempo/rhythm/turn concepts;
+2. derive minimal temporal state-transition structure;
+3. compare turn-based, real-time, phased, ticked, paused and asynchronous forms;
+4. study simultaneity/concurrency/initiative;
+5. study duration/windows/cooldowns/deadlines/waiting;
+6. study reversibility/pause/save-load;
+7. test action, strategy, social, creative and generative forms;
+8. identify temporal failure modes;
+9. reconnect loops/pacing/history/control/risk;
+10. end with next foundation frontier, not product selection.
 ```
 
-## Stable abstractions already available
+## Stable cross-round abstractions
 
 ```text
 Question
@@ -535,14 +584,9 @@ Truth != Signal != Observation != Belief != Statement
 ```
 
 ```text
-ActionCausality =
-important outcome properties counterfactually depend
-on participant intent/control
-```
-
-```text
-IntentFidelity =
-value-bearing intent distinctions survive interpretation/planning/execution
+AuthorialCausality
+ActionCausality
+DistributionalAgency
 ```
 
 ```text
@@ -556,28 +600,26 @@ and use to improve future decisions or expression
 Do not regress into:
 
 ```text
-“Random = unpredictable.”
-“Uncertain = random.”
-“More variance = more tension.”
-“Expected value is enough.”
-“Fair means equal outcome.”
-“Bad luck means bad design.”
-“More control means less uncertainty.”
+“Uncertain means random.”
+“Random means unfair.”
+“Higher EV means better decision.”
+“Bad outcome means bad play.”
+“More variance means more tension.”
 “Exact percentages are required for legibility.”
-“Generative output is truth rather than a sample/inference.”
+“More buttons means more control.”
+“Generation means creativity.”
+“More simulation means more depth.”
 ```
 
 ## Product-selection stop condition
 
 Do not begin intentional new-product G0 merely because the corpus is large.
 
-Before narrowing, the programme should still:
+Before narrowing, continue to:
 
 - finish remaining obvious foundational dimensions;
-- synthesize independent vs redundant dimensions;
+- synthesize independent versus redundant dimensions;
 - identify a smaller set of candidate causal laws;
 - compare materially different authored, systemic, social, creative and generative families;
 - design high-information falsifiers;
 - state what remains unknown.
-
-Only then ask whether evidence is mature enough to select an actual product form.
