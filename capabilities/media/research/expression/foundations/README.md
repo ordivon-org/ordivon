@@ -17,7 +17,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF8-A — Agency Ontology & Term Separation: **complete / provisional ontology**
 - MF8-B — Action, Behavior & Action Ownership: **complete / provisional action ontology**
 - MF8-C — Goal, Need, Want, Preference, Utility & Value: **complete / provisional evaluative ontology**
-- Next: **MF8-D — Choice, Decision, Policy & Plan**
+- MF8-D — Choice, Decision, Policy & Plan: **complete / provisional practical-selection ontology**
+- Next: **MF8-E — Autonomy, Initiative, Intentionality, World Model & Self Model**
 
 Current MF5 canonical closeout:
 
@@ -42,6 +43,10 @@ Current MF8-B Action/Behavior/Ownership round:
 Current MF8-C Evaluative ontology round:
 
 [`media-foundations-mf8c-20260817.md`](./media-foundations-mf8c-20260817.md)
+
+Current MF8-D Choice/Decision/Policy/Plan round:
+
+[`media-foundations-mf8d-20260818.md`](./media-foundations-mf8d-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
