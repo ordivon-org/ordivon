@@ -7,7 +7,7 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 
-test("Agent game development model keeps normal game development as the outer lifecycle", () => {
+test("Game development model keeps normal game development as the outer lifecycle", () => {
   for (const stage of [
     "G0 — Define",
     "G1 — Preproduction / core design",
@@ -24,11 +24,14 @@ test("Agent game development model keeps normal game development as the outer li
   assert.match(agents, /A research series is a search method inside a development stage; it is never the product lifecycle itself\./);
 });
 
-test("classification separates conventional game form from Agent participation", () => {
+test("classification separates conventional game form, Production Agents, and Runtime Agents", () => {
   assert.match(development, /Conventional Form Profile/);
-  assert.match(development, /Agent Participation Profile/);
-  assert.match(development, /The \*\*Form Profile determines the normal game-production burden\*\*/);
-  assert.match(development, /The \*\*Agent Participation Profile determines the extra cognition\/authority\/feedback burden\*\*/);
+  assert.match(development, /Production Agent Profile/);
+  assert.match(development, /Runtime Agent Participation Profile/);
+  assert.match(development, /The \*\*Form Profile determines the conventional game and its baseline production burden\*\*/);
+  assert.match(development, /The \*\*Production Agent Profile measures how Agent tooling changes the reachable production frontier\*\*/);
+  assert.match(development, /The \*\*Runtime Agent Participation Profile determines any extra shipped cognition\/authority\/feedback burden\*\*/);
+  assert.match(development, /AgentBuiltGame != AgentGame/);
 });
 
 test("Agentic Consequence Loop preserves World authority and allows cheaper cognition tiers", () => {

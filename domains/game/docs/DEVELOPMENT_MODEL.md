@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.development-model
-title: Ordivon Agent Game Development Model
+title: Ordivon Game Development Model
 type: development-model
 profile: product
 lifecycle: active
@@ -14,8 +14,8 @@ audience:
   - builder
   - agent
   - producer
-updated: 2026-08-14
-summary: Canonical development model for classifying, prototyping, validating, producing, and shipping Ordivon games with consequential Agent participation while keeping normal game development as the outer lifecycle and Studio as the owner of medium-specific production.
+updated: 2026-08-17
+summary: Canonical development model for classifying, prototyping, validating, producing, and shipping Ordivon games. Conventional GameForm is primary; Agent participation is split into optional production and runtime roles inside the normal game lifecycle, while Studio remains owner of medium-specific production.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -24,11 +24,11 @@ related:
   - game.vision
   - game.authority
 ---
-# Ordivon Agent Game Development Model
+# Ordivon Game Development Model
 
 ## Purpose
 
-Ordivon Game has accumulated strong evidence about authoritative Worlds, bounded Agent cognition, action admission, partial information, hierarchical control, recovery, replay, and player-facing causal legibility. Those are **Agent-game mechanisms**. They are not, by themselves, a complete game-development process.
+Ordivon Game has accumulated strong evidence about authoritative Worlds, bounded Agent cognition, action admission, partial information, hierarchical control, recovery, replay, and player-facing causal legibility. Those are **runtime-Agent mechanisms**. They are optional capabilities, not the definition of an Ordivon game and not, by themselves, a complete game-development process.
 
 This model puts that research back inside ordinary game development:
 
@@ -43,7 +43,7 @@ classify the game
 → release and learn
 ```
 
-Agent-specific work runs as a lane inside that lifecycle. It does not replace the lifecycle.
+Agent-assisted production may run throughout that lifecycle. Runtime-Agent work is a separate optional lane admitted only when the selected GameForm needs it. Neither replaces the lifecycle.
 
 ## The correction
 
@@ -109,7 +109,7 @@ Evidence, replay, playtest data and production receipts support these responsibi
 
 ## 2. Classification before implementation
 
-Genre names remain useful shorthand, but genre alone is not a sufficient production specification. Ordivon classifies a candidate game using two profiles.
+Genre names remain useful shorthand, but genre alone is not a sufficient production specification. Ordivon classifies a candidate game using one required GameForm profile plus two orthogonal Agent profiles. A traditional game may have heavy Production-Agent use and no Runtime Agents at all.
 
 ### 2.1 Conventional Form Profile
 
@@ -126,9 +126,15 @@ Record the smallest conventional facts that materially predict game design and p
 
 A conventional genre label such as `turn-based tactics`, `party RPG`, `colony simulation`, or `social sandbox` may summarize these fields, but it does not replace them.
 
-### 2.2 Agent Participation Profile
+### 2.2 Production Agent Profile
 
-Then describe why Agents exist in this game rather than assuming “Agent game” is one genre:
+Separately describe how Agents help **make, test or operate** the game. These roles are production technology, not player-facing genre facts. Useful roles include research/evidence search, design-space expansion, prototype building, programming, draft content/asset authoring, editor/tool operation, synthetic play, QA/falsification, balance analysis, production orchestration, localization/accessibility assistance and release triage.
+
+A Production Agent may be critical to Ordivon feasibility while remaining completely absent from the shipped runtime. Production leverage must be measured against review, rework, provenance, tooling and model cost rather than assumed.
+
+### 2.3 Runtime Agent Participation Profile
+
+Only when runtime intelligence is actually proposed, describe why it exists rather than assuming “Agent game” is one genre:
 
 | Field | Useful values |
 | --- | --- |
@@ -143,13 +149,18 @@ These fields are descriptive, not mandatory feature slots. A game with one persi
 
 ### Classification rule
 
-The **Form Profile determines the normal game-production burden**. The **Agent Participation Profile determines the extra cognition/authority/feedback burden**.
+The **Form Profile determines the conventional game and its baseline production burden**. The **Production Agent Profile measures how Agent tooling changes the reachable production frontier**. The **Runtime Agent Participation Profile determines any extra shipped cognition/authority/feedback burden**.
 
-Do not reverse them.
+Do not reverse them. In particular:
 
-## 3. The Agentic Consequence Loop
+```text
+AgentBuiltGame != AgentGame
+ProductionAgentNeed != RuntimeAgentNeed
+```
 
-The smallest Agent-specific kernel that Ordivon research has repeatedly supported is:
+## 3. The Runtime Agentic Consequence Loop — when applicable
+
+When a shipped game contains a runtime Agent that can affect authoritative World state, the smallest Agent-specific kernel that Ordivon research has repeatedly supported is:
 
 ```text
 Authoritative World
@@ -247,7 +258,8 @@ Produce a bounded Game Definition:
 
 - player fantasy and target experience;
 - Conventional Form Profile;
-- Agent Participation Profile;
+- Runtime Agent Participation Profile **when claimed**; a game with no runtime Agents records `none`;
+- Production Agent strategy separately from the product definition;
 - target platform/input/session shape;
 - one-sentence core loop;
 - initial visual/audio direction only at the level needed to constrain production;
@@ -266,9 +278,9 @@ Define and attack:
 - core player verbs;
 - state/resources/information;
 - success, failure and progression;
-- player ↔ Agent responsibility split;
+- player ↔ runtime-Agent responsibility split, when runtime Agents are claimed;
 - authoritative World boundaries;
-- Agentic Consequence Loop where Agents materially participate;
+- Runtime Agentic Consequence Loop where runtime Agents materially participate;
 - content grammar: what kinds of levels, encounters, characters, items or activities the game needs;
 - production risks: art, animation, audio, networking, performance, model latency/cost.
 
@@ -285,7 +297,7 @@ Build the cheapest executable surface that can test:
 - core loop;
 - major rules and verbs;
 - information boundaries;
-- Agent decision/action consequence;
+- runtime-Agent decision/action consequence, only when the form claims runtime Agents;
 - failure/success;
 - latency/cost budget;
 - one representative content unit.
@@ -294,7 +306,7 @@ Prefer fixture/policy Agents first when they isolate game rules better than live
 
 **Studio consumption:** normally minimal. Placeholder geometry, icons, text, procedural sound and graybox media are sufficient unless presentation itself is the mechanic.
 
-**Exit gate:** repeated play demonstrates a loop worth improving; Agent participation survives at least one cheaper-baseline comparison; major rules can be changed cheaply.
+**Exit gate:** repeated play demonstrates a loop worth improving; if runtime Agent participation is claimed, it survives at least one cheaper-baseline comparison; major rules can be changed cheaply.
 
 ### G3 — Playable prototype
 
@@ -320,7 +332,7 @@ This phase tests comprehension and consequence, not final beauty.
 A vertical slice combines, in one bounded piece of real gameplay:
 
 - near-final gameplay quality;
-- representative Agent cognition and fallbacks;
+- representative runtime-Agent cognition and fallbacks, only when the selected form claims them;
 - representative level/encounter/content quality;
 - target-ish UI/UX;
 - target art direction;
@@ -405,7 +417,7 @@ A finite game may end here except for maintenance. A live or persistent game may
 
 ## 5. The Agent research lane inside the lifecycle
 
-Agent-first development is a **method of iteration**, not a substitute lifecycle.
+Agent-first development is primarily a **method of research, production and iteration**, not a promise that the shipped game contains Agents and not a substitute lifecycle.
 
 At any stage where Agent participation matters:
 
@@ -666,12 +678,13 @@ Before implementation, answer these in one bounded record:
 
 1. **Fantasy:** who is the player and what is the desired experience?
 2. **Form:** what are the verbs/cadence, control topology, space/camera, session/progression and social form?
-3. **Agent role:** which beings are Agents, what autonomy do they own, and why are they not cheaper scripts?
-4. **Kernel:** what authoritative state, resources, information and consequences define play?
-5. **Core loop:** what does the player repeatedly observe/decide/do and why is the repetition interesting?
-6. **Content grammar:** what kinds of levels/characters/items/events/creations must be repeatedly produced?
-7. **Production risk:** which art/audio/animation/network/model/runtime capabilities are likely to dominate cost or uncertainty?
-8. **First falsifier:** what is the cheapest prototype that could prove the concept is not worth continuing?
+3. **Production Agent leverage:** which research/build/test/production roles can materially change cost, search breadth or iteration speed, and what review/rework debt do they add?
+4. **Runtime Agent role:** if any shipped Agent is claimed, what autonomy/authority does it own, what player-relevant distinction requires it, and why is a cheaper script/policy/human baseline insufficient?
+5. **Kernel:** what authoritative state, resources, information and consequences define play?
+6. **Core loop:** what does the player repeatedly observe/decide/do and why is the repetition interesting?
+7. **Content grammar:** what kinds of levels/characters/items/events/creations must be repeatedly produced?
+8. **Production risk:** which art/audio/animation/network/model/runtime capabilities are likely to dominate cost or uncertainty?
+9. **First falsifier:** what is the cheapest prototype that could prove the concept is not worth continuing?
 
 Only after this packet should engine, provider and production-equipment choices become commitments.
 

@@ -27,6 +27,8 @@ related:
 ---
 # Ordivon Game Pre-G0 Direction Search — DS0
 
+> **2026-08-17 search correction:** `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` supersedes DS0 wherever DS0 couples GameForm selection to `AgentParticipationProfile` or gives Agent-friendly/easily measurable forms implicit search priority. DS0 remains historical/mechanism evidence; current factorization is `GameFormProfile × ProductionAgentProfile × RuntimeAgentProfile`.
+
 ## 0. Status and boundary
 
 This document begins **Pre-G0 Game Direction Search**.

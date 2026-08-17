@@ -27,6 +27,8 @@ related:
 ---
 # Ordivon Game Pre-G0 DS1 — Cheap Falsifier Battery
 
+> **2026-08-17 search correction:** DS1 remains valid local structural evidence, but its survivor portfolio no longer determines the next research budget. `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` retires the implication `structural survivor → automatic next playable priority` because it creates measurability and Agent-affinity bias.
+
 ## 0. Status
 
 DS0 opened the GameForm candidate space. DS1 begins deletion.

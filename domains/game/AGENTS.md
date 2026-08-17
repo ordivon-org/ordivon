@@ -123,8 +123,9 @@ A meaningful change should state:
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
-- `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` defines the current pre-G0 candidate-space, Player Value, Agent-necessity, production-burden and cheapest-falsifier search without selecting a product or reopening Foundations.
+- `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` retains DS0 candidate/mechanism evidence; its old GameForm↔Agent coupling and search-priority semantics are historical after the decoupling correction.
 - `docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md` owns the first executable structural-falsifier results and their exact claim boundary: simulation may delete weak realizations but cannot prove human Player Value; broad forms are not killed by one failed micro-treatment.
+- `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` owns the current search factorization: GameForm selection is independent of Agent affinity; Production Agents, runtime system intelligence and World Agents are distinct loci; DS1 survivors do not automatically outrank untested traditional forms.
 - `docs/GAME_CORE_RESEARCH_RESET.md` reserves G0–G8 for `DEVELOPMENT_MODEL.md` and defines current post-dogfood work as Game Core research rather than product-stage progression.
 - `docs/GAME_CORE_DIRECTION_SPACE.md` defines the open Core → Experience direction space and experimental contract.
 - `docs/GAME_CORE_EXPERIMENT_FINDINGS.md` owns cross-treatment findings without selecting a product winner.
