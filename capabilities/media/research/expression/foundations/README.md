@@ -25,7 +25,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF8-I — Agency Falsification, Minimal Threshold Reconstruction & Agency Foundations v1 Freeze: **complete**
 - MF8 — Agency Foundations v1: **frozen** after MF8-I global falsification/reconstruction
 - MF9-A — Experience Ontology & Term Separation: **complete / provisional experience ontology**
-- Next: **MF9-B — Experiential State, Content, Phenomenal Character & Structure**
+- MF9-B — Experiential State, Content, Phenomenal Character & Structure: **complete / provisional experiential-structure ontology**
+- Next: **MF9-C — Conscious Access, Availability, Report & Metacognitive Architecture**
 
 Current MF5 canonical closeout:
 
@@ -82,6 +83,10 @@ Canonical frozen MF8 Agency Foundations v1:
 Current MF9-A Experience ontology/term-separation round:
 
 [`media-foundations-mf9a-20260818.md`](./media-foundations-mf9a-20260818.md)
+
+Current MF9-B Experiential state/content/phenomenal-structure round:
+
+[`media-foundations-mf9b-20260818.md`](./media-foundations-mf9b-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
