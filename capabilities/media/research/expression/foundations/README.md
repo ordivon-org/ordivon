@@ -32,7 +32,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-F — Experiential State, Capacity, Sleep, Anesthesia & Disorders of Consciousness: **complete / provisional experiential-state ontology**
 - MF9-G — Experience Evidence Beyond Report-Capable Adult Humans: Infants, Animals, Nonverbal Bearers & Artificial Systems: **complete / provisional cross-bearer experience-evidence frame**
 - MF9-H — Constitutive Theories II: Attention Schema, Sensorimotor/Enactive, Affective/Homeostatic & Illusionist Routes: **complete / provisional constitutive-theory comparison II**
-- Next: **MF9-I — Development, Ontogeny & Emergence of Experience**
+- MF9-I — Development, Ontogeny & Emergence of Experience: **complete / provisional developmental-emergence frame**
+- Next: **MF9-J — Evolution, Function & Adaptive Role of Experience**
 
 Current MF5 canonical closeout:
 
@@ -117,6 +118,10 @@ Current MF9-G cross-bearer experience-evidence round:
 Current MF9-H constitutive-theory comparison II round:
 
 [`media-foundations-mf9h-20260818.md`](./media-foundations-mf9h-20260818.md)
+
+Current MF9-I developmental-emergence round:
+
+[`media-foundations-mf9i-20260818.md`](./media-foundations-mf9i-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
