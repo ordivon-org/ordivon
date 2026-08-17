@@ -30,6 +30,10 @@ const r23 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R23.md", import.meta.url),
   "utf8",
 );
+const r24 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R24.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -118,8 +122,23 @@ test("R23 preserves temporal-frame, ordering, concurrency and reversibility boun
   assert.match(r23, /No product is selected by R23\./);
 });
 
-test("foundation navigation advances the exact post-R23 continuation frontier", () => {
-  const frontier = /R24 — Identity, Character, Role, Persona, Self, Status, Reputation, Continuity and Transformation/;
+test("R24 preserves identity, continuity, recognition and implementation boundaries without selecting a product", () => {
+  assert.match(r24, /QualitativeSimilarity != NumericalIdentity|Numerical Identity != Qualitative Similarity/);
+  assert.match(r24, /Memory != Identity/);
+  assert.match(r24, /ContinuityProfile/);
+  assert.match(r24, /IdentityAuthority/);
+  assert.match(r24, /IdentityTopology/);
+  assert.match(r24, /RecognitionTopology/);
+  assert.match(r24, /IdentityCausality/);
+  assert.match(r24, /SameModel != SameAgentIdentity/);
+  assert.match(r24, /DifferentModel != IdentityBreak/);
+  assert.match(r24, /PlayableIdentity/);
+  assert.match(r24, /PlayableContinuity/);
+  assert.match(r24, /No product is selected by R24\./);
+});
+
+test("foundation navigation advances the exact post-R24 continuation frontier", () => {
+  const frontier = /R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -135,6 +154,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R21.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R22.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R23.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R24.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

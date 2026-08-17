@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R23
+title: Ordivon Game Foundations Research Map — R1–R24
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R23 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk and temporal structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R24 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk, temporal and identity/continuity structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -28,12 +28,13 @@ related:
   - game.foundations-research.r21
   - game.foundations-research.r22
   - game.foundations-research.r23
+  - game.foundations-research.r24
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), and [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), and [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -47,7 +48,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R23 index
+## R1–R24 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -74,6 +75,7 @@ No new product has been selected.
 | R21 | Embodiment / control | Intent, Input, Command, Action and Outcome are distinct; Control Locus is broader than Avatar/Body; agency, body ownership and presence separate; affordance is relational; shared/delegated control must preserve intent; control must be playable. |
 | R22 | Uncertainty / risk | Uncertainty, randomness and unpredictability differ; deterministic systems can remain unpredictable; risk is distributional, Decision Quality differs from Outcome Quality; fairness is procedural/distributive/informational rather than equality alone; uncertainty must be playable. |
 | R23 | Time / temporality | Time is multi-frame relational structure rather than one clock; ClockOrder differs from CausalOrder; Simultaneity differs from Concurrency; Turn/Phase/Tick and Duration/Timing/Tempo/Rhythm/Pacing separate; waiting, persistence and reversibility can carry causal value; temporality must be playable. |
+| R24 | Identity / continuity | Entity identity differs from similarity, memory, body, persona, role, recognition and reputation; continuity is authority/domain-relative; clone/fork, disguise, succession and model migration require explicit lineage/recognition semantics; identity must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -374,6 +376,46 @@ Persistent worlds/Agents need not compute continuously.
 Match Agent decision timescale to player-value timescale.
 ```
 
+R24 adds the identity/continuity layer:
+
+```text
+EntityIdentity != QualitativeSimilarity != SelfIdentity != RoleIdentity
+EntityIdentity != PublicPresentation != Reputation
+Memory != Identity
+Body != Identity
+Persona != Character
+RoleContinuity != OccupantContinuity
+Recognition != WorldTruth
+SameModel != SameAgentIdentity
+DifferentModel != IdentityBreak
+IdentityConsistency != BehavioralRigidity
+```
+
+```text
+ContinuityProfile =
+causal lineage / body / psychology / memory / commitments /
+relationships / institution / recognition / narrative / provenance
+
+IdentityAuthority =
+which authority/criterion binds which identity-linked consequence
+
+IdentityCausality =
+same action/state + different recognized identity/role/lineage
+→ materially different future
+```
+
+R24 adds `IdentityTopology`, `RecognitionTopology`, `PlayableIdentity` and `PlayableContinuity`.
+
+R24 discipline:
+
+```text
+Do not use one global identity criterion when consequence domains differ.
+Do not confuse evidence/recognition with authoritative continuity.
+Treat clone/fork as branching provenance, not one-to-many numerical sameness by default.
+Allow history-supported development without excusing stochastic persona drift.
+Make Agent identity independent from model/provider implementation unless fiction says otherwise.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -468,6 +510,8 @@ PlayableEmbodiment
 PlayableUncertainty
 PlayableRisk
 PlayableTemporality
+PlayableIdentity
+PlayableContinuity
 ```
 
 Generalized:
@@ -659,18 +703,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R23 is complete. Continue with:
+R24 is complete. Continue with:
 
 ```text
-R24 — Identity, Character, Role, Persona, Self, Status, Reputation, Continuity and Transformation
+R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond
 ```
 
 Primary transition:
 
 ```text
-R23: How are actions and consequences ordered through time?
+R24: What makes this the same person/character/collective through change?
 →
-R24: What makes a Subject, character or collective count as the same entity through time, transformation, role change and social recognition?
+R25: What persistent structure exists between Subjects, and how does that shared history change future value, vulnerability, expectation and action?
 ```
 
-Do not select a product before R24 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R25 and the remaining adjacent foundational dimensions have been examined and then synthesized.

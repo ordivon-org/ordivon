@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R23 without depending on the originating conversation context.
+summary: Exact continuity handoff for resuming the Game foundations programme after R1–R24 without depending on the originating conversation context.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -28,6 +28,7 @@ related:
   - game.foundations-research.r21
   - game.foundations-research.r22
   - game.foundations-research.r23
+  - game.foundations-research.r24
   - game.foundations-research.map
   - game.core-research.reset
 ---
@@ -35,331 +36,283 @@ related:
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md) — canonical R23 decomposition of temporal frames, order, concurrency, duration, timing, rhythm, turns, windows, waiting, reversibility, persistence and temporal agency.
-2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R23 conceptual map.
-3. [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md) — uncertainty/risk layer that R23 extends through realization timing, deadlines and temporal exposure.
-4. [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md) — control/action-causality layer that R23 temporalizes.
-5. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — creation/authorship layer.
-6. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — strategic-interdependence layer.
-7. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — motivation/goal/commitment layer.
-8. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — canonical first seventeen rounds.
-9. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole authority for G0–G8 product-stage meanings.
+1. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — canonical R24 identity/continuity decomposition.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R24 map.
+3. [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md) — temporal continuity/reversal layer.
+4. [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md) — uncertainty/recognition layer.
+5. [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md) — body/avatar/control/embodiment layer.
+6. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — expression/style/authorship layer.
+7. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — reputation/trust/strategy layer.
+8. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — values/goals/identity-commitment layer.
+9. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — first seventeen rounds.
+10. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
 
-## Current research status
+## Current status
 
-Completed through R23. Exact next round:
-
-```text
-R24 — Identity, Character, Role, Persona, Self, Status, Reputation, Continuity and Transformation
-```
-
-## Stable pre-R23 boundaries
+Stable global boundary:
 
 ```text
 AI Game != Agent World
 Agent != LLM
-Generation != gameplay
-Freedom != Agency
-Memory != History
-Need != Desire != Goal
-Communication != Commitment
-Creation != Creativity
-Authorship != Ownership
-Control != SenseOfAgency
-Avatar != Body
-Embodiment != Presence
-Uncertainty != Randomness
-Determinism != Predictability
-Risk != Variance != ExpectedValue
-DecisionQuality != OutcomeQuality
-Fairness != Symmetry != OutcomeEquality != Balance
+Generation != gameplay by itself
+Research rounds != G0–G8
 ```
 
-## R23 durable result
+R1–R24 are complete. Exact next round:
 
 ```text
-Time != Clock
-Sequence != Duration
-ClockOrder != CausalOrder
-Simultaneity != Concurrency
-Turn != Tick != Phase
-Duration != Timing
-Tempo != Rhythm != Pacing
-Deadline != Timer
-Cooldown != Recovery
-Latency != GameWorldTime
-Waiting != DeadTime
-Persistence != ContinuousSimulation
-Replay != Undo != StateRestore != InWorldRewind
-ClockDuration != ExperiencedDuration != RememberedDuration
+R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond
 ```
 
-### Temporal Frame / Mapping
+## R24 durable result
+
+Core separations:
 
 ```text
-TemporalFrame =
-Events / Processes
-+ TemporalRelations
-+ optional Metric / Clock
-+ ProgressionRule
+EntityIdentity != QualitativeSimilarity
+EntityIdentity != SelfIdentity != RoleIdentity != SocialIdentity
+Identity != Name / Identifier
+Memory != Identity
+Body != Identity
+Persona != Character
+Character != Subject != Agent
+Role != CharacterClass
+RoleContinuity != OccupantContinuity
+Status != Rank != Power != Reputation
+Recognition != WorldTruth
+Reputation != Identity
+Transformation != Replacement
+SameModel != SameAgentIdentity
+DifferentModel != IdentityBreak
+SamePrompt != SamePersonaTrajectory
+IdentityConsistency != BehavioralRigidity
 ```
 
-Useful frames include wall, gameworld/simulation, coordination, fictive/narrative, subjective/experienced and authority time where rules need an exact reference.
+### Five-way identity decomposition
 
 ```text
-TemporalMapping(F_a → F_b)
+ContinuityBasis
+!= IdentityEvidence
+!= IdentityContent
+!= Recognition
+!= IdentityConsequence
 ```
 
-may be 1:1, scaled, paused, discontinuous, compressed or action-triggered.
-
-### Ordering / concurrency
+### Continuity Profile
 
 ```text
-ClockOrder != CausalOrder
-NetworkArrivalOrder != SemanticPriority
-Simultaneity != Concurrency
-SimultaneousResolution != ArbitrarySequentialization
+ContinuityProfile = {
+  CausalLineage,
+  Body/Substrate,
+  PsychologicalState,
+  Memory,
+  Values/Goals/Commitments,
+  Relationships,
+  InstitutionalRecord,
+  SocialRecognition,
+  NarrativeHistory,
+  Provenance/ControlLineage
+}
 ```
 
-For actions `a,b`, compare `T_a(T_b(s))` and `T_b(T_a(s))`; if unequal, explicit joint/priority/conflict/allocation semantics are required.
+No field is universally necessary or sufficient.
 
-### Duration / timing / tempo / rhythm / pacing
+### Identity Authority
 
 ```text
-Duration = interval extent
-Timing   = placement relative to event/window/reference
-Tempo    = event/action/decision rate
-Rhythm   = patterned interval/accent/phase relation
-Pacing   = macro distribution of tension/decisions/feedback/recovery
+IdentityAuthority(domain) =
+rules/institution/world authority determining
+which referent receives identity-linked consequences
 ```
 
+Different consequence domains may legitimately use different continuity criteria.
+
+### Self / Character / Persona / Role
+
 ```text
-WorldSpeed != DecisionDensity
-ReactionSpeed != AllTemporalSkill
+Self = Subject-relative first-person locus/self-model
+Character = represented identity-bearing figure
+Persona = situated expressive/presentation configuration
+Role = relational/institutional/narrative position carrying expectations/rights/duties/capabilities/function
 ```
 
-### Turn / round / phase / tick
+One entity may have multiple personas/roles; one role can have multiple occupants over time.
+
+### Identity / Recognition Topology
 
 ```text
-Turn  = bounded opportunity/authority to commit action/decision
-Round = recurring grouping/synchronization cycle
-Phase = regime with different legality/information/resolution rules
-Tick  = simulation/update quantum
-```
-
-### Temporalized action
-
-```text
-Opportunity
-→ Intent
-→ Commit
-→ Wind-up / Preparation
-→ Effect / Active interval
-→ Completion
-→ Recovery
-→ Next availability
+IdentityTopology =
+relations among Entities, Identifiers, Personas, Roles, Groups,
+Institutions, SelfModels, ObserverBeliefs, StatusClaims and ProvenanceLineages
 ```
 
 ```text
-WindUp != ActiveInterval != Recovery != Cooldown
+RecognitionTopology =
+who recognizes/believes/records which identity/role/status claim
+about which referent based on what evidence/authority
 ```
 
-### Windows / deadlines / pressure
+False recognition can still create real institutional/social consequences.
+
+### Identity Causality
 
 ```text
-TemporalAffordance =
-action possibility whose legality/effectiveness depends on temporal relation/window
+IdentityCausality =
+value-bearing futures counterfactually depend on
+which identity/role/membership/lineage an action/state is attributed to
 ```
 
-Useful windows include availability, reaction, vulnerability, cancellation, commitment and information windows.
+### Major falsifiers
 
 ```text
-Deadline = boundary after which legality/value/options change
-Timeout  = consequence of noncompletion/nonresponse at boundary
-Timer UI = representation only
+Amnesia: MemoryLoss != automatic IdentityBreak
+Body swap: BodyContinuity may diverge from SubjectContinuity
+Clone/fork: SharedPast != SharedNumericalIdentity after branching
+Disguise: entity continuity can remain while observer recognition changes
+Succession: RoleContinuity can coexist with EntityReplacement
+Save/load: StateRestore != IdentityReset by default
 ```
 
-```text
-TemporalScarcity =
-limited temporal opportunity relative to desired action/deliberation/coordination
-```
-
-### Waiting
-
-Decompose:
+### Development versus drift
 
 ```text
-Access/dead
-Process/maturation
-Information
-Strategic
-Synchronization
-Recovery/cooldown
-Anticipatory/aesthetic
-Asynchronous dependency
-```
-
-Meaningful waiting normally changes at least one of state, information, options, value/cost, strategy, synchronization or experience.
-
-### Temporal Causality / Agency
-
-```text
-TemporalCausality =
-important future properties counterfactually depend on
-when, order, duration or synchronization
+IdentityDevelopment =
+identity-relevant change supported by history/learning/reflection/relationship/role/institution
+while intended continuity is preserved
 ```
 
 ```text
-TemporalAgency =
-meaningful influence over
-schedule / order / duration / rate / synchronization /
-interruption / commitment / reversal
+IdentityDrift =
+identity-relevant change without adequate causal/provenance support
+relative to the continuity contract
+```
+
+### Social / collective identity
+
+```text
+Membership != Identification
+CollectiveIdentity != Organization
+OrganizationIdentity != MemberIdentity
+CollectiveAgency != IdentityFusion
+```
+
+### Generative / persistent Agent identity
+
+```text
+SameModelWeights != SameAgentIdentity
+DifferentModelWeights != IdentityBreak
+```
+
+Persistent identity may be grounded by authoritative entity lineage + relevant memory/history + commitments/goals + relationships + role/status + identity-relevant values/boundaries + provenance + adaptive state.
+
+Model/provider is a policy mechanism unless the world makes it identity-relevant.
+
+### Generative Persona
+
+Prefer layered coherence:
+
+```text
+identity/continuity layer     slow
+relationship/meaning layer   medium
+local affect/stance          fast
+surface expression           very fast
+```
+
+Exact rates are product-specific.
+
+Generated identity/backstory/memory/role/status/relationship/transformation claims create referent, provenance, authority and continuity debt.
+
+### Playable Identity / Continuity
+
+```text
+PlayableIdentity =
+identity distinctions/claims/continuities players can express,
+infer, test, contest, conceal, adopt or transform,
+and whose acceptance changes meaningful futures
 ```
 
 ```text
-TemporalAgency != ActingFaster
-```
-
-### Persistence / asynchrony
-
-```text
-Asynchronous != TurnBased
-Persistence != ContinuousComputation
-PersistentAgent != ThinkEveryTick
-```
-
-Event schedules, elapsed-time materialization and wake-on-relevance are valid when they preserve equivalent player-facing causality.
-
-### Pause / reversal
-
-```text
-Pause = suspend selected temporal frames while others may continue
-```
-
-```text
-Replay       = observe/reconstruct past
-Undo         = cancel/compensate prior change
-StateRestore = restore retained state
-InWorldRewind= represented temporal-reversal mechanic
-```
-
-Crucial:
-
-```text
-WorldStateReversal != PlayerKnowledgeReversal
-SameWorldState != SamePlayHistory
-```
-
-### Temporal Contract
-
-```text
-TemporalContract =
-what advances / pauses / resolves first / expires / persists /
-locks / can be reversed / which clock-order is authoritative
-```
-
-### Agent temporal fit
-
-```text
-Match Agent decision timescale to player-value timescale.
-```
-
-Potential temporal intent fields:
-
-```text
-EarliestStart
-Deadline
-DurationLimit
-Cadence
-Priority
-Interruptibility
-CancellationCondition
-RetryWindow
-SynchronizationCondition
-```
-
-### Playable Temporality
-
-```text
-PlayableTemporality =
-temporal relations/windows/rates/orderings/mappings
-that participants can perceive/model enough to anticipate,
-influence or coordinate around,
-and whose temporal differences alter meaningful futures
+PlayableContinuity =
+continuity/transformation rules legible enough to reason about
+what persists, transfers, branches, breaks or transforms
 ```
 
 ## Research boundary
 
-Do not assume Game requires real-time action, metric seconds, global clocks, cooldowns or persistent simulation. Keep authored, turn-based, real-time, simultaneous, async, persistent, social, creative, narrative and generative forms open. No product winner exists; foundation rounds do not redefine G0–G8.
+No product winner exists. Do not assume identity requires a deep psychology model, humanoid body, autonomous Agent, one global ID rule or immutable persona. Keep authored, RPG/social, strategy, narrative, creative, roleplay, generative and persistent Agent forms open.
 
-## How to continue R24
+## How to continue R25
 
-Start from continuity criteria, not character sheets or persona prompts.
+Start from **persistent dyadic/shared structure**, not affection meters or romance systems.
 
 Core question:
 
-> What makes a Subject, character or collective count as the same entity through time, transformation, role change and social recognition?
+> What persistent structure exists between Subjects, and how does shared history change future value, vulnerability, expectation and action?
 
 Distinguish at least:
 
 ```text
-Identity
-Self
-Character
-Persona
-Role
-Avatar
-Body
-Name / Identifier
-Continuity
-Memory
-History
-Values / Commitments
-Social Recognition
-Status
-Rank
-Reputation
-Alias
-Disguise
-Ownership
-Provenance
-Transformation
-Replacement
-Clone / Copy
-Collective Identity
+Relationship
+Interaction History
+Acquaintance
+Affiliation
+Attachment
+Bond
+Intimacy
+Trust
+Reliability
+Loyalty
+Commitment
+Obligation
+Debt
+Reciprocity
+Dependence
+Interdependence
+Communal Relation
+Exchange Relation
+Alliance
+Rivalry
+Enmity
+Care
+Boundary
+Consent
+Repair
+Betrayal
+Separation
 ```
 
 Questions:
 
-1. Identity relative to memory/body/values/history/persistent state?
-2. Character vs Subject vs Persona vs Avatar?
-3. Role as capability/social expectation/institution position/narrative function?
-4. Sameness across memory loss, body swap, rewind or reconstruction?
-5. Self-identity vs observer-assigned identity?
-6. Status vs Rank vs Reputation vs Power?
-7. Development versus identity break?
-8. Aliases/disguises/secret identities as playable uncertainty?
-9. Identity constraints on goals/commitments/relationships/institutions?
-10. Player identification vs R21 embodiment/body ownership?
-11. Repeated expression/authorship becoming style/identity?
-12. Generative Persona continuity without freezing variation?
-13. Provenance across model/session/runtime boundaries?
-14. Collective identity vs organization?
+1. Relationship vs repeated interaction/current attitude/reputation?
+2. Attachment vs preference/value/identity?
+3. Reciprocal relationship vs two independent one-way attitudes?
+4. Communal vs exchange relationships?
+5. Positive bonds vs rivalry/enmity/dependence?
+6. What history must survive episodic forgetting?
+7. Trust vs reliability vs vulnerability?
+8. Relationship as goal/resource/constraint/identity structure?
+9. Intimacy relative to information access and vulnerability?
+10. Boundaries/consent/expectations/repair?
+11. Survival through identity/role/status changes?
+12. Dyadic relation vs social-network topology?
+13. AI/Persona relationship continuity vs generated flattery?
+14. Shared-state/history debt from generative relational claims?
+15. Relationship progression without affection-point optimization?
 
 ## High-priority warnings
 
 ```text
-Identity != name/id
-Character != Agent
-Persona != prompt
-Role != class
-Memory != identity
-Body != self
-Reputation != identity
-Continuity != continuous computation
-More backstory != more character depth
+Relationship != one affection score
+Trust != liking
+Reliability != trust
+Attachment != dependency
+Intimacy != information quantity
+Loyalty != obedience
+Reciprocity != exact accounting
+Repeated interaction != relationship by itself
+Generated warmth != relationship history
 ```
 
 ## Product-selection stop condition
 
-Do not begin intentional new-product G0 merely because the corpus is large. Finish remaining obvious foundations and later synthesize independent/redundant dimensions, candidate causal laws and high-information falsifiers before narrowing.
+Do not begin intentional new-product G0 merely because the corpus is large. Finish remaining obvious foundations and then synthesize independent/redundant dimensions, candidate causal laws and high-information falsifiers before narrowing.
