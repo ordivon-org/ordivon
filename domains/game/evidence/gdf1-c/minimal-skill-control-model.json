@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-c-minimal-skill-control-model",
+  "status": "research-candidate",
+  "epistemicBoundary": {
+    "purpose": "minimal Game-owned measurement/semantic contract for control, performance, skill and shared/assisted execution",
+    "doesNotClaim": [
+      "one neural or motor-control mechanism",
+      "one scalar universal Skill value",
+      "that PlayerValue is authoritatively known before empirical validation",
+      "that assistance effects on immediate performance imply durable Human learning",
+      "that synthetic capability profiles imply Human experience or motor mechanisms"
+    ]
+  },
+  "objects": [
+    {
+      "id": "C1-SkillScopeSpec",
+      "definition": "declares whose capability is being inferred, over which task family, control configurations, evaluation/value targets and probe transformations",
+      "requiredFields": ["attributionTarget", "taskFamily", "controlConfigurations", "evaluationTargetSet", "probeTransformationSet"],
+      "guard": "Skill claims without an explicit scope are incomplete"
+    },
+    {
+      "id": "C2-GameActionContract",
+      "definition": "Game-local semantic action identities, admission/current legality, controlled loci and authoritative consequence semantics",
+      "guard": "physical movement/input implementation does not define GameAction identity"
+    },
+    {
+      "id": "C3-ControlMapping",
+      "definition": "context-sensitive transformation from input evidence/control expression into control variables and/or candidate GameActions",
+      "fields": ["inputSurface", "mappingContext", "outputControlVariables", "outputGameActions", "gain/filter/deadzone/remap", "version/provenance"],
+      "guard": "same GameAction may have multiple mappings; same raw input may denote different GameActions by context"
+    },
+    {
+      "id": "C4-ControlContributionTopology",
+      "definition": "declares which controller contributes to which variable/layer/time interval and with what authority/transform role",
+      "fields": ["controllerId", "attributionClass", "controlledVariables", "layer", "timeScope", "contributionKind", "authorityScope"],
+      "contributionKinds": ["proposal", "selection", "filter", "correction", "stabilization", "execution", "admission", "override"],
+      "guard": "controller contribution cannot be reduced to one percent-manual number"
+    },
+    {
+      "id": "C5-EvaluationTargetSet",
+      "definition": "declared target of the current skill claim: formal Game goal/evaluation, local task objective, or explicit PlayerValue hypothesis",
+      "guard": "formal score, PlayerValue and research metric are not interchangeable"
+    },
+    {
+      "id": "C6-TaskRelevantVariableSet",
+      "definition": "variables admitted before expert telemetry because their variation is causally connected under the current GameStructure/control configuration to a declared evaluation/value target and is participant/system influenceable or itself the evaluated controlled variable",
+      "admissionRules": [
+        "variable has explicit provenance/observability or derivation semantics",
+        "there is an authoritative causal path from the variable to a declared EvaluationTarget, or the variable is directly declared as an evaluated control/expression target",
+        "the variable is within the influence/exposure surface of the attribution target under the current ControlContributionTopology",
+        "expert telemetry may validate predictive usefulness but must not create causal/evaluative relevance post hoc"
+      ],
+      "guard": "TaskRelevantVariableSet is evaluation- and configuration-relative, not a universal list"
+    },
+    {
+      "id": "C7-PerformanceSample",
+      "definition": "one provenance-bound observation of task-relevant variables and outcomes under an exact task/configuration/history condition",
+      "requiredContext": ["subject/controller attribution", "task instance/family", "mapping", "assistance topology", "condition/perturbation", "time/history", "evaluation target", "measurement provenance"],
+      "guard": "PerformanceSample is evidence about capability, not Skill by identity"
+    },
+    {
+      "id": "C8-ProbeTransformation",
+      "definition": "an exact declared transformation between baseline and probe tasks/configurations used to interpret retention, transfer, remapping, perturbation or adaptation",
+      "dimensions": ["input mapping", "control gains/dynamics", "world dynamics", "observation/information", "action semantics", "evaluation target", "timing/speed", "assistance topology", "task content"],
+      "guard": "near/far transfer labels without transformation identity are insufficient"
+    },
+    {
+      "id": "C9-SkillProfile",
+      "definition": "learned, history-dependent conditional capability profile over one SkillScopeSpec, inferred from distributions of TaskRelevantVariables across declared conditions/probes",
+      "formalSketch": "P(TRV outcomes | subject history, task family, control configuration, probe transformation)",
+      "comparison": ["profile-local dominance when one profile is no worse on all declared ordered targets/conditions and better on at least one", "otherwise profiles can remain incomparable without hidden weighting"],
+      "guard": "no mandatory scalarization; peak, robustness, transfer, retention and efficiency are not globally ordered"
+    },
+    {
+      "id": "C10-TechniqueFamily",
+      "definition": "derived family of recurrent policy/execution organizations sharing declared functional invariants while permitting parameterization, mapping-specific realization and online correction",
+      "possibleInvariants": ["action ordering relation", "controlled task variable", "role/goal relation", "coordination relation", "decision/transition grammar"],
+      "guard": "TechniqueFamily is not one exact trajectory or fixed parameter sequence and is not required for every Skill"
+    },
+    {
+      "id": "C11-LearningEvidence",
+      "definition": "history-sensitive evidence that a SkillProfile changed durably rather than transient PerformanceSample change",
+      "probes": ["delayed retention", "transfer under declared ProbeTransformation", "perturbation/recovery", "recalibration", "mapping change", "reacquisition"],
+      "guard": "no single probe is mandatory for every skill claim, but the claim must match the evidence timescale/scope"
+    }
+  ],
+  "derivedRelations": [
+    {
+      "id": "D1-EntryRequirementSet",
+      "alias": "skill-floor shorthand",
+      "definition": "minimum region of SkillProfile capability needed to satisfy a declared viability/evaluation threshold under one exact Game/control configuration",
+      "guard": "not an intrinsic scalar property of a Game; changes with mapping, assistance, task condition, threshold and performer-relevant dimensions"
+    },
+    {
+      "id": "D2-SkillExpressionEnvelope",
+      "definition": "range of task/evaluation differences that changes in the attribution target's SkillProfile can causally express under the current GameStructure, mapping and contribution topology",
+      "guard": "high latent capability may be hidden by automation, saturation, coarse action resolution or inaccessible mapping"
+    },
+    {
+      "id": "D3-SaturationBoundary",
+      "alias": "skill-ceiling shorthand",
+      "definition": "region beyond which further improvement on a declared capability dimension no longer creates distinguishable change in the declared evaluation/value targets under the current configuration",
+      "guard": "not a universal maximum human skill and generally multidimensional"
+    },
+    {
+      "id": "D4-ControlAccessProfile",
+      "definition": "which GameAction/control distinctions are reachable/executable by one subject under a particular input mapping and bodily/technical constraints",
+      "guard": "access can change while GameAction semantics remain fixed"
+    },
+    {
+      "id": "D5-ControllerSpecificSkillProfile",
+      "definition": "SkillProfile attributed separately to Human, assist/system, synthetic controller or joint controller using the same scope semantics where possible",
+      "guard": "joint performance does not automatically credit Human-independent skill or system-independent skill"
+    }
+  ],
+  "strongLaws": [
+    "SkillClaim -> explicit SkillScopeSpec",
+    "TaskRelevantVariableSet derives from GameStructure/evaluation/control relevance before expert telemetry",
+    "PerformanceSample != SkillProfile",
+    "JointControllerPerformance != HumanIndependentSkillProfile",
+    "ControlAccess != GameActionSemantics",
+    "SkillFloor != intrinsic Game constant",
+    "SkillCeiling != universal scalar maximum",
+    "TechniqueFamily != exact trajectory",
+    "TransferEvidence requires explicit ProbeTransformation",
+    "SkillProfile comparison can be partial/incomparable without declared weighting"
+  ],
+  "externalPressure": [
+    {
+      "id": "GuadagnoliLee2004",
+      "source": "Journal of Motor Behavior 36(2):212-224, DOI 10.3200/JMBR.36.2.212-224",
+      "use": "functional task difficulty depends on performer skill, nominal difficulty and practice condition; pressures intrinsic fixed skill-floor/difficulty thinking"
+    },
+    {
+      "id": "NiskyHsiehOkamura2014",
+      "source": "IEEE Transactions on Biomedical Engineering 61(12):2869-2881, DOI 10.1109/TBME.2014.2332359",
+      "use": "expertise interacts with freehand versus robotic teleoperation in task-relevant/task-irrelevant variability structure; interface/control configuration changes skill expression"
+    },
+    {
+      "id": "ThompsonLokeArgall2022",
+      "source": "Control Interface Remapping for Bias-Aware Assistive Teleoperation, arXiv:2205.08489",
+      "use": "user-specific remapping improved control-space reachability in an evaluation with six participants with upper-limb motor impairments; supports mapping-relative access rather than fixed GameAction demand"
+    },
+    {
+      "id": "SrivastavaEtAl2025",
+      "source": "Shared Autonomy for Proximal Teaching, HRI 2025 / arXiv:2502.19899",
+      "use": "shared autonomy was used to identify/practice interpretable racing subskills in a 50-participant user study, showing assistance can be part of teaching/curriculum and not only execution substitution"
+    }
+  ]
+}
