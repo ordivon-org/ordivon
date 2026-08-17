@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R24
+title: Ordivon Game Foundations Research Map — R1–R25
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R24 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk, temporal and identity/continuity structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R25 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk, temporal, identity/continuity and relational structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -29,12 +29,13 @@ related:
   - game.foundations-research.r22
   - game.foundations-research.r23
   - game.foundations-research.r24
+  - game.foundations-research.r25
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), and [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), and [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -48,7 +49,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R24 index
+## R1–R25 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -76,6 +77,7 @@ No new product has been selected.
 | R22 | Uncertainty / risk | Uncertainty, randomness and unpredictability differ; deterministic systems can remain unpredictable; risk is distributional, Decision Quality differs from Outcome Quality; fairness is procedural/distributive/informational rather than equality alone; uncertainty must be playable. |
 | R23 | Time / temporality | Time is multi-frame relational structure rather than one clock; ClockOrder differs from CausalOrder; Simultaneity differs from Concurrency; Turn/Phase/Tick and Duration/Timing/Tempo/Rhythm/Pacing separate; waiting, persistence and reversibility can carry causal value; temporality must be playable. |
 | R24 | Identity / continuity | Entity identity differs from similarity, memory, body, persona, role, recognition and reputation; continuity is authority/domain-relative; clone/fork, disguise, succession and model migration require explicit lineage/recognition semantics; identity must be playable. |
+| R25 | Relationship / social bond | Relationship is persistent multi-layer relational structure rather than one affection/trust score; directed and shared state, attachment, intimacy, trust, commitment, obligation, reciprocity, dependence, rivalry and repair separate; dyadic strength differs from network value; relationships must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -416,6 +418,44 @@ Allow history-supported development without excusing stochastic persona drift.
 Make Agent identity independent from model/provider implementation unless fiction says otherwise.
 ```
 
+R25 adds the relational layer:
+
+```text
+RelationalState(i,j) =
+DirectedState(i→j)
++ DirectedState(j→i)
++ SharedDyadicState(i↔j)
++ External/InstitutionalRelation(i,j)
+
+Interaction != Relationship
+Relationship != OneScalar
+Mutuality != Symmetry != Reciprocity
+Attachment != Dependence
+Trust != Liking != Reliability
+Intimacy != InformationQuantity
+Commitment != Satisfaction
+Loyalty != Obedience
+Obligation != Affection
+Alliance != Friendship
+Competition != Rivalry
+Betrayal != AnyHarm
+Apology != Repair
+Forgiveness != Reconciliation
+TieStrength != NetworkValue
+```
+
+R25 adds `RelationalAuthority`, `RelationalCompression`, `RelationshipCausality`, `RelationshipTopology`, `RelationalContract`, `RelationalAffordance`, `RelationalAgency` and `PlayableRelationship`.
+
+R25 discipline:
+
+```text
+Keep directed attitudes distinct from joint/shared facts and institutional relations.
+Compress routine history but retain provenance for still-binding promise/debt/betrayal/boundary claims.
+Do not infer intimacy from information volume or trust from liking.
+Treat relationship development as multidimensional transformation, not monotonic closeness XP.
+Separate human-experienced AI relationship from system relational state and any claimed Agent subjectivity.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -512,6 +552,7 @@ PlayableRisk
 PlayableTemporality
 PlayableIdentity
 PlayableContinuity
+PlayableRelationship
 ```
 
 Generalized:
@@ -703,18 +744,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R24 is complete. Continue with:
+R25 is complete. Continue with:
 
 ```text
-R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond
+R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression
 ```
 
 Primary transition:
 
 ```text
-R24: What makes this the same person/character/collective through change?
+R25: What persistent structure exists between Subjects?
 →
-R25: What persistent structure exists between Subjects, and how does that shared history change future value, vulnerability, expectation and action?
+R26: What changes inside a Subject when events are affectively significant, and how do those states shape perception, action, memory, relationship and expression?
 ```
 
-Do not select a product before R25 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R26 and the remaining adjacent foundational dimensions have been examined and then synthesized.

@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R24 without depending on the originating conversation context.
+summary: Exact continuity handoff for resuming the Game foundations programme after R1–R25 without depending on the originating conversation context.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -29,6 +29,7 @@ related:
   - game.foundations-research.r22
   - game.foundations-research.r23
   - game.foundations-research.r24
+  - game.foundations-research.r25
   - game.foundations-research.map
   - game.core-research.reset
 ---
@@ -36,20 +37,15 @@ related:
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — canonical R24 identity/continuity decomposition.
-2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R24 map.
-3. [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md) — temporal continuity/reversal layer.
-4. [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md) — uncertainty/recognition layer.
-5. [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md) — body/avatar/control/embodiment layer.
-6. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — expression/style/authorship layer.
-7. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — reputation/trust/strategy layer.
-8. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — values/goals/identity-commitment layer.
-9. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — first seventeen rounds.
-10. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+1. [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md) — canonical R25 relationship/social-bond decomposition.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R25 map.
+3. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — identity/continuity layer to which relationship edges bind.
+4. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — trust/reliability/reciprocity/strategy layer.
+5. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — relational value/motivation/commitment layer.
+6. [`GAME_FOUNDATIONS_RESEARCH_R13_R17.md`](GAME_FOUNDATIONS_RESEARCH_R13_R17.md) if present is not canonical; use [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) for R13–R17 history/institution/information foundations.
+7. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
 
-## Current status
-
-Stable global boundary:
+## Stable global boundary
 
 ```text
 AI Game != Agent World
@@ -58,259 +54,327 @@ Generation != gameplay by itself
 Research rounds != G0–G8
 ```
 
-R1–R24 are complete. Exact next round:
+## Current status
+
+R1–R25 are complete. Exact next round:
 
 ```text
-R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond
+R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression
 ```
 
-## R24 durable result
+## R25 durable result
 
-Core separations:
+### Core relational definition
 
 ```text
-EntityIdentity != QualitativeSimilarity
-EntityIdentity != SelfIdentity != RoleIdentity != SocialIdentity
-Identity != Name / Identifier
-Memory != Identity
-Body != Identity
-Persona != Character
-Character != Subject != Agent
-Role != CharacterClass
-RoleContinuity != OccupantContinuity
-Status != Rank != Power != Reputation
-Recognition != WorldTruth
-Reputation != Identity
-Transformation != Replacement
-SameModel != SameAgentIdentity
-DifferentModel != IdentityBreak
-SamePrompt != SamePersonaTrajectory
-IdentityConsistency != BehavioralRigidity
+Relationship(i,j) =
+persistent relational structure connecting i and j
+such that retained history/current relational state changes
+future affordances, value, expectations, vulnerability,
+obligations, information or policy relative to unrelated entities
 ```
 
-### Five-way identity decomposition
+### Four-layer Relational State
 
 ```text
-ContinuityBasis
-!= IdentityEvidence
-!= IdentityContent
-!= Recognition
-!= IdentityConsequence
+RelationalState(i,j) =
+DirectedState(i→j)
++ DirectedState(j→i)
++ SharedDyadicState(i↔j)
++ External/InstitutionalRelation(i,j)
 ```
 
-### Continuity Profile
+A relationship may be asymmetric, negative, one-sided in some components or maintained through long absence.
+
+### Core separations
 
 ```text
-ContinuityProfile = {
-  CausalLineage,
-  Body/Substrate,
-  PsychologicalState,
-  Memory,
-  Values/Goals/Commitments,
-  Relationships,
-  InstitutionalRecord,
-  SocialRecognition,
-  NarrativeHistory,
-  Provenance/ControlLineage
-}
+Interaction != Relationship
+RepeatedInteraction != Relationship by itself
+Relationship != Attitude
+Relationship != OneScalar
+Relationship != PositiveValence
+Mutuality != Symmetry != Reciprocity
+Attachment != Relationship
+Attachment != Dependence
+Trust != Liking
+Trust != Reliability
+Intimacy != InformationQuantity
+Disclosure != Intimacy
+Commitment != Satisfaction
+Commitment != Attachment
+Commitment != Dependence
+Loyalty != Obedience
+Obligation != Affection
+Reciprocity != ExactAccounting
+Alliance != Friendship
+Competition != Rivalry
+Conflict != Enmity
+Betrayal != AnyHarm
+Apology != Repair
+Forgiveness != Reconciliation
+RelationshipEnd != HistoryErase
+TieStrength != NetworkValue
+GeneratedWarmth != RelationshipHistory
 ```
 
-No field is universally necessary or sufficient.
-
-### Identity Authority
+### Relational Authority
 
 ```text
-IdentityAuthority(domain) =
-rules/institution/world authority determining
-which referent receives identity-linked consequences
+RelationalAuthority =
+which Subject / joint commitment / institution / World authority
+owns a particular relational claim or consequence
 ```
 
-Different consequence domains may legitimately use different continuity criteria.
+A likes B, B trusts A, A+B signed a pact and the public believes they are enemies can all coexist.
 
-### Self / Character / Persona / Role
+### Relational compression
 
 ```text
-Self = Subject-relative first-person locus/self-model
-Character = represented identity-bearing figure
-Persona = situated expressive/presentation configuration
-Role = relational/institutional/narrative position carrying expectations/rights/duties/capabilities/function
+InteractionHistory
+→ salience/interpretation
+→ trust evidence / commitments / unresolved harms /
+   obligations / boundaries / milestones / dispositions
+→ future policy
 ```
 
-One entity may have multiple personas/roles; one role can have multiple occupants over time.
+Routine episodes may compress; still-binding promise/debt/betrayal/boundary claims need adequate provenance.
 
-### Identity / Recognition Topology
+### Attachment / care / intimacy
 
 ```text
-IdentityTopology =
-relations among Entities, Identifiers, Personas, Roles, Groups,
-Institutions, SelfModels, ObserverBeliefs, StatusClaims and ProvenanceLineages
+Attachment = target-specific security/proximity/bond function where relevant
+Care(i→j) = j's welfare/need enters i's evaluative/action structure
+Intimacy = self-relevant disclosure/access + responsive understanding/recognition under boundaries/vulnerability
 ```
 
+Raw dependence, information access and liking are insufficient.
+
+### Communal / exchange norms
+
 ```text
-RecognitionTopology =
-who recognizes/believes/records which identity/role/status claim
-about which referent based on what evidence/authority
+Communal: benefit responds primarily to need/welfare
+Exchange: benefit tracks comparable return/claim/accounting
 ```
 
-False recognition can still create real institutional/social consequences.
+One relationship may use different regimes in different domains.
 
-### Identity Causality
+### Trust / reliability
 
-```text
-IdentityCausality =
-value-bearing futures counterfactually depend on
-which identity/role/membership/lineage an action/state is attributed to
-```
-
-### Major falsifiers
+Preserve R19:
 
 ```text
-Amnesia: MemoryLoss != automatic IdentityBreak
-Body swap: BodyContinuity may diverge from SubjectContinuity
-Clone/fork: SharedPast != SharedNumericalIdentity after branching
-Disguise: entity continuity can remain while observer recognition changes
-Succession: RoleContinuity can coexist with EntityReplacement
-Save/load: StateRestore != IdentityReset by default
-```
-
-### Development versus drift
-
-```text
-IdentityDevelopment =
-identity-relevant change supported by history/learning/reflection/relationship/role/institution
-while intended continuity is preserved
+Trust(j→i) = willingness to accept vulnerability to i
+based on beliefs about future behavior and/or binding commitments
 ```
 
 ```text
-IdentityDrift =
-identity-relevant change without adequate causal/provenance support
-relative to the continuity contract
+Reliability = evidence/prediction of consistency
 ```
 
-### Social / collective identity
+Trust is directional and domain-specific.
+
+### Commitment / investment / loyalty
 
 ```text
-Membership != Identification
-CollectiveIdentity != Organization
-OrganizationIdentity != MemberIdentity
-CollectiveAgency != IdentityFusion
+RelationshipCommitment = persistent orientation to maintain/protect/continue relation or obligations
+RelationshipInvestment = resources/history/opportunities/identity/social structure stranded or transformed by exit
+Loyalty = disposition/commitment to preserve/support/not betray target under meaningful competing incentives
 ```
 
-### Generative / persistent Agent identity
+Satisfaction, alternatives, investments, attachment and dependence remain separate.
+
+### Obligation / debt / reciprocity
 
 ```text
-SameModelWeights != SameAgentIdentity
-DifferentModelWeights != IdentityBreak
+Obligation = directed normative/institutional/commitment-grounded requirement
+Debt = specific owed-claim relation
+Reciprocity = policy/norm conditioned on prior treatment/return
 ```
 
-Persistent identity may be grounded by authoritative entity lineage + relevant memory/history + commitments/goals + relationships + role/status + identity-relevant values/boundaries + provenance + adaptive state.
+Do not convert all relationship value into a ledger.
 
-Model/provider is a policy mechanism unless the world makes it identity-relevant.
-
-### Generative Persona
-
-Prefer layered coherence:
+### Dependence / interdependence
 
 ```text
-identity/continuity layer     slow
-relationship/meaning layer   medium
-local affect/stance          fast
-surface expression           very fast
+Dependence(i→j) = i's valued outcomes/options materially conditioned by j
+Interdependence = material mutual dependence
 ```
 
-Exact rates are product-specific.
+Interdependence can be adversarial and does not itself establish relationship.
 
-Generated identity/backstory/memory/role/status/relationship/transformation claims create referent, provenance, authority and continuity debt.
-
-### Playable Identity / Continuity
+### Rivalry / enmity / alliance
 
 ```text
-PlayableIdentity =
-identity distinctions/claims/continuities players can express,
-infer, test, contest, conceal, adopt or transform,
-and whose acceptance changes meaningful futures
+Alliance = recognized strategic cooperation/support relation
+Rivalry = persistent opponent-specific competition/history
+Enmity = persistent adversarial target-specific relation
+```
+
+They are not synonyms for friendship, competition or conflict.
+
+### Relationship Causality
+
+```text
+RelationshipCausality =
+otherwise comparable action/world state
++ different relationship state/history
+→ materially different valued future
+```
+
+### Relationship Topology
+
+```text
+RelationshipTopology =
+multi-relational graph with multiplex edges such as
+friendship / trust / debt / kinship / rivalry / command /
+alliance / care / dependence / information access
 ```
 
 ```text
-PlayableContinuity =
-continuity/transformation rules legible enough to reason about
-what persists, transfers, branches, breaks or transforms
+TieStrength != NetworkValue
 ```
+
+Weak ties may bridge clusters and matter greatly to information/topology.
+
+### Relational Contract / boundaries / consent
+
+```text
+RelationalContract =
+explicit/implicit expectations + boundaries + commitments + repair/exit norms
+```
+
+```text
+Boundary = relation/domain-specific constraint on acceptable access/action/claim/disclosure
+Consent = scoped/contextual authorization
+```
+
+Relationship status never creates blanket consent.
+
+### Betrayal / repair / reconciliation
+
+```text
+Betrayal = relational transgression against prior trust/commitment/expectation under vulnerability
+Repair = process changing damaged evidence/expectations/trust/boundaries/commitments
+Forgiveness != Reconciliation
+```
+
+Apology text alone is not repair.
+
+### Relational Agency
+
+```text
+RelationalAgency =
+capacity to shape, maintain, contest, repair, redefine, deepen or exit relation
+through consequential choices
+```
+
+It never means unilateral authority to overwrite another Subject's attitude.
+
+### Human–AI relational layers
+
+```text
+HumanExperiencedRelation
+SystemAuthoritativeRelationalState
+Agent/CharacterSubjectiveState (only if modeled/fictionally asserted)
+```
+
+Human attachment to an AI does not prove reciprocal AI phenomenology. A system can still provide causally grounded relational continuity through history, policy, boundaries and commitments without claiming sentience.
+
+### Playable Relationship
+
+```text
+PlayableRelationship =
+persistent relational structure whose relevant history,
+expectations, vulnerabilities, commitments and transformations
+can be perceived/inferred/influenced enough that
+relational differences change meaningful future possibilities
+```
+
+### Minimum relational complexity
+
+```text
+RL0 no persistent relation
+RL1 directed trace
+RL2 multi-dimensional dyad
+RL3 shared/joint state
+RL4 transformation/betrayal/repair/separation
+RL5 multi-relational social ecology
+```
+
+Not a maturity ladder.
 
 ## Research boundary
 
-No product winner exists. Do not assume identity requires a deep psychology model, humanoid body, autonomous Agent, one global ID rule or immutable persona. Keep authored, RPG/social, strategy, narrative, creative, roleplay, generative and persistent Agent forms open.
+No product winner exists. Relationships need not be romantic, positive, reciprocal, symmetric, explicit-metered, LLM-driven or maximally realistic. Keep authored characters, family/care, friendship, rivalry/enmity, alliance, exchange, institutions, creative collaboration, social networks, roleplay and persistent/generative Agent forms open.
 
-## How to continue R25
+## How to continue R26
 
-Start from **persistent dyadic/shared structure**, not affection meters or romance systems.
+Start from affective state/process, not an emotion-label list or sentiment classifier.
 
 Core question:
 
-> What persistent structure exists between Subjects, and how does shared history change future value, vulnerability, expectation and action?
+> What changes inside a Subject when events are affectively significant, and how do those states shape perception, action, memory, relationship and expression?
 
 Distinguish at least:
 
 ```text
-Relationship
-Interaction History
-Acquaintance
-Affiliation
-Attachment
-Bond
-Intimacy
-Trust
-Reliability
-Loyalty
-Commitment
-Obligation
-Debt
-Reciprocity
-Dependence
-Interdependence
-Communal Relation
-Exchange Relation
-Alliance
-Rivalry
-Enmity
+Emotion
+Affect
+Feeling
+Mood
+Valence
+Arousal
+Appraisal
+Action Tendency
+Bodily/Physiological State
+Expression
+Emotion Recognition
+Emotion Attribution
+Regulation
+Suppression
+Reappraisal
+Recovery
+Empathy
+Emotional Contagion
+Perspective Taking
+Compassion
 Care
-Boundary
-Consent
-Repair
-Betrayal
-Separation
+Relational Emotion
 ```
 
 Questions:
 
-1. Relationship vs repeated interaction/current attitude/reputation?
-2. Attachment vs preference/value/identity?
-3. Reciprocal relationship vs two independent one-way attitudes?
-4. Communal vs exchange relationships?
-5. Positive bonds vs rivalry/enmity/dependence?
-6. What history must survive episodic forgetting?
-7. Trust vs reliability vs vulnerability?
-8. Relationship as goal/resource/constraint/identity structure?
-9. Intimacy relative to information access and vulnerability?
-10. Boundaries/consent/expectations/repair?
-11. Survival through identity/role/status changes?
-12. Dyadic relation vs social-network topology?
-13. AI/Persona relationship continuity vs generated flattery?
-14. Shared-state/history debt from generative relational claims?
-15. Relationship progression without affection-point optimization?
+1. Emotion vs affect/feeling/mood/valence/arousal?
+2. State vs process vs coordinated episode?
+3. Appraisal theory vs discrete/basic emotion vs dimensional approaches?
+4. Affect vs Value/Desire from R18?
+5. Effects on attention, belief, action readiness and memory?
+6. Mood vs event-linked emotion?
+7. Regulation, suppression, reappraisal, recovery?
+8. Empathy vs contagion/perspective-taking/compassion/care?
+9. Infer emotion without sharing it?
+10. Internal affect vs expression?
+11. Emotional authenticity in authored/generative Characters?
+12. Jealousy/guilt/shame/gratitude/grief/betrayal as relational emotions?
+13. Player emotion as gameplay versus presentation outcome?
+14. Sensory expression without overriding causal truth?
+15. Generated emotional claims and continuity debt?
+16. Minimum affective machinery by role?
 
 ## High-priority warnings
 
 ```text
-Relationship != one affection score
-Trust != liking
-Reliability != trust
-Attachment != dependency
-Intimacy != information quantity
-Loyalty != obedience
-Reciprocity != exact accounting
-Repeated interaction != relationship by itself
-Generated warmth != relationship history
+Emotion != Valence
+Emotion != Arousal
+Emotion != Reward
+Feeling != Expression
+Mood != LongEmotion by definition
+Empathy != EmotionalContagion
+Empathy != Compassion
+Care != Empathy
+EmotionRecognition != EmotionExperience
+GeneratedEmotionText != InternalAffectiveState
 ```
 
 ## Product-selection stop condition

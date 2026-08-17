@@ -34,6 +34,10 @@ const r24 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R24.md", import.meta.url),
   "utf8",
 );
+const r25 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R25.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -137,8 +141,23 @@ test("R24 preserves identity, continuity, recognition and implementation boundar
   assert.match(r24, /No product is selected by R24\./);
 });
 
-test("foundation navigation advances the exact post-R24 continuation frontier", () => {
-  const frontier = /R25 — Relationship, Attachment, Affiliation, Intimacy, Trust, Loyalty, Obligation, Reciprocity and Social Bond/;
+test("R25 preserves relational-state, trust, intimacy, reciprocity and AI-boundary distinctions without selecting a product", () => {
+  assert.match(r25, /Interaction != Relationship/);
+  assert.match(r25, /Relationship != OneScalar/);
+  assert.match(r25, /Mutuality != Symmetry != Reciprocity/);
+  assert.match(r25, /Trust != Liking/);
+  assert.match(r25, /Intimacy != InformationQuantity/);
+  assert.match(r25, /RelationshipCausality/);
+  assert.match(r25, /RelationshipTopology/);
+  assert.match(r25, /RelationalAuthority/);
+  assert.match(r25, /GeneratedWarmth != RelationshipHistory/);
+  assert.match(r25, /HumanExperiencedRelation/);
+  assert.match(r25, /PlayableRelationship/);
+  assert.match(r25, /No product is selected by R25\./);
+});
+
+test("foundation navigation advances the exact post-R25 continuation frontier", () => {
+  const frontier = /R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -155,6 +174,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R22.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R23.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R24.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R25.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {
