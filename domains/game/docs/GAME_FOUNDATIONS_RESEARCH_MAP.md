@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map
+title: Ordivon Game Foundations Research Map — R1–R18
 type: research
 profile: research
 lifecycle: active
@@ -15,19 +15,20 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R17 Game foundations corpus, including core distinctions, cross-domain abstractions, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R18 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
   - ordivon-game
 related:
   - game.foundations-research.r1-r17
+  - game.foundations-research.r18
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md). It is intentionally much shorter than the full research record.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) plus [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -41,7 +42,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R17 index
+## R1–R18 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -62,6 +63,7 @@ No new product has been selected.
 | R15 | Society / institutions | Organization != Institution; institutions can be history compressed into future rules. |
 | R16 | Space / topology | Topology = structure of reachability/influence; distance is transition cost; exploration grows a usable world model. |
 | R17 | Information / belief | Truth != Signal != Observation != Belief != Statement; bounded knowledge and information topology generate play. |
+| R18 | Motivation / goals | Need, Value and Desire are distinct motive sources; Preference is contextual comparison; Goal is selected pursuit; Commitment stabilizes it; Utility is optional representation/arbitration. |
 
 ## Current multidimensional GameForm model
 
@@ -124,13 +126,32 @@ The world may be physical, social, epistemic, economic, institutional, narrative
 Identity
 → Situated Observation
 → Belief / Internal State
-→ Need / Preference / Goal   [R18 frontier]
+→ Motive Structure / Commitments
 → Policy
 → Action
 → World Consequence
 → Feedback
 → Memory / Learning
 ```
+
+R18 refines the motive layer:
+
+```text
+MotiveStructure =
+RegulatoryPressure
++ EvaluativeStructure
++ CurrentSalience
+
+Need    = requirement pressure
+Value   = evaluative structure
+Desire  = current motivational salience
+Preference = contextual comparison
+Goal       = selected future/trajectory to pursue
+Intention  = Goal + persistence/reconsideration
+Utility    = optional numerical representation/arbitration
+```
+
+Use the lowest motivational complexity that creates a new playable causal distinction. `Want` is normally a surface-language term rather than a mandatory primitive.
 
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, RL, models, humans and hybrids.
 
@@ -217,6 +238,7 @@ PlayableEconomy
 PlayableSociety
 PlayableTopology
 PlayableInformation
+PlayableMotivation
 ```
 
 Generalized:
@@ -408,16 +430,18 @@ A practical test remains:
 
 ## Exact frontier
 
-Continue with:
+R18 is complete. Continue with:
 
 ```text
-R18 — Goals, Utility, Needs, Values and Desire
+R19 — Conflict, Cooperation, Competition, Coordination, Bargaining, Strategy and Equilibrium
 ```
 
-Primary distinctions:
+Primary transition:
 
 ```text
-Need != Want != Desire != Goal != Preference != Utility != Value
+R18: Why does one Subject select one future over another?
+→
+R19: What happens when multiple Subjects can alter one another's reachable futures?
 ```
 
-Do not select a product before this and adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R19 and the remaining adjacent foundational dimensions have been examined and then synthesized.

@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R17 foundations corpus without selecting a new product.
+summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R18 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -50,8 +50,9 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/STATION_ZERO_V3_CONTRACTION.md`](docs/STATION_ZERO_V3_CONTRACTION.md) records only Game-local contraction verdicts and reopen conditions; cross-project synthesis stays in Ordivon Computing.
 - [`docs/GAME_CORE_RESEARCH_RESET.md`](docs/GAME_CORE_RESEARCH_RESET.md) reserves G0–G8 for the normal product lifecycle and defines Station Zero/Concept Lab/Casefile as research treatments rather than product-stage winners.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md) preserves the complete first seventeen foundation rounds across game form, mechanics, loops, player value, world, subjects, agency, time, economy, society, topology, and information without selecting a product.
-- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for those rounds and their cross-domain abstractions.
-- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff and fixes the next research frontier at R18 Goals / Utility / Needs / Values / Desire.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R18.md`](docs/GAME_FOUNDATIONS_RESEARCH_R18.md) decomposes Need, Desire, Value, Preference, Utility, Goal and Commitment, defines minimum-sufficient motivational structures across game forms, and introduces Playable Motivation without selecting a product.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R18 foundations corpus and its cross-domain abstractions.
+- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R18 the next frontier is strategic interdependence in R19.
 - [`docs/GAME_CORE_DIRECTION_SPACE.md`](docs/GAME_CORE_DIRECTION_SPACE.md) maps the early Core → Experience search space, missing dimensions, and experimental contract.
 - [`docs/GAME_CORE_EXPERIMENT_FINDINGS.md`](docs/GAME_CORE_EXPERIMENT_FINDINGS.md) records what Station Zero, Casefile, Last Light, and Echo Hunt actually established without promoting a product winner.
 - [`docs/GAME_CORE_EXPERIMENT_CASEFILE.md`](docs/GAME_CORE_EXPERIMENT_CASEFILE.md) retains exact Casefile engineering/blind-play evidence as an epistemic Game Core treatment.

@@ -6,6 +6,10 @@ const corpus = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md", import.meta.url),
   "utf8",
 );
+const r18 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R18.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -16,7 +20,7 @@ const continuation = readFileSync(
 );
 const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
 
-test("Game foundations corpus preserves all seventeen completed research rounds", () => {
+test("Game foundations corpus preserves all seventeen completed pre-R18 research rounds", () => {
   for (let round = 1; round <= 17; round += 1) {
     assert.match(corpus, new RegExp(`R${round} \\u2014|R${round} —`));
   }
@@ -25,9 +29,19 @@ test("Game foundations corpus preserves all seventeen completed research rounds"
   assert.match(corpus, /A research round is a search method\. It is not a product phase\./);
 });
 
-test("foundation navigation keeps the exact post-R17 continuation frontier", () => {
-  assert.match(map, /R18 — Goals, Utility, Needs, Values and Desire/);
-  assert.match(continuation, /R18 — Goals, Utility, Needs, Values and Desire/);
+test("R18 preserves motivational distinctions without selecting a product", () => {
+  assert.match(r18, /Need \/ Value \/ Desire/);
+  assert.match(r18, /Scalarize late\./);
+  assert.match(r18, /Goal proposal != Goal adoption/);
+  assert.match(r18, /PlayableMotivation/);
+  assert.match(r18, /Generative Persona != Autonomous Agent requirement/);
+  assert.match(r18, /No product is selected by R18\./);
+});
+
+test("foundation navigation advances the exact post-R18 continuation frontier", () => {
+  const frontier = /R19 — Conflict, Cooperation, Competition, Coordination, Bargaining, Strategy and Equilibrium/;
+  assert.match(map, frontier);
+  assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
   assert.match(continuation, /Do not begin intentional new-product G0 merely because the research corpus is large\./);
 });
@@ -35,6 +49,7 @@ test("foundation navigation keeps the exact post-R17 continuation frontier", () 
 test("foundation research records are managed repository documentation", () => {
   for (const path of [
     "docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R18.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {
