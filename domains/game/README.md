@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R22 foundations corpus without selecting a new product.
+summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R23 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -55,8 +55,9 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R20.md`](docs/GAME_FOUNDATIONS_RESEARCH_R20.md) decomposes Creation, Creativity, Construction, Expression, Authorship, Customization, Style, Tool, Material, Constraint, Grammar, Curation and Co-creation, and introduces Authorial Causality, Creative Contribution Topology, Playable Creation and Playable Expression without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R21.md`](docs/GAME_FOUNDATIONS_RESEARCH_R21.md) decomposes Embodiment, Body, Avatar, Control Locus, Input, Command, Delegation, Skill, Affordance, Responsiveness, Game Feel and Presence, and introduces Action Causality, Intent Fidelity, Control Contribution Topology, Playable Control and Playable Embodiment without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R22.md`](docs/GAME_FOUNDATIONS_RESEARCH_R22.md) decomposes Uncertainty, Probability, Randomness, Ambiguity, Risk, Luck, Variance, Determinism, Predictability and Fairness, and introduces Uncertainty Topology, Outcome Contribution Topology, Distributional Agency, Uncertainty Contract, Playable Uncertainty and Playable Risk without selecting a product.
-- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R22 foundations corpus and its cross-domain abstractions.
-- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R22 the next frontier is R23 Time / Sequence / Simultaneity / Duration / Timing / Rhythm / Turn / Cooldown / Deadline / Temporal Agency.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R23.md`](docs/GAME_FOUNDATIONS_RESEARCH_R23.md) decomposes temporal frames, sequence/order, simultaneity/concurrency, duration/timing/tempo/rhythm, turns/phases/ticks, windows/deadlines, waiting, persistence and reversibility, and introduces Temporal Causality, Temporal Agency, Temporal Contract and Playable Temporality without selecting a product.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R23 foundations corpus and its cross-domain abstractions.
+- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R23 the next frontier is R24 Identity / Character / Role / Persona / Self / Status / Reputation / Continuity / Transformation.
 - [`docs/GAME_CORE_DIRECTION_SPACE.md`](docs/GAME_CORE_DIRECTION_SPACE.md) maps the early Core → Experience search space, missing dimensions, and experimental contract.
 - [`docs/GAME_CORE_EXPERIMENT_FINDINGS.md`](docs/GAME_CORE_EXPERIMENT_FINDINGS.md) records what Station Zero, Casefile, Last Light, and Echo Hunt actually established without promoting a product winner.
 - [`docs/GAME_CORE_EXPERIMENT_CASEFILE.md`](docs/GAME_CORE_EXPERIMENT_CASEFILE.md) retains exact Casefile engineering/blind-play evidence as an epistemic Game Core treatment.

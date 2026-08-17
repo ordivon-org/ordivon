@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R22
+title: Ordivon Game Foundations Research Map — R1–R23
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R22 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment and uncertainty/risk structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R23 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative, control/embodiment, uncertainty/risk and temporal structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -27,12 +27,13 @@ related:
   - game.foundations-research.r20
   - game.foundations-research.r21
   - game.foundations-research.r22
+  - game.foundations-research.r23
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), and [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), and [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -46,7 +47,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R22 index
+## R1–R23 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -72,6 +73,7 @@ No new product has been selected.
 | R20 | Creation / authorship | Creation, Creativity, Expression and Authorship are distinct; creative possibility is structured by material/tool/grammar/constraint; authorship follows meaningful decision locus rather than raw output share; generation is only one mechanism. |
 | R21 | Embodiment / control | Intent, Input, Command, Action and Outcome are distinct; Control Locus is broader than Avatar/Body; agency, body ownership and presence separate; affordance is relational; shared/delegated control must preserve intent; control must be playable. |
 | R22 | Uncertainty / risk | Uncertainty, randomness and unpredictability differ; deterministic systems can remain unpredictable; risk is distributional, Decision Quality differs from Outcome Quality; fairness is procedural/distributive/informational rather than equality alone; uncertainty must be playable. |
+| R23 | Time / temporality | Time is multi-frame relational structure rather than one clock; ClockOrder differs from CausalOrder; Simultaneity differs from Concurrency; Turn/Phase/Tick and Duration/Timing/Tempo/Rhythm/Pacing separate; waiting, persistence and reversibility can carry causal value; temporality must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -335,6 +337,43 @@ Separate fair procedure from equal outcome.
 Separate sampling variation from model/knowledge uncertainty in generative systems.
 ```
 
+R23 adds the temporal layer:
+
+```text
+TemporalFrame = Events / Processes + TemporalRelations + optional Metric / Clock + ProgressionRule
+TemporalMapping = mapping among wall / gameworld / coordination / fictive / subjective frames
+```
+
+Key R23 separations:
+
+```text
+Time != Clock
+Sequence != Duration
+ClockOrder != CausalOrder
+Simultaneity != Concurrency
+Turn != Tick != Phase
+Duration != Timing
+Tempo != Rhythm != Pacing
+Deadline != Timer
+Cooldown != Recovery
+Latency != GameWorldTime
+Waiting != DeadTime
+Persistence != ContinuousSimulation
+Replay != Undo != StateRestore != InWorldRewind
+```
+
+R23 adds `TemporalCausality`, `TemporalAgency`, `TemporalContract`, `TemporalAffordance`, `TemporalScarcity` and `PlayableTemporality`.
+
+R23 discipline:
+
+```text
+Do not inherit network arrival order as game priority.
+Use the cheapest temporal mechanism preserving the intended question.
+Compress non-valued waiting/micro-time, not intended timing skill.
+Persistent worlds/Agents need not compute continuously.
+Match Agent decision timescale to player-value timescale.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -428,6 +467,7 @@ PlayableControl
 PlayableEmbodiment
 PlayableUncertainty
 PlayableRisk
+PlayableTemporality
 ```
 
 Generalized:
@@ -619,18 +659,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R22 is complete. Continue with:
+R23 is complete. Continue with:
 
 ```text
-R23 — Time, Sequence, Simultaneity, Duration, Timing, Rhythm, Turn, Cooldown, Deadline and Temporal Agency
+R24 — Identity, Character, Role, Persona, Self, Status, Reputation, Continuity and Transformation
 ```
 
 Primary transition:
 
 ```text
-R22: What changes when future states and outcomes cannot be known exactly?
+R23: How are actions and consequences ordered through time?
 →
-R23: How are actions and consequences ordered through time, and how does temporal structure itself create choice, skill, coordination and commitment?
+R24: What makes a Subject, character or collective count as the same entity through time, transformation, role change and social recognition?
 ```
 
-Do not select a product before R23 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R24 and the remaining adjacent foundational dimensions have been examined and then synthesized.

@@ -26,6 +26,10 @@ const r22 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R22.md", import.meta.url),
   "utf8",
 );
+const r23 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R23.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -100,8 +104,22 @@ test("R22 preserves uncertainty, risk, luck and fairness boundaries without sele
   assert.match(r22, /No product is selected by R22\./);
 });
 
-test("foundation navigation advances the exact post-R22 continuation frontier", () => {
-  const frontier = /R23 — Time, Sequence, Simultaneity, Duration, Timing, Rhythm, Turn, Cooldown, Deadline and Temporal Agency/;
+test("R23 preserves temporal-frame, ordering, concurrency and reversibility boundaries without selecting a product", () => {
+  assert.match(r23, /ClockOrder != CausalOrder/);
+  assert.match(r23, /Simultaneity != Concurrency/);
+  assert.match(r23, /Turn != Tick != Phase/);
+  assert.match(r23, /Tempo != Rhythm != Pacing/);
+  assert.match(r23, /TemporalCausality/);
+  assert.match(r23, /TemporalAgency/);
+  assert.match(r23, /PlayableTemporality/);
+  assert.match(r23, /Persistence != Continuous Computation|Persistence != ContinuousComputation/);
+  assert.match(r23, /Replay != Undo != StateRestore != InWorldRewind/);
+  assert.match(r23, /WorldStateReversal/);
+  assert.match(r23, /No product is selected by R23\./);
+});
+
+test("foundation navigation advances the exact post-R23 continuation frontier", () => {
+  const frontier = /R24 — Identity, Character, Role, Persona, Self, Status, Reputation, Continuity and Transformation/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -116,6 +134,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R20.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R21.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R22.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R23.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {
