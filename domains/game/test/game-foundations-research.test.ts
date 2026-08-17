@@ -14,6 +14,10 @@ const r19 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R19.md", import.meta.url),
   "utf8",
 );
+const r20 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R20.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -52,8 +56,18 @@ test("R19 preserves strategic distinctions without equating equilibrium or stron
   assert.match(r19, /No product is selected by R19\./);
 });
 
-test("foundation navigation advances the exact post-R19 continuation frontier", () => {
-  const frontier = /R20 — Creation, Creativity, Expression, Authorship, Construction, Customization and Style/;
+test("R20 preserves creation, authorship, expression and generation boundaries without selecting a product", () => {
+  assert.match(r20, /Authorial causality|AuthorialCausality/i);
+  assert.match(r20, /Creative Contribution Topology|CreativeContributionTopology/);
+  assert.match(r20, /PlayableCreation/);
+  assert.match(r20, /PlayableExpression/);
+  assert.match(r20, /Do not mistake generation for creativity or personalization for expression\./);
+  assert.match(r20, /Authorship != Ownership/);
+  assert.match(r20, /No product is selected by R20\./);
+});
+
+test("foundation navigation advances the exact post-R20 continuation frontier", () => {
+  const frontier = /R21 — Embodiment, Control, Input, Skill, Affordance, Game Feel and Presence/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -65,6 +79,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R18.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R19.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R20.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

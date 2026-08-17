@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R19
+title: Ordivon Game Foundations Research Map — R1–R20
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R19 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational and strategic structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R20 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic and creative structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -24,12 +24,13 @@ related:
   - game.foundations-research.r1-r17
   - game.foundations-research.r18
   - game.foundations-research.r19
+  - game.foundations-research.r20
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), and [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), and [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -43,7 +44,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R19 index
+## R1–R20 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -66,6 +67,7 @@ No new product has been selected.
 | R17 | Information / belief | Truth != Signal != Observation != Belief != Statement; bounded knowledge and information topology generate play. |
 | R18 | Motivation / goals | Need, Value and Desire are distinct motive sources; Preference is contextual comparison; Goal is selected pursuit; Commitment stabilizes it; Utility is optional representation/arbitration. |
 | R19 | Strategic interdependence | Strategic relevance depends on policy-contingent mutual consequence; conflict/competition/cooperation/coordination differ; bargaining needs outside options and commitment; equilibrium is an incentive diagnostic; strategy must be playable. |
+| R20 | Creation / authorship | Creation, Creativity, Expression and Authorship are distinct; creative possibility is structured by material/tool/grammar/constraint; authorship follows meaningful decision locus rather than raw output share; generation is only one mechanism. |
 
 ## Current multidimensional GameForm model
 
@@ -194,6 +196,35 @@ Keep strategic information bounded.
 Soft negotiation + structured strategic transition where persistence matters.
 ```
 
+R20 adds the creative layer:
+
+```text
+Creation = deliberate organization/transformation into Form
+Creativity = meaningful novelty + contextual value/appropriateness
+Expression = legible identity / stance / taste / meaning
+Authorship = meaningful causal responsibility for form/meaning
+Customization = bounded personalization
+Generation = candidate production mechanism
+```
+
+```text
+CreativePossibilitySpace =
+Materials × Tools × Grammar × Constraints × Skills × Time
+```
+
+R20 discipline:
+
+```text
+Track decision locus, not token/pixel share.
+Authorial causality asks which artifact properties change when player decisions change.
+Constraints can create semantic contrast and mastery.
+Curation can carry authorship when selection/framing is consequential.
+Automate unwanted realization friction, not the intended creative question.
+Generation != Creativity != Player Authorship.
+```
+
+R20 also adds `CreativeContributionTopology`: who contributes to framing, constraints, structure, realization, selection, evaluation, revision, integration and commitment.
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -281,6 +312,8 @@ PlayableTopology
 PlayableInformation
 PlayableMotivation
 PlayableStrategy
+PlayableCreation
+PlayableExpression
 ```
 
 Generalized:
@@ -472,18 +505,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R19 is complete. Continue with:
+R20 is complete. Continue with:
 
 ```text
-R20 — Creation, Creativity, Expression, Authorship, Construction, Customization and Style
+R21 — Embodiment, Control, Input, Skill, Affordance, Game Feel and Presence
 ```
 
 Primary transition:
 
 ```text
-R19: How do multiple Subjects strategically alter one another's futures?
+R20: How does a participant intentionally shape new Form?
 →
-R20: How does a participant deliberately bring new artifacts, forms, meanings or possibilities into existence?
+R21: How does intention become felt, controlled action through an interface/body, and why do some state changes feel like “mine”?
 ```
 
-Do not select a product before R20 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R21 and the remaining adjacent foundational dimensions have been examined and then synthesized.
