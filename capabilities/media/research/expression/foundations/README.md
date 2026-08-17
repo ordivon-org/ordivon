@@ -26,7 +26,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF8 — Agency Foundations v1: **frozen** after MF8-I global falsification/reconstruction
 - MF9-A — Experience Ontology & Term Separation: **complete / provisional experience ontology**
 - MF9-B — Experiential State, Content, Phenomenal Character & Structure: **complete / provisional experiential-structure ontology**
-- Next: **MF9-C — Conscious Access, Availability, Report & Metacognitive Architecture**
+- MF9-C — Conscious Access, Availability, Report & Metacognitive Architecture: **complete / provisional access-report-metacognition ontology**
+- Next: **MF9-D — Constitutive Theories I: Global Workspace, Recurrent Processing, Higher-Order & Predictive/Inferential Routes**
 
 Current MF5 canonical closeout:
 
@@ -87,6 +88,10 @@ Current MF9-A Experience ontology/term-separation round:
 Current MF9-B Experiential state/content/phenomenal-structure round:
 
 [`media-foundations-mf9b-20260818.md`](./media-foundations-mf9b-20260818.md)
+
+Current MF9-C Conscious access/availability/report/metacognition round:
+
+[`media-foundations-mf9c-20260818.md`](./media-foundations-mf9c-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
