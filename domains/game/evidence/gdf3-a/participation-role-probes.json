@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-a-participation-role-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "within the constructed profiles, observation, action, advice, adjudication, verification, governance and adaptive-game channels can dissociate",
+      "the same Entity can change Game-relative role/channels without identity change",
+      "a named GM role can bundle several separable functions",
+      "evidence/recommendation can be separated from final ruling authority",
+      "causal influence on Game/player policy need not be direct GameAction authority",
+      "a game-adapting system function need not be modeled as a Player",
+      "collective audience control can be represented without postulating one collective Subject",
+      "one Entity can hold player and adjudicator authority simultaneously, making role/authority composition explicit"
+    ],
+    "doesNotProve": [
+      "a universal taxonomy of all game participation roles",
+      "that every spectator is a participant in every scope",
+      "that Player has one culturally universal definition",
+      "that adjudication requires a new semantic primitive",
+      "human subjective play experience",
+      "that the proposed channel set is complete"
+    ]
+  },
+  "roles": {
+    "passiveSpectator": {
+      "name": "passiveSpectator",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "audienceParticipant": {
+      "name": "audienceParticipant",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": true,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "player": {
+      "name": "player",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": true,
+        "executeGameAction": true,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": true,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "coach": {
+      "name": "coach",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": true,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "referee": {
+      "name": "referee",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": true,
+        "verifyHistory": true,
+        "enforce": true,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": true,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "var": {
+      "name": "VAR",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": false,
+        "verifyHistory": true,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "gm": {
+      "name": "gameMaster",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": true,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": true,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": true,
+        "modifyRules": false,
+        "modifyContent": true,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": true,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": true,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    },
+    "moderator": {
+      "name": "moderator",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": true,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": true,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": true,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": true,
+        "adaptGame": false
+      }
+    },
+    "director": {
+      "name": "experienceManagerDirector",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": true,
+        "allocateAccess": false,
+        "adaptGame": true
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": false,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": false,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": true
+      }
+    },
+    "fusedAgent": {
+      "name": "fusedPlayerJudgeAgent",
+      "channels": {
+        "observe": true,
+        "proposeGameAction": true,
+        "executeGameAction": true,
+        "advise": false,
+        "evaluate": true,
+        "adjudicate": true,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      },
+      "finalAuthority": {
+        "observe": false,
+        "proposeGameAction": false,
+        "executeGameAction": true,
+        "advise": false,
+        "evaluate": false,
+        "adjudicate": true,
+        "verifyHistory": false,
+        "enforce": false,
+        "generateWorldContent": false,
+        "modifyRules": false,
+        "modifyContent": false,
+        "allocateAccess": false,
+        "adaptGame": false
+      }
+    }
+  },
+  "cases": {
+    "spectatorToAudience": {
+      "sameEntity": true,
+      "before": "passiveSpectator",
+      "after": "audienceParticipant",
+      "observationHeldFixed": true,
+      "proposalAuthorityChanged": true
+    },
+    "spectatorVsReferee": {
+      "sameObservationEvidencePossible": true,
+      "spectatorFinalRuling": false,
+      "refereeFinalRuling": true,
+      "authorityDifferenceSurvives": true
+    },
+    "refereeVsVar": {
+      "bothObserve": true,
+      "bothCanEvaluate": true,
+      "varFinalRuling": false,
+      "refereeFinalRuling": true,
+      "evidenceAndFinalRulingSeparated": true
+    },
+    "gmBundle": {
+      "functionCount": 6,
+      "combinesWorldGenerationAndAdjudication": true,
+      "combinesNpcLikeActionAndConstitutiveAuthority": true,
+      "namedRoleNotAtomicFunction": true
+    },
+    "coachIndirect": {
+      "canAdvise": true,
+      "cannotExecuteGameActionByProfile": true,
+      "causalInfluenceNeedNotBeDirectGameAction": true
+    },
+    "directorBoundary": {
+      "changesRunningGame": true,
+      "noPlayerGameActionByProfile": true,
+      "causalGameComponentNeedNotBePlayer": true
+    },
+    "fusedRoleConflict": {
+      "sameEntityCanHoldPlayerAndJudgeChannels": true,
+      "authorityCompositionVisible": true,
+      "entityIdentityInsufficientToInferRoleSeparation": true
+    },
+    "collectiveAudience": {
+      "members": 100,
+      "memberVotes": 100,
+      "aggregationRule": "majority-to-candidate-action",
+      "requiresCollectiveSubject": false,
+      "representableAsMultiEntityContributionPlusAggregation": true
+    },
+    "roleAssignmentChange": {
+      "entityId": "E1",
+      "time0Role": "passiveSpectator",
+      "time1Role": "audienceParticipant",
+      "entityIdentityChanged": false,
+      "roleAssignmentChanged": true,
+      "newCausalChannelWithoutIdentityBreak": true
+    },
+    "actionVsAdjudication": {
+      "playerActionContractStillDistinct": true,
+      "adjudicatorMayClassifyOrRuleOnCandidateOrEvent": true,
+      "adjudicationIsNotThePlayerGameActionByIdentity": true
+    }
+  },
+  "strongestFalsifiers": {
+    "participantCannotBeEntityKind": true,
+    "spectatorNotCausallyIrrelevantByIdentity": true,
+    "observationDoesNotDetermineRole": true,
+    "adjudicationAuthorityNotObservationOrEvidenceAlone": true,
+    "namedRoleNotAtomicFunction": true,
+    "causalInfluenceNotDirectActionIdentity": true,
+    "causalSystemComponentNotPlayerIdentity": true,
+    "entityIdentityNotEnoughForRoleConflict": true,
+    "audienceDoesNotRequireCollectiveSubject": true
+  }
+}
