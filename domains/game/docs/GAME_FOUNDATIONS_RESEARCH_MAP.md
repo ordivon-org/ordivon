@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R20
+title: Ordivon Game Foundations Research Map — R1–R21
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R20 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic and creative structure, open boundaries and the exact continuation point.
+summary: Compact navigation map for the R1–R21 Game foundations corpus, including core distinctions, cross-domain abstractions, motivational, strategic, creative and control/embodiment structure, open boundaries and the exact continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -25,12 +25,13 @@ related:
   - game.foundations-research.r18
   - game.foundations-research.r19
   - game.foundations-research.r20
+  - game.foundations-research.r21
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), and [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), and [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -44,7 +45,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R20 index
+## R1–R21 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -68,6 +69,7 @@ No new product has been selected.
 | R18 | Motivation / goals | Need, Value and Desire are distinct motive sources; Preference is contextual comparison; Goal is selected pursuit; Commitment stabilizes it; Utility is optional representation/arbitration. |
 | R19 | Strategic interdependence | Strategic relevance depends on policy-contingent mutual consequence; conflict/competition/cooperation/coordination differ; bargaining needs outside options and commitment; equilibrium is an incentive diagnostic; strategy must be playable. |
 | R20 | Creation / authorship | Creation, Creativity, Expression and Authorship are distinct; creative possibility is structured by material/tool/grammar/constraint; authorship follows meaningful decision locus rather than raw output share; generation is only one mechanism. |
+| R21 | Embodiment / control | Intent, Input, Command, Action and Outcome are distinct; Control Locus is broader than Avatar/Body; agency, body ownership and presence separate; affordance is relational; shared/delegated control must preserve intent; control must be playable. |
 
 ## Current multidimensional GameForm model
 
@@ -225,6 +227,63 @@ Generation != Creativity != Player Authorship.
 
 R20 also adds `CreativeContributionTopology`: who contributes to framing, constraints, structure, realization, selection, evaluation, revision, integration and commitment.
 
+R21 adds the control/embodiment layer:
+
+```text
+Intent
+→ Control Expression
+→ Input / Command
+→ Mapping / Interpretation
+→ Candidate Action
+→ Capability + Affordance + Legality + World Resolution
+→ Consequence
+→ Feedback
+→ Attribution / Sense of Agency
+→ Learning
+```
+
+Key R21 separations:
+
+```text
+Input != Intent != Action != Outcome
+Control != SenseOfAgency
+Avatar != Body
+BodyOwnership != Agency
+Embodiment != Presence
+Affordance != Capability != Legality
+Latency != Responsiveness
+DirectManipulation != Agency
+Automation != AgencyLoss
+```
+
+R21 adds:
+
+```text
+ActionCausality =
+important action/outcome properties counterfactually depend on participant intent/control
+
+ControlLocus =
+where participant control enters authoritative state change
+without assuming a body/avatar
+
+IntentFidelity =
+value-bearing distinctions in participant intent survive
+interpretation, planning and execution
+
+ControlContributionTopology =
+who controls which action layer / variable / time interval / correction path
+```
+
+R21 discipline:
+
+```text
+Preserve the player-value layer of Intent.
+Do not confuse directness with agency.
+Do not confuse automation with agency loss.
+Do not hide assistance/control authority when attribution matters.
+Preserve resistance that carries intended skill/fantasy; remove access overhead.
+```
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -314,6 +373,8 @@ PlayableMotivation
 PlayableStrategy
 PlayableCreation
 PlayableExpression
+PlayableControl
+PlayableEmbodiment
 ```
 
 Generalized:
@@ -505,18 +566,18 @@ A practical test remains:
 
 ## Exact frontier
 
-R20 is complete. Continue with:
+R21 is complete. Continue with:
 
 ```text
-R21 — Embodiment, Control, Input, Skill, Affordance, Game Feel and Presence
+R22 — Uncertainty, Probability, Randomness, Risk, Luck, Variance, Determinism and Fairness
 ```
 
 Primary transition:
 
 ```text
-R20: How does a participant intentionally shape new Form?
+R21: How does intent become controlled and attributable action?
 →
-R21: How does intention become felt, controlled action through an interface/body, and why do some state changes feel like “mine”?
+R22: What changes when action outcomes, information or future states cannot be known or controlled exactly?
 ```
 
-Do not select a product before R21 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+Do not select a product before R22 and the remaining adjacent foundational dimensions have been examined and then synthesized.

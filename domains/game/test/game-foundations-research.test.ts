@@ -18,6 +18,10 @@ const r20 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R20.md", import.meta.url),
   "utf8",
 );
+const r21 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R21.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -66,8 +70,21 @@ test("R20 preserves creation, authorship, expression and generation boundaries w
   assert.match(r20, /No product is selected by R20\./);
 });
 
-test("foundation navigation advances the exact post-R20 continuation frontier", () => {
-  const frontier = /R21 — Embodiment, Control, Input, Skill, Affordance, Game Feel and Presence/;
+test("R21 preserves control, agency, embodiment and affordance boundaries without selecting a product", () => {
+  assert.match(r21, /Intent != Input != Command != Action != Outcome/);
+  assert.match(r21, /ActionCausality/);
+  assert.match(r21, /ControlLocus/);
+  assert.match(r21, /IntentFidelity/);
+  assert.match(r21, /ControlContributionTopology/);
+  assert.match(r21, /PlayableControl/);
+  assert.match(r21, /PlayableEmbodiment/);
+  assert.match(r21, /Control != SenseOfAgency/);
+  assert.match(r21, /Affordance != Capability != Legality/);
+  assert.match(r21, /No product is selected by R21\./);
+});
+
+test("foundation navigation advances the exact post-R21 continuation frontier", () => {
+  const frontier = /R22 — Uncertainty, Probability, Randomness, Risk, Luck, Variance, Determinism and Fairness/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
@@ -80,6 +97,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R18.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R19.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R20.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R21.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

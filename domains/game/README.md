@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R20 foundations corpus without selecting a new product.
+summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R21 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -53,8 +53,9 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R18.md`](docs/GAME_FOUNDATIONS_RESEARCH_R18.md) decomposes Need, Desire, Value, Preference, Utility, Goal and Commitment, defines minimum-sufficient motivational structures across game forms, and introduces Playable Motivation without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R19.md`](docs/GAME_FOUNDATIONS_RESEARCH_R19.md) decomposes strategic interdependence, conflict, competition, cooperation, coordination, bargaining, negotiation, commitment, reputation and equilibrium, and introduces Playable Strategy without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R20.md`](docs/GAME_FOUNDATIONS_RESEARCH_R20.md) decomposes Creation, Creativity, Construction, Expression, Authorship, Customization, Style, Tool, Material, Constraint, Grammar, Curation and Co-creation, and introduces Authorial Causality, Creative Contribution Topology, Playable Creation and Playable Expression without selecting a product.
-- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R20 foundations corpus and its cross-domain abstractions.
-- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R20 the next frontier is R21 Embodiment / Control / Input / Skill / Affordance / Game Feel / Presence.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R21.md`](docs/GAME_FOUNDATIONS_RESEARCH_R21.md) decomposes Embodiment, Body, Avatar, Control Locus, Input, Command, Delegation, Skill, Affordance, Responsiveness, Game Feel and Presence, and introduces Action Causality, Intent Fidelity, Control Contribution Topology, Playable Control and Playable Embodiment without selecting a product.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R21 foundations corpus and its cross-domain abstractions.
+- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R21 the next frontier is R22 Uncertainty / Probability / Randomness / Risk / Luck / Variance / Determinism / Fairness.
 - [`docs/GAME_CORE_DIRECTION_SPACE.md`](docs/GAME_CORE_DIRECTION_SPACE.md) maps the early Core → Experience search space, missing dimensions, and experimental contract.
 - [`docs/GAME_CORE_EXPERIMENT_FINDINGS.md`](docs/GAME_CORE_EXPERIMENT_FINDINGS.md) records what Station Zero, Casefile, Last Light, and Echo Hunt actually established without promoting a product winner.
 - [`docs/GAME_CORE_EXPERIMENT_CASEFILE.md`](docs/GAME_CORE_EXPERIMENT_CASEFILE.md) retains exact Casefile engineering/blind-play evidence as an epistemic Game Core treatment.
