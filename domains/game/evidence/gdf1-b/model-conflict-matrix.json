@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-b-model-conflict-matrix",
+  "protocol": {
+    "conflictRequires": ["overlapping target", "overlapping claim type", "overlapping scope", "discriminating prediction"],
+    "statuses": ["real-conflict", "partial-conflict", "pseudo-conflict", "scope-limited", "underdetermined"],
+    "epistemicBoundary": "Model names are not treated as unitary theories. A conflict is admitted only for the strongest explicit claim under the stated target/scope; empirical support for one mechanism does not prove universal exclusivity."
+  },
+  "models": [
+    {
+      "id": "M1",
+      "name": "Symbolic Action Pipeline",
+      "primaryTarget": "Game-local semantic action/admission/consequence",
+      "claimType": "structural/authority",
+      "scope": "discrete and semantic Game actions, including indirect control",
+      "coreClaim": "participant intent/input must be mapped to candidate GameAction/control and resolved under current Game authority before consequence",
+      "notClaimed": ["human motor implementation", "subjective agency"]
+    },
+    {
+      "id": "M2",
+      "name": "Internal/Predictive Model Control",
+      "primaryTarget": "human sensorimotor prediction/adaptation",
+      "claimType": "mechanistic",
+      "scope": "sensorimotor tasks where prediction of body/environment dynamics is behaviorally relevant",
+      "coreClaim": "learned predictive representations/state estimates contribute to control and adaptation",
+      "notClaimed": ["all GameAction semantics", "universal conscious representation"]
+    },
+    {
+      "id": "M3",
+      "name": "Optimal Feedback / Minimum Intervention",
+      "primaryTarget": "coordination under noise/redundancy/task goals",
+      "claimType": "mechanistic/computational",
+      "scope": "goal-directed motor control with task-relevant costs and redundant degrees of freedom",
+      "coreClaim": "control selectively corrects deviations that threaten task goals and can tolerate variability in task-irrelevant dimensions",
+      "notClaimed": ["one universal player-value objective", "Game category theory"]
+    },
+    {
+      "id": "M4",
+      "name": "Ecological Affordance / Direct Perception",
+      "primaryTarget": "actor-environment possibility and information for action",
+      "claimType": "ecological/perception-action",
+      "scope": "embodied action where actor/environment scaling and information specify possibilities",
+      "coreClaim": "action possibilities depend on actor-environment relations and can regulate action through information without reducing the explanandum to symbolic rule descriptions",
+      "notClaimed": ["formal Game legality equals affordance", "all symbolic actions are ecological affordances"]
+    },
+    {
+      "id": "M5",
+      "name": "Constraints-led / Dynamical Coordination",
+      "primaryTarget": "emergence/stability/flexibility of coordination patterns",
+      "claimType": "mechanistic/dynamical",
+      "scope": "perception-action systems under interacting actor/task/environment constraints",
+      "coreClaim": "coordination solutions emerge under interacting constraints and can vary structurally while preserving function",
+      "notClaimed": ["no internal state can ever matter", "all Game rules are physical constraints"]
+    },
+    {
+      "id": "M6",
+      "name": "Motor Program / Schema",
+      "primaryTarget": "organization/generalization of learned action patterns",
+      "claimType": "mechanistic/representational",
+      "scope": "especially discrete or parameterized movement families and transfer",
+      "coreClaim": "generalized action organization and parameterization can support production/generalization of learned movement classes",
+      "notClaimed": ["all skilled movement is fully precomputed/open-loop", "online feedback is irrelevant"]
+    },
+    {
+      "id": "M7",
+      "name": "Speed-Accuracy / Information-Theoretic",
+      "primaryTarget": "aimed movement performance tradeoff",
+      "claimType": "quantitative law/model",
+      "scope": "tasks with spatial target tolerance/distance and movement-time pressure",
+      "coreClaim": "movement time and accuracy constraints vary systematically with task difficulty in the specified task family",
+      "notClaimed": ["general theory of all skill", "timing/strategy/embodiment theory"]
+    },
+    {
+      "id": "M8",
+      "name": "Sense-of-Agency Comparator/Inference",
+      "primaryTarget": "subjective attribution of control/causation",
+      "claimType": "human experiential/cognitive",
+      "scope": "human intentional action and judged agency",
+      "coreClaim": "agency judgments can integrate action-feedback correspondence with goal/performance/contextual inference",
+      "notClaimed": ["objective GameAction execution mechanism", "authority semantics"]
+    },
+    {
+      "id": "M9",
+      "name": "Shared / Assistive / Hierarchical Control",
+      "primaryTarget": "multi-controller contribution topology",
+      "claimType": "control architecture/design",
+      "scope": "assistance, delegation, blended/supervisory control",
+      "coreClaim": "different controllers can own different variables/layers/time intervals; raw command share is insufficient to characterize control",
+      "notClaimed": ["assistance always improves agency", "manual control always inferior"]
+    },
+    {
+      "id": "M10",
+      "name": "Skill as Conditional Capability Profile",
+      "primaryTarget": "learned capability underlying performance across conditions",
+      "claimType": "GDF1 synthesis/measurement target",
+      "scope": "specified task family and relevant condition/probe space",
+      "coreClaim": "skill should be inferred from a learned, history-dependent conditional performance profile rather than identified with one observed score",
+      "notClaimed": ["one scalar universal Skill", "robustness always dominates peak performance"]
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "B1-M1-M2",
+      "a": "M1",
+      "b": "M2",
+      "status": "pseudo-conflict",
+      "reason": "Game semantic admission/action identity and Human sensorimotor implementation are different targets. A predictive controller can sit inside the expression/execution side of a symbolic GameAction contract."
+    },
+    {
+      "id": "B2-M2-M4",
+      "a": "M2",
+      "b": "M4",
+      "status": "partial-conflict",
+      "reason": "Strong versions conflict over whether internally represented predictive dynamics are necessary for online action versus sufficiently informative organism-environment coupling. The admitted evidence establishes actor-relative affordances and predictive adaptation separately but does not justify a universal exclusivity verdict.",
+      "verdict": "underdetermined-at-GDF1-wide-scope"
+    },
+    {
+      "id": "B3-M2-M3",
+      "a": "M2",
+      "b": "M3",
+      "status": "pseudo-conflict",
+      "reason": "Prediction/state estimation can be part of an optimal-feedback controller; M2 emphasizes learned predictive representation while M3 emphasizes task-dependent correction policy/cost structure."
+    },
+    {
+      "id": "B4-M3-exact-trajectory",
+      "a": "M3",
+      "b": "H-exact-desired-trajectory",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If skilled control universally reproduces one desired trajectory, successful trials should minimize variability across all movement dimensions; if task-relevant stabilization/minimum intervention holds, redundant dimensions may remain variable while task goals stay stable.",
+      "verdict": "exact-desired-trajectory-universal-rejected",
+      "evidence": ["TodorovJordan2002", "ScholzSchoner1999/UCM lineage"]
+    },
+    {
+      "id": "B5-M5-M6",
+      "a": "M5",
+      "b": "M6",
+      "status": "partial-conflict",
+      "reason": "A strong pre-specified fixed-program account conflicts with context-sensitive emergent/adaptive coordination; weaker schema/program accounts can coexist with online constraint-dependent parameterization and feedback.",
+      "verdict": "fixed-open-loop-program-universal-rejected; weaker-hierarchical-schema-retained"
+    },
+    {
+      "id": "B6-M6-online-correction",
+      "a": "M6",
+      "b": "H-open-loop-program",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If skilled execution is fully precomputed after initiation, online state/error changes should not support systematic within-action correction; feedback/predictive control accounts expect condition-dependent correction when time/information permit.",
+      "verdict": "fully-open-loop-universal-rejected; discrete-program-subscope-remains"
+    },
+    {
+      "id": "B7-M7-M10",
+      "a": "M7",
+      "b": "M10",
+      "status": "scope-limited",
+      "reason": "Fitts-style speed-accuracy models provide useful task-family performance laws but cannot identify Skill across transfer, retention, timing, strategy, remapping or perturbation."
+    },
+    {
+      "id": "B8-M8-raw-command-share",
+      "a": "M8",
+      "b": "H-more-exact-manual-command-execution-means-more-agency",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If subjective agency is monotonic in exact command execution, computer assistance that suppresses commands must reduce agency; Wen et al. observed improved agency ratings under assistance in delayed/uncertain conditions despite many commands not executing.",
+      "verdict": "monotonic-command-share-agency-rejected",
+      "evidence": ["WenYamashitaAsama2015"]
+    },
+    {
+      "id": "B9-M9-manual-superiority",
+      "a": "M9",
+      "b": "H-manual-control-universally-superior",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If manual execution is universally superior control, assistance that suppresses erroneous low-level commands cannot improve both task performance and experienced control under the same high-level goal.",
+      "verdict": "manual-control-universal-superiority-rejected",
+      "evidence": ["WenYamashitaAsama2015"]
+    },
+    {
+      "id": "B10-M10-single-score",
+      "a": "M10",
+      "b": "H-skill-equals-current-practice-score",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If current practice score is Skill, groups/conditions with better acquisition performance should necessarily show at least as good delayed retention/transfer; contextual-interference and guidance experiments can reverse that ordering.",
+      "verdict": "skill-equals-current-performance-rejected",
+      "evidence": ["HallMagill1995", "WinsteinEtAl1994", "TsutsuiLeeHodges1998", "SavionLemieuxPenhune2005"]
+    },
+    {
+      "id": "B11-global-low-variability",
+      "a": "M10",
+      "b": "H-lower-global-variability-always-more-skilled",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If globally lower movement variability is always skill, variability should fall across all degrees/dimensions. Optimal-feedback/UCM accounts instead predict task-dependent variability structure; Auto Orbit shows lower timing/action-sequence variability can be skill-relevant in that particular task.",
+      "verdict": "global-low-variability-criterion-rejected; task-relevant-variability-profile-retained",
+      "evidence": ["TodorovJordan2002", "AutoOrbit2021"]
+    },
+    {
+      "id": "B12-affordance-legality",
+      "a": "M4",
+      "b": "H-affordance-equals-game-action-availability",
+      "status": "real-conflict",
+      "discriminatingPrediction": "If ecological affordance and GameAction availability are identical, formal rule changes or symbolic commands should not change legal Game actions without corresponding actor-environment physical possibility change; games routinely permit/prohibit semantic actions by rule authority while physical possibility remains unchanged.",
+      "verdict": "affordance-equals-game-legality-rejected",
+      "evidence": ["Warren1984", "GDF0 effective-rule topology", "GDF1 remapping/symbolic boundary corpus"]
+    }
+  ],
+  "skillReconstruction": {
+    "from": "SkillState as one latent learned condition-relative capability",
+    "to": "SkillProfile as a learned, history-dependent conditional capability surface over a declared task family and probe/condition space",
+    "formalSketch": "P(task-relevant performance variables | participant/agent history, task family, current condition, mapping, perturbation)",
+    "inferenceProbes": ["acquisition", "delayed retention", "transfer", "perturbation", "recalibration", "mapping change", "speed/accuracy/timing", "robustness", "efficiency"],
+    "guards": [
+      "SkillProfile is not one universal scalar",
+      "probe dimensions are evidence windows, not mandatory components of every Skill",
+      "peak performance and robustness are not globally ordered",
+      "lower variability matters only relative to task-relevant variables",
+      "learning requires durable/history-dependent capability change, not transient performance improvement"
+    ],
+    "noveltyStatus": "N1 synthesis candidate"
+  }
+}
