@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-e-cross-gameform-matrix",
+  "status": "research-candidate",
+  "gameForms": [
+    {
+      "id":"precision-platforming",
+      "challengePressure":"timing/trajectory/observation capability can be tightly discriminated while checkpoint cost varies independently",
+      "failurePressure":"miss/death may be local failure; checkpoint recovery changes terminality/cost without changing the jump's immediate capability demand",
+      "masteryPressure":"zero errors on easy segments do not establish mastery of harder timing/perturbation regions",
+      "survival":"supports relational challenge, FailureAssessment, optional RecoveryTransitionSet and scoped mastery"
+    },
+    {
+      "id":"puzzle-search",
+      "challengePressure":"history/solution knowledge can collapse current challenge with unchanged artifact/rules; one scalar content difficulty fails",
+      "failurePressure":"wrong hypothesis/action can be error/local failure without terminality or punishment",
+      "masteryPressure":"memorized solution performance does not establish transfer to structurally transformed puzzles",
+      "survival":"supports condition/history binding and probe-scoped mastery; weakens controllability/retry as universal learning-opportunity requirements"
+    },
+    {
+      "id":"rhythm",
+      "challengePressure":"continuous score/accuracy/timing profiles can express capability without binary completion failure",
+      "failurePressure":"one miss != song failure; fail threshold is evaluation-specific",
+      "masteryPressure":"full-combo on a saturated/easy chart may not expose broader timing capability",
+      "survival":"supports criterion-relative failure and capability-expression guards"
+    },
+    {
+      "id":"racing",
+      "challengePressure":"time, line quality, opponents and control assistance produce different challenge projections",
+      "failurePressure":"collision/damage/lost position can be setback without race failure",
+      "masteryPressure":"assist can shift/flatten/relocate expressed skill and therefore requires controller attribution",
+      "survival":"supports ChallengeAssessmentContract and MasteryClaimContract; no universal difficulty/assist inverse"
+    },
+    {
+      "id":"competitive-pvp-team",
+      "challengePressure":"opponent/team policies change outcomes with fixed map/content; aggregate ratings can hide matchup structure",
+      "failurePressure":"team loss is team-level FailureAssessment and does not imply any one member's individual failure or skill deficit",
+      "masteryPressure":"individual, role, duo/team and joint-controller mastery are different attribution targets",
+      "survival":"forces explicit attribution; detailed opponent interaction hands off to Strategy/Social foundations"
+    },
+    {
+      "id":"roguelike-permadeath",
+      "challengePressure":"immediate encounter capability demand, stochastic risk and run-reset consequence can vary independently",
+      "failurePressure":"death can be run failure while meta-progression/knowledge succeeds; recovery may change pursuit identity",
+      "masteryPressure":"robust run mastery can be local to seed/category/patch and need not imply global game mastery",
+      "survival":"strong FailureAssessment + RecoveryTransitionSet boundary; death/terminality identities rejected"
+    },
+    {
+      "id":"sandbox-self-authored",
+      "challengePressure":"participant-authored evaluation commitments create challenge without designer terminal goals",
+      "failurePressure":"failure may be absent until the participant defines a criterion; RecoveryTransitionSet may be irrelevant",
+      "masteryPressure":"bounded construction/automation/mastery claims can exist without terminal completion",
+      "survival":"proves challenge/mastery contracts must be evaluation-authority-relative and recovery is optional, not universal"
+    },
+    {
+      "id":"creative-expressive",
+      "challengePressure":"quality can be continuous/plural and evaluator-dependent rather than pass/fail",
+      "failurePressure":"no authoritative failure need exist; local dissatisfaction is Human/evaluator-side unless committed as criterion",
+      "masteryPressure":"local expressive mastery requires evaluator/criterion provenance and cannot imply exhaustive maximal skill",
+      "survival":"supports scoped claims; hands subjective/aesthetic value to Human/Practice rather than Game mechanism"
+    },
+    {
+      "id":"accessibility-shared-control",
+      "challengePressure":"remap/shared control can remove one access bottleneck while preserving or relocating higher-level challenge",
+      "failurePressure":"joint-system errors/outcomes require contribution attribution before assigning failure to the human pilot",
+      "masteryPressure":"joint/assisted success does not establish Human-independent mastery",
+      "survival":"forces attribution target and exact assist/mapping transformation; no legitimacy/value inference from assistance by identity"
+    },
+    {
+      "id":"synthetic-controller",
+      "challengePressure":"controlled policy families can identify structural reachability/sensitivity for those policies but not Human experienced difficulty",
+      "failurePressure":"synthetic failure is criterion-relative structural/performance evidence with no Human frustration implication",
+      "masteryPressure":"synthetic mastery claims can be legitimate for the synthetic policy family but do not transfer to Human SkillProfile by identity",
+      "survival":"preserves evidence-target separation and identifiability status"
+    },
+    {
+      "id":"speedrun-community-category",
+      "challengePressure":"community rule/category and timing criterion can redefine challenge with unchanged base artifact",
+      "failurePressure":"same completed run can fail one category target and satisfy another",
+      "masteryPressure":"community rank/social recognition and capability mastery are distinct though related",
+      "survival":"supports evaluation/provenance/currentness and capability/social mastery separation"
+    },
+    {
+      "id":"adaptive-live-service",
+      "challengePressure":"patches, balance changes, opponent distributions and assistance can change current challenge while historical mastery evidence remains tied to old conditions",
+      "failurePressure":"criterion/ruleset currentness matters when interpreting retained failure/performance records",
+      "masteryPressure":"mastery claims require patch/version/condition scope; old expertise may transfer partly, fully or poorly depending ProbeTransformation",
+      "survival":"forces currentness/provenance and exact transformation identity rather than timeless mastery labels"
+    }
+  ],
+  "crossFormLaws": [
+    "Difficulty/Challenge is not an intrinsic scalar property of content",
+    "Challenge claim requires evaluation criterion, attribution target and condition/horizon scope",
+    "Outcome probability, capability threshold/discrimination, risk and recovery cost are distinct projections",
+    "Failure requires evaluation scope/horizon and can be local without being pursuit-terminal",
+    "TeamLoss != IndividualFailure != IndividualSkillDeficit",
+    "Death/GameOver/Reset != Failure by identity",
+    "RecoveryTransitionSet is optional and relevant only where post-outcome continuation/recovery structure exists",
+    "Failure/Feedback != LearningOpportunity != ActualLearning",
+    "LearningOpportunity does not require failure, cheap retry, or direct control of the observed variable by identity",
+    "Mastery is a scoped claim over SkillProfile/evidence, not a Game state boolean",
+    "TaskSpecificMastery != TransferMastery != SocialMastery != SubjectiveCompetence",
+    "JointControllerMastery != HumanIndependentMastery",
+    "Continuous/open-ended mastery does not require terminal completion",
+    "Synthetic structural mastery evidence != Human mastery/experience by identity",
+    "Current rules/evaluation/provenance are part of any challenge/failure/mastery claim"
+  ],
+  "externalPressure": [
+    {"id":"StarCraftTelemetry2013","source":"PMCID PMC3776738","pressure":"expertise indicators in StarCraft telemetry vary in importance across skill levels and total score can hide different strategies/skill components; supports non-scalar mastery evidence"},
+    {"id":"StarCraftTransfer2023","source":"PMCID PMC10703280","pressure":"performance under a major StarCraft domain/version change provides direct within-expertise transfer pressure; mastery evidence must remain condition/transformation scoped"},
+    {"id":"GamePalsSharedControl2026","source":"arXiv:2601.11218","pressure":"13 participants with upper-limb impairments used human cooperation and partial automation in Rocket League; both reduced control burden while modalities differed and action misattribution/confusion occurred, directly supporting shared-control attribution boundaries"}
+  ],
+  "foundationReopen":{"ACS":false,"GDF0":false,"R29":false,"reason":"all cross-form pressures are representable through existing evaluation, authority/provenance, state/transition/history and frozen GDF1 skill/control coordinates; no new semantic primitive is forced."}
+}

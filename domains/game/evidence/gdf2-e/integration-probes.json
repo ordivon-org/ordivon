@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-e-integration-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "team loss does not logically assign individual failure when an individual role criterion can be satisfied",
+      "self-authored sandbox challenge can exist without designer terminal goals or recovery transitions",
+      "controllability, same-instance retry and single-message diagnosticity are not universal necessary conditions for structural learning-opportunity claims",
+      "mastery regions defined only by the target success are circular without independent/held-out validation",
+      "bounded expressive mastery can be supported without terminal completion under declared evaluator/criterion provenance",
+      "pursuit terminality is derivable from failure scope plus recovery continuation differences in the toy case",
+      "joint assisted performance can satisfy a criterion while Human-independent performance does not",
+      "patch/currentness changes can invalidate timeless mastery inference",
+      "synthetic criterion success does not create Human evidence"
+    ],
+    "doesNotProve": [
+      "the three provisional core responsibilities are metaphysical primitives",
+      "Human learning from any learning-opportunity structure",
+      "a universal social/team attribution model",
+      "a universal aesthetic mastery criterion",
+      "that all version changes reduce transfer"
+    ]
+  },
+  "team": {
+    "teamOutcome": "loss",
+    "playerA": {
+      "roleCriterion": "support-objective",
+      "satisfied": true,
+      "skillEvidence": "strong"
+    },
+    "playerB": {
+      "roleCriterion": "damage-objective",
+      "satisfied": false,
+      "skillEvidence": "weak"
+    },
+    "teamLossDoesNotAssignIndividualFailure": true
+  },
+  "sandbox": {
+    "designerTerminalGoal": false,
+    "participantCriterion": {
+      "kind": "self-authored-build",
+      "satisfied": false
+    },
+    "challengeExists": true,
+    "authoritativeRecoveryTransitionRequired": false,
+    "challengeWithoutDesignerFailure": true,
+    "recoveryNotUniversal": true
+  },
+  "learning": {
+    "uncontrollableObservation": {
+      "variableControllable": false,
+      "informative": true,
+      "futurePolicyCanAdapt": true
+    },
+    "oneShotObservation": {
+      "sameInstanceRetry": false,
+      "informative": true,
+      "futureRelatedProbeAvailable": true
+    },
+    "weakSignals": {
+      "singleSignalDiagnostic": false,
+      "multipleSignalsJointlyInformative": true
+    },
+    "controllabilityNotNecessary": true,
+    "cheapRetryNotNecessary": true,
+    "singleMessageDiagnosticityNotNecessary": true
+  },
+  "masteryCircularity": {
+    "observedTargetPerformance": [
+      0.95,
+      0.96,
+      0.94
+    ],
+    "regionDefinedAs": "only conditions where target performance >= 0.9",
+    "independentCriterionProvenance": false,
+    "heldOutProbe": false,
+    "circularClaimRejected": true
+  },
+  "masteryHeldOut": {
+    "criterionProvenance": "community-predeclared category rule",
+    "developmentRuns": [
+      0.93,
+      0.94
+    ],
+    "heldOutTransformedRuns": [
+      0.91,
+      0.9
+    ],
+    "criterion": 0.9,
+    "nonCircularSupport": true
+  },
+  "creative": {
+    "terminalCompletion": false,
+    "evaluator": "declared community jury",
+    "criterionProvenance": true,
+    "localQualityProbes": [
+      0.88,
+      0.91,
+      0.89
+    ],
+    "threshold": 0.85,
+    "localMasteryWithoutCompletion": true
+  },
+  "recovery": {
+    "localFailure": true,
+    "checkpoint": {
+      "continuation": true
+    },
+    "noContinue": {
+      "continuation": false
+    },
+    "terminalityDerived": true
+  },
+  "assist": {
+    "jointPerformance": 0.94,
+    "humanIndependentPostAssist": 0.57,
+    "criterion": 0.8,
+    "attributionRequired": true
+  },
+  "currentness": {
+    "oldPatch": {
+      "rules": "v1",
+      "masteryEvidence": 0.93
+    },
+    "newPatch": {
+      "rules": "v2",
+      "probePerformance": 0.58
+    },
+    "exactProbeTransformationDeclared": true,
+    "timelessMasteryRejected": true
+  },
+  "synthetic": {
+    "syntheticPolicy": {
+      "criterionPass": true
+    },
+    "humanEvidence": null,
+    "noHumanInference": true
+  }
+}

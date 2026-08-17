@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-e-survival-audit",
+  "status": "pre-freeze",
+  "provisionalCoreResponsibilities": [
+    {
+      "name":"ChallengeAssessmentContract",
+      "sources":["ChallengeConditionSpec","FunctionalDifficultyProjection","identified threshold/discrimination/feasibility claims"],
+      "responsibility":"Any Game challenge/difficulty claim must bind current evaluation criterion/authority, attribution target, condition/horizon and relevant control/observation/opponent/history context; the result is a query-specific identified/bounded projection rather than an intrinsic scalar.",
+      "ontologyNote":"responsibility/claim contract, not new R29 primitive"
+    },
+    {
+      "name":"FailureRecoveryContract",
+      "sources":["FailureAssessment","RecoveryTransitionSet","derived PursuitTerminalityClaim","QuerySpecificRecoveryCostProjection"],
+      "responsibility":"Failure is evaluation/scope/horizon-relative nonattainment; when recovery is relevant, authoritative continuation transitions are represented separately from terminality and any query-specific cost/severity projection.",
+      "ontologyNote":"responsibility contract over existing Evaluation + Transition/History coordinates"
+    },
+    {
+      "name":"MasteryClaimContract",
+      "sources":["MasteryClaimSpec","CapabilityMasteryClaim","DemonstratedMasteryEvidence"],
+      "responsibility":"Mastery is a scoped evidence claim over frozen SkillProfile under declared conditions/probes/attribution/currentness, not completion/high-score/zero-error/global Mastered state.",
+      "ontologyNote":"evidence/claim contract, not new capability primitive"
+    }
+  ],
+  "dispositions": [
+    {"candidate":"NominalDifficultySetting","status":"derived-model","reason":"configuration/label only"},
+    {"candidate":"StructuralDemandProfile","status":"retire","reason":"feature-bag umbrella replaced by explicit condition and projections"},
+    {"candidate":"FunctionalDifficultyRelation","status":"retire","reason":"named latent relation replaced by query-specific ChallengeAssessmentContract"},
+    {"candidate":"ExperiencedDifficulty","status":"handoff","owner":"Human","reason":"subjective appraisal"},
+    {"candidate":"SkillChallengeRelation-local-sensitivity","status":"retire","reason":"local derivative is only discrimination projection"},
+    {"candidate":"OutcomeRisk","status":"derived-model","reason":"valid projection, not challenge identity"},
+    {"candidate":"Infeasibility/FeasibilityRegion","status":"freeze-guard","reason":"impossible != maximally challenging; feasibility claims are criterion/horizon/model-relative"},
+    {"candidate":"FailureEvent","status":"retire","reason":"reconstructed to FailureAssessment responsibility"},
+    {"candidate":"ErrorEvent","status":"freeze-guard","reason":"Error != Failure; no new core"},
+    {"candidate":"PunishmentConsequence","status":"derived-model","reason":"authoritative consequence, not failure identity"},
+    {"candidate":"Loss","status":"derived-model","reason":"local negative change can be strategic"},
+    {"candidate":"Setback","status":"derived-model","reason":"adverse progress relation with possible recovery"},
+    {"candidate":"RecoveryTopology","status":"retire","reason":"reconstructed to exact RecoveryTransitionSet view"},
+    {"candidate":"Retry","status":"derived-model","reason":"one recovery transition only"},
+    {"candidate":"LearningOpportunityProfile","status":"retire","reason":"seven-dimensional profile overfits good-learning conditions and fails universality across puzzle/one-shot/uncontrollable-information cases"},
+    {"candidate":"LearningOpportunity-separation","status":"freeze-guard","reason":"Failure/Feedback != LearningOpportunity != ActualLearning survives without a universal profile"},
+    {"candidate":"CapabilityMasteryClaim","status":"merge-core","into":"MasteryClaimContract","reason":"claim type survives but is not independent core"},
+    {"candidate":"DemonstratedMasteryEvidence","status":"freeze-guard","reason":"sample evidence != capability claim"},
+    {"candidate":"SubjectiveCompetence","status":"handoff","owner":"Human","reason":"felt/perceived competence"},
+    {"candidate":"SocialMastery","status":"handoff","owner":"Practice/Social foundations","reason":"recognition/rank legitimacy"},
+    {"candidate":"Frustration","status":"handoff","owner":"Human","reason":"affective/appraisal state"},
+    {"candidate":"FlowExperience","status":"handoff","owner":"Human","reason":"subjective state"},
+    {"candidate":"ChallengeConditionSpec","status":"merge-core","into":"ChallengeAssessmentContract","reason":"scope responsibility survives, noun need not"},
+    {"candidate":"CapabilityOutcomeSurface","status":"derived-model","reason":"probe-relative model family, not directly observed object"},
+    {"candidate":"CapabilityThresholdRegion","status":"derived-model","reason":"criterion/model/probe-relative measurement view"},
+    {"candidate":"CapabilityDiscriminationProfile","status":"derived-model","reason":"directional/probe-relative measurement view"},
+    {"candidate":"AttributionResidualClass","status":"derived-model","reason":"epistemic residual until source identified"},
+    {"candidate":"OpponentInteractionSurface","status":"handoff","owner":"GDF6 Strategy/Counterplay/Balance","reason":"useful derived probe but deeper strategic relation is downstream"},
+    {"candidate":"FunctionalDifficultyProjection","status":"merge-core","into":"ChallengeAssessmentContract","reason":"query semantics survives, separate object does not"},
+    {"candidate":"RecoveryTransitionSet","status":"merge-core","into":"FailureRecoveryContract","reason":"strong optional structural responsibility when recovery exists"},
+    {"candidate":"QuerySpecificRecoveryCostProjection","status":"derived-model","reason":"requires declared evaluation weights"},
+    {"candidate":"ChallengeObservationDesign","status":"freeze-guard","reason":"research evidence contract, generic methodology not Game ontology"},
+    {"candidate":"ChallengeInterventionSet","status":"freeze-guard","reason":"ProbeTransformation specialization, generic methodology"},
+    {"candidate":"IdentifiedChallengeClaim","status":"freeze-guard","reason":"claim status discipline, not domain object"},
+    {"candidate":"ChallengeEquivalenceClass","status":"freeze-guard","reason":"underidentification must remain explicit, but generic epistemology"},
+    {"candidate":"IdentificationStatus","status":"freeze-guard","reason":"structural/intervention/model-estimated/bounded/unidentified distinction"},
+    {"candidate":"FailureAssessment","status":"merge-core","into":"FailureRecoveryContract","reason":"evaluation-relative failure responsibility survives all cases"},
+    {"candidate":"PursuitTerminalityClaim","status":"derived-model","reason":"derivable from pursuit identity + horizon + RecoveryTransitionSet; no independent core needed"},
+    {"candidate":"MasteryClaimSpec","status":"merge-core","into":"MasteryClaimContract","reason":"scope/probe/evidence responsibility survives but separate object can compress"},
+    {"candidate":"MasteredBoolean","status":"retire","reason":"global boolean fails open-ended, transfer, assist and scope cases"},
+    {"candidate":"TeamLoss->IndividualFailure","status":"freeze-guard","reason":"collective outcome cannot assign individual failure/skill deficit by identity"},
+    {"candidate":"AssistanceMasteryAttribution","status":"freeze-guard","reason":"JointControllerMastery != HumanIndependentMastery"},
+    {"candidate":"Currentness/VersionBinding","status":"freeze-guard","reason":"challenge/failure/mastery evidence is conditions/version/currentness bound"},
+    {"candidate":"DifficultyScalar","status":"retire","reason":"no cross-form universal scalar survives"}
+  ],
+  "compression": {
+    "candidateCount": 44,
+    "provisionalCoreResponsibilityCount": 3,
+    "freezeGuardCount": 12,
+    "derivedModelCount": 12,
+    "handoffCount": 6,
+    "retireCount": 8,
+    "mergeCoreCount": 6,
+    "note":"merge-core rows collapse into the 3 provisional core responsibilities and are not additional frozen nouns; counts sum dispositions, while provisional core responsibilities are reconstructed outputs outside the disposition count"
+  },
+  "learningOpportunityDeletion": {
+    "verdict":"retire-profile-retain-separation-guard",
+    "reasons":[
+      "learning can arise from observing uncontrollable variables if the information changes future prediction/policy",
+      "same-instance cheap retry is not necessary if information transfers to later related situations",
+      "diagnosticity can emerge only across multiple weak signals rather than one explicit failure message",
+      "Game cannot establish actual Human learning from structural opportunity fields"
+    ],
+    "minimalSurvivor":"Any learning-opportunity claim must state what information/distinction becomes available and what future SkillProfile/policy probe could reveal its use; no universal dimension checklist is frozen."
+  },
+  "masteryNonCircularity": {
+    "rule":"The evaluation criterion and claimed probe/condition region must have independent provenance from the target performance used as mastery evidence, or be validated on held-out/independent ProbeTransformations; defining the region solely by where the target succeeds cannot establish mastery.",
+    "survivesAs":"freeze-guard within MasteryClaimContract"
+  },
+  "foundationReopen":{"ACS":false,"GDF0":false,"R29":false,"reason":"E compresses downstream constructs into three responsibilities and guards; no new primitive or frozen contradiction appears."}
+}
