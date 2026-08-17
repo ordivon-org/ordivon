@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-gpr1-role-authority-contracts",
+  "round": "GPR1",
+  "status": "research-evidence",
+  "foundationStatus": {
+    "gdf0": "FROZEN",
+    "gdf1": "FROZEN",
+    "gdf2": "FROZEN",
+    "gdf3": "FROZEN",
+    "reopenTriggered": false
+  },
+  "primaryDecision": "Stabilize a practical Role & Authority toolkit with a small set of source/workflow records plus normalized derived projections. Do not create a second authority source-of-truth or a global authority hierarchy.",
+  "sourceDerivedBoundary": {
+    "sourceOrWorkflowRecords": [
+      "RoleAssignmentRecord",
+      "DelegationGrantRecord when delegation exists",
+      "RoleAssignmentChangeReceipt when explicit appointment/replacement workflow exists",
+      "AuthoritySeparationPolicy as owner-local policy source"
+    ],
+    "normalizedDerivedProjections": [
+      "ScopedAuthorityEdge",
+      "AuthorityProfile",
+      "AgentAuthorityManifest",
+      "RoleCausalAccessProfile",
+      "ParticipationAuthorityTopology"
+    ],
+    "reason": "Authority can originate from different Game-owned rules, role templates, constitutive practice, direct grants, delegation or local policy. Cross-Game stabilization should normalize effective authority for tooling without duplicating local source truth."
+  },
+  "contracts": {
+    "RoleAssignmentRecord": {
+      "status": "STABILIZE_SOURCE_RECORD",
+      "purpose": "Durably identify that an occupant currently or historically occupies a role in a declared practice/scope without implying authority by role label alone.",
+      "minimumFields": [
+        "assignmentId",
+        "occupantRef",
+        "roleRef",
+        "scopeRefs",
+        "validFrom",
+        "validUntilOrOpen",
+        "assignmentBasisRefs",
+        "provenanceRefs"
+      ],
+      "optionalFields": [
+        "supersedesAssignmentId",
+        "displayLabel"
+      ],
+      "forbiddenImplications": [
+        "RoleAssignment implies authority",
+        "Role identity equals occupant identity",
+        "replacement automatically transfers entity-bound authority",
+        "role label determines capability or control"
+      ],
+      "currentness": "Current if the query time/context is inside the assignment validity and no authoritative ending/replacement relation invalidates it.",
+      "persistence": "Persist when assignment identity/history/coordination matters; otherwise a local static configuration may compile into the same view."
+    },
+    "ScopedAuthorityEdge": {
+      "status": "STABILIZE_NORMALIZED_DERIVED_VIEW",
+      "purpose": "Provide one cross-Game effective authority query shape over heterogeneous local authority sources.",
+      "minimumFields": [
+        "edgeIdOrDigest",
+        "holderRef",
+        "operationKey",
+        "targetSelectorRefOrAny",
+        "scopeRefs",
+        "activationConditionRefs",
+        "validFrom",
+        "validUntilOrOpen",
+        "authoritySourceRefs",
+        "derivationRefs"
+      ],
+      "optionalFields": [
+        "viaRoleAssignmentIds",
+        "operationFamily",
+        "humanReadableScopeSummary"
+      ],
+      "operationKeyRule": "Use namespaced open operation keys owned by the GameForm/practice; do not freeze one exhaustive universal enum.",
+      "recommendedOperationFamiliesForUIOnly": [
+        "observe_or_receive",
+        "advise_or_recommend",
+        "propose",
+        "decide_or_rule",
+        "execute_or_enforce",
+        "verify_or_certify",
+        "review_or_override",
+        "change_rule_or_policy",
+        "change_game_dynamics",
+        "appoint_replace_or_delegate",
+        "allocate_access_or_eligibility"
+      ],
+      "scopeRule": "scopeRefs resolve through owner-local scope semantics. No universal scope tree/lattice is assumed; multiple scope dimensions may be incomparable.",
+      "truthRule": "The edge is a projection of effective current authority, not an independent authority grant by mere existence in a cache/UI.",
+      "forbiddenImplications": [
+        "broader scope means stronger authority",
+        "authority topology is a tree",
+        "authority implies capability",
+        "authority implies action legality",
+        "same holder identity implies same operation authority"
+      ]
+    },
+    "AuthorityProfile": {
+      "status": "STABILIZE_DERIVED_VIEW",
+      "purpose": "Compactly summarize one holder's current effective and conditional authority for Human/Agent inspection.",
+      "queryInputs": [
+        "holderRef",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "outputs": [
+        "effectiveEdges",
+        "conditionalEdges",
+        "authorityPolicyConstraints",
+        "conflictsOrUnknowns",
+        "authorityStateDigest",
+        "sourceRefs"
+      ],
+      "checkDisposition": [
+        "effective",
+        "conditional",
+        "not_established",
+        "blocked_by_authority_policy",
+        "conflicted_or_unknown"
+      ],
+      "laws": [
+        "absence of an edge is not metaphysical impossibility",
+        "profile is not global rank",
+        "profile currentness is context-bound",
+        "authority check is not full GDF1 action admission"
+      ]
+    },
+    "AgentAuthorityManifest": {
+      "status": "STABILIZE_CONTEXT_BOUND_DERIVED_SNAPSHOT",
+      "purpose": "Give an Agent a compact current answer to what it may bind/change/decide within a particular context without forcing raw authority-graph reconstruction every turn.",
+      "minimumFields": [
+        "principalRef",
+        "contextRef",
+        "authorityStateDigest",
+        "generatedAtCurrentness",
+        "effectiveOperations",
+        "conditionalOperations",
+        "sourceRefs",
+        "manifestDigest"
+      ],
+      "perOperationFields": [
+        "operationKey",
+        "targetOrScopeSummary",
+        "disposition",
+        "conditionsOrApprovals",
+        "validUntilOrCurrentnessBoundary",
+        "sourceRefs"
+      ],
+      "stalenessRule": "A manifest is a derived snapshot. Any relevant role assignment, authority source, scope/currentness or separation-policy change invalidates or changes its authorityStateDigest.",
+      "criticalLaw": "AgentAuthorityManifest != legal action set != capability set != GameAction admission. GDF1 admission remains separate.",
+      "forbiddenImplications": [
+        "model/provider identity grants authority",
+        "manifest allows hidden authority not in sources",
+        "stale manifest remains valid after authority state changes"
+      ]
+    },
+    "RoleCausalAccessProfile": {
+      "status": "STABILIZE_DERIVED_MULTI_AXIS_VIEW",
+      "purpose": "Expose what an occupant/role can perceive, communicate, contribute to, influence, control and authoritatively bind without collapsing those dimensions.",
+      "axes": [
+        "observationAccess",
+        "communicationChannels",
+        "adviceOrProposalChannels",
+        "controlOrExecutionAccess",
+        "bindingAuthorityEdges"
+      ],
+      "laws": [
+        "observation != control",
+        "influence != binding authority",
+        "control capability != authority",
+        "authority != causal ability to realize outcome"
+      ],
+      "persistence": "Derived by default from F7/GDF1/role/authority state."
+    },
+    "ParticipationAuthorityTopology": {
+      "status": "STABILIZE_DERIVED_GRAPH_VIEW",
+      "purpose": "Visualize/debug the scoped relationship among entities, role assignments, causal access and authority without asserting a hierarchy.",
+      "layers": [
+        "entity_and_role_assignment",
+        "causal_access",
+        "effective_authority",
+        "delegation_or_assignment_provenance"
+      ],
+      "queryScope": [
+        "practiceOrGameInstanceRef",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "laws": [
+        "graph != tree",
+        "graph != canonical persisted authority state",
+        "visual adjacency != authority strength",
+        "node label != authority grant"
+      ]
+    },
+    "AuthoritySeparationPolicy": {
+      "status": "STABILIZE_POLICY_INTERFACE_NOT_UNIVERSAL_INVARIANT",
+      "purpose": "Allow a GamePractice to configure separation-of-duties constraints without claiming they are universal semantic laws.",
+      "minimumContract": [
+        "policyId",
+        "scopeRefs",
+        "constraintRules",
+        "policyProvenanceRefs",
+        "validFrom",
+        "validUntilOrOpen"
+      ],
+      "recommendedRuleFamilies": [
+        "distinct_holder_required",
+        "self_review_prohibited",
+        "second_authority_required",
+        "provenance_independence_required",
+        "owner_local_custom_rule"
+      ],
+      "evaluationOutput": [
+        "not_applicable",
+        "satisfied",
+        "violated",
+        "unresolved"
+      ],
+      "law": "Separation constraints filter/evaluate effective authority in context; they do not create a universal authority hierarchy or imply all games need dual control."
+    },
+    "DelegationGrantRecord": {
+      "status": "STABILIZE_CONDITIONAL_SOURCE_WORKFLOW",
+      "purpose": "Represent a durable scoped transfer/grant of authority when a practice actually delegates authority rather than merely approving one action.",
+      "minimumFields": [
+        "delegationId",
+        "grantorRef",
+        "delegateRef",
+        "delegatedOperationKey",
+        "targetSelectorRefOrAny",
+        "scopeRefs",
+        "validFrom",
+        "validUntilOrOpen",
+        "delegationAuthorityBasisRefs",
+        "provenanceRefs"
+      ],
+      "optionalFields": [
+        "parentDelegationId",
+        "revocationPolicyRef",
+        "activationConditionRefs",
+        "displayReason"
+      ],
+      "admissionRules": [
+        "grantor must have current authority to delegate this operation/scope, not merely authority to perform the underlying operation",
+        "delegated scope cannot exceed what the admitted delegation basis authorizes",
+        "subdelegation is not implicit and requires its own delegation authority/basis",
+        "revocation authority is not inferred merely from grantor identity unless the practice policy says so",
+        "expiry/revocation ends current effect but does not erase grant history"
+      ],
+      "antiCollapse": [
+        "Delegation != Replacement",
+        "Delegation != one-shot action approval",
+        "Delegation != capability transfer",
+        "Delegation != ownership transfer"
+      ],
+      "currentEngineeringMapping": "Station Zero Team AuthorityGrant is proposal/context/world-bound one-shot action authorization consumed on use; it should not be generalized as DelegationGrant merely because its local type contains the word Grant."
+    },
+    "AppointmentReplacementRecord": {
+      "status": "RETAIN_AS_CONDITIONAL_ROLE_ASSIGNMENT_CHANGE_RECEIPT",
+      "purpose": "Audit/coordinate explicit appointment or replacement workflows while keeping RoleAssignment as the actual practical relation.",
+      "minimumFields": [
+        "changeId",
+        "changeKind appointment_or_replacement_or_end",
+        "roleRef",
+        "scopeRefs",
+        "oldAssignmentIdOrNull",
+        "newAssignmentIdOrNull",
+        "effectiveAt",
+        "authorityBasisRefs",
+        "provenanceRefs"
+      ],
+      "laws": [
+        "replacement ends/supersedes an assignment and may create a new assignment",
+        "Role continuity != occupant continuity",
+        "replacement does not automatically transfer direct entity-bound authority",
+        "appointment/replacement authority != case/rule/enforcement authority",
+        "record is optional when a simple static role assignment is enough"
+      ]
+    }
+  },
+  "crossCuttingLaws": [
+    "RoleAssignment != AuthorityGrant",
+    "RoleLabel != ResponsibilityTopology",
+    "Authority != Capability",
+    "Authority != ActionLegality",
+    "Authority != GlobalRank",
+    "AuthorityTopology != Tree",
+    "BroaderScope != StrongerAuthority",
+    "CausalAccess != BindingAuthority",
+    "Observation != Control",
+    "Influence != BindingAuthority",
+    "SameEntityOrModel != SameAuthorityOperation",
+    "Delegation != Replacement",
+    "Delegation != OneShotActionApproval",
+    "Replacement != AuthorityTransferByIdentity",
+    "AgentAuthorityManifest != GameActionAdmission",
+    "AuthorityProfile != source of truth",
+    "DerivedAuthorityCache != independent authority source"
+  ],
+  "stressCases": [
+    {"id":"RA1","regime":"solo direct avatar","claim":"player role assignment exists while authority is mostly constitutive/direct control","expected":"role assignment does not require explicit authority edge for every ordinary action"},
+    {"id":"RA2","regime":"solitary self-authored challenge","claim":"same human is author, role occupant and case authority","expected":"role fusion allowed; separate operation relations still queryable"},
+    {"id":"RA3","regime":"co-op multiplayer","claim":"two players occupy peer roles with different local objects","expected":"peer labels do not imply identical scope"},
+    {"id":"RA4","regime":"commander + specialists","claim":"commander advises/assigns objectives while specialist executes","expected":"policy influence and execution authority remain distinct"},
+    {"id":"RA5","regime":"coach","claim":"coach observes and recommends without control","expected":"RoleCausalAccessProfile expresses influence without binding authority"},
+    {"id":"RA6","regime":"spectator reporter","claim":"spectator can report evidence but not rule","expected":"causal contribution does not create decision authority"},
+    {"id":"RA7","regime":"TTRPG GM bundle","claim":"one holder has world presentation, NPC control and case authority but no standing rule-change authority","expected":"bundle compiles to multiple distinct operations"},
+    {"id":"RA8","regime":"TTRPG co-GM","claim":"two holders split NPC control and rule adjudication","expected":"role label can map to non-identical authority profiles"},
+    {"id":"RA9","regime":"tournament floor/head judge","claim":"floor judge first-instance authority; head judge review override","expected":"incomparable/ordered operation-specific edges without global rank"},
+    {"id":"RA10","regime":"tournament operator","claim":"operator appoints judge but does not rule cases","expected":"appointment authority distinct from case authority"},
+    {"id":"RA11","regime":"moderation classifier","claim":"Agent classifies content without binding decision authority","expected":"authority manifest excludes decide/enforce despite causal contribution"},
+    {"id":"RA12","regime":"moderator adjudicator","claim":"same Agent later receives scoped case authority","expected":"model identity unchanged; manifest changes because source authority changed"},
+    {"id":"RA13","regime":"moderator enforcement split","claim":"human rules, automated system enforces","expected":"case authority and enforcement authority represented separately"},
+    {"id":"RA14","regime":"live operator policy change","claim":"operator changes spawn policy but cannot adjudicate player dispute","expected":"change_game_dynamics/rule authority separate from case authority"},
+    {"id":"RA15","regime":"direct authority grant outside role","claim":"entity receives one scoped authority without role change","expected":"ScopedAuthorityEdge can derive directly from local source; RoleAssignment not required"},
+    {"id":"RA16","regime":"role authority inheritance","claim":"role template grants scoped authority to current occupant","expected":"edge records viaRoleAssignment/provenance and ends when assignment currentness ends"},
+    {"id":"RA17","regime":"role replacement","claim":"Alice replaced by Bob in same judge role","expected":"new assignment; role continuity preserved; Alice edges via old assignment cease"},
+    {"id":"RA18","regime":"entity-bound authority on replacement","claim":"Alice has extra personal grant","expected":"personal grant does not transfer to Bob by role replacement"},
+    {"id":"RA19","regime":"temporary delegation","claim":"judge delegates one review operation until T","expected":"delegated edge exists only within scope/time"},
+    {"id":"RA20","regime":"delegation expiry","claim":"same delegate acts after T","expected":"profile/manifest no longer reports effective authority"},
+    {"id":"RA21","regime":"delegation revocation","claim":"authorized revoker revokes grant","expected":"historical grant preserved; current edge disappears"},
+    {"id":"RA22","regime":"unauthorized revocation","claim":"grantor lacks revocation authority under local policy","expected":"grantor identity alone cannot revoke"},
+    {"id":"RA23","regime":"subdelegation without authority","claim":"delegate tries to delegate onward","expected":"not effective merely because parent grant exists"},
+    {"id":"RA24","regime":"subdelegation with explicit delegation authority","claim":"parent/local policy authorizes onward delegation","expected":"child grant has parent provenance and bounded scope"},
+    {"id":"RA25","regime":"one-shot action approval","claim":"human approves one candidate bound to context/world digest","expected":"classify as action authorization, not DelegationGrant"},
+    {"id":"RA26","regime":"Agent provider swap","claim":"DeepSeek replaced by another model for same role assignment","expected":"authority unchanged if entity/role/authority sources unchanged"},
+    {"id":"RA27","regime":"same model multiple role assignments","claim":"one model instance supplies two semantic actors","expected":"model identity does not merge role or authority profiles"},
+    {"id":"RA28","regime":"authority without capability","claim":"holder may authorize reactor repair but cannot physically repair","expected":"Authority != Capability"},
+    {"id":"RA29","regime":"capability without authority","claim":"Agent can technically edit rule file but lacks Game rule-change authority","expected":"Capability != Authority"},
+    {"id":"RA30","regime":"authority but illegal action","claim":"holder has case authority but requested transition violates current Game rule","expected":"AuthorityProfile != GDF1 legality/admission result"},
+    {"id":"RA31","regime":"broad and narrow scopes","claim":"one holder can change global rules; another can decide local match cases","expected":"BroaderScope != StrongerAuthority"},
+    {"id":"RA32","regime":"incomparable scopes","claim":"moderator A controls chat; operator B controls economy","expected":"no total ordering/rank"},
+    {"id":"RA33","regime":"activation condition","claim":"emergency authority activates only when hazard threshold holds","expected":"edge conditional until owner-local condition resolves"},
+    {"id":"RA34","regime":"separation policy","claim":"reviewer otherwise has review edge but policy prohibits reviewing own prior determination","expected":"authority check reports blocked_by_authority_policy"},
+    {"id":"RA35","regime":"second authority requirement","claim":"rule change requires two independent holders","expected":"individual profile can show conditional; no single edge silently upgrades to effective"},
+    {"id":"RA36","regime":"stale Agent manifest","claim":"delegation revoked after manifest generation","expected":"authorityStateDigest changes; stale manifest cannot be trusted"},
+    {"id":"RA37","regime":"topology graph","claim":"same holder has direct grant and via-role grant to overlapping operations","expected":"graph shows multiple provenance paths without duplicating authority truth"},
+    {"id":"RA38","regime":"collective vote","claim":"members vote; aggregation rule binds official result","expected":"member contribution edges do not become collective binding authority by identity"},
+    {"id":"RA39","regime":"self-maintained practice","claim":"solitary player appoints self as certifier under own current practice","expected":"external institution not required; provenance still explicit"},
+    {"id":"RA40","regime":"practice switch","claim":"same person moves from casual house rules to tournament practice","expected":"authority profile changes with practice/scope even if person/role label appears similar"}
+  ],
+  "currentEngineeringAudit": {
+    "ActorProfileRole": {
+      "classification": "LOCAL_ROLE_CONFIGURATION",
+      "finding": "Useful Station Zero role label/mandate input, but it lacks generic assignment identity/currentness/provenance and must not be generalized into cross-Game RoleAssignment by type alias alone."
+    },
+    "AuthorityDecision": {
+      "classification": "LOCAL_ACTION_AUTHORITY_POLICY_DECISION",
+      "finding": "Represents a contextual permit/require-human/deny decision for one action candidate; it is not the same thing as a durable ScopedAuthorityEdge."
+    },
+    "AuthorityGrant": {
+      "classification": "ONE_SHOT_ACTION_AUTHORIZATION_GRANT",
+      "finding": "Bound to proposalId/actionCandidateId/contextDigest/worldDigest, expires and is consumed once. This is excellent currentness binding but is not generic DelegationGrant because it transfers no reusable authority operation to the actor."
+    },
+    "AuthorityPolicyMode": {
+      "classification": "LOCAL_POLICY_SURFACE",
+      "finding": "autonomous/supervised/locked and require-human semantics are Station Zero-specific. GPR1 should preserve the pattern of policy evaluation while not freezing Human as the universal escalation authority."
+    },
+    "candidateAllowed": {
+      "classification": "LOCAL_ADMISSION_HELPER",
+      "finding": "Demonstrates why Authority != GameActionAdmission: authority policy/grant is one input to whether an action candidate proceeds; capability, legality/current World state remain separate Game responsibilities."
+    }
+  },
+  "implementationDecision": {
+    "broadImplementationNow": false,
+    "reason": "GPR1 establishes practical contracts and source/view boundaries. A later consumption/audit round should map these contracts onto actual product consumers before creating generic library types or migrations.",
+    "implementationCandidates": [
+      "pure derived authority/profile query helpers",
+      "Agent authority manifest projection",
+      "role/authority visualization/debug view",
+      "only later, source records if a real cross-Game consumer requires them"
+    ]
+  },
+  "nextRound": {
+    "name": "GPR2 — Case Determination & Contestability Toolkit",
+    "preset": true,
+    "reason": "R0 already ranked P2 immediately behind P1, and GPR1 now supplies the role/authority substrate required to rebuild determination records, review/appeal workflows and decision lineage safely. This is practical reconstruction ordering, not a new Deep Foundation admission."
+  }
+}
