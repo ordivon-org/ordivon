@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R28 foundations corpus without selecting a new product.
+summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R29 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -61,8 +61,9 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R26.md`](docs/GAME_FOUNDATIONS_RESEARCH_R26.md) decomposes Affect, Emotion, Feeling, Mood, Valence, Arousal, Appraisal, Action Tendency, Regulation, Expression and Empathy; emotion is a coordinated temporal episode rather than one scalar, and affective state becomes gameplay only through causal future differences.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R27.md`](docs/GAME_FOUNDATIONS_RESEARCH_R27.md) synthesizes Learning, Adaptation, Memory, Belief Revision, Skill/Habit, Personality and Self-model as Persistent Subject Change, with explicit update targets, authority, provenance, causality, contracts and playable learning/adaptation.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R28.md`](docs/GAME_FOUNDATIONS_RESEARCH_R28.md) decomposes Culture, Convention, Custom, Tradition, Ritual, Symbol, Shared Meaning, Legitimacy, Collective Memory, cultural transmission/change and Subculture as distributed socially reproduced structure; introduces Cultural/Transmission/Legitimacy topology, Cultural/Ritual/Symbolic/Tradition causality, Cultural Agency and Playable Culture without selecting a product.
-- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R28 foundations corpus and its cross-domain abstractions.
-- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R28 the next frontier is R29 Whole-Corpus Synthesis / Redundancy Audit / Causal Closure / Foundation Falsification.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_R29.md`](docs/GAME_FOUNDATIONS_RESEARCH_R29.md) synthesizes and falsifies the R1–R28 corpus, freezes provisional Game Foundations v1 around nine semantic coordinate families, demotes recurring domain concepts to typed derived views where justified, compresses Playable/Causality/Topology/Authority/Contract families, and closes foundation expansion without selecting a product.
+- [`docs/GAME_FOUNDATIONS_RESEARCH_MAP.md`](docs/GAME_FOUNDATIONS_RESEARCH_MAP.md) is the compact conceptual map for the R1–R29 foundations corpus and its cross-domain abstractions.
+- [`docs/GAME_FOUNDATIONS_CONTINUATION.md`](docs/GAME_FOUNDATIONS_CONTINUATION.md) is the context-switch handoff; after R29 the foundation-expansion programme is provisionally frozen; the next frontier is Pre-G0 Game Direction Search, with Foundations reopened only by a concrete counterexample.
 - [`docs/GAME_CORE_DIRECTION_SPACE.md`](docs/GAME_CORE_DIRECTION_SPACE.md) maps the early Core → Experience search space, missing dimensions, and experimental contract.
 - [`docs/GAME_CORE_EXPERIMENT_FINDINGS.md`](docs/GAME_CORE_EXPERIMENT_FINDINGS.md) records what Station Zero, Casefile, Last Light, and Echo Hunt actually established without promoting a product winner.
 - [`docs/GAME_CORE_EXPERIMENT_CASEFILE.md`](docs/GAME_CORE_EXPERIMENT_CASEFILE.md) retains exact Casefile engineering/blind-play evidence as an epistemic Game Core treatment.

@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.foundations-research.map
-title: Ordivon Game Foundations Research Map — R1–R28
+title: Ordivon Game Foundations Research Map — R1–R29
 type: research
 profile: research
 lifecycle: active
@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Compact navigation map for the R1–R28 Game foundations corpus, including core distinctions, cross-domain abstractions, motivation, strategy, creation, control/embodiment, uncertainty/risk, time, identity, relationship, affect, persistent Subject change and culture, plus the exact continuation point.
+summary: Compact navigation map for the R1–R29 Game foundations corpus, culminating in provisional Game Foundations v1: semantic coordinates, derived domain views, player/design criteria, implementation separation and the exact Pre-G0 continuation point.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -33,12 +33,13 @@ related:
   - game.foundations-research.r26
   - game.foundations-research.r27
   - game.foundations-research.r28
+  - game.foundations-research.r29
   - game.core-research.reset
   - game.development-model
 ---
 # Ordivon Game Foundations Research Map
 
-This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md), [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md), [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md), and [`GAME_FOUNDATIONS_RESEARCH_R28.md`](GAME_FOUNDATIONS_RESEARCH_R28.md). It is intentionally much shorter than the full research records.
+This is the compact navigation surface for [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md), [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md), [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md), [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md), [`GAME_FOUNDATIONS_RESEARCH_R21.md`](GAME_FOUNDATIONS_RESEARCH_R21.md), [`GAME_FOUNDATIONS_RESEARCH_R22.md`](GAME_FOUNDATIONS_RESEARCH_R22.md), [`GAME_FOUNDATIONS_RESEARCH_R23.md`](GAME_FOUNDATIONS_RESEARCH_R23.md), [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md), [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md), [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md), [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md), [`GAME_FOUNDATIONS_RESEARCH_R28.md`](GAME_FOUNDATIONS_RESEARCH_R28.md), and [`GAME_FOUNDATIONS_RESEARCH_R29.md`](GAME_FOUNDATIONS_RESEARCH_R29.md). It is intentionally much shorter than the full research records.
 
 ## Boundary
 
@@ -52,7 +53,7 @@ Generation != gameplay by itself
 
 No new product has been selected.
 
-## R1–R28 index
+## R1–R29 index
 
 | Round | Main subject | Durable distinction / result |
 | --- | --- | --- |
@@ -67,10 +68,10 @@ No new product has been selected.
 | R9 | World / simulation | World != Map/Lore/Simulation; preserve the causality needed by the experience rather than maximize realism. |
 | R10 | Subject / Agent | NPC != Agent != LLM; richer cognition matters only when it changes meaningful play. |
 | R11 | Agency / consequence | Freedom and button count are not agency; open intent can coexist with structured consequences. |
-| R12 | Feedback / learning | Actual causality must become perceived/learnable causality; complexity and intelligence must be playable. |
-| R13 | Time / history | Progression, persistence, memory, history and learning are separate; history becomes valuable when past becomes present structure. |
+| R12 | Feedback / causal legibility | Actual causality must become perceived/learnable causality; complexity and intelligence must be playable. |
+| R13 | History / persistence | Progression, persistence, memory, history and learning are separate; history becomes valuable when past becomes present structure. |
 | R14 | Economy | Resource ≈ stored optionality; scarcity creates trade-off; economy is multi-subject coordination under constrained resources/claims. |
-| R15 | Society / institutions | Organization != Institution; institutions can be history compressed into future rules. |
+| R15 | Society / institutions | Organization != Institution; institutions can be history compressed into future rules; R29 narrows the historical generic Norm formula to SocialNorm. |
 | R16 | Space / topology | Topology = structure of reachability/influence; distance is transition cost; exploration grows a usable world model. |
 | R17 | Information / belief | Truth != Signal != Observation != Belief != Statement; bounded knowledge and information topology generate play. |
 | R18 | Motivation / goals | Need, Value and Desire are distinct motive sources; Preference is contextual comparison; Goal is selected pursuit; Commitment stabilizes it; Utility is optional representation/arbitration. |
@@ -84,6 +85,7 @@ No new product has been selected.
 | R26 | Emotion / affect | Affect differs from Emotion; emotion is a temporally coordinated appraisal-linked episode rather than one scalar; feeling, mood, expression, regulation and empathy separate; affect becomes gameplay when it changes meaningful futures. |
 | R27 | Learning / persistent Subject change | Experience, performance, adaptation, memory, belief revision, skill/habit, personality and self-model separate; Learning is retained experience-linked future difference; Persistent Subject Change and its update topology/authority/provenance become first-class. |
 | R28 | Culture / shared meaning | Culture is distributed socially reproduced structure rather than lore/group essence; convention, custom, tradition, ritual, symbol, shared meaning, legitimacy, collective memory and transmission/change separate; Culture becomes playable through learnable/influenceable cultural causality. |
+| R29 | Whole-corpus synthesis | R1–R28 are stratified into semantic coordinates, derived domain views, player/design criteria and implementation; Game Foundations v1 freezes nine semantic coordinate families, compresses repeated Topology/Causality/Authority/Contract/Playable families and finds no forced independent residual foundation in the tested domain/family set. |
 
 ## Current multidimensional GameForm model
 
@@ -543,6 +545,67 @@ Make symbol/ritual/legitimacy/memory causal only where they change meaningful fu
 Authored culture is valid; online cultural evolution is optional.
 ```
 
+R29 freezes provisional Game Foundations v1:
+
+```text
+SEMANTIC COORDINATES
+F1 Entity / Reference
+F2 State
+F3 Relation
+F4 Transition / Constraint
+F5 Time
+F6 Authority / Provenance
+F7 Observation / Representation
+F8 Evaluation / Motivation
+F9 Action / Capability / Policy / Control
+```
+
+```text
+DERIVED DOMAIN VIEWS
+World / Subject / History / Memory / Learning
+Resource / Economy / Space / Topology
+Information / Uncertainty / Risk
+Agency / Power / Strategy
+Creation / Authorship / Narrative / Generation
+Identity / Self-model / Personality
+Relationship / Institution / SocialNorm
+Emotion / Affect
+Culture / SharedMeaning / Legitimacy / CollectiveMemory
+```
+
+```text
+PLAYER / DESIGN CRITERIA
+PlayerValue / Fantasy / Fun / Tension / Depth / Difficulty
+CausalLegibility / PlayerCausalAccess / Playable(X)
+```
+
+R29 compression laws:
+
+```text
+EncodingSufficiency != ExplanatorySufficiency
+Primitive != Important
+Derived != Disposable
+NamedRound != Primitive
+Possibility-space equivalence != Semantic equivalence
+SocialNorm != all NormativeEvaluation
+PlayerValue != SubjectValue
+Generation != Authority
+FoundationClosure != metaphysical completeness
+```
+
+Repeated abstraction families compress to:
+
+```text
+TypedTopology
+DomainCausality
+DomainAuthority
+DomainContract
+Playable(X) = PlayerCausalAccess(X)
+PromotionDebt for generated candidates promoted into authoritative state
+```
+
+Foundation expansion is provisionally frozen. Reopen only when a concrete counterexample satisfies the R29 `FoundationAdmissionTest` / `FoundationReopenCondition`.
+
 Implementation options for policy include scripts, FSMs, behavior trees, utility systems, planners, search, regret minimization, RL, models, humans and hybrids.
 
 ## Temporal stack
@@ -645,15 +708,18 @@ PlayableAdaptation
 PlayableCulture
 ```
 
-Generalized:
+Generalized by R29:
 
 ```text
-Playable X =
-X that players can observe,
-model,
-test/influence,
-and use to improve future decisions or expression.
+Playable(X) = PlayerCausalAccess(X)
+
+Relevant distinctions in X are sufficiently
+observable/inferable + stable/modelable + consequential
+that player action, planning, interpretation or expression
+can make meaningful use of them.
 ```
+
+Direct manipulation is not required.
 
 ## Possibility-space translation
 
@@ -834,18 +900,19 @@ A practical test remains:
 
 ## Exact frontier
 
-R28 is complete. Continue with:
+R29 is complete and provisional Game Foundations v1 is frozen. Do **not** add another Foundation noun by default.
 
 ```text
-R29 — Whole-Corpus Synthesis, Redundancy Audit, Causal Closure and Foundation Falsification
+Pre-G0 Game Direction Search
 ```
 
 Primary transition:
 
 ```text
-R28: How do cultural structures persist and transform across Subjects/time?
+R29: Which R1–R28 distinctions are independent, derived or redundant?
 →
-R29: Which R1–R28 foundations are genuinely independent, causally necessary and sufficient across Game forms — and which are redundant projections?
+Next: Which materially different GameForm / player-fantasy / core-loop candidates
+best exploit the now-stable foundation space, and which survive cheap falsifiers?
 ```
 
-R29 should attack/compress the corpus rather than add another domain noun. Do not select a product before this synthesis/falsification pass.
+`DEVELOPMENT_MODEL.md` remains sole authority for G0. Candidate-direction search is pre-G0; intentionally select a candidate before creating a canonical G0 definition. Reopen Foundations only with a concrete R29 `FoundationReopenCondition`.

@@ -50,6 +50,10 @@ const r28 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R28.md", import.meta.url),
   "utf8",
 );
+const r29 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R29.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -206,12 +210,31 @@ test("R28 preserves culture, convention, ritual, meaning, legitimacy and memory 
   assert.match(r28, /No product is selected by R28\./);
 });
 
-test("foundation navigation advances the exact post-R28 synthesis frontier", () => {
-  const frontier = /R29 — Whole-Corpus Synthesis, Redundancy Audit, Causal Closure and Foundation Falsification/;
-  assert.match(map, frontier);
-  assert.match(continuation, frontier);
-  assert.match(continuation, /R29 should \*\*attack and compress\*\* the corpus rather than extend it/);
-  assert.match(continuation, /Do not begin intentional new-product G0/);
+
+
+test("R29 freezes a layered Game Foundations v1 without collapsing semantics or selecting a product", () => {
+  assert.match(r29, /EncodingSufficiency != ExplanatorySufficiency/);
+  assert.match(r29, /Primitive != Important/);
+  assert.match(r29, /Derived != Disposable/);
+  assert.match(r29, /F1  Entity \/ Reference/);
+  assert.match(r29, /F6  Authority \/ Provenance/);
+  assert.match(r29, /F9  Action \/ Capability \/ Policy \/ Control/);
+  assert.match(r29, /PlayerCausalAccess\(X\)/);
+  assert.match(r29, /TypedTopology/);
+  assert.match(r29, /DomainCausality/);
+  assert.match(r29, /PromotionDebt/);
+  assert.match(r29, /SocialNorm/);
+  assert.match(r29, /CausalClosure_for\(T\) != OntologicalCompleteness/);
+  assert.match(r29, /No product is selected by R29\./);
+});
+
+test("R29 continuation exits foundation noun expansion and routes to pre-G0 direction search", () => {
+  assert.match(map, /Pre-G0 Game Direction Search/);
+  assert.match(continuation, /Pre-G0 Game Direction Search/);
+  assert.match(continuation, /Foundation Reopen Conditions/);
+  assert.match(continuation, /Game Foundations v1: provisionally frozen/);
+  assert.match(continuation, /Technical maturity is evidence about implementation feasibility, not product value/);
+  assert.doesNotMatch(continuation, /R30 —/);
 });
 
 test("foundation research records are managed repository documentation", () => {
@@ -228,6 +251,7 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R26.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R27.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R28.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {

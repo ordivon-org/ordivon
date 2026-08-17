@@ -15,39 +15,25 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R28 without depending on conversation context.
+summary: Exact continuity handoff after R1–R29 and provisional Game Foundations v1 freeze; the next frontier is Pre-G0 Game Direction Search rather than another automatic foundation noun round.
 evidence_status: derived
 readiness: READY
 applies_to:
   - ordivon-game
 related:
-  - game.foundations-research.r1-r17
-  - game.foundations-research.r18
-  - game.foundations-research.r19
-  - game.foundations-research.r20
-  - game.foundations-research.r21
-  - game.foundations-research.r22
-  - game.foundations-research.r23
-  - game.foundations-research.r24
-  - game.foundations-research.r25
-  - game.foundations-research.r26
-  - game.foundations-research.r27
-  - game.foundations-research.r28
+  - game.foundations-research.r29
   - game.foundations-research.map
+  - game.development-model
   - game.core-research.reset
 ---
 # Ordivon Game Foundations Research Continuation Handoff
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R28.md`](GAME_FOUNDATIONS_RESEARCH_R28.md) — canonical Culture/Convention/Tradition/Ritual/Symbol/Legitimacy/Collective Memory decomposition.
-2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R28 map.
-3. [`GAME_FOUNDATIONS_RESEARCH_R27.md`](GAME_FOUNDATIONS_RESEARCH_R27.md) — Subject learning/transmission substrate.
-4. [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) — especially R13 history/memory, R15 norms/institutions and R17 information/belief.
-5. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — conventions/coordination/strategy.
-6. [`GAME_FOUNDATIONS_RESEARCH_R20.md`](GAME_FOUNDATIONS_RESEARCH_R20.md) — expression/style/taste/creation.
-7. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) and [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md) — collective identity and relational/network state.
-8. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+1. [`GAME_FOUNDATIONS_RESEARCH_R29.md`](GAME_FOUNDATIONS_RESEARCH_R29.md) — canonical whole-corpus synthesis and Game Foundations v1 freeze.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R29 map.
+3. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+4. Deep rounds R17–R28 only as needed for domain-specific semantics/falsifiers.
 
 ## Stable global boundary
 
@@ -56,197 +42,179 @@ AI Game != Agent World
 Agent != LLM
 Generation != gameplay by itself
 Research rounds != G0–G8
+Foundation closure != metaphysical completeness
 ```
 
 ## Current status
 
-R1–R28 are complete. Exact next round:
-
 ```text
-R29 — Whole-Corpus Synthesis, Redundancy Audit, Causal Closure and Foundation Falsification
+R1–R29: complete
+Game Foundations v1: provisionally frozen
+Known forced independent foundation gap: none in current test set
+Product selected: no
 ```
 
-## R28 durable result
+Exact next frontier:
 
 ```text
-Culture != Lore
-Culture != Group
-Culture != Consensus
-Culture != Homogeneity
-Culture != Institution
-Culture != Norm
-Culture != CollectiveIdentity
-Culture != SharedBelief
-Culture != PopulationPrompt
-Culture != SharedWeights
-Convention != Norm != Rule
-Custom != Habit
-RepeatedBehavior != Tradition
-Tradition != Oldness != UnchangedForm
-Routine != Ritual != Tradition
-Synchrony != Ritual
-Signal != Sign != Symbol
-Symbol != Meaning
-Form != Meaning
-SharedMeaning != IdenticalPrivateMeaning
-SharedBelief != SharedMeaning
-Legality != Legitimacy
-Power != Authority != Legitimacy
-Compliance != Legitimacy
-SociologicalLegitimacy != MoralRightness
-History != CollectiveMemory
-Archive != CollectiveMemory
-CulturalTransmission != ExactCopy
-CumulativeCulture != ContentAccumulation
-SameBehavior != SameCulture
-PlayerCommunityCulture != DiegeticCulture
-PretrainedKnowledge != DiegeticCulturalMembership
-GeneratedLore != Culture
+Pre-G0 Game Direction Search
 ```
 
-### Culture
+## Game Foundations v1
 
 ```text
-Culture(P,D,t) =
-relatively persistent socially transmitted/reproduced structure
-in how a population/network perceives, interprets, values,
-coordinates, creates or acts,
-carried across distributed Subject states
-and/or public practices, artifacts, symbols and institutions
+F1 Entity / Reference
+F2 State
+F3 Relation
+F4 Transition / Constraint
+F5 Time
+F6 Authority / Provenance
+F7 Observation / Representation
+F8 Evaluation / Motivation
+F9 Action / Capability / Policy / Control
 ```
 
-Culture is population/network-level distributed structure, not one Subject field. It can be heterogeneous, contested and overlapping.
+These are semantic coordinate families, not mandatory schemas/services.
 
-### Cultural Item / System
+## Derived domain views
+
+Retain as typed views/compositions where useful:
 
 ```text
-CulturalItem = socially transmitted/stabilized cultural variant
-
-CulturalSystem =
-CulturalItem distribution
-+ transmission/reproduction pathways
-+ public/external carriers
-+ recurrent interpretive/expectational structure
-+ persistence through time
+World / Subject
+History / Memory / Learning
+Resource / Economy
+Space / Topology
+Information / Uncertainty / Risk
+Agency / Power / Strategy
+Creation / Authorship / Narrative / Generation
+Identity / Self-model / Personality
+Relationship / Institution / SocialNorm
+Emotion / Affect
+Culture / SharedMeaning / Legitimacy / CollectiveMemory
 ```
-
-### Convention / Custom / Tradition / Ritual
 
 ```text
-Convention = expectation-dependent recurrent coordination solution among alternatives
-Custom = socially recognized recurrent practice
-Tradition = transmitted continuity whose relation to prior bearers/time matters
-Ritual = culturally patterned recognized performance whose social/symbolic/normative/identity significance extends beyond immediate mechanics
+Primitive != Important
+Derived != Disposable
 ```
 
-Tradition may transform form while preserving lineage; ritual need not be old/religious or repeated by the same Subject.
-
-### Symbol / Shared Meaning
+## Player/design level
 
 ```text
-Symbol = Sign whose interpretation depends substantially on learned/conventional cultural relations
-
-SharedMeaning = enough overlapping + mutually expected interpretation/use/significance
-for recurrent communication/coordination/identity/social consequence
+PlayerValue
+Fantasy / target experience
+Fun / engagement / satisfaction / compulsion boundary
+Tension / pacing
+Depth / breadth / difficulty
+Causal legibility
+Playable(X)
 ```
 
-Shared meaning does not require identical private representations or evaluative consensus.
-
-### Legitimacy
+R29 generalizes:
 
 ```text
-Legitimacy(A, Public, Domain, t) =
-distributed recognition that A is entitled/proper/appropriate
-to exercise specified authority/rule/practice in that reference public/domain
+Playable(X) = PlayerCausalAccess(X)
 ```
 
-Legality, Power, Authority, Compliance, Popularity and moral correctness remain distinct. Legitimacy is topology/public-relative rather than one global scalar.
+Relevant distinctions in X must be sufficiently observable/inferable, stable/modelable and consequential for participant action/planning/interpretation/expression.
 
-### Collective Memory
+## Cross-family compression
 
 ```text
-CollectiveMemory =
-socially maintained selection/framing/representation/
-commemoration/transmission of the past
-that changes present group interpretation/action
+all domain Topology views → TypedTopology
+all XCausality views → DomainCausality counterfactual test
+all XAuthority views → scoped DomainAuthority
+R22/R23/R25/R27 XContract views → typed DomainContract
+all Playable-X views → PlayerCausalAccess(X)
+all generated domain debts → PromotionDebt pattern + domain-specific invariants
 ```
 
-It can survive without living witnesses through stories, archives, monuments, holidays, rituals, place and institutions. Archive existence alone is insufficient.
-
-### Cultural Transmission / Change
+## Canonical ownership corrections
 
 ```text
-CulturalTransmission =
-source/carrier cultural state contributes causally
-to another Subject's acquisition/reconstruction
+R12 → Feedback / Causal Legibility; R27 owns Learning ontology.
+R13 → History / Persistence; R23 owns full Time semantics; R27 refines Memory/Learning.
+R15 historical “Norm = SharedExpectation + DistributedEnforcement” → SocialNorm, not all normative evaluation.
+R11 → high-level Agency view; R21 owns fine Control semantics.
+R14 Resource/optionality → contextual analytical role, not universal ontology.
+Meaning must be qualified when ambiguous: PlayerMeaning / NarrativeMeaning / IdentityMeaning / SymbolicMeaning / SharedMeaning.
 ```
 
-Transmission may transform what is transmitted. Cultural change can arise from innovation, diffusion, biased selection, drift, transformation, borrowing, conflict, institutions, environment and loss.
+## Foundation Admission Test
+
+A new independent foundation is justified only when it survives:
 
 ```text
-CumulativeCulture =
-later forms/capabilities depend on inherited prior cultural modifications
-that themselves become inputs to later modification
+counterfactual separability
+semantic irreducibility at the chosen level
+cross-form portability
+authority clarity
+implementation independence
+deletion cost
+level test (not merely implementation/view/metric)
 ```
 
-### New R28 abstractions
+## Foundation Reopen Conditions
+
+Reopen only when a concrete case shows one of:
 
 ```text
-CulturalDistribution
-CulturalTopology
-CulturalContinuity
-CulturalTransmissionTopology
-CulturalProvenance
-LegitimacyTopology
-LegitimacyCausality
-CulturalCausality
-RitualCausality
-SymbolicCausality
-TraditionCausality
-CulturalAgency
-PlayableCulture
+1. A player-relevant counterfactual cannot be represented without an ad-hoc new primitive.
+2. Current coordinates become systematically contradictory under real evidence.
+3. A derived view repeatedly needs authority/state semantics absent from F1–F9.
+4. A new medium/input/social form exposes a missing participant-coupling distinction.
+5. Generative/persistent-Agent evidence exposes a provenance/identity/state distinction not captured by current authority + views.
 ```
 
-### Cultural Causality
+Do not reopen because a domain noun sounds important.
+
+## Residual-domain result
+
+Current falsification found no forced new independent coordinate for:
 
 ```text
-same physical/current state
-+ different relevant cultural structure/history
-→ different interpretation / affordance / expectation /
-legitimacy / relationship / policy / consequence
+morality / ethics
+language
+politics
+law
+religion
+education
+technology
+ideology
 ```
 
-### Player/Agent boundary
+They can currently be reconstructed as typed combinations/views of F1–F9 and canonical derived structures. This remains falsifiable.
+
+## Pre-G0 direction-search objective
+
+Do not pick the most mature existing treatment. Generate materially different directions across the open GameForm space and compare:
 
 ```text
-PlayerCommunityCulture != DiegeticCulture
-PopulationPrompt != CulturalTransmission
-SharedWeights != SharedCulture
-PretrainedKnowledge != DiegeticCulturalMembership
-IndependentResampling != CulturalInheritance
+player fantasy / target experience
+core verbs + cadence
+control topology
+World/space/time form
+social form
+Agent Participation Profile
+player-value hypothesis
+content/production burden
+cheapest falsifier
 ```
 
-Authored culture is valid diegetic culture; online cultural evolution is optional. If a system claims endogenous Agent culture, it needs bounded social learning/transmission, persistent variant distribution and provenance rather than model-output similarity alone.
+Keep deterministic authored, action, puzzle, strategy, social, creative, procedural, generative Persona and persistent-Agent directions open initially.
 
-## R29 frontier
+The search should end only when one candidate is intentionally selected to enter canonical G0 under `DEVELOPMENT_MODEL.md`.
 
-R28's residual audit finds no clearly independent domain noun that should automatically become another foundation. Terms such as morality, ideology, religion, law, politics, education and language should first be tested as compositions/projections of the existing stack rather than granted new primitive status.
-
-R29 should ask:
+## Product-selection guardrail
 
 ```text
-Which R1–R28 concepts are genuinely independent?
-Which are projections/compositions of more fundamental relations?
-Where do definitions overlap or conflict?
-Can the current stack reconstruct major GameForms without ad hoc primitives?
-Which counterexamples break it?
-Which abstractions are descriptive versus causally necessary?
-What is the smallest stable Game foundation stack?
-What remains unresolved before intentional product G0 selection?
+Game Foundations v1 frozen
+!=
+Station Zero selected
+!= Casefile selected
+!= Agent society selected
+!= SillyTavern-like selected
 ```
 
-R29 should **attack and compress** the corpus rather than extend it.
-
-## Product-selection stop condition
-
-Do not begin intentional new-product G0 merely because R28 is complete. First finish R29 whole-corpus synthesis/redundancy/falsification and determine whether the foundation stack is stable enough to support product selection.
+Technical maturity is evidence about implementation feasibility, not product value.
