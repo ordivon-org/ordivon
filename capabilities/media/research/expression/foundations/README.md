@@ -14,7 +14,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF5 — Space Foundations v1: **frozen** after MF5-I falsification/reconstruction
 - MF6 — Time Foundations v1: **frozen** after MF6-F falsification/reconstruction
 - MF7 — State & Dynamics Foundations v1: **frozen** after MF7-H falsification/reconstruction
-- Next: **MF8 — Agency Foundations**, beginning with **MF8-A — Agency Ontology & Term Separation**
+- MF8-A — Agency Ontology & Term Separation: **complete / provisional ontology**
+- Next: **MF8-B — Action, Behavior & Action Ownership**
 
 Current MF5 canonical closeout:
 
@@ -27,6 +28,10 @@ Current MF6 canonical closeout:
 Current MF7 canonical closeout:
 
 [`media-foundations-mf7h-20260817.md`](./media-foundations-mf7h-20260817.md)
+
+Current MF8-A Agency ontology/term-separation round:
+
+[`media-foundations-mf8a-20260817.md`](./media-foundations-mf8a-20260817.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
