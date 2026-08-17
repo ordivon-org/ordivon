@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-c-minimal-mechanism-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "candidate mechanism coordinates can produce discriminating structural predictions under declared toy assumptions",
+      "equal action/constraint counts do not imply equal policy differentiation",
+      "environment-model learning progress can vanish while skill-sensitive execution differences remain",
+      "absence of a fixed global goal is compatible with local/dynamic evaluation"
+    ],
+    "doesNotProve": [
+      "human fun, engagement, replay desire, immersion, or subjective PlayExperience",
+      "that AgencySculpting uniquely distinguishes games from work, ritual, training, or art",
+      "that any toy model is an evolutionary or psychological mechanism in humans/animals",
+      "that every game requires an explicit goal or one scalar utility function"
+    ]
+  },
+  "agencySculpting": [
+    {
+      "label": "flat-dominance",
+      "contexts": 4,
+      "actions": 4,
+      "legalActionsPerContext": 4,
+      "uniqueOptimalActions": 1,
+      "optimalActionByContext": {
+        "north": "A",
+        "east": "A",
+        "south": "A",
+        "west": "A"
+      },
+      "contextualPolicyValue": 5,
+      "bestContextBlindAction": "A",
+      "bestContextBlindValue": 5,
+      "adaptivePolicyGain": 0
+    },
+    {
+      "label": "context-sculpted",
+      "contexts": 4,
+      "actions": 4,
+      "legalActionsPerContext": 4,
+      "uniqueOptimalActions": 4,
+      "optimalActionByContext": {
+        "north": "A",
+        "east": "B",
+        "south": "C",
+        "west": "D"
+      },
+      "contextualPolicyValue": 5,
+      "bestContextBlindAction": "C",
+      "bestContextBlindValue": 2.25,
+      "adaptivePolicyGain": 2.75
+    }
+  ],
+  "explorationVsMastery": {
+    "passes": [
+      {
+        "pass": 1,
+        "predictionError": 1,
+        "learningProgress": null
+      },
+      {
+        "pass": 2,
+        "predictionError": 0,
+        "learningProgress": 1
+      },
+      {
+        "pass": 3,
+        "predictionError": 0,
+        "learningProgress": 0
+      },
+      {
+        "pass": 4,
+        "predictionError": 0,
+        "learningProgress": 0
+      },
+      {
+        "pass": 5,
+        "predictionError": 0,
+        "learningProgress": 0
+      }
+    ],
+    "modelSaturatedAfterPass": 2,
+    "executionDiscriminationAfterModelSaturation": [
+      {
+        "name": "novice",
+        "tolerance": 0.25,
+        "successRate": 0.253731
+      },
+      {
+        "name": "intermediate",
+        "tolerance": 0.5,
+        "successRate": 0.502488
+      },
+      {
+        "name": "expert",
+        "tolerance": 0.75,
+        "successRate": 0.751244
+      }
+    ],
+    "structuralConclusion": "environment-model learning progress can reach zero while execution outcomes remain skill-sensitive",
+    "humanValueClaim": "NOT TESTED"
+  },
+  "openEndedEvaluation": {
+    "fixedGlobalTerminalGoal": false,
+    "localProjects": [
+      {
+        "project": "symmetry",
+        "bestActions": [
+          "placeLeft",
+          "placeRight"
+        ],
+        "bestValue": 3
+      },
+      {
+        "project": "height",
+        "bestActions": [
+          "stack"
+        ],
+        "bestValue": 4
+      },
+      {
+        "project": "color",
+        "bestActions": [
+          "paint"
+        ],
+        "bestValue": 4
+      }
+    ],
+    "noEvaluationAblation": {
+      "allActionsEqualUnderModel": true,
+      "intentionalPolicyOrderingAvailable": false,
+      "actionStillPhysicallyPossible": true
+    },
+    "structuralConclusion": "no fixed global goal does not entail no local/dynamic evaluation; intentional policy comparison requires some relevance/evaluation relation",
+    "universalGameNecessityClaim": "NOT ESTABLISHED"
+  },
+  "perturbationRecovery": [
+    {
+      "condition": "none",
+      "trainedStates": [
+        0
+      ],
+      "recoveryCoverage": 0.2,
+      "assumptionNote": "recovery succeeds only for trained recoverable states"
+    },
+    {
+      "condition": "moderate",
+      "trainedStates": [
+        -1,
+        0,
+        1
+      ],
+      "recoveryCoverage": 0.6,
+      "assumptionNote": "recovery succeeds only for trained recoverable states"
+    },
+    {
+      "condition": "extreme",
+      "trainedStates": [
+        -2,
+        -1,
+        0,
+        1,
+        2
+      ],
+      "recoveryCoverage": 0.6,
+      "assumptionNote": "extreme perturbation includes states defined as unrecoverable"
+    }
+  ]
+}
