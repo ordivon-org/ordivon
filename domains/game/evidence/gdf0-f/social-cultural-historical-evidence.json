@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-f-social-cultural-historical-evidence",
+  "epistemicBoundary": {
+    "purpose": "track social, cultural, historical and institutional evidence relevant to PlayPractice, GameCategory, RuleAuthority and PlayFrame",
+    "doesNotProve": [
+      "one universal cross-cultural lexical definition of game",
+      "that observed cross-cultural correlations are causal",
+      "that solitary or animal play implies reportable human-like phenomenology",
+      "that institutional recognition creates all game mechanics",
+      "scientific novelty of Ordivon syntheses"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "F1-austronesian-game-taxonomy",
+      "type": "cross-cultural-historical-dataset",
+      "source": "Leisterer-Peoples et al. 2021 Humanities and Social Sciences Communications DOI 10.1057/s41599-021-00785-y",
+      "sample": "907 historical/ethnographic games from Austronesian-speaking cultural groups; filtered phylogenetic subset reported for goal-structure analysis",
+      "observations": [
+        "rule-based games show cross-cultural variation in goal interdependence",
+        "competitive games are common but cooperative, team-cooperative and solitary goal structures also occur",
+        "the authors explicitly created the dataset partly because older competitive definitions excluded noncompetitive game forms",
+        "same or related game descriptions can differ in rule sets across cultural groups/sources"
+      ],
+      "supports": [
+        "Competition != universal Game requirement",
+        "GameForm/goal topology is culturally variable",
+        "cross-cultural Game science needs raw historical/practice evidence rather than one Western category template"
+      ],
+      "limits": [
+        "Austronesian family is broad but not all human cultures",
+        "dataset description/coding does not by itself identify causal cultural mechanisms",
+        "historical ethnographic records vary in completeness"
+      ]
+    },
+    {
+      "id": "F2-six-cultures-play",
+      "type": "cross-cultural-reanalysis",
+      "source": "Edwards 2000 Cross-Cultural Research DOI 10.1177/106939710003400402",
+      "sample": "Six Cultures observational material, children aged 3-10",
+      "observations": [
+        "creative-constructive, fantasy, role play and games-with-rules varied across the six communities",
+        "cultural norms and opportunity structures were associated with which forms of play were available/encouraged",
+        "adult work expectations, freedom for exploration and access to models/materials were relevant contextual factors"
+      ],
+      "supports": [
+        "PlayBehavior/Practice is culturally patterned rather than one context-free developmental output",
+        "Play and Work are not stable opposites across developmental ecologies"
+      ],
+      "limits": [
+        "reanalysis of 1950s material",
+        "six-community sample cannot establish universal cultural laws",
+        "association/contextual interpretation is not clean intervention causality"
+      ]
+    },
+    {
+      "id": "F3-children-play-work-ehraf",
+      "type": "cross-cultural-ethnographic-sample",
+      "source": "Ember & Cunnar 2015 Childhood in the Past DOI 10.1179/1758571615Z.00000000031",
+      "sample": "representative cross-cultural samples using eHRAF/Probability Sample Files/SCCS material",
+      "observations": [
+        "children's play and work were analyzed together rather than as mutually exclusive universal domains",
+        "play objects/context and work contributions vary with local ecology/subsistence/social organization",
+        "children's activities often track adult task environments"
+      ],
+      "supports": [
+        "social ecology helps shape PlayPractice",
+        "Play-vs-Work classification cannot be assumed cross-culturally identical to modern Western institutional categories"
+      ],
+      "limits": [
+        "ethnographic coding inherits source/reporting variation",
+        "the study is not primarily a lexical category study"
+      ]
+    },
+    {
+      "id": "F4-playground-rulebook",
+      "type": "longitudinal-ethnography",
+      "source": "Buchholz 2019 Journal of Literacy Research DOI 10.1177/1086296X18821144",
+      "sample": "4-year longitudinal ethnography of a multi-age playground community and a game with nearly decade-long local history",
+      "observations": [
+        "the game was historically maintained through embodied/oral transmission before its first official rulebook",
+        "introducing a written rulebook produced disputes over ownership, authorship and authority",
+        "written rules did not replace oral transmission and instead generated further negotiation/talk/writing"
+      ],
+      "supports": [
+        "CentralDesigner != necessary for stable GamePractice",
+        "Codification != automatic authority capture",
+        "rule transmission, authorship and legitimacy are constitutive social processes",
+        "GameIdentity can persist through negotiated rule variation and changing media of transmission"
+      ],
+      "limits": [
+        "single local community/game",
+        "ethnographic causal inference is bounded"
+      ]
+    },
+    {
+      "id": "F5-playground-singing-games",
+      "type": "ethnography-cultural-transmission",
+      "source": "Marsh 1995 Research Studies in Music Education DOI 10.1177/1321103X9500400102",
+      "sample": "multiethnic Australian primary-school playground ethnography, 1990-1994",
+      "observations": [
+        "children varied and transmitted singing-game text, music and movement",
+        "innovation/composition was context-sensitive and social",
+        "group interaction participated in preserving and transforming game/play forms"
+      ],
+      "supports": [
+        "PlayPractice can be a cultural transmission process with endogenous mutation",
+        "transmission fidelity need not mean exact rule/content copying"
+      ],
+      "limits": [
+        "singing-game domain is not all games",
+        "does not isolate one transmission mechanism experimentally"
+      ]
+    },
+    {
+      "id": "F6-sport-rule-development",
+      "type": "historical-comparative-analysis",
+      "source": "Vamplew 2007 International Journal of the History of Sport DOI 10.1080/09523360701311745",
+      "sample": "historical analysis of sport regulation/rule development",
+      "observations": [
+        "constitutive, auxiliary and regulatory rules have distinct governance roles",
+        "gambling, fair-play ideology, economic pressures, technology and law affected rule development",
+        "modern sport rules are historically produced rather than timeless mechanics"
+      ],
+      "supports": [
+        "Institutional RuleAuthority is causally responsive to external social/economic/legal conditions",
+        "RuleTopology has governance/history in addition to mechanics",
+        "Game/Sport identity can be maintained through rule change rather than exact-rule permanence"
+      ],
+      "limits": [
+        "broad historical synthesis rather than controlled causal experiment",
+        "sport-focused"
+      ]
+    },
+    {
+      "id": "F7-sport-institutionalization",
+      "type": "historical-comparative-analysis",
+      "source": "Summerley 2020 Games and Culture DOI 10.1177/1555412019838094",
+      "sample": "comparative early institutionalization of traditional sports and e-sports",
+      "observations": [
+        "institutionalization includes organizations, competitions, standardization and cultural output",
+        "traditional sport and e-sport show comparable but nonidentical institutional trajectories"
+      ],
+      "supports": [
+        "SportCategory can be produced/stabilized through institutional processes over an underlying game practice",
+        "institutionalization is a transformation of governance/legitimacy/practice, not proof of a new mechanical essence"
+      ],
+      "limits": [
+        "paper adopts a particular sport definition for analysis",
+        "comparative history cannot establish universal transition sequence"
+      ]
+    },
+    {
+      "id": "F8-social-pretend-negotiation",
+      "type": "observational-developmental-study",
+      "source": "Howes et al. 1989 Early Childhood Research Quarterly DOI 10.1016/0885-2006(89)90015-X",
+      "sample": "62 preschool children observed during free play in three day-care centers",
+      "observations": [
+        "social pretend play involved both negotiation about roles/object properties/actions and enactment of pretend episodes",
+        "negotiation and enactment were positively correlated",
+        "enactment predicted peer acceptance independently of negotiation in the reported analyses"
+      ],
+      "supports": [
+        "social PlayFrame can be actively negotiated and enacted",
+        "frame maintenance is not reducible to an explicit rulebook"
+      ],
+      "limits": [
+        "social pretend only",
+        "correlational observations cannot establish all frame mechanisms"
+      ]
+    },
+    {
+      "id": "F9-solitary-pretense",
+      "type": "developmental-observational-evidence",
+      "source": "Bornstein et al. 1996 Child Development DOI 10.1111/j.1467-8624.1996.tb01895.x; Smith-Nielsen et al. 2024 Infant and Child Development / PubMed 38295066",
+      "sample": "naturalistic solitary and collaborative pretense in toddlers; later study of solitary pretend play in 99 four-year-old children",
+      "observations": [
+        "pretend play can be observed without an active co-player",
+        "solitary pretend play exhibits symbolic/representational organization without contemporaneous social negotiation"
+      ],
+      "supports": [
+        "SocialNegotiation != necessary condition for PlayFrame/pretend organization",
+        "FrameAuthority can be participant-internal/self-maintained at episode time"
+      ],
+      "limits": [
+        "prior social learning/cultural acquisition still matters and is not removed by solitary test context",
+        "solitary pretense does not prove a wholly private origin of frame semantics"
+      ]
+    },
+    {
+      "id": "F10-shallow-game-framing",
+      "type": "matched-framing-experiment",
+      "source": "Lieberoth 2015 Games and Culture DOI 10.1177/1555412014559978",
+      "sample": "90 students assigned to control, competitive discussion game, or game-artifact/framing condition without full mechanics",
+      "observations": [
+        "game vernacular/artifact framing alone produced substantial psychological effects relative to control",
+        "interest/enjoyment was higher in both game conditions, while not all intrinsic-motivation dimensions changed"
+      ],
+      "supports": [
+        "GameCategory/Frame cues can causally affect participant interpretation/experience even without corresponding deep mechanical change",
+        "CategoryRecognition is not merely an epiphenomenal post-hoc label"
+      ],
+      "limits": [
+        "framing manipulation used artifacts/vernacular, not a pure one-word category label",
+        "psychological framing effect does not mean category cue creates GameStructure"
+      ]
+    },
+    {
+      "id": "F11-public-goods-label-frame",
+      "type": "label-framing-experiment",
+      "source": "Eriksson et al. 2014 Judgment and Decision Making DOI 10.1017/S1930297500006756",
+      "sample": "multiple online studies, almost 1,200 unique US participants across hypothetical/incentivized public-goods decisions",
+      "observations": [
+        "meaningful labels such as Teamwork Game versus Paying Taxes Game influenced/selected frames and contributions",
+        "spontaneous associations and imposed labels could produce comparable frame-selection effects"
+      ],
+      "supports": [
+        "labels/category cues can alter expectations and policy over unchanged payoff structure",
+        "social/cultural interpretation is causally relevant to enacted behavior"
+      ],
+      "limits": [
+        "economic-game framing is not ordinary PlayCategory research",
+        "label effects depend on available cultural associations"
+      ]
+    },
+    {
+      "id": "F12-cross-cultural-game-correlates",
+      "type": "cross-cultural-correlational-replication",
+      "source": "Chick 1998 Cross-Cultural Research; HRAF summary",
+      "sample": "Standard Cross-Cultural Sample / ethnographic coding",
+      "observations": [
+        "reported replication found strategy games associated with social complexity",
+        "reported chance/physical-skill game associations also persisted"
+      ],
+      "supports": [
+        "game repertoires can covary systematically with wider social organization",
+        "GamePractice is not independent from culture/social ecology"
+      ],
+      "limits": [
+        "correlation does not establish whether games reflect, train, cause or coevolve with social structures",
+        "older game-type taxonomy overweights competitive/winner-defined forms"
+      ]
+    }
+  ],
+  "candidateAudit": {
+    "CompetitionAsUniversalGameCriterion": "rejected-by-cross-cultural-rule-game-goal-variation",
+    "SocialNegotiationAsNecessaryPlayFrame": "rejected-by-solitary-pretense",
+    "CentralDesignerAsNecessaryGameAuthority": "rejected-by-folk-playground-transmission",
+    "WrittenRulebookAsFinalAuthority": "rejected-by-longitudinal-playground-rulebook-ethnography",
+    "ExactRulesetAsGameIdentity": "rejected-as-too-strong-by-rule-variation-transmission-and-historical-sport-change",
+    "GameCategoryAsPureEpiphenomenalLabel": "rejected-as-too-weak-by-framing-and-label-effects",
+    "GameCategoryAsMechanicalEssence": "not-supported-cross-cultural-and-institutional-evidence",
+    "InstitutionalizationAsGameEssence": "rejected-institutionalization-changes-governance-legitimacy-category-over-existing-practice"
+  }
+}
