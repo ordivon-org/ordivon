@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-f-downstream-handoff-map",
+  "nextBranch": "GDF3 Game Feel / Feedback / Sensorimotor Coupling",
+  "handoffs": [
+    {
+      "owner":"GDF3 Game Feel / Feedback / Sensorimotor Coupling",
+      "consume":["ChallengeAssessmentContract","FailureRecoveryContract","GameActionContract","ControlMapping","ControlLocus","ObjectiveControl != SenseOfAgency","Failure/Feedback != LearningOpportunity != ActualLearning"],
+      "questions":["How do action-response timing, feedback, correction, legibility and control coupling alter perceived/experienced feel without turning subjective experience into Game authority?","How do hit-confirm, response latency, audiovisual/haptic feedback and recovery cues expose authoritative action/consequence relations?"]
+    },
+    {
+      "owner":"GDF4 Time / Rhythm / Pacing",
+      "consume":["ChallengeAssessmentContract","MasteryClaimContract","ProbeTransformation","timing-specific SRVS","Failure scope/horizon"],
+      "questions":["How do timing windows, rhythm, anticipation, cadence, tempo and pacing become challenge-relevant without collapsing to reaction time?","How do temporal horizons transform failure/recovery and mastery claims?"]
+    },
+    {
+      "owner":"GDF5 Space / Level / Navigation",
+      "consume":["ChallengeAssessmentContract","FailureRecoveryContract","ControlAccessProfile","ActionCouplingProfile","Feasibility/infeasibility guard"],
+      "questions":["How do topology, traversal, visibility, reachability, scale and spatial recovery routes alter challenge and failure?","Which spatial relations are structural versus controller-relative access projections?"]
+    },
+    {
+      "owner":"GDF6 Strategy / Counterplay / Balance",
+      "consume":["ChallengeAssessmentContract","MasteryClaimContract","OpponentChallenge != ContentDifficulty","TeamLoss != IndividualFailure != IndividualSkillDeficit","OpponentInteractionSurface derived handoff"],
+      "questions":["How do adaptive opponent policies, nontransitivity, counterplay, equilibrium, balance and team interaction structure challenge without becoming one difficulty rating?","How are individual/team capability claims attributed under strategic interdependence?"]
+    },
+    {
+      "owner":"Human",
+      "consume":["ExperiencedDifficulty","Frustration","FlowExperience","SubjectiveCompetence","actual learning/retention mechanisms","PlayerValue"],
+      "questions":["Human evidence is required for felt difficulty, frustration, competence, flow, learning and subjective value; Game structural evidence cannot substitute."]
+    },
+    {
+      "owner":"Practice/Social/Institution",
+      "consume":["SocialMastery","rank/credential legitimacy","community category rules","social evaluation authority"],
+      "questions":["Community/institutional recognition can define legitimate criteria/categories but remains distinct from capability mastery by identity."]
+    }
+  ]
+}

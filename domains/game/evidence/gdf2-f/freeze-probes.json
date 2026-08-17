@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-f-freeze-probes",
+  "checks": {
+    "challengeFailureRemainDistinct": true,
+    "challengeMasteryRemainDistinct": true,
+    "failureWithoutSkillChallenge": true,
+    "challengeWithoutFailure": true,
+    "masteryWithoutCompletion": true,
+    "terminalityDerivedNotFailureIdentity": true,
+    "teamAttribution": true,
+    "assistAttribution": true,
+    "syntheticHumanBoundary": true,
+    "currentnessBound": true,
+    "underidentificationExplicit": true
+  },
+  "epistemicBoundary": {
+    "proves": [
+      "the three core responsibility directions are logically non-redundant in the constructed corpus",
+      "failure can exist without skill challenge and challenge without binary failure",
+      "bounded mastery can exist without terminal completion",
+      "terminality is separable/derivable from recovery continuation rather than failure identity",
+      "team/shared/synthetic/currentness cases require attribution/evidence guards",
+      "underidentified challenge explanations must remain explicit"
+    ],
+    "doesNotProve": [
+      "Human experienced difficulty, flow, frustration, learning or PlayerValue",
+      "that the three responsibility contracts are new semantic primitives",
+      "a universal difficulty/mastery scalar or empirical effect size"
+    ]
+  },
+  "challengeVsFailure": {
+    "sameCondition": {
+      "criterion": "sub-40",
+      "target": "player-A",
+      "rules": "v1"
+    },
+    "prospectiveChallengeClaim": {
+      "estimatedThreshold": "bounded",
+      "identifiedStatus": "bounded-only"
+    },
+    "histories": [
+      {
+        "time": 2380,
+        "failure": false
+      },
+      {
+        "time": 2500,
+        "failure": true
+      }
+    ],
+    "challengeExistsBeforeOutcome": true,
+    "failureDependsOnRealizedHistory": true
+  },
+  "challengeVsMastery": {
+    "conditionRegion": [
+      "nominal",
+      "perturb-A",
+      "perturb-B"
+    ],
+    "challengeClaims": [
+      "threshold",
+      "discrimination"
+    ],
+    "targetEvidence": {
+      "nominal": 0.95,
+      "perturbA": 0.92,
+      "perturbB": 0.91
+    },
+    "independentCriterion": true,
+    "reverseInferenceDirections": true,
+    "masteryNeedsCrossProbeEvidence": true
+  },
+  "failureWithoutSkill": {
+    "criterion": "coin-must-land-heads",
+    "realized": "tails",
+    "failureAssessment": true,
+    "skillChallenge": false,
+    "failureDoesNotRequireSkillChallenge": true
+  },
+  "challengeWithoutFailure": {
+    "criterion": "maximize-style-quality",
+    "binaryFailureDefined": false,
+    "capabilityGradient": true,
+    "challengeDoesNotRequireFailure": true
+  },
+  "masteryWithoutCompletion": {
+    "terminalCompletion": false,
+    "criterionIndependent": true,
+    "heldOutProbeResults": [
+      0.9,
+      0.92,
+      0.91
+    ],
+    "threshold": 0.88,
+    "validLocalClaim": true
+  },
+  "recovery": {
+    "sameFailureAssessment": true,
+    "routes": {
+      "checkpoint": {
+        "continueSamePursuit": true,
+        "timeCost": 2
+      },
+      "reset": {
+        "continueSamePursuit": false,
+        "timeCost": 600
+      }
+    },
+    "failureAndTerminalitySeparate": true
+  },
+  "team": {
+    "teamLoss": true,
+    "individualRoleSatisfied": true,
+    "attributionGuard": true
+  },
+  "assist": {
+    "joint": 0.93,
+    "humanIndependent": 0.58,
+    "criterion": 0.8,
+    "attributionGuard": true
+  },
+  "synthetic": {
+    "syntheticHeldOutPass": true,
+    "humanEvidence": null,
+    "humanBoundary": true
+  },
+  "version": {
+    "old": {
+      "rules": "v1",
+      "score": 0.94
+    },
+    "current": {
+      "rules": "v2",
+      "score": 0.6
+    },
+    "transformationDeclared": true,
+    "currentnessGuard": true
+  },
+  "underidentified": {
+    "aggregatePassRate": 0.5,
+    "models": [
+      "steep-skill-sensitive",
+      "flat-chance"
+    ],
+    "identifiedUnique": false,
+    "equivalenceGuard": true
+  }
+}
