@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-b-functional-reconstruction",
+  "status": "research-candidate",
+  "reconstruction": {
+    "retiredUmbrellas": [
+      {"name":"StructuralDemandProfile","reason":"too feature-bag-like; replaced by exact ChallengeConditionSpec plus response/recovery relations"},
+      {"name":"FunctionalDifficultyRelation","reason":"too broad as a single named object; retained as a query/projection over smaller relations"},
+      {"name":"SkillChallengeRelation-as-local-derivative","reason":"local sensitivity is useful but only one discrimination projection and fails as complete challenge definition"}
+    ],
+    "objects": [
+      {
+        "name":"ChallengeConditionSpec",
+        "definition":"Exact current scope for a challenge query: evaluation commitment/criterion, Game/practice state and rules, horizon, attribution target, control/observation configuration, opponent/other-agent policy or distribution, stochastic/exogenous process, and relevant history/currentness.",
+        "guard":"configuration metadata, not difficulty by identity"
+      },
+      {
+        "name":"CapabilityOutcomeSurface",
+        "definition":"Conditional distribution of evaluation-relevant outcomes/SRVS as the attribution target's SkillProfile/policy varies under one ChallengeConditionSpec.",
+        "formalSketch":"P(relevant outcome | target SkillProfile/policy, ChallengeConditionSpec)",
+        "supports":["binary success","continuous score/quality","error/tolerance distribution","time/resource outcomes","multi-objective outcome vectors"],
+        "guard":"surface is not one scalar difficulty and may be multidimensional/nonmonotonic"
+      },
+      {
+        "name":"FeasibilityRegion",
+        "definition":"Region of target profiles/policies/conditions from which the current evaluation criterion is reachable with nonzero admissible support under the declared horizon/action possibilities.",
+        "guard":"infeasible regions are not maximal challenge"
+      },
+      {
+        "name":"CapabilityThresholdRegion",
+        "definition":"For a declared performance/evaluation criterion, the profile region where criterion satisfaction crosses a declared probability/quality threshold.",
+        "analogy":"generalizes IRT/Rasch difficulty/location beyond one scalar ability/item and binary outcome",
+        "guard":"criterion- and scope-relative; not intrinsic Game difficulty"
+      },
+      {
+        "name":"CapabilityDiscriminationProfile",
+        "definition":"How strongly and along which SkillProfile directions outcome distributions change in a declared local/global region of the CapabilityOutcomeSurface.",
+        "analogy":"generalizes item discrimination/slope; local derivative is one special case",
+        "guard":"high discrimination is not automatically good PlayerValue, learning value, or fairness"
+      },
+      {
+        "name":"SkillIndependentOutcomeComponent",
+        "definition":"Outcome variation/asymptotes that remain after holding target capability/policy fixed or that are not controllable by that attribution target, including stochastic events, hidden exogenous transitions, or system automation.",
+        "guard":"not all uncertainty is skill challenge"
+      },
+      {
+        "name":"OpponentInteractionSurface",
+        "definition":"Multi-controller/adversarial extension where relevant outcomes depend jointly on target SkillProfile/policy and opponent/team profiles/policies/distributions.",
+        "formalSketch":"P(outcome | target profile/policy, opponent/team profile/policy, condition)",
+        "guard":"opponent strength is not a property of map/content alone"
+      },
+      {
+        "name":"ConsequenceRecoveryProfile",
+        "definition":"Outcome-conditioned authoritative consequences plus routes/costs to continue, recover, retry or redirect pursuit, including time/resource/history/information/social/opportunity dimensions.",
+        "guard":"changes failure stakes/persistence and participation cost without necessarily changing capability demand"
+      },
+      {
+        "name":"FunctionalDifficultyProjection",
+        "definition":"A query-specific projection over CapabilityOutcomeSurface, FeasibilityRegion, capability threshold/discrimination, skill-independent/opponent components and ConsequenceRecoveryProfile for one attribution/evaluation purpose.",
+        "guard":"there is no universal projection or scalar without declared purpose/weighting"
+      }
+    ]
+  },
+  "matchedResults": [
+    {"id":"B1-equal-success-different-discrimination","result":"two challenges can have P(success)=0.5 at one profile while one has steep capability discrimination and another is nearly skill-insensitive; equal fail rate does not imply equal skill challenge"},
+    {"id":"B2-equal-discrimination-different-threshold","result":"two response curves can have equal slope/discrimination but different capability threshold regions; discrimination and difficulty location are independent"},
+    {"id":"B3-same-capability-surface-different-recovery","result":"same performance/challenge surface with cheap checkpoint versus severe persistent reset yields identical immediate capability demand but different consequence/recovery profile"},
+    {"id":"B4-same-recovery-different-stochasticity","result":"skill-independent chance can change outcome risk while preserving local skill discrimination/threshold around a region"},
+    {"id":"B5-continuous-expressive-no-failure","result":"continuous quality objective can have a non-flat capability-outcome gradient and broad expression challenge with no binary FailureEvent"},
+    {"id":"B6-assist-threshold-shift","result":"assistance can shift capability threshold while preserving discrimination, reducing access requirement without erasing skill expression"},
+    {"id":"B7-assist-flattening","result":"automation can flatten capability-outcome differences, raising joint performance while reducing Human skill expression/discrimination"},
+    {"id":"B8-assist-relocation","result":"assistance can remove one skill dimension while leaving or increasing another, relocating challenge rather than monotonically lowering one scalar"},
+    {"id":"B9-opponent-relation","result":"same target profile and map can move from easy to hard as opponent profile changes; challenge surface is relational/multi-agent"},
+    {"id":"B10-history-solution-memory","result":"same puzzle artifact and rules can shift threshold/discrimination after solution memory/history changes; current history belongs in condition/scope"},
+    {"id":"B11-infeasible-versus-overmatched","result":"infeasible zero-support target differs from very-low-probability but capability-sensitive overmatched target"},
+    {"id":"B12-outcome-risk-versus-consequence","result":"same failure probability can carry radically different time/resource/history costs; probability and consequence severity remain separate"}
+  ],
+  "modelTournament": [
+    {"model":"IRT/Rasch response curve","target":"binary item success as ability-item relation","survives":"location/difficulty and discrimination separation; response function perspective","failsGenerality":"usually low-dimensional ability/item, assessment semantics, binary/ordered response assumptions do not cover whole Game challenge"},
+    {"model":"Game completion/pass-rate difficulty","target":"empirical content completion","survives":"useful outcome projection","failsGenerality":"same completion rate can hide different skill sensitivity, action distributions, risk/recovery and population composition"},
+    {"model":"Challenge Point Framework","target":"motor learning functional difficulty","survives":"relational skill×task view and learning-specific challenge","failsGenerality":"does not by itself cover adversarial, sandbox, stochastic, social, continuous-expression Game challenge"},
+    {"model":"Flow challenge-skill balance","target":"Human experience antecedent","survives":"perceived compatibility matters for flow in some contexts","failsGenerality":"not a structural difficulty model and balance is not sufficient PlayerValue law"},
+    {"model":"DDA target-performance matching","target":"adaptive intervention","survives":"difficulty is controller-relative and mutable; interventions can target performance bands","failsGenerality":"matching one performance statistic can change performance without reliably optimizing experience or learning"},
+    {"model":"GDF2 CapabilityOutcomeSurface","target":"Game-owned relational challenge/difficulty evidence","survives":"handles binary/continuous, multidimensional SkillProfile, opponent, assist, stochasticity, history and attribution","openRisk":"may still be too abstract; C must test identifiability and minimal measurement requirements"}
+  ],
+  "laws": [
+    "FunctionalDifficulty is a projection, not a primitive scalar",
+    "OutcomeProbability != CapabilityThreshold != CapabilityDiscrimination",
+    "CapabilityDiscrimination != PlayerValue",
+    "CapabilityThreshold != SkillFloor by identity",
+    "SkillIndependentOutcomeVariation != SkillChallenge",
+    "OpponentChallenge != ContentDifficulty",
+    "ConsequenceRecoveryProfile != CapabilityOutcomeSurface",
+    "FailureProbability != FailureCost",
+    "CheapRetry != EasyChallenge",
+    "SevereReset != HighSkillChallenge",
+    "ContinuousChallenge does not require binary FailureEvent",
+    "Assistance can shift, flatten, or redirect a capability-outcome surface",
+    "AssistanceEffect requires attribution target",
+    "Same artifact/rules != same current challenge surface when history, access, opponent, or evaluation commitment changes",
+    "MasteryEvidence requires a declared region of the capability-outcome surface, not one peak sample"
+  ],
+  "externalAnchors": [
+    {"id":"IRTComposite2018","source":"PMC5915608","pressure":"1PL separates ability and item location/difficulty; 2PL adds discrimination/slope; 3PL adds lower asymptote/guessing, directly pressuring fail-rate=difficulty and sensitivity=whole-challenge collapses"},
+    {"id":"GameDifficulty2011","source":"Measuring the level of difficulty in single player video games","pressure":"game difficulty work explicitly links player ability level to conditional probability of losing/completing a challenge; useful precursor to response-surface reconstruction"},
+    {"id":"PuzzleDifficulty2021","source":"arXiv:2107.03305","pressure":"completion/pass probability alone is limited; action-distribution modeling captures additional level-difficulty structure"},
+    {"id":"AdaptiveTraining2014","source":"Frontiers Psychology 5:409","pressure":"adaptive game used multiple difficulty dimensions forming a training space, supporting vector/configuration rather than one difficulty knob"},
+    {"id":"FlowVisuomotor2019","source":"Frontiers Psychology 10:1126","pressure":"difficulty continuously adapted to skill while flow was not simply a function of absolute skill; Human flow remains a separate outcome"},
+    {"id":"DDAHaptic2017","source":"Frontiers Neuroscience 11:242","pressure":"game difficulty and haptic assistance were separately manipulable, supporting assistance as a change in effective capability/access rather than one content-difficulty dimension"}
+  ],
+  "novelty":{"N0":["response curves separate difficulty/location and discrimination; completion rate is an incomplete descriptor; adaptive systems use multidimensional parameters"],"N1":["ChallengeConditionSpec","CapabilityOutcomeSurface","FeasibilityRegion","CapabilityThresholdRegion","CapabilityDiscriminationProfile","SkillIndependentOutcomeComponent","OpponentInteractionSurface","ConsequenceRecoveryProfile","FunctionalDifficultyProjection"],"N2":[],"N3":[]},
+  "foundationReopen":{"ACS":false,"GDF0":false,"R29":false,"reason":"B replaces downstream umbrellas with response/evidence projections over frozen SkillProfile/SRVS/ProbeTransformation and existing Game relations; no semantic foundation law is contradicted."}
+}

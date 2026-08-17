@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-b-functional-difficulty-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "equal success probability can coexist with different capability discrimination",
+      "difficulty location/threshold and discrimination can vary independently",
+      "recovery/consequence severity can vary while immediate capability demand is held fixed",
+      "skill-independent chance can flatten capability discrimination while preserving midpoint success probability",
+      "continuous challenge can exist without binary failure",
+      "assistance can shift threshold, flatten expression, or relocate skill dimensions",
+      "opponent profile and history can alter the response relation without changing base content",
+      "infeasibility and overmatched-but-possible conditions are structurally distinct"
+    ],
+    "doesNotProve": [
+      "that logistic curves are a universal Game difficulty law",
+      "a universal scalar measure of challenge",
+      "Human perceived difficulty, flow, frustration, fairness or PlayerValue",
+      "empirical effect sizes of assistance or randomness",
+      "that every SkillProfile admits one monotonic response surface"
+    ]
+  },
+  "equalSuccess": {
+    "steep": {
+      "p": 0.5,
+      "slope": 1.9999998933328822
+    },
+    "shallow": {
+      "p": 0.5,
+      "slope": 0.09999999998677733
+    },
+    "sameP": true,
+    "differentDiscrimination": true
+  },
+  "equalSlopeDifferentThreshold": {
+    "easy": {
+      "b": 0.3,
+      "a": 4,
+      "pAt05": 0.6899744811276125
+    },
+    "hard": {
+      "b": 0.8,
+      "a": 4,
+      "pAt05": 0.23147521650098232
+    },
+    "sameDiscriminationParameter": true,
+    "differentThreshold": true
+  },
+  "recovery": {
+    "capabilitySurfaceId": "surface-X",
+    "cheapCheckpoint": {
+      "retryTimeSec": 2,
+      "resourceLoss": 0,
+      "persistentHistoryLoss": 0
+    },
+    "severeReset": {
+      "retryTimeSec": 900,
+      "resourceLoss": 100,
+      "persistentHistoryLoss": 0.9
+    },
+    "sameImmediateDemand": true,
+    "differentRecoveryCost": true
+  },
+  "stochasticity": {
+    "mostlySkill": {
+      "chanceWeight": 0.1,
+      "p": 0.5,
+      "slope": 1.3499999594990264
+    },
+    "mostlyChance": {
+      "chanceWeight": 0.8,
+      "p": 0.5,
+      "slope": 0.2999999909999995
+    },
+    "sameMidpointProbability": true,
+    "skillSensitivityReducedByChance": true
+  },
+  "continuousChallenge": {
+    "binaryFailureDefined": false,
+    "qualityAt02": 0.5587785252292473,
+    "qualityAt08": 0.8587785252292474,
+    "capabilityChangesQuality": true
+  },
+  "assist": {
+    "baseline": {
+      "timingWeight": 0.6,
+      "strategyWeight": 0.4,
+      "threshold": 0.6,
+      "discrimination": 5
+    },
+    "accessAssist": {
+      "timingWeight": 0.6,
+      "strategyWeight": 0.4,
+      "threshold": 0.45,
+      "discrimination": 5
+    },
+    "automation": {
+      "timingWeight": 0.1,
+      "strategyWeight": 0.4,
+      "threshold": 0.4,
+      "discrimination": 2
+    },
+    "relocation": {
+      "timingWeight": 0.15,
+      "strategyWeight": 0.75,
+      "threshold": 0.55,
+      "discrimination": 5
+    }
+  },
+  "assistanceResults": {
+    "thresholdShiftWithoutFlattening": true,
+    "automationFlattensExpression": true,
+    "relocationChangesSkillDimensionWeights": true
+  },
+  "opponent": {
+    "selfSkill": 0.7,
+    "vsNovice": 0.8807970779778823,
+    "vsExpert": 0.26894142136999505,
+    "sameMapSameSelfDifferentDifficulty": true
+  },
+  "history": {
+    "samePuzzle": true,
+    "beforeSolutionMemory": {
+      "effectiveKnowledge": 0.2,
+      "pSuccess": 0.041091278200465015
+    },
+    "afterSolutionMemory": {
+      "effectiveKnowledge": 0.95,
+      "pSuccess": 0.8909031788043871
+    },
+    "surfaceChangedByHistory": true
+  },
+  "feasibility": {
+    "infeasible": {
+      "support": 0,
+      "skillSensitivity": 0
+    },
+    "overmatched": {
+      "support": 0.00816257115315989,
+      "skillSensitivity": 0.048575664284931236
+    },
+    "distinct": true
+  }
+}
