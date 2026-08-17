@@ -616,5 +616,5 @@ R1-R29 / F1-F9 = unchanged
 GDF0 = unchanged
 GDF1 = unchanged
 
-next deep branch = GDF3 Game Feel / Feedback / Sensorimotor Coupling
+next deep branch = UNRESOLVED BY DESIGN; first run a Game-wide unexplored-space / domain-coverage search in a fresh conversation, then let residual/falsifier evidence select the next research object
 ```

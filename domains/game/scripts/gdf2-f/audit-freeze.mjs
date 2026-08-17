@@ -13,7 +13,7 @@ const checks={
   enoughFrozenGuards:survival.freezeGuards.length>=18,
   eightReopenConditions:survival.reopenConditions.length===8&&survival.reopenConditions.every((x,i)=>x.id===`CFM-PRC-${i+1}`),
   noUpstreamReopen:Object.values(survival.foundationAudit).filter(x=>typeof x==='boolean').every(x=>x===false),
-  nextBranchIsGDF3:handoff.nextBranch==='GDF3 Game Feel / Feedback / Sensorimotor Coupling',
+  nextBranchUnresolvedByDesign:handoff.nextBranch==='UNRESOLVED_BY_DESIGN'&&handoff.selectionPolicy?.knownHandoffsArePriorityOrdered===false&&handoff.selectionPolicy?.mustSearchBeyondKnownHandoffs===true,
   downstreamCoverage:['GDF3 Game Feel / Feedback / Sensorimotor Coupling','GDF4 Time / Rhythm / Pacing','GDF5 Space / Level / Navigation','GDF6 Strategy / Counterplay / Balance','Human','Practice/Social/Institution'].every(owner=>handoff.handoffs.some(x=>x.owner===owner)),
   allFreezeProbes:Object.values(probes.checks).every(Boolean),
   noveltyConservative:survival.novelty.N2.length===0&&survival.novelty.N3.length===0

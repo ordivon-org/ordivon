@@ -529,5 +529,5 @@ new semantic primitive = NONE
 N2 = NONE
 N3 = NONE
 
-next = GDF3 Game Feel / Feedback / Sensorimotor Coupling
+next = UNRESOLVED BY DESIGN; begin with a Game-wide unexplored-space / domain-coverage search, not a preselected GDF3/GDF4/GDF5/GDF6 branch
 ```
