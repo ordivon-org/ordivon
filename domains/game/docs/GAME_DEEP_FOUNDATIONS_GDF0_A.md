@@ -1001,3 +1001,244 @@ These sources are evidence and competitors, not ontology authority.
 - Johan Huizinga (1938/1950), *Homo Ludens*.
 - Brian Sutton-Smith (1997), *The Ambiguity of Play*.
 - Miguel Sicart (2014), *Play Matters*, as pressure toward player appropriation/play beyond rule formalism.
+
+
+---
+
+# 16. GDF0-A convergence supplement — rule topology, category level and external coupling
+
+A parallel self-attack of GDF0-A produced several candidate distinctions. Most collapse cleanly into the existing C0/C2 structure and are **not** promoted as new ontology. Three additions survive as useful research coordinates.
+
+## 16.1 EffectiveRuleTopology — rules are distributed across loci
+
+Stenros & Montola's rule synthesis is useful pressure against equating `rule` with one authored rulebook or executable code. Their framework distinguishes formal rules, participant-internal/self-imposed limitations and goals, social/cultural rules, external regulation and material rules.
+
+GDF0-A does not import five new primitives. It generalizes the lesson:
+
+```text
+EffectiveRuleTopology(Gameplay, t) =
+formal constraints
++ material constraints
++ participant commitments
++ social conventions
++ external regulation
+```
+
+Each relevant constraint may differ in:
+
+```text
+scope
+authority
+visibility
+mutability
+sanction / adjudication
+activation conditions
+```
+
+Therefore:
+
+```text
+FormalRuleSet != EffectiveGameConstraints
+GameArtifact alone != complete GameStructure
+```
+
+Examples include:
+
+```text
+base game + speedrun category rules
+base game + self-imposed no-hit challenge
+sandbox + player-authored objective
+folk/playground game + negotiated local rules
+professional sport + tournament/regulatory rules
+```
+
+This sharpens `PlayPractice` and `GameStructure` rather than creating a separate foundation family.
+
+### Rule mutability
+
+A GameStructure need not have immutable rule content.
+
+```text
+StableRuleContent != universal requirement
+```
+
+A stronger requirement candidate is that participants can resolve enough current constraint/authority semantics to know what counts now and how change itself is admitted.
+
+```text
+RuleChangeSemantics + Authority
+can be stable while rule content changes.
+```
+
+This is already representable by F4/F5/F6.
+
+### Constraint vs constitutive effect
+
+Rules may:
+
+```text
+ConstraintEffect:
+limit / price / disable possibilities.
+
+ConstitutiveEffect:
+make an action, role, object or outcome count as something locally.
+```
+
+A rule may do both. This supports C2 `ConstraintTransformation`: games do not merely remove options; rules can reshape the semantics and value topology of action.
+
+## 16.2 GameArtifact / GameCategory / GameInstance — C0 needs a clearer social/category edge
+
+GDF0-A already distinguishes `GameStructure`, `PlayPractice` and `Gameplay`. Three additional terms prevent structural and cultural claims from collapsing:
+
+```text
+GameArtifact
+= material/software/textual/social object intended or recognized
+  to carry/support some GameStructure.
+
+GameCategory
+= cultural/institutional classification that an artifact/practice/form
+  counts as a game.
+
+GameInstance
+= one concrete enactment/history under some effective GameStructure.
+```
+
+Strong law:
+
+```text
+StructuralSimilarity != CategoryIdentity
+```
+
+Traffic, exams, markets, ritual or bureaucracy may share substantial normative possibility structure with games without thereby belonging to the same cultural category or generating the same PlayMode.
+
+Conversely, one sold `game` artifact may contain sandbox/toy-like/open modes whose local structure differs substantially across practice.
+
+This refines C0 into four analytical levels:
+
+```text
+L1 Structure / artifact affordances
+   GameStructure, GameArtifact, EffectiveRuleTopology
+
+L2 Enactment / practice
+   GameInstance, Gameplay, PlayBehavior, PlayPractice
+
+L3 Participant experience / mode
+   PlayMode, PlayExperience, motivation/valuation
+
+L4 Social recognition / historical category
+   GameCategory, institutional/community classification
+```
+
+These levels interact and can partly constitute one another; the model does **not** claim causal independence.
+
+Novelty status:
+
+```text
+N1 synthesis refinement of C0
+```
+
+Adjacent artifact/activity/frame/category separations already exist in game-studies literature; the value here is explicit Ordivon target routing.
+
+## 16.3 ExternalInstrumentality and ConsequenceCoupling — replace the Play-vs-Work / magic-circle binary
+
+Two orthogonal coordinates survive the professional-play, gambling, serious-game and playful-work counterexamples.
+
+```text
+ExternalInstrumentality / Obligation
+= how strongly the episode is pursued because of external production,
+  duty, compensation, assessment or other binding purpose.
+
+ConsequenceCoupling
+= how directly local actions/states/outcomes bind to external bodily,
+  social, legal, economic or material consequences.
+```
+
+Neither is assumed to determine PlayMode or GameCategory.
+
+Candidate spectrum for consequence coupling:
+
+```text
+very weak   → casual pretend/object play
+weak        → ordinary casual board/video game
+moderate    → ranked/reputational competition
+strong      → professional sport/esport
+very strong → gambling / dangerous sport
+constitutive external coupling → many work/legal/market procedures
+```
+
+This preserves a useful insight behind `magic circle` / negotiable-consequence theories while treating permeability as graded rather than binary.
+
+Potential empirical discriminator:
+
+```text
+hold task/rules/competence approximately constant
+× paid vs unpaid
+× required vs voluntary
+× low vs high external stakes
+× self-selected vs externally imposed local challenge
+→ measure PlayMode/experience separately from performance and GameExecution.
+```
+
+If external instrumentality deterministically abolishes PlayMode, the orthogonality hypothesis fails. If PlayMode survives across high-instrumentality cases with systematic modulation rather than categorical disappearance, the binary Play/Work model weakens.
+
+Novelty status:
+
+```text
+ExternalInstrumentality × PlayMode: N1 synthesis candidate
+ConsequenceCoupling: N1/N2 analytical hypothesis, unfrozen
+```
+
+## 16.4 Candidate LocalRevaluation is NOT promoted
+
+A parallel candidate proposed:
+
+```text
+LocalRevaluation =
+a behavior/action possibility acquires local significance/evaluation
+not exhausted by its ordinary immediate external semantics.
+```
+
+Examples such as play-fighting, chess roles and pretend objects are genuine. However ritual, law, science, art and institutional practice can also constitutively revalue actions/objects.
+
+The candidate therefore fails as a Game/Play discriminator and overlaps heavily with:
+
+```text
+PlayFrame
++ C2 ConstraintTransformation
++ constitutive rule semantics
+```
+
+Current disposition:
+
+```text
+LocalRevaluation → absorbed / do not promote as independent GDF0 hypothesis.
+```
+
+This is a deliberate anti-inflation result.
+
+## 16.5 GDF0-A revised target
+
+The opening round should not optimize for one necessary-and-sufficient sentence.
+
+Current best target is:
+
+```text
+predictive multi-level Play/Game coordinate model
++
+mechanisms that explain transitions/couplings among levels
++
+discriminating falsifiers
+```
+
+A compact essence may still emerge later. It is no longer an assumed deliverable.
+
+---
+
+# 17. GDF0-A supplement evidence anchors
+
+Additional pressure used for this convergence supplement:
+
+- Jaakko Stenros & Markus Montola (2024), *The Rule Book: The Building Blocks of Games*, MIT Press. The publisher summary distinguishes five rule types and treats rules as constraints that carve possibility space and constitute local game meanings.
+- Jesper Juul (2003), *The Game, the Player, the World*, especially the explicit separation among formal system, player relation and game/world consequence relation, plus professional-play and borderline-case discussion.
+- Jaakko Stenros (2015), *Playfulness, Play, and Games: A Constructionist Ludology Approach*, Tampere University Press, as pressure toward target-level and situated/category separation.
+
+These sources are competitors/evidence, not ontology authority.
