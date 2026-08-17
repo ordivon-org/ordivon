@@ -12,8 +12,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF3 — Representation Foundations v1: **frozen**
 - MF4 — Composition Foundations v1: **frozen**
 - MF5 — Space Foundations v1: **frozen** after MF5-I falsification/reconstruction
-- MF6 — Time Foundations: **active / UNFROZEN**; MF6-A complete/provisional
-- Next: **MF6-B — Temporal Order, Interval, Duration, Measure & Clocks**
+- MF6 — Time Foundations: **active / UNFROZEN**; MF6-A→B complete/provisional
+- Next: **MF6-C — Relativity, Proper Time, Simultaneity & Spacetime**
 
 Current MF5 canonical closeout:
 
@@ -21,7 +21,7 @@ Current MF5 canonical closeout:
 
 Current MF6 frontier:
 
-[`media-foundations-mf6a-20260817.md`](./media-foundations-mf6a-20260817.md)
+[`media-foundations-mf6b-20260817.md`](./media-foundations-mf6b-20260817.md)
 
 Current durable continuity Task:
 
