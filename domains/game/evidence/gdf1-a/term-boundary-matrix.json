@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-a-term-boundary-matrix",
+  "epistemicBoundary": {
+    "purpose": "GDF1-A target/term separation and boundary corpus; this is not a frozen ontology or human motor-neuroscience model",
+    "evidenceTargets": ["structural", "behavioral-performance", "human-experiential"],
+    "doesNotProve": [
+      "one universal motor-control theory",
+      "that one performance metric is Skill",
+      "that subjective embodiment follows objective control",
+      "that synthetic control implies human motor skill or PlayExperience",
+      "scientific novelty of Ordivon syntheses"
+    ]
+  },
+  "separations": [
+    {"left":"PlayerIntent","right":"InputSignal","reason":"intent is participant-side meaning/desired distinction; input is observable interface evidence"},
+    {"left":"InputSignal","right":"ControlSignal","reason":"raw events may be filtered, scaled, aggregated, interpreted or remapped before controlling a system variable"},
+    {"left":"ControlSignal","right":"GameAction","reason":"continuous/discrete control values may realize one semantic action, while one action may require a trajectory of control values"},
+    {"left":"GameAction","right":"MovementTrajectory","reason":"semantic action identity and spatiotemporal realization are different; indirect/turn-based actions may have little participant motor trajectory"},
+    {"left":"MovementTrajectory","right":"Outcome","reason":"different trajectories can be goal-equivalent; similar trajectories can have different outcomes under world context"},
+    {"left":"ActionAttempt","right":"ExecutedAction","reason":"capability, legality, timing, collision, opponent/world interaction or admission can block/modify an attempt"},
+    {"left":"ExecutedAction","right":"TaskSuccess","reason":"successful execution does not guarantee the higher-level goal"},
+    {"left":"Control","right":"Controllability","reason":"participant causal control, classical system controllability and subjective control/agency are different targets"},
+    {"left":"ObjectiveControl","right":"SenseOfAgency","reason":"assistance and inference can raise/lower subjective agency independently from exact command execution"},
+    {"left":"Skill","right":"Performance","reason":"skill is a learned conditional capability/distribution; performance is an episode/sample under conditions"},
+    {"left":"Skill","right":"Technique","reason":"technique is a method/policy/coordination pattern; skill concerns capability to use/adapt methods effectively"},
+    {"left":"Skill","right":"Knowledge","reason":"declarative/world knowledge can support skill but does not guarantee execution/control capability"},
+    {"left":"Accuracy","right":"Precision","reason":"closeness to target and dispersion/repeatability can vary independently"},
+    {"left":"ReactionTime","right":"TimingSkill","reason":"time to initiate after a signal differs from placing/controlling action relative to a temporal target or dynamic state"},
+    {"left":"Consistency","right":"ExactRepetition","reason":"task-relevant variables can be stable while redundant movement dimensions vary"},
+    {"left":"Capability","right":"Affordance","reason":"affordance is actor-environment relational possibility, not actor capacity alone"},
+    {"left":"Affordance","right":"GameLegality","reason":"a physically/relationally possible action may be disallowed by game authority; formal permission is not a Gibsonian affordance"},
+    {"left":"ActualAffordance","right":"PerceivedAffordance","reason":"actor/player belief can miss or invent possibilities"},
+    {"left":"AffordanceCue","right":"Affordance","reason":"representation/signalling of possibility is not the possibility itself"},
+    {"left":"PlayerBody","right":"InputEffector","reason":"the whole biological body is not identical to the limb, gaze, voice or BCI channel used to express control"},
+    {"left":"InputEffector","right":"ControlLocus","reason":"physical human movement can control a cursor, avatar, vehicle, army, menu, policy or other locus"},
+    {"left":"ControlLocus","right":"Avatar","reason":"not every controlled locus represents the player as an in-world proxy"},
+    {"left":"ObjectiveBodyCoupling","right":"EmbodimentExperience","reason":"body/avatar synchronization and control are causal inputs but subjective ownership/agency/self-location are distinct outcomes"},
+    {"left":"MotorLearning","right":"MotorPerformanceChange","reason":"transient performance change, compensation or fatigue does not by itself establish retained/generalizable learning"}
+  ],
+  "boundaryCases": [
+    {"id":"turn-based-chess","pressure":["high strategic skill with negligible motor execution demand","GameAction not identical to participant movement"]},
+    {"id":"precision-platformer","pressure":["continuous/discrete timing and trajectory matter","small mapping/dynamics changes can alter executable skill space"]},
+    {"id":"fighting-game","pressure":["decision, technique, sequence execution, timing and opponent adaptation coexist","input complexity is not identical to strategic depth"]},
+    {"id":"fps-aiming","pressure":["kinematic accuracy/precision/speed are measurable at scale","motor trajectory metrics predict performance but do not exhaust Game skill"]},
+    {"id":"racing","pressure":["closed-loop visuomotor regulation and prediction matter","vehicle dynamics can function as controlled body/tool without humanoid avatar"]},
+    {"id":"rhythm","pressure":["temporal phase/error and anticipation dominate over spatial accuracy","reaction time alone cannot model timing skill"]},
+    {"id":"rts-command","pressure":["player GameAction can be a semantic order while unit movement is system-executed","motor authority is not required for strategic action causality"]},
+    {"id":"accessibility-remap","pressure":["different human movements/controllers can realize the same GameAction","mapping changes reachable player action without changing game rule semantics"]},
+    {"id":"assistive-shared-control","pressure":["system can suppress/correct low-level commands while preserving higher-level intent","objective command share and subjective agency can diverge"]},
+    {"id":"vr-avatar","pressure":["control synchrony/fidelity can affect embodiment","embodiment components remain distinct from objective task success"]},
+    {"id":"bci-or-nonmovement-input","pressure":["GameAction may be caused without ordinary limb movement","motor movement cannot be a universal GameAction primitive"]},
+    {"id":"synthetic-controller","pressure":["policy/execution competence can exist without a human body","synthetic performance does not establish human-like embodiment or PlayExperience"]},
+    {"id":"adaptive-mapping","pressure":["mapping can change to improve access/performance","unannounced adaptation can change what is being learned and attributed"]},
+    {"id":"goal-equivalent-trajectory","pressure":["different movement solutions can preserve task-relevant outcome","exact repeatability is not necessary for skilled control"]}
+  ],
+  "externalAnchors": [
+    {"id":"TodorovJordan2002","doi":"10.1038/nn963","claim":"optimal-feedback account allows variability in task-irrelevant/redundant dimensions while stabilizing task goals"},
+    {"id":"ShadmehrMussaIvaldi1994","doi":"10.1523/JNEUROSCI.14-05-03208.1994","claim":"force-field adaptation and aftereffects support learned predictive representation of dynamics"},
+    {"id":"WolpertGhahramaniJordan1995","doi":"10.1126/science.7569931","claim":"sensorimotor experiment supports use of an internal model/state prediction"},
+    {"id":"Warren1984","doi":"10.1037/0096-1523.10.5.683","claim":"stair-climbing affordance boundary scales with actor-environment/body relation rather than absolute geometry alone"},
+    {"id":"Fitts1954","doi":"10.1037/h0055392","claim":"aimed movement exhibits a systematic speed-accuracy relation; movement difficulty cannot be reduced to speed or accuracy alone"},
+    {"id":"WenYamashitaAsama2015","doi":"10.1371/journal.pone.0125226","claim":"computer assistance that ignored erroneous commands could improve performance and reported sense of agency, dissociating raw command execution from subjective agency"},
+    {"id":"KalckertEhrsson2012","doi":"10.3389/fnhum.2012.00040","claim":"body ownership and agency can be experimentally dissociated"},
+    {"id":"ListmanEtAl2021","doi":"10.3389/fnhum.2021.777779","claim":"large-scale Aim Lab data show long-horizon refinement of motor acuity and retention across voluntary practice"},
+    {"id":"WarburtonEtAl2023","doi":"10.1093/pnasnexus/pgad249","claim":"FPS aiming exhibits kinematic regularities comparable to standard sensorimotor tasks; spatial movement metrics predict task performance"},
+    {"id":"GozliBavelierPratt2014","doi":"10.1016/j.humov.2014.09.004","claim":"action-game experience related to faster sensorimotor learning for consistent/predictable tracking structure rather than a blanket initial control advantage"},
+    {"id":"AutoOrbit2021","doi":"10.1371/journal.pone.0258242","claim":"skill transfer across environment speeds required recalibration of action timing; higher skill was associated with lower variability in timing/chunking measures"},
+    {"id":"AccessibleGrip2016","pmcid":"PMC5051962","claim":"changing the physical control interface enabled substantially more stroke participants to direct the same software cursor/game control, demonstrating mapping/access separation"},
+    {"id":"WarrenControlEmbodiment2025","pmid":"39851306","claim":"different degrees of avatar motion control altered embodiment measures in task-dependent ways; objective control and embodiment are related but not identical"}
+  ]
+}
