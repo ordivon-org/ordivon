@@ -759,3 +759,38 @@ R26: What changes inside a Subject when events are affectively significant, and 
 ```
 
 Do not select a product before R26 and the remaining adjacent foundational dimensions have been examined and then synthesized.
+
+
+## R26 — Emotion / Affect / Feeling / Mood / Appraisal
+
+```text
+Affect != Emotion
+Emotion != OneScalar
+Valence != Value != Reward
+Arousal != Motivation
+Emotion != Action
+ActionTendency != Action
+Feeling != EmotionWhole
+Mood != LongEmotion
+Appraisal != GenericThought
+EmotionRegulation != Suppression
+Expression != InternalAffect
+Expression != EmotionTruth
+EmotionRecognition != EmotionAccess
+Empathy != Contagion != PerspectiveTaking != Compassion != Care
+RelationalEmotion depends on relational appraisal/history
+Emotion can causally alter attention, memory, uncertainty processing and action readiness
+Emotion becomes gameplay when affective counterfactuals change meaningful futures
+```
+
+Candidate causal grammar:
+
+```text
+World / Body / Memory / Relationship / Goal / Norm / Uncertainty
+→ Appraisal → Affective significance → Emotion episode
+→ attention / action tendency / physiology / feeling / expression
+→ regulation / action / learning
+→ World / Relation change → re-appraisal
+```
+
+R26 is complete. Next frontier is synthesis-oriented: Learning / Adaptation / Memory / Belief revision / Personality / Self-model, subject to the remaining canonical map.

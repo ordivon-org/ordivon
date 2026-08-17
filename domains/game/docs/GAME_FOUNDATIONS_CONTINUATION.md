@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff for resuming the Game foundations programme after R1–R25 without depending on the originating conversation context.
+summary: Exact continuity handoff for resuming the Game foundations programme after R1–R26 without depending on the originating conversation context.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -30,6 +30,7 @@ related:
   - game.foundations-research.r23
   - game.foundations-research.r24
   - game.foundations-research.r25
+  - game.foundations-research.r26
   - game.foundations-research.map
   - game.core-research.reset
 ---
@@ -37,13 +38,14 @@ related:
 
 ## Read first
 
-1. [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md) — canonical R25 relationship/social-bond decomposition.
-2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R25 map.
-3. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — identity/continuity layer to which relationship edges bind.
-4. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — trust/reliability/reciprocity/strategy layer.
-5. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — relational value/motivation/commitment layer.
-6. [`GAME_FOUNDATIONS_RESEARCH_R13_R17.md`](GAME_FOUNDATIONS_RESEARCH_R13_R17.md) if present is not canonical; use [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) for R13–R17 history/institution/information foundations.
-7. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+1. [`GAME_FOUNDATIONS_RESEARCH_R26.md`](GAME_FOUNDATIONS_RESEARCH_R26.md) — canonical R26 affect/emotion decomposition.
+2. [`GAME_FOUNDATIONS_RESEARCH_R25.md`](GAME_FOUNDATIONS_RESEARCH_R25.md) — canonical R25 relationship/social-bond decomposition.
+3. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R25 map.
+4. [`GAME_FOUNDATIONS_RESEARCH_R24.md`](GAME_FOUNDATIONS_RESEARCH_R24.md) — identity/continuity layer to which relationship edges bind.
+5. [`GAME_FOUNDATIONS_RESEARCH_R19.md`](GAME_FOUNDATIONS_RESEARCH_R19.md) — trust/reliability/reciprocity/strategy layer.
+6. [`GAME_FOUNDATIONS_RESEARCH_R18.md`](GAME_FOUNDATIONS_RESEARCH_R18.md) — relational value/motivation/commitment layer.
+7. [`GAME_FOUNDATIONS_RESEARCH_R13_R17.md`](GAME_FOUNDATIONS_RESEARCH_R13_R17.md) if present is not canonical; use [`GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](GAME_FOUNDATIONS_RESEARCH_R1_R17.md) for R13–R17 history/institution/information foundations.
+8. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
 
 ## Stable global boundary
 
@@ -56,11 +58,7 @@ Research rounds != G0–G8
 
 ## Current status
 
-R1–R25 are complete. Exact next round:
-
-```text
-R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression
-```
+R1–R26 are complete. Exact next frontier is now a synthesis-oriented pass over Learning / Adaptation / Memory / Belief revision / Personality / Self-model, subject to the canonical map rather than a product assumption.
 
 ## R25 durable result
 
@@ -308,75 +306,20 @@ Not a maturity ladder.
 
 No product winner exists. Relationships need not be romantic, positive, reciprocal, symmetric, explicit-metered, LLM-driven or maximally realistic. Keep authored characters, family/care, friendship, rivalry/enmity, alliance, exchange, institutions, creative collaboration, social networks, roleplay and persistent/generative Agent forms open.
 
-## How to continue R26
+## Exact frontier
 
-Start from affective state/process, not an emotion-label list or sentiment classifier.
-
-Core question:
-
-> What changes inside a Subject when events are affectively significant, and how do those states shape perception, action, memory, relationship and expression?
-
-Distinguish at least:
+R1–R26 are complete. Exact next frontier:
 
 ```text
-Emotion
-Affect
-Feeling
-Mood
-Valence
-Arousal
-Appraisal
-Action Tendency
-Bodily/Physiological State
-Expression
-Emotion Recognition
-Emotion Attribution
-Regulation
-Suppression
-Reappraisal
-Recovery
-Empathy
-Emotional Contagion
-Perspective Taking
-Compassion
-Care
-Relational Emotion
+Learning / Adaptation / Memory / Belief revision / Personality / Self-model
 ```
 
-Questions:
-
-1. Emotion vs affect/feeling/mood/valence/arousal?
-2. State vs process vs coordinated episode?
-3. Appraisal theory vs discrete/basic emotion vs dimensional approaches?
-4. Affect vs Value/Desire from R18?
-5. Effects on attention, belief, action readiness and memory?
-6. Mood vs event-linked emotion?
-7. Regulation, suppression, reappraisal, recovery?
-8. Empathy vs contagion/perspective-taking/compassion/care?
-9. Infer emotion without sharing it?
-10. Internal affect vs expression?
-11. Emotional authenticity in authored/generative Characters?
-12. Jealousy/guilt/shame/gratitude/grief/betrayal as relational emotions?
-13. Player emotion as gameplay versus presentation outcome?
-14. Sensory expression without overriding causal truth?
-15. Generated emotional claims and continuity debt?
-16. Minimum affective machinery by role?
-
-## High-priority warnings
+Primary transition:
 
 ```text
-Emotion != Valence
-Emotion != Arousal
-Emotion != Reward
-Feeling != Expression
-Mood != LongEmotion by definition
-Empathy != EmotionalContagion
-Empathy != Compassion
-Care != Empathy
-EmotionRecognition != EmotionExperience
-GeneratedEmotionText != InternalAffectiveState
+R26: What changes inside a Subject when events are affectively significant?
+→
+Next: How do persistent Subjects learn, adapt, remember, revise beliefs and maintain a self-model across time?
 ```
 
-## Product-selection stop condition
-
-Do not begin intentional new-product G0 merely because the corpus is large. Finish remaining obvious foundations and then synthesize independent/redundant dimensions, candidate causal laws and high-information falsifiers before narrowing.
+Do not select a product before this remaining foundation synthesis has been pressure-tested against the canonical map.

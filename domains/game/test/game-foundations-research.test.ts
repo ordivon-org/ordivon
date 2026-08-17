@@ -38,6 +38,10 @@ const r25 = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R25.md", import.meta.url),
   "utf8",
 );
+const r26 = readFileSync(
+  new URL("../docs/GAME_FOUNDATIONS_RESEARCH_R26.md", import.meta.url),
+  "utf8",
+);
 const map = readFileSync(
   new URL("../docs/GAME_FOUNDATIONS_RESEARCH_MAP.md", import.meta.url),
   "utf8",
@@ -156,12 +160,12 @@ test("R25 preserves relational-state, trust, intimacy, reciprocity and AI-bounda
   assert.match(r25, /No product is selected by R25\./);
 });
 
-test("foundation navigation advances the exact post-R25 continuation frontier", () => {
-  const frontier = /R26 — Emotion, Affect, Feeling, Mood, Valence, Arousal, Appraisal, Regulation, Empathy and Expression/;
+test("foundation navigation advances the exact post-R26 synthesis frontier", () => {
+  const frontier = /Learning \/ Adaptation \/ Memory \/ Belief revision \/ Personality \/ Self-model/;
   assert.match(map, frontier);
   assert.match(continuation, frontier);
   assert.match(continuation, /AI Game != Agent World/);
-  assert.match(continuation, /Do not begin intentional new-product G0 merely because the corpus is large\./);
+  assert.match(continuation, /R1–R26 are complete/);
 });
 
 test("foundation research records are managed repository documentation", () => {
@@ -175,9 +179,32 @@ test("foundation research records are managed repository documentation", () => {
     "docs/GAME_FOUNDATIONS_RESEARCH_R23.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R24.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_R25.md",
+    "docs/GAME_FOUNDATIONS_RESEARCH_R26.md",
     "docs/GAME_FOUNDATIONS_RESEARCH_MAP.md",
     "docs/GAME_FOUNDATIONS_CONTINUATION.md",
   ]) {
     assert.match(project, new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+});
+
+
+test("R26 preserves affective-process, regulation, expression and empathy distinctions without selecting a product", () => {
+  assert.match(r26, /Affect != Emotion/);
+  assert.match(r26, /Emotion != OneScalar/);
+  assert.match(r26, /Valence != Value/);
+  assert.match(r26, /Arousal != Motivation/);
+  assert.match(r26, /ActionTendency != Action/);
+  assert.match(r26, /Feeling != EmotionWhole/);
+  assert.match(r26, /Mood != LongEmotion/);
+  assert.match(r26, /Appraisal != GenericThought/);
+  assert.match(r26, /EmotionRegulation != Suppression/);
+  assert.match(r26, /Expression != InternalAffect/);
+  assert.match(r26, /Expression != EmotionTruth/);
+  assert.match(r26, /EmotionRecognition != EmotionAccess/);
+  assert.match(r26, /Empathy != Contagion/);
+  assert.match(r26, /Empathy != PerspectiveTaking/);
+  assert.match(r26, /Empathy != Compassion/);
+  assert.match(r26, /Empathy != Care/);
+  assert.match(r26, /Emotion becomes gameplay when affective counterfactuals change meaningful futures/);
+  assert.match(r26, /R26 does not select a product/);
 });
