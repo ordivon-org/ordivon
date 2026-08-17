@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-b-authority-topology-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "the constructed authority cases can be represented using scoped typed grants rather than role identity or a global authority scalar",
+      "recommendation/evidence, first-instance ruling, review/override, appointment/replacement, advice, player action and game adaptation can be separated by operation and scope",
+      "binding authority can move between occupants through condition/currentness without changing role ontology",
+      "multiple equally binding authorities can coexist on disjoint scopes without a single global maximum",
+      "aggregation can bind at the aggregation/admission rule while individual contributions remain nonbinding",
+      "one entity can hold multiple authority grants, making conflict constraints separable from identity",
+      "post-hoc certification can change practice-record validity without changing original game history"
+    ],
+    "doesNotProve": [
+      "that the tested operation vocabulary is exhaustive",
+      "that every authority system should use explicit Role objects",
+      "that adjudication is fully explained by this topology",
+      "that social legitimacy equals formal authority",
+      "that co-located authority is always undesirable",
+      "that a new semantic primitive is required"
+    ]
+  },
+  "cases": {
+    "ifabVar": {
+      "varGrant": {
+        "holder": "VAR",
+        "operation": "recommend_review",
+        "scope": "match:reviewable-incidents",
+        "binding": false,
+        "condition": "true",
+        "source": "IFAB",
+        "valid": "current"
+      },
+      "refereeGrant": {
+        "holder": "Referee",
+        "operation": "decide_case",
+        "scope": "match",
+        "binding": true,
+        "condition": "true",
+        "source": "IFAB",
+        "valid": "current"
+      }
+    },
+    "ifabReplacement": {
+      "before": {
+        "holder": "Referee-A",
+        "operation": "decide_case",
+        "scope": "match",
+        "binding": true,
+        "condition": "not-incapacitated",
+        "source": "competition-rules",
+        "valid": "current"
+      },
+      "after": {
+        "holder": "Replacement-Official",
+        "operation": "decide_case",
+        "scope": "match",
+        "binding": true,
+        "condition": "Referee-A-incapacitated && designated-replacement",
+        "source": "competition-rules",
+        "valid": "current"
+      }
+    },
+    "magicAppeal": {
+      "floor": {
+        "holder": "FloorJudge",
+        "operation": "first_instance_ruling",
+        "scope": "tournament:case",
+        "binding": true,
+        "condition": "true",
+        "source": "MTR",
+        "valid": "current"
+      },
+      "head": {
+        "holder": "HeadJudge",
+        "operation": "review_override",
+        "scope": "tournament:appeal",
+        "binding": true,
+        "condition": "true",
+        "source": "MTR",
+        "valid": "current"
+      }
+    },
+    "magicAppointment": {
+      "adjudicate": {
+        "holder": "HeadJudge",
+        "operation": "decide_case",
+        "scope": "tournament",
+        "binding": true,
+        "condition": "true",
+        "source": "MTR",
+        "valid": "current"
+      },
+      "replace": {
+        "holder": "TournamentOrganizer",
+        "operation": "replace_head_judge",
+        "scope": "tournament:exceptional-circumstances",
+        "binding": true,
+        "condition": "true",
+        "source": "MTR",
+        "valid": "current"
+      }
+    },
+    "coach": {
+      "advise": {
+        "holder": "Coach",
+        "operation": "advise_player",
+        "scope": "match",
+        "binding": false,
+        "condition": "coaching-allowed",
+        "source": "competition-rules",
+        "valid": "current"
+      },
+      "player": {
+        "holder": "Player",
+        "operation": "execute_game_action",
+        "scope": "player-slot",
+        "binding": true,
+        "condition": "true",
+        "source": "game-practice",
+        "valid": "current"
+      }
+    },
+    "audience": {
+      "member": {
+        "holder": "AudienceMember",
+        "operation": "submit_vote",
+        "scope": "audience-channel",
+        "binding": false,
+        "condition": "true",
+        "source": "APG-rules",
+        "valid": "current"
+      },
+      "aggregator": {
+        "holder": "AggregationRule",
+        "operation": "admit_aggregate_effect",
+        "scope": "game-parameter",
+        "binding": true,
+        "condition": "true",
+        "source": "APG-rules",
+        "valid": "current"
+      }
+    },
+    "director": {
+      "manager": {
+        "holder": "ExperienceManager",
+        "operation": "adapt_game",
+        "scope": "authorized-dynamics",
+        "binding": true,
+        "condition": "true",
+        "source": "designer-policy",
+        "valid": "current"
+      },
+      "player": {
+        "holder": "Player",
+        "operation": "execute_game_action",
+        "scope": "player-action-space",
+        "binding": true,
+        "condition": "true",
+        "source": "game-rules",
+        "valid": "current"
+      }
+    },
+    "fusedAgent": {
+      "player": {
+        "holder": "Agent-X",
+        "operation": "execute_game_action",
+        "scope": "player-slot",
+        "binding": true,
+        "condition": "true",
+        "source": "practice",
+        "valid": "current"
+      },
+      "judge": {
+        "holder": "Agent-X",
+        "operation": "decide_case",
+        "scope": "action-legality",
+        "binding": true,
+        "condition": "true",
+        "source": "practice",
+        "valid": "current"
+      }
+    }
+  },
+  "multipleFinalAuthorities": [
+    {
+      "holder": "HeadJudge-A",
+      "operation": "decide_case",
+      "scope": "flight-A",
+      "binding": true,
+      "condition": "true",
+      "source": "MTR",
+      "valid": "current"
+    },
+    {
+      "holder": "HeadJudge-B",
+      "operation": "decide_case",
+      "scope": "flight-B",
+      "binding": true,
+      "condition": "true",
+      "source": "MTR",
+      "valid": "current"
+    }
+  ],
+  "timedReview": {
+    "beforeRestart": {
+      "holder": "Referee",
+      "operation": "revise_decision",
+      "scope": "incident",
+      "binding": true,
+      "condition": "review-permitted-before-cutoff",
+      "source": "IFAB",
+      "valid": "current"
+    },
+    "afterRestart": {
+      "holder": "Referee",
+      "operation": "revise_decision",
+      "scope": "incident",
+      "binding": true,
+      "condition": "normally-not-permitted-after-restart-except-specified-cases",
+      "source": "IFAB",
+      "valid": "current"
+    }
+  },
+  "ruleVsCase": {
+    "ruleAuthor": {
+      "holder": "RulesAuthority",
+      "operation": "change_general_rule",
+      "scope": "ruleset-version",
+      "binding": true,
+      "condition": "true",
+      "source": "practice",
+      "valid": "current"
+    },
+    "adjudicator": {
+      "holder": "CaseJudge",
+      "operation": "decide_case",
+      "scope": "instance-case",
+      "binding": true,
+      "condition": "true",
+      "source": "practice",
+      "valid": "current"
+    }
+  },
+  "rulingVsEnforcement": {
+    "ruling": {
+      "holder": "Judge",
+      "operation": "decide_case",
+      "scope": "case",
+      "binding": true,
+      "condition": "true",
+      "source": "practice",
+      "valid": "current"
+    },
+    "enforcement": {
+      "holder": "ScorekeeperOrSystem",
+      "operation": "apply_record_or_sanction",
+      "scope": "official-record",
+      "binding": true,
+      "condition": "true",
+      "source": "practice",
+      "valid": "current"
+    }
+  },
+  "postHocVerification": {
+    "originalHistoryDigest": "H1",
+    "certificationBefore": null,
+    "certificationAfter": "VALID_RECORD",
+    "originalHistoryChanged": false
+  },
+  "strongestFalsifiers": {
+    "finalAuthorityNotGlobalScalar": true,
+    "recommendationNotFinalAuthority": true,
+    "roleOccupantCanChangeByCondition": true,
+    "reviewAuthorityNotFirstInstanceAuthority": true,
+    "appointmentAuthorityNotAdjudicationAuthority": true,
+    "adviceNotActionAuthority": true,
+    "aggregateEffectNotMemberAuthority": true,
+    "adaptiveGameAuthorityNotPlayerAuthority": true,
+    "entityIdentityNotAuthorityIdentity": true,
+    "authorityRequiresScopeConditionCurrentness": true,
+    "ruleChangeAuthorityNotCaseRulingAuthority": true,
+    "rulingNotEnforcement": true,
+    "verificationNotWorldHistoryRewrite": true
+  }
+}
