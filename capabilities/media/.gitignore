@@ -10,6 +10,8 @@ out/
 .env.*
 !.env.example
 media/
+!research/media/
+!research/media/**
 proxies/
 renders/
 *.drp

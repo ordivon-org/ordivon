@@ -39,7 +39,7 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-M — Experience Global Falsification, Minimal Foundation Reconstruction & v1 Freeze Audit: **complete**
 - MF9 — Experience Foundations v1: **frozen** after MF9-M global falsification/reconstruction
 - MF0→MF9 whole-chain closeout: **complete; whole Media domain explicitly NOT claimed exhausted**
-- Next: **Whole-Media unexplored-space / domain-coverage search. MF10 / NextMediaRoute remain UNKNOWN and not admitted.**
+- Current frontier: **Round A→B→C→D-E completed; current research-phase closure is STRONG. MF10 remains UNKNOWN / NOT ADMITTED; NextMediaFoundation and NextMediaRoute remain UNKNOWN.** See the canonical navigation root at [`../../media/README.md`](../../media/README.md).
 
 Current MF5 canonical closeout:
 
@@ -178,4 +178,4 @@ Current detailed checkpoint:
 
 ## Relationship to older Studio research
 
-`research/expression/m7-foundational-media-program.md`, its experiment/evidence, and `media-world-model.json` remain retained historical/consumer-layer evidence. They are not silently rewritten by this program. The later MF14–MF19 reconstruction rounds will explicitly decide which old profile distinctions survive, merge, move upward as encounter/runtime/distribution specializations, or are rejected.
+`research/expression/m7-foundational-media-program.md`, its experiment/evidence, and `media-world-model.json` remain retained historical/consumer-layer evidence. They are not silently rewritten by this program. The former MF10–MF19 roadmap (including MF14–MF19 reconstruction/Studio/Web/Game/Spatial-Unified labels) is **de-canonicalized historical planning only** and does not define a next route. Current Media navigation, derived results, negative results and owner bridges are indexed at [`../../media/README.md`](../../media/README.md).
