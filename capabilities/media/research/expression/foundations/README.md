@@ -38,7 +38,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-L — Fundamental Experience Ontologies: Grounding, Combination, Subject Individuation & Mind–Matter Relation: **complete / provisional grounding–subject frame**
 - MF9-M — Experience Global Falsification, Minimal Foundation Reconstruction & v1 Freeze Audit: **complete**
 - MF9 — Experience Foundations v1: **frozen** after MF9-M global falsification/reconstruction
-- Next: **MF10 — UNKNOWN / not admitted by MF9 closeout**
+- MF0→MF9 whole-chain closeout: **complete; whole Media domain explicitly NOT claimed exhausted**
+- Next: **Whole-Media unexplored-space / domain-coverage search. MF10 / NextMediaRoute remain UNKNOWN and not admitted.**
 
 Current MF5 canonical closeout:
 
@@ -147,6 +148,10 @@ Current MF9-M global falsification / v1 freeze round:
 Canonical frozen MF9 Experience Foundations v1:
 
 [`media-foundations-mf9-experience-v1-20260818.md`](./media-foundations-mf9-experience-v1-20260818.md)
+
+Current MF0→MF9 whole-chain closeout / whole-Media domain-coverage handoff:
+
+[`media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md`](./media-deep-foundations-mf0-mf9-closeout-and-domain-coverage-handoff-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
