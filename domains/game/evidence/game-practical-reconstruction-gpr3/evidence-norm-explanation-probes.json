@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr3-evidence-norm-explanation-probes",
+  "fixtures": {
+    "source": {
+      "sourceRef": "world-event:e1",
+      "sourceKind": "world-event",
+      "payloadOrContentDigest": "sha256:event1",
+      "provenanceRefs": [
+        "run:1"
+      ],
+      "currentnessOrCaptureSummary": "revision:10"
+    },
+    "bundleA": {
+      "question": "claim:foul",
+      "items": [
+        {
+          "sourceRef": "world-event:e1",
+          "sourceKind": "world-event",
+          "payloadOrContentDigest": "sha256:event1",
+          "provenanceRefs": [
+            "run:1"
+          ],
+          "currentnessOrCaptureSummary": "revision:10",
+          "targetClaimOrQuestionRefs": [
+            "claim:foul"
+          ],
+          "useKeyOrBasisRole": "supports",
+          "useStatus": "used_as_basis"
+        }
+      ]
+    },
+    "bundleB": {
+      "question": "claim:no-foul",
+      "items": [
+        {
+          "sourceRef": "world-event:e1",
+          "sourceKind": "world-event",
+          "payloadOrContentDigest": "sha256:event1",
+          "provenanceRefs": [
+            "run:1"
+          ],
+          "currentnessOrCaptureSummary": "revision:10",
+          "targetClaimOrQuestionRefs": [
+            "claim:no-foul"
+          ],
+          "useKeyOrBasisRole": "contradicts",
+          "useStatus": "used_as_basis"
+        }
+      ]
+    },
+    "verification": {
+      "verificationKindOrMethodKey": "execution.effect-check",
+      "subjectRefs": [
+        "dispatch:d1"
+      ],
+      "verificationScope": "declared-effects",
+      "statusOrAcceptedResult": "accepted",
+      "methodAndVersionRefs": [
+        "method:v1"
+      ],
+      "currentnessOrDigestBindings": [
+        "sha256:obs1"
+      ]
+    },
+    "certification": {
+      "operationKey": "game.result.certify",
+      "status": "VALID",
+      "basisRefs": [
+        "verification:v1"
+      ]
+    },
+    "normV1": {
+      "currentRuleOrEvaluationSourceRefs": [
+        "ruleset:station-zero-core@3"
+      ],
+      "sourceVersionAndCurrentness": [
+        "3"
+      ],
+      "adoptedInterpretiveCommitmentRefs": [],
+      "applicationBasisDigest": "norm:v1"
+    },
+    "normV2": {
+      "currentRuleOrEvaluationSourceRefs": [
+        "ruleset:station-zero-core@3"
+      ],
+      "sourceVersionAndCurrentness": [
+        "3"
+      ],
+      "adoptedInterpretiveCommitmentRefs": [
+        "ic:1"
+      ],
+      "applicationBasisDigest": "norm:v2"
+    },
+    "privateInterpretation": {
+      "actor": "agent:x",
+      "text": "I think technique T is forbidden",
+      "adoptingAuthorityEvidenceRefs": []
+    },
+    "commitment": {
+      "commitmentId": "ic:1",
+      "representationRefs": [
+        "rule:text:v1"
+      ],
+      "interpretationRefOrStatement": "T forbidden",
+      "scopeRefs": [
+        "category:A"
+      ],
+      "effectiveFrom": 20,
+      "effectiveUntilOrOpen": null,
+      "adoptingAuthorityEvidenceRefs": [
+        "edge:committee:interpret"
+      ],
+      "provenanceRefs": [
+        "committee:1"
+      ],
+      "effectiveRuleTopologyChangeRef": "ert:change:1"
+    },
+    "precedent": {
+      "linkId": "pl:1",
+      "priorDeterminationRef": "det:old",
+      "currentTargetOrDeterminationRef": "det:new",
+      "useKey": "cited_or_referenced",
+      "scopeRefs": [
+        "category:A"
+      ],
+      "validFrom": 30,
+      "validUntilOrOpen": null,
+      "recognitionOrAuthorityBasisRefs": [],
+      "provenanceRefs": [
+        "det:new"
+      ]
+    },
+    "conventionCommon": {
+      "coverageOrFrequencySummary": "90%",
+      "recognitionStatus": "observed_only",
+      "recognitionAuthorityRefs": [],
+      "constitutiveEffectRefs": []
+    },
+    "conventionRare": {
+      "coverageOrFrequencySummary": "5%",
+      "recognitionStatus": "constitutive_current",
+      "recognitionAuthorityRefs": [
+        "edge:tournament:adopt"
+      ],
+      "constitutiveEffectRefs": [
+        "ert:change:2"
+      ]
+    },
+    "discretionClosed": {
+      "envelopeRepresentationKind": "enumerated",
+      "admittedChoiceOrOutcomeRefsWhenEnumerable": [
+        "UPHOLD"
+      ],
+      "constraintOrPredicateRefsWhenNotEnumerable": [],
+      "residualUnknowns": []
+    },
+    "discretionOpen": {
+      "envelopeRepresentationKind": "enumerated",
+      "admittedChoiceOrOutcomeRefsWhenEnumerable": [
+        "7.0",
+        "7.5",
+        "8.0"
+      ],
+      "constraintOrPredicateRefsWhenNotEnumerable": [],
+      "residualUnknowns": []
+    },
+    "explanationV1": {
+      "officialStatus": "FOUL",
+      "authority": "floor-judge",
+      "basis": "basis:v1",
+      "norm": "norm:v1",
+      "explanationStateDigest": "exp:v1",
+      "generatedText": "Official foul under current rule."
+    },
+    "explanationV2": {
+      "officialStatus": "FOUL",
+      "authority": "floor-judge",
+      "basis": "basis:v1",
+      "norm": "norm:v2",
+      "explanationStateDigest": "exp:v2",
+      "generatedText": "Official foul under current rule."
+    },
+    "providerTelemetry": {
+      "providerId": "deepseek",
+      "calls": 1,
+      "tokens": 100
+    },
+    "rationale": {
+      "text": "Choose admitted engineering action.",
+      "binding": false
+    }
+  },
+  "probes": {
+    "evidenceRoleIsQuestionRelative": true,
+    "bundleReferencesSourceInsteadOfCopying": true,
+    "observationNotIntrinsicEvidence": true,
+    "bundleNotTruthStore": true,
+    "verificationNarrowScope": true,
+    "verificationNotCertification": true,
+    "verificationCanBeCertificationBasis": true,
+    "stableRepresentationCanChangeNormBasis": true,
+    "privateInterpretationNotCommitment": true,
+    "commitmentNeedsAuthorityAndTopologyEffect": true,
+    "precedentCitationNotBinding": true,
+    "commonConventionMayBeNonbinding": true,
+    "rareConventionMayBeConstitutive": true,
+    "authorityDoesNotImplyDiscretion": true,
+    "discretionCanBeBounded": true,
+    "withinEnvelopeNotCorrectness": true,
+    "generatedExplanationNotAuthority": true,
+    "explanationStalenessDetectable": true,
+    "providerTelemetryNotGameEvidenceByIdentity": true,
+    "rationaleNotBinding": true,
+    "noChainOfThoughtRequired": true,
+    "precedentScopeSpecific": true,
+    "conventionFrequencyNotAuthority": true,
+    "evidenceUseCanBeContested": true,
+    "verificationUsefulWithoutAdjudication": true,
+    "normViewCanBeSparse": true,
+    "explanationCanDrillDown": true
+  }
+}
