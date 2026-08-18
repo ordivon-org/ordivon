@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c9-probes",
+  "date": "2026-08-18",
+  "candidate": "Outside-vocabulary unknown-continent scan",
+  "routeAdmission": {
+    "gpr8": false,
+    "gdf4": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "probeFamilies": [
+    "boundary-ambiguous play",
+    "nonparticipant causal involvement",
+    "autonomous/no-current-player unfolding",
+    "self-amending constitutions",
+    "unaware players",
+    "massive distributed control",
+    "persistent/no clean session boundary",
+    "real-world legal/material coupling",
+    "mixed generated/history strata",
+    "author-player-referee role fusion",
+    "judged/performance forms",
+    "nested games",
+    "participant-authored goals/rules",
+    "synthetic-only societies",
+    "accessibility/shared control",
+    "open-ended/nonterminal practice",
+    "high external stakes",
+    "asynchronous long-horizon participation"
+  ],
+  "probes": [
+    {"id":"C9-F1","regime":"pervasive spatial expansion","result":"FixedSpatialMagicCircle != necessary condition for Game/Play","reduction":["GDF0 PlayFrame","external coupling","material constraints"]},
+    {"id":"C9-F2","regime":"pervasive temporal expansion","result":"BoundedSessionInterval != necessary condition for GameInstance/PlayPractice","reduction":["R23 asynchronous/persistent time","C1 RuntimeSession nonidentity"]},
+    {"id":"C9-F3","regime":"socially expanded game with unwitting nonplayer","result":"CausalGameEffect != ParticipantMembershipByIdentity","reduction":["GPR6 causal nonparticipant","C1 admission/membership"]},
+    {"id":"C9-F4","regime":"game with unaware players","result":"ParticipantBeliefAboutGame != CurrentGameStructureByIdentity","reduction":["R17/F7 belief","GDF0 RuleBelief != CurrentRuleTruth"]},
+    {"id":"C9-F5","regime":"Nomic self-amending rules","result":"GameActionCanTargetEffectiveRuleTopologyWithoutNewMetaRuleOntology","reduction":["GDF0 rule mutability","GPR1 change-rule authority"]},
+    {"id":"C9-F6","regime":"Nomic self-application","result":"RuleChangeAuthorityNeedNotResideInAbsolutelyImmutableMetaLayer","reduction":["F1-F9 policy/authority","GDF0 currentness"]},
+    {"id":"C9-F7","regime":"Nomic identity after transformation","result":"RuleChangeMagnitude != AutomaticGameIdentityVerdict","reduction":["C7 lineage","GDF0/R28 recognized continuity"]},
+    {"id":"C9-F8","regime":"Conway Game of Life zero-player naming","result":"ContinuousParticipantAction != necessary for socially recognized zero-player-game category label","reduction":["GameCategory != GameStructure","World/F2-F4 autonomous trajectory"]},
+    {"id":"C9-F9","regime":"idle/setup-only causal control","result":"PlayerCausalAccess != ContinuousLowLevelActionByIdentity","reduction":["R23 waiting/idle","R29 PlayerCausalAccess"]},
+    {"id":"C9-F10","regime":"Twitch Plays Pokemon crowd control","result":"OneControlSurface != OneHumanControllerByIdentity","reduction":["GDF1 control mapping","GPR6 distributed control realization"]},
+    {"id":"C9-F11","regime":"crowd aggregation policy change","result":"SameParticipantPopulation != SameEffectiveControlPolicy","reduction":["GDF1 mapping","GDF0/GPR1 policy","C5 change trace"]},
+    {"id":"C9-F12","regime":"correspondence/asynchronous game","result":"SimultaneousPresence != necessary for GameInstanceContinuity","reduction":["R23","C1 continuity"]},
+    {"id":"C9-F13","regime":"persistent/open world","result":"PersistentWorld != missing universal InstanceAboveInstance target","reduction":["GDF0 PlayPractice","C1 owner-local instance boundary"]},
+    {"id":"C9-F14","regime":"toy/free/pretend play","result":"Play != FormalGameStructure","reduction":["GDF0 Play != Game"]},
+    {"id":"C9-F15","regime":"open-ended creative sandbox","result":"NoFixedGlobalGoal != NoEvaluation","reduction":["GDF0 layered evaluation","GDF2 self-authored/bounded challenge"]},
+    {"id":"C9-F16","regime":"location/pervasive legal coupling","result":"PhysicalPossibility != PracticeAdmissibility","reduction":["World/Law","GDF0 constitutive/external coupling"]},
+    {"id":"C9-F17","regime":"high external stakes","result":"RealConsequences != NotAGameByIdentity","reduction":["GDF0 ExternalStake separation","PlayFrame != consequence isolation"]},
+    {"id":"C9-F18","regime":"judged performance game","result":"MechanicallyComputedOutcome != necessary for GameOutcome","reduction":["GDF3 authoritative determination","GPR3 evidence"]},
+    {"id":"C9-F19","regime":"GM/operator role fusion","result":"RoleFusion != RoleIdentity","reduction":["GPR1 scoped authority","GPR5 role bundles","GPR6 participation/control"]},
+    {"id":"C9-F20","regime":"same Agent model as player/world/referee/author","result":"SameModel != SameGameRole","reduction":["GPR1/GPR5/GPR6 role/authority","no Agent primitive"]},
+    {"id":"C9-F21","regime":"UGC/generative co-creation during play","result":"FluidAuthorRuntimeBoundary != NewTargetLevelByIdentity","reduction":["R20 creation","C5 change","GDF0 adoption","C1 if constitution affected"]},
+    {"id":"C9-F22","regime":"nested game/game-within-game","result":"NestedGame = typed GameStructureOrInstance relation, not new primitive","reduction":["F3 relation/composition","GDF0 targets"]},
+    {"id":"C9-F23","regime":"synthetic-only self-amending society","result":"SyntheticOnlyConstitutionalGame != AgentEraTargetPrimitive","reduction":["GPR6 Human/Agent separation","GPR1 authority","GDF0 mutability","C1 instance semantics"]},
+    {"id":"C9-F24","regime":"mixed Human/Agent/accessibility shared control","result":"ControlRealizationMultiplicity != NewPlayerOntology","reduction":["GDF1","GPR6","GPR1 authorization"]},
+    {"id":"C9-F25","regime":"implicit/distributed rule practice","result":"CompleteCanonicalRulebook != necessary for EffectiveRuleTopology","reduction":["GDF0 multi-source rules","GPR3 interpretation/adoption"]},
+    {"id":"C9-F26","regime":"ambiguous ARG/pervasive frame","result":"ParticipantFrameBelief != ConstitutiveGameRelationByIdentity","reduction":["GDF0 PlayFrame","R17/F7 belief"]},
+    {"id":"C9-F27","regime":"bystander becomes participant","result":"CausalNonparticipantToAdmittedParticipantIsRealTransitionNotNewTarget","reduction":["GPR6 role distinction","C1 ParticipationCompositionAndTransition"]},
+    {"id":"C9-F28","regime":"autonomous world evolution between actions","result":"CurrentParticipantAction != necessary for every GameStateTransition","reduction":["World/F4 dynamics","R29 coarse PlayerCausalAccess"]}
+  ],
+  "scanVerdict": {
+    "newTargetClasses": 0,
+    "newAuthorityPrimitives": 0,
+    "newContinuityPrimitives": 0,
+    "newAgentEraPrimitives": 0,
+    "foundationReopenConditions": 0,
+    "newIndependentPracticalClusters": 0,
+    "strengthened": [
+      "C1 ParticipationCompositionAndTransition and continuity under pervasive/persistent cases",
+      "GDF0 boundary robustness without fixed spatial/temporal/social magic circle",
+      "GPR6 causal-nonparticipant versus participant separation",
+      "GDF0/GPR1 self-amending rule authority robustness",
+      "R17/F7 belief/current-truth separation"
+    ]
+  },
+  "informationGain": {
+    "C1":"VERY_HIGH_NEW_SURVIVING_RESPONSIBILITY",
+    "C2_C4":"HIGH_TO_MODERATE_MAJOR_REDUCTIONS",
+    "C5_C7":"MODERATE_PRACTICAL_DIAGNOSTIC_AND_UPSTREAM_REDUCTIONS",
+    "C8":"LOW_MODERATE_MOSTLY_EXISTING_GPR_CONFIRMATION",
+    "C9":"LOW_NEW_ONTOLOGY_HIGH_STOPPING_INFORMATION_VALUE",
+    "state":"CLEAR_DIMINISHING_RETURNS"
+  },
+  "stoppingDecision": {
+    "continueBroadWholeGameFoundationSearch": false,
+    "reason":"Outside-vocabulary structural anomalies did not reveal a homeless target/authority/continuity primitive; same-direction expected discovery yield is now low.",
+    "reopenOnlyIf":["concrete FoundationReopenCondition","genuinely novel unrepresentable Game regime","new empirical/Agent-era counterexample breaking current authority/currentness/participation/continuity semantics","survivor-comparison contradiction in C1"]
+  },
+  "c1Status": {
+    "classification":"SOLE_STRONG_GAME_OWNED_FOUNDATION_UNCLOSED_SURVIVOR",
+    "responsibility":["ConstitutionBasisAndCurrentness","ParticipationCompositionAndTransition","InstanceContinuityBoundary"],
+    "admittedAsGDF4": false,
+    "note":"Sole survivor is not automatic numbered admission; explicit survivor-comparison/admission step remains separate."
+  },
+  "closure": {
+    "wholeGameClosure":"NOT_CLAIMED_ABSOLUTELY",
+    "strongFreshCoverageClosure":"ESTABLISHED_FOR_CURRENT_EVIDENCE_HORIZON",
+    "recommendedNextMove":"PIVOT_TO_LESS_COVERED_HIGHER_INFORMATION_RESEARCH_SPACES"
+  },
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0_PRC2":"NOT_TRIGGERED",
+    "GDF0_PRC3":"NOT_TRIGGERED",
+    "GDF0_PRC5":"NOT_TRIGGERED",
+    "GDF0_PRC6":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "finalClassification":"UNKNOWN_CONTINENT_SCAN_COMPLETE__NO_NEW_CONTINENT__C1_SOLE_STRONG_SURVIVOR__CLEAR_DIMINISHING_RETURNS__STOP_SAME_DIRECTION_GAME_FOUNDATION_SEARCH__NO_ROUTE_SELECTED"
+}
