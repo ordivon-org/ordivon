@@ -1,0 +1,8 @@
+{
+  "authorityRef": "authority:ordivon:research-owner:media",
+  "currentAuthorityVersionRef": "sha256:e26649a077eacfd0964e0d6ace7a3454d27c60ebcc96251dbb9b1861d867823e",
+  "kind": "ordivon.research-owner-current",
+  "ownerResearchRef": "research-owner:media",
+  "publication": "authority/publications/e26649a077eacfd0964e0d6ace7a3454d27c60ebcc96251dbb9b1861d867823e.json",
+  "schemaVersion": 1
+}
