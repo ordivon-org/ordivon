@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c6-probes",
+  "date": "2026-08-18",
+  "candidate": "Meta-practice / Extended Apparatus / Cross-instance Practice",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"MetaGame","verdict":"REJECT_UNIVERSAL_ONTOLOGY","reason":"Polysemous across strategy distribution, out-of-match planning, community norms, tournament strategy, progression and external knowledge."},
+    {"candidate":"Campaign","verdict":"REJECT_UNIVERSAL_TARGET","reason":"Can mean one long enactment, organized-play rules domain, linked adventures, content grouping or persistent-history context."},
+    {"candidate":"Tournament","verdict":"REJECT_GAME_PRIMITIVE","reason":"Institutional/practice organization over games, participants, standings and pairing rules."},
+    {"candidate":"Season","verdict":"REJECT_UNIVERSAL_TARGET","reason":"May denote rules/version interval, competition interval, content cycle or reset period."},
+    {"candidate":"Paratext","verdict":"REJECT_GAME_PRIMITIVE","reason":"Guide/wiki/video knowledge can affect policy without becoming effective rules unless adopted."},
+    {"candidate":"ExtendedApparatus","verdict":"REJECT_GAME_PRIMITIVE","reason":"Equipment, services, timers, GPS, platforms and score evidence play heterogeneous causal roles."},
+    {"candidate":"Community","verdict":"REJECT_GAME_PRIMITIVE","reason":"Social/cultural collection/network; Game consumes norms/recognition/authority when relevant."},
+    {"candidate":"Platform","verdict":"REJECT_GAME_PRIMITIVE","reason":"May host runtime, transport, marketplace, moderation, discovery, identity or payments; boundary is not semantic Game boundary."},
+    {"candidate":"ModEcosystem","verdict":"REJECT_GAME_FOUNDATION_KIND","reason":"Mods are artifacts/content/rule representations; adoption/recognition is practice/culture/platform structure."},
+    {"candidate":"ExternalKnowledge","verdict":"REJECT_GAME_PRIMITIVE","reason":"Theorycraft/guide knowledge is F7/R17 representation/belief unless adopted as constitutive norm/rule."}
+  ],
+  "probes": [
+    {"id":"C6-F1","regime":"speedrun category","pressure":"same executable run under different category timing/restriction overlays","result":"SameExecutable != SameEffectiveGameStructureForPractice","reduction":["GDF0 constitutive overlay","PlayPractice","EffectiveRuleTopology"]},
+    {"id":"C6-F2","regime":"speedrun leaderboard verification","pressure":"performed run vs proof/moderator acceptance","result":"PerformedRun != VerifiedLeaderboardRecordByIdentity","reduction":["GameInstance/enactment","evidence/provenance","GDF3 determination when binding"]},
+    {"id":"C6-F3","regime":"community rule discussion","pressure":"same proposal text with or without recognized adoption","result":"CommunityProposal != CurrentEffectiveRuleByIdentity","reduction":["GDF0 RuleProposal != RuleAuthority","GPR3 adoption/currentness"]},
+    {"id":"C6-F4","regime":"D&D Adventurers League","pressure":"persistent character participates across multiple organized-play games","result":"CharacterContinuity != GameInstanceContinuityByIdentity","reduction":["R13/R24 persistence","GDF0 PlayPractice","C1 instance constitution"]},
+    {"id":"C6-F5","regime":"campaign polysemy","pressure":"home campaign vs organized-play campaign vs authored mission campaign","result":"CampaignLabel != UniversalGameTargetLevel","reduction":["GameInstance","PlayPractice","GameStructure","history/content relations"]},
+    {"id":"C6-F6","regime":"tournament bracket","pressure":"cross-instance standings/bracket determines advancement/opponent","result":"CrossInstanceCausality != NewTargetLevelByIdentity","reduction":["F2-F4 practice-level state/relations/transitions","C4 opportunity formation","C1 downstream instance"]},
+    {"id":"C6-F7","regime":"Swiss bye","pressure":"practice participant has no concrete game this round","result":"PracticeParticipation != CurrentGameInstanceParticipation","reduction":["GDF0 PlayPractice","C1 GameInstance"]},
+    {"id":"C6-F8","regime":"geocaching permission/law","pressure":"same physical place/object under changed land permission/practice policy","result":"PhysicalPossibility != PracticeAdmissibility","reduction":["World/Law facts","Social/Institutional authority","GDF0 constitutive/external coupling"]},
+    {"id":"C6-F9","regime":"geocache publication/review","pressure":"physical cache exists before recognized publication","result":"PhysicalArtifactExistence != RecognizedPracticeInclusionByIdentity","reduction":["GameArtifact != CompleteGameStructure","recognition/adoption authority"]},
+    {"id":"C6-F10","regime":"physical/digital apparatus","pressure":"GPS/timer/board/controller/field can be required in different causal roles","result":"ConstitutiveApparatusImportance != CommonApparatusOntology","reduction":["World object/state","GDF1 mapping","F7 evidence","GDF0 overlay","Runtime/Media"]},
+    {"id":"C6-F11","regime":"community wiki/theory guide","pressure":"same GameStructure, different external strategic knowledge","result":"ExternalKnowledge != EffectiveRuleTopologyByIdentity","reduction":["R17 information/belief","R27 learning","R28 transmission"]},
+    {"id":"C6-F12","regime":"community optimization norm","pressure":"norm changes behavior/expectations without binding authority","result":"CommunityNorm != GameRuleByIdentity","reduction":["R28 culture/norm","GDF0 only upon authoritative adoption"]},
+    {"id":"C6-F13","regime":"mod adoption","pressure":"same mod bytes unused vs authoritatively selected for current practice","result":"ModArtifactExistence != EffectiveGameStructureByIdentity","reduction":["R20 artifact/authorship","GDF0 adoption/currentness/overlay"]},
+    {"id":"C6-F14","regime":"total conversion/category recognition","pressure":"large mechanical delta treated as lineage continuation vs distinct game by different communities","result":"MechanicalDeltaSize != CategoryIdentityBoundaryByIdentity","reduction":["GDF0 category/mechanism nonidentity","preserve lineage/versioning candidate"]},
+    {"id":"C6-F15","regime":"platform mediation","pressure":"platform hosts multiple heterogeneous services with different constitutive relevance","result":"PlatformBoundary != GameSemanticBoundaryByIdentity","reduction":["typed owner relations","Runtime/Network/Institutional/Finance depending function"]},
+    {"id":"C6-F16","regime":"spectator/broadcast","pressure":"same play with audience external vs audience/judge/vote entering transitions/evaluation","result":"AudienceOrBroadcastPresence != ConstitutiveGameRoleByIdentity","reduction":["GPR6 participant/spectator/audience","GDF0 constitutive-effect test","Media"]},
+    {"id":"C6-F17","regime":"persistent world","pressure":"world/game continues across user/process/session boundaries","result":"RuntimeSession != GameInstanceByIdentity","reduction":["C1 continuity","GDF0 practice/world relations"]},
+    {"id":"C6-F18","regime":"campaign/session decomposition","pressure":"campaign treated as one long instance vs multiple instances linked by practice/history","result":"Campaign != fixed position between GameInstance and PlayPractice","reduction":["C1 owner-local instance boundary","GDF0 PlayPractice"]},
+    {"id":"C6-F19","regime":"solitary toy/free play","pressure":"meaningful play without tournament/community/platform/cross-instance apparatus","result":"ExtendedMetaPracticeApparatus != necessary condition for PlayGame","reduction":["GDF0 optional practice/context distinctions"]},
+    {"id":"C6-F20","regime":"collective theorycraft","pressure":"players build/publish external models that alter later policies","result":"EpistemicMetaPractice != NewGameTargetByIdentity","reduction":["R17 model/belief","R27 learning","R28 transmission","C2 evaluation","C5 if later adopted change"]},
+    {"id":"C6-F21","regime":"D&D organized-play source update","pressure":"new publication becomes legal only through campaign/practice adoption/current update","result":"ArtifactPublicationPlusPracticeAdoptionChangesLegalOptionSetWithoutNewTargetLevel","reduction":["GDF0 EffectiveRuleTopology/currentness","R20 source/content","practice adoption"]},
+    {"id":"C6-F22","regime":"synthetic-only league/practice","pressure":"Agents play/moderate/publish strategies/update conventions without Humans","result":"SyntheticOnlyMetaPractice != new Game target level","reduction":["GPR6 Human/Agent separation","R28 culture","GPR1 authority","GDF0 PlayPractice"]}
+  ],
+  "residualPattern": {
+    "names": ["CrossInstancePracticeTopology", "PracticeConstitutiveDependencyView"],
+    "status": "USEFUL_CROSS_CUTTING_PRACTICAL_RESEARCH_ABSTRACTION_NOT_GAME_FOUNDATION",
+    "questions": [
+      "QueriedPracticeOrCategory",
+      "RelevantSourceRefs",
+      "TypedDependencyRole",
+      "CausalInformationalSocialOrConstitutiveDisposition",
+      "AuthorityAndCurrentnessBasis",
+      "AffectedGameStructureInstanceCategoryRefs",
+      "HistoryOrLineageRefs"
+    ],
+    "dependencyKinds": [
+      "constitutive_rule_or_overlay",
+      "eligibility_or_participation",
+      "pairing_or_progression",
+      "persistent_character_or_resource",
+      "verification_or_evidence",
+      "material_or_control_apparatus",
+      "knowledge_or_paratext",
+      "social_norm_or_culture",
+      "creator_or_mod_artifact",
+      "platform_or_runtime_service",
+      "external_legal_or_physical_condition"
+    ]
+  },
+  "lineagePreservation": {
+    "status":"NARROWER_UNRESOLVED_CANDIDATE_NOT_ABSORBED_BY_C6",
+    "questions":["version ancestry","branch/fork","semantic adoption/merge","patch applicability","season/currentness interval","ongoing-instance migration","cross-version compatibility","identity preservation vs split"]
+  },
+  "ownership": {
+    "Game":["PlayPractice/GameCategory target distinctions","which overlays are constitutive under current Game semantics","Game-relative eligibility/evaluation/history effects","practice-to-GameStructure/GameInstance relations"],
+    "SocialInstitutionalCulture":["community membership","recognition/legitimacy","norm transmission","institutional organization","cultural lineage"],
+    "WorldLaw":["physical location/equipment facts","land/property/permission/legal constraints"],
+    "Media":["broadcast/guide/signal/presentation mechanisms"],
+    "RuntimeNetworkPlatform":["hosting/process/service/transport/discovery mechanics"]
+  },
+  "foundationVerdict":"NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict":"MODERATE_TO_STRONG_CROSS_CUTTING_PRACTICAL_DIAGNOSTIC_GAP__NO_GPR_ADMISSION__NO_GENERIC_ENGINEERING_SOURCE_LAYER_PROVEN",
+  "agentEraVerdict":"AGENT_CARRIERS_ACCELERATE_META_PRACTICE_BUT_REQUIRE_NO_NEW_TARGET_LEVEL_OR_AGENT_META_PRACTICE_PRIMITIVE",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0_PRC2":"NOT_TRIGGERED",
+    "GDF0_PRC5":"NOT_TRIGGERED",
+    "GDF0_PRC6":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "relativeUpdate": {
+    "C1":"SURVIVES_STRONG_GAME_OWNED_DOWNSTREAM_FOUNDATION_CANDIDATE",
+    "C2":"REDUCED",
+    "C3":"REDUCED",
+    "C4":"REDUCED",
+    "C5":"REDUCED",
+    "C6":"REDUCED_MOSTLY_ALREADY_FOUNDATION_CLOSED_BY_GDF0"
+  },
+  "finalClassification":"MOSTLY_ALREADY_FOUNDATION_CLOSED_BY_GDF0__MODERATE_TO_STRONG_PRACTICAL_DIAGNOSTIC_GAP__CROSS_OWNER_DEPENDENCIES__LINEAGE_VERSIONING_PRESERVED_AS_NARROWER_UNRESOLVED_CANDIDATE__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}
