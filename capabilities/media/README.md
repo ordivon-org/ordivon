@@ -89,6 +89,8 @@ Current production status and storage evidence remain in the production and tech
 | Need | Read / invoke |
 | --- | --- |
 | inspect one Production, its Claims/Outputs, and optional source-binding Git relation without rendering or editing | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
+| understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
+| inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
 | understand why Studio exists | this README |
 | determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
 | first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |

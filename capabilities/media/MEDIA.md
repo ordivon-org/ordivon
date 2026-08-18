@@ -27,3 +27,9 @@ new: Media project containing Studio capability
 The migration is not a global rename of Studio symbols. Existing `ordivon-studio` CLI/package/tool identities remain valid where they name Studio production capability.
 
 See [`docs/media-m0-identity-migration.md`](docs/media-m0-identity-migration.md) for the live M0 preflight and [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) for the first technology-neutral projection contract.
+
+## Phase 1 status
+
+Ordivon Media construction Phase 1 (M0–M4) is **closed**. The project is now in a stable-owner / consumer-pressure-driven posture: MF0–MF9 remain frozen, OMPC-v0 plus A/B/C/D is the current shared reference/conformance baseline, Studio remains active as the production capability plane, and no shared Media engine/runtime/SDK is admitted without demonstrated implementation duplication or a concrete consumer falsifier.
+
+See [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) for the closure, freeze and reopen criteria.
