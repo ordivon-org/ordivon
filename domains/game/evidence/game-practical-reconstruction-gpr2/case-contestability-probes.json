@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr2-case-contestability-probes",
+  "fixtures": {
+    "worldHistory": {
+      "runId": "run:1",
+      "eventIds": [
+        "e1",
+        "e2"
+      ],
+      "digest": "world:H1"
+    },
+    "d0": {
+      "determinationId": "det:0",
+      "determinationOperationKey": "game.case.decide",
+      "targetRefOrSelector": "incident:1",
+      "statusPayload": {
+        "status": "FOUL"
+      },
+      "scopeRefs": [
+        "match:1"
+      ],
+      "effectiveAt": 10,
+      "bindingAuthorityEvidenceRefs": [
+        "edge:floor-judge:decide"
+      ],
+      "authorityStateDigestOrCurrentnessEvidence": "auth:d0",
+      "provenanceRefs": [
+        "referee:floor"
+      ],
+      "caseBasisRefs": [
+        "replay:v1"
+      ],
+      "normOrEvaluationBasisRefs": [
+        "rules:v1"
+      ]
+    },
+    "d1": {
+      "determinationId": "det:1",
+      "determinationOperationKey": "game.case.decide",
+      "targetRefOrSelector": "incident:1",
+      "statusPayload": {
+        "status": "NO_FOUL"
+      },
+      "scopeRefs": [
+        "match:1"
+      ],
+      "effectiveAt": 20,
+      "bindingAuthorityEvidenceRefs": [
+        "edge:head-judge:review"
+      ],
+      "authorityStateDigestOrCurrentnessEvidence": "auth:d1",
+      "provenanceRefs": [
+        "referee:head"
+      ],
+      "caseBasisRefs": [
+        "replay:v1"
+      ],
+      "normOrEvaluationBasisRefs": [
+        "rules:v1"
+      ],
+      "relatedPriorDeterminationRefs": [
+        "det:0"
+      ],
+      "lineageRelationKeys": [
+        "reverses"
+      ]
+    },
+    "certA": {
+      "determinationId": "cert:a",
+      "determinationOperationKey": "game.result.certify",
+      "targetRefOrSelector": "run:1",
+      "statusPayload": {
+        "status": "VALID"
+      },
+      "scopeRefs": [
+        "category:any-percent"
+      ],
+      "effectiveAt": 30,
+      "bindingAuthorityEvidenceRefs": [
+        "edge:mod:certify"
+      ],
+      "authorityStateDigestOrCurrentnessEvidence": "auth:cert",
+      "provenanceRefs": [
+        "moderation:1"
+      ],
+      "caseBasisRefs": [
+        "verification:run:1"
+      ],
+      "normOrEvaluationBasisRefs": [
+        "category:any-percent:v2"
+      ]
+    },
+    "certB": {
+      "determinationId": "cert:b",
+      "determinationOperationKey": "game.result.certify",
+      "targetRefOrSelector": "run:1",
+      "statusPayload": {
+        "status": "INVALID"
+      },
+      "scopeRefs": [
+        "category:no-major-glitches"
+      ],
+      "effectiveAt": 30,
+      "bindingAuthorityEvidenceRefs": [
+        "edge:mod:certify"
+      ],
+      "authorityStateDigestOrCurrentnessEvidence": "auth:cert",
+      "provenanceRefs": [
+        "moderation:1"
+      ],
+      "caseBasisRefs": [
+        "verification:run:1"
+      ],
+      "normOrEvaluationBasisRefs": [
+        "category:nmg:v3"
+      ]
+    },
+    "request": {
+      "requestId": "contest:1",
+      "channelKey": "game.case.appeal",
+      "requesterRef": "player:a",
+      "targetDeterminationRefs": [
+        "det:0"
+      ],
+      "requestedAt": 11,
+      "requestScopeRefs": [
+        "match:1"
+      ],
+      "requestBasisRefs": [
+        "claim:new-angle"
+      ],
+      "provenanceRefs": [
+        "player:a"
+      ]
+    },
+    "contestOpen": {
+      "determinationRef": "det:0",
+      "contestabilityState": "open",
+      "availableChannels": [
+        "game.case.appeal"
+      ],
+      "reviewAuthorityOperationKeysAndSourceRefs": [
+        [
+          "game.case.review",
+          "edge:head-judge:review"
+        ]
+      ],
+      "deadlineOrCurrentnessBoundaries": [
+        25
+      ],
+      "stayOrInterimEffectPolicy": "no_automatic_stay"
+    },
+    "contestClosed": {
+      "determinationRef": "det:0",
+      "contestabilityState": "closed_within_queried_scope",
+      "availableChannels": [],
+      "reviewAuthorityOperationKeysAndSourceRefs": [
+        [
+          "game.case.review",
+          "edge:head-judge:review"
+        ]
+      ],
+      "deadlineOrCurrentnessBoundaries": [
+        25
+      ],
+      "stayOrInterimEffectPolicy": "no_automatic_stay"
+    },
+    "lineage": {
+      "nodes": [
+        "det:0",
+        "det:1"
+      ],
+      "typedRelations": [
+        {
+          "from": "det:1",
+          "to": "det:0",
+          "kind": "reverses"
+        }
+      ],
+      "currentDeterminationRefsByScope": [
+        "det:1"
+      ],
+      "historicalDeterminationRefs": [
+        "det:0"
+      ]
+    },
+    "basisEvidenceChange": {
+      "caseOrCanonicalStateBasisRefs": [
+        "replay:v2"
+      ],
+      "normOrEvaluationApplicationBasisRefs": [
+        "rules:v1"
+      ]
+    },
+    "basisNormChange": {
+      "caseOrCanonicalStateBasisRefs": [
+        "replay:v1"
+      ],
+      "normOrEvaluationApplicationBasisRefs": [
+        "rules:v2"
+      ]
+    },
+    "providerDecision": {
+      "kind": "agent-decision",
+      "candidateId": "candidate:1",
+      "confidence": 0.9
+    },
+    "verification": {
+      "kind": "verification-receipt",
+      "success": true,
+      "checks": [
+        "digest",
+        "effect"
+      ]
+    },
+    "proposalReview": {
+      "phase": "proposal-review",
+      "proposalStatus": "proposed",
+      "priorBindingCaseStatus": false
+    }
+  },
+  "probes": {
+    "worldHistoryUnaffectedByReversal": true,
+    "officialStatusNotWorldTruth": true,
+    "reviewCreatesNewDetermination": true,
+    "reversalPreservesPriorHistory": true,
+    "decisionLineageIsGraph": true,
+    "requestNotReviewOutcome": true,
+    "requestDoesNotGrantReviewerAuthority": true,
+    "appealNoAutomaticStay": true,
+    "finalityIsDerived": true,
+    "categoryStatusesCanDiffer": true,
+    "certificationDistinctFromVerification": true,
+    "verificationCanBeBasis": true,
+    "providerDecisionNotDetermination": true,
+    "proposalReviewNotCaseReview": true,
+    "evidenceChangeDistinctFromNormChange": true,
+    "deterministicCanStillBeOfficial": true,
+    "externalInstitutionNotRequired": true,
+    "reviewAuthorityCanDifferFromOriginal": true,
+    "officialNotCertification": true,
+    "noChainOfThoughtRequired": true,
+    "enforcementNotDetermination": true,
+    "appealNotGuaranteedCorrection": true,
+    "finalityNotTruth": true,
+    "sameModelDifferentAuthorityPossible": true,
+    "requestWorkflowCanExpire": true
+  }
+}

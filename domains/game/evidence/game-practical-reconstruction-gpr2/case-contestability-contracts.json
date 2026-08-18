@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-gpr2-case-contestability-contracts",
+  "round": "GPR2",
+  "status": "research-evidence",
+  "foundationStatus": {
+    "gdf0": "FROZEN",
+    "gdf1": "FROZEN",
+    "gdf2": "FROZEN",
+    "gdf3": "FROZEN",
+    "reopenTriggered": false
+  },
+  "primaryDecision": "Reconstruct case determination and contestability as a sparse practical layer over frozen GDF3 plus GPR1 authority. Persist determinations and contest/request workflow identity only where a GamePractice exposes independently meaningful binding case status or contest workflows; derive lineage, current official status, certification, finality/contestability and basis views from those records plus current authority/policy. Do not turn pre-commit plan review, verification, provider decisions or ordinary World terminal state into adjudication by terminology alone.",
+  "sourceDerivedBoundary": {
+    "sourceOrWorkflowRecords": [
+      "AuthoritativeDeterminationRecord when CaseDeterminationBoundary applies",
+      "ContestRequestRecord when a practice exposes a request/appeal/protest/reconsideration workflow",
+      "owner-local determination lineage/supersession relation events or fields",
+      "owner-local contestability/review policy"
+    ],
+    "derivedViews": [
+      "DeterminationBasisTrace",
+      "CaseDeterminationBoundaryDiagnostic",
+      "ReviewRequestView",
+      "AppealRequestView",
+      "ReviewContestabilityProfile",
+      "DecisionLineage",
+      "OfficialStatusView",
+      "CertificationView",
+      "FinalityStatusView"
+    ],
+    "reason": "GDF3 requires anti-collapse responsibility but not a universal Case/Review/Appeal ontology. Practical workflow identity is sometimes worth persisting; currentness, finality, official status, lineage and certification are safer as derived views over determination/workflow records plus GPR1 authority and current policy."
+  },
+  "contracts": {
+    "AuthoritativeDeterminationRecord": {
+      "status": "STABILIZE_CONDITIONAL_SOURCE_RECORD",
+      "purpose": "Persist one authoritative determination event/result when a Game/PlayPractice exposes an independently meaningful binding case status.",
+      "admissionBoundary": "Create/use this practical record only when CaseDeterminationBoundary applies; ordinary direct execution/action admission/verification should not be wrapped in a determination record by default.",
+      "minimumFields": [
+        "determinationId",
+        "determinationOperationKey",
+        "targetRefOrSelector",
+        "statusPayload",
+        "scopeRefs",
+        "effectiveAt",
+        "bindingAuthorityEvidenceRefs",
+        "authorityStateDigestOrCurrentnessEvidence",
+        "provenanceRefs"
+      ],
+      "optionalFields": [
+        "effectiveUntilOrOpen",
+        "caseBasisRefs",
+        "normOrEvaluationBasisRefs",
+        "relatedPriorDeterminationRefs",
+        "lineageRelationKeys",
+        "displaySummary"
+      ],
+      "truthRule": "The record establishes current/prior official practice status only through its admitted authority/currentness/scope semantics; statusPayload is not WorldTruth by identity.",
+      "immutabilityRule": "Prefer append/supersede history rather than rewriting prior determination records. A later review/reclassification may change the current official status while the earlier determination remains historical.",
+      "forbiddenImplications": [
+        "determination status equals WorldTruth",
+        "deterministic computation is non-adjudicative by identity",
+        "Human judge is required",
+        "external institution is required",
+        "review or dispute is required",
+        "determination implies enforcement"
+      ]
+    },
+    "DeterminationBasisTrace": {
+      "status": "STABILIZE_DERIVED_AUDIT_VIEW",
+      "purpose": "Expose the minimum material basis provenance for explanation, review and audit without requiring a universal EvidenceSet, NormApplication object or hidden reasoning trace.",
+      "inputs": [
+        "determinationRecord",
+        "basis source records referenced by the determination",
+        "current provenance/currentness where queried"
+      ],
+      "outputs": [
+        "caseOrCanonicalStateBasisRefs",
+        "normOrEvaluationApplicationBasisRefs",
+        "basisCurrentnessSummary",
+        "basisProvenanceRefs",
+        "basisStateDigestOrDigests"
+      ],
+      "laws": [
+        "case/evidence/canonical-state basis remains distinguishable from norm/evaluation/application basis when counterfactually material",
+        "basis trace need not contain full rationale or chain-of-thought",
+        "observation/reference in the trace is not truth by identity",
+        "missing optional basis detail does not invalidate closed deterministic determinations when the distinction is not material"
+      ]
+    },
+    "CaseDeterminationBoundaryDiagnostic": {
+      "status": "STABILIZE_DERIVED_DEVELOPER_DIAGNOSTIC",
+      "purpose": "Prevent both over-modeling ordinary execution as adjudication and under-modeling independent binding case status.",
+      "inputs": [
+        "candidate status/result semantics",
+        "underlying event/action/history semantics",
+        "authority/currentness relations",
+        "basis/currentness counterfactuals"
+      ],
+      "outputs": [
+        "applies",
+        "not_required",
+        "unresolved_owner_semantics"
+      ],
+      "positiveSignals": [
+        "binding official/practice status can change while underlying event/history remains fixed",
+        "binding authority/currentness can change while underlying event/history remains fixed",
+        "material determination basis can change current binding status without rewriting underlying event/history"
+      ],
+      "negativeSignals": [
+        "result is only direct current transition/action-admission semantics",
+        "verification only confirms an execution/result and creates no independently meaningful binding case status",
+        "proposal/plan review occurs before commitment and creates no independent official case status",
+        "provider/model decision is only cognition/policy selection"
+      ],
+      "nonCriteria": [
+        "human versus synthetic",
+        "deterministic versus discretionary",
+        "disputed versus undisputed",
+        "reviewable versus unreviewable",
+        "institutional versus solitary"
+      ]
+    },
+    "ContestRequestRecord": {
+      "status": "STABILIZE_CONDITIONAL_GENERIC_WORKFLOW_SOURCE",
+      "purpose": "Provide one reusable workflow identity for a party/system request that a current determination or determination-related matter be reconsidered/reviewed/appealed/protested, without forcing Review and Appeal to be universal ontology categories.",
+      "minimumFields": [
+        "requestId",
+        "channelKey",
+        "requesterRef",
+        "targetDeterminationRefs",
+        "requestedAt",
+        "requestScopeRefs",
+        "requestBasisRefs",
+        "provenanceRefs"
+      ],
+      "optionalFields": [
+        "requestedTargetAspects",
+        "requestedReliefOrOutcomeClass",
+        "deadlineEvidenceRefs",
+        "relatedRequestRefs",
+        "displayReason"
+      ],
+      "workflowStatesForProjection": [
+        "submitted",
+        "admitted",
+        "rejected",
+        "withdrawn",
+        "expired",
+        "resolved",
+        "unresolved_or_conflicted"
+      ],
+      "laws": [
+        "request submission != review admission",
+        "request admission != review outcome",
+        "requester identity != review authority",
+        "request does not itself suspend determination or enforcement unless current practice policy says so",
+        "request may target content/status, case basis, norm/application basis, procedure, authority/currentness or enforcement/remedy relation depending on local practice"
+      ]
+    },
+    "ReviewRequestView": {
+      "status": "STABILIZE_PRACTICE_DEFINED_VIEW_OVER_CONTEST_REQUEST",
+      "purpose": "Expose a Human/Agent-friendly Review Request when the local contest channel is defined as review/reconsideration.",
+      "derivesFrom": [
+        "ContestRequestRecord",
+        "ReviewContestabilityProfile",
+        "owner-local channel definition"
+      ],
+      "law": "ReviewRequest is useful workflow vocabulary, but the label does not create review authority or guarantee replay/correction."
+    },
+    "AppealRequestView": {
+      "status": "STABILIZE_PRACTICE_DEFINED_VIEW_OVER_CONTEST_REQUEST",
+      "purpose": "Expose a Human/Agent-friendly Appeal when the local practice defines a party-initiated appeal/protest channel.",
+      "derivesFrom": [
+        "ContestRequestRecord",
+        "ReviewContestabilityProfile",
+        "owner-local appeal channel definition"
+      ],
+      "law": "Appeal is not Review by universal identity and does not guarantee a review, stay, reversal or correction; it is a practice-defined contest channel with its own admission semantics."
+    },
+    "ReviewContestabilityProfile": {
+      "status": "STABILIZE_DERIVED_POLICY_AUTHORITY_VIEW",
+      "purpose": "Answer whether/how a current determination can be contested or reviewed now, by whom, under what authority/policy, against which aspects, until when and with what interim effect.",
+      "queryInputs": [
+        "determinationRef",
+        "requesterRefOrClassOptional",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "outputs": [
+        "contestabilityState",
+        "availableChannels",
+        "eligibleRequesterRules",
+        "reviewAuthorityOperationKeysAndSourceRefs",
+        "targetableAspects",
+        "deadlineOrCurrentnessBoundaries",
+        "stayOrInterimEffectPolicy",
+        "possibleDispositionFamilies",
+        "sourceRefs",
+        "contestabilityStateDigest"
+      ],
+      "contestabilityStates": [
+        "open",
+        "conditional",
+        "closed_within_queried_scope",
+        "not_applicable",
+        "unresolved_or_conflicted"
+      ],
+      "targetableAspectFamiliesForUIOnly": [
+        "determination_content_or_status",
+        "case_or_evidence_basis",
+        "norm_or_evaluation_application_basis",
+        "procedure",
+        "binding_authority_or_currentness",
+        "enforcement_or_remedy_relation"
+      ],
+      "laws": [
+        "contestability != determination content",
+        "review authority comes from GPR1 effective authority/current policy rather than the request record",
+        "closed_within_queried_scope does not mean metaphysically immutable forever",
+        "review may exist without appeal and appeal may follow local processes not equivalent to generic review"
+      ]
+    },
+    "DecisionLineage": {
+      "status": "STABILIZE_DERIVED_GRAPH_NOT_CHAIN",
+      "purpose": "Reconstruct the history/currentness relationship among authoritative determinations for audit, explanation and current-status projection.",
+      "inputs": [
+        "AuthoritativeDeterminationRecords",
+        "owner-local prior/supersession/review relation records",
+        "F5 currentness/provenance"
+      ],
+      "outputs": [
+        "nodes",
+        "typedRelations",
+        "currentDeterminationRefsByScope",
+        "historicalDeterminationRefs",
+        "branchOrConflictMarkers",
+        "sourceRefs"
+      ],
+      "commonRelationFamiliesForUIOnly": [
+        "reviews",
+        "upholds",
+        "modifies",
+        "reverses",
+        "supersedes",
+        "reclassifies"
+      ],
+      "laws": [
+        "lineage may branch or contain multiple scope-specific currents; it is not universally a single chain",
+        "reversal != history erasure",
+        "reversal != full World rollback",
+        "later current status does not delete prior determination provenance",
+        "lineage graph is derived and not an independent decision authority"
+      ]
+    },
+    "OfficialStatusView": {
+      "status": "STABILIZE_DERIVED_USER_AGENT_VIEW",
+      "purpose": "Expose current binding practice/official status by scope/category without confusing it with underlying WorldTruth.",
+      "inputs": [
+        "DecisionLineage",
+        "current determination authority/currentness",
+        "query scope/category"
+      ],
+      "outputs": [
+        "targetRef",
+        "scopeOrCategoryRef",
+        "currentStatusPayload",
+        "currentDeterminationRef",
+        "effectiveAtOrCurrentnessSummary",
+        "contestabilitySummary",
+        "sourceRefs"
+      ],
+      "laws": [
+        "official != true",
+        "different categories/scopes can hold different official statuses over the same underlying event/history without contradiction",
+        "official status may change retrospectively without rewriting original World history"
+      ]
+    },
+    "CertificationView": {
+      "status": "STABILIZE_SPECIALIZED_DERIVED_VIEW",
+      "purpose": "Expose certification when the current authoritative determination operation is certification/verification-of-category/record status; do not equate all official statuses with certification.",
+      "derivesFrom": [
+        "OfficialStatusView",
+        "AuthoritativeDeterminationRecord with certification operation semantics",
+        "scope/category/currentness"
+      ],
+      "laws": [
+        "Certification is an authoritative case-status operation in applicable practices, not generic execution verification",
+        "certified != WorldTruth",
+        "OfficialStatus != Certification by identity",
+        "verification receipt may be basis for certification without itself being the certification"
+      ]
+    },
+    "FinalityStatusView": {
+      "status": "STABILIZE_DERIVED_UI_QUERY",
+      "purpose": "Provide useful pending/reviewable/currently-final/superseded UI vocabulary derived from current contestability and lineage rather than a persistent truth flag.",
+      "states": [
+        "pending_or_not_current",
+        "current_and_contestable",
+        "current_and_conditionally_contestable",
+        "current_and_closed_within_queried_scope",
+        "superseded_or_historical",
+        "unresolved_or_conflicted"
+      ],
+      "derivesFrom": [
+        "ReviewContestabilityProfile",
+        "DecisionLineage",
+        "F5 currentness"
+      ],
+      "laws": [
+        "finality != truth",
+        "finality != correctness",
+        "finality != eternal immutability",
+        "policy or authority changes can change future contestability without rewriting the old determination"
+      ]
+    }
+  },
+  "crossCuttingLaws": [
+    "OfficialCaseStatus != WorldTruth",
+    "AuthoritativeDetermination != Enforcement",
+    "Verification != CertificationByIdentity",
+    "Verification != AdjudicationByIdentity",
+    "ProposalReview != CaseReviewByIdentity",
+    "ProviderDecision != AuthoritativeDeterminationByIdentity",
+    "AuthorityDecision != CaseDeterminationByIdentity",
+    "WorldTerminalState != OfficialCaseDeterminationByIdentity",
+    "DeterministicExecution != AdjudicationByIdentity",
+    "ReviewRequest != ReviewAdmission",
+    "ReviewAdmission != ReviewOutcome",
+    "Appeal != ReviewByUniversalIdentity",
+    "Appeal != GuaranteedCorrection",
+    "Review != Replay",
+    "Reversal != HistoryErasure",
+    "Reversal != FullRollback",
+    "DecisionLineage != SingleChainByNecessity",
+    "Finality != Truth",
+    "Finality != Correctness",
+    "OfficialStatus != CertificationByIdentity",
+    "Contestability != DeterminationContent",
+    "RequesterIdentity != ReviewAuthority",
+    "ReviewAuthority != OriginalCaseAuthorityByIdentity",
+    "DeterminationBasisTrace != ChainOfThought",
+    "ExternalInstitution != NecessaryForBindingPracticeStatus"
+  ],
+  "stressCases": [
+    {"id":"CD1","regime":"direct collision physics","claim":"deterministic collision changes World state immediately","expected":"CaseDeterminationBoundary not_required"},
+    {"id":"CD2","regime":"closed action legality","claim":"current action predicate admits/rejects candidate with no independent case status","expected":"not_required; GDF1 admission only"},
+    {"id":"CD3","regime":"execution verification","claim":"VerificationReceipt confirms effect checks","expected":"not adjudication unless a separate binding practice status consumes it"},
+    {"id":"CD4","regime":"pre-commit plan review","claim":"player reviews and denies a proposal before execution","expected":"workflow/admission interaction, not review of prior authoritative case status"},
+    {"id":"CD5","regime":"provider decision","claim":"Agent chooses a candidate","expected":"cognition/policy decision is not authoritative case determination"},
+    {"id":"CD6","regime":"authority policy decision","claim":"permit/require-human/deny for one action candidate","expected":"authority/admission policy decision is not GDF3 case determination by identity"},
+    {"id":"CD7","regime":"World terminal mission status","claim":"deterministic reducer sets mission victory","expected":"World state is not separate official case determination unless practice exposes independent status"},
+    {"id":"CD8","regime":"automated tournament result","claim":"same deterministic algorithm stores official winner independently of raw event history","expected":"AuthoritativeDeterminationRecord applies"},
+    {"id":"CD9","regime":"sports referee ruling","claim":"referee rules foul after incident","expected":"binding determination distinct from incident truth/history"},
+    {"id":"CD10","regime":"VAR recommendation","claim":"system recommends overturn but referee retains authority","expected":"recommendation is not determination"},
+    {"id":"CD11","regime":"VAR authoritative protocol","claim":"current practice grants automated system final scoped decision authority","expected":"determination can be synthetic/deterministic"},
+    {"id":"CD12","regime":"TTRPG GM","claim":"GM resolves ambiguous rule/case","expected":"determination applies; no external institution required"},
+    {"id":"CD13","regime":"solitary challenge guess","claim":"player privately guesses own run invalid","expected":"nonbinding classification; no determination"},
+    {"id":"CD14","regime":"solitary self-certification","claim":"self-authored current practice makes explicit certification binding for personal run record","expected":"determination applies"},
+    {"id":"CD15","regime":"speedrun certification","claim":"completed run later certified valid","expected":"history unchanged; official category status created"},
+    {"id":"CD16","regime":"speedrun reclassification","claim":"same run moved to different category later","expected":"new determination/lineage; original run history unchanged"},
+    {"id":"CD17","regime":"multiple speedrun categories","claim":"same run valid in one category, invalid in another","expected":"scope/category-specific official statuses can coexist"},
+    {"id":"CD18","regime":"judged score","claim":"performance receives official score","expected":"score determination distinct from performance event"},
+    {"id":"CD19","regime":"moderation classification","claim":"classifier predicts policy violation","expected":"classification alone nonbinding"},
+    {"id":"CD20","regime":"moderation determination","claim":"authorized moderator records official violation status","expected":"determination applies"},
+    {"id":"CD21","regime":"moderation enforcement","claim":"separate automation applies sanction","expected":"enforcement remains separate from determination"},
+    {"id":"CD22","regime":"review request submitted","claim":"party files request","expected":"request != review admission or outcome"},
+    {"id":"CD23","regime":"review request rejected","claim":"channel rules make request ineligible","expected":"underlying current determination remains; request workflow closes"},
+    {"id":"CD24","regime":"review admitted","claim":"eligible request accepted for review","expected":"admission does not itself change determination content"},
+    {"id":"CD25","regime":"review uphold","claim":"authorized reviewer upholds prior status","expected":"new review determination may preserve content with new authority/time provenance"},
+    {"id":"CD26","regime":"review modify","claim":"reviewer changes status partially","expected":"new determination supersedes/modifies prior; prior remains historical"},
+    {"id":"CD27","regime":"review reverse","claim":"reviewer reverses prior ruling","expected":"lineage records reversal; World history not erased"},
+    {"id":"CD28","regime":"review after irreversible effect","claim":"penalty partly executed before reversal","expected":"reversal does not imply full rollback"},
+    {"id":"CD29","regime":"review without replay","claim":"review uses new evidence without replaying original event","expected":"Review != Replay"},
+    {"id":"CD30","regime":"appeal submitted","claim":"party invokes appeal channel","expected":"AppealRequestView over contest workflow; no guarantee of review/correction"},
+    {"id":"CD31","regime":"appeal denied admission","claim":"deadline elapsed","expected":"request expired/rejected; finality view may become closed within scope"},
+    {"id":"CD32","regime":"appeal de novo","claim":"practice defines fresh hearing rather than narrow review","expected":"appeal channel semantics owner-local; Appeal != Review by universal identity"},
+    {"id":"CD33","regime":"appeal no automatic stay","claim":"sanction continues while appeal pending","expected":"request does not suspend enforcement by identity"},
+    {"id":"CD34","regime":"appeal with stay policy","claim":"practice suspends consequence during admitted appeal","expected":"interim-effect policy derived from contestability policy, not request existence alone"},
+    {"id":"CD35","regime":"new evidence same norm","claim":"review basis changes evidence only","expected":"DeterminationBasisTrace distinguishes case basis change"},
+    {"id":"CD36","regime":"same evidence new norm","claim":"rule/evaluation version changes current case status","expected":"basis trace distinguishes norm/application change"},
+    {"id":"CD37","regime":"closed deterministic basis","claim":"official deterministic status needs no human rationale","expected":"record valid without chain-of-thought/full rationale"},
+    {"id":"CD38","regime":"Agent authorized determination","claim":"Agent with GPR1 case authority emits binding result","expected":"binding determined by authority/currentness, not model fluency"},
+    {"id":"CD39","regime":"Agent provider substitution","claim":"same semantic adjudicator role switches provider","expected":"no case-status semantic change if authority/currentness/output relation unchanged"},
+    {"id":"CD40","regime":"same model propose and decide","claim":"one model emits recommendation then separate authorized determination","expected":"same model identity does not merge output authority"},
+    {"id":"CD41","regime":"parallel review channels","claim":"disciplinary and category review operate on different aspects/scopes","expected":"contestability profile exposes multiple channels; lineage may branch/scope-split"},
+    {"id":"CD42","regime":"conflicting current determinations","claim":"two authority sources appear current in same scope","expected":"lineage/current-status projection marks unresolved/conflicted; does not invent rank"},
+    {"id":"CD43","regime":"policy opens new review channel","claim":"previously closed determination becomes reviewable prospectively","expected":"FinalityStatus changes without making old determination untrue/rewriting it"},
+    {"id":"CD44","regime":"review window expires","claim":"no currently admitted review path remains in queried scope","expected":"current_and_closed_within_queried_scope; not metaphysical immutability"},
+    {"id":"CD45","regime":"official but wrong","claim":"final official ruling later discovered factually mistaken","expected":"Finality/official status do not equal truth/correctness"},
+    {"id":"CD46","regime":"certification uses verification receipt","claim":"execution verification becomes one input to official certification","expected":"VerificationReceipt is basis; CertificationView derives from authoritative certification determination"},
+    {"id":"CD47","regime":"official status not certification","claim":"referee foul ruling is official but not a certification workflow","expected":"OfficialStatus != Certification by identity"},
+    {"id":"CD48","regime":"certification revoked","claim":"later authoritative determination withdraws certification","expected":"lineage/current status changes; prior certification remains historical"},
+    {"id":"CD49","regime":"requester lacks review authority","claim":"player may file appeal but cannot decide it","expected":"requester eligibility separated from reviewer authority"},
+    {"id":"CD50","regime":"reviewer differs from original judge","claim":"head judge reviews floor judge","expected":"review authority distinct from original case authority"},
+    {"id":"CD51","regime":"self-review allowed","claim":"solitary practice permits same holder to reconsider own status","expected":"valid if current policy/authority permits; separation policy not universal"},
+    {"id":"CD52","regime":"self-review prohibited","claim":"tournament separation policy blocks same holder","expected":"contestability profile uses GPR1 policy to require distinct reviewer"}
+  ],
+  "currentEngineeringAudit": {
+    "MissionControlProposalReview": {
+      "classification": "PRE_COMMIT_PROPOSAL_REVIEW_NOT_CASE_REVIEW",
+      "finding": "Mission Control proposal-review exposes player inspection/approve/deny of pending proposals before authoritative World execution. It creates no independently meaningful prior binding case status and should not be generalized into GPR2 ReviewRequest/DecisionLineage."
+    },
+    "VerificationReceipt": {
+      "classification": "EXECUTION_VERIFICATION_EVIDENCE_NOT_CERTIFICATION",
+      "finding": "World/Host verification checks retained execution/effect correctness. It may serve as basis for a future certification determination but does not itself create official category/case status."
+    },
+    "TeamAuthorityDecision": {
+      "classification": "ACTION_AUTHORITY_POLICY_DECISION_NOT_CASE_DETERMINATION",
+      "finding": "permit/require-human/deny resolves action-authority policy for one candidate; it is not an authoritative adjudicative case status by identity."
+    },
+    "ProviderOrAgentDecision": {
+      "classification": "COGNITION_OR_POLICY_SELECTION_NOT_CASE_DETERMINATION",
+      "finding": "Model/provider decisions select candidate actions/directives under bounded context; model confidence/rationale do not create GDF3 binding status."
+    },
+    "WorldMissionStatus": {
+      "classification": "AUTHORITATIVE_WORLD_STATE_NOT_SEPARATE_CASE_DETERMINATION",
+      "finding": "mission running/victory/failure is currently produced directly by deterministic World transition semantics. No separate official case-status layer is evidenced in the current Station Zero product."
+    },
+    "ReplayDiagnosis": {
+      "classification": "DERIVED_HISTORY_DIAGNOSIS_NOT_DECISION_LINEAGE",
+      "finding": "Replay/diagnosis reconstructs action/authority/evidence chains and counterfactual diagnostics but currently does not represent a lineage of superseding authoritative case determinations."
+    }
+  },
+  "implementationDecision": {
+    "broadImplementationNow": false,
+    "currentDirectConsumerNeed": "NOT_PROVEN",
+    "reason": "Current Station Zero uses proposal review, action authority, verification, World terminal status and replay, but none currently proves a persistent independent GDF3 case-status consumer requiring generic determination/review tables. GPR2 should remain a reusable practical contract set until a GameForm such as tournament/judged/moderated/certified play actually consumes it.",
+    "safeImmediateCandidates": [
+      "CaseDeterminationBoundary diagnostic/lint tooling",
+      "documentation terminology guards separating proposal review, verification, certification and adjudication",
+      "pure derived projection helpers only when a concrete determination source appears"
+    ]
+  },
+  "nextRound": {
+    "name": "GPR3 — Evidence / Norm / Explanation Toolkit",
+    "preset": true,
+    "reason": "R0 ranked P3 behind P1/P2. GPR2 now supplies the determination/contestability structures that EvidenceBundleForCase, NormApplicationView, InterpretiveCommitment, PrecedentLink, ConventionStatusView, DiscretionEnvelope and VerificationView need in order to be reconstructed without collapsing evidence, norm and authority."
+  }
+}
