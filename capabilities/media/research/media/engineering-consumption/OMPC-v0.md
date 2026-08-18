@@ -109,3 +109,19 @@ repository/path rename != source-fence rewrite
 ```
 
 This refinement strengthens `SourceBinding`, `RepresentationBody`, and `Transformation / ProvenanceTrace`; it does not admit a seventh semantic role.
+
+## M3 refinement — temporal coverage non-collapse
+
+Web interaction dogfood shows that endpoint-equivalent projections may still represent semantically different encounters when intermediate action, state, latency or feedback carries meaning.
+
+### 10. Temporal Coverage Non-Collapse
+
+A projection that supports an encounter/trajectory-level claim MUST disclose the temporal coverage on which that claim rests. Matching initial/final state cannot silently stand in for the omitted trajectory when intermediate state/action/feedback may be material.
+
+```text
+same initial state + same final state != same encounter
+static endpoint coverage != trajectory coverage
+omitted transient feedback != evidence of its absence
+```
+
+This strengthens `ProjectionEnvelope`, `RepresentationBody`, and `Transformation / ProvenanceTrace`; it does not add a seventh role or a Media event runtime.

@@ -23,5 +23,7 @@ Project construction has admitted technology-neutral dogfood, not a production-s
 - [`fixtures/host-task-rev3-dogfood.md`](./fixtures/host-task-rev3-dogfood.md) — Fixture A: destructive dual-observer Host projection/currentness test.
 - [`fixtures/studio-expression-card-dogfood.md`](./fixtures/studio-expression-card-dogfood.md) — Fixture B: real Studio transformation/provenance/identity test.
 - [`fixtures/studio-expression-card-lineage.json`](./fixtures/studio-expression-card-lineage.json) — structured Fixture B lineage realization.
+- [`fixtures/web-m7-trajectory-dogfood.md`](./fixtures/web-m7-trajectory-dogfood.md) — Fixture C: Web-owned interaction trajectory/time/state/feedback test.
+- [`fixtures/web-m7-trajectory-lineage.json`](./fixtures/web-m7-trajectory-lineage.json) — structured Fixture C bridge realization.
 
-These experiments may revise the projection contract. They do not admit a Media engine, SDK, schema package or new Foundation.
+A/B/C now form an initial OMPC-v0 conformance corpus. They may revise the projection contract, but they do not admit a Media engine, SDK, production schema package or new Foundation.
