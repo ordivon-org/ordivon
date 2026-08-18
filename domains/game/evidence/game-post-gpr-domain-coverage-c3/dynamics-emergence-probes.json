@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c3-probes",
+  "date": "2026-08-18",
+  "candidate": "Dynamics / Emergence / Systemic Regimes",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"Dynamics","verdict":"REJECT_NEW_PRIMITIVE","reason":"Trajectory/evolution structure over state under transition/policy/time semantics."},
+    {"candidate":"Emergence","verdict":"REJECT_GAME_PRIMITIVE","reason":"Cross-domain relation between lower-level interactions and higher-level pattern/regularity."},
+    {"candidate":"FeedbackLoop","verdict":"REJECT_GAME_PRIMITIVE","reason":"Generic causal return/coupling topology."},
+    {"candidate":"AttractorCycleRunaway","verdict":"REJECT_GAME_PRIMITIVE","reason":"Generic trajectory/regime properties under a chosen state/model representation."},
+    {"candidate":"Cascade","verdict":"REJECT_GAME_PRIMITIVE","reason":"Generic propagation/amplification through dependency topology."},
+    {"candidate":"PhaseTransitionRegimeChange","verdict":"REJECT_GAME_PRIMITIVE","reason":"Generic qualitative change in macro behavior as parameters/state/policies vary."},
+    {"candidate":"ResilienceFragility","verdict":"REJECT_GAME_PRIMITIVE","reason":"Cross-domain diagnostic relative to perturbation and maintained-property criteria."},
+    {"candidate":"EmergentGameplay","verdict":"REJECT_ONTOLOGY_RETAIN_DESCRIPTION","reason":"Useful design label for patterns produced by interacting rules/policies rather than direct authored sequencing."}
+  ],
+  "probes": [
+    {"id":"C3-F1","regime":"closed-loop player/opponent policy","pressure":"same mechanics and initial-state distribution, different policies","result":"Mechanics != DynamicsByIdentity","reduction":["F9 Policy","F2-F5 State/Transition/Time","R19 strategy when multi-agent"]},
+    {"id":"C3-F2","regime":"resource-flow economy","pressure":"same local mechanic kinds, varied parameters/topology","result":"LocalTransitionInventory != MacroRegimeDescription","reduction":["general system dynamics","R14 Game economy meanings","F2-F4 state/relations/transitions"]},
+    {"id":"C3-F3","regime":"hybrid action-game movement","pressure":"local legality vs long-horizon nonlinear reachability","result":"ActionLegalNow != ReachableRegionOverTrajectory","reduction":["generic transition-system reachability","GDF1 action semantics","F2-F5"]},
+    {"id":"C3-F4","regime":"automated playtesting","pressure":"one trajectory vs many simulations","result":"SingleTrajectory != DynamicRegimeEvidence","reduction":["sampling/evidence","trajectory distributions","GPR3 evidence discipline"]},
+    {"id":"C3-F5","regime":"formal game analysis / exploit discovery","pressure":"global exploit/solution not explicitly authored as one rule","result":"GlobalPattern != ExplicitAuthoredRuleByIdentity","reduction":["reachability/trajectory","Game-relative evaluation","GDF3 only if official status contested"]},
+    {"id":"C3-F6","regime":"macrostate abstraction","pressure":"different micro trajectories converge to same useful macro description","result":"Macrostate != exact MicrostateByIdentity","reduction":["F7 representation/query abstraction","F2 if aggregate becomes authoritative state"]},
+    {"id":"C3-F7","regime":"snowball labels","pressure":"same macro label from economic vs information feedback","result":"MacroLabel != CausalExplanation","reduction":["DomainCausality","TypedTopology","provenance"]},
+    {"id":"C3-F8","regime":"ownership subtraction","pressure":"remove Player/GameGoal/GameAction semantics while preserving stocks/flows/feedback/transitions","result":"Core stability/attractor/cascade questions remain meaningful without Game semantics","reduction":["World/general dynamical systems ownership"]},
+    {"id":"C3-F9","regime":"player causal-access counterfactual","pressure":"same underlying dynamics, different observability/actionability/legibility","result":"SystemDynamics != PlayableSystemDynamics","reduction":["R29 Playable(X)=PlayerCausalAccess(X)","R12/R9 causal legibility"]},
+    {"id":"C3-F10","regime":"opaque/chaotic complexity","pressure":"high dynamic complexity with poor player model/action access","result":"ComplexDynamics != GameplayDepth != GoodEmergence","reduction":["R9 causal legibility","R22 predictability","PlayerCausalAccess"]},
+    {"id":"C3-F11","regime":"strategic stability/metagame","pressure":"static equilibrium vs cyclic/path-dependent strategy dynamics","result":"Equilibrium != FullDynamicTrajectoryModel","reduction":["R19 equilibrium diagnostic","population dynamics remains separate candidate"]},
+    {"id":"C3-F12","regime":"multi-agent emergent communication/coordination","pressure":"unscripted coordination/convention formation","result":"AgentEraEmergence != new Game primitive","reduction":["R19 coordination","R25 relation/joint state","R27 learning","R28 culture/convention","F7/F9"]},
+    {"id":"C3-F13","regime":"runtime experience management","pressure":"transition function/effective dynamics itself changes during play","result":"OrdinaryEndogenousDynamics != AuthorityToModifyDynamics","reduction":["preserve Adaptive Experience as independent later candidate","GDF0 authority/currentness"]},
+    {"id":"C3-F14","regime":"scripted vs endogenous collapse","pressure":"same visible macro outcome, different causal organization","result":"OutcomeSimilarity != EmergenceByIdentity","reduction":["DomainCausality","authorship/provenance","F4 transition"]}
+  ],
+  "residualPattern": {
+    "names": ["SystemicDynamicsView", "RegimeDiagnostic"],
+    "status": "STRONG_USEFUL_RESEARCH_PRACTICAL_ABSTRACTION_NOT_GAME_FOUNDATION",
+    "inputs": [
+      "GameStructureAndCurrentness",
+      "StateTransitionModelRefs",
+      "PolicyOpponentPopulationAssumptions",
+      "InitialConditionDistribution",
+      "HorizonOrTemporalFrame",
+      "PerturbationFamily",
+      "PlayerObservationActionControlRelations",
+      "GameEvaluationOrRelevanceTarget"
+    ],
+    "outputs": [
+      "TrajectoryDistributionSummaries",
+      "FeedbackDependencyTopology",
+      "CandidateMacroRegimes",
+      "ReachableOrAbsorbingRegions",
+      "PathDependenceOrHysteresisEvidence",
+      "FragilityResilienceUnderDeclaredPerturbations",
+      "CrossScaleCausalExplanation",
+      "PlayerCausalAccessToRelevantRegimeDistinctions",
+      "UncertaintyEvidenceProvenance"
+    ]
+  },
+  "ownership": {
+    "WorldGeneralDynamics": ["state evolution mathematics", "feedback/stability/attractors/cycles", "cascades/phase changes", "path dependence/hysteresis", "fragility/resilience", "cross-scale system behavior"],
+    "Game": ["Game-relative state/action/evaluation meaning", "effective GameStructure/currentness", "participant policy/control/observation access", "which dynamic distinctions matter for Game goals/value", "Playable(Dynamics) through PlayerCausalAccess"],
+    "Human": ["subjective surprise", "experienced complexity", "felt flow/frustration/mastery", "cognitive model formation mechanisms"],
+    "Media": ["signal/perceptual presentation supporting dynamic legibility"],
+    "PopulationSocial": ["population adaptation", "convention formation", "strategy-distribution evolution", "social diffusion"]
+  },
+  "foundationVerdict": "NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict": "STRONG_RESEARCH_PRACTICAL_GAP__NO_GPR_ADMISSION__NO_GENERIC_ENGINEERING_CONSUMER_PROVEN",
+  "agentEraVerdict": "AMPLIFIES_DYNAMIC_ANALYSIS_BUT_NO_AGENT_SPECIFIC_EMERGENCE_PRIMITIVE__ADAPTIVE_RUNTIME_MODIFICATION_REMAINS_SEPARATE_CANDIDATE",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "relativeUpdate": {
+    "C1":"SURVIVES_STRONG_GAME_OWNED_DOWNSTREAM_FOUNDATION_CANDIDATE",
+    "C2":"REDUCED_CROSS_DOMAIN_COMPARISON_PATTERN",
+    "C3":"REDUCED_WORLD_GENERAL_DYNAMICS_PLUS_EXISTING_PLAYER_CAUSAL_ACCESS"
+  },
+  "finalClassification":"CROSS_CUTTING__STRONG_RESEARCH_PRACTICAL_GAP__PRIMARILY_WORLD_GENERAL_SYSTEMS_OWNED_BELOW_GAME_BOUNDARY__GAME_CONSUMES_THROUGH_PLAYABLE_DYNAMICS__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}
