@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 0,
+  "kind": "ordivon.media.ompc-fixture",
+  "truthRole": "derived-read-only-projection-fixture",
+  "sourceBinding": {
+    "owner": "ordivon-host",
+    "referent": "task:ordivon-media-project-inception-m0-m1-20260818",
+    "fence": {
+      "kind": "host-task-revision",
+      "revision": 3,
+      "checkpointDigest": "sha256:695cf6a3cba795a3a93c774c65517b6741f093fd953d6ca20978fcffff7988b0"
+    },
+    "authorityRule": "Host continuity only; this projection is not Host authority and does not validate Runtime, Git or domain truth."
+  },
+  "observerScope": {
+    "observer": "agent",
+    "purpose": "recover the exact M0/M1 project-inception frontier with bounded context",
+    "representationPolicy": "compact structured projection with explicit omissions and owner boundary"
+  },
+  "projectionEnvelope": {
+    "sourceState": "ready",
+    "objective": "Establish Ordivon Media as the first-class structured-mediation owner while retaining Studio as the authoring/production plane and keeping Web/Game autonomous.",
+    "established": [
+      "Media owns structured mediation, not underlying source-owner truth.",
+      "Studio is retained as Media authoring/production capability.",
+      "Web and Game remain autonomous bridge consumers.",
+      "MF0-MF9 do not map one-to-one to implementation modules; MF10 is not admitted.",
+      "OMPC-v0 is technology-neutral and shared Media code is not admitted by this fixture."
+    ],
+    "nextActions": [
+      "revalidate live Studio/Media Git/worktree/path topology before physical identity migration",
+      "materialize OMPC-v0 reference contract",
+      "dogfood Human/Web and Agent projections from this exact Host fence",
+      "advance the Host fence and prove this revision-3 projection becomes historical/stale"
+    ]
+  },
+  "representationBody": {
+    "format": "structured-json-fixture",
+    "semanticClass": "project-continuity-summary"
+  },
+  "transformationProvenanceTrace": {
+    "operations": ["select", "compress", "rephrase"],
+    "materialOmissions": [
+      "full Host checkpoint arrays",
+      "Host event timeline",
+      "handoff descriptor/event digests not required for this observer task"
+    ],
+    "semanticLossClaim": "No omitted field is represented as absent from Host; omissions are projection-local."
+  },
+  "actionExposureDisclosure": {
+    "exposedActions": [
+      {
+        "label": "continue-project-work",
+        "targetAuthority": "ordivon-host/project-owner",
+        "authorizationClaim": "not-evaluated",
+        "admissionClaim": "not-evaluated",
+        "executionClaim": "not-evaluated"
+      }
+    ],
+    "notValidated": [
+      "Runtime state",
+      "Git current state",
+      "Media domain completion",
+      "Web/Game implementation state"
+    ],
+    "currentnessRule": "Revision 3 is source-fenced only. A newer Host revision makes this projection historical with respect to Host source progression; Media does not infer broader semantic staleness."
+  }
+}
