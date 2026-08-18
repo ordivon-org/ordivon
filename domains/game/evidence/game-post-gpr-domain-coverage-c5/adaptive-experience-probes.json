@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c5-probes",
+  "date": "2026-08-18",
+  "candidate": "Adaptive Experience Management / Runtime Game Modification",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"ExperienceManager","verdict":"REJECT_GAME_PRIMITIVE","reason":"Can be embedded as an internal role/controller and realized by Human, rules engine, learned Agent or operator."},
+    {"candidate":"PlayerModel","verdict":"REJECT_FOUNDATION","reason":"Optional F7 representation/estimate; adaptation can be state/threshold driven without persistent player model."},
+    {"candidate":"DynamicDifficultyAdjustment","verdict":"REJECT_FOUNDATION","reason":"Challenge-targeted adaptation family already consumed by GDF2 plus policy/change semantics."},
+    {"candidate":"Personalization","verdict":"REJECT_GAME_PRIMITIVE","reason":"Target-relative selection/modification pattern shared with recommender/control systems."},
+    {"candidate":"AdaptiveGame","verdict":"REJECT_CATEGORY_KIND","reason":"Condition-dependent policies and authorized mutable rules do not create a new Game ontological kind."},
+    {"candidate":"SteeringObjective","verdict":"REJECT_UNIVERSAL_OBJECTIVE","reason":"Engagement/challenge/fairness/learning/narrative/preference goals are F8 purpose-relative criteria."},
+    {"candidate":"AdaptationActionEnum","verdict":"REJECT_CLOSED_ENUM","reason":"Parameter, content, rule, spawn, dynamics and presentation changes are heterogeneous owner-local operations."},
+    {"candidate":"AIDirector","verdict":"REJECT_AGENT_ERA_PRIMITIVE","reason":"AI/ML realization does not determine semantic role or authority."}
+  ],
+  "probes": [
+    {"id":"C5-F1","regime":"threshold-driven DDA","pressure":"replace learned player model with hand-authored current-state threshold while preserving adaptive effect","result":"PlayerModel != necessary condition for Game adaptation","reduction":["F7 representation when model exists","F2 current state","F9 policy"]},
+    {"id":"C5-F2","regime":"multi-objective experience management","pressure":"same observations/model and candidate interventions, different steering objective","result":"PlayerModel != AdaptationDecisionByIdentity","reduction":["F8 evaluation","C2 purpose-relative comparison","F9 policy"]},
+    {"id":"C5-F3","regime":"authorized encounter selection","pressure":"choose among already-authorized easy/medium/hard encounters","result":"AdaptiveSelection != GameStructureMutationByIdentity","reduction":["ordinary F9 policy/action","GDF2 challenge scope","C4-like candidate selection"]},
+    {"id":"C5-F4","regime":"Procedural Game Adaptation","pressure":"runtime modification of transition function","result":"SomeAdaptationCanChangeEffectiveDynamicsButDoesNotFalsifyGDF0RuleMutability","reduction":["GDF0 EffectiveRuleTopology","change authority/currentness","F4 transition semantics"]},
+    {"id":"C5-F5","regime":"advisory vs authoritative director","pressure":"same recommendation but different authority to bind/apply","result":"SteeringRecommendation != EffectiveGameChangeByIdentity","reduction":["GPR1 advise/propose/change operation separation","ScopedAuthorityEdge"]},
+    {"id":"C5-F6","regime":"technical mutator process vs semantic authority","pressure":"technical ability to edit data with/without Game authority","result":"AdaptiveCapability != AdaptiveAuthority","reduction":["GPR1 Authority != Capability"]},
+    {"id":"C5-F7","regime":"scope-limited directors/operators","pressure":"same manager algorithm authorized for next encounter vs current rule vs future instance","result":"ExperienceManagerIdentity != ChangeScopeByIdentity","reduction":["GPR1 scoped authority","GDF0 currentness"]},
+    {"id":"C5-F8","regime":"change effective-boundary timing","pressure":"same represented change effective now/next phase/next encounter/next instance/next season","result":"ChangeRepresentation != EffectiveChangeCurrentness","reduction":["GDF0 EffectiveRuleTopology/currentness","GPR3 adoption/version refs","C1 if instance effect"]},
+    {"id":"C5-F9","regime":"hidden adaptive director","pressure":"same visible state/action/base artifact, different hidden manager model/steering state","result":"SubjectLearning != GameAdaptationAndHiddenSteeringStateIsCausallyReal","reduction":["F7 hidden state/model","F9 policy","F4 change","authority/currentness"]},
+    {"id":"C5-F10","regime":"opaque counter-adaptation","pressure":"same adaptive mechanism with different player-visible/inferable evidence boundaries","result":"SameAdaptiveMechanism != SamePlayableAdaptation","reduction":["R27 hidden adaptation","R29 Playable(X)=PlayerCausalAccess(X)"]},
+    {"id":"C5-F11","regime":"multiplayer experience-management fairness","pressure":"aggregate greedy objective vs player-distribution fairness constraint","result":"EffectiveAggregateAdaptivePolicy != FairAdaptivePolicyByIdentity","reduction":["R22 fairness","C2 declared criterion/constraint","F8"]},
+    {"id":"C5-F12","regime":"AI Director quest selection","pressure":"personalized selection among currently authorized quests","result":"Personalization != RuleMutationByIdentity","reduction":["C4-like selection architecture","F8/F9","R20 content"]},
+    {"id":"C5-F13","regime":"player-level matchmaking / DDA","pressure":"select content based on player/level estimates","result":"LargeAdaptiveSubsetReducesToCandidateSelectionPlusChallengeSemantics","reduction":["C4 selection pattern","GDF2 challenge","F7 estimates"]},
+    {"id":"C5-F14","regime":"dynamic level generation","pressure":"modify geometry/content while movement/evaluation rules remain stable","result":"ContentMutation != RuleMutationByIdentity != GameStructureIdentityChangeByIdentity","reduction":["R20 content/authorship","F2-F4 state/transition","GDF0 only if constitutive overlay changes"]},
+    {"id":"C5-F15","regime":"unified experience management","pressure":"represent game-manager pair as one game with manager embedded","result":"ExperienceManagerExistence != NewExternalGameOntologyLayer","reduction":["GPR1 role/authority topology","F9 policy/controller","GDF0 GameStructure"]},
+    {"id":"C5-F16","regime":"EM-Glue software decoupling","pressure":"manager implementation externalized from environment","result":"DeploymentBoundary != SemanticGameBoundaryByIdentity","reduction":["Runtime implementation boundary","GDF0 constitutive authority/currentness"]},
+    {"id":"C5-F17","regime":"DDA possibility-space analysis","pressure":"same adaptive policy architecture reacting to uncertain/changing states yields broad runtime outcome space","result":"AdaptivePolicySpecification != EnumeratedRuntimeOutcomes","reduction":["C3 systemic analysis","evidence/testing","F9 policy"]},
+    {"id":"C5-F18","regime":"AI Director empirical evaluation","pressure":"adaptive architecture with inconclusive vs positive outcome evidence in different studies","result":"AdaptiveArchitecture != ImprovedPlayerExperienceByIdentity","reduction":["Human experience evidence","GDF0 Game execution != PlayExperience","F8 evaluation"]},
+    {"id":"C5-F19","regime":"Human GM / rules engine / Agent director substitution","pressure":"same role/access/authority with different realization substrate","result":"HumanVsAgentProvider != AdaptiveAuthorityKindByIdentity","reduction":["GPR6 realization separation","GPR1 authority"]},
+    {"id":"C5-F20","regime":"participant-selected difficulty/assist","pressure":"player explicitly chooses adaptation request","result":"GameAdaptation != AutonomousExperienceManagerNecessity","reduction":["GPR1 authority/request source","GDF0 mutability","GDF2 challenge"]}
+  ],
+  "residualPattern": {
+    "names": ["AdaptiveInterventionTrace", "GameChangeDiagnostic"],
+    "status": "STRONG_USEFUL_PRACTICAL_RESEARCH_ABSTRACTION_NOT_GAME_FOUNDATION",
+    "stages": [
+      "ObservationBasis",
+      "ModelOrEstimateOptional",
+      "SteeringObjectiveOrCriterion",
+      "CandidateInterventionSet",
+      "SelectionPolicy",
+      "AuthorityDisposition",
+      "InterventionProposalOrDecision",
+      "AppliedChange",
+      "EffectiveScopeAndCurrentness",
+      "DownstreamEffectRefs",
+      "LegibilityEvidenceProvenance"
+    ],
+    "antiCollapse": [
+      "PlayerModel != PlayerTruth",
+      "PlayerModel != SteeringObjective",
+      "SteeringObjective != SelectionPolicy",
+      "SelectionPolicy != ChangeAuthority",
+      "Recommendation != Proposal != BindingDecision != AppliedChange",
+      "AppliedChange != EffectiveRuleTopologyChangeByIdentity",
+      "ContentSelection != RuleMutationByIdentity",
+      "ParameterChange != GameStructureIdentityChangeByIdentity",
+      "TechnicalCapability != ChangeAuthority",
+      "AdaptiveArchitecture != BetterPlayerExperience",
+      "ManagerProcessBoundary != SemanticGameBoundary"
+    ]
+  },
+  "subtraction": {
+    "ObservationModel":"F7 plus World/Human evidence ownership",
+    "SteeringObjective":"F8 plus C2 purpose-relative evaluation",
+    "CandidateSelection":"F4/F9 plus C4-like selection pattern",
+    "Authority":"GPR1 ScopedAuthorityEdge and operation separation",
+    "RuleDynamicsMutability":"GDF0 EffectiveRuleTopology, rule mutability and currentness",
+    "ChallengeEffect":"GDF2",
+    "DynamicsEffect":"C3/World dynamics",
+    "InstanceEffect":"C1",
+    "Legibility":"R12/R27/R29 PlayerCausalAccess"
+  },
+  "ownership": {
+    "Game":["current effective Game semantics","Game-relative steering criteria where adopted","which changes are admissible/constitutive","change authority/currentness within GamePractice","downstream Game meaning of applied intervention"],
+    "Human":["actual subjective experience","felt difficulty/frustration/engagement","preference/intent where not merely model estimate"],
+    "World":["underlying observed facts/environment reality"],
+    "Media":["presentation/perception mechanisms changed by adaptation"],
+    "Runtime":["technical execution/deployment/process state","model invocation/service mechanics"],
+    "CrossDomainControlMLRecommender":["estimation algorithms","bandit/RL/control methods","optimization algorithms","recommendation machinery"]
+  },
+  "foundationVerdict":"NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict":"STRONG_NEWLY_DISCOVERED_PRACTICAL_GAP__NO_GPR_ADMISSION__NO_GENERIC_ENGINEERING_SOURCE_LAYER_PROVEN",
+  "agentEraVerdict":"AGENT_ERA_AMPLIFIES_SCOPE_PROVENANCE_CURRENTNESS_AUTHORITY_TRACEABILITY_AND_LEGIBILITY_BUT_REQUIRES_NO_AGENT_MANAGER_PRIMITIVE",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0_PRC3":"NOT_TRIGGERED",
+    "GDF0_PRC6":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "relativeUpdate": {
+    "C1":"SURVIVES_STRONG_GAME_OWNED_DOWNSTREAM_FOUNDATION_CANDIDATE",
+    "C2":"REDUCED",
+    "C3":"REDUCED",
+    "C4":"REDUCED",
+    "C5":"REDUCED_EXISTING_GDF0_GPR1_CHANGE_SEMANTICS_PLUS_STRONG_TRACE_TOOLING_GAP"
+  },
+  "finalClassification":"STRONG_NEWLY_DISCOVERED_PRACTICAL_GAP__CROSS_CUTTING_CONTROL_ML_RECOMMENDER_DEPENDENCY__GAME_EFFECTIVE_SEMANTICS_AUTHORITY_BOUNDARY_ALREADY_CLOSED_BY_GDF0_GPR1__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}
