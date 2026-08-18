@@ -34,7 +34,8 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-H — Constitutive Theories II: Attention Schema, Sensorimotor/Enactive, Affective/Homeostatic & Illusionist Routes: **complete / provisional constitutive-theory comparison II**
 - MF9-I — Development, Ontogeny & Emergence of Experience: **complete / provisional developmental-emergence frame**
 - MF9-J — Evolution, Function & Adaptive Role of Experience: **complete / provisional evolution-function frame**
-- Next: **MF9-K — Experience Global Falsification, Residual Audit & Minimal Foundation Reconstruction**
+- MF9-K — Experience Global Residual Audit: **complete / residual audit found a genuine new foundation continent; global falsification deferred**
+- Next: **MF9-L — Fundamental Experience Ontologies: Grounding, Combination, Subject Individuation & Mind–Matter Relation**
 
 Current MF5 canonical closeout:
 
@@ -127,6 +128,10 @@ Current MF9-I developmental-emergence round:
 Current MF9-J evolution/function round:
 
 [`media-foundations-mf9j-20260818.md`](./media-foundations-mf9j-20260818.md)
+
+Current MF9-K residual-audit round:
+
+[`media-foundations-mf9k-20260818.md`](./media-foundations-mf9k-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
