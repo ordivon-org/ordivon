@@ -1,4 +1,10 @@
-# Ordivon Studio
+# Ordivon Media
+
+Ordivon Media owns **structured mediation** across Ordivon: how source-owned realities, descriptions, states and actions become representable, composable, transformable, exposable and interactable for human and Agent observers without becoming a second truth authority.
+
+The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
+
+## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
 

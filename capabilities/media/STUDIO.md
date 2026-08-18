@@ -122,7 +122,7 @@ C2 makes that specialization explicit in [`research/expression/profiles/`](resea
 ## System shape
 
 ```text
-ordivon-studio
+ordivon-media
 ├── apps
 │   ├── preview             cross-medium source and production preview
 │   └── motion-remotion     first programmatic video renderer

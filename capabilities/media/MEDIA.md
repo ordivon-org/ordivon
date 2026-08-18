@@ -15,9 +15,9 @@ Media does **not** own the underlying domain truth being mediated.
 7. **Derived reality stays derived.** Publication, interface, authorship, preservation, mediated presence, datafication/legibility and related structures are first-class typed derived realities without hidden primitive promotion.
 8. **Consumer-pressure extraction.** Shared Media implementation is extracted only after materially different real consumers reproduce common pressure that owner-local solutions cannot cleanly contain.
 
-## Current project inversion
+## Project inversion — materialized
 
-The current physical repository is still `/root/projects/ordivon-studio`, while the canonical Media research navigation root is `research/media/`. Project construction therefore starts with an owner-identity inversion:
+The physical repository is now `/root/projects/ordivon-media`, and the canonical Media research navigation root remains `research/media/`. The owner-identity inversion is materialized:
 
 ```text
 old: Studio project containing Media research

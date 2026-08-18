@@ -98,3 +98,18 @@ re-read live source truth
 ```
 
 M0 ends when project identity and recovery navigation agree on Ordivon Media. It does not require a directory beautification campaign or a Media SDK.
+
+## Execution result — 2026-08-18
+
+M0 physical owner-identity migration passed its execution gates.
+
+- `project/media-m0-m1-20260818` was fast-forward integrated into the clean old root main at `3f00f5990654ba0bce1b248a5744e4343cff4f31`.
+- The historical Media research and materialization Runtime worktrees were revalidated clean and closed with exact `sourceStateDigest` fences; their commits remain reachable through durable refs/main ancestry.
+- The M0 preflight worktree was then closed cleanly, leaving exactly one Studio/Media worktree before the move.
+- Pre-move proof established source path present, target path absent, root main clean at exact `3f00f599...`, and worktree count = 1.
+- The repository root was moved once from `/root/projects/ordivon-studio` to `/root/projects/ordivon-media`.
+- `git worktree repair` completed, post-move Git status remained clean, main remained exact `3f00f599...`, and the sole worktree path became `/root/projects/ordivon-media`.
+- Runtime successfully opened a new isolated Workspace directly from `/root/projects/ordivon-media`, proving the new path is usable as a source repository.
+- No compatibility symlink was created: stale current-path consumers should be discovered and rebound rather than silently masked. Historical evidence retaining the old path remains history.
+
+Remaining M0 cleanup is limited to current project-entry wording and revalidation/rebinding of live external consumers such as Web. Studio CLI/package/tool identities remain intentionally unchanged.
