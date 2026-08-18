@@ -64,7 +64,7 @@ Cross-project research/evidence records in World and Computing contain exact his
 
 ### Rebind as live external consumers
 
-Current Web design references include `/root/projects/ordivon-studio` as an upstream expression/research repository. Those must be revalidated and rebound to `/root/projects/ordivon-media` after the physical migration; Web remains autonomous.
+Pre-migration Web design references included `/root/projects/ordivon-studio` as an upstream expression/research repository. They were revalidated and rebound to `/root/projects/ordivon-media` after the physical migration; Web remains autonomous.
 
 ## M0 acceptance gates
 
@@ -113,3 +113,5 @@ M0 physical owner-identity migration passed its execution gates.
 - No compatibility symlink was created: stale current-path consumers should be discovered and rebound rather than silently masked. Historical evidence retaining the old path remains history.
 
 Remaining M0 cleanup is limited to current project-entry wording and revalidation/rebinding of live external consumers such as Web. Studio CLI/package/tool identities remain intentionally unchanged.
+
+Post-move live-reference audit excluded research/evidence history and found no remaining `/root/projects/ordivon-studio` current-path consumer outside this migration record. The two Web live design references were rebound on Web main at `407d151f0939de87286be50ec24ca35fc2c04bb4`.
