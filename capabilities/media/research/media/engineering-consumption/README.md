@@ -25,5 +25,8 @@ Project construction has admitted technology-neutral dogfood, not a production-s
 - [`fixtures/studio-expression-card-lineage.json`](./fixtures/studio-expression-card-lineage.json) — structured Fixture B lineage realization.
 - [`fixtures/web-m7-trajectory-dogfood.md`](./fixtures/web-m7-trajectory-dogfood.md) — Fixture C: Web-owned interaction trajectory/time/state/feedback test.
 - [`fixtures/web-m7-trajectory-lineage.json`](./fixtures/web-m7-trajectory-lineage.json) — structured Fixture C bridge realization.
+- [`fixtures/finance-qb6-metric-legibility-dogfood.md`](./fixtures/finance-qb6-metric-legibility-dogfood.md) — Fixture D: Finance-owned metric/proxy/legibility and decision non-lifting test.
+- [`fixtures/finance-qb6-metric-legibility-lineage.json`](./fixtures/finance-qb6-metric-legibility-lineage.json) — structured Fixture D bridge realization.
+- [`OMPC-CONFORMANCE-v0.md`](./OMPC-CONFORMANCE-v0.md) — invariant-to-fixture coverage, source fences and reopen criteria for the A/B/C/D corpus.
 
-A/B/C now form an initial OMPC-v0 conformance corpus. They may revise the projection contract, but they do not admit a Media engine, SDK, production schema package or new Foundation.
+A/B/C/D now form the initial OMPC-v0 conformance corpus. They may revise the projection contract, but they do not admit a Media engine, SDK, production schema package or new Foundation.

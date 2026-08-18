@@ -125,3 +125,22 @@ omitted transient feedback != evidence of its absence
 ```
 
 This strengthens `ProjectionEnvelope`, `RepresentationBody`, and `Transformation / ProvenanceTrace`; it does not add a seventh role or a Media event runtime.
+
+## M4 refinement — metric/proxy non-collapse
+
+Finance dogfood shows that a visible scalar metric can remain numerically unchanged while the domain-owner decision changes after materially different owner/execution evidence is added. A metric therefore cannot silently stand in for the target financial proposition, causal interpretation, applicability judgment, or decision eligibility it is used to discuss.
+
+### 11. Metric / Proxy Non-Collapse
+
+A projection that exposes a metric, score, indicator, valuation, return, risk measure or other proxy MUST preserve the material definition/scope/proxy status needed to avoid treating that value as the underlying target truth. When omitted owner/context/eligibility facts can change the domain conclusion while the metric remains unchanged, a decision-oriented projection MUST disclose that limitation rather than presenting the metric as self-authenticating evidence.
+
+```text
+visible metric != underlying reality
+positive return != novel alpha
+historical profitability != current applicability
+backtest cost proxy != current execution cost
+portfolio value change != Agent PnL without attribution
+favorable scalar metric != decision/transition eligibility
+```
+
+This strengthens `ProjectionEnvelope`, `Transformation / ProvenanceTrace`, and `ActionExposure / Disclosure`; it does not add a seventh role, a Finance calculation authority, or a Media metric engine.
