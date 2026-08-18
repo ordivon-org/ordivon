@@ -36,7 +36,9 @@ It is deliberately below the older M7 medium-profile program. M7 (`Writing / Sti
 - MF9-J — Evolution, Function & Adaptive Role of Experience: **complete / provisional evolution-function frame**
 - MF9-K — Experience Global Residual Audit: **complete / residual audit found a genuine new foundation continent; global falsification deferred**
 - MF9-L — Fundamental Experience Ontologies: Grounding, Combination, Subject Individuation & Mind–Matter Relation: **complete / provisional grounding–subject frame**
-- Next: **MF9-M — Experience Global Falsification, Minimal Foundation Reconstruction & v1 Freeze Audit**
+- MF9-M — Experience Global Falsification, Minimal Foundation Reconstruction & v1 Freeze Audit: **complete**
+- MF9 — Experience Foundations v1: **frozen** after MF9-M global falsification/reconstruction
+- Next: **MF10 — UNKNOWN / not admitted by MF9 closeout**
 
 Current MF5 canonical closeout:
 
@@ -137,6 +139,14 @@ Current MF9-K residual-audit round:
 Current MF9-L grounding/subject-individuation round:
 
 [`media-foundations-mf9l-20260818.md`](./media-foundations-mf9l-20260818.md)
+
+Current MF9-M global falsification / v1 freeze round:
+
+[`media-foundations-mf9m-20260818.md`](./media-foundations-mf9m-20260818.md)
+
+Canonical frozen MF9 Experience Foundations v1:
+
+[`media-foundations-mf9-experience-v1-20260818.md`](./media-foundations-mf9-experience-v1-20260818.md)
 
 Current MF0→MF7 program closeout / MF8 handoff:
 
