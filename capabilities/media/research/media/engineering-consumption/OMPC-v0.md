@@ -74,3 +74,38 @@ See `fixtures/host-task-rev3-human.md`, `fixtures/host-task-rev3-agent.json`, an
 ## Extraction gate
 
 Passing this fixture does not admit shared Media code. A shared implementation capability requires repeated structurally equivalent pressure from materially different real consumers, with owner-local duplication or boundary failure demonstrated first.
+
+## M2 refinement — identity and locator non-collapse
+
+Studio transformation dogfood exposed a distinction that OMPC-v0 must state explicitly without adding a new implementation object or schema primitive.
+
+A projection or transformation lineage may involve several independent identities:
+
+```text
+source / authority identity
+semantic Production / Asset identity
+exact Blob byte identity
+realization / transformation relation
+current recovery locator
+```
+
+None is generally interchangeable with another.
+
+- a repository/path rename may change a current recovery locator without changing an exact historical source fence;
+- an Asset may retain a semantic production role while selecting different Blob bytes;
+- different source Blob bytes may produce byte-identical output under a transformation;
+- a rendered Output may have an exact Blob identity while not preserving the editable/source structure from which it was rendered.
+
+### 9. Identity Non-Collapse
+
+OMPC projections and transformation traces MUST NOT use one identity class as silent proof of another. In particular:
+
+```text
+same semantic ID != same bytes
+same bytes != same semantic standing
+same rendered bytes != same editable source
+same current locator != same historical owner identity
+repository/path rename != source-fence rewrite
+```
+
+This refinement strengthens `SourceBinding`, `RepresentationBody`, and `Transformation / ProvenanceTrace`; it does not admit a seventh semantic role.

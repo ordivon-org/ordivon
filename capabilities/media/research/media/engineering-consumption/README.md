@@ -15,11 +15,13 @@ Before consumption, engineering must revalidate the relevant owner boundary. In 
 
 Research closure is not an automatic engineering handoff.
 
-## First admitted consumption experiment
+## Admitted bounded consumption experiments
 
-Project inception has admitted one bounded technology-neutral experiment, not a production handoff:
+Project construction has admitted technology-neutral dogfood, not a production-schema handoff:
 
 - [`OMPC-v0.md`](./OMPC-v0.md) — Ordivon Media Projection Contract v0 semantic roles and invariants.
-- [`fixtures/host-task-rev3-dogfood.md`](./fixtures/host-task-rev3-dogfood.md) — destructive dual-observer Host projection fixture.
+- [`fixtures/host-task-rev3-dogfood.md`](./fixtures/host-task-rev3-dogfood.md) — Fixture A: destructive dual-observer Host projection/currentness test.
+- [`fixtures/studio-expression-card-dogfood.md`](./fixtures/studio-expression-card-dogfood.md) — Fixture B: real Studio transformation/provenance/identity test.
+- [`fixtures/studio-expression-card-lineage.json`](./fixtures/studio-expression-card-lineage.json) — structured Fixture B lineage realization.
 
-This experiment may revise the projection contract. It does not admit a Media engine, SDK, schema package or new Foundation.
+These experiments may revise the projection contract. They do not admit a Media engine, SDK, schema package or new Foundation.
