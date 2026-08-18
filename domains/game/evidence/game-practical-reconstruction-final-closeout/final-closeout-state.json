@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-final-closeout-state",
+  "phase": "GPR0-GPR7",
+  "phaseStatus": "CLOSED",
+  "frozenSubstrate": ["R1-R29/F1-F9","GDF0","GDF1","GDF2","GDF3"],
+  "completedPracticalRounds": ["R0","GPR1","GPR2","GPR3","GPR4","GPR5","GPR6","GPR7"],
+  "nextGpr": "UNKNOWN",
+  "nextPracticalRoute": "UNKNOWN",
+  "nextFoundation": "UNKNOWN",
+  "gpr8Admitted": false,
+  "wholeGameComplete": false,
+  "wholePracticalSpaceComplete": false,
+  "strongLocalClosure": true,
+  "deeplyExploredPracticalClusters": [
+    "Role / Authority",
+    "Determination / Contestability",
+    "Evidence / Norm / Explanation",
+    "Enforcement / Remedy",
+    "Role Bundle Templates",
+    "Participation / Human-Agent Vocabulary",
+    "Challenge / Failure / Recovery / Mastery"
+  ],
+  "partialOrConsumerConditional": [
+    "GDF0 derived play/agency/evaluation authoring and research models",
+    "GDF1 ActionCoupling / Technique / ControlAccess derived vocabulary",
+    "shared practical-view source/currentness/digest/drill-down infrastructure",
+    "durable Audience / social participation records",
+    "player-facing OutcomeAttribution / richer FailureDebrief consumption",
+    "runtime Mastery claim/evidence consumption"
+  ],
+  "ownedElsewhere": {
+    "Human": ["experienced difficulty","frustration","flow","subjective competence","actual Human learning","Human PlayerValue"],
+    "SocialPracticeInstitutional": ["social mastery","rank legitimacy","credential legitimacy","broader cultural recognition"],
+    "World": ["underlying event/history/reality outside Game evaluation"],
+    "Media": ["signal/observation/representation and broader media audience"],
+    "RuntimePersistence": ["crash recovery","receipt recovery","response-loss reconciliation","technical execution recovery"],
+    "LawGovernance": ["external legal normativity","broader institutional legitimacy"]
+  },
+  "knownNonPrioritizedUnexploredHints": [
+    "Dynamics / Emergence / Systemic Regimes",
+    "Meta-game / Paratext / Extended Apparatus",
+    "Population Ecology / Matching / Availability",
+    "Platform Governance / Labor / Property / Monetization",
+    "Adaptive Experience Management",
+    "Epistemic Inquiry / Theorycraft",
+    "Authoring-Runtime Boundary Collapse",
+    "Game Feel / Feedback / Sensorimotor Coupling",
+    "Time / Rhythm / Pacing",
+    "Space / Navigation / Level",
+    "Strategy / Counterplay / Balance"
+  ],
+  "unknownUnknownsOpen": true,
+  "requiredFutureProtocol": "Start with a fresh whole-Game and frozen-substrate practical domain-coverage search; treat all known residual names as non-prioritized hints; compare explored, partial, owner-external, engineering-consumption, foundation-unclosed and structurally homeless spaces before selecting any route.",
+  "finalLaw": ["A concept can fail as ontology and succeed as tooling","A successful toolkit does not prove complete coverage of Game reality","Map first; select later"]
+}
