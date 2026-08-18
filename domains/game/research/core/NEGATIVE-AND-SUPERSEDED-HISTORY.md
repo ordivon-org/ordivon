@@ -22,6 +22,12 @@ Historical commit:
 042e34d  research(game): open GDF3 game feel foundations
 ```
 
+Durable negative-history ref:
+
+```text
+refs/heads/research/history/game-feel-gdf3-cancelled
+```
+
 At that commit, the branch introduced a Game Feel version of:
 
 ```text
