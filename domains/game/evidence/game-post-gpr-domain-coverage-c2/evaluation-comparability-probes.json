@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c2-probes",
+  "date": "2026-08-18",
+  "candidate": "Cross-instance Evaluation / Comparability",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"Score","verdict":"REJECT_FOUNDATION","reason":"Owner-local evaluation/result representation; not value, skill, mastery, rank, record or truth by identity."},
+    {"candidate":"Rating","verdict":"REJECT_FOUNDATION","reason":"Model-derived estimate over outcomes/conditions/assumptions rather than observed intrinsic skill truth."},
+    {"candidate":"Rank","verdict":"REJECT_FOUNDATION","reason":"Ordering under declared comparison/tie-break procedure; same primary score can yield different rank."},
+    {"candidate":"Record","verdict":"REJECT_FOUNDATION","reason":"Practice/institution-recognized comparison/status claim; binding certification already covered by GDF3 when applicable."},
+    {"candidate":"Leaderboard","verdict":"REJECT_FOUNDATION","reason":"Presentation/query surface over ranking/status sources."},
+    {"candidate":"Normalization","verdict":"REJECT_FOUNDATION","reason":"Purpose-specific transformation mechanism, not universal Game semantics."},
+    {"candidate":"ComparableBoolean","verdict":"REJECT_FOUNDATION","reason":"Comparability is purpose/basis/scope-relative and can be unresolved rather than globally true/false."},
+    {"candidate":"UniversalTotalOrder","verdict":"REJECT_FOUNDATION","reason":"Multi-objective evaluations can remain partially ordered or incomparable absent declared weighting/rules."}
+  ],
+  "probes": [
+    {"id":"C2-F1","regime":"FIDE tournament standings","pressure":"same primary score, tournament-selected tie-break order","result":"PrimaryScore != RankByIdentity","reduction":["F8 Evaluation","F6 Authority/Provenance","current tournament rules","GDF3 official determination when needed"]},
+    {"id":"C2-F2","regime":"FIDE rating","pressure":"same win against different opponent rating or player K-state","result":"GameOutcome != RatingDeltaByIdentity","reduction":["model-relative rating procedure","history/opponent conditions","F7 Representation"]},
+    {"id":"C2-F3","regime":"TrueSkill vs TrueSkill2","pressure":"same match history under different inference model/covariates","result":"RatingEstimate != intrinsic skill truth","reduction":["F7 Representation","model/provenance","GDF2 evidence scope"]},
+    {"id":"C2-F4","regime":"team multiplayer","pressure":"individual auxiliary metric conflicts with team objective","result":"BetterAuxiliaryScore != BetterPerformanceForEveryEvaluationQuestion","reduction":["GDF2 attribution","GDF1 contribution topology","declared evaluation target"]},
+    {"id":"C2-F5","regime":"athletics sprint/jump","pressure":"same raw time/distance under different wind conditions","result":"RawPerformance != RecordComparability != RankingScoreByIdentity","reduction":["measurement condition","current competition rules","GDF3 record/status when binding"]},
+    {"id":"C2-F6","regime":"athletics ranking vs record eligibility","pressure":"same performance can be usable for one comparison purpose but not another","result":"ComparisonEligibilityIsPurposeRelative","reduction":["F8 evaluation question","condition scope","rule/currentness"]},
+    {"id":"C2-F7","regime":"personalized dynamic difficulty","pressure":"same success statistic under different served challenge distributions","result":"SameOutcomeStatistic != SamePerformanceConditions != SameSkillEvidence","reduction":["GDF2 challenge/mastery scope","adaptive policy provenance","condition distribution"]},
+    {"id":"C2-F8","regime":"patch/opponent/assistance transformation","pressure":"same nominal task label after material condition change","result":"SameTaskLabel != SameComparisonRegion","reduction":["already frozen GDF2 transfer discipline","GPR7 ChallengeComparisonView"]},
+    {"id":"C2-F9","regime":"judged performance","pressure":"same underlying performance under changed current evaluation code","result":"Performance != OfficialScoreByIdentity","reduction":["already covered by GDF3 authoritative score/status"]},
+    {"id":"C2-F10","regime":"sandbox/expressive/open-ended play","pressure":"no useful canonical cross-instance ordering","result":"CrossInstanceComparability != necessary Game condition","reduction":["GDF0 plural/dynamic evaluation","local optional comparison"]},
+    {"id":"C2-F11","regime":"multi-objective performance","pressure":"speed/accuracy/risk/style/team contribution trade off","result":"MultipleEvaluationDimensions != NaturalScalarOrder","reduction":["F8 plural evaluation","declared aggregation/weighting if any"]},
+    {"id":"C2-F12","regime":"incomplete comparison evidence","pressure":"same comparison basis but missing wind/opponent/assistance/version evidence","result":"ComparabilityQuestion != ComparisonAnswer != EvidenceSufficiency","reduction":["GPR3 evidence/verification","GDF3 status when authoritative","unresolved comparison state"]}
+  ],
+  "residualPattern": {
+    "name": "ComparisonClaim",
+    "status": "USEFUL_CROSS_CUTTING_PRACTICAL_RESEARCH_PATTERN_NOT_GAME_FOUNDATION",
+    "fields": [
+      "ComparisonPurposeOrQuestion",
+      "ComparedTargetRefs",
+      "EvaluationBasisOrCriterionRefs",
+      "ConditionPopulationVersionAssistanceScope",
+      "TransformationOrNormalizationRefsWhenUsed",
+      "AggregationOrOrderingRuleWhenUsed",
+      "UncertaintyOrEvidenceSufficiency",
+      "CurrentnessAndProvenance",
+      "ResultDisposition"
+    ]
+  },
+  "subtraction": {
+    "GDF0":"plural/dynamic/non-scalar Game evaluation and GameGoal/ParticipationPurpose/PlayerValue/ExternalStake separation",
+    "GDF2":"scoped challenge/mastery claims, score/rank nonidentity, condition transfer discipline",
+    "GPR7":"ChallengeComparisonView and MasteryEvidenceView, including incomparable conditions",
+    "GDF3":"authoritative score/status/record/eligibility determination when independent binding case status exists",
+    "SocialInstitutional":"rank/credential/community recognition legitimacy",
+    "CrossDomainResearchEvaluation":"statistical/model comparison, normalization, uncertainty and benchmarking methods"
+  },
+  "foundationVerdict": "NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict": "WEAK_TO_MODERATE_NEWLY_DISCOVERED_PRACTICAL_GAP__NO_GPR_ADMISSION__NO_ENGINEERING_CONSUMER_PROVEN",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "finalClassification":"CROSS_CUTTING__NEWLY_DISCOVERED_PRACTICAL_GAP__PARTLY_RESEARCH_EVALUATION_OWNED__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}
