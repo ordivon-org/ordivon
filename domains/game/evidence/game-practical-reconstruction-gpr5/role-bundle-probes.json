@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr5-role-bundle-probes",
+  "fixtures": {
+    "refereeTemplate": {
+      "templateId": "role-bundle:referee",
+      "displayLabel": "Referee",
+      "defaultAdmissionPolicy": "NO_HIDDEN_GRANTS",
+      "slices": [
+        "observe_case",
+        "classify_or_recommend",
+        "case_decide",
+        "case_review",
+        "enforce"
+      ]
+    },
+    "judgeNoAuthority": {
+      "holderRef": "human:j1",
+      "displayLabels": [
+        "Referee"
+      ],
+      "roleAssignmentRefs": [
+        "ra:j1"
+      ],
+      "effectiveAuthorityOperations": [],
+      "controlOrCapabilitySummary": [
+        "whistle"
+      ],
+      "bundleStateDigest": "bundle:j1:v1"
+    },
+    "judgeWithAuthority": {
+      "holderRef": "human:j1",
+      "displayLabels": [
+        "Referee"
+      ],
+      "roleAssignmentRefs": [
+        "ra:j1"
+      ],
+      "effectiveAuthorityOperations": [
+        "game.case.decide"
+      ],
+      "controlOrCapabilitySummary": [
+        "whistle"
+      ],
+      "bundleStateDigest": "bundle:j1:v2"
+    },
+    "coach": {
+      "templateId": "role-bundle:coach",
+      "slices": [
+        "observe",
+        "analyze",
+        "recommend"
+      ],
+      "effectiveAuthorityOperations": []
+    },
+    "gmSplit": {
+      "holders": {
+        "human:g1": [
+          "present_or_generate_world",
+          "control_npcs_or_world_entities"
+        ],
+        "human:g2": [
+          "case_adjudicate"
+        ]
+      },
+      "effectiveOperationMappings": {
+        "human:g1": [
+          "game.world.control.local"
+        ],
+        "human:g2": [
+          "game.case.decide"
+        ]
+      }
+    },
+    "moderatorOperator": {
+      "holderRef": "agent:m1",
+      "displayLabels": [
+        "Moderator",
+        "Operator"
+      ],
+      "effectiveAuthorityOperations": [
+        "game.case.decide",
+        "game.operation.execute"
+      ],
+      "capabilities": [
+        "moderation-api-write"
+      ],
+      "providerId": "provider:a"
+    },
+    "moderatorOperatorProviderSwap": {
+      "holderRef": "agent:m1",
+      "displayLabels": [
+        "Moderator",
+        "Operator"
+      ],
+      "effectiveAuthorityOperations": [
+        "game.case.decide",
+        "game.operation.execute"
+      ],
+      "capabilities": [
+        "moderation-api-write"
+      ],
+      "providerId": "provider:b"
+    },
+    "engineer": {
+      "roleId": "engineer",
+      "controllerKind": "agent",
+      "capabilityIds": [
+        "repair",
+        "power-control"
+      ],
+      "objectiveDoctrine": [
+        "systems",
+        "mission-cargo"
+      ]
+    },
+    "engineerNoTool": {
+      "roleId": "engineer",
+      "controllerKind": "agent",
+      "capabilityIds": [
+        "power-control"
+      ],
+      "objectiveDoctrine": [
+        "systems",
+        "mission-cargo"
+      ]
+    },
+    "playerOrder": {
+      "kind": "standing-order",
+      "worldMutationAuthority": false,
+      "strategyConstraint": true
+    },
+    "casefileRole": {
+      "role": "Archive technician",
+      "authorityRefs": []
+    },
+    "experience": {
+      "templateId": "role-bundle:experience-manager",
+      "effectiveAuthorityOperations": [
+        "game.experience.adjust"
+      ],
+      "optimizationMetric": "retention",
+      "playerValue": null
+    },
+    "diagnostic": {
+      "checks": [
+        "template_selected_but_no_authority_source",
+        "authority_without_required_capability_or_tool",
+        "capability_or_control_without_required_authority",
+        "self_review_or_separation_policy_conflict"
+      ],
+      "disposition": "blocked_missing_source"
+    }
+  },
+  "probes": {
+    "templateDoesNotGrantAuthority": true,
+    "explicitAuthorityChangesManifest": true,
+    "sameLabelDifferentManifest": true,
+    "coachNonbindingByDefault": true,
+    "splitGmResponsibilities": true,
+    "sameHolderMultipleLabelsDoNotCreateAllAuthority": true,
+    "providerSwapPreservesSemanticBundle": true,
+    "roleSeparateFromController": true,
+    "roleSeparateFromCapability": true,
+    "standingOrderNotWorldAuthority": true,
+    "diegeticRoleNotAuthority": true,
+    "experienceMetricNotPlayerValue": true,
+    "experienceAuthorityBounded": true,
+    "diagnosticFindsHiddenGrant": true,
+    "diagnosticFindsCapabilityMismatch": true,
+    "diagnosticFindsSeparationConflict": true,
+    "refereeLabelNotReviewAuthority": true,
+    "gmLabelNotOmnipotence": true,
+    "moderatorLabelNotAllGovernanceAuthority": true,
+    "operatorWriteCapabilityNotNormativeAuthority": true,
+    "recommendationNotDecisionAuthority": true,
+    "observationNotControl": true,
+    "controlNotAuthority": true,
+    "templateCompositionNotAuthorityUnion": true,
+    "templateInheritanceNotImplicitGrant": true,
+    "humanSubstrateNotAuthority": true,
+    "agentSubstrateNotAuthority": true,
+    "sameModelCanHoldDistinctSemanticRoles": true,
+    "localizedLabelsCanPreserveTemplateIdentity": true,
+    "roleReplacementChangesAssignmentNotTemplate": true,
+    "staleManifestNotCurrentEvidence": true,
+    "sameTemplateCanInstantiateDifferently": true,
+    "optionalSlicesMayBeOmitted": true,
+    "multipleHoldersCanShareSlice": true,
+    "unassignedSliceCanBeVisible": true,
+    "playerNotUniversalGm": true,
+    "coordinatorNotUniversalCommander": true,
+    "promptDoctrineNotAuthoritySource": true,
+    "noGlobalRankNeeded": true,
+    "noFoundationReopen": true
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-gpr5-role-bundle-template-contracts",
+  "round": "GPR5",
+  "status": "research-evidence",
+  "foundationStatus": {"gdf0":"FROZEN","gdf1":"FROZEN","gdf2":"FROZEN","gdf3":"FROZEN","reopenTriggered":false},
+  "primaryDecision": "Reconstruct familiar roles as non-authoritative authoring presets composed from explicit responsibility slices, causal-access needs, tool/capability hints and requested authority-operation families. A RoleBundleTemplate never grants authority or control by itself. Concrete binding semantics arise only through local RoleAssignment plus admitted GPR1 authority/control sources and owner-local Game rules. Human/Agent/model/provider identity remains orthogonal to the bundle. Referee/Judge, GameMaster, Coach/Advisor, Moderator, Operator and ExperienceManager are retained as highly useful template families with variant profiles rather than universal atomic roles.",
+  "sourceDerivedBoundary": {
+    "authoringOrConfigSources": ["RoleBundleTemplateDefinition when a GameForm wants reusable named authoring presets","owner-local template variant selection/configuration","local RoleAssignment/role-template binding config when persisted"],
+    "authoritativeSourcesRemainElsewhere": ["GPR1 RoleAssignmentRecord and owner-local authority sources","GPR1 ScopedAuthorityEdge/AuthorityProfile as derived effective authority","GDF1 action/control/admission","GPR2 determination/review/contestability","GPR3 evidence/norm/explanation","GPR4 consequence/enforcement/remedy","GDF0 EffectiveRuleTopology"],
+    "derivedViews": ["RoleBundleManifest","RoleBundleCompositionView","RoleBundleCompatibilityDiagnostic"],
+    "reason": "The label/preset is useful for authoring, UX and Agent context but must not become a hidden source of authority, capability or control."
+  },
+  "contracts": {
+    "RoleBundleTemplateDefinition": {
+      "status": "STABILIZE_OPTIONAL_AUTHORING_PRESET",
+      "purpose": "Define a reusable named practical role pattern as a set of responsibility slices and recommended needs while explicitly denying hidden grants.",
+      "minimumFields": ["templateId","displayLabel","purpose","responsibilitySlices","defaultAdmissionPolicy","ownerBoundaryRefs","provenanceRefsOrTemplateVersion"],
+      "responsibilitySliceFields": ["sliceKey","purpose","causalAccessNeeds","toolOrCapabilityHints","authorityOperationIntentKeys","controlOrActionIntentKeys","relatedToolkitRefs","defaultEnabled","separationHints"],
+      "defaultAdmissionPolicy": "NO_HIDDEN_GRANTS: template selection alone creates no effective authority, capability, control, observation access or case/enforcement/remedy power.",
+      "laws": ["RoleBundleTemplate != RoleAssignment","RoleBundleTemplate != AuthorityGrant","RoleBundleTemplate != CapabilityGrant","RoleBundleTemplate != ControlGrant","TemplateLabel != ResponsibilityTopology","DefaultEnabledSlice != EffectiveAuthority","template composition does not union authority automatically","localized/display label changes do not alter semantics when template/slice identities remain fixed"]
+    },
+    "RoleBundleInstantiationPlan": {
+      "status": "STABILIZE_DERIVED_AUTHORING_PLAN",
+      "purpose": "Show what concrete local assignments, access policies, authority operations, capabilities/tools and separation policies would be required to realize a chosen role-bundle variant for a holder/context.",
+      "inputs": ["templateRefOrVariant","holderRef","contextRef","owner-local GameForm semantics","existing GPR1 authority/access/capability sources"],
+      "outputs": ["requestedRoleAssignmentRefsOrSpecs","requiredCausalAccessChanges","requiredAuthorityOperationSpecs","requiredControlOrCapabilitySpecs","requiredSeparationPolicyChecks","unsatisfiedDependencies","ownerLocalBindings","planDigest"],
+      "laws": ["InstantiationPlan != admitted authority","plan generation may reveal no changes are needed when existing local sources already satisfy the template","plan may be partially satisfiable","template realization can legitimately omit optional slices","same template may instantiate differently across GameForms"]
+    },
+    "RoleBundleManifest": {
+      "status": "STABILIZE_DERIVED_CURRENT_HUMAN_AGENT_VIEW",
+      "purpose": "Provide a compact current Human/Agent-facing view of what a concrete holder under a named role bundle actually observes, recommends, controls, decides, reviews, changes, enforces or remedies now.",
+      "queryInputs": ["holderRef","contextRef","templateOrDisplayLabelOptional","asOfCurrentness"],
+      "outputs": ["displayLabels","roleAssignmentRefs","activeResponsibilitySlices","causalAccessSummary","effectiveAuthorityOperations","conditionalAuthorityOperations","controlOrCapabilitySummary","toolSummary","separationPolicySummary","sourceRefs","bundleStateDigest"],
+      "laws": ["RoleBundleManifest is derived from actual current sources, not template promises","stale bundle manifest != current authority evidence","same label can produce materially different manifests","same holder can have multiple manifests/scoped bundles","provider/model identity should not determine bundle semantics"]
+    },
+    "RoleBundleCompositionView": {
+      "status": "STABILIZE_DERIVED_COMPOSITION_VIEW",
+      "purpose": "Expose how several bundle templates/slices are fused in one holder or distributed across several holders without assuming authority union, precedence or role hierarchy.",
+      "outputs": ["holders","bundleOrSliceRefs","sharedSlices","distinctSlices","effectiveOperationMappings","causalAccessMappings","separationConflicts","unassignedResponsibilities","sourceRefs"],
+      "laws": ["SameHolder != MergedAuthorityByIdentity","MultipleBundleLabels != GlobalRank","Composition != InheritanceByAuthority","shared tool/capability != shared authority","one responsibility slice may be fulfilled by multiple holders or split across holders"]
+    },
+    "RoleBundleCompatibilityDiagnostic": {
+      "status": "STABILIZE_DERIVED_AUTHORING_AUDIT",
+      "purpose": "Detect hidden-grant assumptions, missing dependencies, authority/control/capability mismatches, invalid role fusion and separation-policy conflicts before a role bundle is used for Human/Agent context or runtime decisions.",
+      "checks": ["template_selected_but_no_authority_source","authority_without_required_capability_or_tool","capability_or_control_without_required_authority","observation_access_missing","case_authority_confused_with_review_authority","rule_change_confused_with_case_authority","enforcement_confused_with_determination","remedy_confused_with_reversal","self_review_or_separation_policy_conflict","provider_or_model_identity_used_as_authority_source","template_inheritance_would_create_implicit_grant","same_label_different_scope_currentness_unresolved"],
+      "dispositions": ["compatible","compatible_with_optional_gaps","blocked_missing_source","blocked_policy_conflict","unresolved_owner_semantics"],
+      "laws": ["diagnostic does not create authority","missing recommended slice is not an error when the local variant intentionally omits it","same-label differences are acceptable when explicit","fail visible on hidden-grant assumptions"]
+    }
+  },
+  "templateLibrary": {
+    "RefereeJudge": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Practical contest/rule-application official role family with separable observation, classification/recommendation, case determination, review and optional certification/enforcement slices.",
+      "variants": ["signal_or_assistant_official","first_instance_case_decider","reviewer_or_head_judge","certifying_official","fused_decide_and_enforce_local_variant"],
+      "sliceCatalog": [
+        {"sliceKey":"observe_case","authorityNeeded":false,"notes":"Receive scoped observations/evidence; access policy remains explicit."},
+        {"sliceKey":"classify_or_recommend","authorityNeeded":false,"notes":"Nonbinding classification/advice."},
+        {"sliceKey":"case_decide","authorityOperationIntentKeys":["game.case.decide"],"notes":"Binding determination only if explicitly admitted."},
+        {"sliceKey":"case_review","authorityOperationIntentKeys":["game.case.review"],"notes":"Distinct from first-instance authority."},
+        {"sliceKey":"certify","authorityOperationIntentKeys":["game.result.certify"],"notes":"Optional specialized determination operation."},
+        {"sliceKey":"enforce","authorityOperationIntentKeys":["game.consequence.enforce"],"notes":"Optional; never implied by judge label."}
+      ],
+      "strongGuards": ["RefereeLabel != CaseAuthority","JudgeLabel != ReviewAuthority","JudgeLabel != RuleChangeAuthority","JudgeLabel != EnforcementAuthority","AssistantReferee != BindingOfficialByIdentity"]
+    },
+    "GameMaster": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Composable facilitation/world-presentation/control/adjudication/experience-steering family for tabletop, roleplay, simulation and Agent-mediated forms.",
+      "variants": ["facilitator_only","world_presenter_and_npc_controller","case_adjudicating_gm","rules_steward_gm","experience_director","co_gm_split"],
+      "sliceCatalog": [
+        {"sliceKey":"facilitate_session","authorityNeeded":false,"notes":"Turn-taking, clarification, pacing facilitation."},
+        {"sliceKey":"present_or_generate_world","notes":"World/content authoring/presentation responsibility; authority depends on GameForm."},
+        {"sliceKey":"control_npcs_or_world_entities","controlOrActionIntentKeys":["game.world.control.local"],"notes":"Control is separate from case authority."},
+        {"sliceKey":"interpret_rules","authorityOperationIntentKeys":["game.rule.interpret.current"],"notes":"May be advisory or standing interpretive authority depending local config."},
+        {"sliceKey":"case_adjudicate","authorityOperationIntentKeys":["game.case.decide"],"notes":"Optional."},
+        {"sliceKey":"change_rules","authorityOperationIntentKeys":["game.rule.change"],"notes":"Optional and distinct from interpretation/case ruling."},
+        {"sliceKey":"steer_experience","authorityOperationIntentKeys":["game.experience.adjust"],"notes":"Pacing/content/difficulty steering; not case authority."}
+      ],
+      "strongGuards": ["GMLabel != Omnipotence","GMLabel != RuleChangeAuthorityByIdentity","GMLabel != CaseAuthorityByIdentity","GMWorldControl != PlayerControl","CoGM != SharedAllAuthority"]
+    },
+    "CoachAdvisor": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Observation, analysis, recommendation and explanation family that is nonbinding by default and useful for Human or Agent assistance.",
+      "variants": ["spectating_coach","tactical_advisor","strategy_analyst","agent_assistant","delegated_controller_extension"],
+      "sliceCatalog": [
+        {"sliceKey":"observe","authorityNeeded":false,"notes":"Scoped observation access only."},
+        {"sliceKey":"analyze","authorityNeeded":false,"notes":"Derived analysis/explanation."},
+        {"sliceKey":"recommend","authorityNeeded":false,"notes":"Advice does not bind."},
+        {"sliceKey":"propose_action","authorityOperationIntentKeys":["game.action.propose"],"notes":"Proposal rights distinct from action control/admission."},
+        {"sliceKey":"delegated_control","controlOrActionIntentKeys":["game.action.control"],"notes":"Only when explicitly granted; then control is not inferred from coach label."}
+      ],
+      "strongGuards": ["Coach != Controller","Advisor != DecisionAuthority","Recommendation != Delegation","Analysis != ObservationTruth","ToolAccess != BindingAuthority"]
+    },
+    "Moderator": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Policy/community/content governance family decomposed into observation/classification, case decision, review, policy change, consequence directive/enforcement and remedy coordination.",
+      "variants": ["classifier_or_triage","case_moderator","appeal_reviewer","policy_steward","enforcement_operator","fused_small_community_moderator"],
+      "sliceCatalog": [
+        {"sliceKey":"classify_or_triage","authorityNeeded":false,"notes":"Nonbinding unless current practice expressly treats classification as determination."},
+        {"sliceKey":"decide_case","authorityOperationIntentKeys":["game.case.decide"],"notes":"Binding moderation status."},
+        {"sliceKey":"review_case","authorityOperationIntentKeys":["game.case.review"],"notes":"Separate authority."},
+        {"sliceKey":"change_policy","authorityOperationIntentKeys":["game.rule.change"],"notes":"Separate from case decisions."},
+        {"sliceKey":"issue_consequence_directive","authorityOperationIntentKeys":["game.consequence.issue"],"notes":"GPR4 directive responsibility."},
+        {"sliceKey":"execute_consequence","authorityOperationIntentKeys":["game.consequence.enforce"],"notes":"Optional separate executor role."},
+        {"sliceKey":"coordinate_remedy","authorityOperationIntentKeys":["game.remedy.approve"],"notes":"Optional corrective responsibility."}
+      ],
+      "strongGuards": ["ModeratorLabel != AllGovernanceAuthority","Classifier != Adjudicator","Adjudicator != Enforcer","Moderator != PolicyAuthorByIdentity","Review != SameHolderByIdentity"]
+    },
+    "Operator": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Technical/live operational execution family emphasizing capability, tools, observation and effectuation without implying normative decision authority.",
+      "variants": ["technical_executor","live_ops_operator","tournament_operator","world_admin","recovery_operator","policy_authorized_operator"],
+      "sliceCatalog": [
+        {"sliceKey":"observe_system","authorityNeeded":false,"notes":"Operational visibility."},
+        {"sliceKey":"execute_authorized_action","authorityOperationIntentKeys":["game.operation.execute"],"notes":"Effectuation under explicit directive/authority."},
+        {"sliceKey":"verify_effect","authorityOperationIntentKeys":["game.result.verify"],"notes":"Method-scoped verification, not case authority."},
+        {"sliceKey":"maintain_or_recover_service","notes":"Technical recovery; not Game remedy by identity."},
+        {"sliceKey":"change_live_configuration","authorityOperationIntentKeys":["game.operation.configure"],"notes":"Owner-local; may or may not alter GDF0 rules."},
+        {"sliceKey":"change_policy_or_rules","authorityOperationIntentKeys":["game.rule.change"],"notes":"Never implied just because operator has write tools."}
+      ],
+      "strongGuards": ["OperatorCapability != NormativeAuthority","WriteAccess != RuleChangeAuthority","Executor != CaseAuthority","TechnicalRecovery != Remedy","OperatorLabel != GlobalAdminByIdentity"]
+    },
+    "ExperienceManager": {
+      "status": "STABILIZE_TEMPLATE_FAMILY",
+      "purpose": "Adaptive experience/pacing/content/difficulty/session-steering family with explicit bounded intervention and separation from adjudication/rule authority.",
+      "variants": ["pacing_director","difficulty_adapter","content_curator","encounter_director","session_safety_or_flow_manager","agent_experience_manager"],
+      "sliceCatalog": [
+        {"sliceKey":"observe_experience_signals","authorityNeeded":false,"notes":"May consume performance/engagement/session state without universal mind-reading."},
+        {"sliceKey":"recommend_adjustment","authorityNeeded":false,"notes":"Advisory mode."},
+        {"sliceKey":"adjust_pacing_or_content","authorityOperationIntentKeys":["game.experience.adjust"],"notes":"Explicit scope and allowed interventions required."},
+        {"sliceKey":"adjust_difficulty_parameters","authorityOperationIntentKeys":["game.difficulty.adjust"],"notes":"Does not imply rule-change authority beyond declared parameter surface."},
+        {"sliceKey":"spawn_or_schedule_content","authorityOperationIntentKeys":["game.content.schedule"],"notes":"GameForm-specific."},
+        {"sliceKey":"change_constitutive_rules","authorityOperationIntentKeys":["game.rule.change"],"notes":"Optional separate authority, never implied by experience management."}
+      ],
+      "strongGuards": ["ExperienceManager != OmniscientPlayerModel","ExperienceSteering != CaseAuthority","DifficultyAdjustment != RuleChangeByIdentity","OptimizationObjective != PlayerValueByIdentity","AdaptiveControl != HiddenUnboundedWorldAuthority"]
+    }
+  },
+  "crossCuttingLaws": [
+    "RoleBundleTemplate != RoleAssignment",
+    "RoleBundleTemplate != AuthorityGrant",
+    "RoleBundleTemplate != CapabilityGrant",
+    "RoleBundleTemplate != ControlGrant",
+    "RoleLabel != ResponsibilityTopology",
+    "TemplateSelection != EffectiveAuthority",
+    "TemplateComposition != AuthorityUnion",
+    "TemplateInheritance != ImplicitGrant",
+    "SameHolder != SameAuthorityOperation",
+    "SameModel != SameRoleBundleAuthority",
+    "ProviderIdentity != RoleAuthority",
+    "HumanSubstrate != AuthorityByIdentity",
+    "AgentSubstrate != AuthorityByIdentity",
+    "ObservationAccess != Control",
+    "Control != BindingAuthority",
+    "Recommendation != DecisionAuthority",
+    "CaseAuthority != ReviewAuthority",
+    "CaseAuthority != RuleChangeAuthority",
+    "DeterminationAuthority != EnforcementAuthority",
+    "ReviewAuthority != RemedyAuthority",
+    "WriteCapability != NormativeAuthority",
+    "ToolAccess != Authority",
+    "GMLabel != Omnipotence",
+    "ModeratorLabel != AllGovernanceAuthority",
+    "OperatorLabel != GlobalAdminAuthority",
+    "CoachLabel != ControllerAuthority",
+    "ExperienceManagerLabel != UnboundedAdaptiveAuthority",
+    "RefereeLabel != UniversalFinalAuthority",
+    "SameDisplayLabelCanMapToDifferentLocalBundles",
+    "DifferentDisplayLabelsCanMapToEquivalentOperationalBundles",
+    "RoleBundleManifest != SourceOfTruth",
+    "StaleRoleBundleManifest != CurrentAuthorityEvidence"
+  ],
+  "stressCases": [
+    {"id":"RB1","regime":"referee observer","claim":"sideline official only signals possible foul","expected":"observe/classify slices only; no case authority implied"},
+    {"id":"RB2","regime":"referee decider","claim":"floor referee has first-instance binding decision","expected":"explicit game.case.decide source required"},
+    {"id":"RB3","regime":"assistant referee","claim":"assistant recommends offside","expected":"recommendation nonbinding unless local rules admit it"},
+    {"id":"RB4","regime":"head judge","claim":"reviews floor judge decisions","expected":"review authority separate from original decision authority"},
+    {"id":"RB5","regime":"judge no enforcement","claim":"judge rules but another system applies effect","expected":"enforcement slice absent"},
+    {"id":"RB6","regime":"judge fused enforcement","claim":"small game lets same holder decide and apply consequence","expected":"valid fusion if explicit; same holder does not collapse operations"},
+    {"id":"RB7","regime":"automated referee advisor","claim":"vision model flags event","expected":"Agent/model substrate does not create authority"},
+    {"id":"RB8","regime":"automated authoritative referee","claim":"practice explicitly grants system case authority","expected":"same template family works with synthetic holder"},
+    {"id":"RB9","regime":"GM facilitator only","claim":"GM handles turn-taking and descriptions but cannot change rules","expected":"facilitation slice without rule/case authority"},
+    {"id":"RB10","regime":"traditional broad GM","claim":"one holder presents world, controls NPCs, adjudicates and changes rules","expected":"bundle composition explicit across slices; no omnipotence primitive"},
+    {"id":"RB11","regime":"co-GM split","claim":"one GM presents world, another adjudicates rules","expected":"same label family distributed across holders"},
+    {"id":"RB12","regime":"GM world control only","claim":"controls NPCs but rules are automated","expected":"control slice without case/rule authority"},
+    {"id":"RB13","regime":"GM adjudication no rule change","claim":"may resolve ambiguity but not rewrite campaign rules","expected":"case/interpretation distinct from rule change"},
+    {"id":"RB14","regime":"GM experience director","claim":"adjusts pacing and content but not binding case status","expected":"experience steering separate"},
+    {"id":"RB15","regime":"Agent GM provider swap","claim":"same semantic GM bundle switches model provider","expected":"bundle semantics unchanged absent source/currentness changes"},
+    {"id":"RB16","regime":"same model two GM roles","claim":"one model instance performs narrator and rule reviewer as distinct semantic holders","expected":"model identity does not merge authority"},
+    {"id":"RB17","regime":"coach spectator","claim":"coach observes and comments","expected":"observation/advice only"},
+    {"id":"RB18","regime":"coach proposes moves","claim":"coach may submit candidate moves for player approval","expected":"proposal right != control/admission"},
+    {"id":"RB19","regime":"delegated coach control","claim":"player explicitly delegates action control","expected":"control comes from delegation/source, not coach label"},
+    {"id":"RB20","regime":"AI advisor","claim":"Agent recommends strategy with tools","expected":"tool access/reasoning does not bind"},
+    {"id":"RB21","regime":"advisor mistaken","claim":"advice wrong but fluent","expected":"no authority effect"},
+    {"id":"RB22","regime":"coach also player","claim":"same human occupies player and coach-like analysis role","expected":"multiple bundles scoped; no automatic merge beyond actual sources"},
+    {"id":"RB23","regime":"moderation classifier","claim":"model labels content risk","expected":"classification not case determination by identity"},
+    {"id":"RB24","regime":"moderation adjudicator","claim":"human moderator records official violation","expected":"explicit case authority"},
+    {"id":"RB25","regime":"moderation enforcer","claim":"separate bot applies consequence","expected":"enforcement authority distinct"},
+    {"id":"RB26","regime":"appeal moderator","claim":"different holder reviews cases","expected":"review slice explicit"},
+    {"id":"RB27","regime":"policy moderator","claim":"committee changes moderation policy","expected":"rule/policy change separate from case decisions"},
+    {"id":"RB28","regime":"small community fused moderator","claim":"same holder classifies, decides, enforces","expected":"allowed if explicit; diagnostic can flag optional separation risk"},
+    {"id":"RB29","regime":"moderator cannot compensate","claim":"can reverse status but cannot grant remedy","expected":"remedy authority absent"},
+    {"id":"RB30","regime":"operator technical executor","claim":"operator applies already-authorized config change","expected":"execution capability plus scoped authority; no case authority"},
+    {"id":"RB31","regime":"operator with root tools","claim":"technical write access broad","expected":"write capability != normative authority"},
+    {"id":"RB32","regime":"tournament operator","claim":"runs bracket software but cannot decide protests","expected":"operator and judge bundles separate"},
+    {"id":"RB33","regime":"live ops operator policy authority","claim":"explicitly authorized to change live event parameters","expected":"specific config/rule authority represented"},
+    {"id":"RB34","regime":"recovery operator","claim":"restores service after crash","expected":"technical recovery slice; not Game remedy"},
+    {"id":"RB35","regime":"operator verifies effect","claim":"checks deployment/result","expected":"verification slice does not create case authority"},
+    {"id":"RB36","regime":"Agent operator","claim":"Agent executes approved maintenance","expected":"same substrate-neutral template"},
+    {"id":"RB37","regime":"experience pacing manager","claim":"adjusts encounter pacing","expected":"game.experience.adjust only"},
+    {"id":"RB38","regime":"difficulty adapter","claim":"changes bounded difficulty parameter","expected":"difficulty adjustment need not equal rule change"},
+    {"id":"RB39","regime":"experience manager no player model","claim":"uses only observed aggregate signals","expected":"template does not imply omniscient cognition"},
+    {"id":"RB40","regime":"experience manager recommendation","claim":"suggests pacing change to GM","expected":"advisory variant no binding adjustment authority"},
+    {"id":"RB41","regime":"experience manager content scheduler","claim":"may spawn/schedule content under declared scope","expected":"specific authority/control only"},
+    {"id":"RB42","regime":"experience manager rule change denied","claim":"cannot alter constitutive victory rule","expected":"rule-change authority not implied"},
+    {"id":"RB43","regime":"experience optimization mismatch","claim":"optimizes retention metric","expected":"metric objective != player value by identity"},
+    {"id":"RB44","regime":"template selected without sources","claim":"designer assigns label Judge but grants nothing","expected":"manifest shows no effective case authority; diagnostic hidden-grant warning"},
+    {"id":"RB45","regime":"template selected partial","claim":"GM variant only world presentation/control enabled","expected":"partial realization legitimate"},
+    {"id":"RB46","regime":"template inheritance","claim":"HeadJudge extends Judge template","expected":"inheritance copies authoring intent only; no implicit authority grant"},
+    {"id":"RB47","regime":"template composition","claim":"Moderator+Operator labels on one holder","expected":"actual effective operations derived from sources, not unioned labels"},
+    {"id":"RB48","regime":"same label different game","claim":"Referee in chess and football differ drastically","expected":"same display label can map to different local bundle variants"},
+    {"id":"RB49","regime":"different labels equivalent","claim":"Arbiter and Judge have same configured slices","expected":"display labels can differ while operational bundle equivalent"},
+    {"id":"RB50","regime":"localized label","claim":"role translated in UI","expected":"semantic template/slice ids stable"},
+    {"id":"RB51","regime":"role replacement","claim":"new human occupies same judge bundle","expected":"RoleAssignment currentness changes; template remains"},
+    {"id":"RB52","regime":"temporary role assignment","claim":"substitute moderator for one match","expected":"scope/time-bound assignment and authority"},
+    {"id":"RB53","regime":"same holder multiple scopes","claim":"operator can configure arena A but only observe arena B","expected":"manifest scope-specific"},
+    {"id":"RB54","regime":"stale manifest","claim":"review authority revoked after Agent context generated","expected":"bundleStateDigest invalidates stale manifest"},
+    {"id":"RB55","regime":"capability missing","claim":"operator has authority but tool unavailable","expected":"diagnostic authority-without-capability"},
+    {"id":"RB56","regime":"capability without authority","claim":"GM Agent has world mutation tool but local variant forbids rule change","expected":"diagnostic capability/control without authority"},
+    {"id":"RB57","regime":"observation missing","claim":"judge assigned case authority but cannot see required evidence channel","expected":"diagnostic missing access; authority does not imply observation"},
+    {"id":"RB58","regime":"separation conflict","claim":"policy prohibits self-review but same holder gets decide+review sources","expected":"blocked_policy_conflict"},
+    {"id":"RB59","regime":"unassigned slice","claim":"practice requires remedy approval but no holder assigned","expected":"composition view exposes gap"},
+    {"id":"RB60","regime":"multiple holders same slice","claim":"two referees independently observe","expected":"shared responsibility allowed; authority resolution remains explicit"},
+    {"id":"RB61","regime":"Station Zero engineer","claim":"engineer role maps objective doctrine and prompts","expected":"local specialist doctrine/objective profile, not generic authority source"},
+    {"id":"RB62","regime":"Station Zero medic/security","claim":"role changes candidate prioritization and objectives","expected":"useful local template behavior without universal semantics"},
+    {"id":"RB63","regime":"Station Zero coordinator","claim":"coordinator task sees all objectives","expected":"local orchestration task role, not universal commander authority"},
+    {"id":"RB64","regime":"Station Zero controllerKind","claim":"actor roleId engineer with controllerKind agent","expected":"role/function separate from control substrate/locus"},
+    {"id":"RB65","regime":"Station Zero player faction","claim":"rescue faction controllerKind player","expected":"player boundary control locus, not GM/operator template by identity"},
+    {"id":"RB66","regime":"Station Zero standing order","claim":"player order constrains Agent strategy but does not mutate World directly","expected":"instruction/control context != direct World authority"},
+    {"id":"RB67","regime":"Mission Control proposal approval","claim":"player can grant one action approval","expected":"local one-shot authority workflow; does not make Player universal judge/operator"},
+    {"id":"RB68","regime":"Casefile occupation label","claim":"Archive technician/Lab engineer shown to player","expected":"diegetic/presentation role label, not operational authority bundle"},
+    {"id":"RB69","regime":"same role label changed capabilities","claim":"engineer loses repair tool","expected":"role label remains while capability summary changes"},
+    {"id":"RB70","regime":"provider swap","claim":"Engineer Agent changes provider","expected":"role bundle/doctrine persists independently of provider"}
+  ],
+  "currentEngineeringAudit": {
+    "TeamActorRole": {"classification":"LOCAL_SPECIALIST_DOCTRINE_OBJECTIVE_PROFILE","finding":"engineer/medic/security/coordinator drive objective routing, mandate/context and policy inputs. They are high-value local role vocabulary, but current authority outcome does not follow from the label alone and capabilities remain separately represented."},
+    "TeamCoordinatorRole": {"classification":"LOCAL_ORCHESTRATION_TASK_ROLE","finding":"coordinator is used for the task spanning the whole objective graph and wrapper execution. It should not be generalized into universal commander, GM or global authority semantics."},
+    "StationZeroRoleId": {"classification":"DIEGETIC_OPERATIONAL_ROLE_LABEL_WITH_SEPARATE_CAPABILITIES","finding":"roleId is stored beside controllerKind, capabilityIds, traits, equipment and faction. This is good evidence that functional role, control substrate and capability are distinct."},
+    "StationZeroControllerKind": {"classification":"CONTROL_LOCUS_OR_REALIZATION_SUBSTRATE_NOT_ROLE","finding":"player/agent/policy/none says who/what realizes control for actor/faction, not what semantic role the entity occupies."},
+    "StationZeroStandingOrder": {"classification":"STRATEGIC_INSTRUCTION_CONSTRAINT_NOT_DIRECT_WORLD_AUTHORITY","finding":"standing orders bind strategy/context but tests explicitly preserve that they do not grant direct World mutation. This is a strong GPR5 anti-hidden-grant example."},
+    "MissionControlPlayerControls": {"classification":"LOCAL_PLAYER_BOUNDARY_CONTROL_AND_ONE_SHOT_AUTHORITY_WORKFLOWS","finding":"approve/deny/redirect/pause/provider/policy actions are specific product controls. They do not imply that Player is universally GM, Judge, Operator or rule authority."},
+    "CasefilePersonRole": {"classification":"DIEGETIC_PRESENTATION_OCCUPATION_LABEL","finding":"Archive technician/Lab systems engineer/Dock mechanic/Galley steward are narrative occupation labels with no generic RoleBundle authority semantics."},
+    "DeepSeekRoleDoctrine": {"classification":"AGENT_CONTEXT_DOCTRINE_HINT_NOT_AUTHORITY_SOURCE","finding":"Engineer/Medic/Security doctrine guides candidate preference and responsibility behavior. The prompt does not itself grant Game action or rule authority."},
+    "AuthorityProfileRoleAttribute": {"classification":"LOCAL_POLICY_ATTRIBUTE_NOT_GENERIC_ROLE_GRANT","finding":"Team authority evidence includes the role in subject attributes/mandate, but the concrete local authority policy decides permit/require-human/deny; GPR5 must not generalize role attribute into automatic cross-Game authority."}
+  },
+  "implementationDecision": {
+    "broadImplementationNow": false,
+    "currentPatternValue": "PROVEN_LOCAL_ROLE_TEMPLATE_VALUE",
+    "currentGenericFrameworkNeed": "NOT_YET_PROVEN",
+    "reason": "Station Zero clearly benefits from local role profiles/doctrine/objective routing and Agent-facing role vocabulary, proving the pattern. But only one main GameForm currently consumes it, and generic Referee/GM/Moderator/Operator/ExperienceManager forms are not live consumers. A cross-Game framework would be premature.",
+    "safeImmediateCandidates": ["derive compact role/bundle manifests from existing Station Zero profile+capability+authority data for Agent/debug tooling without changing sources","add terminology/audit guards that role/controller/capability/authority are distinct","use the generic template contracts for future GameForm authoring rather than refactor current specialist enums","preserve bundleStateDigest/currentness pattern if a future Agent context exposes effective role authority"]
+  },
+  "nextRound": {
+    "name": "GPR6 — Participation / Human-Agent Vocabulary Views",
+    "preset": true,
+    "reason": "R0 P6 remains after P5. ParticipantView, SpectatorView and AudienceView still need practical reconstruction; FinalityStatusView was already absorbed by GPR2 and must not be redone. Rule/Standard labels also need to be recovered only as user/author vocabulary over GDF0/GPR3, alongside Human/Agent/substrate-facing display terms that must not imply authority."
+  }
+}
