@@ -4,6 +4,8 @@ Status: **FROZEN PROOF DESIGN / NO G0 ADMISSION**
 Source standing: `task:game-pre-g0-direction-search-20260817@6`
 Runtime Agent baseline for every packet: **none**
 
+Automated Wave-1 apparatus evidence: `docs/GAME_PRE_G0_PLAYABLE_WAVE1_APPARATUS.md`. This is a non-authoritative implementation/evidence pointer only; it does not modify the frozen A–J packet design or C0/C1/C2 gates.
+
 ## Purpose
 
 This portfolio converts the broad Pre-G0 GameForm search into player-facing falsifiers without allowing existing Agent infrastructure, formal measurability, or prototype convenience to choose the product.

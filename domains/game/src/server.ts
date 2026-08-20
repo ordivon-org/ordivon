@@ -41,6 +41,7 @@ import {
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
 const defaultV3WebRoot = fileURLToPath(new URL("../web-v3", import.meta.url));
 const defaultLabWebRoot = fileURLToPath(new URL("../web-lab", import.meta.url));
+const defaultPreG0WebRoot = fileURLToPath(new URL("../web-pre-g0", import.meta.url));
 const defaultCasefileWebRoot = fileURLToPath(new URL("../web-casefile", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const defaultV3DbPath = resolve(process.cwd(), "data/station-zero-v3.sqlite3");
@@ -68,6 +69,13 @@ const labStaticFiles: Record<string, { file: string; contentType: string }> = {
   "/lab/": { file: "index.html", contentType: "text/html; charset=utf-8" },
   "/lab/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
   "/lab/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
+};
+
+const preG0StaticFiles: Record<string, { file: string; contentType: string }> = {
+  "/pre-g0": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/pre-g0/": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/pre-g0/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/pre-g0/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
 };
 
 const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
@@ -271,6 +279,7 @@ export interface GameServerOptions {
   v3DbPath?: string;
   v3WebRoot?: string;
   labWebRoot?: string;
+  preG0WebRoot?: string;
   casefileDbPath?: string;
   casefileWebRoot?: string;
   v3ProviderFactory?: StationZeroV3AgentProviderFactory;
@@ -303,6 +312,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
   const webRoot = options.webRoot ?? defaultWebRoot;
   const v3WebRoot = options.v3WebRoot ?? defaultV3WebRoot;
   const labWebRoot = options.labWebRoot ?? defaultLabWebRoot;
+  const preG0WebRoot = options.preG0WebRoot ?? defaultPreG0WebRoot;
   const casefileWebRoot = options.casefileWebRoot ?? defaultCasefileWebRoot;
   const providerFactory = options.providerFactory ?? defaultProviderFactory;
   const service = (): MissionControlService => new MissionControlService(store, providerFactory);
@@ -492,6 +502,17 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         const body = await readFile(resolve(labWebRoot, labStaticFile.file));
         response.writeHead(200, {
           "content-type": labStaticFile.contentType,
+          "content-length": body.length,
+          "cache-control": "no-store",
+        });
+        response.end(body);
+        return;
+      }
+      const preG0StaticFile = preG0StaticFiles[url.pathname];
+      if (request.method === "GET" && preG0StaticFile) {
+        const body = await readFile(resolve(preG0WebRoot, preG0StaticFile.file));
+        response.writeHead(200, {
+          "content-type": preG0StaticFile.contentType,
           "content-length": body.length,
           "cache-control": "no-store",
         });
