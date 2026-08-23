@@ -560,7 +560,18 @@ The first canonical Product Value evaluator is:
 pnpm eval:v3:product-value
 ```
 
-It combines same-World counterfactual Preview perturbation, same-seed information pairs, relevant-state contingency probes, representative 20-Turn pressure traces, and specialist semantic-distribution analysis.
+The complete battery remains available, but ordinary autonomous iteration may select one unchanged evidence lane without paying the full battery cost:
+
+```text
+pnpm eval:v3:product-value:information
+pnpm eval:v3:product-value:targeted-controls
+node scripts/eval-station-zero-v3-product-value.ts --lane pressure
+node scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
+```
+
+`--lane` changes execution granularity only; it does not redefine metrics, evidence classes, or Product Value authority. Multiple `--lane` arguments may be combined, and no argument preserves the original complete evaluator. Cheap slices are for frequent falsification; the full battery remains the stronger periodic cross-lane check.
+
+The evaluator combines same-World counterfactual Preview perturbation, same-seed information pairs, relevant-state contingency probes, representative 20-Turn pressure traces, and specialist semantic-distribution analysis.
 
 ## Commander control leverage
 

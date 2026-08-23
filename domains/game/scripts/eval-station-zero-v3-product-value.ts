@@ -520,34 +520,91 @@ async function specialistIdentityAudit() {
   }
 }
 
-const controlLeverage = await controlLeverageAudit();
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "control-leverage", controls: Object.fromEntries(Object.entries(controlLeverage.controls).map(([key, value]) => [key, { classification: value.classification, probes: value.probes, changedSelection: value.changedSelection, changedCommanderAction: value.changedCommanderAction }])) }, null, 2));
-const information = await informationAudit();
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "information", cases: information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, immediateGainedZones: entry.immediateGainedZones.length, firstTurnSelectionChanged: entry.firstTurnSelectionChanged, focusDelta: entry.focusDelta })) }, null, 2));
-const targetedControls = await targetedControlOpportunityAudit();
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "targeted-controls", classifications: targetedControls.classifications, details: targetedControls }, null, 2));
-const pressure = await pressureAudit();
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "pressure", classification: pressure.classification, runs: pressure.runs.map((run) => ({ profileId: run.profileId, heatPlanningPressureTurns: run.heatPlanningPressureTurns, oxygenPlanningPressureTurns: run.oxygenPlanningPressureTurns, pressureDamageTurns: run.pressureDamageTurns, resources: run.resources })) }, null, 2));
-const specialistIdentity = await specialistIdentityAudit();
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "specialist-identity", classification: specialistIdentity.classification, maxSelectedTagJaccard: specialistIdentity.maxSelectedTagJaccard, roleSpecificSignals: specialistIdentity.roleSpecificSignals }, null, 2));
+type ProductValueLane = "control-leverage" | "information" | "targeted-controls" | "pressure" | "specialist-identity";
+const PRODUCT_VALUE_LANES: ProductValueLane[] = ["control-leverage", "information", "targeted-controls", "pressure", "specialist-identity"];
 
-const report = {
+function selectedProductValueLanes(): Set<ProductValueLane> {
+  const selected: ProductValueLane[] = [];
+  const args = process.argv.slice(2);
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index]!;
+    if (value === "--help" || value === "-h") {
+      console.log(`Usage: node scripts/eval-station-zero-v3-product-value.ts [--lane LANE ...]\n\nLanes: ${PRODUCT_VALUE_LANES.join(", ")}\nDefault: all lanes. Repeating --lane selects a bounded subset without changing evaluator semantics.`);
+      process.exit(0);
+    }
+    const inline = value.startsWith("--lane=") ? value.slice("--lane=".length) : null;
+    if (value === "--lane") {
+      const next = args[index + 1];
+      if (!next) throw new Error("--lane requires one lane id");
+      selected.push(next as ProductValueLane);
+      index += 1;
+      continue;
+    }
+    if (inline !== null) {
+      selected.push(inline as ProductValueLane);
+      continue;
+    }
+    throw new Error(`unsupported argument: ${value}`);
+  }
+  if (selected.length === 0) return new Set(PRODUCT_VALUE_LANES);
+  for (const lane of selected) {
+    if (!PRODUCT_VALUE_LANES.includes(lane)) throw new Error(`unknown product-value lane: ${lane}`);
+  }
+  return new Set(selected);
+}
+
+const lanes = selectedProductValueLanes();
+const report: Record<string, unknown> = {
   schemaVersion: 1,
   kind: "ordivon.game.station-zero-v3-product-value-evaluation",
-  method: {
-    controlLeverage: "same-world-revision counterfactual Preview perturbation; baseline restored before Commit",
-    information: "same-seed paired Runs differing only by first-Turn objective-relevant scan vs hold command",
-    pressure: "three representative full 20-Turn deterministic strategy Runs",
-    specialistIdentity: "full deterministic Rescue Run comparing selected/candidate semantic distributions by specialist",
-  },
-  controlLeverage,
-  targetedControls,
-  information,
-  pressure,
-  specialistIdentity,
+  selectedLanes: PRODUCT_VALUE_LANES.filter((lane) => lanes.has(lane)),
+  method: {},
 };
+const method = report.method as Record<string, string>;
+const summary: Record<string, unknown> = {
+  kind: "ordivon.game.station-zero-v3-product-value-summary",
+  selectedLanes: report.selectedLanes,
+};
+
+if (lanes.has("control-leverage")) {
+  const controlLeverage = await controlLeverageAudit();
+  method.controlLeverage = "same-world-revision counterfactual Preview perturbation; baseline restored before Commit";
+  report.controlLeverage = controlLeverage;
+  summary.controlLeverage = Object.fromEntries(Object.entries(controlLeverage.controls).map(([key, value]) => [key, value.classification]));
+  console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "control-leverage", controls: Object.fromEntries(Object.entries(controlLeverage.controls).map(([key, value]) => [key, { classification: value.classification, probes: value.probes, changedSelection: value.changedSelection, changedCommanderAction: value.changedCommanderAction }])) }, null, 2));
+}
+if (lanes.has("information")) {
+  const information = await informationAudit();
+  method.information = "same-seed paired Runs differing only by first-Turn objective-relevant scan vs hold command";
+  report.information = information;
+  summary.information = information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, focusDelta: entry.focusDelta }));
+  console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "information", cases: information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, immediateGainedZones: entry.immediateGainedZones.length, firstTurnSelectionChanged: entry.firstTurnSelectionChanged, focusDelta: entry.focusDelta })) }, null, 2));
+}
+if (lanes.has("targeted-controls")) {
+  const targetedControls = await targetedControlOpportunityAudit();
+  method.targetedControls = "three representative deterministic full Runs with relevant-state same-context counterfactual control probes";
+  report.targetedControls = targetedControls;
+  summary.targetedControls = targetedControls.classifications;
+  console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "targeted-controls", classifications: targetedControls.classifications, details: targetedControls }, null, 2));
+}
+if (lanes.has("pressure")) {
+  const pressure = await pressureAudit();
+  method.pressure = "three representative full 20-Turn deterministic strategy Runs";
+  report.pressure = pressure;
+  summary.pressure = pressure.classification;
+  console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "pressure", classification: pressure.classification, runs: pressure.runs.map((run) => ({ profileId: run.profileId, heatPlanningPressureTurns: run.heatPlanningPressureTurns, oxygenPlanningPressureTurns: run.oxygenPlanningPressureTurns, pressureDamageTurns: run.pressureDamageTurns, resources: run.resources })) }, null, 2));
+}
+if (lanes.has("specialist-identity")) {
+  const specialistIdentity = await specialistIdentityAudit();
+  method.specialistIdentity = "full deterministic Rescue Run comparing selected/candidate semantic distributions by specialist";
+  report.specialistIdentity = specialistIdentity;
+  summary.specialistIdentity = specialistIdentity.classification;
+  console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "specialist-identity", classification: specialistIdentity.classification, maxSelectedTagJaccard: specialistIdentity.maxSelectedTagJaccard, roleSpecificSignals: specialistIdentity.roleSpecificSignals }, null, 2));
+}
+
 const outputDirectory = resolve(process.env.ORDIVON_EVAL_ARTIFACT_DIR ?? "artifacts/evaluations");
 mkdirSync(outputDirectory, { recursive: true });
 const outputPath = resolve(outputDirectory, `station-zero-v3-product-value-${Date.now()}.json`);
 writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
-console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-summary", outputPath, controlLeverage: Object.fromEntries(Object.entries(controlLeverage.controls).map(([key, value]) => [key, value.classification])), targetedControls: targetedControls.classifications, information: information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, focusDelta: entry.focusDelta })), pressure: pressure.classification, specialistIdentity: specialistIdentity.classification }, null, 2));
+summary.outputPath = outputPath;
+console.log(JSON.stringify(summary, null, 2));

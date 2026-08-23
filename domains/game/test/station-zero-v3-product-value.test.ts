@@ -71,4 +71,10 @@ test("bounded system observations expose causal evidence without reading unknown
 test("Product Value lane is canonical navigation and has a repeatable evaluator", () => {
   for (const source of [readme, authority, agents, project]) assert.match(source, /STATION_ZERO_V3_PRODUCT_VALUE\.md/);
   assert.equal(packageJson.scripts["eval:v3:product-value"], "node scripts/eval-station-zero-v3-product-value.ts");
+  assert.equal(packageJson.scripts["eval:v3:product-value:information"], "node scripts/eval-station-zero-v3-product-value.ts --lane information");
+  assert.equal(packageJson.scripts["eval:v3:product-value:targeted-controls"], "node scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls");
+  const evaluatorSource = readFileSync(new URL("../scripts/eval-station-zero-v3-product-value.ts", import.meta.url), "utf8");
+  assert.match(evaluatorSource, /--lane/);
+  assert.match(evaluatorSource, /Default: all lanes/);
+  assert.match(valueDoc, /execution granularity only/);
 });
