@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.station-zero-v3-product-value-evaluation",
+  "selectedLanes": [
+    "targeted-controls"
+  ],
+  "method": {
+    "targetedControls": "three representative deterministic full Runs with relevant-state same-context counterfactual control probes"
+  },
+  "targetedControls": {
+    "retreatHealthThreshold": {
+      "opportunities": 8,
+      "changed": 7,
+      "examples": [
+        {
+          "profile": "rescue",
+          "turn": 16,
+          "actorId": "medic-reyes",
+          "healthRatio": 0.6777777777777778,
+          "low": "Extract from Station Zero",
+          "high": "Extract from Station Zero"
+        },
+        {
+          "profile": "core",
+          "turn": 3,
+          "actorId": "medic-reyes",
+          "healthRatio": 0.6777777777777778,
+          "low": "Overwatch Rescue Airlock",
+          "high": "Extract from Station Zero"
+        },
+        {
+          "profile": "core",
+          "turn": 4,
+          "actorId": "medic-reyes",
+          "healthRatio": 0.35555555555555557,
+          "low": "Overwatch Command Deck",
+          "high": "Extract from Station Zero"
+        },
+        {
+          "profile": "core",
+          "turn": 5,
+          "actorId": "engineer-imani",
+          "healthRatio": 0.61,
+          "low": "Move to Reactor Entry",
+          "high": "Extract from Station Zero"
+        }
+      ]
+    },
+    "lootPolicy": {
+      "opportunities": 46,
+      "changed": 0,
+      "examples": [
+        {
+          "profile": "rescue",
+          "turn": 2,
+          "actorId": "medic-reyes",
+          "pickup": "Pick up pirate-scattergun-item",
+          "ignore": "Move to an uncharted adjacent sector",
+          "opportunistic": "Move to an uncharted adjacent sector"
+        },
+        {
+          "profile": "rescue",
+          "turn": 3,
+          "actorId": "medic-reyes",
+          "pickup": "Pick up sealant",
+          "ignore": "Move to Life Support Console",
+          "opportunistic": "Move to Life Support Console"
+        },
+        {
+          "profile": "rescue",
+          "turn": 4,
+          "actorId": "engineer-imani",
+          "pickup": "Pick up medkit",
+          "ignore": "Take custody of Navigator Sato",
+          "opportunistic": "Take custody of Navigator Sato"
+        },
+        {
+          "profile": "rescue",
+          "turn": 4,
+          "actorId": "medic-reyes",
+          "pickup": "Pick up sealant",
+          "ignore": "Move to Life Support Console",
+          "opportunistic": "Move to Life Support Console"
+        }
+      ]
+    },
+    "priorityTargetActorId": {
+      "opportunities": 63,
+      "changed": 22,
+      "examples": [
+        {
+          "profile": "rescue",
+          "turn": 1,
+          "actorId": "engineer-imani",
+          "targets": [
+            "pirate-hacker-nyx",
+            "pirate-raider-holt"
+          ],
+          "first": "Move to Junction Machinery",
+          "second": "Move to Junction Machinery"
+        },
+        {
+          "profile": "rescue",
+          "turn": 1,
+          "actorId": "medic-reyes",
+          "targets": [
+            "pirate-hacker-nyx",
+            "pirate-raider-holt"
+          ],
+          "first": "Move to an uncharted adjacent sector",
+          "second": "Move to an uncharted adjacent sector"
+        },
+        {
+          "profile": "rescue",
+          "turn": 1,
+          "actorId": "security-chen",
+          "targets": [
+            "pirate-hacker-nyx",
+            "pirate-raider-holt"
+          ],
+          "first": "Precision Burst against Hacker Nyx",
+          "second": "Precision Burst against Raider Holt"
+        },
+        {
+          "profile": "rescue",
+          "turn": 2,
+          "actorId": "engineer-imani",
+          "targets": [
+            "pirate-hacker-nyx",
+            "pirate-raider-holt"
+          ],
+          "first": "Move to Junction Machinery",
+          "second": "Move to Junction Machinery"
+        }
+      ]
+    },
+    "classifications": {
+      "retreatHealthThreshold": "OBSERVED_CONTEXTUAL_LEVERAGE",
+      "lootPolicy": "RELEVANT_STATE_NO_LEVERAGE",
+      "priorityTargetActorId": "OBSERVED_CONTEXTUAL_LEVERAGE"
+    }
+  }
+}

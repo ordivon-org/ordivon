@@ -1,0 +1,1794 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.station-zero-v3-product-value-evaluation",
+  "selectedLanes": [
+    "information"
+  ],
+  "method": {
+    "information": "same-seed paired Runs differing only by first-Turn objective-relevant scan vs hold command"
+  },
+  "information": {
+    "cases": [
+      {
+        "objective": "rescue-two-civilians",
+        "directive": "scan-life-support",
+        "immediateGainedZones": [
+          "life-console"
+        ],
+        "immediateGainedActors": [
+          "civilian-kade:stale:life-console"
+        ],
+        "immediateGainedSystems": [
+          "life-support"
+        ],
+        "immediateGainedHazards": [],
+        "gainedZonesAtTurnFive": [
+          "life-console",
+          "life-entry",
+          "maintenance-console"
+        ],
+        "candidateSurfaceChangedAfterScan": true,
+        "firstTurnSelectionChanged": true,
+        "scannedFocus": {
+          "progress": 0,
+          "target": 2,
+          "status": "active"
+        },
+        "heldFocus": {
+          "progress": 0,
+          "target": 2,
+          "status": "active"
+        },
+        "focusDelta": 0,
+        "scanned": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "comms-entry",
+            "crate-cover",
+            "junction-console",
+            "junction-cover",
+            "life-console",
+            "life-entry",
+            "maintenance-console",
+            "maintenance-entry",
+            "med-console",
+            "med-ward",
+            "reactor-console",
+            "reactor-cover",
+            "reactor-entry",
+            "rescue-airlock",
+            "storage-floor"
+          ],
+          "knownActors": [
+            "civilian-kade:stale:life-console",
+            "civilian-sato:confirmed:med-ward",
+            "engineer-imani:confirmed:maintenance-console",
+            "hive-alpha:confirmed:life-entry",
+            "medic-reyes:confirmed:med-ward",
+            "pirate-captain-veyra:stale:junction-cover",
+            "pirate-hacker-nyx:stale:command-deck",
+            "pirate-raider-holt:confirmed:junction-cover",
+            "security-chen:confirmed:storage-floor",
+            "swarm-drone-one:confirmed:life-entry",
+            "swarm-drone-two:confirmed:maintenance-console"
+          ],
+          "knownSystems": [
+            "cooling",
+            "life-support",
+            "power-grid"
+          ],
+          "knownHazards": [
+            "maintenance-breach",
+            "reactor-instability"
+          ],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "comms-entry",
+              "junction-console",
+              "junction-cover",
+              "life-console",
+              "med-console",
+              "med-ward",
+              "reactor-console",
+              "reactor-cover",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "civilian-kade:stale:life-console",
+              "engineer-imani:confirmed:junction-console",
+              "medic-reyes:confirmed:junction-console",
+              "pirate-hacker-nyx:confirmed:junction-cover",
+              "pirate-raider-holt:confirmed:junction-cover",
+              "security-chen:confirmed:reactor-entry"
+            ],
+            "knownSystems": [
+              "cooling",
+              "life-support",
+              "power-grid"
+            ],
+            "knownHazards": [
+              "reactor-instability"
+            ],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Field-repair Power Grid\",\"use_ability\",[\"ability:field-repair\",\"interaction\",\"repair\",\"system:power-grid\"]],[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Communications Entry\",\"move\",[\"known-zone\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Medical Console\",\"move\",[\"known-zone\",\"move\",\"responsibility:advance\",\"room:medical-bay\",\"route:med-ward\",\"zone-tag:console\",\"zone:med-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:console\",\"zone:comms-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:storage\",\"route:life-console\",\"zone-tag:loot\",\"zone:storage-floor\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Communications Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:comms-entry\"]],[\"Overwatch Junction Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-cover\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Pulse Shot against Hacker Nyx\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Pulse Shot against Raider Holt\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]],[\"Repair Power Grid\",\"interact\",[\"interaction\",\"repair\",\"system-tag:critical\",\"system-tag:power\",\"system:power-grid\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Communications Entry\",\"move\",[\"known-zone\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Medical Console\",\"move\",[\"known-zone\",\"move\",\"room:medical-bay\",\"route:med-ward\",\"zone-tag:console\",\"zone:med-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"responsibility:advance\",\"room:storage\",\"route:life-console\",\"zone-tag:loot\",\"zone:storage-floor\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:console\",\"zone:comms-console\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Communications Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:comms-entry\"]],[\"Overwatch Junction Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-cover\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Pulse Shot against Hacker Nyx\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Pulse Shot against Raider Holt\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]],[\"Precision Burst against Hacker Nyx\",\"attack\",[\"ability:precision-burst\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Precision Burst against Raider Holt\",\"attack\",[\"ability:precision-burst\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Medical Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone:med-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "responsibility:advance",
+                  "room:storage",
+                  "route:life-console",
+                  "zone-tag:loot",
+                  "zone:storage-floor"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Precision Burst against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:precision-burst",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Storage Floor",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:storage",
+                  "route:life-console",
+                  "route:maintenance-entry",
+                  "zone-tag:loot",
+                  "zone:storage-floor"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone:med-console"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:life-console",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "responsibility:advance",
+                  "room:maintenance",
+                  "route:life-console",
+                  "zone-tag:console",
+                  "zone:maintenance-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Ward",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:civilian",
+                  "zone:med-ward"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Captain Veyra",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "responsibility:advance",
+                  "target-role:captain",
+                  "target:pirate-captain-veyra"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Life Support Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:life-support",
+                  "route:life-console",
+                  "zone-tag:console",
+                  "zone-tag:critical",
+                  "zone:life-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Take custody of Navigator Sato",
+                "kind": "interact",
+                "tags": [
+                  "interaction",
+                  "objective:rescue-two-civilians",
+                  "rescue",
+                  "responsibility:advance",
+                  "target:civilian-sato"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Storage Floor",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:storage",
+                  "route:life-console",
+                  "route:life-entry",
+                  "route:maintenance-console",
+                  "route:maintenance-entry",
+                  "zone-tag:loot",
+                  "zone:storage-floor"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 2,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "held": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "comms-entry",
+            "crate-cover",
+            "junction-console",
+            "junction-cover",
+            "maintenance-entry",
+            "med-console",
+            "med-ward",
+            "reactor-console",
+            "reactor-cover",
+            "reactor-entry",
+            "rescue-airlock",
+            "storage-floor"
+          ],
+          "knownActors": [
+            "civilian-sato:confirmed:med-ward",
+            "engineer-imani:confirmed:reactor-console",
+            "medic-reyes:confirmed:med-ward",
+            "pirate-captain-veyra:confirmed:command-deck",
+            "pirate-hacker-nyx:confirmed:reactor-console",
+            "pirate-raider-holt:confirmed:junction-cover",
+            "security-chen:confirmed:junction-console"
+          ],
+          "knownSystems": [
+            "cooling",
+            "power-grid"
+          ],
+          "knownHazards": [
+            "maintenance-breach",
+            "reactor-instability"
+          ],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "comms-entry",
+              "junction-console",
+              "junction-cover",
+              "med-console",
+              "med-ward",
+              "reactor-console",
+              "reactor-cover",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "engineer-imani:confirmed:junction-console",
+              "medic-reyes:confirmed:junction-console",
+              "pirate-hacker-nyx:confirmed:junction-cover",
+              "pirate-raider-holt:confirmed:junction-cover",
+              "security-chen:confirmed:reactor-entry"
+            ],
+            "knownSystems": [
+              "cooling",
+              "power-grid"
+            ],
+            "knownHazards": [
+              "reactor-instability"
+            ],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Field-repair Power Grid\",\"use_ability\",[\"ability:field-repair\",\"interaction\",\"repair\",\"system:power-grid\"]],[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Communications Entry\",\"move\",[\"known-zone\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Medical Console\",\"move\",[\"known-zone\",\"move\",\"room:medical-bay\",\"route:med-ward\",\"zone-tag:console\",\"zone:med-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:console\",\"zone:comms-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:storage\",\"zone-tag:loot\",\"zone:storage-floor\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Communications Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:comms-entry\"]],[\"Overwatch Junction Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-cover\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Pulse Shot against Hacker Nyx\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Pulse Shot against Raider Holt\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]],[\"Repair Power Grid\",\"interact\",[\"interaction\",\"repair\",\"system-tag:critical\",\"system-tag:power\",\"system:power-grid\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Communications Entry\",\"move\",[\"known-zone\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Medical Console\",\"move\",[\"known-zone\",\"move\",\"responsibility:advance\",\"room:medical-bay\",\"route:med-ward\",\"zone-tag:console\",\"zone:med-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:console\",\"zone:comms-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:storage\",\"zone-tag:loot\",\"zone:storage-floor\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Communications Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:comms-entry\"]],[\"Overwatch Junction Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-cover\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Pulse Shot against Hacker Nyx\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Pulse Shot against Raider Holt\",\"attack\",[\"ability:pulse-shot\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]],[\"Precision Burst against Hacker Nyx\",\"attack\",[\"ability:precision-burst\",\"combat\",\"target-role:hacker\",\"target:pirate-hacker-nyx\"]],[\"Precision Burst against Raider Holt\",\"attack\",[\"ability:precision-burst\",\"combat\",\"target-role:raider\",\"target:pirate-raider-holt\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:storage",
+                  "zone-tag:loot",
+                  "zone:storage-floor"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone:med-console"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Precision Burst against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:precision-burst",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:reactor-console",
+                  "route:rescue-airlock",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Ward",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:civilian",
+                  "zone:med-ward"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Reactor Entry",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:reactor",
+                  "route:reactor-console",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Take custody of Navigator Sato",
+                "kind": "interact",
+                "tags": [
+                  "interaction",
+                  "objective:rescue-two-civilians",
+                  "rescue",
+                  "responsibility:advance",
+                  "target:civilian-sato"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Medical Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone:med-console"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Reactor Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:reactor",
+                  "route:reactor-console",
+                  "zone-tag:console",
+                  "zone-tag:objective",
+                  "zone:reactor-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "escort:civilian-sato",
+                  "escorting-civilian",
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:reactor-console",
+                  "route:rescue-airlock",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "responsibility:advance",
+                  "room:power-junction",
+                  "route:reactor-console",
+                  "route:rescue-airlock",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 2,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "classification": "INFORMATION_CHANGES_COMMAND_SURFACE"
+      },
+      {
+        "objective": "recover-research-core",
+        "directive": "scan-reactor",
+        "immediateGainedZones": [],
+        "immediateGainedActors": [],
+        "immediateGainedSystems": [],
+        "immediateGainedHazards": [],
+        "gainedZonesAtTurnFive": [],
+        "candidateSurfaceChangedAfterScan": false,
+        "firstTurnSelectionChanged": false,
+        "scannedFocus": {
+          "progress": 0,
+          "target": 1,
+          "status": "active"
+        },
+        "heldFocus": {
+          "progress": 0,
+          "target": 1,
+          "status": "active"
+        },
+        "focusDelta": 0,
+        "scanned": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "junction-console",
+            "junction-cover",
+            "med-console",
+            "med-ward",
+            "reactor-console",
+            "reactor-cover",
+            "reactor-entry",
+            "rescue-airlock",
+            "storage-floor"
+          ],
+          "knownActors": [
+            "civilian-sato:confirmed:med-ward",
+            "engineer-imani:confirmed:rescue-airlock",
+            "medic-reyes:confirmed:med-ward",
+            "pirate-captain-veyra:confirmed:command-deck",
+            "pirate-hacker-nyx:confirmed:reactor-console",
+            "pirate-raider-holt:confirmed:command-deck",
+            "security-chen:confirmed:reactor-entry"
+          ],
+          "knownSystems": [
+            "cooling",
+            "power-grid"
+          ],
+          "knownHazards": [
+            "reactor-instability"
+          ],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "junction-console",
+              "junction-cover",
+              "med-console",
+              "med-ward",
+              "reactor-console",
+              "reactor-cover",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "engineer-imani:confirmed:reactor-entry",
+              "medic-reyes:confirmed:command-deck",
+              "security-chen:confirmed:reactor-entry"
+            ],
+            "knownSystems": [
+              "cooling",
+              "power-grid"
+            ],
+            "knownHazards": [
+              "reactor-instability"
+            ],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"objective:advance\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:command-center",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Reactor Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:reactor",
+                  "route:reactor-console",
+                  "zone-tag:console",
+                  "zone-tag:objective",
+                  "zone:reactor-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Pick up research-core",
+                "kind": "pickup",
+                "tags": [
+                  "interaction",
+                  "item:research-core",
+                  "objective:advance",
+                  "objective:pirate-steal-core",
+                  "objective:recover-research-core",
+                  "pickup"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Precision Burst against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:precision-burst",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:command-center",
+                  "route:med-ward",
+                  "route:rescue-airlock",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Rescue Airlock",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:command-center",
+                  "route:rescue-airlock",
+                  "zone-tag:extraction:rescue",
+                  "zone:rescue-airlock"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Ward",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:civilian",
+                  "zone:med-ward"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Captain Veyra",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:captain",
+                  "target:pirate-captain-veyra"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 1,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "held": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "junction-console",
+            "junction-cover",
+            "med-console",
+            "med-ward",
+            "reactor-console",
+            "reactor-cover",
+            "reactor-entry",
+            "rescue-airlock",
+            "storage-floor"
+          ],
+          "knownActors": [
+            "civilian-sato:confirmed:med-ward",
+            "engineer-imani:confirmed:rescue-airlock",
+            "medic-reyes:confirmed:med-ward",
+            "pirate-captain-veyra:confirmed:command-deck",
+            "pirate-hacker-nyx:confirmed:reactor-console",
+            "pirate-raider-holt:confirmed:command-deck",
+            "security-chen:confirmed:reactor-entry"
+          ],
+          "knownSystems": [
+            "cooling",
+            "power-grid"
+          ],
+          "knownHazards": [
+            "reactor-instability"
+          ],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "junction-console",
+              "junction-cover",
+              "med-console",
+              "med-ward",
+              "reactor-console",
+              "reactor-cover",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "engineer-imani:confirmed:reactor-entry",
+              "medic-reyes:confirmed:command-deck",
+              "security-chen:confirmed:reactor-entry"
+            ],
+            "knownSystems": [
+              "cooling",
+              "power-grid"
+            ],
+            "knownHazards": [
+              "reactor-instability"
+            ],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"objective:advance\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Console\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"route:reactor-console\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to Shielded Machinery\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Reactor Console\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Shielded Machinery\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-cover\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:command-center",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "room:reactor",
+                  "zone-tag:chokepoint",
+                  "zone:reactor-entry"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Reactor Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:reactor",
+                  "route:reactor-console",
+                  "zone-tag:console",
+                  "zone-tag:objective",
+                  "zone:reactor-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Pick up research-core",
+                "kind": "pickup",
+                "tags": [
+                  "interaction",
+                  "item:research-core",
+                  "objective:advance",
+                  "objective:pirate-steal-core",
+                  "objective:recover-research-core",
+                  "pickup"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Precision Burst against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:precision-burst",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:command-center",
+                  "route:med-ward",
+                  "route:rescue-airlock",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Rescue Airlock",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:command-center",
+                  "route:rescue-airlock",
+                  "zone-tag:extraction:rescue",
+                  "zone:rescue-airlock"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Medical Ward",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:medical-bay",
+                  "route:med-ward",
+                  "zone-tag:civilian",
+                  "zone:med-ward"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Captain Veyra",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:captain",
+                  "target:pirate-captain-veyra"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 1,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "classification": "NO_IMMEDIATE_INFORMATION_GAIN"
+      },
+      {
+        "objective": "eliminate-hive-alpha",
+        "directive": "scan-maintenance",
+        "immediateGainedZones": [
+          "maintenance-entry"
+        ],
+        "immediateGainedActors": [
+          "swarm-drone-one:stale:maintenance-entry"
+        ],
+        "immediateGainedSystems": [],
+        "immediateGainedHazards": [
+          "maintenance-breach"
+        ],
+        "gainedZonesAtTurnFive": [
+          "comms-entry",
+          "crate-cover",
+          "life-entry",
+          "maintenance-console",
+          "maintenance-entry",
+          "maintenance-nest",
+          "storage-floor"
+        ],
+        "candidateSurfaceChangedAfterScan": true,
+        "firstTurnSelectionChanged": true,
+        "scannedFocus": {
+          "progress": 0,
+          "target": 1,
+          "status": "active"
+        },
+        "heldFocus": {
+          "progress": 0,
+          "target": 1,
+          "status": "active"
+        },
+        "focusDelta": 0,
+        "scanned": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "comms-entry",
+            "crate-cover",
+            "junction-console",
+            "junction-cover",
+            "life-entry",
+            "maintenance-console",
+            "maintenance-entry",
+            "maintenance-nest",
+            "med-console",
+            "med-ward",
+            "reactor-entry",
+            "rescue-airlock",
+            "storage-floor"
+          ],
+          "knownActors": [
+            "engineer-imani:confirmed:maintenance-entry",
+            "hive-alpha:confirmed:life-entry",
+            "medic-reyes:confirmed:command-deck",
+            "pirate-captain-veyra:stale:storage-floor",
+            "pirate-hacker-nyx:stale:command-deck",
+            "pirate-raider-holt:confirmed:command-deck",
+            "security-chen:confirmed:maintenance-console",
+            "swarm-drone-one:confirmed:life-entry",
+            "swarm-drone-two:confirmed:maintenance-console"
+          ],
+          "knownSystems": [
+            "power-grid"
+          ],
+          "knownHazards": [
+            "biomass-nest",
+            "maintenance-breach"
+          ],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "junction-console",
+              "junction-cover",
+              "maintenance-entry",
+              "med-console",
+              "med-ward",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "engineer-imani:confirmed:rescue-airlock",
+              "medic-reyes:confirmed:command-deck",
+              "security-chen:confirmed:command-deck",
+              "swarm-drone-one:stale:maintenance-entry"
+            ],
+            "knownSystems": [
+              "power-grid"
+            ],
+            "knownHazards": [
+              "maintenance-breach"
+            ],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Extract from Station Zero\",\"extract\",[\"extract\",\"faction:rescue\",\"interaction\"]],[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"objective:advance\",\"room:power-junction\",\"route:maintenance-entry\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:maintenance-entry\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"objective:advance\",\"room:power-junction\",\"route:maintenance-entry\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:command-center",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Power Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:console",
+                  "zone-tag:power",
+                  "zone:junction-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to an uncharted adjacent sector",
+                "kind": "move",
+                "tags": [
+                  "frontier",
+                  "move",
+                  "objective:advance",
+                  "room:storage",
+                  "route:maintenance-entry",
+                  "zone-tag:loot",
+                  "zone:storage-floor"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Maintenance Entry",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:maintenance",
+                  "route:maintenance-entry",
+                  "zone-tag:chokepoint",
+                  "zone:maintenance-entry"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:maintenance-entry",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Maintenance Entry",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:maintenance",
+                  "route:maintenance-entry",
+                  "zone-tag:chokepoint",
+                  "zone:maintenance-entry"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Move to Maintenance Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:maintenance",
+                  "route:maintenance-console",
+                  "zone-tag:console",
+                  "zone:maintenance-console"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Captain Veyra",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:captain",
+                  "target:pirate-captain-veyra"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Move to Maintenance Console",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "objective:advance",
+                  "room:maintenance",
+                  "route:maintenance-console",
+                  "zone-tag:console",
+                  "zone:maintenance-console"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 1,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "held": {
+          "turns": 5,
+          "discoveredZones": [
+            "command-deck",
+            "junction-console",
+            "junction-cover",
+            "med-console",
+            "med-ward",
+            "reactor-entry",
+            "rescue-airlock"
+          ],
+          "knownActors": [
+            "engineer-imani:confirmed:rescue-airlock",
+            "medic-reyes:confirmed:command-deck",
+            "pirate-hacker-nyx:stale:command-deck",
+            "pirate-raider-holt:confirmed:command-deck",
+            "security-chen:confirmed:command-deck"
+          ],
+          "knownSystems": [
+            "power-grid"
+          ],
+          "knownHazards": [],
+          "reports": [
+            "jammed:0",
+            "jammed:2",
+            "report:distress-signal",
+            "report:unknown-life-signs"
+          ],
+          "immediateKnowledge": {
+            "discoveredZones": [
+              "command-deck",
+              "junction-console",
+              "junction-cover",
+              "med-console",
+              "med-ward",
+              "reactor-entry",
+              "rescue-airlock"
+            ],
+            "knownActors": [
+              "engineer-imani:confirmed:rescue-airlock",
+              "medic-reyes:confirmed:command-deck",
+              "security-chen:confirmed:command-deck"
+            ],
+            "knownSystems": [
+              "power-grid"
+            ],
+            "knownHazards": [],
+            "reports": [
+              "jammed:0",
+              "report:distress-signal",
+              "report:unknown-life-signs"
+            ]
+          },
+          "firstPostScanSurface": "[[\"engineer-imani\",[[\"Extract from Station Zero\",\"extract\",[\"extract\",\"faction:rescue\",\"interaction\"]],[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Command Deck\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"zone-tag:console\",\"zone:command-deck\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"medic-reyes\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]],[\"security-chen\",[[\"Hold position\",\"wait\",[\"wait\"]],[\"Move to Junction Machinery\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"route:med-ward\",\"zone-tag:cover\",\"zone:junction-cover\"]],[\"Move to Power Console\",\"move\",[\"known-zone\",\"move\",\"room:power-junction\",\"zone-tag:console\",\"zone-tag:power\",\"zone:junction-console\"]],[\"Move to Reactor Entry\",\"move\",[\"known-zone\",\"move\",\"room:reactor\",\"zone-tag:chokepoint\",\"zone:reactor-entry\"]],[\"Move to Rescue Airlock\",\"move\",[\"known-zone\",\"move\",\"room:command-center\",\"route:rescue-airlock\",\"zone-tag:extraction:rescue\",\"zone:rescue-airlock\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:communications\",\"zone-tag:chokepoint\",\"zone:comms-entry\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:console\",\"zone-tag:objective\",\"zone:reactor-console\"]],[\"Move to an uncharted adjacent sector\",\"move\",[\"frontier\",\"move\",\"room:reactor\",\"zone-tag:cover\",\"zone:reactor-cover\"]],[\"Overwatch Command Deck\",\"guard\",[\"guard\",\"reaction\",\"zone:command-deck\"]],[\"Overwatch Power Console\",\"guard\",[\"guard\",\"reaction\",\"zone:junction-console\"]],[\"Overwatch Reactor Entry\",\"guard\",[\"guard\",\"reaction\",\"zone:reactor-entry\"]],[\"Overwatch Rescue Airlock\",\"guard\",[\"guard\",\"reaction\",\"zone:rescue-airlock\"]]]]]",
+          "selectedByTurn": [
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Command Deck",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:command-center",
+                  "zone-tag:console",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Overwatch Rescue Airlock",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:rescue-airlock"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Power Console",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:junction-console"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Precision Burst against Hacker Nyx",
+                "kind": "attack",
+                "tags": [
+                  "ability:precision-burst",
+                  "combat",
+                  "target-role:hacker",
+                  "target:pirate-hacker-nyx"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Move to Junction Machinery",
+                "kind": "move",
+                "tags": [
+                  "known-zone",
+                  "move",
+                  "room:power-junction",
+                  "route:med-ward",
+                  "zone-tag:cover",
+                  "zone:junction-cover"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Overwatch Command Deck",
+                "kind": "guard",
+                "tags": [
+                  "guard",
+                  "reaction",
+                  "zone:command-deck"
+                ]
+              }
+            ],
+            [
+              {
+                "actorId": "engineer-imani",
+                "label": "Pulse Shot against Raider Holt",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:raider",
+                  "target:pirate-raider-holt"
+                ]
+              },
+              {
+                "actorId": "medic-reyes",
+                "label": "Pulse Shot against Raider Holt",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:raider",
+                  "target:pirate-raider-holt"
+                ]
+              },
+              {
+                "actorId": "security-chen",
+                "label": "Pulse Shot against Raider Holt",
+                "kind": "attack",
+                "tags": [
+                  "ability:pulse-shot",
+                  "combat",
+                  "target-role:raider",
+                  "target:pirate-raider-holt"
+                ]
+              }
+            ]
+          ],
+          "focus": {
+            "progress": 0,
+            "target": 1,
+            "status": "active"
+          },
+          "rescueOutcome": "pending"
+        },
+        "classification": "INFORMATION_CHANGES_COMMAND_SURFACE"
+      }
+    ]
+  }
+}

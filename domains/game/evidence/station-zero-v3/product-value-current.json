@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.station-zero-v3-product-value-current",
+  "truthRole": "derived-scoped-evidence-receipt-not-product-authority",
+  "subject": "Station Zero v3 reference experiment / current retained machine Product Value evidence",
+  "observedAtMs": 1787507669515,
+  "runtimeEvidence": {
+    "informationJobId": "job-01a02fc3-1ca6-7ce3-bd77-3142773e557a",
+    "targetedControlsJobId": "job-01a02fc1-f4f3-7111-8d32-e8678cdc4865"
+  },
+  "sourceFences": [
+    {
+      "path": "scripts/eval-station-zero-v3-product-value.ts",
+      "digest": "sha256:845fd9a6e870415813d4cb0c351c36e5860f9151cf1ad9419e8e5064416254fb",
+      "role": "canonical-evaluator"
+    },
+    {
+      "path": "scripts/product-value-context.ts",
+      "digest": "sha256:d078e236314c783410b77f08c8e874783c24d82804346e57bbc0943e145a5cd2",
+      "role": "currentness-projection-semantics"
+    },
+    {
+      "path": "docs/STATION_ZERO_V3_PRODUCT_VALUE.md",
+      "digest": "sha256:afbef991e3e2846883d489d010b457a345557e0056f1ffb1e4afe98e84fc931c",
+      "role": "product-value-standing"
+    },
+    {
+      "path": "src/station-zero-v3/agent-planning.ts",
+      "digest": "sha256:c2bc0b45e038a504afded884163e1d58604b5e41a8980ef89f3026b3cbbfb091",
+      "role": "fixture-agent-control-semantics"
+    },
+    {
+      "path": "test/station-zero-v3-order-comprehension.test.ts",
+      "digest": "sha256:c606a6344f806f462cfaa321570f2f981a4fb9287eabae2e1b5bcd6d5ed424db",
+      "role": "focused-control-semantics-test"
+    },
+    {
+      "path": "evidence/station-zero-v3/product-value-information-20260824.json",
+      "digest": "sha256:56c308d29dbf2b00cd7692ccad1d8aa246ede314475f402bec8f81a3c02f0893",
+      "role": "raw-information-lane-receipt"
+    },
+    {
+      "path": "evidence/station-zero-v3/product-value-targeted-controls-20260824.json",
+      "digest": "sha256:d346d564403587dac67b0261ed274fe370df28a73d3e7f5fa7d4edefe24eeadd",
+      "role": "raw-targeted-controls-lane-receipt"
+    }
+  ],
+  "lanes": [
+    {
+      "lane": "information",
+      "receiptPath": "evidence/station-zero-v3/product-value-information-20260824.json",
+      "receiptDigest": "sha256:56c308d29dbf2b00cd7692ccad1d8aa246ede314475f402bec8f81a3c02f0893",
+      "method": "same-seed paired Runs differing only by first-Turn objective-relevant scan vs hold command",
+      "summary": {
+        "rescue-two-civilians": "INFORMATION_CHANGES_COMMAND_SURFACE",
+        "recover-research-core": "NO_IMMEDIATE_INFORMATION_GAIN",
+        "eliminate-hive-alpha": "INFORMATION_CHANGES_COMMAND_SURFACE"
+      }
+    },
+    {
+      "lane": "targeted-controls",
+      "receiptPath": "evidence/station-zero-v3/product-value-targeted-controls-20260824.json",
+      "receiptDigest": "sha256:d346d564403587dac67b0261ed274fe370df28a73d3e7f5fa7d4edefe24eeadd",
+      "method": "three representative deterministic full Runs with relevant-state same-context counterfactual control probes",
+      "summary": {
+        "retreatHealthThreshold": {
+          "classification": "OBSERVED_CONTEXTUAL_LEVERAGE",
+          "opportunities": 8,
+          "changed": 7
+        },
+        "lootPolicy": {
+          "classification": "RELEVANT_STATE_NO_LEVERAGE",
+          "opportunities": 46,
+          "changed": 0
+        },
+        "priorityTargetActorId": {
+          "classification": "OBSERVED_CONTEXTUAL_LEVERAGE",
+          "opportunities": 63,
+          "changed": 22
+        }
+      }
+    }
+  ],
+  "retainedConsequences": [
+    {
+      "target": "lootPolicy",
+      "disposition": "NO_CHANGE",
+      "scope": "current Station Zero v3 reference-experiment product behavior under current targeted-control opportunity semantics",
+      "reason": "The 0/46 result is not sufficient evidence that lootPolicy wiring is defective. Current scoring consumes lootPolicy, focused order-comprehension evidence shows it can alter selection in a meaningful medkit state, the player UI already withholds the rejected control, and broad pickup-candidate existence is not equivalent to meaningful downstream loot opportunity.",
+      "authorityGain": false,
+      "reopenWhen": [
+        "one or more source fences become stale",
+        "optional-item semantics gain new downstream affordances or utility",
+        "a narrower meaningful-loot opportunity evaluator finds contradictory leverage evidence",
+        "the player-facing product surface reintroduces lootPolicy"
+      ]
+    }
+  ],
+  "boundaries": [
+    "Machine Product Value evidence may establish causal control, information, pressure, strategy or behavioral consequences; it does not establish Human Player Value.",
+    "One evaluator result is pressure, not authority. Opportunity semantics and current standing must be checked before product mutation.",
+    "A retained NO_CHANGE is scoped and currentness-fenced; it is not a permanent prohibition on future loot mechanics."
+  ]
+}

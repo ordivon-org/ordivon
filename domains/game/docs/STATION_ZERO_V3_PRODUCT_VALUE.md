@@ -571,6 +571,14 @@ node scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
 
 `--lane` changes execution granularity only; it does not redefine metrics, evidence classes, or Product Value authority. Multiple `--lane` arguments may be combined, and no argument preserves the original complete evaluator. Cheap slices are for frequent falsification; the full battery remains the stronger periodic cross-lane check.
 
+For ordinary Agent continuation, the latest retained scoped evidence can be read without a repository-wide search or evaluator rerun:
+
+```text
+pnpm context:v3:product-value
+```
+
+This context is a **derived read-only projection**, not Product Value authority. It verifies exact source/evaluator/evidence digests before marking itself `CURRENT`, retains the raw lane receipts under `evidence/station-zero-v3/`, and may report `NO_CHANGE` as a scoped consequence. If any semantic fence drifts it reports `STALE` **and structurally withholds lane/consequence payloads from the ordinary decision projection**; only the historical receipt pointer and revalidation escape hatch remain. Currentness is therefore enforced by projection subtraction rather than by asking the Agent to remember a prose warning.
+
 The evaluator combines same-World counterfactual Preview perturbation, same-seed information pairs, relevant-state contingency probes, representative 20-Turn pressure traces, and specialist semantic-distribution analysis.
 
 ## Commander control leverage
