@@ -53,7 +53,7 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertTrue(value["harnessMayAdmitSubsetOnly"])
         self.assertEqual(
             [item["name"] for item in value["tools"]],
-            ["studio_dependencies_status", "studio_dependencies_propose", "studio_equipment_propose"],
+            ["studio_dependencies_status", "studio_dependencies_propose", "studio_production_context", "studio_learning_context", "studio_equipment_propose"],
         )
 
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
@@ -93,6 +93,36 @@ class AgentSurfaceTests(unittest.TestCase):
             self.assertEqual(js["plan"]["args"], ["install", "--frozen-lockfile"])
             self.assertEqual(python["plan"]["executable"], "/usr/bin/python3")
             self.assertEqual(resolve["plan"]["args"], ["scripts/materialize-python.py", "--extra", "resolve"])
+
+    def test_learning_and_production_context_are_owner_native_read_only_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            (root / "research/expression").mkdir(parents=True)
+            (root / "research/expression/context.json").write_text(json.dumps({
+                "creativeSystem": {
+                    "learningPromotion": ["artifact-local"],
+                    "twoSpeedLearning": {"boundary": "human typed"},
+                    "culturalObservatory": {"creativeAlphaResearch": {
+                        "authority": "r6",
+                        "researchInstitutions": ["pristine-holdout"],
+                        "oosDimensions": ["observer-class"],
+                        "boundary": "typed",
+                    }},
+                }
+            }), encoding="utf-8")
+            prod = root / "productions/p1"
+            prod.mkdir(parents=True)
+            (prod / "production.json").write_text(json.dumps({
+                "id": "p1", "title": "P1", "status": "review", "intent": "test", "audiences": ["agent"],
+                "sourceBindings": [], "outputs": [], "sources": {"claims": "claims.json", "cognition": "cognition.md"}
+            }), encoding="utf-8")
+            (prod / "claims.json").write_text(json.dumps({"productionId": "p1", "claims": []}), encoding="utf-8")
+            (prod / "cognition.md").write_text("# P1\n\n## LEARNING\n\nRetain exact evidence.\n", encoding="utf-8")
+            production = execute_surface_action("studio_production_context", {"productionId": "p1"}, root=root)
+            learning = execute_surface_action("studio_learning_context", {"currentProductionId": "p1"}, root=root)
+        self.assertEqual(production["production"]["id"], "p1")
+        self.assertEqual(learning["currentProductionId"], "p1")
+        self.assertIn("Retain exact evidence", learning["retainedLearning"][0]["learning"] )
 
     def test_equipment_surface_reuses_truthful_proposal_not_a_second_registry(self) -> None:
         fake = {"ready": False, "blockers": ["AUTH_REQUIRED"]}

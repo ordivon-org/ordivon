@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from .equipment import load_equipment_world, propose_operation
+from .learning_context import build_learning_context
+from .production_context import build_production_context
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON_RECEIPT = Path(".venv/.ordivon-materialization.json")
@@ -149,6 +151,16 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
     }
 
 
+def _production_root(root: Path, production_id: str) -> Path:
+    if not production_id or "/" in production_id or "\\" in production_id or production_id in {".", ".."}:
+        raise ValueError("productionId must be one direct Production id")
+    production_root = (root / "productions" / production_id).resolve()
+    expected_parent = (root / "productions").resolve()
+    if production_root.parent != expected_parent or not (production_root / "production.json").is_file():
+        raise ValueError(f"unknown Production: {production_id}")
+    return production_root
+
+
 def tool_definitions() -> list[dict[str, Any]]:
     return [
         {
@@ -163,6 +175,25 @@ def tool_definitions() -> list[dict[str, Any]]:
                 "type": "object",
                 "properties": {"target": {"type": "string", "enum": ["js", "python", "resolve"]}},
                 "required": ["target"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "studio_production_context",
+            "description": "Read one current Studio Production as a bounded owner-native context projection: intent, audiences, source bindings, Claims, Outputs, and mechanical source-binding relation. This does not render, edit, publish, or infer semantic currentness.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"productionId": {"type": "string", "minLength": 1}},
+                "required": ["productionId"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "studio_learning_context",
+            "description": "Hydrate scoped retained learning from real Studio Productions together with the current Creative Alpha holdout/OOS boundary and promotion path. This is read-only evidence for future production decisions, not a universal quality model or approval gate.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"currentProductionId": {"type": "string", "minLength": 1}},
                 "additionalProperties": False,
             },
         },
@@ -188,6 +219,16 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         return dependency_status(root)
     if name == "studio_dependencies_propose":
         return dependency_proposal(str(arguments["target"]), root)
+    if name == "studio_production_context":
+        production_id = str(arguments["productionId"])
+        return build_production_context(_production_root(root, production_id))
+    if name == "studio_learning_context":
+        current = arguments.get("currentProductionId")
+        if current is not None and not isinstance(current, str):
+            raise ValueError("currentProductionId must be a string when supplied")
+        if current is not None:
+            _production_root(root, current)
+        return build_learning_context(root, current_production_id=current)
     if name == "studio_equipment_propose":
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
@@ -212,7 +253,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-af6-v1",
+        "revision": "studio-agent-surface-learning-hydration-v1",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
