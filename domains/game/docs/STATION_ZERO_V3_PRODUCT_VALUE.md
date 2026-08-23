@@ -13,7 +13,7 @@ audience:
   - builder
   - agent
   - producer
-updated: 2026-08-15
+updated: 2026-08-24
 summary: Comparative product-design research for Station Zero v3. Decomposes mature structural analogues, derives transferable laws and incompatible choices, maps Station Zero strengths/gaps, and defines falsifiable G4-V experiments before G5 Production.
 evidence_status: verified
 readiness: READY
@@ -952,6 +952,28 @@ placement mutation machinery = research-only, not product architecture
 No current treatment is promoted into the stable Case catalog. The axis remains available as high-potential outer content while the hard core and two existing Cases stay unchanged.
 
 G4 does not authorize a mission factory. G5 now has one bounded second Case plus **three** independently proven outer axes—topology/choke, enemy directive doctrine, and objective-bearing placement. Broad mission volume, campaign/meta progression, generic Scenario generation, and random-content scaling remain unauthorized.
+
+---
+
+## 2026-08-24 — Core cargo successor-commitment revalidation
+
+Natural fine-slice dogfood exposed a longitudinal Product Value defect that the earlier local order-comprehension test did not cover. All six Recover Core fixture profiles acquired `research-core` by Turn 3, but the prior policy gave a carrier's `route:rescue-airlock` move `+1500` while the terminal `extract` action received only `+700`. Under reactor pressure, an Engineer already standing in the Rescue Airlock could therefore turn back toward Reactor instead of completing the selected primary objective.
+
+A one-line, objective-scoped correction makes Core extraction continuous with the already-proven route commitment: when `recover-research-core` is the primary objective, `extract` while carrying the Core receives the same `+1500` successor weight. An exact regression now covers `Core carrier + Rescue Airlock + reactorHeat=100 -> Extract from Station Zero`; the old `+700` behavior fails that test.
+
+The complete deterministic 18-profile promotion matrix changed only the Core basin count:
+
+```text
+Rescue focus-complete victory: 3/6 -> 3/6
+Core focus-complete:           1/6 -> 5/6
+Hive focus-complete:           6/6 -> 6/6
+```
+
+The remaining aggressive+cohesive Core failure is not the same defect: the carrier suffers repeated `target_zone_capacity_lost`, eventually reaches the Airlock at 1 HP, correctly selects extraction, and dies from environment pressure before the interaction phase. No further score increase is admitted from that case.
+
+Retained machine Product Value lanes were revalidated under the new control semantics. The information receipt is byte-identical. Targeted-control classifications are unchanged; trajectory shortening reduces retreat opportunities `8 -> 6` and priority-target opportunities `63 -> 60`, while the retained `lootPolicy` result remains exactly `46` opportunities / `0` changed and its scoped `NO_CHANGE` consequence remains valid.
+
+Historical G5 topology/doctrine/placement tables below retain their original pre-correction baselines. Their `Core 1/6 -> ...` comparisons are version-scoped historical experiment results, not claims about the current 2026-08-24 baseline; they require explicit rerun before being used as current treatment effect sizes.
 
 ---
 

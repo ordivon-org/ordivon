@@ -9,8 +9,8 @@
   },
   "targetedControls": {
     "retreatHealthThreshold": {
-      "opportunities": 8,
-      "changed": 7,
+      "opportunities": 6,
+      "changed": 4,
       "examples": [
         {
           "profile": "rescue",
@@ -41,7 +41,7 @@
           "turn": 5,
           "actorId": "engineer-imani",
           "healthRatio": 0.61,
-          "low": "Move to Reactor Entry",
+          "low": "Extract from Station Zero",
           "high": "Extract from Station Zero"
         }
       ]
@@ -85,7 +85,7 @@
       ]
     },
     "priorityTargetActorId": {
-      "opportunities": 63,
+      "opportunities": 60,
       "changed": 22,
       "examples": [
         {

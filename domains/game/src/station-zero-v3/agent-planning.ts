@@ -984,7 +984,7 @@ function scoreRescueCandidate(context: StationZeroV3AgentContext, candidate: Sta
       if (nearbyOwn) score += 80;
     }
   }
-  if (candidateTag(candidate, "extract") && actor.inventoryItemIds.includes("research-core")) score += 700;
+  if (candidateTag(candidate, "extract") && actor.inventoryItemIds.includes("research-core")) score += order.primaryObjectiveId === "recover-research-core" ? 1_500 : 700;
   if (candidateTag(candidate, "extract") && candidateTag(candidate, "escorting-civilian")) score += 2_000;
   if (candidateTag(candidate, "escorting-civilian")) score += 1_000;
   const feedback = context.previousActionFeedback;

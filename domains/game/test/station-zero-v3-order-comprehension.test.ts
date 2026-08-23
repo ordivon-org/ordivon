@@ -131,6 +131,21 @@ test("fixture carries acquired mission cargo toward extraction and honors assign
     assert.ok(cargoChoice.tags.includes("route:rescue-airlock"));
     assert.ok(cargoChoice.tags.includes("objective:advance"));
 
+    const extractionState = structuredClone(initial);
+    extractionState.actors["engineer-imani"]!.position.zoneId = "rescue-airlock";
+    extractionState.actors["engineer-imani"]!.inventoryItemIds.push("research-core");
+    extractionState.environment.reactorHeat = 100;
+    extractionState.factionKnowledge.rescue.discoveredZoneIds.push("reactor-entry", "reactor-console");
+    extractionState.factionKnowledge.rescue.knownSystemIds.push("cooling");
+    const extractionChoice = await fixtureChoice(extractionState, planning, runId, "engineer-imani", {
+      primaryObjectiveId: "recover-research-core",
+      posture: "balanced",
+      formation: "split",
+    });
+    assert.equal(extractionChoice.label, "Extract from Station Zero");
+    assert.equal(extractionChoice.intent.kind, "extract");
+    assert.ok(extractionChoice.tags.includes("objective:advance"));
+
     const acquireState = structuredClone(initial);
     acquireState.actors["engineer-imani"]!.position.zoneId = "junction-console";
     acquireState.factionKnowledge.rescue.discoveredZoneIds.push("reactor-entry", "reactor-console");

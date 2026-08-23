@@ -331,15 +331,15 @@ It evaluates the exact first-order policy surface:
 
 Each profile runs once because the fixed Genesis and fixture policy are deterministic. The evaluator records objective progress, required fronts, extraction/cargo/Hive milestones, casualties, Intent results, selected actions, and raw Pareto outcome vectors.
 
-After G3 diagnosis, reason-aware feedback validation, and the 20-Turn correction, each surfaced primary objective has at least one real policy-accessible basin. The final exact 18-profile matrix retained **3/6 Rescue focus-complete victory profiles, 1/6 Core focus-complete profile, and 6/6 Hive focus-complete profiles**:
+After G3 diagnosis, reason-aware feedback validation, the 20-Turn correction, and the 2026-08-24 Core successor-commitment correction, each surfaced primary objective has real policy-accessible basins. The current exact 18-profile matrix retains **3/6 Rescue focus-complete victory profiles, 5/6 Core focus-complete profiles, and 6/6 Hive focus-complete profiles**:
 
 | Primary objective | Representative viable fixture basin | Result |
 | --- | --- | --- |
 | rescue two civilians | cautious + cohesive | 2/2 civilians, 2/2 mandatory fronts, Rescue victory |
-| recover Research Core | cautious + split | Core 1/1, 1/2 mandatory fronts, Rescue partial, meaningful casualty cost |
+| recover Research Core | cautious/balanced with either formation, plus aggressive + split | Core 1/1 in 5/6 profiles; those five remain Rescue partial with 1/2 mandatory fronts; aggressive + cohesive can still fail under route-capacity and heat pressure |
 | eliminate Hive Alpha | several cautious/balanced/split/cohesive basins | Hive 1/1, Rescue partial; aggressive variants can add casualty cost |
 
-The matrix does **not** become trivial at 20 Turns. Rescue victory remains narrow and Core recovery remains a high-risk tradeoff.
+The matrix does **not** become trivial at 20 Turns. Rescue victory remains narrow. Core recovery is now broadly policy-accessible after fixing the cargo-carrier extraction successor discontinuity, but it remains a costly optional tradeoff rather than a Rescue-victory shortcut.
 
 ---
 
