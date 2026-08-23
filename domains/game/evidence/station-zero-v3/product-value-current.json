@@ -3,15 +3,15 @@
   "kind": "ordivon.game.station-zero-v3-product-value-current",
   "truthRole": "derived-scoped-evidence-receipt-not-product-authority",
   "subject": "Station Zero v3 reference experiment / current retained machine Product Value evidence",
-  "observedAtMs": 1787507669515,
+  "observedAtMs": 1787508578548,
   "runtimeEvidence": {
-    "informationJobId": "job-01a02fc3-1ca6-7ce3-bd77-3142773e557a",
-    "targetedControlsJobId": "job-01a02fc1-f4f3-7111-8d32-e8678cdc4865"
+    "informationJobId": "job-01a02fcf-d389-78a1-abdb-973fca57afb1",
+    "targetedControlsJobId": "job-01a02fcf-d389-78a1-abdb-973fca57afb1"
   },
   "sourceFences": [
     {
       "path": "scripts/eval-station-zero-v3-product-value.ts",
-      "digest": "sha256:845fd9a6e870415813d4cb0c351c36e5860f9151cf1ad9419e8e5064416254fb",
+      "digest": "sha256:c4ad7b4c6477cc9abcf8ae44090b721d26c8a443957519949d523e3c19e0a7c1",
       "role": "canonical-evaluator"
     },
     {
@@ -21,7 +21,7 @@
     },
     {
       "path": "docs/STATION_ZERO_V3_PRODUCT_VALUE.md",
-      "digest": "sha256:afbef991e3e2846883d489d010b457a345557e0056f1ffb1e4afe98e84fc931c",
+      "digest": "sha256:e69b1a764fa2e5900475745a97bad03964224c9ed1b631ecf452d41b5fbe1266",
       "role": "product-value-standing"
     },
     {

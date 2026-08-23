@@ -75,6 +75,13 @@ test("Product Value lane is canonical navigation and has a repeatable evaluator"
   assert.equal(packageJson.scripts["eval:v3:product-value:targeted-controls"], "node scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls");
   const evaluatorSource = readFileSync(new URL("../scripts/eval-station-zero-v3-product-value.ts", import.meta.url), "utf8");
   assert.match(evaluatorSource, /--lane/);
+  assert.match(evaluatorSource, /--objective/);
+  assert.match(evaluatorSource, /--profile/);
+  assert.match(evaluatorSource, /--control/);
+  assert.match(evaluatorSource, /selectedScope/);
   assert.match(evaluatorSource, /Default: all lanes/);
   assert.match(valueDoc, /execution granularity only/);
+  assert.match(valueDoc, /only reduce the sampled cases/);
+  assert.match(valueDoc, /must not be promoted to the standing of the complete lane/);
+  assert.match(valueDoc, /control-leverage.*complete lane/);
 });

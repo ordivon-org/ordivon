@@ -252,14 +252,14 @@ async function informationBranch(objective: PrimaryObjective, directive: Station
   }
 }
 
-async function informationAudit() {
+async function informationAudit(selectedObjective: PrimaryObjective | null = null) {
   const cases: Array<{ objective: PrimaryObjective; directive: StationZeroV3CommanderDirectiveId }> = [
     { objective: "rescue-two-civilians", directive: "scan-life-support" },
     { objective: "recover-research-core", directive: "scan-reactor" },
     { objective: "eliminate-hive-alpha", directive: "scan-maintenance" },
   ];
   const results = [];
-  for (const entry of cases) {
+  for (const entry of cases.filter((candidate) => !selectedObjective || selectedObjective === candidate.objective)) {
     const scanned = await informationBranch(entry.objective, entry.directive, true);
     const held = await informationBranch(entry.objective, entry.directive, false);
     if (!scanned.immediateKnowledge || !held.immediateKnowledge) throw new Error(`Missing immediate Knowledge snapshot for ${entry.objective}`);
@@ -302,7 +302,7 @@ async function decideWithOrder(context: StationZeroV3AgentContext, patch: Statio
   return new FixtureStationZeroV3AgentProvider().decide(cloned);
 }
 
-async function targetedControlOpportunityAudit() {
+async function targetedControlOpportunityAudit(selectedProfile: string | null = null, selectedControl: string | null = null) {
   const opportunities = {
     retreatHealthThreshold: { opportunities: 0, changed: 0, examples: [] as unknown[] },
     lootPolicy: { opportunities: 0, changed: 0, examples: [] as unknown[] },
@@ -313,7 +313,7 @@ async function targetedControlOpportunityAudit() {
     { id: "core", objective: "recover-research-core", extras: { posture: "cautious", formation: "split" } },
     { id: "hive", objective: "eliminate-hive-alpha", extras: { posture: "balanced", formation: "split" } },
   ];
-  for (const profile of profiles) {
+  for (const profile of profiles.filter((candidate) => !selectedProfile || selectedProfile === candidate.id)) {
     const store = new StationZeroV3Store(":memory:");
     const play = new StationZeroV3PlayService(store);
     const runId = `run:product-value:targeted-control:${profile.id}`;
@@ -328,7 +328,7 @@ async function targetedControlOpportunityAudit() {
           if (!baseline) continue;
           const extract = context.candidates.find((candidate) => candidate.intent.kind === "extract");
           const healthRatio = context.actor.maximumHealth > 0 ? context.actor.health / context.actor.maximumHealth : 1;
-          if (extract && healthRatio <= 0.85 && healthRatio > 0.05) {
+          if ((!selectedControl || selectedControl === "retreatHealthThreshold") && extract && healthRatio <= 0.85 && healthRatio > 0.05) {
             const stat = opportunities.retreatHealthThreshold; stat.opportunities += 1;
             const low = await decideWithOrder(context, { retreatHealthThreshold: 0.05 });
             const high = await decideWithOrder(context, { retreatHealthThreshold: 0.85 });
@@ -336,7 +336,7 @@ async function targetedControlOpportunityAudit() {
             if (stat.examples.length < 4) stat.examples.push({ profile: profile.id, turn: view.run.turn, actorId: context.actor.actorId, healthRatio, low: context.candidates.find((c) => c.candidateId === low.candidateId)?.label, high: context.candidates.find((c) => c.candidateId === high.candidateId)?.label });
           }
           const optionalPickup = context.candidates.find((candidate) => candidate.intent.kind === "pickup" && !candidate.tags.includes("objective:recover-research-core"));
-          if (optionalPickup) {
+          if ((!selectedControl || selectedControl === "lootPolicy") && optionalPickup) {
             const stat = opportunities.lootPolicy; stat.opportunities += 1;
             const ignore = await decideWithOrder(context, { lootPolicy: "ignore" });
             const opportunistic = await decideWithOrder(context, { lootPolicy: "opportunistic" });
@@ -344,7 +344,7 @@ async function targetedControlOpportunityAudit() {
             if (stat.examples.length < 4) stat.examples.push({ profile: profile.id, turn: view.run.turn, actorId: context.actor.actorId, pickup: optionalPickup.label, ignore: context.candidates.find((c) => c.candidateId === ignore.candidateId)?.label, opportunistic: context.candidates.find((c) => c.candidateId === opportunistic.candidateId)?.label });
           }
           const attackTargets = [...new Set(context.candidates.filter((candidate) => candidate.intent.kind === "attack").map((candidate) => candidate.intent.kind === "attack" ? candidate.intent.targetActorId : null).filter((value): value is string => Boolean(value)))];
-          if (attackTargets.length >= 2) {
+          if ((!selectedControl || selectedControl === "priorityTargetActorId") && attackTargets.length >= 2) {
             const stat = opportunities.priorityTargetActorId; stat.opportunities += 1;
             const first = await decideWithOrder(context, { priorityTargetActorId: attackTargets[0]! });
             const second = await decideWithOrder(context, { priorityTargetActorId: attackTargets[1]! });
@@ -356,9 +356,11 @@ async function targetedControlOpportunityAudit() {
       }
     } finally { store.close(); }
   }
+  const selectedOpportunities = Object.fromEntries(Object.entries(opportunities)
+    .filter(([control]) => !selectedControl || selectedControl === control));
   return {
-    ...opportunities,
-    classifications: Object.fromEntries(Object.entries(opportunities).map(([control, stat]) => [control, stat.opportunities === 0 ? "NO_RELEVANT_STATE" : stat.changed === 0 ? "RELEVANT_STATE_NO_LEVERAGE" : "OBSERVED_CONTEXTUAL_LEVERAGE"])),
+    ...selectedOpportunities,
+    classifications: Object.fromEntries(Object.entries(selectedOpportunities).map(([control, stat]) => [control, stat.opportunities === 0 ? "NO_RELEVANT_STATE" : stat.changed === 0 ? "RELEVANT_STATE_NO_LEVERAGE" : "OBSERVED_CONTEXTUAL_LEVERAGE"])),
   };
 }
 
@@ -423,12 +425,16 @@ async function pressureRun(profileId: string, objective: PrimaryObjective, order
   }
 }
 
-async function pressureAudit() {
-  const runs = [
-    await pressureRun("rescue-cautious-cohesive", "rescue-two-civilians", { posture: "cautious", formation: "cohesive" }),
-    await pressureRun("core-cautious-split", "recover-research-core", { posture: "cautious", formation: "split" }),
-    await pressureRun("hive-balanced-split", "eliminate-hive-alpha", { posture: "balanced", formation: "split" }),
+async function pressureAudit(selectedProfile: string | null = null) {
+  const profiles: Array<{ id: string; objective: PrimaryObjective; extras: StationZeroV3CommanderOrderPatch }> = [
+    { id: "rescue-cautious-cohesive", objective: "rescue-two-civilians", extras: { posture: "cautious", formation: "cohesive" } },
+    { id: "core-cautious-split", objective: "recover-research-core", extras: { posture: "cautious", formation: "split" } },
+    { id: "hive-balanced-split", objective: "eliminate-hive-alpha", extras: { posture: "balanced", formation: "split" } },
   ];
+  const runs = [];
+  for (const profile of profiles.filter((candidate) => !selectedProfile || selectedProfile === candidate.id)) {
+    runs.push(await pressureRun(profile.id, profile.objective, profile.extras));
+  }
   const thresholdRuns = runs.filter((run) => run.heatPlanningPressureTurns > 0 || run.oxygenPlanningPressureTurns > 0).length;
   const damageRuns = runs.filter((run) => run.pressureDamageTurns > 0).length;
   return {
@@ -522,42 +528,80 @@ async function specialistIdentityAudit() {
 
 type ProductValueLane = "control-leverage" | "information" | "targeted-controls" | "pressure" | "specialist-identity";
 const PRODUCT_VALUE_LANES: ProductValueLane[] = ["control-leverage", "information", "targeted-controls", "pressure", "specialist-identity"];
+const PRODUCT_VALUE_OBJECTIVES: PrimaryObjective[] = ["rescue-two-civilians", "recover-research-core", "eliminate-hive-alpha"];
+const TARGETED_CONTROL_PROFILES = ["rescue", "core", "hive"] as const;
+const PRESSURE_PROFILES = ["rescue-cautious-cohesive", "core-cautious-split", "hive-balanced-split"] as const;
+const TARGETED_CONTROL_IDS = ["retreatHealthThreshold", "lootPolicy", "priorityTargetActorId"] as const;
 
-function selectedProductValueLanes(): Set<ProductValueLane> {
-  const selected: ProductValueLane[] = [];
+type ProductValueSelection = {
+  lanes: Set<ProductValueLane>;
+  objective: PrimaryObjective | null;
+  profile: string | null;
+  control: string | null;
+};
+
+function parseProductValueSelection(): ProductValueSelection {
+  const laneValues: string[] = [];
+  const fine: { objective: string | null; profile: string | null; control: string | null } = { objective: null, profile: null, control: null };
   const args = process.argv.slice(2);
   for (let index = 0; index < args.length; index += 1) {
-    const value = args[index]!;
-    if (value === "--help" || value === "-h") {
-      console.log(`Usage: node scripts/eval-station-zero-v3-product-value.ts [--lane LANE ...]\n\nLanes: ${PRODUCT_VALUE_LANES.join(", ")}\nDefault: all lanes. Repeating --lane selects a bounded subset without changing evaluator semantics.`);
+    const token = args[index]!;
+    if (token === "--help" || token === "-h") {
+      console.log(`Usage: node scripts/eval-station-zero-v3-product-value.ts [--lane LANE ...] [one lane-scoped selector per dimension]
+
+Lanes: ${PRODUCT_VALUE_LANES.join(", ")}
+Information selector: --objective ${PRODUCT_VALUE_OBJECTIVES.join(" | ")}
+Pressure selector: --profile ${PRESSURE_PROFILES.join(" | ")}
+Targeted-control selectors: --profile ${TARGETED_CONTROL_PROFILES.join(" | ")}; --control ${TARGETED_CONTROL_IDS.join(" | ")}
+Default: all lanes and all cases. Fine selectors require exactly one compatible lane and only reduce sampled cases; metrics and classification rules are unchanged.`);
       process.exit(0);
     }
-    const inline = value.startsWith("--lane=") ? value.slice("--lane=".length) : null;
-    if (value === "--lane") {
-      const next = args[index + 1];
-      if (!next) throw new Error("--lane requires one lane id");
-      selected.push(next as ProductValueLane);
-      index += 1;
-      continue;
+    const match = /^--(lane|objective|profile|control)(?:=(.+))?$/.exec(token);
+    if (!match) throw new Error(`unsupported argument: ${token}`);
+    const key = match[1]!;
+    const value = match[2] ?? args[++index];
+    if (!value || value.startsWith("--")) throw new Error(`--${key} requires one value`);
+    if (key === "lane") laneValues.push(value);
+    else {
+      const fineKey = key as keyof typeof fine;
+      if (fine[fineKey] !== null) throw new Error(`--${key} may be supplied only once`);
+      fine[fineKey] = value;
     }
-    if (inline !== null) {
-      selected.push(inline as ProductValueLane);
-      continue;
-    }
-    throw new Error(`unsupported argument: ${value}`);
   }
-  if (selected.length === 0) return new Set(PRODUCT_VALUE_LANES);
-  for (const lane of selected) {
-    if (!PRODUCT_VALUE_LANES.includes(lane)) throw new Error(`unknown product-value lane: ${lane}`);
+  const known = <T extends string>(value: string | null, allowed: readonly T[], label: string): void => {
+    if (value !== null && !allowed.includes(value as T)) throw new Error(`unknown product-value ${label}: ${value}`);
+  };
+  for (const lane of laneValues) known(lane, PRODUCT_VALUE_LANES, "lane");
+  known(fine.objective, PRODUCT_VALUE_OBJECTIVES, "objective");
+  const lanes = new Set<ProductValueLane>(laneValues.length ? laneValues as ProductValueLane[] : PRODUCT_VALUE_LANES);
+  const hasFine = fine.objective !== null || fine.profile !== null || fine.control !== null;
+  if (hasFine && lanes.size !== 1) throw new Error("fine selectors require exactly one --lane");
+  const lane = hasFine ? [...lanes][0]! : null;
+  if (lane === "information") {
+    if (fine.profile || fine.control) throw new Error("information accepts only --objective");
+  } else if (lane === "pressure") {
+    if (fine.objective || fine.control) throw new Error("pressure accepts only --profile");
+    known(fine.profile, PRESSURE_PROFILES, "pressure profile");
+  } else if (lane === "targeted-controls") {
+    if (fine.objective) throw new Error("targeted-controls does not accept --objective");
+    known(fine.profile, TARGETED_CONTROL_PROFILES, "targeted-control profile");
+    known(fine.control, TARGETED_CONTROL_IDS, "targeted control");
+  } else if (hasFine) {
+    throw new Error(`${lane} has no earned fine selector; run the complete lane`);
   }
-  return new Set(selected);
+  return { lanes, objective: fine.objective as PrimaryObjective | null, profile: fine.profile, control: fine.control };
 }
 
-const lanes = selectedProductValueLanes();
+const selection = parseProductValueSelection();
+const lanes = selection.lanes;
+const selectedScope = selection.objective || selection.profile || selection.control
+  ? { objective: selection.objective, profile: selection.profile, control: selection.control }
+  : null;
 const report: Record<string, unknown> = {
   schemaVersion: 1,
   kind: "ordivon.game.station-zero-v3-product-value-evaluation",
   selectedLanes: PRODUCT_VALUE_LANES.filter((lane) => lanes.has(lane)),
+  ...(selectedScope ? { selectedScope } : {}),
   method: {},
 };
 const method = report.method as Record<string, string>;
@@ -574,22 +618,22 @@ if (lanes.has("control-leverage")) {
   console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "control-leverage", controls: Object.fromEntries(Object.entries(controlLeverage.controls).map(([key, value]) => [key, { classification: value.classification, probes: value.probes, changedSelection: value.changedSelection, changedCommanderAction: value.changedCommanderAction }])) }, null, 2));
 }
 if (lanes.has("information")) {
-  const information = await informationAudit();
+  const information = await informationAudit(selection.objective);
   method.information = "same-seed paired Runs differing only by first-Turn objective-relevant scan vs hold command";
   report.information = information;
   summary.information = information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, focusDelta: entry.focusDelta }));
   console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "information", cases: information.cases.map((entry) => ({ objective: entry.objective, classification: entry.classification, immediateGainedZones: entry.immediateGainedZones.length, firstTurnSelectionChanged: entry.firstTurnSelectionChanged, focusDelta: entry.focusDelta })) }, null, 2));
 }
 if (lanes.has("targeted-controls")) {
-  const targetedControls = await targetedControlOpportunityAudit();
-  method.targetedControls = "three representative deterministic full Runs with relevant-state same-context counterfactual control probes";
+  const targetedControls = await targetedControlOpportunityAudit(selection.profile, selection.control);
+  method.targetedControls = selectedScope ? "representative deterministic full Runs with relevant-state same-context counterfactual control probes" : "three representative deterministic full Runs with relevant-state same-context counterfactual control probes";
   report.targetedControls = targetedControls;
   summary.targetedControls = targetedControls.classifications;
   console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "targeted-controls", classifications: targetedControls.classifications, details: targetedControls }, null, 2));
 }
 if (lanes.has("pressure")) {
-  const pressure = await pressureAudit();
-  method.pressure = "three representative full 20-Turn deterministic strategy Runs";
+  const pressure = await pressureAudit(selection.profile);
+  method.pressure = selectedScope ? "representative full 20-Turn deterministic strategy Runs" : "three representative full 20-Turn deterministic strategy Runs";
   report.pressure = pressure;
   summary.pressure = pressure.classification;
   console.log(JSON.stringify({ kind: "ordivon.game.station-zero-v3-product-value-progress", lane: "pressure", classification: pressure.classification, runs: pressure.runs.map((run) => ({ profileId: run.profileId, heatPlanningPressureTurns: run.heatPlanningPressureTurns, oxygenPlanningPressureTurns: run.oxygenPlanningPressureTurns, pressureDamageTurns: run.pressureDamageTurns, resources: run.resources })) }, null, 2));

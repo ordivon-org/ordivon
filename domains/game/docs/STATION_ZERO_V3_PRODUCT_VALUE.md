@@ -571,13 +571,23 @@ node scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
 
 `--lane` changes execution granularity only; it does not redefine metrics, evidence classes, or Product Value authority. Multiple `--lane` arguments may be combined, and no argument preserves the original complete evaluator. Cheap slices are for frequent falsification; the full battery remains the stronger periodic cross-lane check.
 
-For ordinary Agent continuation, the latest retained scoped evidence can be read without a repository-wide search or evaluator rerun:
+One selected lane may be narrowed further along dimensions that the existing experiment already owns:
+
+```text
+node scripts/eval-station-zero-v3-product-value.ts --lane information --objective rescue-two-civilians
+node scripts/eval-station-zero-v3-product-value.ts --lane pressure --profile rescue-cautious-cohesive
+node scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls --profile rescue --control lootPolicy
+```
+
+These selectors **only reduce the sampled cases inside the unchanged lane**. Every scoped report carries `selectedScope`; a scoped result is diagnostic evidence for exactly that objective/profile/control and must not be promoted to the standing of the complete lane or full Product Value battery. Invalid lane/selector combinations fail closed. `control-leverage` retains only its complete lane because one-control filtering still cost roughly 23.5 seconds in the measured audit and did not earn another ordinary-iteration interface. Use the smallest claim-preserving slice where it materially lowers cost, and periodically rerun complete lanes/the full battery when broader standing matters.
+
+For ordinary Agent continuation, the latest **retained** scoped evidence can be read without a repository-wide search or evaluator rerun:
 
 ```text
 pnpm context:v3:product-value
 ```
 
-This context is a **derived read-only projection**, not Product Value authority. It verifies exact source/evaluator/evidence digests before marking itself `CURRENT`, retains the raw lane receipts under `evidence/station-zero-v3/`, and may report `NO_CHANGE` as a scoped consequence. If any semantic fence drifts it reports `STALE` **and structurally withholds lane/consequence payloads from the ordinary decision projection**; only the historical receipt pointer and revalidation escape hatch remain. Currentness is therefore enforced by projection subtraction rather than by asking the Agent to remember a prose warning.
+The two surfaces have different standing. A fresh fine slice is immediate diagnostic pressure only and does **not** automatically enter retained Product Value context. The retained context is a **derived read-only projection**, not Product Value authority: it verifies exact source/evaluator/evidence digests before marking itself `CURRENT`, retains raw admitted lane receipts under `evidence/station-zero-v3/`, and may report `NO_CHANGE` as a scoped consequence. If any semantic fence drifts it reports `STALE` **and structurally withholds lane/consequence payloads from the ordinary decision projection**; only the historical receipt pointer and revalidation escape hatch remain. Currentness is therefore enforced by projection subtraction rather than by asking the Agent to remember a prose warning.
 
 The evaluator combines same-World counterfactual Preview perturbation, same-seed information pairs, relevant-state contingency probes, representative 20-Turn pressure traces, and specialist semantic-distribution analysis.
 
