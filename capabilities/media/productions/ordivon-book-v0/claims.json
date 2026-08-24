@@ -252,6 +252,181 @@
         "reframing is universally superior",
         "stable representations imply epistemic failure"
       ]
+    },
+    {
+      "id": "action-standing-admission-selection-nonlifting",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      },
+      "meaning": "Current non-authoritative action/governance synthesis separates Evidence, Claim, Standing, UseDisposition and ActionPermission, and separately distinguishes ActionAdmission from ActionSelection; stronger evidence may expand, shrink or restructure action freedom rather than monotonically increasing it.",
+      "evidence": [
+        "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      ],
+      "allowedWording": [
+        "standing does not automatically authorize action",
+        "action admission is not action selection",
+        "more evidence does not necessarily mean more action freedom"
+      ],
+      "avoid": [
+        "high confidence creates permission",
+        "admitted action must be selected",
+        "this synthesis is a universal Action service"
+      ]
+    },
+    {
+      "id": "finance-decision-proposal-nonaction",
+      "source": {
+        "binding": "finance-current",
+        "path": "design/DECISION-PROPOSAL-KERNEL.md"
+      },
+      "meaning": "Current Finance Decision semantics require an explicit NO-OP baseline; research, wait and abstain are complete Decisions rather than failed trade generation; a Proposal is a separate immutable capital-transition intent and proposal-ready never means authorized or submitted.",
+      "evidence": [
+        "design/DECISION-PROPOSAL-KERNEL.md"
+      ],
+      "allowedWording": [
+        "non-action can be a complete Finance Decision",
+        "NO-OP is an explicit decision baseline",
+        "Proposal is distinct from authority and external effect"
+      ],
+      "avoid": [
+        "abstain is decision failure",
+        "every coherent decision creates a Proposal",
+        "proposal-ready means executable now"
+      ]
+    },
+    {
+      "id": "finance-authority-current-admission-effect-separation",
+      "source": {
+        "binding": "finance-current",
+        "path": "design/C2-AUTHORITY-REFORM.md"
+      },
+      "meaning": "Current Finance C2 authority separates owner-native capital authority from current semantic/deployment/effect admission and preserves Decision/Proposal/world-bound request/effect reservation/dispatch/receipt/reconciliation as distinct boundaries; owner-native authority removes self-leasing but does not authorize every future effect automatically.",
+      "evidence": [
+        "design/C2-AUTHORITY-REFORM.md",
+        "docs/runtime-domain.md",
+        "design/AUTHORITY-EXECUTION-KERNEL.md"
+      ],
+      "allowedWording": [
+        "owner-native authority still requires current action-specific admission",
+        "Decision, Proposal, reserved Effect and reconciled effect truth are distinct",
+        "authority source does not by itself make every action executable now"
+      ],
+      "avoid": [
+        "Primary Finance Agent needs per-effect Human approval",
+        "owner-native authority means every trade is currently admitted",
+        "Proposal is execution authority"
+      ]
+    },
+    {
+      "id": "normative-power-capability-control-nonidentity",
+      "source": {
+        "binding": "normative-current",
+        "path": "DERIVED-LAWS.md"
+      },
+      "meaning": "Current Normative owner law explicitly separates NormativePower, physical capability, ordinary permission and effective control; Normative does not own generic effective control/enforcement or a universal action ontology.",
+      "evidence": [
+        "DERIVED-LAWS.md",
+        "OWNER-CONTRACT.md",
+        "BOUNDARIES-NEGATIVE.md"
+      ],
+      "allowedWording": [
+        "normative power is not physical capability",
+        "ordinary permission and effective control are distinct",
+        "Normative does not own generic enforcement/control truth"
+      ],
+      "avoid": [
+        "permission proves physical capability",
+        "effective control proves normative power",
+        "Normative is a global permission engine"
+      ]
+    },
+    {
+      "id": "harness-capability-admission-authority",
+      "source": {
+        "binding": "harness-current",
+        "path": "README.md"
+      },
+      "meaning": "Current Harness separates installed, Run-admitted and turn-admitted capabilities; Agent selection of current evidence/action occurs within delegated authority; installed mechanisms and bounded Run conclusions do not silently become external/domain authority.",
+      "evidence": [
+        "README.md",
+        "docs/P0-CAPABILITY-COMPOSITION-CLOSEOUT.md"
+      ],
+      "allowedWording": [
+        "installed capability is not Run or turn authority",
+        "Agent selection is bounded by delegated authority",
+        "Harness Run completion does not automatically complete an external domain objective"
+      ],
+      "avoid": [
+        "installed Tool implies permission",
+        "Harness chooses domain priority or grants external authority",
+        "model-correct conclusion is universally authoritative"
+      ]
+    },
+    {
+      "id": "runtime-commitment-effect-semantic-completion",
+      "source": {
+        "binding": "runtime-current",
+        "path": "docs/effect-kernel.md"
+      },
+      "meaning": "Current Runtime Effect Kernel separates Proposal from commitment and Execution Result from External Effect Receipt and Semantic Completion Claim; it preserves ambiguous physical outcomes explicitly, uses reconciliation before unsafe redispatch, and invalidates a bound commitment when enforceable world/authority preconditions drift before dispatch.",
+      "evidence": [
+        "docs/effect-kernel.md",
+        "README.md",
+        "docs/agent-ux.md"
+      ],
+      "allowedWording": [
+        "proposal is not physical commitment",
+        "execution success is not external-effect receipt or semantic completion",
+        "unknown effect state must remain explicit and may require reconciliation"
+      ],
+      "avoid": [
+        "exit code zero proves domain completion",
+        "missing receipt proves no effect",
+        "opaque effects are safe to blindly retry"
+      ]
+    },
+    {
+      "id": "effect-propagation-control-observation-frontiers",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      },
+      "meaning": "The non-authoritative cross-owner action synthesis distinguishes immediate effect, propagation, control and observation frontiers and preserves LocalEffectBound != CausalReachBound; small mutations need not imply small downstream consequences.",
+      "evidence": [
+        "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      ],
+      "allowedWording": [
+        "local effect bounds do not automatically bound downstream causal reach",
+        "effect, propagation, control and observation frontiers can differ",
+        "small mutation need not mean small consequence"
+      ],
+      "avoid": [
+        "all downstream consequences are enumerable",
+        "local action magnitude determines consequence magnitude",
+        "sandboxed action always means sandboxed influence"
+      ]
+    },
+    {
+      "id": "consequence-benefit-attribution-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-21-result-achievement-value-materialization/README.md"
+      },
+      "meaning": "Current non-authoritative Result/Achievement/Value synthesis separates Consumption from RealizedBenefit and Occurrence from OwnerOutcome, Evaluation and BeneficiaryBenefit; realized benefit requires observed beneficial downstream consequence plus adequate attribution standing for a named beneficiary/use scope.",
+      "evidence": [
+        "synthesis/2026-08-21-result-achievement-value-materialization/README.md"
+      ],
+      "allowedWording": [
+        "effect or consumption does not by itself prove benefit",
+        "occurrence, owner outcome, evaluation and beneficiary benefit are distinct",
+        "benefit claims require consequence and attribution evidence appropriate to scope"
+      ],
+      "avoid": [
+        "successful execution proves value",
+        "admission delta proves benefit",
+        "one universal utility score is implied"
+      ]
     }
   ]
 }

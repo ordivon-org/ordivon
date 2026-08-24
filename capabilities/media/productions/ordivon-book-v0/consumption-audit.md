@@ -184,3 +184,150 @@ No whole-book semantic approval is inferred from chapter-local success.
 ### Acceptance consequence
 
 Chapter 2 is admitted because its load-bearing falsifiers survived an independent durable-consumer test. The experiment does **not** admit a universal Representation Layer. Its direct engineering consequence is the opposite: representation repair should be selective and typed to the failed operation; a compact projection that already works should remain unchanged.
+
+
+## H. Chapter 3 — Standing / Authority / Action / Consequence acceptance
+
+### Exact current source gate
+
+Chapter 3 added no Book schema, service or Agent action. It consumes four additional current owner bindings plus Atlas synthesis:
+
+- Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`;
+- Normative `68826a3b256da0bba8d540102528721a3e338c25`;
+- Harness `d72413de62c01d7b5124861d9028495707e01d5d`;
+- Runtime `fd6765c20981461f1a29508d97225b96971cc389`;
+- Atlas remains `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` for explicitly non-authoritative cross-owner synthesis.
+
+The Book now has 20 Git-bound Claims across 7 exact bindings.
+
+Mechanical gate before admission:
+
+- Studio models valid;
+- 17 targeted Model/Agent-surface tests passed;
+- all 20 Claim source/evidence paths exist at pinned revisions;
+- Chapter 1 and Chapter 2 digests remained unchanged;
+- Chapter 3 raw digest `sha256:7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f`;
+- current three-chapter `book.mdx` raw digest `sha256:ed2dfcf93e4d766f04cebd1ec56962a000dcefce9f8b9544bd7d296f1c1877e7`;
+- exact Chapter1 -> Chapter2 -> Chapter3 assembly order passed;
+- ordinary Studio Agent discovery exposes all Outputs and all 20 Claims without Book-specific code.
+
+### Current Finance Reality control
+
+A read-only current `finance.context.compile` observation at generated time `2026-08-24T12:16:38.438598Z`, stateVersion `1564:e316d435f391005b`, observed:
+
+- active owner-native capital authority;
+- retained historical managed-scope `abstain` Decision;
+- expired Decision review epoch;
+- current evaluation `needs_revision`;
+- Proposal eligibility `not_applicable`;
+- zero current Proposals;
+- zero current/active Effects;
+- an open `review-decision-epoch` obligation.
+
+This is live episode evidence for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is intentionally not encoded as a permanent Book Claim because Finance state is mutable.
+
+### Durable free-form adversarial consumer
+
+Run: `harness-run:book-ch3-freeform-1787574323696`
+
+- provider/model: DeepSeek / `deepseek-v4-flash`;
+- stop: `candidate_completed`;
+- model calls: 1;
+- Tool calls: 0;
+- total tokens: 6,240;
+- conclusion corrections: 0.
+
+The Agent received only `chapter-03.mdx`. It correctly rejected all 13 false lifts:
+
+1. Standing -> ActionPermission;
+2. capability -> practical authority;
+3. admission -> selection;
+4. selection -> effect occurrence;
+5. Runtime success -> semantic completion;
+6. ActionBlocked -> DecisionBlocked;
+7. NO_OP/wait/abstain -> Decision failure;
+8. small local effect -> small downstream consequence;
+9. good outcome -> good decision;
+10. Human approval -> universal authority/evaluator;
+11. stronger evidence -> monotonic action freedom;
+12. start-current -> commitment-current;
+13. normative permission = physical capability = effective control.
+
+It also correctly adjudicated five action scenarios:
+
+| Scenario | Durable decision |
+| --- | --- |
+| strong Standing + Tool, no practical authority | block external effect |
+| explicit abstain/NO-OP, no Proposal/Effect | complete non-action Decision |
+| load-bearing currentness may change before costly deploy | bounded revalidation + owner re-adjudication |
+| process exits 0, external-effect receipt unresolved | preserve UNKNOWN / reconcile; no blind retry |
+| action admitted/feasible, consumer selects another | leave unselected/uncommitted |
+
+Research chronology was not required.
+
+One earlier identical semantic run completed far enough to return a Harness result but the local dogfood script crashed while reading a removed telemetry attribute. That failure is classified as test-instrumentation only; no semantic standing is inferred from it.
+
+### Structured-result carrier
+
+Structured Run 1: `harness-run:book-ch3-structured-1787574370812`
+
+The current structured-result carrier succeeded in one model call / zero corrections and carried every action-boundary proposition and scenario correctly. One ambiguous test field named `chronologyRequired` returned `true`, despite the run actually receiving only Chapter 3. The test field was therefore narrowed, without changing chapter text, scenarios or action semantics.
+
+Corrected structured Run: `harness-run:book-ch3-structured-1787574411731`
+
+- stop `candidate_completed`;
+- one model call;
+- zero Tools;
+- 5,605 tokens;
+- zero conclusion corrections;
+- all 13 implication fields `false`;
+- all five scenario decisions correct;
+- `researchChronologyNeededToAdjudicateTheseCases=false`.
+
+This establishes that the current Harness structured carrier can durably transport the Chapter-3 semantic audit. It does not erase Chapter-2's earlier structured-carrier negative evidence; that evidence remains historical and carrier/version/contract-specific.
+
+### Current three-chapter whole-Book consumer
+
+Run: `harness-run:book-v0-threechapter-1787574455214`
+
+Input: exact current `book.mdx` only; no Atlas, Task chronology, source map or Tools.
+
+Observed:
+
+- stop `candidate_completed`;
+- one model call;
+- zero Tools;
+- 12,916 tokens;
+- zero conclusion corrections.
+
+The fresh Agent recovered all three chapter roles and correctly held the following cross-chapter judgements:
+
+- Chapter 2 refines Chapter 1's Representation relation rather than replacing Chapter 1;
+- Chapter 3 deepens the Standing->Reality seam without converting it to a deterministic act loop;
+- three chapters do not establish a complete universal epistemology;
+- Representation does not determine Reality;
+- high Standing + capability is insufficient for action;
+- Book does not outrank owner sources;
+- Runtime success does not establish beneficial Reality consequence;
+- NO_CHANGE/non-action can be legitimate;
+- one representation may be operation-sufficient while authority/currentness still blocks action;
+- multiple explicit open boundaries remain;
+- no external research chronology was needed.
+
+The Agent explicitly preserved cross-chapter tension instead of smoothing the Book into one grand theory.
+
+This new evidence supersedes the old **two-chapter artifact's** `whole-book independent comprehension = UNKNOWN` standing for the current three-chapter artifact. It does not retrospectively reinterpret the old Provider failures.
+
+### Acceptance decision
+
+```text
+Chapter 1 exact semantic Output = APPROVED
+Chapter 2 exact semantic Output = APPROVED
+Chapter 3 exact semantic Output = APPROVED
+Current three-chapter exact book.mdx = APPROVED
+Parent Production = REVIEW
+Human continuous-reading effect = UNMEASURED
+Public publication = NOT SELECTED
+```
+
+No Book Edition object, Action schema, permission engine, authority graph, consequence graph, scheduler, new Text/Book repository or service is earned by this acceptance.

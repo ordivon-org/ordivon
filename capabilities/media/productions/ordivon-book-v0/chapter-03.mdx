@@ -1,0 +1,589 @@
+# 行动不是命令：从 Standing 到 Reality 改变
+
+知道一件事之后，会发生什么？
+
+最诱人的答案是：如果判断足够可靠，就去行动。
+
+这句话在日常语言里没有问题，但对于一个能够修改代码、调用服务、配置环境、发布内容、隔离进程，甚至管理真实资本的 Agent 系统，它压掉了太多边界。
+
+一个判断可以有很高的 epistemic standing，却没有改变 Reality 的 authority；一个动作可以被允许，却没有被当前 policy 选中；一个动作可以被选中，却还没有形成 durable commitment；一个 Runtime process 可以成功退出，却没有证明外部 effect 发生；一个 effect 可以真实发生，却没有证明它产生了我们关心的 consequence；一个 consequence 可以被观察到，也仍然不等于 benefit。
+
+所以 Chapter 1 中那句：
+
+```text
+Standing != Action
+```
+
+只是入口。
+
+这一章真正要展开的是其中被压缩掉的空间：
+
+```text
+Standing
+  ↓
+Authority / Admission
+  ↓
+Admissible actions
+  ↓
+Selection
+  ↓
+Commitment
+  ↓
+Realization
+  ↓
+Effect
+  ↓
+Consequence
+  ↓
+Re-adjudication
+```
+
+这不是一个 universal Action ontology。不同 owner 对这些阶段有不同对象、证据与 authority。这个图的用途只是防止一种危险的 lifting：**上一层获得的 standing，不应无成本地升级成下一层的权力、发生性或价值。**
+
+## 1. 知道不等于有权让世界改变
+
+从 evidence 形成 standing，回答的是类似：
+
+> 在当前 source、scope、evidence 与 currentness 下，我们对某个 claim 有什么支持？
+
+它没有自动回答：
+
+> 谁可以据此改变 Reality？
+
+Atlas 对多个 owner 的 action/governance episode 做过一个很有用的非权威压缩：
+
+```text
+Evidence
+!=
+Claim
+!=
+Standing
+!=
+UseDisposition
+!=
+ActionPermission
+```
+
+这里最重要的不是增加术语，而是阻断自动升级。
+
+例如，一个 Security Agent 可以非常确定某个文件有害，但“检测到”“隔离”“删除”“向外部系统报告”仍可能对应不同的 authority 与 consequence surface。一个 Finance Agent 可以形成很强的经济判断，但该 standing 并不会自己生成 capital scope、execution authority 或一个当前可执行的 Proposal。Runtime 可以证明一个程序在受控 process tree 中退出为 0，也没有因此获得上层 domain 对“任务完成”的语义 authority。
+
+因此：
+
+```text
+EpistemicStanding
+!=
+PracticalAuthority
+```
+
+同样：
+
+```text
+Capability
+!=
+Authority
+```
+
+这不是因为 capability 可疑，而是因为“能做”与“有资格让它发生”回答的是不同问题。
+
+## 2. 可能、允许、可选与被选中是不同状态
+
+在一个 Agent-facing environment 中，我们很容易把 Tool presence 当作 action space：能看见一个 Tool，就意味着“这是一个当前可以做的动作”。
+
+Harness 的当前设计明确拒绝这种等号。
+
+它区分：
+
+```text
+installed capability
+!=
+Run-admitted capability
+!=
+turn-admitted capability
+```
+
+一个 mechanism 被安装，只说明系统具有这种 capability；一个 Run Contract 是否允许它、当前 turn 是否实际暴露它，是另外两层事实。即使 action 已进入 admissible set，下一步做什么仍由 Agent/application 在 delegated authority 内选择，而不是由 capability catalog 自动决定。
+
+所以还要保留：
+
+```text
+ActionAdmission
+!=
+ActionSelection
+```
+
+以及：
+
+```text
+ActionFeasibility
+!=
+ActionSelection
+!=
+ExecutionState
+!=
+Consequence
+```
+
+这也解释了为什么 Ordivon 后来没有把 `NOW / WAIT / HOLD / RESUME / SUPERSEDED` 做成一个全局 Task state machine。这样的标签可以作为方便的 consumer projection，但它们不是 action 的内在属性。
+
+同一个 action 可以同时满足：
+
+- 在 owner 语义上可行；
+- 在当前 authority 下允许；
+- 在当前资源分配下没有被选中；
+- 在另一个 consumer objective 下反而是第一优先级。
+
+因此，一个更准确的问题不是：
+
+> 这个 Task 现在是不是 NOW？
+
+而是：
+
+> 对这个 consumer、目标、authority 与当前 Reality，哪些 candidate actions 仍然 admissible；其中哪一个值得被选中？
+
+## 3. Authority 不是 intelligence 的副产品
+
+这一点在多 Agent 系统里尤其容易被侵蚀。
+
+当一个 Agent 越来越强，它会自然获得越来越多可实现 capability。但从：
+
+```text
+Agent can do X
+```
+
+不能推出：
+
+```text
+Agent may do X
+```
+
+Ordivon Normative 当前 owner contract 把相关 distinction 写得非常硬：
+
+```text
+NormativePower
+!=
+physical capability
+!=
+ordinary permission
+!=
+effective control
+```
+
+它甚至明确拒绝把 generic effective control / enforcement 吸收到 Normative owner 中。原因很直接：一个规范性 power 是否成立、一个 actor 是否物理上能做到、一个 permission 是否存在、一个 actor 是否实际上控制某个资源，是四种不同事实。
+
+Finance 的 current authority architecture 提供了一个具体例子。
+
+Primary Finance Agent 现在不需要向自己租赁 `trade.execute` authority。Owner Constitution 可以直接赋予 owner-native capital authority；AuthorityLease 回到更自然的位置：跨 actor delegation。
+
+但这完全没有变成：
+
+```text
+owner-native authority
+=> every trade executable now
+```
+
+当前 execution chain 仍然要求 current Decision / Proposal、当前 semantic admission、world-bound execution basis、effect reservation，以及独立的 deployment/effect admission。authority 解决“谁有权进入这类行动”，而不是提前替所有未来行动完成 adjudication。
+
+这是一条重要的 anti-collapse：
+
+```text
+AuthoritySource
+!=
+CurrentActionAdmission
+```
+
+## 4. Decision 不是 Tool call，Proposal 也不是 Effect
+
+Finance 把这一条边界做得非常具体。
+
+它的稳定结构不是：
+
+```text
+reasoning
+→ trade tool
+```
+
+而更接近：
+
+```text
+Decision
+→ Proposal
+→ current assessment / authority / world binding
+→ ExecutionRequest
+→ effect reservation
+→ dispatch
+→ provider evidence
+→ receipt
+→ reconciliation
+```
+
+每一层都能合法地停下来。
+
+`finance.decide` 可以记录一个 Decision 和 current assessment，却不会自动创建 Proposal；Proposal 即使存在，也不等于 authorized 或 submitted；当前 Primary-Agent surface 即使进入 execution，也有意停在 effect reservation 之前，把 dispatch claim、签名和真实 venue POST 留在内部 effect machinery。
+
+这一设计不是为了增加 ceremony。它在回答一个有限智能很难逃避的问题：
+
+> 如果 Agent 在不同时间点改变判断、进程在网络边界附近中断、source/currentness 在执行前改变，我们如何知道“候选动作”“已经承诺”“已经发生”分别是什么？
+
+Runtime 对更一般的 physical execution 给出了类似界线：
+
+```text
+Proposal
+!=
+Commitment
+```
+
+一个 model output、Tool-call draft 或 Agent plan 只是 candidate action。只有 exact operation 被 canonicalize、durably admit，并跨过相应 dispatch/effect boundary 后，才出现不同强度的 Reality commitment。
+
+## 5. 不行动也可以是一个完整 Decision
+
+如果这一章只讨论怎样让行动发生，它很快会制造一种新的 action bias：
+
+> 更多认识应该产生更多行动。
+
+Finance 的 Decision kernel 是一个很好的 negative control。
+
+它要求所有 capital-changing candidate 都与显式 NO-OP baseline 比较，并把：
+
+```text
+research
+wait
+abstain
+```
+
+定义为完整 Decisions，而不是“没有成功找到交易”的失败状态。
+
+这意味着：
+
+```text
+NoEffect
+!=
+NoDecision
+```
+
+以及：
+
+```text
+Abstain
+!=
+DecisionFailure
+```
+
+这不是纯设计原则。当前 Finance Reality 也给出了一个很干净的现场例子。
+
+当前 owner-native capital authority 仍然 active；然而当前保存的 managed-scope Decision 是一个历史 `abstain`，它的 review epoch 已经到期。Finance 的 current evaluation 保留其历史 validity，同时明确要求在任何新的 action progression 前重新 review。当前没有 Proposal，也没有 active financial effect。
+
+所以现实同时给出：
+
+```text
+AuthorityPresent
+!=
+ActionNow
+```
+
+以及：
+
+```text
+HistoricalDecisionValidity
+!=
+CommitmentCurrentness
+```
+
+如果一个系统把“authority active”直接投影成“现在可以交易”，它会错误扩张 action freedom；如果把“Decision expired”写成“过去 Decision 是错的”，它又会篡改历史 epistemic state。
+
+## 6. Commitment 有自己的 currentness
+
+一个行动在开始探索时合法，不保证它在真正付出成本或改变 Reality 时仍然合法。
+
+Ordivon 的自然 episode 已经出现过这种差异：研究开始时 source/current standing 是合法的，但在 preregistration freeze、昂贵 Provider batch、durable commit、merge/push 或 deployment 之前，上游已经前进。旧工作不一定因此变错，但“继续跨过下一个 consequential boundary”可能需要重新判断。
+
+于是：
+
+```text
+AdmissionCurrentness
+!=
+CommitmentCurrentness
+```
+
+正确修复也不是“每一步重读整个世界”。
+
+更小的 pattern 是：
+
+```text
+consequential commitment ahead
++
+concrete reason a load-bearing fact may have changed
+→
+bounded revalidation
+→
+owner-native re-adjudication
+```
+
+它可以得到：
+
+```text
+CONTINUE
+NARROW
+REBASE
+WAIT
+SUPERSEDED
+NO_CHANGE
+```
+
+而不是预先保证某一个方向。
+
+Runtime 的 current Effect Kernel 在物理层也有同样约束：一个已经 committed 的 operation 只能针对它绑定的 world/contract facts dispatch；如果 required revision、resource version、Tool contract、authority 等 enforceable precondition 在 dispatch 前漂移，旧 commitment 必须 fail closed，形成新的 operation。
+
+这不是“世界变化就全部重来”。它只阻止一个旧 commitment 偷渡穿过一个已经改变的 load-bearing boundary。
+
+## 7. Execution success 不是 Effect receipt，更不是 semantic completion
+
+一个 process 返回 exit code 0，看起来已经很接近“成功”。
+
+Runtime 刻意拒绝把这几件事合并：
+
+```text
+Execution Result
+!=
+External Effect Receipt
+!=
+Semantic Completion Claim
+```
+
+原因很现实。
+
+一个程序只被 physical dispatch 一次，内部仍可能产生零个、一个或多个 external effects。一次网络响应丢失，也可能让 Runtime 不知道远端 effect 是否已经发生。如果这时把“没看到成功响应”解释成“没有发生”，然后自动再发一次，可能直接复制 Reality effect。
+
+因此 Runtime 保存：
+
+```text
+lost
+orphaned
+unknown
+reconciliation_required
+```
+
+这样的状态，而不是强行翻译成 success/failure。
+
+对 effect-aware operation，正确动作取决于 effect owner 能证明什么：read-only 可能可重复；idempotent effect 需要稳定 deduplication identity；reconcilable effect 应先 query receipt/state；opaque effect 在 ambiguity 后不能自动重发。
+
+所以：
+
+```text
+PhysicalTerminality
+!=
+EffectCertainty
+!=
+DomainCompletion
+```
+
+这也是为什么 Runtime 自己一直明确：它拥有 Job / Attempt / process tree / Artifact / execution recovery truth，但不拥有上层 Task 或 domain semantic completion。
+
+## 8. 一个局部 Effect 也不能替下游 Consequence 划边界
+
+即使 effect 已经被证明发生，仍然不能把它当作整个 consequence surface。
+
+Atlas 的 action/governance synthesis 保留了这组 distinction：
+
+```text
+EffectFrontier
+!=
+PropagationFrontier
+!=
+ControlFrontier
+!=
+ObservationFrontier
+```
+
+一个本地 mutation 的 bytes 很少，不代表它的 downstream causal reach 很小。一次 publish 可以被 feed、cache、crawler、search engine、external Agent 继续传播；一次 authority delegation 可以改变未来谁能生成 effect；一个 metric 可以改变长期优化方向；一次小的 financial position change 可以进入新的 exposure、margin 和 market path。
+
+所以：
+
+```text
+SmallMutation
+!=
+SmallConsequence
+```
+
+以及：
+
+```text
+LocalEffectBound
+!=
+CausalReachBound
+```
+
+反过来，也不能因为 downstream consequence 可能很大，就假装我们可以完整枚举它。
+
+有限智能面对的经常是 structural uncertainty：相关 actor、dependency、interaction、externality 或 observation channel 可能根本还没有进入当前 representation。
+
+因此，比“算一个完整 risk distribution”更稳健的策略往往是：限制初始 commitment、限制已知传播渠道、保留 maneuverability、保持 Reality re-contact，并把 UNKNOWN 保留下来。
+
+这依然不是 universal safety algorithm，只是一种拒绝伪造 causal closure 的纪律。
+
+## 9. Consequence 也不是 Benefit
+
+一个 effect 被证明发生之后，最容易发生的下一次 lifting 是：
+
+```text
+Effect happened
+→ therefore it helped
+```
+
+Atlas 对 Result / Achievement / Value 的跨域审查明确拒绝这种跳跃：
+
+```text
+Consumption
+!=
+Benefit
+```
+
+并进一步拆开：
+
+```text
+Occurrence
+!=
+OwnerOutcome
+!=
+Evaluation
+!=
+BeneficiaryBenefit
+```
+
+例如一个 Normative contact surface 真正改变了 action admission，只能证明 `AdmissionDelta`。它不能自己证明该 intervention 带来 benefit。Finance 的一次真实交易、Media 的一次 render、Web 的一次 publication、Security 的一次 quarantine 同样如此。
+
+Benefit claim 至少需要适合本 domain 的 outcome、cost、comparator 和 attribution evidence。哪一个结果算“好”，也继续由目标 claim 与 domain owner 决定，而不是由 Action 层创造一个统一 utility scalar。
+
+所以：
+
+```text
+Effect
+!=
+Benefit
+```
+
+以及：
+
+```text
+GoodOutcome
+!=
+GoodDecision
+```
+
+一个合法而理性的 Decision 可能遇到坏的 stochastic outcome；一个糟糕 procedure 也可能偶然得到好结果。结果证据可以重新约束未来 standing，却不能自动重写过去 decision quality。
+
+## 10. Consequence 的 evaluator 仍然跟着 claim 走
+
+Chapter 1 已经建立了这个原则，这里不再重建一遍。
+
+关键只是在 action chain 中把它放对位置。
+
+如果 claim 是 Runtime execution correctness，relevant pressure 可能来自 process/evidence/recovery；如果 claim 是 Finance effect truth，应该看 provider/account/order/fill/bill/portfolio evidence；如果 claim 是 Web discoverability，crawler/search/feed 等独立系统就可以成为 evaluator；如果 claim 真正关于 Human comprehension、preference、consent 或 welfare，Human evidence 才不可替代。
+
+所以：
+
+```text
+ExternalPressure
+!=
+HumanPressure
+```
+
+同样：
+
+```text
+HumanAuthority
+!=
+HumanObservation
+!=
+HumanEvaluation
+!=
+HumanBenefit
+```
+
+Action chain 不需要一个 universal terminal evaluator。它需要的是：每个 consequence claim 都回到能够约束它的 Reality pressure。
+
+## 11. Action 结束以后，未来的 Action Space 也会变
+
+这一章到这里可以停在 consequence，但 Reality 不会停。
+
+反复成立的 action/standing 往往被编译进未来环境：
+
+```text
+manual reasoning
+→ default
+→ guard
+→ protocol
+→ affordance
+→ environment
+```
+
+一旦如此，未来 Agent 不再每次显式重建“为什么这个 action 可以做”。它面对的是已经重构过的 action surface。
+
+这也是 operation-relative affordance recompilation 的位置：owner standing/currentness 变化之后，环境应该重新决定哪些 affordance 仍值得暴露，哪些机械 coordinate 可以沉下去，哪些旧 freedom 应该撤回，哪些 semantic choice 必须继续交给 Agent。
+
+但“环境如何成为认知的一部分”是另一个足够大的问题。这一章只保留桥梁：
+
+> **行动不仅改变外部 state，也可能改变未来什么行动变得可见、可达、可授权和自然。**
+
+## 12. 这一章真正保留的最小模型
+
+如果必须把整章压缩成一句话，不是：
+
+> 有充分证据就应该行动。
+
+而是：
+
+> **行动是把 scoped standing 转换成 Reality commitment 的受约束过程；这个转换必须分别经过合适的 authority、current admission、selection 与 commitment，并用 effect evidence 和 claim-relative consequence 重新接受 Reality 的约束。**
+
+可以把它画成：
+
+```text
+Standing
+   ↓ does not self-authorize
+Authority + current admission + constraints
+   ↓
+Admissible actions
+   ↓ does not self-select
+Consumer / policy selection
+   ↓
+Commitment
+   ↓ does not prove occurrence
+Realization / Effect evidence
+   ↓ does not bound all propagation
+Claim-relative Consequence
+   ↓ does not imply benefit
+Re-adjudication / NO_CHANGE / new action frontier
+```
+
+这仍然只是 Book 的 integration projection。
+
+不同 owner 可以合法地省略、合并或细化其中某些阶段，只要它们没有因此抹掉对当前 operation 真正 load-bearing 的 distinction。
+
+## 13. 这一章没有证明什么
+
+本章没有建立：
+
+- 一个 universal Action ontology 或 `ActionState` schema；
+- 一个全局 permission / authority engine；
+- 一个全局 scheduler、priority score 或 current-work database；
+- 高 epistemic standing 自动产生行动义务；
+- capability 自动产生 authority；
+- normative permission、physical capability、effective control 是同一个东西；
+- action admitted 就一定应该被 selected；
+- action selected 就说明 effect 已经发生；
+- Runtime/Tool/process success 就说明 domain objective 完成；
+- stronger evidence 单调增加 action freedom；
+- `NO_OP / wait / abstain` 是失败；
+- action 在开始时 current 就不需要在 consequential commitment 前重新检查 load-bearing premise；
+- 所有 premise 每一步都应该重新验证；
+- local effect 小就意味着 downstream consequence 小；
+- consequence 可以完整枚举；
+- effect occurrence 自动证明 benefit；
+- good outcome 自动证明 good decision；
+- Human 是所有 action 的 universal approval gate 或 evaluator；
+- 当前的 action chain 已经解决 constitutional rule change、agenda power 或 institutional legitimacy；
+- Ordivon 需要一个新的全局 Action/Authority/Consequence service。
+
+真正需要留下的是一个更小但更实用的警觉：
+
+> **当一个 Agent 看起来“已经知道该做什么”时，继续问：它现在拥有什么 standing、什么 authority、哪个 action 被 admitted、谁选择了它、什么已经 committed、什么 effect 真正发生、我们实际观察到了什么 consequence，以及这些证据究竟允许下一步走多远。**

@@ -125,3 +125,66 @@ Chapter 2 keeps the original pre-Book Media Writing binding and adds one separat
 | `task:ordivon-internal-representation-transition-topology-20260822` | 10 | multi-projection is an anti-collapse/selection discipline; evaluator and representation adequacy remain claim-relative |
 
 Chapter 2 uses these Host checkpoints only as semantic-continuity pressure. Exact Book claims remain bound to Git-addressable Atlas/Media sources.
+
+
+## Chapter 3 — Action / Authority / Effect / Consequence source additions
+
+Chapter 3 consumes current owner-native action boundaries directly instead of lifting historical Host checkpoints into current truth. Atlas remains a non-authoritative cross-owner synthesis/recovery source.
+
+### Current owner bindings
+
+| Binding | Repository | Revision | Chapter-3 role |
+| --- | --- | --- | --- |
+| `finance-current` | `ordivon-finance` | `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` | Decision/Proposal, owner-native/delegated authority, current semantic admission, effect and reconciliation boundaries |
+| `normative-current` | `ordivon-normative` | `68826a3b256da0bba8d540102528721a3e338c25` | normative power/admission boundaries without physical/effective-control lifting |
+| `harness-current` | `ordivon-harness` | `d72413de62c01d7b5124861d9028495707e01d5d` | installed/Run/turn capability admission, delegated Agent selection and bounded execution-completion semantics |
+| `runtime-current` | `ordivon-runtime` | `fd6765c20981461f1a29508d97225b96971cc389` | commitment, physical dispatch, evidence, ambiguity and reconciliation boundary |
+
+Load-bearing owner files:
+
+| Ref | Binding | Path | Chapter-3 use | Ceiling |
+| --- | --- | --- | --- | --- |
+| F1 | `finance-current` | `design/DECISION-PROPOSAL-KERNEL.md` | NO-OP baseline; research/wait/abstain as complete Decisions; Proposal distinct from authority/effect | Finance decision semantics only |
+| F2 | `finance-current` | `design/C2-AUTHORITY-REFORM.md` | owner-native vs delegated authority; current Decision/world/effect admission chain | current Finance capital authority architecture, not universal authority law |
+| F3 | `finance-current` | `docs/runtime-domain.md` | semantic `decide`/`execute`/`reconcile` boundaries over Runtime lowering | Finance/Runtime domain boundary |
+| F4 | `finance-current` | `design/AUTHORITY-EXECUTION-KERNEL.md` | proposal revalidation, effect reservation, reconcile-first uncertainty laws retained under C2 | historical A7 document with explicit current-C2 compatibility ceiling |
+| N1 | `normative-current` | `DERIVED-LAWS.md` | `NormativePower != physical capability != ordinary permission != effective control` | current Normative derived law only |
+| N2 | `normative-current` | `OWNER-CONTRACT.md` | Normative owner scope and explicit non-ownership of physical/effective control | owner boundary |
+| N3 | `normative-current` | `BOUNDARIES-NEGATIVE.md` | no generic control/enforcement/action owner | negative owner boundary |
+| H1 | `harness-current` | `README.md` | delegated selection, installed/admitted action truth, bounded Run/effect/authority ownership | current Harness product boundary |
+| H2 | `harness-current` | `docs/P0-CAPABILITY-COMPOSITION-CLOSEOUT.md` | `Installed != Run-admitted != Turn-admitted`, `Capability != Authority` | historical implementation closeout constrained by current README |
+| R1 | `runtime-current` | `docs/effect-kernel.md` | `Proposal != Commitment`; execution/effect/semantic-completion separation; UNKNOWN and revalidation | current Runtime effect kernel only |
+| R2 | `runtime-current` | `README.md` | Runtime owns physical execution/recovery, not Task/domain completion | current owner identity/boundary |
+| R3 | `runtime-current` | `docs/agent-ux.md` | terminality/certainty/semantic-correctness anti-collapse | current Agent-facing Runtime projection |
+| A11 | `atlas` | `synthesis/2026-08-19-rsi-pal-action-governance/README.md` | standing/admission/selection anti-lifting; effect/propagation/control/observation frontiers | explicitly non-authoritative synthesis |
+| A12 | `atlas` | `synthesis/2026-08-21-result-achievement-value-materialization/README.md` | occurrence/outcome/evaluation/beneficiary-benefit separation and attribution ceiling | explicitly non-authoritative synthesis |
+
+### Current live Finance pressure episode
+
+A read-only `finance.context.compile` episode was executed against canonical Finance on 2026-08-24 at generated time `2026-08-24T12:16:38.438598Z`, stateVersion `1564:e316d435f391005b`.
+
+It observed simultaneously:
+
+- owner-native capital authority `active`;
+- historical managed-scope Decision `abstain` retained;
+- that Decision's review epoch `expired`;
+- current evaluation `needs_revision`;
+- Proposal eligibility `not_applicable`;
+- no current Proposals;
+- no current/active Effects;
+- one open `review-decision-epoch` obligation before new action progression.
+
+This episode supplies current consumer pressure for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is **not** a permanent source-bound Claim: future Finance state is expected to change, and the Book must not freeze this observation into owner truth.
+
+### Host Chapter-3 semantic-continuity pressure
+
+| Task | Revision | Pressure imported |
+| --- | ---: | --- |
+| `task:ordivon-current-work-operational-disposition-formation-20260823` | 6 | action frontier + consumer-local selection; `ActionFeasibility != ActionSelection != ExecutionState != Consequence` |
+| `task:ordivon-action-delta-latent-commitment-readjudication-audit-20260822` | 6 | `AdmissionCurrentness != CommitmentCurrentness`; bounded reread before consequential commitment under concrete staleness signal |
+| `task:finance-capital-decision-closure-audit-20260822` | 4 | `ActionBlocked != DecisionBlocked`; abstain/non-action can close a current Decision without financial effect |
+| `task:ordivon-normative-actual-consumption-20260821` | 10 | `AdmissionDelta != Benefit`; domain outcome/cost/comparator/attribution evidence stay separate |
+| `task:ordivon-research-engineering-consumption-consequence-conversion-audit-20260824` | 15 | claim-relative Reality coupling; Human/consumer is not a universal terminal |
+| `task:ordivon-first-interface-environmentalization-ppd-20260822` | 29 | operation-relative affordance recompilation as a downstream bridge after action semantics |
+
+These Host checkpoints preserve semantic continuity only. Exact Chapter-3 Claims remain Git-bound to current owner/Atlas files above.

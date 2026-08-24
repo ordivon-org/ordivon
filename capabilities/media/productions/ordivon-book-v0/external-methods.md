@@ -77,3 +77,35 @@ Primary comparison surfaces used in this chapter include:
 - Green, *Cognitive Dimensions of Notations*, 1989.
 
 These sources constrain the Book's claims; they do not confer Ordivon standing.
+
+
+## Chapter 3 pressure — practical action, authority, commitment and control
+
+Chapter 3 is pressure-tested against mature lines that already own the broad claims that reasons are not identical to actions, authority is typed, intentions/plans coordinate future action, and physical control/observation are distinct system properties. Their purpose here is subtraction: Ordivon cannot claim novelty merely for separating knowledge, permission, execution and consequence.
+
+| External line | Mature contribution | Chapter-3 consequence | What is not imported |
+| --- | --- | --- | --- |
+| contemporary practical-reason / action theory | Practical reasoning concerns what to do and how reasons relate to intentional action; this is a mature philosophical problem rather than an Ordivon discovery | Do not present `Standing != Action` as a new theory; focus on multi-owner engineering transitions and evidence/authority boundaries | no one philosophical theory of intention/action is selected as Ordivon's ontology |
+| theoretical vs practical authority | Authority literature distinguishes influence/reasons for belief from practical authority that changes reasons/normative status for action | Preserve `EpistemicStanding != PracticalAuthority`; knowing or advising does not by itself grant intervention authority | no universal institutional/legitimacy theory and no Human-sovereign assumption |
+| normative / motivating / explanatory reasons | Reasons-for-action literature distinguishes reasons that count in favor, reasons for which an agent acts, and reasons explaining behavior | Do not infer that support for an action is the same as the actor's motivation or causal explanation | no generic Reason object/schema imported into Ordivon |
+| Bratman-style planning/intention | Prospective intentions and partial plans coordinate finite agents through time and constrain later reconsideration while remaining defeasible as circumstances change | Commitment is not just another belief; avoid continuous full reconsideration while preserving currentness at consequential boundaries | no claim that every Ordivon Decision is a philosophical intention or that one planning theory owns all domains |
+| control theory: controllability / observability | State-space control treats ability to influence state and ability to infer state as distinct properties | Use as subtraction pressure against `Effect/Control/Observation are one frontier` | no claim that open-world Agent consequence is fully captured by linear state-space control theory |
+| ecological/HCI affordance and signifier work | Affordances concern action possibilities; HCI signifiers concern making possible actions discoverable to an actor | Treat affordance exposure as downstream environment design, not permission or authority itself; defer the full Agent-Environment problem | no universal HCI affordance taxonomy as an Ordivon action ontology |
+
+### Chapter-3 subtraction result
+
+External prior art already owns the broad propositions that rational support does not mechanically cause action, practical authority is distinct from theoretical authority, planning commitments persist through time, and control/observation must be distinguished. The surviving Ordivon integration is narrower and engineering-facing:
+
+```text
+scoped Standing
+  -> current, typed Action admission under the right authority
+  -> consumer/policy selection
+  -> durable commitment
+  -> physical/effect evidence
+  -> claim-relative consequence
+  -> domain-owned evaluation / re-adjudication
+```
+
+Each arrow may preserve `NO_CHANGE` or fail closed, and no previous layer may mint the next layer's authority merely by being strong, available or successful.
+
+Primary comparison surfaces used for subtraction include Stanford Encyclopedia of Philosophy entries on Practical Reason and the Structure of Actions, Authority, Reasons for Action, Intention and Action/planning agency; standard state-space controllability/observability material; and mature HCI/ecological affordance/signifier treatments. These sources constrain the Book's claims but do not confer Ordivon standing.
