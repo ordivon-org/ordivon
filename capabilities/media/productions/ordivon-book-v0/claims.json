@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "productionId": "ordivon-book-v0",
+  "claims": [
+    {
+      "id": "reality-representation-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      },
+      "meaning": "Current cross-owner synthesis explicitly preserves Reality != Representation, Evidence != Conclusion, HistoricalValidity != Currentness, and Projection != Authority; Ordivon uses these as anti-collapse distinctions rather than as one universal ontology.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      ],
+      "allowedWording": [
+        "Reality is not identical to its current representation",
+        "projection does not mint authority",
+        "historical validity and currentness are distinct"
+      ],
+      "avoid": [
+        "representation is always false",
+        "Atlas is the truth source",
+        "the anti-collapse list is a complete ontology"
+      ]
+    },
+    {
+      "id": "research-standing-currentness",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/research-method-v1.md"
+      },
+      "meaning": "Ordivon's current research-method synthesis requires explicit evidence scope, result standing, provenance/currentness, scoped reopenable closure, and allows Research-to-Engineering outcomes including NO_CHANGE, narrowing, deletion, repair, implementation change, or further experiment.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/research-method-v1.md"
+      ],
+      "allowedWording": [
+        "research does not automatically imply feature creation",
+        "closure is scoped and reopenable",
+        "standing and currentness must remain explicit"
+      ],
+      "avoid": [
+        "every research result must be implemented",
+        "a completed task proves whole-domain closure",
+        "Git recency alone establishes semantic currentness"
+      ]
+    },
+    {
+      "id": "standing-action-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/research-process-lineage/episodes/2026-08-19-rsi-pal-standing-action-governance.md"
+      },
+      "meaning": "Cross-owner process reconstruction separates epistemic support from intervention authority and separates admission, selection, commitment, effect, propagation reach, control reach, observation reach, and amplification; the episode is process memory, not a universal law source.",
+      "evidence": [
+        "synthesis/research-process-lineage/episodes/2026-08-19-rsi-pal-standing-action-governance.md"
+      ],
+      "allowedWording": [
+        "epistemic support does not automatically authorize intervention",
+        "selection, commitment, and effect are distinct",
+        "feedback is not identical to gain"
+      ],
+      "avoid": [
+        "high confidence authorizes action",
+        "all consequences are controllable from the first mutation",
+        "this process episode is a universal governance theory"
+      ]
+    },
+    {
+      "id": "future-problem-generation",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/README.md"
+      },
+      "meaning": "Current cross-owner synthesis distinguishes future consequence/problem revelation, activation, and generation; capabilities, institutions, metrics, and deployed representations can create new consequential regimes, so a representation is safe only relative to a declared continuation family rather than every possible future task.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/README.md"
+      ],
+      "allowedWording": [
+        "action can change the future problem space",
+        "new capabilities or representations can generate new consequential regimes",
+        "representation sufficiency is continuation-relative"
+      ],
+      "avoid": [
+        "every action necessarily creates a new problem",
+        "future problem spaces are fully predictable",
+        "one representation is losslessly sufficient for unrestricted future use"
+      ]
+    },
+    {
+      "id": "ppd-open-pressure",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/proactive-pressure-discovery-ppd/README.md"
+      },
+      "meaning": "PPD treats the evidence/question/measurement/representation/generator interface itself as revisable and preserves NoNaturalContradiction != NoReachablePressure and OpenWorldCompleteness = NOT_ESTABLISHED.",
+      "evidence": [
+        "synthesis/proactive-pressure-discovery-ppd/README.md"
+      ],
+      "allowedWording": [
+        "lack of a natural contradiction does not imply lack of reachable discriminating pressure",
+        "the search interface itself may be changed",
+        "PPD is generative rather than a mandatory checklist"
+      ],
+      "avoid": [
+        "PPD guarantees discovery",
+        "PPD exhausts open-world epistemology",
+        "every local PPD application defines generic PPD"
+      ]
+    },
+    {
+      "id": "atlas-projection-not-authority",
+      "source": {
+        "binding": "atlas",
+        "path": "README.md"
+      },
+      "meaning": "Atlas is a generated exploration/history/recovery projection over owner-native authority surfaces; stale retained bytes remain useful history/recovery material but are not current truth, and curated synthesis is explicitly non-authoritative.",
+      "evidence": [
+        "README.md"
+      ],
+      "allowedWording": [
+        "Atlas preserves map, history, recovery, and currentness health without becoming owner truth",
+        "a Book may consume Atlas synthesis without inheriting truth authority"
+      ],
+      "avoid": [
+        "Atlas owns all Ordivon truth",
+        "recoverable history is current truth",
+        "Book claims become authoritative because Atlas indexed them"
+      ]
+    },
+    {
+      "id": "writing-expression-not-truth",
+      "source": {
+        "binding": "media",
+        "path": "research/expression/profiles/writing.md"
+      },
+      "meaning": "The active Studio Writing profile owns cross-publication writing craft while source-domain facts and publication authority remain elsewhere; it explicitly treats structural rhetoric, compression, title/body certainty, chronology/causality, historical/current tense, and fluent overstatement as semantic failure modes.",
+      "evidence": [
+        "research/expression/profiles/writing.md",
+        "docs/production-cognition.md"
+      ],
+      "allowedWording": [
+        "Studio owns expression, not source-domain truth",
+        "writing structure can change the reader's inferred model",
+        "Book cognition is an index of current judgment rather than a second truth ledger"
+      ],
+      "avoid": [
+        "good prose makes a claim true",
+        "Media may override domain standing for narrative coherence",
+        "one permanent house style is already established"
+      ]
+    }
+  ]
+}

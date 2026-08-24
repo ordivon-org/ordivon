@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-book-v0",
+  "title": "Ordivon Book v0 — Finite Intelligence, Reality, and Revision",
+  "status": "review",
+  "intent": "Create a bounded, source-fenced, non-authoritative explanatory projection of Ordivon's current cross-owner understanding, and pressure-test whether one Human or Agent can recover an actionable whole-system model without reconstructing research chronology.",
+  "audiences": [
+    "ordivon-agent",
+    "ordivon-human",
+    "researcher",
+    "agent-system-builder"
+  ],
+  "sourceBindings": [
+    {
+      "id": "atlas",
+      "repository": "ordivon-atlas",
+      "revision": "c0ba3c7d22e217d3d38553542050aa0360a1e3f8",
+      "role": "non-authoritative cross-owner synthesis, provenance, genealogy, and currentness projection"
+    },
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "69ab3a4d781ccc6d9718b7e66fc6d34a531a0935",
+      "role": "Writing profile, expression constraints, and Production authority"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "article": "story.mdx",
+    "cognition": "cognition.md"
+  },
+  "outputs": [
+    {
+      "id": "ordivon-book-v0-chapter-1-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747"
+    }
+  ]
+}
