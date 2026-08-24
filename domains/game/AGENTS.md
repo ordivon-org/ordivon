@@ -2,7 +2,7 @@
 
 ## Objective
 
-Improve the current Station Zero product and its isolated v3 first-playable without recreating deleted historical paths or anticipating a general game platform.
+Operate Ordivon Game according to owner-current standing without recreating deleted historical paths or anticipating a general game platform. This file is stable repository operating guidance, not current product/research standing, and must not select the next project action by itself. Before choosing immediate work, follow `docs/authority.md` to the current owner. If owner-current standing has not been recovered, do not infer it from the registered Station Zero product, the isolated v3 reference target, or historical G-stage labels.
 
 ## Current executable
 

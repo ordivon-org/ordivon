@@ -28,6 +28,7 @@
     "eval:pre-g0:ds1": "node scripts/pre-g0/ds1-battery.ts",
     "eval:v3:product-value:targeted-controls": "node scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls",
     "eval:v3:product-value:information": "node scripts/eval-station-zero-v3-product-value.ts --lane information",
+    "context:current-direction": "node scripts/current-direction-context.ts",
     "context:v3:product-value": "node scripts/product-value-context.ts"
   },
   "license": "Apache-2.0",
