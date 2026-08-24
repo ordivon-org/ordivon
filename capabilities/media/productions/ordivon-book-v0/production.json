@@ -64,6 +64,24 @@
       "repository": "ordivon-host",
       "revision": "b40c7e6a56011dad3ccb595b332ab0edf9fa200a",
       "role": "current Host semantic-continuity and revision-fenced recovery boundary used by Chapter 4"
+    },
+    {
+      "id": "computing-ch5",
+      "repository": "ordivon-computing",
+      "revision": "e90b0aaaa7877d6c3164f0cfa47b06a78d6d6f28",
+      "role": "current Computing sedimentation, destination-adjudication and responsibility-relative placement standing used by Chapter 5"
+    },
+    {
+      "id": "finance-ch5",
+      "repository": "ordivon-finance",
+      "revision": "06d9f9ba90a8d674f413675d145ed2f954aedb88",
+      "role": "current Finance semantic responsibility decomposition and owner/effect/reconciliation boundaries used by Chapter 5"
+    },
+    {
+      "id": "harness-ch5",
+      "repository": "ordivon-harness",
+      "revision": "684333be5146d4f705a91edb396e83c6a1150e1f",
+      "role": "current Harness reusable-cognition admission and subtractive First-Interface semantics used by Chapter 5"
     }
   ],
   "workingProfile": {},
@@ -92,7 +110,7 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:7b7c4473bb3667fabec83f8ca1458c2fb7eddea2418ee80e7529bdeb63f33afe"
+      "blobDigest": "sha256:10ed267c4b4eb9d90bf8b45c65c73482d40aae2d91e7359cbeedaeac37bf782c"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
@@ -107,6 +125,13 @@
       "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-5-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7"
     }
   ]
 }

@@ -561,6 +561,178 @@
         "refresh every known source before every action",
         "bounded revalidation proves the dependency frontier is complete"
       ]
+    },
+    {
+      "id": "standing-environmentalization-nonidentity",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      },
+      "meaning": "Current Computing audit separates preservation, discoverability, consumer binding, environmentalization and consequence validation; a Result/Standing, document, Host checkpoint, Atlas pointer or canonical Knowledge page does not by itself establish that a future consumer's default environment or behavior changed.",
+      "evidence": [
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "preserved standing is not identical to environmentalized standing",
+        "document presence does not prove future default consumption",
+        "historical integration may fail to remain currently inhabited"
+      ],
+      "avoid": [
+        "every durable result should become a default",
+        "Host or Atlas persistence proves environmentalization",
+        "S0-S6 is a mandatory Ordivon lifecycle schema"
+      ]
+    },
+    {
+      "id": "correct-standing-default-nonidentity",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/research-methods/ordivon-research-method-and-paradigm-canon.md"
+      },
+      "meaning": "Current Computing research method separates destination adjudication from task closeout and reusable Knowledge from Core/default authority; surviving content may truthfully remain owner-local, Research, Knowledge, implementation-only, negative history, or require no new materialization.",
+      "evidence": [
+        "knowledge/research-methods/ordivon-research-method-and-paradigm-canon.md",
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "correct does not automatically mean default-worthy",
+        "NO_CHANGE or Knowledge-only can be a mature destination",
+        "task closeout does not decide environmentalization"
+      ],
+      "avoid": [
+        "every reusable result belongs in Core",
+        "importance creates default visibility",
+        "promotion decision automatically materializes a consumer interface"
+      ]
+    },
+    {
+      "id": "responsibility-relative-primacy",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/agents/capability-externalization-and-responsibility-placement.md"
+      },
+      "meaning": "Current Computing places responsibilities relation-by-relation with the entity or mechanism whose current capability, evidence relation, authority relation, precision/recovery properties and Reality coupling make it structurally best suited; Human-first and Agent-first are not universal placement rules, and one historical role bundle may split across several carriers.",
+      "evidence": [
+        "knowledge/agents/capability-externalization-and-responsibility-placement.md",
+        "core/stack.md"
+      ],
+      "allowedWording": [
+        "responsibility placement is relation-relative rather than globally Human-first or Agent-first",
+        "one actor may own evidence while another owns authority and another owns exact mechanics",
+        "historical role bundles are not architectural invariants"
+      ],
+      "avoid": [
+        "one scalar optimizer determines every responsibility",
+        "the coordinating Agent owns all truth",
+        "Ordivon invented human-machine function allocation"
+      ]
+    },
+    {
+      "id": "finance-semantic-responsibility-decomposition",
+      "source": {
+        "binding": "finance-ch5",
+        "path": "kernel/primary_agent_surface.py"
+      },
+      "meaning": "Current Finance Primary-Agent surface exposes semantic responsibilities observe/research/decide/execute/reconcile/performance/owner while retaining distinct provider Reality, external-effect, reconciliation, performance and owner-root boundaries; implementation-operation identities stay behind the semantic surface and ordinary Primary-Agent risk policy is explicitly not Human governance.",
+      "evidence": [
+        "kernel/primary_agent_surface.py"
+      ],
+      "allowedWording": [
+        "Finance decomposes a historical role bundle into semantic responsibilities without making the Primary Agent owner of every fact or effect",
+        "semantic compression can reduce Agent plumbing while preserving owner boundaries",
+        "ordinary Agent risk policy need not become Human governance"
+      ],
+      "avoid": [
+        "Finance proves humans are unnecessary",
+        "Primary Agent owns venue truth or reconciliation truth",
+        "the seven Finance semantic operations are a universal ontology"
+      ]
+    },
+    {
+      "id": "reusable-knowledge-current-cognition-nonidentity",
+      "source": {
+        "binding": "harness-ch5",
+        "path": "src/ordivon_harness/knowledge_topology.py"
+      },
+      "meaning": "Current Harness can resolve exact externally owned reusable Knowledge/procedure sources into the existing cognition-seed path but deliberately does not discover, rank, evaluate, promote, persist or automatically inject them; source presence and external semantic promotion do not imply current Run cognition.",
+      "evidence": [
+        "src/ordivon_harness/knowledge_topology.py"
+      ],
+      "allowedWording": [
+        "reusable source presence does not imply current cognition",
+        "future cognition admission can require explicit application or Agent selection",
+        "environmentalization does not require universal knowledge injection"
+      ],
+      "avoid": [
+        "Harness should automatically inject all relevant Knowledge",
+        "stored Knowledge becomes current cognition by existing",
+        "procedure classification grants Tool authority"
+      ]
+    },
+    {
+      "id": "first-interface-subtractive-nonauthority",
+      "source": {
+        "binding": "harness-ch5",
+        "path": "src/ordivon_harness/interaction_context.py"
+      },
+      "meaning": "Current experimental Harness Interaction Context accepts already-fenced owner facts and already-admitted Tools, compiles a compact ephemeral presentation, and subtracts Provider-visible Tools to caller-established AVAILABLE affordances; it explicitly does not mint owner truth, infer priority or expand Tool authority, and preserves a raw escape path.",
+      "evidence": [
+        "src/ordivon_harness/interaction_context.py",
+        "tests/test_first_interface_finance_workstation_composition.py"
+      ],
+      "allowedWording": [
+        "a current default or Tool surface can be selectively recompiled without minting authority",
+        "First Interface is a downstream environmentalization witness",
+        "BLOCKED or UNKNOWN can remain visible context without becoming callable"
+      ],
+      "avoid": [
+        "Tool visibility creates authority",
+        "Harness discovers semantic priority",
+        "First Interface alone is the complete theory of environmentalization"
+      ]
+    },
+    {
+      "id": "environmentalized-placement-challengeability",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/agents/capability-externalization-and-responsibility-placement.md"
+      },
+      "meaning": "Current Computing treats repeated responsibility placement as a candidate for environmentalization but explicitly keeps placement challengeable: changed capability, owner/currentness, new evidence or harmful consequence can reopen the assignment rather than turning a historically useful default into eternal authority.",
+      "evidence": [
+        "knowledge/agents/capability-externalization-and-responsibility-placement.md",
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "environmentalized placement is not eternal placement",
+        "challengeability can reopen a default without rewriting its historical validity",
+        "current structural fit can change"
+      ],
+      "avoid": [
+        "every default must be re-derived every turn",
+        "historical usefulness grants permanent placement",
+        "challengeability requires deleting history"
+      ]
+    },
+    {
+      "id": "sedimentation-consequence-validation",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      },
+      "meaning": "Current sedimentation audit does not infer benefit from preservation or environment change alone: stronger evidence of successful sedimentation requires a concrete future consumer/environment change plus observed consequence, or a justified NO_CHANGE/no-default result; not every standing should advance to a constitutive environment stage.",
+      "evidence": [
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "environment change does not by itself establish benefit",
+        "NO_CHANGE can be a successful environmentalization judgment",
+        "sedimentation claims need future-consumer or consequence evidence"
+      ],
+      "avoid": [
+        "a new default is automatically an improvement",
+        "every standing must reach S5 or S6",
+        "document promotion proves downstream gain"
+      ]
     }
   ]
 }

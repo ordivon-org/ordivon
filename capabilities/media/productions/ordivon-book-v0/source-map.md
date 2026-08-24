@@ -286,3 +286,79 @@ U(a,t) = unresolved dependency / supersession residual
 ```
 
 only as explanatory notation, not as a shared schema or global dependency service.
+
+
+## Chapter 5 — Environmentalization Admission / Responsibility Placement
+
+Chapter 5 does **not** introduce a new Environment owner, lifecycle, relevance engine or promotion service. It source-fences one narrower Book-level integration problem:
+
+```text
+Correct / Preserved Standing
+!=
+Default-worthy / Environmentalized Standing
+```
+
+The chapter asks how a validated standing may truthfully move from explicit cognition into a future consumer's default/routine/interface/guard while preserving owner truth/currentness/authority and a later challenge/demotion path.
+
+### Chapter-5 exact current bindings
+
+| Binding | Repository | Revision | Chapter-5 role |
+| --- | --- | --- | --- |
+| `computing-ch5` | `ordivon-computing` | `e90b0aaaa7877d6c3164f0cfa47b06a78d6d6f28` | current reusable cross-owner method/world-model standing for sedimentation debt, destination adjudication and responsibility-relative primacy |
+| `finance-ch5` | `ordivon-finance` | `06d9f9ba90a8d674f413675d145ed2f954aedb88` | current semantic responsibility decomposition and owner/effect/reconciliation separation |
+| `harness-ch5` | `ordivon-harness` | `684333be5146d4f705a91edb396e83c6a1150e1f` | current reusable-cognition no-auto-injection control and subtractive First-Interface implementation witness |
+| `atlas` | `ordivon-atlas` | `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` | non-authoritative cross-owner worldview/owner-role compression only |
+
+These are independent of the historical Chapter-3/4 bindings. `finance-current@8e0ace...` remains the exact Chapter-4 admission fence; `harness-current@d72413...` remains the exact Chapter-3 admission fence. They are not rewritten as if they had always meant the newer Chapter-5 revisions.
+
+### Load-bearing Chapter-5 owner files
+
+| Ref | Binding | Path | Chapter-5 use | Ceiling |
+| --- | --- | --- | --- | --- |
+| C5-C1 | `computing-ch5` | `research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md` | `Preserved != Discoverable != Consumed != Environmentalized != Beneficial`; historical-method lineage loss; S0-S6 as audit coordinates | current Computing audit only; S0-S6 is not a shared lifecycle schema |
+| C5-C2 | `computing-ch5` | `knowledge/research-methods/ordivon-research-method-and-paradigm-canon.md` | `TaskCloseout != DestinationAdjudicated`; mature external solution content survives novelty subtraction | current Computing research method, not global owner policy |
+| C5-C3 | `computing-ch5` | `knowledge/agents/capability-externalization-and-responsibility-placement.md` | responsibility-relative primacy, future-model robustness, sedimentation and challengeability | cross-owner design prior, explicitly non-novel function-allocation claim |
+| C5-C4 | `computing-ch5` | `core/stack.md` | lowest truthful owner / stable responsibility placement pressure | Computing Core boundary only |
+| C5-F1 | `finance-ch5` | `kernel/primary_agent_surface.py` | semantic observe/research/decide/execute/reconcile/performance/owner decomposition; implementation plumbing hidden without truth/authority collapse | Finance semantic surface only; seven operations are not a universal ontology |
+| C5-H1 | `harness-ch5` | `src/ordivon_harness/knowledge_topology.py` | exact reusable external Knowledge admission with `automaticInjection=false`; source presence ≠ current cognition | Harness cognition topology only; no relevance-ranking authority |
+| C5-H2 | `harness-ch5` | `src/ordivon_harness/interaction_context.py` | compact source + subtractive Provider Tool surface over already-fenced owner facts / already-admitted Tools | experimental presentation compiler only; no owner truth, priority or Tool authority minted |
+| C5-H3 | `harness-ch5` | `tests/test_first_interface_finance_workstation_composition.py` | negative controls for no environment-mutation authority expansion and recompiled read-only recovery affordance | implementation test evidence only |
+
+### Chapter-5 claim ceiling
+
+The Book may state the bounded transition:
+
+```text
+validated Standing
+  -> truthful destination / responsibility carrier
+  -> concrete consumer + recurring or deletion-essential burden
+  -> smallest useful default / routine / interface / guard
+  -> owner/currentness/authority conserved
+  -> future affordance / reduced reconstruction
+  -> consequence
+  -> retain / narrow / re-ground / demote / NO_CHANGE
+```
+
+It may **not** infer that every correct standing deserves default status, that one carrier should own all responsibilities, that automatic Knowledge injection is required, or that an environmentalized placement becomes permanent.
+
+### Re-selection and negative-control pressure
+
+The earlier `task:ordivon-book-chapter5-destructive-selection-20260824@3` remains historical evidence but its final theoretical selection was superseded after the World-Model Sedimentation Audit showed that mature external theory had been incorrectly used as problem-domain deletion pressure.
+
+The repaired selection is tracked at `task:ordivon-book-chapter5-theory-reselection-20260824@4`. Candidate A (broad Environmentalization) was rejected as Chapter-1 redundant; Candidate B (Responsibility Ecology alone) was rejected as insufficient after mature function-allocation/distributed-cognition subtraction; Candidate C survived only after narrowing to **environmentalization admission / challengeable compilation**.
+
+Fresh-consumer carrier experiments during selection were intentionally not forced green. One destructive selection returned `C`, one `NO_CHAPTER`, and one invalid carrier. Later A/B attempts were carrier-inconclusive; one treatment recovered all five intended placement decisions, while control carriers failed to admit comparable structured results. Subsequent runs exposed a Harness Provider-recovery carrier edge (`HarnessProviderCallRecoveryRequired` followed by no current Snapshot). These episodes are retained as carrier/engineering evidence and do not establish or refute Chapter-5 semantics.
+
+### Chapter-5 non-claims
+
+No current evidence admits:
+
+- a global Environment ontology or `EnvironmentalizationState`;
+- a universal Research→Knowledge→Core→Environment pipeline;
+- a universal relevance engine, recommender, consumer graph or automatic injector;
+- Human-first, Agent-first, or coordinator-first as a global rule;
+- a scalar responsibility optimizer;
+- automatic transfer of truth/currentness/authority when a representation becomes default;
+- monotonic benefit from more automation or more environmentalization;
+- permanence of a currently useful placement;
+- the claim that First Interface alone is the theory of environmentalization.

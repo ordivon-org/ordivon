@@ -556,3 +556,182 @@ Promotion advanced Media owner source from `5b861981...` through content commit 
 - Book metadata: changed, as expected, for Chapter 4 integration and removal of the impossible self-current source role.
 
 Therefore the permanent currentness Claim remains source-fenced to the stable owner-native OMPC cut and explicitly revalidated against an observed post-promotion owner head. The Book does not create an impossible self-referential Git binding to its own commit. This episode demonstrates that owner revision advance can coexist with unchanged load-bearing semantics.
+
+
+## J. Chapter 5 — Environmentalization Admission / Responsibility Placement acceptance
+
+### Selection repair and source fence
+
+Chapter 5 was not admitted from the earlier narrow `First Interface / Affordance Recompilation` selection alone. The completed World-Model Sedimentation Audit showed that the earlier selection had over-used mature external prior art as problem-domain deletion pressure. The repaired selection preserved First Interface as implementation evidence, imported organizational-memory/routines/infrastructure/function-allocation/distributed-cognition work as positive solution-domain content, and narrowed the surviving Book object to:
+
+```text
+Correct / Preserved Standing
+!=
+Default-worthy / Environmentalized Standing
+```
+
+Current Chapter-5 exact bindings at final local admission:
+
+- Computing `e90b0aaaa7877d6c3164f0cfa47b06a78d6d6f28`;
+- Finance `06d9f9ba90a8d674f413675d145ed2f954aedb88`;
+- Harness `684333be5146d4f705a91edb396e83c6a1150e1f`;
+- Atlas remains `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` as non-authoritative synthesis/recovery projection.
+
+Canonical Media `main` was independently re-resolved at `60f24f45a528a35a1d4db0a374fc853437787160` before promotion work. No source drift was silently ignored.
+
+The older Chapter-3/4 Finance/Harness fences remain historical exact admission cuts and were not relabeled as Chapter-5 current truth.
+
+### Static/source/model gate
+
+The exact Chapter-5 workspace passed:
+
+- 34 Git-bound Claims;
+- 12 exact source bindings;
+- 47 unique source/evidence paths checked;
+- missing source/evidence paths: 0;
+- `Studio production models are valid.`;
+- 20 targeted `tests.test_models`, `tests.test_agent_surface`, and `tests.test_production_context` tests passed;
+- `git diff --check` passed;
+- Chapter 1–4 digests remained byte-identical;
+- Chapter 5 raw digest: `sha256:f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7`;
+- five-chapter `book.mdx` raw digest: `sha256:10ed267c4b4eb9d90bf8b45c65c73482d40aae2d91e7359cbeedaeac37bf782c`;
+- combined Book contains exactly one Chapter-5 heading and one Chapter-5 TOC entry.
+
+The detached Media workspace did not contain `.venv`. That first execution attempt was classified as environment absence rather than code failure. Re-running the exact workspace code/tests with the canonical Media project virtual environment passed.
+
+### Selection-stage carrier pressure
+
+Fresh selection pressure was intentionally not converted into a majority vote:
+
+- one destructive-selection consumer chose Candidate C;
+- one chose `NO_CHAPTER`;
+- one failed the structured carrier;
+- a later treatment consumer recovered all five intended placement decisions, but controls did not yield comparable admitted structured results;
+- later carrier experiments exposed a Harness Provider-recovery edge where `HarnessProviderCallRecoveryRequired` was followed by a Run with no current Snapshot.
+
+These are retained as carrier/recovery engineering evidence. They do not establish Chapter-5 semantics and were not used as the final acceptance gate.
+
+### Chapter-only adversarial consumer
+
+Accepted Run: `harness-run:book-ch5-final-1787590146712`.
+
+Input: exact `chapter-05.mdx` only; no source map, repositories, Host Tasks or domain Tools.
+
+Observed:
+
+- provider/model: DeepSeek / `deepseek-v4-flash`;
+- stop: `candidate_completed`;
+- model calls: 1;
+- Tool calls: 0;
+- total tokens: 6,321;
+- conclusion corrections: 0.
+
+Recovered role:
+
+```text
+Chapter 5 = environmentalization-admission-and-responsibility-placement
+```
+
+Rejected implications:
+
+```text
+Preserved -> Environmentalized                 FALSE
+Correct -> ShouldBeDefault                     FALSE
+Default -> Authority                           FALSE
+ReusableSourcePresent -> CurrentCognition      FALSE
+Environmentalized -> Eternal                   FALSE
+Automation -> ResponsibilityReassignment       FALSE
+```
+
+Positive judgments:
+
+```text
+NO_DEFAULT / NO_CHANGE can be mature           TRUE
+responsibility placement = relation-relative current structural fit
+First Interface = downstream implementation witness
+```
+
+Scenario decisions:
+
+- archived correct method + repeated natural failure -> restore owner-correct Knowledge plus first-look/consumer binding and validate future use, not global auto-injection;
+- niche standing with no recurring/default benefit -> keep Knowledge, no default;
+- historically valid Tool default now BLOCKED -> re-ground owner currentness and recompile affordance, preserve history;
+- historical portfolio-manager bundle -> decompose by responsibility/current structural fit.
+
+The broad field `researchChronologyNeeded=true` was treated as underspecified test-contract output, because the same Run had already adjudicated every target case from Chapter 5 alone.
+
+Focused falsifier v1 used an overly conservative total-token bound and stopped `budget_exhausted` before any model call. It is not semantic evidence.
+
+Accepted focused Run: `harness-run:book-ch5-chronology-falsifier-v2-1787590188560`.
+
+One model call established:
+
+```text
+additionalExternalResearchChronologyNeededToAdjudicateChapterCases = false
+selfContainedBoundaryModel = true
+archiveEpisodeRole = illustrative-evidence-already-contained-in-chapter
+```
+
+No prose repair was required.
+
+### Five-chapter whole-Book consumer
+
+Accepted Run: `harness-run:book-v0-fivechapter-1787590218366`.
+
+Input: exact five-chapter `book.mdx` only at `sha256:10ed267c...`.
+
+Observed:
+
+- stop: `candidate_completed`;
+- model calls: 1;
+- Tool calls: 0;
+- total tokens: 21,741;
+- conclusion corrections: 0.
+
+Recovered roles:
+
+```text
+Chapter 1 = reality-representation-standing-revision-loop
+Chapter 2 = operation-relative-representation-and-search-sufficiency
+Chapter 3 = standing-authority-commitment-effect-consequence
+Chapter 4 = history-currentness-recovery-actionable-present
+Chapter 5 = environmentalization-admission-and-responsibility-placement
+```
+
+Recovered Chapter-5 relations:
+
+```text
+Chapter5RedundantWithChapter1 = false
+Chapter5 -> Chapter1 = adds admission/placement for when standing becomes future default
+Chapter5 -> Chapter2 = uses consumer-relative representation but adds default/environment placement
+Chapter5 -> Chapter3 = preserves authority boundary while changing future surface
+Chapter5 -> Chapter4 = uses re-grounding to challenge/demote sedimented defaults
+```
+
+Whole-Book non-claims were preserved:
+
+- `grandTheoryEstablished=false`;
+- `bookOutranksOwners=false`;
+- `globalEnvironmentManagerEstablished=false`;
+- `correctStandingAutomaticallyBecomesDefault=false`;
+- `defaultAutomaticallyTransfersAuthority=false`;
+- `responsibilityPlacementGloballyHumanFirstOrAgentFirst=false`;
+- `noDefaultOrNoChangeCanBeMature=true`;
+- `openBoundariesRemain=true`;
+- `additionalExternalResearchChronologyNeeded=false`.
+
+### Acceptance decision before canonical promotion
+
+```text
+Chapter 1 exact semantic Output = APPROVED
+Chapter 2 exact semantic Output = APPROVED
+Chapter 3 exact semantic Output = APPROVED
+Chapter 4 exact semantic Output = APPROVED
+Chapter 5 exact semantic Output = APPROVED
+Current five-chapter exact book.mdx = APPROVED
+Parent Production = REVIEW
+Human continuous-reading effect = UNMEASURED
+Public publication = NOT SELECTED
+```
+
+Chapter 5 earns no universal Environment service, automatic Knowledge injection, global consumer graph, relevance engine, responsibility optimizer, Research→Environment lifecycle or new Book authority. The admitted change is explanatory/representational: future consumers now receive an explicit model for deciding when a stable standing should remain explicit Knowledge versus become a challengeable default/environmental responsibility.

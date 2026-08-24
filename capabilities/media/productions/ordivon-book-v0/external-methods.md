@@ -142,3 +142,50 @@ retained history / continuity
 The Book therefore uses `Actionable Now` only as a weak explanatory synthesis. It explicitly permits `ACTION`, `WAIT`, `RESEARCH`, `RECONCILE`, `ABSTAIN`, or `NO_CHANGE`, and it does not assume the finite consumer knows every dependency that could matter.
 
 Primary subtraction surfaces include Martin Fowler's Event Sourcing article; Lamport's 1978 logical-time paper; Chandy & Lamport's 1985 distributed-snapshot paper; temporal/bitemporal database literature associated with Snodgrass and later SQL temporal work; Doyle's TMS and de Kleer's ATMS papers; AGM belief-revision literature; W3C PROV; and RFC 9111 HTTP caching. These sources constrain novelty and vocabulary; they do not confer Ordivon standing.
+
+
+## Chapter 5 pressure — organizational memory, routines, infrastructure and function allocation
+
+Chapter 5 deliberately imports mature external solution content rather than treating prior art as a reason to erase the problem domain. The broad facts that organizations retain/retrieve knowledge, routines encode learning, cognition can span people/artifacts/environment, and human/machine functions can be allocated in many ways are not Ordivon discoveries.
+
+| External line | Mature contribution | Chapter-5 consequence | What Ordivon does **not** claim |
+| --- | --- | --- | --- |
+| Walsh & Ungson, organizational memory (1991) | acquisition, retention and retrieval of organizational information are distinct; stored past information can inform later decisions only through retrieval/use | `Preserved != Environmentalized`; Git/Host/Atlas/Knowledge persistence is not future default cognition | no new organizational-memory theory or global memory store |
+| Cohen & Levinthal, absorptive capacity (1990) | recognizing external knowledge, assimilating it and applying it are distinct capabilities | `PriorArtFound != PriorArtApplied`; external solution content must survive novelty subtraction and reach an actual consumer when relevant | no universal absorptive-capacity metric for Ordivon |
+| Levitt & March, organizational learning (1988) | learning is routine-based, history-dependent and target-oriented; experience can become encoded in routines | repeated validated standing may legitimately become routine/default, but document existence alone does not prove learning | no claim that every routine is beneficial or should persist |
+| Star & Ruhleder, infrastructure-in-practice (1996) | infrastructure is relational to organized practice rather than merely an installed artifact | `CanonicalDocumentExists != ConstitutiveEnvironmentExists`; environment is what a consumer can naturally rely on in practice | no universal Infrastructure owner or layer |
+| Fitts and later human-machine function-allocation work | different functions can be allocated across human and machine capabilities | responsibility placement has mature precedent; Chapter 5 must not present `best carrier for a function` as novel | no static Human-vs-machine list imported as Ordivon architecture |
+| Bainbridge, *Ironies of Automation* (1983) | automation can transform and intensify residual human work, monitoring and rare-event demands | `Automation != ResponsibilityReassignment`; environmentalization must inspect newly created residual burdens | no conclusion that Human review is universally required |
+| Parasuraman, Sheridan & Wickens, types/levels of automation (2000) | automation can apply to different information-processing functions and levels; allocation changes human activity and decision authority | treat automation/Agent assistance as multidimensional placement rather than one scalar `more automation` axis | no universal levels-of-automation schema adopted by Ordivon |
+| Hollan, Hutchins & Kirsh, distributed cognition (2000) | cognition may be distributed across actors, artifacts and environment | a future Agent's effective cognition can depend on external structures without making any one artifact the truth owner | no metaphysical claim that every tool is literally part of one mind |
+| ecological/HCI affordance traditions | environment/action relations and discoverability matter to what an actor can naturally do | First Interface is valid downstream implementation pressure: current standing can alter visible/callable affordances | no equation of affordance with authorization or semantic priority |
+
+### Chapter-5 subtraction result
+
+The broad theory that `environment matters`, `routines store learning`, or `humans and machines should split work` is already mature. The surviving Ordivon integration is narrower:
+
+```text
+validated standing
+    != automatically default-worthy
+
+standing that repeatedly matters to a concrete consumer
+    -> truthful responsibility / destination placement
+    -> smallest environment change that removes repeated reconstruction
+    -> owner/currentness/authority conservation
+    -> future consequence
+    -> retain / re-ground / demote / NO_CHANGE
+```
+
+This transition is where Chapters 1–4 stop. Chapter 1 establishes the environmentalization phenomenon and challengeability; Chapter 2 establishes operation-relative representation/consumer sufficiency; Chapter 3 protects authority/effect transitions; Chapter 4 protects currentness/recovery. Chapter 5 asks when a standing earns the right to become part of the next consumer's **starting conditions** rather than remaining explicit Knowledge.
+
+The external literature therefore supplies positive solved subspaces and negative controls:
+
+- retention is not use;
+- imported knowledge is not applied merely by being cited;
+- routine formation is not automatically beneficial;
+- installed artifact is not infrastructure-in-practice;
+- automation can create new residual responsibility;
+- distributed cognition does not erase owner boundaries;
+- affordance does not imply authority.
+
+These sources constrain Chapter 5's novelty and scope. They do not confer current Ordivon standing, and no new external-theory schema is imported into the implementation.
