@@ -4,6 +4,12 @@ Ordivon Media owns **structured mediation** across Ordivon: how source-owned rea
 
 The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
 
+## Media owner first interface
+
+Generic observer-facing mediation starts at the **Media owner boundary**. The source owner keeps truth and currentness; Media chooses the bounded observer-relative projection. Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) when the projection contract itself matters.
+
+**Studio is an optional production lowering, not the default owner of mediation.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. A status card, Agent view, tool result, metric, Web/Game view, or other representation does not by itself justify creating a Production or invoking Studio equipment. Consequential action remains with its external admission/execution owner.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
@@ -88,6 +94,7 @@ Current production status and storage evidence remain in the production and tech
 
 | Need | Read / invoke |
 | --- | --- |
+| design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
 | inspect one Production, its Claims/Outputs, and optional source-binding Git relation without rendering or editing | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
 | understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
 | inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
