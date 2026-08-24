@@ -2,7 +2,7 @@
 
 ## Objective
 
-Operate Ordivon Game according to owner-current standing without recreating deleted historical paths or anticipating a general game platform. This file is stable repository operating guidance, not current product/research standing, and must not select the next project action by itself. Before choosing immediate work, follow `docs/authority.md` to the current owner. If owner-current standing has not been recovered, do not infer it from the registered Station Zero product, the isolated v3 reference target, or historical G-stage labels.
+Operate Ordivon Game according to owner-current standing without recreating deleted historical paths or anticipating a general game platform. This file is stable repository operating guidance, not current product/research standing, and must not select the next project action by itself. Before choosing immediate work, run `pnpm context:current-direction` to recover the exact current-direction projection for the invoked workspace source, then follow `docs/authority.md` to the current owner when deeper evidence is needed. The projection is not product authority and does not claim canonical Git currentness. If owner-current standing has not been recovered, do not infer it from the registered Station Zero product, the isolated v3 reference target, or historical G-stage labels.
 
 ## Current executable
 
