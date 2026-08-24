@@ -52,6 +52,18 @@
       "repository": "ordivon-runtime",
       "revision": "fd6765c20981461f1a29508d97225b96971cc389",
       "role": "current Runtime commitment/effect/evidence/reconciliation boundary semantics used by Chapter 3"
+    },
+    {
+      "id": "host-current",
+      "repository": "ordivon-host",
+      "revision": "b40c7e6a56011dad3ccb595b332ab0edf9fa200a",
+      "role": "current Host semantic-continuity and revision-fenced recovery boundary used by Chapter 4"
+    },
+    {
+      "id": "media-book-current",
+      "repository": "ordivon-media",
+      "revision": "5b861981c9f63451bace1118e56d407fdfb14109",
+      "role": "current Media/Book projection-currentness and selective source-revalidation boundary used by Chapter 4"
     }
   ],
   "workingProfile": {},
@@ -80,7 +92,7 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:ed2dfcf93e4d766f04cebd1ec56962a000dcefce9f8b9544bd7d296f1c1877e7"
+      "blobDigest": "sha256:7b7c4473bb3667fabec83f8ca1458c2fb7eddea2418ee80e7529bdeb63f33afe"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
@@ -88,6 +100,13 @@
       "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-4-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b"
     }
   ]
 }

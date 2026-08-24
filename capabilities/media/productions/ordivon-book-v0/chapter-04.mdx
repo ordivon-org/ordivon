@@ -1,0 +1,765 @@
+# 现在不是一个时间戳：History, Currentness and Recovery
+
+一个判断可以一直没有变错，却已经不能继续拿来行动。
+
+这句话听起来有些反直觉。我们习惯把知识状态想成一条线：过去形成判断，后来出现更新，于是旧判断被新判断替代。只要找到“最新”的那一个，就应该知道现在该相信什么。
+
+现实系统并不总是这样工作。
+
+一个 Finance Decision 可以在它形成的那个 decision epoch 中完全合理，后来也没有任何证据证明它当时是错的，但 review epoch 已经过期，因此不能直接进入新的 action progression。一个 Host Task 可以完整保留过去的 objective、frontier 和 next actions，却不因此成为当前应该继续的工作。一个 Runtime Job 可以已经产生了外部 effect，但响应在返回前丢失，此时既不能宣布失败，也不能因为“没有成功响应”而重新执行。一个 Atlas projection 可以完整保存过去 owner 的 Result、Standing 和 recovery path，却明确标记这些 bytes 不再是 current owner truth。
+
+更极端的是，在准备这一章时我们自己就遇到了一个这样的例子。
+
+一个叫做 `ordivon-book-ch4-host-20260824` 的 Workspace 看起来几乎拥有所有“当前”的表面特征：它创建得很近，名字明确写着 Chapter 4，目的也正是为当前工作准备 Host source。可是它绑定的 Host revision 已经落后于当前部署 authority。
+
+如果我们按照名字、创建时间或“这是刚才为这个任务开的 Workspace”来判断 currentness，就会直接拿一个 stale source 写一章关于 currentness 的章节。
+
+因此：
+
+```text
+recent
+!=
+current
+```
+
+更重要的是：
+
+```text
+historically valid
+!=
+currently actionable
+```
+
+Chapter 1 已经解释了 Reality、Representation、Evidence、Standing 与 Revision 为什么不能相互替代；Chapter 2 解释了一个正确的 representation 为什么仍可能改变 future search geometry；Chapter 3 解释了 Standing 为什么不能自动升级成 Authority、Commitment、Effect 和 Consequence。
+
+但这三章之间仍然缺少一个问题：
+
+> **当时间过去、owner 前进、环境变化、effect 变得不确定以后，过去形成的那些正确对象，怎样重新获得“现在还能不能用于这次行动”的资格？**
+
+这不是“怎样保存历史”的问题。
+
+也不是“怎样找到最新版本”的问题。
+
+它更接近：**一个有限智能怎样重新获得一个可行动的 Now。**
+
+## 1. 最危险的旧事实，往往仍然是真的
+
+很多系统喜欢把状态压成：
+
+```text
+current
+stale
+invalid
+```
+
+这种分类对缓存、protocol 或 UI 可能足够，但一进入认知与行动，就很容易制造错误含义。
+
+`stale` 常常被读成：
+
+> 这个东西已经不对了。
+
+但真正需要区分的至少有两件事：
+
+```text
+Was this claim valid then?
+
+Can this claim support this action now?
+```
+
+它们可以给出不同答案。
+
+Finance 当前 Decision kernel 给出了一个非常干净的例子。
+
+一个 Decision 被记录以后，它是一个 immutable point-in-time assessment。后来 review epoch 到期，系统不会把这个旧 Decision 改写成“错误 Decision”。历史对象仍然保留，过去的 evidence、rationale、NO-OP comparison 和当时的 current world 都仍然可以被恢复。
+
+变化的是另一件事：
+
+```text
+HistoricalDecisionValidity = preserved
+CurrentActionProgression = requires fresh review
+```
+
+因此：
+
+```text
+old != wrong
+```
+
+同时：
+
+```text
+old + valid-then
+!=
+actionable-now
+```
+
+这条 distinction 很重要，因为如果系统把“不能继续行动”解释成“过去判断错误”，它会篡改 epistemic history；如果反过来把“过去判断仍然合理”解释成“现在仍然可以执行”，它又会把历史 standing 偷渡成当前 authority。
+
+同一个对象在两个时间坐标上可以同时满足：
+
+```text
+historically valid
+historically useful
+currently non-actionable
+```
+
+没有矛盾。
+
+真正错误的是强迫它只能属于一个状态。
+
+## 2. History 解决记忆问题，却不自动生成 Now
+
+如果旧事实仍然值得保存，那么答案是不是把历史保存得更完整？
+
+这一步外界已经有非常成熟的解。
+
+Event Sourcing 可以把变化保存为 append-only event history，并从事件重建过去状态。Temporal database 可以区分事实在 Reality 中何时成立，以及系统何时记录它；bitemporal model 甚至可以同时查询这两个时间维度。Provenance system 可以保留 revision、derivation、agent、activity 和 source lineage。
+
+这些方法都非常重要。
+
+但它们主要回答：
+
+```text
+What happened?
+What was known then?
+How was this object derived?
+What state can be reconstructed?
+```
+
+Chapter 4 的问题在它们之后才出现：
+
+```text
+Which reconstructed fact may still support this claim/action now?
+```
+
+Atlas 正好暴露了这个差异。
+
+当一个 owner source 变得 unresolved 或已经前进时，Atlas 不需要删除过去 projection。它可以保留旧 owner row、历史 Result、recovery locator 和 genealogy；这些材料对解释“当时为什么这样判断”、恢复 research lineage、重新找到 owner source 都非常有价值。
+
+但 retained projection 会携带自己的 currentness health，而不是因为“还能读取”就继续冒充 current truth。
+
+所以：
+
+```text
+History preservation
+→ recovery value
+```
+
+不能推出：
+
+```text
+History preservation
+→ current authority
+```
+
+这条边界也说明为什么 `Recovery = Replay` 太弱。
+
+Replay 可以重建过去。
+
+而一个有限智能真正需要的是重新知道：
+
+> **过去的哪些东西仍然能进入现在，哪些只能作为历史，哪些必须重新接触 Reality。**
+
+## 3. “最新”也不是答案
+
+既然历史不够，那是不是总应该取最新版本？
+
+也不行。
+
+版本系统定义的是某种 ordering；semantic supersession 却是 claim-relative 的关系。
+
+假设一个 repository 的最新 commit 是：
+
+```text
+C_new
+```
+
+它比：
+
+```text
+C_old
+```
+
+晚。
+
+但如果 `C_new` 只修改 docs，而当前决策依赖的是 API connectivity，那么：
+
+```text
+newer(C_new, C_old)
+```
+
+成立，却不能推出：
+
+```text
+C_new supersedes API-connectivity claim from C_old
+```
+
+Runtime 的 Workspace 模型也故意保留类似区别：
+
+```text
+sourceRevision
+!=
+currentHeadRevision
+!=
+sourceStateDigest
+```
+
+Workspace 从哪个 commit 打开、现在 checkout 到哪个 HEAD、当前 tracked/untracked bytes 到底是什么，是三种不同事实。
+
+在这一章的准备过程中，那个 stale Host Workspace 更直接地证明了：
+
+```text
+purpose-specific
++
+recently-created
++
+correctly-named
+```
+
+也不能推出：
+
+```text
+current owner source
+```
+
+正确的恢复动作是重新解析 owner：
+
+```text
+recover intended owner
+→ resolve current owner fence
+→ compare retained source
+→ continue only from the revalidated fence
+```
+
+因此：
+
+```text
+Latest
+!=
+Current-for-this-claim
+```
+
+以及：
+
+```text
+Newer
+!=
+Superseding
+```
+
+如果忽略这一区别，一个系统会在两个方向上都浪费：一方面无意义地重验证所有“变过”的东西，另一方面漏掉那些版本号没显著变化但 action relevance 已经改变的 dependency。
+
+## 4. 也不存在一个单一的 semantic Now
+
+这里很容易滑向另一个成熟问题：分布式系统没有一个简单的全球时钟。
+
+Lamport 已经非常深地处理了事件的因果/partial ordering；Chandy–Lamport 也已经处理了怎样获得一个一致的 distributed global state。
+
+Chapter 4 不是重新发明这两件事。
+
+即使我们拥有一个机械上一致的 snapshot，仍然可能不知道它对当前行动是否足够。
+
+因为一个 Ordivon action 可能同时依赖多个彼此独立的 Reality coordinate：
+
+```text
+Host continuity revision
+Runtime physical Job / Workspace state
+Git / owner source fence
+Finance Decision epoch
+Venue World / market basis
+authority / policy state
+Media projection fence
+```
+
+这些坐标没有必要共享一个 semantic clock。
+
+例如，Host 的 checkpoint 可以完全 current-to-Host，同时它里面记录的 `observedHeadRevision` 只是一个历史 navigation hint；Runtime Workspace 可以 physical state 完全健康，同时上层 Finance Decision 已经过期；Media 可以刚刚重新 render 一份 projection，但它绑定的 source owner 已经前进。
+
+所以：
+
+```text
+consistent snapshot
+!=
+semantically sufficient action surface
+```
+
+更准确地说，一个行动并不需要“整个世界的 Now”。
+
+它需要的是：
+
+> **足以改变这个行动正确性、admission 或 effect semantics 的那些 Reality 坐标，现在处于什么状态。**
+
+这也是为什么两个 Agent 在同一物理时刻，可以合法地需要不同的 Now。
+
+一个 Agent 正在写 Book，它需要 revalidate 的主要是 source-owner currentness、claim boundary 和 representation contract；另一个 Agent 正在提交金融 effect，它需要的可能是 Decision epoch、capital state、authority、instrument metadata、Venue World、market basis 和 effect reservation。
+
+它们不是活在两个时间里。
+
+它们拥有不同的 **action-relevant present surface**。
+
+## 5. Currentness 属于 claim 和 operation，而不是对象本身
+
+于是，“这个东西 current 吗？”这个问题本身常常太粗。
+
+更有意义的是：
+
+> 对哪个 claim？对哪个 operation？在谁的 authority 下？依赖哪些 Reality coordinate？
+
+一开始我们很容易写出一个完整 dependency set：
+
+```text
+D(a) = all dependencies of action a
+```
+
+然后定义一个漂亮的 `ActionableNow(a,t)`。
+
+但这又偷偷假设了一个有限智能最不应该假设的东西：**我们已经知道全部 dependency。**
+
+开放 Reality 里，这通常不成立。
+
+因此更安全的对象不是完整 dependency graph，而是一个开放 frontier：
+
+```text
+D_hat(a,t)
+=
+currently discovered load-bearing dependency frontier
+```
+
+同时保留：
+
+```text
+U(a,t)
+=
+unresolved dependencies / supersession paths
+```
+
+`D_hat` 不是一个新的 Ordivon schema。它只是帮助我们记住：现在被检查的 dependency surface 是有限智能当前已经发现的，而不是 Reality 的封闭全集。
+
+如果 `U(a,t)` 中出现 material unknown，正确结果不一定是“继续多查直到全部知道”。它可能是：
+
+```text
+WAIT
+RESEARCH
+RECONCILE
+ABSTAIN
+BLOCK
+```
+
+同样，如果当前已知 boundary 已经足够，并且真正 load-bearing 的 owner facts 没有改变，那么：
+
+```text
+NO_CHANGE
+```
+
+也是成熟结果。
+
+这给 currentness 一个比 freshness 更窄的定义：
+
+> **Currentness 不是对象有多新，而是当前已知 evidence 是否仍足以支撑目标 claim/operation 的下一步。**
+
+## 6. Revalidation 也不能变成“每次刷新整个世界”
+
+一旦接受 currentness 是 operation-relative，另一个极端也必须拒绝：
+
+```text
+before every action
+→ refresh everything
+```
+
+这对有限智能既昂贵，也经常没有意义。
+
+Book 自己就提供一个 negative control：如果一个章节只修改 Representation 段落，而 Finance owner 没有承载这个 changed claim，就没有理由因为“Book revision”而把整个 Finance Reality 重跑一次。
+
+当前 Book source rule 更小：
+
+```text
+consequential changed claim
+→ identify exact upstream owner/source fence
+→ revalidate that boundary
+```
+
+Finance 的 capabilities 也采用类似方向：不同 operation 声明不同 freshness dependencies。一个 read-only dataset query、一个 Decision evaluation、一个 execution reservation，不会被迫共享一个 `globalFresh=true`。
+
+Runtime 的 recovery 同样是 targeted：`task.observe(jobId)` 针对一个 exact Job reconcile，而 projection-only list/get 不应该顺手推进 unrelated work。
+
+所以一个更合理的原则是：
+
+> **从当前已知、会改变目标 action 的最小 boundary 开始 revalidate；当 owner contract、expiry、unknown、changed operation、source failure 或新的 Reality pressure 证明这个 boundary 不足时，再扩大。**
+
+这不是“只有收到变化通知才检查”。
+
+有些 currentness 会因为时间本身失效：Decision review epoch 到期；某些 observation 有明确 maximum age；某个 authority lease 或 policy 有自己的 validity window。也有些 currentness 会因为 operation 改变而变化：同一份 source 对 read-only explanation 足够，却不足以授权 destructive effect。
+
+因此：
+
+```text
+Selective revalidation
+!=
+Lazy caching
+```
+
+它更接近：
+
+```text
+Selective re-grounding
+```
+
+## 7. Recovery 不是回到过去
+
+现在可以重新定义 Recovery。
+
+Host 的核心价值是 semantic continuity。它可以让一个 Agent 恢复：
+
+```text
+objective
+frontier
+established
+unresolved
+rejected
+constraints
+next actions
+```
+
+但 Host 当前接口写得很明确：`READY` 只说明 continuity remains open；`task.resume` 恢复的是 retained working claim，不是 current work admission 或 priority。
+
+所以：
+
+```text
+Resume
+!=
+Re-admit
+```
+
+Atlas 也类似。它能恢复 owner map、history、genealogy、retained evidence 和 recovery path，却不因为 recoverability 获得 owner authority。
+
+Runtime 则处理另一种 recovery：response loss、process interruption、Workspace state、Job/Attempt reconciliation。它要做的是重新找到**同一个 durable physical operation**的 Reality，而不是因为 connection 断掉就新建另一个 operation。
+
+Finance 又提供了第三种恢复：旧 Decision 可以恢复，但恢复以后可能得到的结论是“需要 fresh review”，而不是“继续执行旧 Proposal”。
+
+这些机制不同，却共同压力出一个更窄的 cross-owner synthesis：
+
+```text
+Recovery
+!=
+RestorePreviousStateAndContinue
+```
+
+有限智能真正需要恢复的是：
+
+```text
+what remains usable
+what became historical-only
+what must be revalidated
+who owns that revalidation
+what remains unknown
+what next action / non-action is admissible
+```
+
+因此：
+
+```text
+Recovery target
+=
+decision capability
+```
+
+不是：
+
+```text
+previous state identity
+```
+
+一个成功 recovery 甚至可能让系统决定**不要继续过去的工作**。
+
+这并不是 recovery 失败。
+
+恰恰相反，它说明系统恢复了判断能力，而不是只恢复了惯性。
+
+## 8. UNKNOWN 是一种正面的边界信息
+
+Recovery 最容易被破坏的地方，是系统无法忍受 `UNKNOWN`。
+
+假设一个 external effect 请求已经提交：
+
+```text
+send effect
+→ remote side may execute
+→ response lost
+```
+
+此时有多个世界仍然兼容现有 evidence：
+
+```text
+A. effect never reached remote side
+B. effect happened exactly once
+C. effect partially happened
+D. effect happened but receipt path failed
+```
+
+如果系统把它强行写成：
+
+```text
+FAILURE
+```
+
+下一步很可能是 retry。
+
+而 retry 本身可能制造第二个 effect。
+
+Runtime 因此保留 `lost`、`orphaned`、`unknown`、`reconciliation_required` 等状态，并明确要求 effect-aware recovery 依据对应 owner 能证明什么来处理。Finance 的 financial-resource semantics 也把 `UNKNOWN` 与 `STALE` 保留下来：两者都可能 fail closed，却不是同一个事实，更不应该被翻译成普通 `FAIL`。
+
+因此：
+
+```text
+Unknown
+!=
+Failure
+```
+
+同样：
+
+```text
+Unknown
+!=
+Success
+```
+
+`UNKNOWN` 的价值不是“我们什么都不知道”。
+
+它表达的是：
+
+> **当前 Reality evidence 无法合法地区分至少两个会改变下一步行动的世界。**
+
+这是一种有行动意义的信息。
+
+它告诉有限智能：现在最危险的不是缺少答案，而是制造一个并不存在的答案。
+
+所以在这一章里：
+
+```text
+uncertainty preserved
+>
+certainty fabricated
+```
+
+不是价值判断，而是 recovery correctness 的条件之一。
+
+## 9. 一个 Actionable Now 是什么
+
+到这里才有必要给 `Actionable Now` 一个非常弱的定义。
+
+它不是一个 timestamp。
+
+不是一个 global state object。
+
+不是 `latest=true`。
+
+也不是一个所有 owner 都必须填的 `currentness` schema。
+
+可以把它暂时写成：
+
+```text
+ActionableNow(a,t)
+=
+finite agent has recovered enough owner-local evidence,
+currentness / authority / admission boundaries,
+and explicit unresolved state
+to make the next action-or-non-action decision
+without pretending that historical or unknown coordinates are current
+```
+
+这个定义里最重要的词是：
+
+```text
+enough
+```
+
+而不是：
+
+```text
+complete
+```
+
+因为有限智能通常无法证明它已经覆盖 Reality 中所有可能相关 dependency。
+
+因此一个 Actionable Now 可以导向：
+
+```text
+ACTION
+WAIT
+RESEARCH
+RECONCILE
+ABSTAIN
+NO_CHANGE
+```
+
+它不保证 action。
+
+它只表示：**当前系统已经恢复了足以诚实决定下一步的 boundary。**
+
+这也解释了为什么 `NO_CHANGE` 很重要。一个成熟系统不应该因为执行了 recovery/revalidation 就强迫自己生成 revision。重新接触 owner 后发现过去 projection 仍足够，正确结果就是保持原 standing/action surface。
+
+## 10. Now 不是系统状态，而是有限智能与 Reality 的一次重新对齐
+
+如果把这一章压得更深，真正变化的不是时间模型，而是我们对“现在”的理解。
+
+传统直觉容易把 Now 想成：
+
+```text
+WorldState(t)
+```
+
+但有限智能永远接触不到完整 WorldState。
+
+它实际拥有的是一组有 source、有 latency、有 authority、有 omission、有 uncertainty 的 Reality contact。
+
+因此对它来说：
+
+```text
+Now
+```
+
+更像一次 operation-relative alignment：
+
+```text
+past retained knowledge
++
+current owner contact
++
+known action dependency frontier
++
+explicit unresolved state
++
+current authority/admission
+→
+next admissible decision
+```
+
+这里没有要求所有 Reality coordinate 同步到同一时间。
+
+也没有要求 history 被删掉。
+
+相反，一个健壮的 system 往往同时保留：
+
+```text
+historical truth
+current projection
+unresolved currentness
+future recovery path
+```
+
+它们都是真的，只是在不同 claim 上承担不同角色。
+
+所以问题从来不是：
+
+> 哪一个版本才是真的？
+
+而是：
+
+> **对这个 claim 和这次 action，哪一个 coordinate 现在仍有 action relevance？**
+
+## 11. 当 Now 被重新获得以后，环境也会变
+
+Currentness 如果只存在于 audit report 中，价值有限。
+
+一旦系统知道某个 source stale、某个 Decision expired、某个 effect unknown、某个 owner fence current，这些事实最终会改变 consumer 看到什么。
+
+旧 context 可能被降到 history；current owner evidence 可能进入 first interface；某个 Tool 可以从默认 surface 暂时消失；某个 destructive affordance 可以因为 authority/currentness 不足而不再暴露；一个 `reconcile` action 可能取代 `retry` 成为最自然的 next step。
+
+于是：
+
+```text
+Recovered Actionable Now
+→
+selective projection
+→
+affordance / default-context change
+```
+
+这就是 Chapter 4 与下一类问题的连接。
+
+但这里必须停住。
+
+“环境怎样根据 standing/currentness 重新编译 affordance”，已经是 Agent–Environment / Environmentalization 的问题。Chapter 4 不需要借此发明 environment manager、global router 或 universal currentness service。
+
+它只保留一个后果：
+
+> **如果 currentness 真正进入系统，未来 Agent 的环境应该能够体现它，而不是要求 Agent 每次从 raw history 手工重新发现。**
+
+## 12. 这一章真正保留的最小模型
+
+如果必须把整章压成一条 recovery path，它不是：
+
+```text
+load latest state
+→ continue
+```
+
+而更接近：
+
+```text
+recover exact history / continuity
+→ resolve current owner(s)
+→ identify currently known load-bearing frontier
+→ revalidate the smallest sufficient boundary
+→ preserve UNKNOWN / historical-only state
+→ re-admit action, non-action, or NO_CHANGE
+```
+
+这里每一步都可以停下来。
+
+`History` 保证我们不会因为现在变化就伪造过去。
+
+`Current owner` 保证 projection/recovery 不会自己铸造 authority。
+
+`Known dependency frontier` 承认有限智能不知道全部 Reality。
+
+`Selective revalidation` 避免把 currentness 变成全世界刷新仪式。
+
+`UNKNOWN` 保留 Reality 仍未被区分的部分。
+
+`Re-admission` 则让过去的正确对象重新接受现在的行动条件，而不是自动续期。
+
+所以这一章最重要的三句话可以压成：
+
+```text
+History preserves what was knowable.
+Currentness asks what still bears on this claim.
+Recovery restores the ability to make that distinction again.
+```
+
+## 13. 这一章没有证明什么
+
+本章没有建立：
+
+- 一个 universal Time ontology；
+- 一个 global semantic clock；
+- 一个 universal `CurrentnessService`；
+- 一个全局 dependency graph；
+- 一个 normalized cross-owner Standing object；
+- `latest` 自动等于 `current`；
+- 所有 data 都必须始终 maximally fresh；
+- distributed global snapshot 足以证明 semantic actionability；
+- recoverable history 自动拥有 current authority；
+- `READY` 自动等于 current work；
+- `resume` 自动等于 re-admission；
+- response loss 自动等于 failure；
+- `UNKNOWN` 是等待被 success/failure 消除的坏状态；
+- replay 是所有 recovery 的正确方法；
+- every action 都必须 refresh the entire world；
+- finite agent 已知全部 action dependencies；
+- `ActionableNow(a,t)` 是一个应该在所有 owner 中实现的 schema；
+- Book/Atlas/Host 可以替 source owner 判断 current semantic truth；
+- 当前 Ordivon 已经拥有完整 autonomous environment recompilation machinery。
+
+这些 non-claims 不是附带保守。
+
+如果未来 evidence 迫使我们建立其中某一种更强机制，它应该由具体 owner pressure 和 consumer failure 重新赚取，而不是因为 Chapter 4 需要一个漂亮的统一理论就提前建立。
+
+真正应该留给未来 consumer 的警觉只有这个：
+
+> **当你恢复一个过去的判断、Task、Result、Workspace、Decision 或 Effect 时，不要先问“怎样继续”；先问“它对当前哪一个 claim 仍然有 action relevance，谁拥有这件事的 current truth，什么必须重新接触 Reality，以及什么仍然应该保持 UNKNOWN”。**
+
+这时，Recovery 才不是回到过去。
+
+它是在重新获得现在。

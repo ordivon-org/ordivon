@@ -109,3 +109,36 @@ scoped Standing
 Each arrow may preserve `NO_CHANGE` or fail closed, and no previous layer may mint the next layer's authority merely by being strong, available or successful.
 
 Primary comparison surfaces used for subtraction include Stanford Encyclopedia of Philosophy entries on Practical Reason and the Structure of Actions, Authority, Reasons for Action, Intention and Action/planning agency; standard state-space controllability/observability material; and mature HCI/ecological affordance/signifier treatments. These sources constrain the Book's claims but do not confer Ordivon standing.
+
+
+## Chapter 4 pressure — history, time, revision and recovery
+
+Chapter 4 is deliberately pressure-tested against mature fields that already solve large pieces of history/currentness/recovery. The purpose is to remove false novelty before writing an Ordivon integration.
+
+| External line | Mature contribution | Chapter-4 consequence | What is not imported |
+| --- | --- | --- | --- |
+| Event Sourcing | append-only event history, temporal query, state reconstruction and replay | History/replay cannot be the chapter's novelty; ask whether reconstructed state still supports present action | no new Ordivon event store or claim that replay restores semantic authority |
+| temporal / bitemporal database theory | separates valid time from transaction/record time and supports historical `as of` query | Multiple time coordinates are mature; Chapter 4 must focus on claim/action relevance under current owner truth | no universal bitemporal schema for every Ordivon owner |
+| Lamport logical time | establishes causal/partial ordering without requiring one physical global event clock | `multiple Now` must not be a renamed clock-ordering problem | no global logical-clock service for semantic currentness |
+| Chandy–Lamport distributed snapshot | obtains a consistent global state of a modeled distributed computation | Mechanical consistency is not sufficient for semantic actionability | no claim that every action needs a global snapshot |
+| linearizability / optimistic concurrency / compare-and-swap | protects object-operation correctness and rejects stale concurrent writes | Revision fences are local correctness mechanisms, not a complete cross-owner currentness theory | no global transactional owner spanning independent semantic domains |
+| Doyle TMS / de Kleer ATMS | maintains beliefs/justifications, revises current belief sets and supports multiple assumption contexts | Belief maintenance itself is mature; Ordivon keeps owner-local Reality authority and action eligibility separate | no centralized belief-maintenance owner or universal justification graph |
+| AGM belief revision | formal expansion, contraction and revision of belief sets | Current belief revision is not the Chapter-4 novelty | no requirement that owner standing conform to one AGM representation |
+| W3C PROV | represents derivation, revision, source and agent/activity responsibility | Provenance supports recovery but cannot substitute for current semantic/action authority | no PROV implementation merely for Book coherence |
+| RFC 9111 HTTP caching | defines explicit/heuristic freshness, age and validation | Provides a negative control: protocol freshness can be precise while remaining weaker than claim-relative semantic currentness | no universal age/TTL semantics for owner claims |
+
+### Chapter-4 subtraction result
+
+The surviving object is not a new theory of Time, History, Replay, Consistency, Provenance or Belief Revision. It is a finite-intelligence integration problem:
+
+```text
+retained history / continuity
+  + independently evolving owner coordinates
+  + action-specific currentness / authority
+  + unresolved Reality state
+  -> recover enough present boundary to decide what may happen next
+```
+
+The Book therefore uses `Actionable Now` only as a weak explanatory synthesis. It explicitly permits `ACTION`, `WAIT`, `RESEARCH`, `RECONCILE`, `ABSTAIN`, or `NO_CHANGE`, and it does not assume the finite consumer knows every dependency that could matter.
+
+Primary subtraction surfaces include Martin Fowler's Event Sourcing article; Lamport's 1978 logical-time paper; Chandy & Lamport's 1985 distributed-snapshot paper; temporal/bitemporal database literature associated with Snodgrass and later SQL temporal work; Doyle's TMS and de Kleer's ATMS papers; AGM belief-revision literature; W3C PROV; and RFC 9111 HTTP caching. These sources constrain novelty and vocabulary; they do not confer Ordivon standing.

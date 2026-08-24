@@ -188,3 +188,82 @@ This episode supplies current consumer pressure for `AuthorityPresent != ActionN
 | `task:ordivon-first-interface-environmentalization-ppd-20260822` | 29 | operation-relative affordance recompilation as a downstream bridge after action semantics |
 
 These Host checkpoints preserve semantic continuity only. Exact Chapter-3 Claims remain Git-bound to current owner/Atlas files above.
+
+
+## Chapter 4 — History / Currentness / Recovery source additions
+
+Chapter 4 treats `Actionable Now` as a Book-level cross-owner synthesis, not a new semantic owner, clock, global state, dependency graph, or Currentness service. Owner-native witnesses remain authoritative only inside their own boundaries.
+
+### Current owner bindings
+
+| Binding | Repository | Revision | Chapter-4 role |
+| --- | --- | --- | --- |
+| `atlas` | `ordivon-atlas` | `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` | retained history/currentness projection and owner-authority conservation |
+| `host-current` | `ordivon-host` | `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` | semantic continuity, revision-coherent recovery, explicit non-current-work boundary |
+| `runtime-current` | `ordivon-runtime` | `fd6765c20981461f1a29508d97225b96971cc389` | physical recovery/reconciliation, Workspace source-state distinctions, UNKNOWN preservation |
+| `finance-current` | `ordivon-finance` | `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` | historical Decision validity versus review/action currentness; dependency-specific fresh re-evaluation |
+| `media-book-current` | `ordivon-media` | `5b861981c9f63451bace1118e56d407fdfb14109` | current Book/OMPC projection-currentness boundary and selective Book source revalidation rule |
+
+Load-bearing current files:
+
+| Ref | Binding | Path | Chapter-4 use | Ceiling |
+| --- | --- | --- | --- | --- |
+| A13 | `atlas` | `src/ordivon_atlas/atlas.py` | retained previous projection under degraded currentness; owner truth is never minted by projection | Atlas generated-projection behavior only |
+| A14 | `atlas` | `synthesis/2026-08-18-19-research-understanding/worldview.md` | `HistoricalValidity != Currentness`, `Projection != Authority`, `Recovery Never Mints Authority` | explicitly non-authoritative cross-owner synthesis |
+| H3 | `host-current` | `src/ordivon_host/mcp_server.py` | `READY`/list/resume/checkpoint describe Host continuity only; source revisions in checkpoints are hints, not current Git truth | Host continuity boundary only |
+| H4 | `host-current` | `tests/test_mcp_server.py` | destructive tests that continuity discovery/resume is not current-work/priority authority and revision fencing fails closed | Host implementation evidence only |
+| R4 | `runtime-current` | `docs/runtime.md` | execution/delivery/recovery/semantic-completion distinctions; opening source revision versus live HEAD/source-state digest | Runtime physical/recovery truth only |
+| R5 | `runtime-current` | `docs/recovery.md` | unknown commit/result recovery and same-identity reconciliation after ambiguous persistence/response outcomes | Runtime Registry/operation recovery only |
+| F5 | `finance-current` | `kernel/decision_kernel.py` | expired Decision review preserves historical validity while new action progression requires fresh review | Finance Decision semantics only |
+| F6 | `finance-current` | `kernel/execution_kernel.py` | Decision epoch, Venue World, authority and execution basis are re-evaluated as action-specific dependencies | Finance execution semantics only |
+| F7 | `finance-current` | `kernel/financial_resource_semantics.py` | `UNKNOWN` and `STALE` fail closed without being rewritten into ordinary failure | Finance resource semantics only |
+| M6 | `media-book-current` | `productions/ordivon-book-v0/constitution.md` | Book is current explanatory projection; source owner wins; revision can legitimately conclude `NO_CHANGE` | Book pilot contract, not source truth |
+| M7 | `media-book-current` | `productions/ordivon-book-v0/source-map.md` | revalidate only exact upstream owner/source fences that carry a consequential changed claim | Book-local currentness practice |
+| M8 | `media-book-current` | `research/media/engineering-consumption/OMPC-v0.md` | currentness non-fabrication; recent rendering/availability does not mint source currentness | Media projection contract only |
+
+### Live Chapter-4 currentness falsifier
+
+During source-fence construction, a recently created purpose-specific Workspace named `ordivon-book-ch4-host-20260824` was observed at Host source revision `9dcd073dbf218c1e470cc1e43f2f5decc4807267`, while current Host deployment/source authority had advanced to `b40c7e6a56011dad3ccb595b332ab0edf9fa200a`.
+
+The correct recovery was to resolve Host `main`/deployment authority again and open a new exact current Workspace. The episode supports:
+
+```text
+Recent != Current
+PurposeSpecificProjection != OwnerCurrentness
+Latest-looking workspace != semantic source authority
+```
+
+It does not establish that every Workspace must be recreated after every owner commit; the changed owner fence was material to the Chapter-4 source claim.
+
+### Host Chapter-4 semantic-continuity pressure
+
+| Task | Revision | Pressure imported |
+| --- | ---: | --- |
+| `task:ordivon-book-chapter4-selection-pressure-20260824` | 3 | source fence, prior-art subtraction, C4-1..C4-8 claim map; `Actionable Now` explicitly bounded as Book synthesis |
+| `task:ordivon-source-standing-lifecycle-reconciliation-20260824` | 4 | current owner-source reconciliation; dirty/unknown Workspace protection; exact Book source gate; historical terminal fields not rewritten |
+| `task:ordivon-action-delta-latent-commitment-readjudication-audit-20260822` | 6 | `AdmissionCurrentness != CommitmentCurrentness`; consequential boundary may require bounded revalidation |
+
+These checkpoints are continuity pressure only; owner-native current facts above are revalidated independently.
+
+### Chapter-4 integration ceiling
+
+The Book may state the weak synthesis:
+
+```text
+ActionableNow(a,t)
+=
+a finite agent has recovered enough owner-local evidence,
+currentness/authority/admission boundaries,
+and explicit unresolved state
+to make the next action-or-non-action decision
+without projecting historical or unknown coordinates as current.
+```
+
+The phrase `enough` is intentionally finite/open-world. Chapter 4 does not claim a complete dependency set. It uses:
+
+```text
+D_hat(a,t) = currently discovered load-bearing dependency frontier
+U(a,t) = unresolved dependency / supersession residual
+```
+
+only as explanatory notation, not as a shared schema or global dependency service.

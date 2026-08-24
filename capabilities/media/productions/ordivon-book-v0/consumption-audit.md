@@ -331,3 +331,174 @@ Public publication = NOT SELECTED
 ```
 
 No Book Edition object, Action schema, permission engine, authority graph, consequence graph, scheduler, new Text/Book repository or service is earned by this acceptance.
+
+
+## I. Chapter 4 — History / Currentness / Recovery acceptance
+
+### Exact source and static gate
+
+Chapter 4 added two current bindings without introducing Book-specific infrastructure:
+
+- Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity / revision-fenced recovery boundary;
+- current Media/Book `5b861981c9f63451bace1118e56d407fdfb14109` — projection-currentness and selective Book revalidation boundary.
+
+It reuses current Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`, Runtime `fd6765c20981461f1a29508d97225b96971cc389`, and Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`.
+
+The Book now has 26 Git-bound Claims. Final exact source gate:
+
+- Claims checked: 26;
+- source/evidence paths checked: 70;
+- missing paths: 0;
+- Studio validation: `Studio production models are valid.`
+
+Previous exact chapter bytes remained unchanged:
+
+- Chapter 1: `sha256:c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`;
+- Chapter 2: `sha256:876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9`;
+- Chapter 3: `sha256:7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f`.
+
+New exact outputs:
+
+- Chapter 4 raw digest: `sha256:ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b`;
+- current four-chapter `book.mdx`: `sha256:7b7c4473bb3667fabec83f8ca1458c2fb7eddea2418ee80e7529bdeb63f33afe`;
+- Chapter-4 heading count in combined Book: 1;
+- Chapter-4 TOC entry count: 1.
+
+### Natural currentness falsifier during source construction
+
+A recently created purpose-specific Workspace named `ordivon-book-ch4-host-20260824` was still bound to Host revision `9dcd073dbf218c1e470cc1e43f2f5decc4807267`, while current Host deployment/source authority had advanced to `b40c7e6a56011dad3ccb595b332ab0edf9fa200a`.
+
+The recovery path re-resolved current Host owner truth rather than trusting Workspace name/recency. This is direct episode evidence for:
+
+```text
+Recent != Current
+PurposeSpecificProjection != OwnerCurrentness
+Latest-looking != semantic supersession
+```
+
+It does not imply that every Workspace must be recreated after every source change; the changed source fence was material to the claim being written.
+
+### Chapter-only structured falsifier
+
+Accepted Run: `harness-run:book-ch4-structured-1787579670916`.
+
+Input was exact Chapter 4 only, with no source map, repositories, Tasks, Runtime/domain Tools or research chronology.
+
+Observed:
+
+- provider/model: DeepSeek / `deepseek-v4-flash`;
+- stop: `candidate_completed`;
+- model calls: 2;
+- Tool calls: 0;
+- total tokens: 13,931;
+- conclusion corrections: 1;
+- trace digest: `sha256:fd089456c681256df054bd2de4d7e04f11c4ffe9e83c0eb0e46e6ca593ab78c3`.
+
+The consumer correctly rejected all targeted false lifts:
+
+| Tempting collapse | Result |
+| --- | --- |
+| latest -> current | `FALSE` |
+| historical validity -> actionable now | `FALSE` |
+| recoverable -> current authority | `FALSE` |
+| resume -> current work | `FALSE` |
+| consistent global snapshot -> semantic actionability | `FALSE` |
+| response loss -> failure | `FALSE` |
+| UNKNOWN -> ordinary success/failure | `FALSE` |
+| Recovery -> Replay | `FALSE` |
+| every action -> whole-world refresh | `FALSE` |
+| finite Agent knows complete dependency graph | `FALSE` |
+| recent render -> source currentness | `FALSE` |
+| Actionable Now requires external action | `FALSE` |
+| NO_CHANGE can be legitimate | `TRUE` |
+| UNKNOWN can be positive boundary information | `TRUE` |
+
+Scenario adjudication was also exact:
+
+- expired historical Decision -> fresh review before new action;
+- response lost after possible effect -> reconcile the same operation identity;
+- unrelated newer commit -> no automatic semantic supersession;
+- READY continuity while owner moved -> recover continuity, then revalidate owner/current work;
+- unchanged load-bearing boundary -> `NO_CHANGE`.
+
+The one conclusion correction remains part of the acceptance evidence. It is not rewritten as a zero-friction carrier success.
+
+### Whole-Book carrier controls
+
+Two prose-heavy structured whole-Book contracts failed to admit semantic results after conclusion corrections and ended `budget_exhausted`. A record-mode free-form Run reached `candidate_completed`, but persisted only a generic summary, so it was not admitted as proof of the requested cross-chapter judgements.
+
+These episodes remain carrier/contract evidence:
+
+```text
+carrier failure != Book semantic failure
+candidate_completed != requested comprehension proof
+```
+
+No chapter standing was changed from them.
+
+### Four-chapter whole-Book acceptance
+
+The final whole-Book consumer deliberately reduced only the **carrier shape**, not the semantic criteria. It required exact enum/boolean adjudication of chapter roles and cross-chapter non-collapse.
+
+Accepted Run: `harness-run:book-v0-fourchapter-role-enum-1787580156880`.
+
+Observed:
+
+- input: exact four-chapter `book.mdx` only;
+- provider/model: DeepSeek / `deepseek-v4-flash`;
+- stop: `candidate_completed`;
+- model calls: 1;
+- Tool calls: 0;
+- total tokens: 16,667;
+- conclusion corrections: 0;
+- trace digest: `sha256:c87d24fdfe6d6346816e31cf0b672e317ff252b81bfcf4b931f4642ab9c43ac1`.
+
+Recovered chapter roles:
+
+```text
+Chapter 1 = reality-representation-standing-revision-loop
+Chapter 2 = operation-relative-representation-and-search-sufficiency
+Chapter 3 = standing-authority-commitment-effect-consequence
+Chapter 4 = history-currentness-recovery-actionable-present
+```
+
+Recovered relations:
+
+```text
+Chapter 4 -> Chapter 2
+adds current action relevance without replacing representation sufficiency
+
+Chapter 4 -> Chapter 3
+adds temporal revalidation and recovery without replacing authority/effect chain
+```
+
+The consumer also returned:
+
+- `chapterRolesDistinct=true`;
+- `grandTheoryEstablished=false`;
+- `actionableNowGlobalState=false`;
+- `actionableNowUniversalSchema=false`;
+- `bookOutranksOwners=false`;
+- `historicalValidityImpliesCurrentAction=false`;
+- `representationTruthImpliesOperationSufficiency=false`;
+- `standingImpliesAuthority=false`;
+- `runtimeSuccessImpliesSemanticCompletion=false`;
+- `unknownCanRemainActionRelevant=true`;
+- `nonActionOrNoChangeCanBeMature=true`;
+- `openBoundariesRemain=true`;
+- `researchChronologyNeeded=false`.
+
+### Acceptance decision
+
+```text
+Chapter 1 exact semantic Output = APPROVED
+Chapter 2 exact semantic Output = APPROVED
+Chapter 3 exact semantic Output = APPROVED
+Chapter 4 exact semantic Output = APPROVED
+Current four-chapter exact book.mdx = APPROVED
+Parent Production = REVIEW
+Human continuous-reading effect = UNMEASURED
+Public publication = NOT SELECTED
+```
+
+Chapter 4 does not earn a universal Currentness service, global semantic clock, dependency graph, replay engine, Book Edition object, environment manager, scheduler, new Book/Text repository or service. The next Agent–Environment seam remains a candidate only because recovered currentness can change what should be exposed or afforded to a consumer; it requires its own source/falsifier pressure before becoming another chapter.

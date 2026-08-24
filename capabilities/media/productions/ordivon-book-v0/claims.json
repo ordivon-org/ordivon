@@ -427,6 +427,141 @@
         "admission delta proves benefit",
         "one universal utility score is implied"
       ]
+    },
+    {
+      "id": "finance-historical-decision-current-action-nonidentity",
+      "source": {
+        "binding": "finance-current",
+        "path": "kernel/decision_kernel.py"
+      },
+      "meaning": "Current Finance Decision evaluation preserves an immutable Decision's historical validity while an expired review epoch can require fresh review before any new action progression; past rationality is not silently rewritten into current commitment authority.",
+      "evidence": [
+        "kernel/decision_kernel.py",
+        "capabilities/decision.evaluate.json"
+      ],
+      "allowedWording": [
+        "a historically valid Decision may be non-actionable now",
+        "Decision review expiry can require fresh action review without rewriting history",
+        "HistoricalDecisionValidity is distinct from CommitmentCurrentness"
+      ],
+      "avoid": [
+        "expired means the historical Decision was false",
+        "historical validity authorizes new action progression",
+        "all domain facts use Finance review epochs"
+      ]
+    },
+    {
+      "id": "host-continuity-current-work-nonidentity",
+      "source": {
+        "binding": "host-current",
+        "path": "src/ordivon_host/mcp_server.py"
+      },
+      "meaning": "Current Host task.list/resume/checkpoint surfaces own semantic continuity only: READY means continuity remains open; recovered frontier/nextActions are retained working claims rather than current work admission, priority, Git truth or domain authority.",
+      "evidence": [
+        "src/ordivon_host/mcp_server.py",
+        "tests/test_mcp_server.py"
+      ],
+      "allowedWording": [
+        "continuity is not current work",
+        "resume does not re-admit a historical frontier as present priority",
+        "Host source-revision hints require owner revalidation"
+      ],
+      "avoid": [
+        "READY means work should continue now",
+        "Host continuity owns cross-owner currentness",
+        "checkpoint recovery proves current Git/domain truth"
+      ]
+    },
+    {
+      "id": "runtime-recovery-reconciliation-unknown",
+      "source": {
+        "binding": "runtime-current",
+        "path": "docs/recovery.md"
+      },
+      "meaning": "Current Runtime preserves uncertain execution/delivery/commit outcomes and recovers the same durable operation identity before any new effect; reconciliation is distinct from retry, and UNKNOWN must not be guessed into success or failure when Reality evidence cannot establish either side.",
+      "evidence": [
+        "docs/recovery.md",
+        "docs/runtime.md",
+        "research/engineering/RUNTIME-FOUNDATIONS-V1-ENGINEERING-CONSUMPTION.md"
+      ],
+      "allowedWording": [
+        "response loss is not permission to re-execute",
+        "reconciliation is not blind retry",
+        "UNKNOWN can be positive boundary information"
+      ],
+      "avoid": [
+        "missing response proves failure",
+        "Runtime UNKNOWN is a domain success state",
+        "all external effects are generically reconcilable"
+      ]
+    },
+    {
+      "id": "media-currentness-nonfabrication",
+      "source": {
+        "binding": "media-book-current",
+        "path": "research/media/engineering-consumption/OMPC-v0.md"
+      },
+      "meaning": "Current Media projection semantics prohibit a projection from declaring its source current merely because the projection is recent, available or re-rendered; source-owner authority/currentness remains external and exact-fence traceable.",
+      "evidence": [
+        "research/media/engineering-consumption/OMPC-v0.md",
+        "productions/ordivon-book-v0/constitution.md"
+      ],
+      "allowedWording": [
+        "recent rendering does not currentize source truth",
+        "projection currentness cannot be fabricated from availability",
+        "Book currentness remains source-fenced"
+      ],
+      "avoid": [
+        "latest Media render is current source truth",
+        "Book prose may override a changed owner",
+        "one Media freshness flag governs all source domains"
+      ]
+    },
+    {
+      "id": "actionable-now-bounded-book-synthesis",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      },
+      "meaning": "Chapter 4's Actionable Now is a non-authoritative Book integration: a finite agent has recovered enough owner-local evidence, currentness/authority/admission boundaries and explicit unresolved state to choose the next action or non-action without treating historical/unknown coordinates as current. It assumes only a currently discovered load-bearing dependency frontier, not complete dependency knowledge.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/worldview.md",
+        "src/ordivon_atlas/atlas.py"
+      ],
+      "allowedWording": [
+        "Actionable Now is operation-relative rather than one global synchronized semantic state",
+        "recovery may legitimately end in wait, research, reconcile, abstain or NO_CHANGE",
+        "finite revalidation begins from a currently discovered load-bearing frontier"
+      ],
+      "avoid": [
+        "Actionable Now is an owner-native universal law",
+        "Ordivon knows every dependency relevant to an action",
+        "a global Currentness service or dependency graph is established"
+      ]
+    },
+    {
+      "id": "selective-currentness-regrounding",
+      "source": {
+        "binding": "finance-current",
+        "path": "capabilities/decision.evaluate.json"
+      },
+      "meaning": "Current Ordivon witnesses support bounded revalidation rather than whole-world refresh: action-specific owner dependencies, expiry, uncertainty, changed operation or source-resolution failure can require reacquisition, while unchanged load-bearing boundaries may legitimately yield NO_CHANGE.",
+      "evidence": [
+        "capabilities/decision.evaluate.json",
+        "capabilities/execution.reserve.v4.json",
+        "kernel/context_compiler.py",
+        "kernel/execution_kernel.py"
+      ],
+      "allowedWording": [
+        "revalidation can be selective and action-specific",
+        "expiry can require revalidation without an observed change notification",
+        "NO_CHANGE is a valid revalidation result"
+      ],
+      "avoid": [
+        "revalidate only after explicit change notifications",
+        "refresh every known source before every action",
+        "bounded revalidation proves the dependency frontier is complete"
+      ]
     }
   ]
 }
