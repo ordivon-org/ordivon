@@ -1,88 +1,107 @@
 # Ordivon Book v0 — current production cognition
 
-Status: active Book pilot decision record
+Status: active two-chapter Book decision record
 Profile: [`writing`](../../research/expression/profiles/writing.md)
 Constitution: [`constitution.md`](constitution.md)
 Source map: [`source-map.md`](source-map.md)
 External pressure: [`external-methods.md`](external-methods.md)
 Acceptance: [`consumption-audit.md`](consumption-audit.md)
 
-This cognition record owns only the current editorial/integration judgment for the Book Production. `production.json`, `claims.json`, exact source bindings, Atlas source roles, and owner-native authorities remain stronger than this file.
+This cognition record owns only current editorial/integration judgment. `production.json`, `claims.json`, exact source bindings, owner-native authorities and exact Output bytes remain stronger.
 
 ## FRAME
 
-**Pilot question.** Can one chapter give a fresh Human/Agent an actionable model of how finite intelligence in Ordivon moves from Reality contact through representation and standing into action, consequence, and revision—without replaying the research history?
+Book v0 now has two admitted chapter consumers:
 
-**Why this chapter.** It crosses the highest-pressure seams in recent research: Reality/representation, evidence/standing, standing/action, consequence/evaluator, recursive problem formation, currentness, and research-to-practice conversion.
+1. `story.mdx` — how finite intelligence moves from Reality contact through Representation, Evidence/Standing, authorized Action, claim-relative Consequence and Revision.
+2. `chapter-02.mdx` — how problem, solution/result and consumer representations preserve or lose different operation-relative distinctions, and why a Result is itself a future consumer interface rather than a universal terminal state.
 
-**Non-goal.** Do not present a universal epistemology, a closed-loop optimizer, a Human-centric terminal, or an Ordivon grand theory. The chapter is a current integration projection whose main value is exposing where current knowledge does or does not join.
+The Chapter-2 pressure is deliberately narrower than a general Representation theory. It asks whether Ordivon's repeated `rich problem representation -> thin solution/result projection` pattern can be made safe without full-history retention or a global representation schema.
 
 ## BIND
 
-Atlas input is fixed to converged `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`; Media/Studio input is fixed to pre-Book Writing/Production authority `69ab3a4d781ccc6d9718b7e66fc6d34a531a0935`.
+Physical claim sources are fixed to:
 
-The Atlas fence was not chosen by Git recency. Book dogfood exposed divergent local/remote mainlines (`d8036cb...` versus `2eea93d...`). Their semantic delta was inspected, merged without conflict in isolation, exercised through the full deterministic Atlas suite, pushed, and only then adopted as the Book source. This preserves both newer PPD/first-look work and the Human owner-currentness repair.
+- Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` for cross-owner non-authoritative synthesis;
+- pre-Book Media `69ab3a4d781ccc6d9718b7e66fc6d34a531a0935` for Writing/Production craft authority independent of Book self-citation;
+- current Media `710270d9aa4660519f7d6aa3a6007f76aec173ba` for Media owner-first and OMPC observer-relative projection semantics.
 
-`claims.json` binds every load-bearing proposition to current Atlas synthesis/implementation or the active Studio Writing profile. Host Task revisions in `source-map.md` are semantic-continuity pressure only and are explicitly not physical/source authority.
+Chapter 2 adds Atlas-bound claims for problem/search representation, continuation-relative sufficiency, non-privileged problem/solution representation and the stable-frame negative control, plus current Media OMPC source-authority/observer-projection conservation.
 
-External theories in `external-methods.md` are comparative pressure: they may narrow or repair the Book design, but cannot mint Ordivon truth.
+Host checkpoints for PPD representation loss, Media responsibility-routing loss, Epistemic Space and Recursive Problem are semantic-continuity pressure only; their experimental sample counts are not silently promoted into Git-owned Book truth.
 
 ## EXPRESS
 
-The pilot is deliberately written in Chinese while preserving stable English owner/technical terms where translation would hide identity. This tests whether Writing can compile Ordivon's largely English/code research substrate into a Human-readable Chinese explanation without inventing a second terminology authority.
+Chapter 2 must preserve the following shape:
 
-Use the Book textual style in `constitution.md`:
+```text
+Representation matters
+    but
+more representation != better representation
+    and
+truth-preserving != sufficient for every operation
+```
 
-- phenomenon/distinction before internal vocabulary;
-- one dominant move per paragraph;
-- current standing and scope near the claim;
-- no smooth `observe → think → act → learn` story;
-- explicitly separate Evidence, Standing, Decision, Effect, Consequence, and revision;
-- end by changing the reader's model of what Ordivon is trying to make recoverable.
+Its dominant engineering criterion is relation-relative sufficiency: name what must survive for the target claim, prediction, intervention, search opportunity, responsibility/action route, currentness, recovery or future continuation. Do not collapse those obligations into one fidelity scalar.
+
+The chapter must retain the Research Method negative control: a compact projection that already preserves all current decision-relevant distinctions can correctly yield `NO_CHANGE`.
 
 ## RENDER
 
-The approved semantic artifact is `story.mdx`, raw SHA-256 `c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`, bound as the Output `blobDigest`.
+Exact semantic artifacts:
 
-No browser publisher, print edition, typography system, or public distribution surface is selected in this Production. The parent Production therefore remains `review` even though this exact semantic-text Output is `approved`.
+- Chapter 1 `story.mdx` — approved raw SHA-256 `c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`.
+- Chapter 2 `chapter-02.mdx` — approved raw SHA-256 `876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9`.
+- current two-chapter `book.mdx` — rendered raw SHA-256 `476313e2c8bf59d2f68f5cd25b6fa732c98b85d4b9a47976b13d5b8c48567902`.
 
-The Book is physically a normal Writing Production, not a Book-specific platform. Existing `studio_production_standing` and `studio_production_context` discover it without Agent-surface changes.
+`book.mdx` is a deterministic textual assembly of the two exact chapters plus a short title/contents preface. No Edition schema was introduced. The combined artifact remains `rendered`, not `approved`, because the attempted independent whole-book consumer did not reach a Provider-admitted semantic result.
 
 ## AUDIT
 
-The semantic audit rejects the chapter if it does any of the following:
+Current mechanical acceptance before admission:
 
-- makes Atlas or Book prose an owner truth source;
-- makes Human response a universal evaluator/terminal;
-- equates evidence with standing or standing with action authority;
-- equates feedback with causal gain or successful learning;
-- makes Research imply feature creation;
-- presents the integrated loop as open-world complete;
-- implies every action creates a new problem rather than may change future problem geometry;
-- hides that a current Book source can become stale when an owner advances;
-- attributes external-theory standing to Ordivon by similarity alone.
+- Studio Production models valid;
+- 17 targeted `test_models` + `test_agent_surface` tests pass;
+- all 12 current Book Claim source/evidence paths exist at their exact pinned Git revisions;
+- Chapter-1 digest remains unchanged;
+- Chapter-2 and combined-book raw digests are bound above;
+- no new Book-specific API/schema/service/repository was required.
 
-Mechanical acceptance requires Studio Production model validation, exact source-path existence at both pinned revisions, ordinary Agent-surface discovery, exact digest binding, and a fresh-consumer test.
+Chapter-2 fresh-consumer falsifier:
 
-Those checks have now passed for the semantic artifact. One strict structured-result Harness test failed at the Provider/carrier boundary with `invalid_model_output`; a same-chapter free-form no-tool control then completed in one DeepSeek model call with zero Tools and recovered the intended model and claim ceilings. Therefore `semantic comprehension != structured carrier conformance`; the first negative is retained rather than hidden.
+- strict structured attempt with 30k total-token authority stopped `budget_exhausted` after one Provider attempt and one conclusion correction;
+- same structured contract at 65,536 total tokens reached three Provider attempts/two corrections but stopped `invalid_model_output`; this remains carrier/conformance pressure, not semantic rejection;
+- a record-mode control initially returned only a generic completion summary, showing `Provider content != durable consumer result`;
+- after requiring the entire audit to enter the durable conclusion summary, a fresh DeepSeek Agent completed in one model call / zero Tools / 5,824 tokens and correctly rejected all targeted collapses.
+
+The durable Chapter-2 consumer correctly recovered:
+
+- `truth-preserving summary` does **not** imply search-geometry preservation;
+- more detail is not always better;
+- there is no one globally best representation for all observers/operations;
+- `lossy` does not imply insufficient;
+- not every problem needs reframing;
+- terminal Result is not a universal future sufficient state;
+- the same source may correctly have different observer-relative projections while source truth/authority remains conserved;
+- Scenario A -> `NO_CHANGE`; Scenario B -> selective search/generator representation repair; Scenario C -> selective owner-first routing repair;
+- Γ-relative sufficiency and explicit non-claims were recovered without research chronology.
+
+Two whole-Book coherence attempts over `book.mdx` stopped `invalid_model_output` before any admitted model call. Therefore the current evidence is `whole-book independent comprehension = UNKNOWN`, not failure. No whole-book approval is minted from chapter-local success.
 
 ## DECIDE
 
-Approve the exact chapter semantic-text Output at digest `sha256:c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`.
+Approve exact Chapter 2 semantic text at raw digest `sha256:876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9`.
 
-Keep the parent Production at `review`: no public publisher is selected and no independent Human population-level comprehension/voice/trust effect is claimed. This is not a semantic blocker for the approved text because those are Human-specific outcome claims, not universal publication authority.
+Keep the deterministic two-chapter `book.mdx` at `rendered`, and keep the parent Production at `review`.
 
-Do not add a Book schema, edition object, dedicated Agent API, Text repository, or Book repository. The current Production + Claims + cognition + source fences + Git model already supports the demonstrated consumer.
+Do not add a Book Edition object, representation-fidelity schema, global Problem/Solution ontology, source-recovery service, or broader Textual Intelligence owner. The second chapter strengthens the case for **selective operation-relative representation repair**, not global representation infrastructure.
 
 ## LEARNING
 
-The pilot produced six bounded corrections/results:
-
-1. Ordivon did not lack Writing; it lacked a whole-system textual consumer. Existing Studio Writing and Art & Expression are already substantial.
-2. Atlas is not the Book and must not be promoted into current truth. Book integration sits downstream of owner authority and Atlas recovery/provenance.
-3. A naive feedback loop is too lossy. Current research requires at least representation, semantic uptake/standing, authorization/commitment, realization/effect, claim-relative consequence, and recursive change to future problem/observation geometry.
-4. Book source currentness immediately exposed a real Atlas branch divergence. Correct response was semantic/source convergence, not `latest commit wins` or freezing a stale readable source.
-5. A fresh Agent could recover the current integrated model from the chapter alone without research chronology: one DeepSeek no-tool Run recovered the open-recursive model, load-bearing anti-collapses, action boundary, evaluator rule, revision rule, Book role, and explicit non-claims.
-6. Structured carrier validity and semantic comprehension are distinct. The failed structured test did not justify rewriting the chapter after the free-form control isolated the failure to the completion carrier/protocol path.
-
-External comparison reinforced rather than replaced these corrections: distributed cognition makes representation form operationally important; Dewey/Argyris keep problem/loop transformation inside inquiry; Bayesian/Lakatos/Kuhn prevent evidence/history from collapsing into one update rule; living-review and provenance methods supply bounded currentness discipline without requiring new infrastructure.
+1. The Chapter-2 integration survives prior-art subtraction only in narrow form: representation adequacy is relation/operation/continuation-relative, not a new grand Representation theory.
+2. Problem and Solution are not symmetric endpoints. A Solution/Result becomes a new projection/interface for later consumers and can therefore recreate representation loss downstream.
+3. PPD and Media provide heterogeneous positive witnesses: proposition truth can survive while search geometry is lost; source/currentness boundaries can survive while responsibility/action routing is lost.
+4. Research Method supplies an essential negative control: compact projection can already be sufficient. Representation work must preserve `NO_CHANGE` as a first-class outcome.
+5. Mature external work already owns broad representation/problem-solving/abstraction claims. Simon/Newell, distributed cognition, epistemic action, sufficient statistics, abstract interpretation and Information Bottleneck remove any legitimate Ordivon novelty claim at that broad level.
+6. `Provider transient answer != durable Harness conclusion` was re-observed directly; consumer testing must inspect the state actually retained for the next consumer.
+7. Two chapters still do not earn an Edition/schema. `book.mdx` composition is expressible with existing Production outputs and exact Git/digest provenance.

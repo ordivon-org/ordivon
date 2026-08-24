@@ -148,6 +148,110 @@
         "Media may override domain standing for narrative coherence",
         "one permanent house style is already established"
       ]
+    },
+    {
+      "id": "problem-representation-search-geometry",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-interface-formation/README.md"
+      },
+      "meaning": "Current non-authoritative Open Interface synthesis distinguishes problem solving, problem finding, question generation and problem-space expansion; representation/candidate/transformation/comparability bases can change reachable search geometry, while maximum resolution is not maximum epistemic power and no finite basis establishes open-world completeness.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-interface-formation/README.md"
+      ],
+      "allowedWording": [
+        "representation can change which problem/search distinctions are reachable",
+        "problem solving is not identical to problem-space expansion",
+        "maximum resolution is not maximum epistemic power"
+      ],
+      "avoid": [
+        "representation determines Reality",
+        "every task needs reframing",
+        "a single open-interface ontology is established"
+      ]
+    },
+    {
+      "id": "continuation-relative-representation-sufficiency",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/core-results.md"
+      },
+      "meaning": "For a declared continuation family, representation sufficiency can be defined relative to distinctions that affect allowed continuation outcomes; current-task irrelevance is not future irrelevance, predictive sufficiency is not interventional sufficiency, and compression is not an irrelevance proof. Unrestricted future use defeats any nontrivial universal lossy-sufficiency claim.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/core-results.md"
+      ],
+      "allowedWording": [
+        "representation sufficiency is continuation-relative",
+        "a safe merge can become unsafe when the continuation family expands",
+        "lossy does not by itself mean insufficient"
+      ],
+      "avoid": [
+        "one representation is sufficient for every future use",
+        "all compressed distinctions must be retained",
+        "predictive sufficiency automatically authorizes intervention"
+      ]
+    },
+    {
+      "id": "problem-solution-representation-nonprivilege",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-generalization-and-epistemic-space/open-problem-handoff.md"
+      },
+      "meaning": "The retained open-problem handoff rejects assuming that one external task has one uniquely privileged internal problem/solution representation; question, representation, search and evaluation structure may shape expressible questions, candidate answers, reachable neighbors, generated evidence and visible anomalies. This remains open-problem pressure, not a universal theorem.",
+      "evidence": [
+        "synthesis/2026-08-19-generalization-and-epistemic-space/open-problem-handoff.md"
+      ],
+      "allowedWording": [
+        "one task need not have one privileged internal problem/solution representation",
+        "problem and solution representations can be coordinate-dependent working structures"
+      ],
+      "avoid": [
+        "all decompositions are equally good",
+        "ProblemDomain and SolutionDomain are universal ontology classes",
+        "human knowledge is globally wrong"
+      ]
+    },
+    {
+      "id": "observer-relative-projection-conservation",
+      "source": {
+        "binding": "media-current",
+        "path": "research/media/engineering-consumption/OMPC-v0.md"
+      },
+      "meaning": "Current OMPC-v0 permits observer-relative projections of the same source while conserving source authority/currentness, forbidding standing lifting, requiring material loss/omission disclosure and separating displayed affordance from external admission/execution authority.",
+      "evidence": [
+        "research/media/engineering-consumption/OMPC-v0.md",
+        "README.md"
+      ],
+      "allowedWording": [
+        "different observers may receive different representations of the same source",
+        "projection does not transfer source authority",
+        "material omission should remain discoverable"
+      ],
+      "avoid": [
+        "same source requires identical representation",
+        "Media projection is source truth",
+        "affordance implies authorization"
+      ]
+    },
+    {
+      "id": "representation-challenge-minority-control",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/research-methodology-observation/MECHANISMS.md"
+      },
+      "meaning": "Current methodology observation treats Problem/Representation Challenge as recurrent qualitative but explicitly notes that most work occurs under stable frames; reframing is a minority mode rather than a constant requirement.",
+      "evidence": [
+        "synthesis/research-methodology-observation/MECHANISMS.md"
+      ],
+      "allowedWording": [
+        "representation challenge is sometimes necessary",
+        "stable-frame work is often sufficient"
+      ],
+      "avoid": [
+        "every problem requires representation escape",
+        "reframing is universally superior",
+        "stable representations imply epistemic failure"
+      ]
     }
   ]
 }

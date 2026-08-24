@@ -87,3 +87,41 @@ This is a Book integration projection. It is not asserted as a universal closed-
 ## Revalidation rule
 
 Before a consequential Book revision, revalidate the exact upstream owner/source fences that carry the changed claim. Do not rebuild the whole research corpus merely because one chapter changes.
+
+
+## Chapter 2 — Representation / Problem / Solution source additions
+
+Chapter 2 keeps the original pre-Book Media Writing binding and adds one separate current Media semantic binding. This prevents Book-authored text from becoming its own Writing foundation while still allowing the chapter to consume current owner/OMPC representation semantics.
+
+### Atlas additions at `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`
+
+| Ref | Path | Chapter-2 use | Ceiling |
+| --- | --- | --- | --- |
+| A7 | `synthesis/2026-08-19-generalization-and-epistemic-space/open-problem-handoff.md` | pressure against assuming one privileged internal problem/solution representation | open-problem handoff, not theorem or owner truth |
+| A8 | `synthesis/2026-08-20-finite-intelligence-open-interface-formation/README.md` | problem-space generativity, candidate/identity/transformation/comparability formation, `MaximumResolution != MaximumEpistemicPower` | non-authoritative cross-owner synthesis |
+| A9 | `synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/core-results.md` | continuation-family-relative representation sufficiency; predictive/interventional and current/future distinctions | non-authoritative cross-owner synthesis |
+| A10 | `synthesis/research-methodology-observation/MECHANISMS.md` | negative control: representation challenge is recurrent but most work remains stable-frame | observational mechanism projection, not universal workflow |
+
+### Current Media semantic binding
+
+- binding id: `media-current`
+- repository: `ordivon-media`
+- revision: `710270d9aa4660519f7d6aa3a6007f76aec173ba`
+- truth role: current Media owner / observer-relative projection semantics
+
+| Ref | Path | Chapter-2 use | Ceiling |
+| --- | --- | --- | --- |
+| M4 | `README.md` | owner-first first interface; Media generic mediation before optional Studio lowering | Media owner orientation, not source-domain truth |
+| M5 | `research/media/engineering-consumption/OMPC-v0.md` | observer-relative projection, source-authority conservation, omission/loss disclosure, affordance/admission/effect separation | technology-neutral reference contract, explicitly not production schema/API |
+
+### Host Chapter-2 pressure inputs
+
+| Task | Revision | Pressure imported |
+| --- | ---: | --- |
+| `task:finite-intelligence-epistemic-space-formation-open-research-20260822` | 28 | no single canonical approximate representation; exact sufficiency is surface-relative; retrieval/recovery distinctions |
+| `task:ppd-source-projection-agent-representation-audit-20260824` | 4 | `ProjectionTruthPreservation != SearchGeometryPreservation`; full source not monotonically superior; Research Method NO_CHANGE control |
+| `task:representation-consumption-second-witness-media-20260824` | 3 | `BoundarySemanticsPreserved != ResponsibilityAndActionRoutingPreserved`; first-object ordering repaired owner routing without new infrastructure |
+| `task:finite-intelligence-recursive-problem-pressure-formation-open-research-20260822` | 14 | terminal Result may be too coarse for later consumers; full history generally too fine; retention is continuation/consumer-relative |
+| `task:ordivon-internal-representation-transition-topology-20260822` | 10 | multi-projection is an anti-collapse/selection discipline; evaluator and representation adequacy remain claim-relative |
+
+Chapter 2 uses these Host checkpoints only as semantic-continuity pressure. Exact Book claims remain bound to Git-addressable Atlas/Media sources.

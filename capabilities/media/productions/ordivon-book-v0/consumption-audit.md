@@ -107,3 +107,80 @@ Approved semantic text:
 - parent Production status: `review`
 
 The parent remains `review` because no public publisher is selected and Human-specific reading effect remains unclaimed. No stronger Book machinery is earned by this pilot.
+
+
+## G. Chapter 2 — representation / problem-solution consumption audit
+
+### Source and model gate
+
+Chapter 2 was added without changing Studio schemas or Agent APIs. The Book now has 12 source-bound Claims across three exact bindings: Atlas current synthesis, pre-Book Media Writing authority, and current Media/OMPC semantics.
+
+Post-change mechanical results:
+
+- `Studio production models are valid.`
+- 17 targeted Model/Agent-surface tests passed.
+- all 12 Claim source/evidence paths exist at their exact pinned revisions.
+- Chapter 1 raw digest remains `sha256:c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`.
+- Chapter 2 raw digest: `sha256:876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9`.
+- deterministic current two-chapter `book.mdx` raw digest: `sha256:476313e2c8bf59d2f68f5cd25b6fa732c98b85d4b9a47976b13d5b8c48567902`.
+
+### Adversarial fresh-Agent test
+
+The Chapter-2 test intentionally asked a fresh Agent to adjudicate attractive but wrong collapses rather than merely summarize prose. It received only `chapter-02.mdx`; no Atlas, source map, Task chronology or Runtime/domain Tools were available.
+
+Structured-result controls:
+
+1. 30k total-token authority: one Provider attempt, one conclusion correction, then `budget_exhausted`; no semantic result admitted.
+2. 65,536 total-token authority: three Provider attempts, two conclusion corrections, then `invalid_model_output`; no structured result admitted.
+
+These are retained as Harness/Provider result-carrier evidence and do not count as semantic rejection of the chapter.
+
+A first record-mode control reached `candidate_completed` but durably retained only a generic completion summary. The test was then corrected so the **entire audit had to be stored in the candidate-completed conclusion summary**, because transient Provider text is not the next consumer's durable result.
+
+Accepted fresh-Agent episode:
+
+- Harness Run: `harness-run:book-ch2-freeform-1787572314066`
+- Harness implementation fence: local `ordivon-harness@d7935d47c27822859ee87dd5c6039947cd9f313c`
+- Provider: `deepseek-v4-flash`
+- stop: `candidate_completed`
+- model calls: 1
+- tool calls: 0
+- total tokens: 5,824
+- conclusion corrections: 0
+
+The durable conclusion correctly adjudicated:
+
+| Trap / scenario | Recovered decision |
+| --- | --- |
+| proposition truth preservation -> search geometry preservation | `FALSE` |
+| more detail is always better | `FALSE` |
+| one globally best representation for every observer/operation | `FALSE` |
+| lossy -> insufficient | `FALSE` |
+| every problem needs reframing | `FALSE` |
+| terminal Result is universal future sufficient state | `FALSE` |
+| same source may have different observer projections | `TRUE` |
+| compact projection already sufficient for current bounded decision | `NO_CHANGE` |
+| correct propositions but load-bearing search/generator route lost | selective search-geometry representation repair |
+| correct source/currentness facts but wrong capability owner routing | selective owner-first routing repair |
+
+The Agent also recovered Γ-relative sufficiency, the chapter's explicit non-claims, and stated that research chronology was unnecessary for the current model.
+
+### Two-chapter composition boundary
+
+`book.mdx` is a deterministic assembly of the two exact approved chapters plus a minimal title/contents preface. Two independent whole-book coherence attempts stopped at `invalid_model_output` before any admitted model call. This is Provider/Harness boundary evidence only.
+
+Therefore:
+
+```text
+Chapter1 semantic output = APPROVED
+Chapter2 semantic output = APPROVED
+Two-chapter exact assembly = RENDERED
+Independent whole-book comprehension = UNKNOWN
+Parent Production = REVIEW
+```
+
+No whole-book semantic approval is inferred from chapter-local success.
+
+### Acceptance consequence
+
+Chapter 2 is admitted because its load-bearing falsifiers survived an independent durable-consumer test. The experiment does **not** admit a universal Representation Layer. Its direct engineering consequence is the opposite: representation repair should be selective and typed to the failed operation; a compact projection that already works should remain unchanged.

@@ -36,3 +36,44 @@ The purpose of this comparison is subtraction and repair. A mature external theo
 Primary/authoritative comparison surfaces used during this pilot include Stanford Encyclopedia of Philosophy entries on Bayesian Epistemology, Confirmation, Scientific Method, Lakatos, Dewey and Pragmatism; Harvard Business Review's Chris Argyris articles on double-loop learning; Cochrane Handbook material on updating/living systematic reviews; PRISMA 2020; W3C PROV-O/PROV-DM; Diátaxis documentation theory; and Cambridge/Harvard collections on commonplace-book history.
 
 These sources pressure Book design. They do not confer current Ordivon standing.
+
+
+## Chapter 2 pressure — representation, abstraction, problem space
+
+The second chapter was explicitly pressure-tested against mature lines that already own broad claims such as `representation matters` and `compression can be task-relative`. Their role is to subtract false novelty and constrain the Ordivon integration.
+
+| External line | Mature contribution | Chapter-2 consequence | What is not imported |
+| --- | --- | --- | --- |
+| Newell/Simon problem-space tradition; Simon, *The Structure of Ill Structured Problems* (1973) | Problem solving operates inside representations/problem spaces that may themselves be modified as information is retrieved; the same nominal task can change difficulty under another representation | Do not treat the represented Problem Space as the external problem itself; allow representation change to alter reachable operators/neighbors | no claim that every problem has one canonical symbolic state space |
+| Zhang & Norman, *Representations in Distributed Cognitive Tasks* (1994) | Internal + external representations jointly determine directly available information, activated processes and discoverable structure | Preserve search/action geometry as a possible representation obligation beyond proposition truth | no universal `representational determinism` metaphysics; scope remains task/representation relative |
+| Kirsh & Maglio, *On Distinguishing Epistemic from Pragmatic Action* (1994) | An action can alter the external world to simplify cognition or reveal information rather than directly achieve the pragmatic goal | Treat representation/environment manipulation as a possible epistemic operation | no inference that any environment change improves domain truth or task outcome |
+| Fisher/Neyman sufficient statistics | Large observation spaces can be reduced while preserving all information needed for inference about a declared parameter/family | `Lossy != Insufficient`; adequacy must name the target inference family | no claim that statistical sufficiency covers search, intervention, authority or future-use sufficiency |
+| Cousot & Cousot, abstract interpretation (1977) | A computation can be mapped into a deliberately coarser abstract universe that preserves properties relevant to a chosen analysis | A good representation may intentionally erase detail; more resolution is not monotonically better | no attempt to turn Book/Agent cognition into one lattice or abstract interpreter |
+| Tishby, Pereira & Bialek, Information Bottleneck | Compression is defined relative to a relevance variable: preserve information about designated `Y` while compressing `X` | Relevance/adequacy is relational, not a context-free fidelity score | no claim that mutual information is the universal Ordivon representation objective |
+| Blackwell-style comparison of experiments / decision-theoretic informativeness | Informativeness is evaluated through the decisions/losses a signal supports rather than raw byte count | Prefer operation-relative comparisons over one global richness score | no universal total ordering of Ordivon representations |
+| Green, *Cognitive Dimensions of Notations* (1989) | Information structures/notations can enable or inhibit cognitive strategies even when domain content is similar | Treat notation/interface form as action/search affordance, not neutral packaging | no fixed universal list of dimensions for all Ordivon media |
+
+### Chapter-2 subtraction result
+
+External prior art already establishes the broad facts that representations reshape problem solving, external structures participate in cognition, and lossy abstractions can be sufficient relative to selected questions. The surviving Ordivon-specific integration is narrower:
+
+```text
+rich Problem representation
+    -> Solution / Result
+    -> consumer-facing projection
+    -> future action/search/problem formation
+```
+
+A Result is therefore not the end of representation design. It becomes a new interface for later consumers. The engineering question is which distinctions must remain reachable for the declared consumer/continuation family, and which deeper source/re-entry path must remain when that family changes.
+
+Primary comparison surfaces used in this chapter include:
+
+- Simon, *The Structure of Ill Structured Problems*, Artificial Intelligence 4 (1973), CMU archive.
+- Zhang & Norman, *Representations in Distributed Cognitive Tasks*, Cognitive Science 18(1), 1994.
+- Kirsh & Maglio, *On Distinguishing Epistemic from Pragmatic Action*, Cognitive Science 18, 1994.
+- Cousot & Cousot, *Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs*, POPL 1977.
+- Encyclopedia of Mathematics, `Sufficient statistic` / `Factorization theorem` (Fisher–Neyman line).
+- Tishby, Pereira & Bialek, *The Information Bottleneck Method*.
+- Green, *Cognitive Dimensions of Notations*, 1989.
+
+These sources constrain the Book's claims; they do not confer Ordivon standing.
