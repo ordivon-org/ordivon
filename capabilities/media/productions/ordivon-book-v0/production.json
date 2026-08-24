@@ -30,10 +30,16 @@
       "role": "current Media owner/OMPC representation and observer-projection semantics used by Chapter 2"
     },
     {
-      "id": "finance-current",
+      "id": "finance-ch3",
       "repository": "ordivon-finance",
       "revision": "913d7b22b2474465da6a7b6ebcc9406b2b1032dd",
-      "role": "current Finance Decision/Proposal/authority/effect semantics used by Chapter 3"
+      "role": "exact historical Chapter-3 Finance Decision/Proposal/authority/effect source fence at admission"
+    },
+    {
+      "id": "finance-current",
+      "repository": "ordivon-finance",
+      "revision": "8e0ace04f3472c336db30d10c9f437812c712a36",
+      "role": "current Finance decision, Reality-acquisition, execution and reconciliation semantics revalidated for Chapter 4"
     },
     {
       "id": "normative-current",

@@ -277,10 +277,10 @@
     {
       "id": "finance-decision-proposal-nonaction",
       "source": {
-        "binding": "finance-current",
+        "binding": "finance-ch3",
         "path": "design/DECISION-PROPOSAL-KERNEL.md"
       },
-      "meaning": "Current Finance Decision semantics require an explicit NO-OP baseline; research, wait and abstain are complete Decisions rather than failed trade generation; a Proposal is a separate immutable capital-transition intent and proposal-ready never means authorized or submitted.",
+      "meaning": "At the exact Chapter-3 Finance admission cut, Decision semantics require an explicit NO-OP baseline; research, wait and abstain are complete Decisions rather than failed trade generation; a Proposal is a separate immutable capital-transition intent and proposal-ready never means authorized or submitted.",
       "evidence": [
         "design/DECISION-PROPOSAL-KERNEL.md"
       ],
@@ -298,10 +298,10 @@
     {
       "id": "finance-authority-current-admission-effect-separation",
       "source": {
-        "binding": "finance-current",
+        "binding": "finance-ch3",
         "path": "design/C2-AUTHORITY-REFORM.md"
       },
-      "meaning": "Current Finance C2 authority separates owner-native capital authority from current semantic/deployment/effect admission and preserves Decision/Proposal/world-bound request/effect reservation/dispatch/receipt/reconciliation as distinct boundaries; owner-native authority removes self-leasing but does not authorize every future effect automatically.",
+      "meaning": "At the exact Chapter-3 Finance admission cut, C2 authority separates owner-native capital authority from semantic/deployment/effect admission and preserves Decision/Proposal/world-bound request/effect reservation/dispatch/receipt/reconciliation as distinct boundaries; owner-native authority removes self-leasing but does not authorize every future effect automatically.",
       "evidence": [
         "design/C2-AUTHORITY-REFORM.md",
         "docs/runtime-domain.md",

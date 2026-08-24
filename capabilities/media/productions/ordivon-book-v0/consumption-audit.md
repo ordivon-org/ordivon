@@ -190,9 +190,9 @@ Chapter 2 is admitted because its load-bearing falsifiers survived an independen
 
 ### Exact current source gate
 
-Chapter 3 added no Book schema, service or Agent action. It consumes four additional current owner bindings plus Atlas synthesis:
+Chapter 3 added no Book schema, service or Agent action. It consumed four owner bindings that were current at Chapter-3 admission plus Atlas synthesis:
 
-- Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`;
+- Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` (exact Chapter-3 admission fence);
 - Normative `68826a3b256da0bba8d540102528721a3e338c25`;
 - Harness `d72413de62c01d7b5124861d9028495707e01d5d`;
 - Runtime `fd6765c20981461f1a29508d97225b96971cc389`;
@@ -211,7 +211,7 @@ Mechanical gate before admission:
 - exact Chapter1 -> Chapter2 -> Chapter3 assembly order passed;
 - ordinary Studio Agent discovery exposes all Outputs and all 20 Claims without Book-specific code.
 
-### Current Finance Reality control
+### Chapter-3 Finance Reality control
 
 A read-only current `finance.context.compile` observation at generated time `2026-08-24T12:16:38.438598Z`, stateVersion `1564:e316d435f391005b`, observed:
 
@@ -224,7 +224,7 @@ A read-only current `finance.context.compile` observation at generated time `202
 - zero current/active Effects;
 - an open `review-decision-epoch` obligation.
 
-This is live episode evidence for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is intentionally not encoded as a permanent Book Claim because Finance state is mutable.
+This was live episode evidence at Chapter-3 admission for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is intentionally not encoded as a permanent current Book Claim because Finance state is mutable.
 
 ### Durable free-form adversarial consumer
 
@@ -341,14 +341,14 @@ Chapter 4 added the current Host binding without introducing Book-specific infra
 
 - Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity / revision-fenced recovery boundary.
 
-For Media currentness it reuses the owner-native `media-current` OMPC semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba`. After Chapter 4 promotion, `OMPC-v0` and `MEDIA.md` were revalidated byte-identical at post-promotion observed Media head `ec24fe877f01505d87ccfc5ab13060098922da55`; the pre-promotion Book cut `5b861981...` is retained only as process/history evidence, not as a permanent `current` binding.
+For Media currentness it reuses the owner-native `media-current` OMPC semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba`. After Chapter 4 promotion and source-role cleanup, `OMPC-v0` and `MEDIA.md` were revalidated byte-identical through observed Media head `726d0064dba50c30459da419c288eaf551272642`; the pre-promotion Book cut `5b861981...` is retained only as process/history evidence, not as a permanent `current` binding.
 
-It also reuses current Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`, Runtime `fd6765c20981461f1a29508d97225b96971cc389`, and Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`.
+It also reuses current Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`, Runtime `fd6765c20981461f1a29508d97225b96971cc389`, and Finance `8e0ace04f3472c336db30d10c9f437812c712a36`. The earlier Finance cut `913d7b22...` remains the exact historical Chapter-3 admission fence and is no longer labeled current.
 
 The Book now has 26 Git-bound Claims. Final exact source gate:
 
 - Claims checked: 26;
-- source/evidence paths checked: 70;
+- source/evidence paths checked: 69;
 - missing paths: 0;
 - Studio validation: `Studio production models are valid.`
 
@@ -364,6 +364,27 @@ New exact outputs:
 - current four-chapter `book.mdx`: `sha256:7b7c4473bb3667fabec83f8ca1458c2fb7eddea2418ee80e7529bdeb63f33afe`;
 - Chapter-4 heading count in combined Book: 1;
 - Chapter-4 TOC entry count: 1.
+
+### Finance final-admission revalidation
+
+Before final source admission, Finance owner `main` advanced from `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` to `8e0ace04f3472c336db30d10c9f437812c712a36` (`finance: close reality-context execution loop`). The delta changed load-bearing currentness paths, including `kernel/context_compiler.py` and `kernel/execution_kernel.py`.
+
+The first system-Python test attempt could not import `duckdb`; it was classified as an execution-environment failure, not a Finance semantic failure. Re-running with the owner virtual environment produced:
+
+- 65 targeted Python tests passed;
+- 28 Node tests passed;
+- relevant JSON schema/capability documents parsed successfully;
+- Runtime execution evidence: `job-01a03413-71af-7cf1-b355-7b175f91263f`, terminal evidence `sha256:e12ff54...`.
+
+Result:
+
+```text
+Chapter-4 claim/prose = NO_CHANGE
+Chapter-3 exact source history = KEEP finance-ch3@913d...
+Chapter-4 current source fence = ADVANCE finance-current@8e0...
+```
+
+No whole-world refresh was inferred. The change demonstrates that currentness repair can update provenance while leaving the supported claim unchanged.
 
 ### Natural currentness falsifier during source construction
 
@@ -423,6 +444,27 @@ Scenario adjudication was also exact:
 - unchanged load-bearing boundary -> `NO_CHANGE`.
 
 The one conclusion correction remains part of the acceptance evidence. It is not rewritten as a zero-friction carrier success.
+
+### Independent carrier-pressure controls
+
+A second, independently specified Chapter-4 series tested whether failures came from the chapter or from the structured-result carrier:
+
+| Run | Physical result | Semantic disposition |
+| --- | --- | --- |
+| `harness-run:book-ch4-independent-consumer-20260824-v1` | first candidate invalid; correction was blocked by the conservative remaining-token bound | no semantic result; retain `budget_exhausted` |
+| `harness-run:book-ch4-independent-consumer-20260824-v2` | two structured attempts invalid | no semantic result; retain `invalid_model_output` |
+| `harness-run:book-ch4-independent-consumer-20260824-v3` | compact enum contract; one call, zero corrections, 6,215 tokens | recovered all ten rejected implications and four positive claims; caller gate false only on an underspecified `staleTask` enum |
+| `harness-run:book-ch4-stale-task-falsifier-20260824-v4` | explicit READY-at-A / owner-advanced-to-B scenario; one call, zero corrections, 5,721 tokens | semantic pass: recover continuity, revalidate owner main, then readmit current work |
+
+The v3 mismatch was not admitted as chapter failure because the field supplied no conditions under which `resume-ready` and `recover-continuity-then-revalidate` could be distinguished. v4 isolated that variable and selected `recover-continuity-then-revalidate-owner-main-and-readmit` with anchor `resume-is-not-readmission`.
+
+This preserves three separate results:
+
+```text
+invalid carrier != false claim
+underspecified test != discriminating falsifier
+focused mechanism pass != whole-frontier completeness
+```
 
 ### Whole-Book carrier controls
 
@@ -506,11 +548,11 @@ Chapter 4 does not earn a universal Currentness service, global semantic clock, 
 
 ### Post-promotion currentness revalidation
 
-Promotion advanced Media owner source from `5b861981...` to `ec24fe877f01505d87ccfc5ab13060098922da55`. Revalidation then found:
+Promotion advanced Media owner source from `5b861981...` through content commit `ec24fe877f01505d87ccfc5ab13060098922da55` and source-role cleanup head `726d0064dba50c30459da419c288eaf551272642`. Revalidation then found:
 
-- `research/media/engineering-consumption/OMPC-v0.md`: unchanged from `710270d...` through `ec24fe8...`;
-- `MEDIA.md`: unchanged from `710270d...` through `ec24fe8...`;
-- `productions/ordivon-book-v0/constitution.md`: unchanged from `5b861981...` through `ec24fe8...`;
-- `productions/ordivon-book-v0/source-map.md`: changed, as expected, because Chapter 4 source integration was added.
+- `research/media/engineering-consumption/OMPC-v0.md`: unchanged from `710270d...` through observed cleanup head `726d006...`;
+- `MEDIA.md`: unchanged from `710270d...` through observed cleanup head `726d006...`;
+- `productions/ordivon-book-v0/constitution.md`: unchanged from `5b861981...` through observed cleanup head `726d006...`;
+- Book metadata: changed, as expected, for Chapter 4 integration and removal of the impossible self-current source role.
 
-Therefore the permanent currentness Claim remains source-fenced to the stable owner-native OMPC cut and explicitly revalidated against the new owner head. The Book does not create an impossible self-referential Git binding to its own commit. This episode demonstrates that owner revision advance can coexist with unchanged load-bearing semantics.
+Therefore the permanent currentness Claim remains source-fenced to the stable owner-native OMPC cut and explicitly revalidated against an observed post-promotion owner head. The Book does not create an impossible self-referential Git binding to its own commit. This episode demonstrates that owner revision advance can coexist with unchanged load-bearing semantics.

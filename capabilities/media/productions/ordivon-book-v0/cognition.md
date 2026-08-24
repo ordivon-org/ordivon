@@ -26,14 +26,15 @@ Current permanent claim fences:
 
 - Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` — non-authoritative cross-owner synthesis/recovery/provenance;
 - pre-Book Media `69ab3a4d781ccc6d9718b7e66fc6d34a531a0935` — independent Writing/Production craft authority;
-- Chapter-2 Media semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba` — OMPC/owner-first projection semantics, revalidated byte-identical at post-promotion observed Media head `ec24fe877f01505d87ccfc5ab13060098922da55`;
-- Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` — current Decision/Proposal/authority/effect/currentness semantics;
+- Chapter-2 Media semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba` — OMPC/owner-first projection semantics, revalidated byte-identical through observed cleanup head `726d0064dba50c30459da419c288eaf551272642`;
+- Chapter-3 Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` — exact historical Decision/Proposal/authority/effect admission fence;
+- current Finance `8e0ace04f3472c336db30d10c9f437812c712a36` — Reality-acquisition, decision, execution and reconciliation semantics revalidated for Chapter 4;
 - Normative `68826a3b256da0bba8d540102528721a3e338c25` — normative power/admission owner boundaries;
 - Harness `d72413de62c01d7b5124861d9028495707e01d5d` — capability/admission/selection/execution boundary;
 - Runtime `fd6765c20981461f1a29508d97225b96971cc389` — physical commitment/effect/evidence/reconciliation boundary;
 - Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity and revision-fenced recovery boundary;
 
-The Book now carries 26 Git-bound Claims. The final source role keeps `5b861981...` only as the pre-promotion Book process cut, not a permanent current binding. Post-promotion owner revalidation at `ec24fe8...` proved the load-bearing OMPC/MEDIA semantics unchanged. A final source gate checks every Claim source/evidence path against its exact semantic binding.
+The Book now carries 26 Git-bound Claims across nine exact source bindings. `finance-ch3@913d...` is retained as the historical Chapter-3 admission fence, while Chapter-4 Finance claims use `finance-current@8e0...` after targeted revalidation. The final source role keeps `5b861981...` only as the pre-promotion Book process cut, not a permanent current binding. Post-promotion owner revalidation through observed cleanup head `726d006...` proved the load-bearing OMPC/MEDIA semantics unchanged. A final source gate checks every Claim source/evidence path against its exact semantic binding.
 
 Chapter 4's central `Actionable Now` is explicitly Book-level integration rather than an owner-native truth class. Its explanatory frontier notation is intentionally open:
 
@@ -97,10 +98,10 @@ Current mechanical gate:
 
 - `Studio production models are valid.`
 - all 26 Claims are schema-valid under the current Production model;
-- all 70 Claim source/evidence paths resolve at exact pinned Git revisions;
+- all 69 Claim source/evidence paths resolve at exact pinned Git revisions;
 - Chapter 1–3 raw digests remain unchanged;
 - Chapter 4 and four-chapter combined Output digests match exact raw bytes;
-- a final `git diff --check` remains required after this cognition/acceptance writeback;
+- the final metadata gate includes `git diff --check`, JSON/source-binding checks and exact Output digest checks;
 - no Book schema, service, repository, Edition object, currentness daemon or Agent Tool was added.
 
 ### Chapter-4 chapter-only adversarial consumer
@@ -123,6 +124,19 @@ The consumer correctly rejected all targeted collapses: `latest -> current`, his
 It correctly admitted `NO_CHANGE` and `UNKNOWN` as first-class outcomes and correctly resolved five scenarios: expired Decision -> fresh review; response loss -> reconcile same operation; unrelated newer commit -> no automatic supersession; READY continuity + moved owner -> recover then revalidate owner/current work; unchanged load-bearing boundary -> `NO_CHANGE`.
 
 The single conclusion correction is retained as carrier friction rather than erased.
+
+### Final-admission source and carrier pressure
+
+Finance advanced from `913d7b22...` to `8e0ace04...` after the Chapter-3 fence had been admitted. Because the delta touched `context_compiler.py` and `execution_kernel.py`, Chapter 4 revalidated the new owner cut rather than relabeling the old cut current. The owner environment passed 65 targeted Python tests, 28 Node tests and relevant capability JSON parsing. Claim/prose standing remained `NO_CHANGE`; only the source-currentness fence changed.
+
+A separate Chapter-4 Harness pressure series retained the carrier failures instead of forcing a green result:
+
+- `harness-run:book-ch4-independent-consumer-20260824-v1` — correction admission exhausted the bounded token authority; no semantic result;
+- `...-v2` — two structured attempts remained invalid; no semantic result;
+- `...-v3` — compact contract, one model call and zero corrections; all ten rejected implications and four positive claims were recovered, but an underspecified `staleTask` enum made the caller gate false;
+- `harness-run:book-ch4-stale-task-falsifier-20260824-v4` — the ambiguity was replaced by one explicit READY/owner-advance scenario and passed in one model call with zero corrections.
+
+The consequence was test-contract repair, not chapter-prose repair. A failed carrier or underspecified field is not allowed to masquerade as a refutation.
 
 ### Four-chapter whole-Book consumer
 
@@ -181,3 +195,5 @@ Do not create a universal Currentness service, global semantic clock, dependency
 7. Structured-carrier failures again demonstrate `carrier success != semantic truth` and `carrier failure != semantic failure`; acceptance requires the right consumer contract, not a forced green metric.
 8. The current four-chapter Book can bootstrap one independent Agent into all four distinct roles and their non-collapse relations without external research chronology.
 9. Chapter 4 now creates a natural but still unearned next seam: recovered currentness can change default context/tool exposure/affordance, which belongs to later Agent–Environment work rather than this chapter.
+10. A source fence that was current at one chapter's admission must not be silently relabeled current forever. Historical provenance and present source authority need distinct coordinates even when claim prose remains unchanged.
+11. Consumer pressure can falsify the evaluation carrier before it falsifies the content. Budget exhaustion, invalid structured output and an underspecified enum field are evidence about the contract; the focused single-variable test is the stronger Chapter-4 mechanism witness.

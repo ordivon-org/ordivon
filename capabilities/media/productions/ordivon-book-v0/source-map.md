@@ -129,13 +129,13 @@ Chapter 2 uses these Host checkpoints only as semantic-continuity pressure. Exac
 
 ## Chapter 3 — Action / Authority / Effect / Consequence source additions
 
-Chapter 3 consumes current owner-native action boundaries directly instead of lifting historical Host checkpoints into current truth. Atlas remains a non-authoritative cross-owner synthesis/recovery source.
+Chapter 3 consumed owner-native action boundaries at exact admission cuts instead of lifting historical Host checkpoints into then-current truth. Atlas remains a non-authoritative cross-owner synthesis/recovery source.
 
-### Current owner bindings
+### Chapter-3 admission bindings
 
 | Binding | Repository | Revision | Chapter-3 role |
 | --- | --- | --- | --- |
-| `finance-current` | `ordivon-finance` | `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` | Decision/Proposal, owner-native/delegated authority, current semantic admission, effect and reconciliation boundaries |
+| `finance-ch3` | `ordivon-finance` | `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` | Decision/Proposal, owner-native/delegated authority, current semantic admission, effect and reconciliation boundaries |
 | `normative-current` | `ordivon-normative` | `68826a3b256da0bba8d540102528721a3e338c25` | normative power/admission boundaries without physical/effective-control lifting |
 | `harness-current` | `ordivon-harness` | `d72413de62c01d7b5124861d9028495707e01d5d` | installed/Run/turn capability admission, delegated Agent selection and bounded execution-completion semantics |
 | `runtime-current` | `ordivon-runtime` | `fd6765c20981461f1a29508d97225b96971cc389` | commitment, physical dispatch, evidence, ambiguity and reconciliation boundary |
@@ -144,10 +144,10 @@ Load-bearing owner files:
 
 | Ref | Binding | Path | Chapter-3 use | Ceiling |
 | --- | --- | --- | --- | --- |
-| F1 | `finance-current` | `design/DECISION-PROPOSAL-KERNEL.md` | NO-OP baseline; research/wait/abstain as complete Decisions; Proposal distinct from authority/effect | Finance decision semantics only |
-| F2 | `finance-current` | `design/C2-AUTHORITY-REFORM.md` | owner-native vs delegated authority; current Decision/world/effect admission chain | current Finance capital authority architecture, not universal authority law |
-| F3 | `finance-current` | `docs/runtime-domain.md` | semantic `decide`/`execute`/`reconcile` boundaries over Runtime lowering | Finance/Runtime domain boundary |
-| F4 | `finance-current` | `design/AUTHORITY-EXECUTION-KERNEL.md` | proposal revalidation, effect reservation, reconcile-first uncertainty laws retained under C2 | historical A7 document with explicit current-C2 compatibility ceiling |
+| F1 | `finance-ch3` | `design/DECISION-PROPOSAL-KERNEL.md` | NO-OP baseline; research/wait/abstain as complete Decisions; Proposal distinct from authority/effect | Finance decision semantics only |
+| F2 | `finance-ch3` | `design/C2-AUTHORITY-REFORM.md` | owner-native vs delegated authority; current Decision/world/effect admission chain | current Finance capital authority architecture, not universal authority law |
+| F3 | `finance-ch3` | `docs/runtime-domain.md` | semantic `decide`/`execute`/`reconcile` boundaries over Runtime lowering | Finance/Runtime domain boundary |
+| F4 | `finance-ch3` | `design/AUTHORITY-EXECUTION-KERNEL.md` | proposal revalidation, effect reservation, reconcile-first uncertainty laws retained under C2 | historical A7 document with explicit current-C2 compatibility ceiling |
 | N1 | `normative-current` | `DERIVED-LAWS.md` | `NormativePower != physical capability != ordinary permission != effective control` | current Normative derived law only |
 | N2 | `normative-current` | `OWNER-CONTRACT.md` | Normative owner scope and explicit non-ownership of physical/effective control | owner boundary |
 | N3 | `normative-current` | `BOUNDARIES-NEGATIVE.md` | no generic control/enforcement/action owner | negative owner boundary |
@@ -159,7 +159,7 @@ Load-bearing owner files:
 | A11 | `atlas` | `synthesis/2026-08-19-rsi-pal-action-governance/README.md` | standing/admission/selection anti-lifting; effect/propagation/control/observation frontiers | explicitly non-authoritative synthesis |
 | A12 | `atlas` | `synthesis/2026-08-21-result-achievement-value-materialization/README.md` | occurrence/outcome/evaluation/beneficiary-benefit separation and attribution ceiling | explicitly non-authoritative synthesis |
 
-### Current live Finance pressure episode
+### Chapter-3 live Finance pressure episode
 
 A read-only `finance.context.compile` episode was executed against canonical Finance on 2026-08-24 at generated time `2026-08-24T12:16:38.438598Z`, stateVersion `1564:e316d435f391005b`.
 
@@ -174,7 +174,7 @@ It observed simultaneously:
 - no current/active Effects;
 - one open `review-decision-epoch` obligation before new action progression.
 
-This episode supplies current consumer pressure for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is **not** a permanent source-bound Claim: future Finance state is expected to change, and the Book must not freeze this observation into owner truth.
+This episode supplied then-current consumer pressure for `AuthorityPresent != ActionNow` and `HistoricalDecisionValidity != CommitmentCurrentness`. It is **not** a permanent source-bound Claim: Finance state is mutable, and the Book does not freeze this observation into current owner truth.
 
 ### Host Chapter-3 semantic-continuity pressure
 
@@ -187,7 +187,7 @@ This episode supplies current consumer pressure for `AuthorityPresent != ActionN
 | `task:ordivon-research-engineering-consumption-consequence-conversion-audit-20260824` | 15 | claim-relative Reality coupling; Human/consumer is not a universal terminal |
 | `task:ordivon-first-interface-environmentalization-ppd-20260822` | 29 | operation-relative affordance recompilation as a downstream bridge after action semantics |
 
-These Host checkpoints preserve semantic continuity only. Exact Chapter-3 Claims remain Git-bound to current owner/Atlas files above.
+These Host checkpoints preserve semantic continuity only. Exact Chapter-3 Claims remain Git-bound to the owner/Atlas admission cuts above.
 
 
 ## Chapter 4 — History / Currentness / Recovery source additions
@@ -201,8 +201,8 @@ Chapter 4 treats `Actionable Now` as a Book-level cross-owner synthesis, not a n
 | `atlas` | `ordivon-atlas` | `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` | retained history/currentness projection and owner-authority conservation |
 | `host-current` | `ordivon-host` | `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` | semantic continuity, revision-coherent recovery, explicit non-current-work boundary |
 | `runtime-current` | `ordivon-runtime` | `fd6765c20981461f1a29508d97225b96971cc389` | physical recovery/reconciliation, Workspace source-state distinctions, UNKNOWN preservation |
-| `finance-current` | `ordivon-finance` | `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` | historical Decision validity versus review/action currentness; dependency-specific fresh re-evaluation |
-| `media-book-current` | `ordivon-media` | `5b861981c9f63451bace1118e56d407fdfb14109` | current Book/OMPC projection-currentness boundary and selective Book source revalidation rule |
+| `finance-current` | `ordivon-finance` | `8e0ace04f3472c336db30d10c9f437812c712a36` | historical Decision validity versus review/action currentness; dependency-specific fresh re-evaluation |
+| `media-current` | `ordivon-media` | `710270d9aa4660519f7d6aa3a6007f76aec173ba` | stable owner-native OMPC currentness semantics, revalidated after Book promotion |
 
 Load-bearing current files:
 
@@ -217,13 +217,28 @@ Load-bearing current files:
 | F5 | `finance-current` | `kernel/decision_kernel.py` | expired Decision review preserves historical validity while new action progression requires fresh review | Finance Decision semantics only |
 | F6 | `finance-current` | `kernel/execution_kernel.py` | Decision epoch, Venue World, authority and execution basis are re-evaluated as action-specific dependencies | Finance execution semantics only |
 | F7 | `finance-current` | `kernel/financial_resource_semantics.py` | `UNKNOWN` and `STALE` fail closed without being rewritten into ordinary failure | Finance resource semantics only |
-| M8 | `media-current` | `research/media/engineering-consumption/OMPC-v0.md` | currentness non-fabrication; recent rendering/availability does not mint source currentness | Media projection contract only; exact `710270d...` bytes revalidated unchanged through `ec24fe8...` |
+| M8 | `media-current` | `research/media/engineering-consumption/OMPC-v0.md` | currentness non-fabrication; recent rendering/availability does not mint source currentness | Media projection contract only; exact `710270d...` bytes revalidated unchanged through observed cleanup head `726d006...` |
 
 ### Book-local source-cut role after promotion
 
-The pre-promotion Book/Media cut `5b861981c9f63451bace1118e56d407fdfb14109` was current while Chapter 4 was authored, but it is **not** retained as a permanent `current` source binding after promotion. Post-promotion revalidation observed Media `main@ec24fe877f01505d87ccfc5ab13060098922da55`; `OMPC-v0` and `constitution.md` were unchanged from the load-bearing source cuts, while `source-map.md` changed because Chapter 4 itself was integrated. The pre-promotion cut therefore remains process/history evidence, not a current-owner label.
+The pre-promotion Book/Media cut `5b861981c9f63451bace1118e56d407fdfb14109` was current while Chapter 4 was authored, but it is **not** retained as a permanent `current` source binding after promotion. Post-promotion revalidation observed the content commit `ec24fe877f01505d87ccfc5ab13060098922da55` and subsequent source-role cleanup head `726d0064dba50c30459da419c288eaf551272642`; `OMPC-v0`, `MEDIA.md`, and `constitution.md` remained byte-identical at their load-bearing source cuts, while Book metadata changed as expected. The pre-promotion cut therefore remains process/history evidence, not a current-owner label.
 
 This is a concrete positive control for `newer != superseding`: owner revision advanced, but the load-bearing OMPC semantics did not.
+
+### Finance final-admission revalidation
+
+Finance owner `main` advanced from the Chapter-3 admission fence `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` to `8e0ace04f3472c336db30d10c9f437812c712a36` while Chapter 4 was approaching final admission. The delta touched load-bearing currentness paths, including `kernel/context_compiler.py` and `kernel/execution_kernel.py`, so the old fence could not remain labeled current without revalidation.
+
+At exact `8e0ace0...`, the owner virtual environment passed 65 targeted Python tests, 28 Node tests, and JSON parsing for the relevant capabilities. The initial system-Python attempt lacked `duckdb`; this is retained as environment evidence and was not misclassified as a Finance code failure.
+
+The Chapter-4 claim/prose decision was `NO_CHANGE`, while provenance/currentness changed:
+
+```text
+finance-ch3@913d... = exact historical Chapter-3 admission fence
+finance-current@8e0... = current Chapter-4 source fence
+```
+
+This is selective source revalidation, not retrospective history rewriting and not a whole-world refresh.
 
 ### Live Chapter-4 currentness falsifier
 
