@@ -84,11 +84,24 @@ Large media bytes, caches, proxies, and exports stay outside Git. Git stores ide
 
 Current production status and storage evidence remain in the production and technical documents rather than this entry page.
 
+`studio_production_standing` deliberately does **not** infer a unique current Production from status, directory order, or recent Git activity. When several valid Productions exist, caller/owner intent must identify the work before `studio_production_context` is consumed. This preserves action relevance without turning a convenient index into a priority authority.
+
 ## Start here
+
+For ordinary Agent work, start from the dependency-independent Studio semantic surface rather than reconstructing Production state from repository chronology or materializing the full authoring environment first. Running it with no action lists the bounded owner-native actions and their schemas:
+
+```bash
+python3 scripts/studio-agent-surface.py
+```
 
 | Need | Read / invoke |
 | --- | --- |
-| inspect one Production, its Claims/Outputs, and optional source-binding Git relation without rendering or editing | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
+| discover the bounded Studio Agent surface without `.venv` or `node_modules` | `python3 scripts/studio-agent-surface.py` |
+| inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
+| after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
+| hydrate scoped retained learning for the selected Production | `python3 scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
+| compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
+| use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
 | understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
 | inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
 | understand why Studio exists | this README |

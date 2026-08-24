@@ -161,6 +161,68 @@ def _production_root(root: Path, production_id: str) -> Path:
     return production_root
 
 
+def production_standing(root: Path = ROOT) -> dict[str, Any]:
+    productions_root = root / "productions"
+    productions: list[dict[str, Any]] = []
+    if productions_root.is_dir():
+        for production_root in sorted(path for path in productions_root.iterdir() if path.is_dir()):
+            production_path = production_root / "production.json"
+            if not production_path.is_file():
+                continue
+            value = json.loads(production_path.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError(f"Production descriptor must be an object: {production_path}")
+            outputs: list[dict[str, Any]] = []
+            raw_outputs = value.get("outputs", [])
+            if isinstance(raw_outputs, list):
+                for output in raw_outputs:
+                    if not isinstance(output, dict):
+                        continue
+                    outputs.append(
+                        {
+                            "id": output.get("id"),
+                            "kind": output.get("kind"),
+                            "status": output.get("status"),
+                            "profile": output.get("profile"),
+                        }
+                    )
+            productions.append(
+                {
+                    "productionId": production_root.name,
+                    "title": value.get("title"),
+                    "status": value.get("status"),
+                    "intent": value.get("intent"),
+                    "audiences": list(value.get("audiences", []))
+                    if isinstance(value.get("audiences"), list)
+                    else [],
+                    "outputs": outputs,
+                    "source": {
+                        "path": str(production_path.relative_to(root)),
+                        "digest": _digest(production_path),
+                    },
+                }
+            )
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.studio-production-standing",
+        "truthRole": "derived-read-only-owner-production-index",
+        "currentProductionId": None,
+        "selectionStanding": "OWNER_CURRENT_INTENT_NOT_ESTABLISHED",
+        "productions": productions,
+        "claims": {
+            "ownerCurrentIntentEstablished": False,
+            "selectionPriorityInferred": False,
+            "productionIdentityInvented": False,
+        },
+        "nextWhenSelected": "studio_production_context",
+        "boundary": (
+            "Studio can enumerate exact Production identity mechanically, but it does not infer "
+            "which Production the caller means by current work. Caller/owner intent must ground "
+            "that semantic selection before a Production-specific context is useful."
+        ),
+    }
+
+
 def tool_definitions() -> list[dict[str, Any]]:
     return [
         {
@@ -177,6 +239,11 @@ def tool_definitions() -> list[dict[str, Any]]:
                 "required": ["target"],
                 "additionalProperties": False,
             },
+        },
+        {
+            "name": "studio_production_standing",
+            "description": "Read the bounded owner-native Production index and whether Studio has established a unique current Production. This does not infer priority or invent current intent; when no current Production is grounded, caller/owner intent must select one before Production-specific work.",
+            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         },
         {
             "name": "studio_production_context",
@@ -219,6 +286,8 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         return dependency_status(root)
     if name == "studio_dependencies_propose":
         return dependency_proposal(str(arguments["target"]), root)
+    if name == "studio_production_standing":
+        return production_standing(root)
     if name == "studio_production_context":
         production_id = str(arguments["productionId"])
         return build_production_context(_production_root(root, production_id))
@@ -253,7 +322,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-learning-hydration-v1",
+        "revision": "studio-agent-surface-production-standing-v2",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
