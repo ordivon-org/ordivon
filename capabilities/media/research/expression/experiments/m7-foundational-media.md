@@ -107,6 +107,24 @@ An edited replay can remove that misleading interval entirely. The result theref
 
 Decision: **retain Live/Realtime as candidate only.** No ordinary public live production exists yet, so profile graduation would exceed the evidence.
 
+### 2026-08-25 conversation specialization follow-up
+
+A later Representation Environment audit asked the narrower question that M7-L intentionally left open: does Human↔Agent conversation already require an additional Conversation specialization beyond generic live/currentness and interaction semantics?
+
+The falsifier used one fixed four-turn live conversation with: an established candidate referent, a side-task interruption, two simultaneously salient singular artifacts followed by `Send it`, an owner correction that replaced Juniper with Maple, and an explicit later `Publish Maple` command. It compared generic live rules with added conversational common-ground/reference-repair prose and with a non-authoritative structured discourse-state projection. Early runs exposed two experiment-design errors—`needsRepair` was conflated with structured-output correction, and a post-correction `hold` expectation incorrectly rejected the valid action of drafting the replacement candidate—so those runs were retained only as diagnostic evidence and not promoted.
+
+The cleaned reference-standing ablation used explicit `referenceStanding = unresolved | cedar-answer | juniper` and `nextAction = clarify-reference | ...` fields. On the genuinely ambiguous two-antecedent turn, all three arms preserved the reference as unresolved and selected clarification:
+
+```text
+generic live             3 / 3
+conversation prose rule  3 / 3
+structured projection    3 / 3
+```
+
+A separate cleaned full-prefix run also showed that both generic and conversation-aware arms correctly preserved the publication instruction/effect distinction once the field was changed from ambiguous `completionClaimed` to exact `physicalPublicationObserved`.
+
+Decision: **do not graduate a Conversation profile and do not add discourse-state machinery from this evidence.** Conversation-specific guidance can help make correction/rebinding intent explicit, but this experiment did not reveal a deletion-essential failure that generic live handling could not already solve. M7-L remains intact: live unknown-future/currentness/correction pressure is real, while Conversation remains a specialization candidate that must be reopened only by a real consumer failure or stronger ablation.
+
 ## Haptic / Physical challenger
 
 OpenXR and the W3C Vibration API establish tactile output as a real technical modality, but this environment has no verified physical haptic encounter. Simulating timestamps would not test tactile perception.
