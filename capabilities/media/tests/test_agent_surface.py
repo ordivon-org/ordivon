@@ -64,6 +64,16 @@ class AgentSurfaceTests(unittest.TestCase):
             ],
         )
 
+    def test_media_first_object_keeps_owner_before_studio_lowering(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        owner = readme.index("## Media owner first interface")
+        studio = readme.index("## Studio capability plane")
+        self.assertLess(owner, studio)
+        self.assertIn("Studio is an optional production lowering", readme)
+        self.assertIn("OMPC-v0.md", readme)
+        self.assertIn("does not by itself justify creating a Production", readme)
+
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)

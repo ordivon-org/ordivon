@@ -4,6 +4,12 @@ Ordivon Media owns **structured mediation** across Ordivon: how source-owned rea
 
 The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
 
+## Media owner first interface
+
+Generic observer-facing mediation starts at the **Media owner boundary**. The source owner keeps truth and currentness; Media chooses the bounded observer-relative projection. Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) when the projection contract itself matters.
+
+**Studio is an optional production lowering, not the default owner of mediation.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. A status card, Agent view, tool result, metric, Web/Game view, or other representation does not by itself justify creating a Production or invoking Studio equipment. Consequential action remains with its external admission/execution owner.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
@@ -96,9 +102,11 @@ python3 scripts/studio-agent-surface.py
 
 | Need | Read / invoke |
 | --- | --- |
+| design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
 | discover the bounded Studio Agent surface without `.venv` or `node_modules` | `python3 scripts/studio-agent-surface.py` |
 | inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
 | after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
+| inspect one Production, its Claims/Outputs, and optional source-binding Git relation through the lower-level CLI | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
 | hydrate scoped retained learning for the selected Production | `python3 scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
 | compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
 | use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
