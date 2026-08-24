@@ -11,6 +11,7 @@ from ordivon_studio.agent_surface import (
     dependency_proposal,
     dependency_status,
     execute_surface_action,
+    production_standing,
     surface_projection,
 )
 
@@ -53,7 +54,14 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertTrue(value["harnessMayAdmitSubsetOnly"])
         self.assertEqual(
             [item["name"] for item in value["tools"]],
-            ["studio_dependencies_status", "studio_dependencies_propose", "studio_production_context", "studio_learning_context", "studio_equipment_propose"],
+            [
+                "studio_dependencies_status",
+                "studio_dependencies_propose",
+                "studio_production_standing",
+                "studio_production_context",
+                "studio_learning_context",
+                "studio_equipment_propose",
+            ],
         )
 
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
@@ -93,6 +101,42 @@ class AgentSurfaceTests(unittest.TestCase):
             self.assertEqual(js["plan"]["args"], ["install", "--frozen-lockfile"])
             self.assertEqual(python["plan"]["executable"], "/usr/bin/python3")
             self.assertEqual(resolve["plan"]["args"], ["scripts/materialize-python.py", "--extra", "resolve"])
+
+    def test_production_standing_enumerates_identity_without_inventing_current_intent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            for production_id, title in (("p1", "P1"), ("p2", "P2")):
+                prod = root / "productions" / production_id
+                prod.mkdir(parents=True)
+                (prod / "production.json").write_text(
+                    json.dumps(
+                        {
+                            "schemaVersion": 1,
+                            "title": title,
+                            "status": "review",
+                            "intent": f"intent {production_id}",
+                            "audiences": ["agent"],
+                            "outputs": [
+                                {
+                                    "id": f"{production_id}-out",
+                                    "kind": "article",
+                                    "status": "planned",
+                                    "profile": "writing",
+                                }
+                            ],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            value = production_standing(root)
+            action = execute_surface_action("studio_production_standing", {}, root=root)
+        self.assertEqual(value, action)
+        self.assertIsNone(value["currentProductionId"])
+        self.assertEqual(value["selectionStanding"], "OWNER_CURRENT_INTENT_NOT_ESTABLISHED")
+        self.assertFalse(value["claims"]["ownerCurrentIntentEstablished"])
+        self.assertFalse(value["claims"]["selectionPriorityInferred"])
+        self.assertEqual([item["productionId"] for item in value["productions"]], ["p1", "p2"])
+        self.assertEqual(value["nextWhenSelected"], "studio_production_context")
 
     def test_learning_and_production_context_are_owner_native_read_only_actions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
