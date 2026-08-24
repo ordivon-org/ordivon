@@ -337,12 +337,13 @@ No Book Edition object, Action schema, permission engine, authority graph, conse
 
 ### Exact source and static gate
 
-Chapter 4 added two current bindings without introducing Book-specific infrastructure:
+Chapter 4 added the current Host binding without introducing Book-specific infrastructure:
 
-- Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity / revision-fenced recovery boundary;
-- current Media/Book `5b861981c9f63451bace1118e56d407fdfb14109` — projection-currentness and selective Book revalidation boundary.
+- Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity / revision-fenced recovery boundary.
 
-It reuses current Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`, Runtime `fd6765c20981461f1a29508d97225b96971cc389`, and Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`.
+For Media currentness it reuses the owner-native `media-current` OMPC semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba`. After Chapter 4 promotion, `OMPC-v0` and `MEDIA.md` were revalidated byte-identical at post-promotion observed Media head `ec24fe877f01505d87ccfc5ab13060098922da55`; the pre-promotion Book cut `5b861981...` is retained only as process/history evidence, not as a permanent `current` binding.
+
+It also reuses current Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8`, Runtime `fd6765c20981461f1a29508d97225b96971cc389`, and Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd`.
 
 The Book now has 26 Git-bound Claims. Final exact source gate:
 
@@ -502,3 +503,14 @@ Public publication = NOT SELECTED
 ```
 
 Chapter 4 does not earn a universal Currentness service, global semantic clock, dependency graph, replay engine, Book Edition object, environment manager, scheduler, new Book/Text repository or service. The next Agent–Environment seam remains a candidate only because recovered currentness can change what should be exposed or afforded to a consumer; it requires its own source/falsifier pressure before becoming another chapter.
+
+### Post-promotion currentness revalidation
+
+Promotion advanced Media owner source from `5b861981...` to `ec24fe877f01505d87ccfc5ab13060098922da55`. Revalidation then found:
+
+- `research/media/engineering-consumption/OMPC-v0.md`: unchanged from `710270d...` through `ec24fe8...`;
+- `MEDIA.md`: unchanged from `710270d...` through `ec24fe8...`;
+- `productions/ordivon-book-v0/constitution.md`: unchanged from `5b861981...` through `ec24fe8...`;
+- `productions/ordivon-book-v0/source-map.md`: changed, as expected, because Chapter 4 source integration was added.
+
+Therefore the permanent currentness Claim remains source-fenced to the stable owner-native OMPC cut and explicitly revalidated against the new owner head. The Book does not create an impossible self-referential Git binding to its own commit. This episode demonstrates that owner revision advance can coexist with unchanged load-bearing semantics.

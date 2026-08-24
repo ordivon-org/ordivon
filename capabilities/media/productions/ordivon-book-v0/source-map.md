@@ -217,9 +217,13 @@ Load-bearing current files:
 | F5 | `finance-current` | `kernel/decision_kernel.py` | expired Decision review preserves historical validity while new action progression requires fresh review | Finance Decision semantics only |
 | F6 | `finance-current` | `kernel/execution_kernel.py` | Decision epoch, Venue World, authority and execution basis are re-evaluated as action-specific dependencies | Finance execution semantics only |
 | F7 | `finance-current` | `kernel/financial_resource_semantics.py` | `UNKNOWN` and `STALE` fail closed without being rewritten into ordinary failure | Finance resource semantics only |
-| M6 | `media-book-current` | `productions/ordivon-book-v0/constitution.md` | Book is current explanatory projection; source owner wins; revision can legitimately conclude `NO_CHANGE` | Book pilot contract, not source truth |
-| M7 | `media-book-current` | `productions/ordivon-book-v0/source-map.md` | revalidate only exact upstream owner/source fences that carry a consequential changed claim | Book-local currentness practice |
-| M8 | `media-book-current` | `research/media/engineering-consumption/OMPC-v0.md` | currentness non-fabrication; recent rendering/availability does not mint source currentness | Media projection contract only |
+| M8 | `media-current` | `research/media/engineering-consumption/OMPC-v0.md` | currentness non-fabrication; recent rendering/availability does not mint source currentness | Media projection contract only; exact `710270d...` bytes revalidated unchanged through `ec24fe8...` |
+
+### Book-local source-cut role after promotion
+
+The pre-promotion Book/Media cut `5b861981c9f63451bace1118e56d407fdfb14109` was current while Chapter 4 was authored, but it is **not** retained as a permanent `current` source binding after promotion. Post-promotion revalidation observed Media `main@ec24fe877f01505d87ccfc5ab13060098922da55`; `OMPC-v0` and `constitution.md` were unchanged from the load-bearing source cuts, while `source-map.md` changed because Chapter 4 itself was integrated. The pre-promotion cut therefore remains process/history evidence, not a current-owner label.
+
+This is a concrete positive control for `newer != superseding`: owner revision advanced, but the load-bearing OMPC semantics did not.
 
 ### Live Chapter-4 currentness falsifier
 

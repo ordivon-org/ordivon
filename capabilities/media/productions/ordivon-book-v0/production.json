@@ -58,12 +58,6 @@
       "repository": "ordivon-host",
       "revision": "b40c7e6a56011dad3ccb595b332ab0edf9fa200a",
       "role": "current Host semantic-continuity and revision-fenced recovery boundary used by Chapter 4"
-    },
-    {
-      "id": "media-book-current",
-      "repository": "ordivon-media",
-      "revision": "5b861981c9f63451bace1118e56d407fdfb14109",
-      "role": "current Media/Book projection-currentness and selective source-revalidation boundary used by Chapter 4"
     }
   ],
   "workingProfile": {},

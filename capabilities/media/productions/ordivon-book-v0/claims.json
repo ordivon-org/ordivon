@@ -498,13 +498,12 @@
     {
       "id": "media-currentness-nonfabrication",
       "source": {
-        "binding": "media-book-current",
+        "binding": "media-current",
         "path": "research/media/engineering-consumption/OMPC-v0.md"
       },
       "meaning": "Current Media projection semantics prohibit a projection from declaring its source current merely because the projection is recent, available or re-rendered; source-owner authority/currentness remains external and exact-fence traceable.",
       "evidence": [
-        "research/media/engineering-consumption/OMPC-v0.md",
-        "productions/ordivon-book-v0/constitution.md"
+        "research/media/engineering-consumption/OMPC-v0.md"
       ],
       "allowedWording": [
         "recent rendering does not currentize source truth",

@@ -26,15 +26,14 @@ Current permanent claim fences:
 
 - Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` — non-authoritative cross-owner synthesis/recovery/provenance;
 - pre-Book Media `69ab3a4d781ccc6d9718b7e66fc6d34a531a0935` — independent Writing/Production craft authority;
-- Chapter-2 Media semantics `710270d9aa4660519f7d6aa3a6007f76aec173ba` — OMPC/owner-first projection semantics;
+- Chapter-2 Media semantic cut `710270d9aa4660519f7d6aa3a6007f76aec173ba` — OMPC/owner-first projection semantics, revalidated byte-identical at post-promotion observed Media head `ec24fe877f01505d87ccfc5ab13060098922da55`;
 - Finance `913d7b22b2474465da6a7b6ebcc9406b2b1032dd` — current Decision/Proposal/authority/effect/currentness semantics;
 - Normative `68826a3b256da0bba8d540102528721a3e338c25` — normative power/admission owner boundaries;
 - Harness `d72413de62c01d7b5124861d9028495707e01d5d` — capability/admission/selection/execution boundary;
 - Runtime `fd6765c20981461f1a29508d97225b96971cc389` — physical commitment/effect/evidence/reconciliation boundary;
 - Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` — semantic continuity and revision-fenced recovery boundary;
-- current Media/Book `5b861981c9f63451bace1118e56d407fdfb14109` — Book/OMPC currentness non-fabrication and selective source-revalidation boundary.
 
-The Book now carries 26 Git-bound Claims. A final source gate checked 70 source/evidence paths across their exact binding revisions with zero missing paths.
+The Book now carries 26 Git-bound Claims. The final source role keeps `5b861981...` only as the pre-promotion Book process cut, not a permanent current binding. Post-promotion owner revalidation at `ec24fe8...` proved the load-bearing OMPC/MEDIA semantics unchanged. A final source gate checks every Claim source/evidence path against its exact semantic binding.
 
 Chapter 4's central `Actionable Now` is explicitly Book-level integration rather than an owner-native truth class. Its explanatory frontier notation is intentionally open:
 
