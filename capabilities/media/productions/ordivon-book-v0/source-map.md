@@ -383,3 +383,39 @@ Epistemic ceiling:
 - any claim that a specific owner has already acquired one of these capabilities must be grounded in that owner's current source/evidence, not in the Horizon text.
 
 The Horizon is deliberately challengeable. Mature external carriers, safety/regulatory pressure, unfavorable maintenance economics, or lack of actual discriminability/action gain may narrow, outsource, demote, or replace parts of the proposed expansion.
+
+
+## Future Horizon — Constructive capability-environment closeout correction
+
+This addition narrows the previously recorded laboratory horizon using a completed cross-owner Computing research closeout. It does not convert the Horizon into current capability truth.
+
+### Computing closeout binding
+
+- repository: `ordivon-computing`
+- revision: `d6017c19da90ac63f6fd95ddd07f464a61a37119`
+- path: `research/CONSTRUCTIVE-CAPABILITY-ENVIRONMENT-CLOSEOUT-20260825.md`
+- role: completed cross-owner PPD closeout / non-product world-model evidence
+- currentness note: this commit was safely fast-forwarded into canonical local Computing `main` while preserving two pre-existing staged J1 files byte-for-byte; those unrelated staged bytes are not part of this source binding.
+
+Imported claim ceiling:
+
+- `EnvironmentChange != CapabilityChange`;
+- `FrontierExpansion != InfrastructureCapital`;
+- `LatentAffordance != RealizedCapability`;
+- `MoreRawActions != MoreValidCapability`;
+- `AssetExists != CurrentCapability(target,time)`;
+- `CapabilityInstance != CapabilityProductionMechanism != ReconstructibleOption`;
+- Atlas×Host×Harness unique persistent-substrate interpretation is rejected after generic indexed retrieval + generic typed policy compilation reproduced the tested successor result; only responsibility-preserving reactivation remains as a narrow design principle;
+- Workstation `isolated-equipment` provides heterogeneous productive reuse/adaptive inherited infrastructure evidence, but not deletion-essential uniqueness;
+- Game critical-item constraint provides an option-preserving reachability witness, but mature deadlock/safe-state theory absorbs the generic mechanism;
+- no Environment/Lab owner, Capability Registry, Instrument Graph, universal currentness service, or construction roadmap is admitted.
+
+Relevant Host semantic-continuity records:
+
+| Task | Revision | Horizon use |
+| --- | ---: | --- |
+| `task:finite-intelligence-constructive-capability-environment-open-research-20260825` | 22 | terminal research closeout; semantic continuity only, while Computing `d6017c1` is the Git-bound load-bearing source |
+| `task:cojc-atlas-host-harness-continuity-capability-20260825` | 9 | generic-control closeout; unique persistent-intelligence substrate rejected |
+| `task:cojc-phase1e-finance-workstation-successor-20260825` | 3 | NO_OP natural-pressure control; historical blocker was not manufactured into a positive experiment |
+
+The Book uses the Git-bound Computing closeout for load-bearing prose. Host Tasks above preserve research/recovery context only.

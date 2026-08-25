@@ -82,6 +82,12 @@
       "repository": "ordivon-harness",
       "revision": "684333be5146d4f705a91edb396e83c6a1150e1f",
       "role": "current Harness reusable-cognition admission and subtractive First-Interface semantics used by Chapter 5"
+    },
+    {
+      "id": "computing-constructive-environment",
+      "repository": "ordivon-computing",
+      "revision": "d6017c19da90ac63f6fd95ddd07f464a61a37119",
+      "role": "completed constructive capability-environment closeout used to narrow the Future Laboratory Horizon"
     }
   ],
   "workingProfile": {},
@@ -138,7 +144,7 @@
       "kind": "article",
       "status": "review",
       "profile": "writing",
-      "blobDigest": "sha256:fef72a4f97bcc42fdae326399e2046d5dd20abba407bb415a1b679a8689fc6e3"
+      "blobDigest": "sha256:4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a"
     }
   ]
 }
