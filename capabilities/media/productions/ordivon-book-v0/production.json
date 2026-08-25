@@ -110,7 +110,7 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:10ed267c4b4eb9d90bf8b45c65c73482d40aae2d91e7359cbeedaeac37bf782c"
+      "blobDigest": "sha256:e2590c0a400715f391c1c17401f241510c7bc73109fbd1287f2fc5baf679ddb4"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
@@ -132,6 +132,13 @@
       "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7"
+    },
+    {
+      "id": "ordivon-book-v0-future-horizon-laboratory-zh",
+      "kind": "article",
+      "status": "review",
+      "profile": "writing",
+      "blobDigest": "sha256:fef72a4f97bcc42fdae326399e2046d5dd20abba407bb415a1b679a8689fc6e3"
     }
   ]
 }

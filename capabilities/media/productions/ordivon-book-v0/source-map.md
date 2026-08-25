@@ -362,3 +362,24 @@ No current evidence admits:
 - monotonic benefit from more automation or more environmentalization;
 - permanence of a currently useful placement;
 - the claim that First Interface alone is the theory of environmentalization.
+
+
+## Future Horizon — Laboratory / Reality Expansion provenance
+
+Status: `USER-ADOPTED DESIGN HORIZON / NOT OWNER TRUTH / NOT CURRENT CAPABILITY EVIDENCE`
+
+Adopted on `2026-08-25` from an explicit user direction to preserve the long-term goal that Ordivon may, after acquiring its own laboratory, expand from a primarily software intelligence substrate into an experimental intelligence substrate that can directly measure, intervene on, and learn from physical Reality.
+
+Canonical Book carrier:
+
+- `future-horizon-laboratory.mdx`
+
+Epistemic ceiling:
+
+- this source establishes a **chosen long-term objective** and design pressure;
+- it does **not** establish that the required laboratory, robotics, firmware, electronics, fabrication, physical Host, or automated-experiment capabilities currently exist;
+- it does **not** establish that Ordivon should own every lower layer;
+- it may inform future project selection only through the capability-pressure principle recorded in the Horizon;
+- any claim that a specific owner has already acquired one of these capabilities must be grounded in that owner's current source/evidence, not in the Horizon text.
+
+The Horizon is deliberately challengeable. Mature external carriers, safety/regulatory pressure, unfavorable maintenance economics, or lack of actual discriminability/action gain may narrow, outsource, demote, or replace parts of the proposed expansion.
