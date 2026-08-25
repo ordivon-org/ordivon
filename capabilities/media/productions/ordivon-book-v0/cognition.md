@@ -1,6 +1,6 @@
 # Ordivon Book v0 — current production cognition
 
-Status: active five-chapter Book decision record
+Status: active six-chapter Book decision record
 Profile: [`writing`](../../research/expression/profiles/writing.md)
 Constitution: [`constitution.md`](constitution.md)
 Source map: [`source-map.md`](source-map.md)
@@ -11,13 +11,14 @@ This cognition record owns only current editorial/integration judgment. `product
 
 ## FRAME
 
-Book v0 now has five approved chapter consumers:
+Book v0 now has six approved chapter consumers:
 
 1. `story.mdx` — Reality contact -> Representation -> Evidence/Standing -> authorized Action -> claim-relative Consequence -> Revision.
 2. `chapter-02.mdx` — operation/consumer/continuation-relative representation sufficiency, search geometry and recoverable re-entry after compression.
 3. `chapter-03.mdx` — Standing -> authority/admission -> selection -> commitment -> effect evidence -> consequence/re-adjudication.
 4. `chapter-04.mdx` — History/Currentness/Recovery -> operation-relative Actionable Now without turning history, continuity, recency or UNKNOWN into current authority.
 5. `chapter-05.mdx` — Environmentalization Admission / Responsibility Placement: when a validated standing earns the right to become part of a future consumer's default/routine/interface/guard, where that responsibility belongs, and how owner/currentness/authority plus future challenge/demotion remain intact.
+6. `chapter-06.mdx` — Retention / Succession / Ratchet: how a fresh successor re-enters current owner/obligation/effect/Reality relations across Agent replacement, why `NoActionNow != Complete`, and why successful succession still does not establish a cumulative ratchet.
 
 Chapter 5 is intentionally narrower than a general Agent–Environment theory. Chapter 1 already owns the fact that stable standing can sediment into defaults/affordances and must remain challengeable. Chapter 5 adds the missing decision model between explicit Standing and future Environment:
 
@@ -27,11 +28,11 @@ Correct / Preserved Standing
 Default-worthy / Environmentalized Standing
 ```
 
-The five chapters remain complementary, not a closed grand theory.
+The six chapters remain complementary, not a closed grand theory.
 
 ## BIND
 
-Current permanent claim fences now include the previous historical/exact chapter fences plus three Chapter-5 current bindings:
+Current permanent claim fences now include the previous historical/exact chapter fences plus the Chapter-5 and Chapter-6 current bindings:
 
 - Atlas `c0ba3c7d22e217d3d38553542050aa0360a1e3f8` — non-authoritative cross-owner synthesis/recovery/provenance;
 - pre-Book Media `69ab3a4d781ccc6d9718b7e66fc6d34a531a0935` — independent Writing/Production craft authority;
@@ -44,9 +45,12 @@ Current permanent claim fences now include the previous historical/exact chapter
 - Host `b40c7e6a56011dad3ccb595b332ab0edf9fa200a`;
 - Chapter-5 Computing `e90b0aaaa7877d6c3164f0cfa47b06a78d6d6f28`;
 - Chapter-5 Finance `06d9f9ba90a8d674f413675d145ed2f954aedb88`;
-- Chapter-5 Harness `684333be5146d4f705a91edb396e83c6a1150e1f`.
+- Chapter-5 Harness `684333be5146d4f705a91edb396e83c6a1150e1f`;
+- Chapter-6 Atlas `47dfb9b476ffa54914def99e9e808bbf9f2ad3b3` — current non-authoritative Continuity/Succession/Ratchet closeout and first-look;
+- Chapter-6 Computing `069dc0a7fdb955dfbf2857c965da20350e4228d3` — canonical COJC stop/reopen and Generic Composition subtraction;
+- Chapter-6 Workstation `dff14e2765a155fc789ef159cf4466fd5c628c80` — current read-only egress observation versus separately authorized mutation contract.
 
-The newer Chapter-5 Finance/Harness bindings do not rewrite the historical Chapter-3/4 source roles. Current Book carries 34 Git-bound Claims across 12 exact source bindings.
+The newer Chapter-5 Finance/Harness bindings do not rewrite the historical Chapter-3/4 source roles. Current Book carries 41 Git-bound Claims across 16 exact source bindings.
 
 Chapter-5 owner witnesses:
 
@@ -85,6 +89,22 @@ Responsibility-relative primacy is a placement prior, not a universal optimizer:
 
 First Interface is downstream implementation evidence, not the whole theory. Mature organizational-memory, absorptive-capacity, organizational-learning/routines, infrastructure-in-practice, function-allocation/automation and distributed-cognition theory are positive solution-domain content and novelty constraints, not objects Ordivon claims to have invented.
 
+Chapter 6 must additionally preserve:
+
+```text
+Retention != Succession != Ratchet
+AgentIdentity != WorkIdentity
+NoActionNow != Complete
+UNKNOWN != Failure / Success
+EffectRecovery != HarnessOwnedGlobally
+InformationNecessary != FiniteAgentConsumable
+Succession != CumulativeRatchet
+DeletionEssential != JointIrreducible
+Complementarity != Emergence
+```
+
+The surviving cross-owner Continuity standing is responsibility-preserving reactivation as a bounded engineering discipline, not a new persistent-intelligence substrate or central owner.
+
 ## RENDER
 
 Exact approved semantic artifacts:
@@ -94,9 +114,10 @@ Exact approved semantic artifacts:
 - Chapter 3 `chapter-03.mdx` — raw SHA-256 `7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f`.
 - Chapter 4 `chapter-04.mdx` — raw SHA-256 `ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b`.
 - Chapter 5 `chapter-05.mdx` — raw SHA-256 `f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7`.
-- current five-chapter `book.mdx` — raw SHA-256 `10ed267c4b4eb9d90bf8b45c65c73482d40aae2d91e7359cbeedaeac37bf782c`.
+- Chapter 6 `chapter-06.mdx` — raw SHA-256 `c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0`.
+- current six-chapter `book.mdx` — raw SHA-256 `52d03ba9634eae00e1b8e7b024ed3cc2354a7476b85609ef8b697998f6fa9b67`.
 
-Chapter 1–4 exact bytes remain unchanged. `book.mdx` contains exactly one Chapter-5 heading and one Chapter-5 TOC entry.
+Chapter 1–5 exact bytes remain unchanged. `book.mdx` contains exactly one Chapter-6 heading and one Chapter-6 TOC entry. The historical five-chapter acceptance digest `10ed267c...` predates the later Future-Horizon TOC link; Media `f8a105c...` moved the current integrated Book to `e2590c0a...` without changing Chapter 1–5 bytes, and Chapter 6 was integrated from that current cut.
 
 The parent Production remains `review`: no public publisher is selected and Human-specific continuous-reading effects remain unclaimed.
 
@@ -196,11 +217,65 @@ It also held `grandTheoryEstablished=false`, `bookOutranksOwners=false`, `global
 
 Selection-stage A/B carrier failures are retained as carrier/recovery evidence and are not used as acceptance evidence.
 
+### Chapter-6 bounded source-projection fresh consumer
+
+The exact Chapter-6 file is `c2155ca2...` (28,326 bytes). A first full-text no-Tool carrier attempt was correctly **not** accepted as semantic evidence: three trials stopped `budget_exhausted` before any model call under the existing Harness total-token bound. No Chapter-6 semantic conclusion is inferred from those carrier failures.
+
+A mechanically source-bound projection retained the exact introduction plus whole load-bearing Sections 1, 2, 4, 6, 8, 11, 13, 14 and 19; it contained no paraphrased answer key. Projection digest: `sha256:047f912737d5f4da79bcfbc1786bf2587c2730a861e63824da8411a72ff16239` (15,846 bytes).
+
+Accepted Run: Runtime `job-01a038f1-df62-7c32-981d-62b54d68c47a`, three fresh no-Tool structured replicates.
+
+Observed:
+
+- 3/3 candidate completed;
+- one model call per replicate;
+- 0 Tools;
+- total tokens 5,060 / 4,959 / 4,941;
+- 0 semantic mismatches across the complete acceptance vector.
+
+All three consumers recovered:
+
+```text
+Retention != Succession != Ratchet
+NoActionNow != Complete
+predecessor cognition replay required = false
+Persistent Intelligence Substrate established = false
+Continuity COJC disposition = DORMANT_NATURAL_PRESSURE_REOPEN_ONLY
+Harness global effect oracle = false
+Information necessity guarantees finite-Agent consumability = false
+Succession already establishes Ratchet = false
+responsibility-preserving reactivation = current bounded discipline
+```
+
+and all four reopen gates as required: `NaturalPressure`, `MatureBaselineResidual`, `IdentifiableDeletion`, `IndependentConsequence`. For these judgments the projection was self-contained; no additional external chronology was required.
+
+Focused cross-chapter falsifier: Runtime `job-01a038f3-66e3-76b3-a162-4d5f104e0d9d`. In one model call / 0 Tools / 4,581 tokens, the fresh consumer classified Chapter 6 as `successor-reentry-and-cumulative-ratchet-boundary`, held `chapter6RedundantWithChapter4=false`, `chapter6RedundantWithChapter5=false`, did not change either prior chapter's role, and kept `grandTheoryEstablished=false` plus `bookOutranksOwners=false`.
+
+This accepts the Chapter-6 semantic boundary under a bounded source projection. It does **not** claim that the current Harness no-Tool carrier can admit the full 28,326-byte chapter under its existing token budget.
+
+### Six-chapter integration gate
+
+Current integration checks on the exact Media workspace:
+
+- `Studio production models are valid.`
+- 41 Claims;
+- 16 exact source bindings;
+- 53 unique source/evidence paths checked against exact Git revisions; missing: 0;
+- 20 targeted Production-context / Agent-surface / Model tests passed;
+- `git diff --check` passed;
+- Chapter 1–5 exact digests unchanged;
+- Chapter 6 digest `c2155ca2...`;
+- integrated six-chapter Book digest `52d03ba9...`.
+
+The validation also exposed one pre-existing `f8a105c...` metadata defect: Future Horizon had output `status=review`, but Studio output schema admits only `planned/rendered/approved/published`; `review` belongs to the parent Production lifecycle. The narrow repair sets the existing Future-Horizon output to `rendered` while leaving the parent Production at `review` and without changing its article bytes or epistemic standing.
+
 ## DECIDE
 
 Approve exact Chapter 5 semantic text at raw digest `sha256:f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7`.
 
-Approve exact current five-chapter `book.mdx` at raw digest `sha256:10ed267c4b4eb9d90bf8b45c65c73482d40aae2d91e7359cbeedaeac37bf782c` as the current integrated semantic-text Output.
+Approve exact Chapter 6 semantic text at raw digest `sha256:c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0`.
+
+Approve exact current six-chapter `book.mdx` at raw digest `sha256:52d03ba9634eae00e1b8e7b024ed3cc2354a7476b85609ef8b697998f6fa9b67` as the current integrated semantic-text Output.
 
 Keep the parent Production at `review`.
 
@@ -217,4 +292,7 @@ Do not create a universal Environment ontology/service, automatic knowledge inje
 7. Challengeability is what prevents successful sedimentation from becoming shadow authority. Re-grounding/demotion can change current placement while preserving historical validity.
 8. Environmentalization must itself face consequence pressure; environment change is not benefit, and NO_CHANGE/no-default can be the mature result.
 9. Structured-consumer carrier failures must remain separate from semantic standing. The final accepted consumers succeeded only after carrier questions were made discriminating rather than prose-heavy.
-10. The five-chapter Book now reaches a coherent seam: finite intelligence forms scoped standing, consumes it through representations, acts under authority, recovers current action relevance over time, and can selectively compile repeatedly useful standing into a challengeable future environment—without claiming a closed theory of intelligence or a new central owner.
+10. The five-chapter Book had already reached a coherent seam from standing formation through environmentalization; Chapter 6 extends that seam across replaceable cognition without rewriting Chapters 1–5.
+11. `Retention != Succession != Ratchet`: durable artifacts and successful handoff are necessary but insufficient evidence for cumulative intelligence.
+12. `NoActionNow != Complete` is a real ecological successor boundary, but durable workflow/case-management prior art subtracts it from Ordivon novelty; the residual is owner-preserving reactivation under changing Reality.
+13. The mature Continuity result is a stopping discipline as much as a mechanism: current Atlas×Host×Harness evidence remains below a new joint-capability claim, and future physical work reopens only under the four canonical COJC gates.

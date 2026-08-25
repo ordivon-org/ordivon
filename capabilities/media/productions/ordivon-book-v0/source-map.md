@@ -419,3 +419,126 @@ Relevant Host semantic-continuity records:
 | `task:cojc-phase1e-finance-workstation-successor-20260825` | 3 | NO_OP natural-pressure control; historical blocker was not manufactured into a positive experiment |
 
 The Book uses the Git-bound Computing closeout for load-bearing prose. Host Tasks above preserve research/recovery context only.
+
+
+## Chapter 6 — Succession / Re-entry / Cumulative Ratchet
+
+Chapter 6 is a Book-level continuation of Chapters 4–5. It does **not** promote Atlas×Host×Harness into a new owner, substrate or joint-capability authority. It asks what crosses Agent replacement, what a fresh successor must reacquire from current owners, and what additional evidence would be required before ordinary succession can be called cumulative capability.
+
+### Chapter-6 exact bindings
+
+| Binding | Repository | Revision | Chapter-6 role |
+| --- | --- | --- | --- |
+| `atlas-ch6` | `ordivon-atlas` | `47dfb9b476ffa54914def99e9e808bbf9f2ad3b3` | current non-authoritative Continuity/Succession/Ratchet closeout, natural-episode compression and anti-rediscovery first-look |
+| `computing-cojc` | `ordivon-computing` | `069dc0a7fdb955dfbf2857c965da20350e4228d3` | canonical COJC initial-campaign closeout, fair Generic Composition subtraction and four-gate dormant reopen standing |
+| `workstation-ch6` | `workstation-lab` | `dff14e2765a155fc789ef159cf4466fd5c628c80` | current Workstation semantic effect boundary separating read-only egress observation from separately authorized environment mutation |
+| `host-current` | `ordivon-host` | `b40c7e6a56011dad3ccb595b332ab0edf9fa200a` | reused current Host semantic work/obligation continuity and revision-fenced recovery boundary |
+| `harness-ch5` | `ordivon-harness` | `684333be5146d4f705a91edb396e83c6a1150e1f` | reused current Harness Run/recovery/First-Interface source cut and successor experiment implementation surface |
+| `runtime-current` | `ordivon-runtime` | `fd6765c20981461f1a29508d97225b96971cc389` | reused Runtime recovery boundary for ambiguous physical operation outcomes; experimental Job ids remain dated evidence rather than Book truth |
+
+### Load-bearing Chapter-6 files
+
+| Ref | Binding | Path | Chapter-6 use | Ceiling |
+| --- | --- | --- | --- | --- |
+| C6-A1 | `atlas-ch6` | `synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md` | `Retention != Succession != Ratchet`; role-deletion evidence; owner-relative recovery; natural Finance→Workstation blocked-successor episode; final residual | explicitly non-authoritative cross-owner synthesis |
+| C6-A2 | `atlas-ch6` | `synthesis/2026-08-25-successor-continuity-ratchet-closeout/anti-rediscovery.md` | mature mechanism subtraction and four-gate reopen guard | anti-rediscovery guidance, not owner truth |
+| C6-A3 | `atlas-ch6` | `synthesis/2026-08-25-successor-continuity-ratchet-closeout/assimilation-manifest.md` | exact source/job navigation and natural-episode evidence ceiling | provenance/recovery map only |
+| C6-C1 | `computing-cojc` | `research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md` | canonical programme disposition; `DeletionEssential != JointIrreducible`; fair Generic Composition baseline; dormant natural-pressure reopen | current Computing programme standing only |
+| C6-W1 | `workstation-ch6` | `mcp/workstation-semantic-contracts.mjs` | `workstation.egress.observe` is READ_ONLY; ensure/pool-ensure are separately typed RECONCILABLE environment mutations | Workstation semantic effect contract only |
+| C6-W2 | `workstation-ch6` | `scripts/workstation-domain.mjs` | owner-native runtime-domain carrier for exact Workstation semantic operations | Workstation transport/semantic-owner boundary only |
+| C6-H1 | `host-current` | `src/ordivon_host/mcp_server.py` | work identity/frontier/revision fencing without minting current domain truth | Host continuity boundary only |
+| C6-H2 | `harness-ch5` | `README.md` | Run/Provider/Tool continuity and explicit external/domain-authority ceiling | Harness owner boundary only |
+| C6-H3 | `harness-ch5` | `scripts/first_interface_finance_workstation_composition.py` | source-native Finance→Workstation recovery composition; blocked environment does not grant egress mutation | implementation witness only |
+| C6-R1 | `runtime-current` | `docs/recovery.md` | same-identity recovery/reconciliation under ambiguous execution/delivery outcome | Runtime physical recovery only |
+
+### Dated natural Finance→Workstation witness
+
+The Chapter-6 ecological episode is deliberately source-fenced as **dated execution evidence**, not current Finance/Workstation truth.
+
+Historical Finance owner result:
+
+- Runtime Job `job-01a02f8d-b70d-7660-9635-2bd880625562`;
+- owner error `EGRESS_NOT_CURRENT`;
+- `externalFinancialWriteAttempted=false`.
+
+Fresh-successor pre-action trial:
+
+- Runtime Job `job-01a03841-057c-7962-8d7f-b2db8e43d286`;
+- five replicates: FULL `5/5`, NO_HOST `4/5`, NO_HARNESS `4/5`, FLAT_TRANSCRIPT `4/5`, OWNER_ONLY `2/5` for choosing `OBSERVE_WORKSTATION_EGRESS`.
+
+Actual Workstation read-only observation at exact `workstation-ch6@dff14e2...`:
+
+- Runtime Job `job-01a03843-8da3-7152-8b35-59938df960fe`;
+- `status=UNKNOWN`, `listenerReachable=false`, `serviceActive=false`, `parentHealthOk=false`, `watchdogDisposition=no-eligible-member`, no active/eligible member;
+- effect contract `READ_ONLY`, no environment mutation and no financial write.
+
+Interaction recompilation:
+
+- Runtime Job `job-01a03849-2514-7082-99cd-9a1fb678b483`;
+- `selectedTools=[]`, `toolAuthorityExpanded=false`, `toolExecuted=false`.
+
+A later natural re-observation `job-01a03850-2997-7b72-8e52-e7ced164086f` produced the exact same owner-output digest. The experiment did not restore network state, start services, grant egress mutation, or retry Finance merely to make the benchmark progress.
+
+The Book may therefore use this episode as a dated witness for:
+
+```text
+OpenObligation + BlockedEnvironment + NoAdmittedAction
+NoActionNow != Complete
+```
+
+It may **not** state that `finance-okx` is still unavailable now.
+
+### Counterfactual role-deletion evidence
+
+Behavioral twins at Runtime Job `job-01a03844-8cdf-7e10-9568-c169a5c5f782` supplied causal controls:
+
+- Host FULL `10/10` vs NO_HOST `7/10`; deleting work-continuity information made opposite-work twins byte-identical.
+- Harness FULL `8/10` vs NO_HARNESS `4/10`; deleting recovery standing made ambiguous-dispatch / pre-dispatch-safe twins byte-identical despite opposite safe actions.
+- Atlas/currentness FULL `7/10` vs NO_ATLAS `7/10`; deletion still made current/stale twins byte-identical, but the tested finite Agent gained no practical score advantage from FULL.
+
+The Book may therefore distinguish:
+
+```text
+InformationNecessary
+!=
+FiniteAgentConsumable
+```
+
+It may not infer that the tested Atlas representation is behaviorally optimal.
+
+### Chapter-6 integration ceiling
+
+The Book may state the bounded model:
+
+```text
+Retention
+→ qualified residues survive
+
+Succession / Re-entry
+→ successor recovers a named responsibility position,
+  current owners, current effect standing,
+  and an admissible action / non-action boundary
+
+Ratchet
+→ later generations repeatedly inherit genuine retained capability improvement
+```
+
+It may also state that the surviving current Ordivon discipline is **responsibility-preserving reactivation**.
+
+It may **not** state that current evidence establishes:
+
+- a new Persistent Intelligence Substrate;
+- Atlas×Host×Harness joint irreducibility;
+- a new Continuity owner/service/state machine;
+- a universal `WAIT` ontology;
+- autonomous cumulative intelligence;
+- a reason to keep the closed COJC apparatus active.
+
+A future physical Continuity/COJC case reopens only when canonical Computing's four gates all hold:
+
+```text
+NaturalPressure
+AND MatureBaselineResidual
+AND IdentifiableDeletion
+AND IndependentConsequence
+```

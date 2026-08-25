@@ -189,3 +189,46 @@ The external literature therefore supplies positive solved subspaces and negativ
 - affordance does not imply authority.
 
 These sources constrain Chapter 5's novelty and scope. They do not confer current Ordivon standing, and no new external-theory schema is imported into the implementation.
+
+
+## Chapter 6 pressure — succession, durable re-entry, institutions and cumulative ratchet
+
+Chapter 6 was pressure-tested against mature fields that already solve most of the obvious `long-term continuity` mechanisms. Their role is destructive subtraction: they are positive solution-domain content and strong baselines, not phenomena Ordivon claims to have invented.
+
+| External line | Mature contribution | Chapter-6 consequence | What Ordivon does **not** claim |
+| --- | --- | --- | --- |
+| durable execution / workflow replay (Temporal/Azure Durable Functions/AWS durable execution family) | checkpoints/history survive worker replacement; orchestrations can suspend, wait for events/callbacks/conditions and later resume | worker replacement, replay and `OPEN + no action + wait + resume` are mature; the residual must concern semantic owner/currentness re-entry rather than process persistence | no new workflow engine, universal WAIT state or claim that deterministic replay is semantic succession |
+| distributed transactions, idempotency and in-doubt recovery | response loss can leave an operation outcome ambiguous; durable records/idempotency/reconciliation prevent unsafe blind redispatch | `UNKNOWN` must be reconciled at the operation's effect owner; same failure label need not imply same recovery route | no global Harness effect oracle and no generic retry policy for opaque effects |
+| OMG CMMN / case management and Guard–Stage–Milestone traditions | knowledge-intensive cases may remain active while runtime path/order is not predetermined; guards/events/milestones enable or invalidate later work | an open obligation with no currently enabled action is mature case-management territory | no new Ordivon case ontology or successor state machine |
+| social commitment protocols in multi-Agent systems | publicly represented commitments/obligations can persist and change independently of one Agent's private cognition | `persistent responsibility != persistent Agent` has mature institutional/MAS precedent | no claim that Host invented Agent-independent obligations or one universal commitment calculus |
+| organizational routines / transactive memory | routines can preserve recurring coordination across member turnover; transactive memory routes `who knows what` and is more sensitive to membership change but valuable under uncertainty/innovation | distinguish stable routine/role continuity from dynamic expertise/owner routing; both can support succession without becoming one memory store | no claim that all Ordivon owners are organizational roles or that one TMS model is adopted as architecture |
+| cumulative cultural evolution / ratchet effect | socially transmitted modifications can accumulate across generations; cumulative culture requires repeated transmission plus improvement, with fidelity pressures on retention | `Succession != Ratchet`; successful handoff does not prove cumulative capability; retained improvement across generations is the stronger target | no claim that current Agent replacement experiments establish civilization-like cumulative intelligence |
+| living evidence review / organizational unlearning | old evidence/routines can remain historically legitimate while present use changes; retention can become maladaptive when obsolete assumptions keep authority | continuity requires selective retention plus selective invalidation/re-grounding, not maximum copying fidelity | no universal forgetting engine or scalar fidelity/plasticity optimizer |
+
+### Chapter-6 subtraction result
+
+After subtraction, the surviving Ordivon object is intentionally narrow:
+
+```text
+predecessor cognition disappears
++ qualified residues remain
++ independently changing owner truth / effects / obligations
++ fresh successor
+→ owner-preserving semantic re-entry
+```
+
+The current engineering discipline is:
+
+```text
+recover named obligation
+→ recover qualified history
+→ resolve current owners
+→ reconcile ambiguous effects owner-relatively
+→ re-observe load-bearing current Reality
+→ recompile action / non-action
+→ sediment only validated improvement
+```
+
+The final line is a **ratchet aspiration**, not a demonstrated current Ordivon mechanism.
+
+External comparison surfaces include Microsoft Azure Durable Functions external-event guidance, AWS Durable Execution wait/callback/condition semantics, the OMG CMMN standard, Guard–Stage–Milestone case-lifecycle work, multi-Agent social-commitment protocols, organizational routines/transactive-memory research, and cumulative-cultural-evolution/ratchet literature. They constrain novelty and provide mature baselines; they do not confer Ordivon standing.

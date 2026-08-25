@@ -88,6 +88,24 @@
       "repository": "ordivon-computing",
       "revision": "d6017c19da90ac63f6fd95ddd07f464a61a37119",
       "role": "completed constructive capability-environment closeout used to narrow the Future Laboratory Horizon"
+    },
+    {
+      "id": "atlas-ch6",
+      "repository": "ordivon-atlas",
+      "revision": "47dfb9b476ffa54914def99e9e808bbf9f2ad3b3",
+      "role": "current non-authoritative successor continuity/re-entry/ratchet closeout and anti-rediscovery synthesis used by Chapter 6"
+    },
+    {
+      "id": "computing-cojc",
+      "repository": "ordivon-computing",
+      "revision": "069dc0a7fdb955dfbf2857c965da20350e4228d3",
+      "role": "canonical COJC initial-campaign closeout, mature Generic Composition subtraction and four-gate dormant reopen standing used by Chapter 6"
+    },
+    {
+      "id": "workstation-ch6",
+      "repository": "workstation-lab",
+      "revision": "dff14e2765a155fc789ef159cf4466fd5c628c80",
+      "role": "current Workstation semantic effect contracts for read-only egress observation versus separately authorized environment mutation used by Chapter 6 natural witness"
     }
   ],
   "workingProfile": {},
@@ -116,7 +134,7 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:e2590c0a400715f391c1c17401f241510c7bc73109fbd1287f2fc5baf679ddb4"
+      "blobDigest": "sha256:52d03ba9634eae00e1b8e7b024ed3cc2354a7476b85609ef8b697998f6fa9b67"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
@@ -142,9 +160,16 @@
     {
       "id": "ordivon-book-v0-future-horizon-laboratory-zh",
       "kind": "article",
-      "status": "review",
+      "status": "rendered",
       "profile": "writing",
       "blobDigest": "sha256:4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-6-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0"
     }
   ]
 }

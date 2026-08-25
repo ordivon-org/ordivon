@@ -733,6 +733,156 @@
         "every standing must reach S5 or S6",
         "document promotion proves downstream gain"
       ]
+    },
+    {
+      "id": "retention-succession-ratchet-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The completed Continuity synthesis separates Retention, Succession/Re-entry and cumulative Ratchet: preserving artifacts does not establish successor capability, and successful successor handoff does not establish repeated retained capability improvement.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md",
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/anti-rediscovery.md"
+      ],
+      "allowedWording": [
+        "Retention is not Succession and Succession is not cumulative Ratchet",
+        "successful handoff does not by itself establish cumulative intelligence",
+        "stored knowledge is not identical to a higher future capability frontier"
+      ],
+      "avoid": [
+        "Atlas×Host×Harness already forms a persistent-intelligence substrate",
+        "every durable handoff is cumulative intelligence",
+        "more stored history monotonically means more capability"
+      ]
+    },
+    {
+      "id": "successor-reentry-not-predecessor-replay",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The bounded successor target is semantic re-entry under independently changing owner truth/Reality, not exact restoration of predecessor cognition. A successor may need different reasoning after current owners, effects, authority or world state change.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "successor continuity need not restore predecessor cognition",
+        "preserve what must constrain successor cognition rather than predecessor cognition itself",
+        "worker replay and semantic succession are different problems"
+      ],
+      "avoid": [
+        "replay is the universal correct cognition-recovery target",
+        "Agent identity must persist for work continuity",
+        "different successor reasoning implies continuity failure"
+      ]
+    },
+    {
+      "id": "no-action-now-completion-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The natural Finance→Workstation successor episode reached an open obligation with a current blocked Workstation environment and no currently admitted continuation. No selected Tool/current action therefore does not establish Task or domain completion.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md",
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/assimilation-manifest.md"
+      ],
+      "allowedWording": [
+        "NoActionNow is not Complete",
+        "an obligation may remain open while the current environment admits no continuation",
+        "blocked/no-tool state must not be promoted into domain completion"
+      ],
+      "avoid": [
+        "an empty selected Tool set means the objective is done",
+        "blocked environment means retry is automatically safe",
+        "the historical Finance blocker is current Finance truth forever"
+      ]
+    },
+    {
+      "id": "effect-recovery-owner-relative",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "Ambiguous operation outcomes must be reconciled against the owner of occurrence/effect truth for that operation; a shared UNKNOWN label does not imply one shared recovery action, and Harness is not a global effect oracle.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "effect recovery is operation-owner-relative",
+        "the same UNKNOWN label can require different owner-native reconciliation",
+        "response loss is not generic retry permission"
+      ],
+      "avoid": [
+        "Harness owns every ambiguous effect",
+        "UNKNOWN proves the operation did not happen",
+        "one global retry/reconcile policy is established"
+      ]
+    },
+    {
+      "id": "information-necessity-consumability-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "Counterfactual twins can prove that a carrier contains action-distinguishing information even when the tested finite Agent fails to turn that information into a stable behavioral advantage; information necessity and finite-Agent consumability are separate claims.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "information can be logically necessary yet poorly consumed by a finite Agent",
+        "deletion non-identifiability is distinct from observed model-score improvement",
+        "Atlas currentness was information-bearing in the twin but not consumption-positive in the tested representation"
+      ],
+      "avoid": [
+        "equal Full/deletion score proves the deleted information is irrelevant",
+        "logical necessity proves the representation is already good",
+        "one Agent benchmark establishes universal consumability"
+      ]
+    },
+    {
+      "id": "continuity-cojc-dormant-four-gate-reopen",
+      "source": {
+        "binding": "computing-cojc",
+        "path": "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      },
+      "meaning": "Canonical COJC standing does not establish Atlas×Host×Harness joint capability or emergence. A future physical candidate reopens only under natural pressure, a residual beyond fair mature generic composition, an identifiable same-cut deletion and an independent owner-native consequence.",
+      "evidence": [
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "current Continuity COJC is dormant rather than promoted",
+        "future reopen requires NaturalPressure, MatureBaselineResidual, IdentifiableDeletion and IndependentConsequence",
+        "generic-composition reproduction blocks escalation to joint irreducibility"
+      ],
+      "avoid": [
+        "current COJC proves persistent intelligence",
+        "deletion-essentiality alone proves joint capability",
+        "interesting owner combinations should stay on an experiment queue"
+      ]
+    },
+    {
+      "id": "workstation-egress-observation-mutation-separation",
+      "source": {
+        "binding": "workstation-ch6",
+        "path": "mcp/workstation-semantic-contracts.mjs"
+      },
+      "meaning": "At the exact Chapter-6 Workstation source cut, `workstation.egress.observe` is READ_ONLY with no environment/financial mutation, while egress ensure/pool-ensure are separately typed RECONCILABLE environment-mutation operations; observing a blocker does not grant repair authority.",
+      "evidence": [
+        "mcp/workstation-semantic-contracts.mjs",
+        "scripts/workstation-domain.mjs"
+      ],
+      "allowedWording": [
+        "read-only egress observation is distinct from egress environment mutation",
+        "observation does not grant Workstation repair authority",
+        "the natural successor trial did not earn an ensure operation from read-only evidence"
+      ],
+      "avoid": [
+        "observing no eligible member authorizes starting the egress pool",
+        "Workstation read-only observation mutates network state",
+        "Chapter 6 proves the current egress profile remains unavailable now"
+      ]
     }
   ]
 }

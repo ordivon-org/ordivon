@@ -9,6 +9,7 @@
 3. 行动不是命令：从 Standing 到 Reality 改变
 4. 现在不是一个时间戳：History, Currentness and Recovery
 5. 环境不是背景：Standing 如何成为未来的默认
+6. 继承不是复制：Succession, Re-entry and Cumulative Ratchet
 
 **Future Horizon — 实验室与 Reality 中的 Ordivon**：[`future-horizon-laboratory.mdx`](future-horizon-laboratory.mdx)
 
@@ -2897,3 +2898,1157 @@ retain / narrow / re-ground / demote / NO_CHANGE
 只有这样，沉淀才不是遗忘。
 
 它才是有限智能把过去的学习真正变成未来能力的一种方式。
+
+---
+
+# 继承不是复制：Succession, Re-entry and Cumulative Ratchet
+
+一个系统可以让所有文件都活下来，却仍然没有真正的长期智能。
+
+它也可以让一个新 Agent 接着旧 Agent 的工作继续，却仍然没有产生“文明式”的积累。
+
+这两个差异在直觉上很容易被压在一起。
+
+我们常说：
+
+```text
+memory
+continuity
+long-term intelligence
+cumulative capability
+```
+
+仿佛只是同一个东西不断做大。
+
+但在 Atlas × Host × Harness 的 Continuity 研究中，这种表示不断被真实实验和外部成熟理论拆开。最终最重要的结果，反而不是发现一个新的 persistent-intelligence primitive，而是第一次比较稳定地看见：**保存、继承和累积是三个不同的问题。**
+
+可以先写成：
+
+```text
+Retention
+!=
+Succession
+!=
+Ratchet
+```
+
+`Retention` 问的是：过去留下的东西还在不在。
+
+`Succession` 问的是：前一个 cognition 消失以后，新的有限智能能不能重新进入一个仍然有效的责任、知识、行动与 Reality 关系中。
+
+`Ratchet` 则更强：后来的 generation 是否不仅恢复过去，而且真的从更高的 capability frontier 出发，并把新的改进继续留给下一代。
+
+Chapter 4 已经处理 History、Currentness 和 Recovery：怎样从过去重新获得一个可行动的 Now。Chapter 5 处理 Standing 怎样有条件地沉进 future Environment，让未来 cognition 不必重复推导已经稳定的 distinction。
+
+但这两章之间仍然留下一个更长时间尺度的问题：
+
+> **如果具体 Agent 本身会消失，那么“现在已经获得的能力”究竟怎样越过 Agent replacement？什么只是被保存，什么真的被 successor 继承，而什么才有资格叫累积？**
+
+这就是这一章的对象。
+
+它不是“Memory Architecture”。
+
+也不是“把上下文做得更长”。
+
+它更接近：**有限智能的 succession 与 cumulative capability。**
+
+## 1. 保存下来，只证明过去没有完全消失
+
+最弱的一层很容易做到。
+
+一个系统可以拥有：
+
+```text
+Git history
+append-only events
+archives
+databases
+checkpoints
+transcripts
+snapshots
+books
+Atlas projections
+Host journals
+```
+
+只要这些对象没有丢，过去至少在某种意义上仍然可恢复。
+
+这就是 Retention。
+
+Retention 很重要，因为没有它，successor 只能重新发现。
+
+但：
+
+```text
+Retained
+!=
+InheritedAsCapability
+```
+
+一个未来 Agent 面对一百万个完整保存的文件，可能仍然不知道：
+
+- 哪些问题已经解决？
+- 哪些只是历史上曾经相信？
+- 哪些 route 已经被证伪？
+- 哪些 standing 仍然 current？
+- 哪些责任仍然 open？
+- 哪个 owner 现在有资格回答下一步？
+- 某个 effect 到底发生了没有？
+- 现在甚至是否存在一个可执行 action？
+
+因此一个无限完整的 archive，也可能把 succession burden 原样交给下一代。
+
+这和 Chapter 5 的：
+
+```text
+Preserved != Environmentalized
+```
+
+是同一个问题在更长时间尺度上的版本。
+
+保存解决的是：
+
+```text
+Can the past still be recovered?
+```
+
+而 Succession 解决的是：
+
+```text
+Can a successor enter the present without reconstructing the whole past?
+```
+
+## 2. Successor 不应该恢复前任的脑子
+
+如果目标是“连续”，最自然的工程直觉之一是 replay。
+
+保存完整 transcript、event history、checkpoint，然后让 replacement 从旧状态继续。
+
+在大量软件系统里，这非常正确。
+
+Durable execution、event sourcing、workflow replay、checkpoint recovery 都已经成熟地解决：
+
+```text
+process dies
+→ persistent history remains
+→ local state reconstructed
+→ execution continues
+```
+
+因此 Ordivon 不需要再次发明：
+
+```text
+worker replacement + checkpoint + resume
+```
+
+更重要的是，有限智能的 succession 与普通 process restart 之间存在一个关键差异。
+
+一个 deterministic workflow 希望 replay 后重新得到同一条控制路径。
+
+但 successor cognition 不一定应该这样。
+
+在 Agent A 消失以后：
+
+```text
+owner source may advance
+Reality may change
+authority may change
+Tool capability may change
+an effect may become reconciled
+a previous standing may become stale
+Agent B may reason differently
+```
+
+如果我们要求 B 精确恢复 A 的 cognition，反而可能把旧世界冻结进新 Agent。
+
+因此：
+
+```text
+Continuity
+!=
+Restore predecessor cognition
+```
+
+更准确的目标是：
+
+> **让 successor 恢复那些今天仍然应该约束它的东西，同时重新接触已经变化的 Reality。**
+
+所以 Succession 更接近：
+
+```text
+inherit qualified residues
++
+recover surviving obligations
++
+resolve current owners
++
+reconcile ambiguous effects
++
+re-observe changed Reality
+→
+form successor's own present cognition
+```
+
+可以把它压成一句话：
+
+> **Preserve what must constrain successor cognition, not predecessor cognition itself.**
+
+## 3. Agent Identity 不是长期能力的正确单位
+
+这进一步改变了“谁在持续”的问题。
+
+如果 Agent A 被 Agent B 替换，真正需要延续的未必是：
+
+```text
+Agent A identity
+```
+
+而可能是：
+
+```text
+work identity
+obligation
+institutional role
+owner relation
+open frontier
+source/effect identity
+```
+
+Host 当前的 semantic continuity 就是一个很好的工程例子。
+
+它保存的不是“某个模型的灵魂”，而是一个 named Task 的：
+
+```text
+objective
+frontier
+established
+unresolved
+rejected
+constraints
+nextActions
+```
+
+同时又明确拒绝：
+
+```text
+Host Task READY
+=> current priority / domain truth / current Git state
+```
+
+于是：
+
+```text
+persistent responsibility
+!=
+persistent Agent
+```
+
+这和人类机构非常相似。
+
+一个职位、实验室、法院、学科、公司项目或者科研问题可以跨越具体成员存在。新成员进入的不是前任个人意识，而是一个已经有：
+
+- duties；
+- records；
+- procedures；
+- unresolved cases；
+- authority boundaries；
+- expectations；
+- historical failures；
+
+的 role environment。
+
+所以 Succession 的基本单位往往更像：
+
+> **可被新 occupant 重新占据的 responsibility position。**
+
+而不是一个永远不替换的 cognition instance。
+
+## 4. “现在没有下一步”不等于“事情已经结束”
+
+这轮 Continuity 研究里最有价值的自然 case，来自 Finance 与 Workstation。
+
+历史 Finance observation 已经产生：
+
+```text
+EGRESS_NOT_CURRENT
+externalFinancialWriteAttempted = false
+```
+
+Fresh successor 面对 Host continuity、Finance owner error 与 Harness 已经 admitted 的 tool projection，需要决定下一步。
+
+在五次 FULL replicate 中，它 5/5 选择：
+
+```text
+OBSERVE_WORKSTATION_EGRESS
+```
+
+而不是直接 retry Finance 或修改环境。
+
+之后我们真的执行了当前 Workstation owner 的只读 observation。
+
+观察得到：
+
+```text
+finance-okx
+status              = UNKNOWN
+listenerReachable   = false
+serviceActive       = false
+parentHealthOk      = false
+watchdogDisposition = no-eligible-member
+activeMember        = null
+eligibleMembers     = []
+```
+
+并且 effect contract 明确：
+
+```text
+READ_ONLY
+environmentMutation = false
+externalFinancialWrite = false
+```
+
+现有 Finance↔Workstation composition 随后重新编译当前 interaction surface，结果是：
+
+```text
+selectedTools = []
+toolAuthorityExpanded = false
+toolExecuted = false
+```
+
+此时一个非常重要的状态自然出现：
+
+```text
+obligation = OPEN
+environment = BLOCKED
+admitted action = NONE
+```
+
+如果把长期智能想成一个“next action queue”，它很容易把这个状态解释成：
+
+```text
+没有 action
+→ 工作结束
+```
+
+但这是错误的。
+
+正确 distinction 是：
+
+```text
+NoActionNow
+!=
+Complete
+```
+
+任务仍然 open，只是 Reality 当前没有给出合法 continuation。
+
+之后再次自然执行同一个 read-only Workstation observation，得到完全相同的 owner-native bytes。
+
+正确行为仍然不是：
+
+- 强行修复网络；
+- 为实验启动 service；
+- retry Finance；
+- 把 blocked 写成 failure；
+- 把没有 Tool 写成 complete。
+
+而是：
+
+```text
+preserve obligation
++
+preserve current blocker
++
+wait for material Reality change
+```
+
+这说明长期能力里有一种非常重要的能力不是“做什么”，而是：
+
+> **在没有合法动作时，仍然保持正确的未完成关系。**
+
+## 5. 但 WAIT 也不是 Ordivon 的新发明
+
+这一点马上需要 prior-art subtraction。
+
+Azure Durable Functions 已经允许 orchestration 长期等待 external event；worker 可以停掉，事件到来后再唤醒。AWS durable execution 也有 `Wait`、`Callback` 和 `waitForCondition`，能够自动 checkpoint、poll、backoff、suspend，并在外部 resource/state 改变后继续。
+
+所以：
+
+```text
+open work
++
+no current action
++
+wait for condition/event
++
+resume later
+```
+
+已经是成熟 workflow capability。
+
+Case Management 又把问题推进了一步。
+
+CMMN 本来就是为运行时路径不完全预定、activity 顺序依赖 evolving case information 的 knowledge-intensive work 设计的；Guard–Stage–Milestone 之类 declarative lifecycle 同样可以表达：
+
+```text
+case remains active
+stage may be open/closed
+milestone may be achieved/invalidated
+next task depends on event/condition
+```
+
+因此：
+
+```text
+OpenButNoAction
+```
+
+本身也不是一个新的 Continuity primitive。
+
+这条 subtraction 很重要，因为它阻止我们因为 Ordivon 第一次自然遇到一个 blocked successor case，就建立：
+
+- universal WAIT state；
+- Continuity daemon；
+- global wake-up scheduler；
+- successor state machine；
+- new shared workflow owner。
+
+成熟系统已经有大量正确解。
+
+Ordivon 真正需要保留的 residual 只可能出现在：
+
+> **谁定义 wake condition，谁拥有 condition 的 current truth，重新唤醒后哪些 inherited standing 仍然有效，以及 successor 应该向哪些不同 owner 重新取得什么。**
+
+## 6. Effect recovery 也不能交给一个全局 continuity owner
+
+在研究过程中，最初一个很自然的 shorthand 是：
+
+```text
+X = Harness effect/recovery standing
+```
+
+真实故障很快证明它太窄。
+
+我们曾经遇到 Runtime Workspace mutation response 不确定；也遇到 Host checkpoint response 不确定。
+
+这两种情况里 Harness 都不是 effect owner。
+
+一个操作可能：
+
+```text
+已经发生
+但响应丢了
+```
+
+也可能：
+
+```text
+根本没有发生
+```
+
+如果 caller 看见 `UNKNOWN` 就直接 retry，可能制造重复 effect。
+
+成熟 distributed systems 早已用 idempotency、transaction recovery、durable receipt、in-doubt state 等机制处理这一问题。
+
+因此 Continuity 不需要一个全局 effect oracle。
+
+更合理的是：
+
+```text
+EffectStanding(
+  operation,
+  effectOwner,
+  evidenceFence
+)
+```
+
+Runtime-owned operation 向 Runtime reconcile。
+
+Host-owned semantic checkpoint 向 Host revision / Journal reconcile。
+
+Harness-owned Provider/Tool continuation 向 Harness 对应 Run/effect evidence reconcile。
+
+Finance/venue effect 则继续由 Finance/venue owner contract 负责。
+
+于是：
+
+```text
+same UNKNOWN label
+!=
+same recovery operation
+```
+
+Succession 的一个重要能力不是“知道 UNKNOWN”，而是知道：
+
+> **这个 UNKNOWN 属于哪一个 responsibility boundary。**
+
+## 7. Atlas、Host、Harness 都有作用，但不是一个新超级 owner
+
+经过 deletion experiments，可以比较清楚地看到三类信息作用。
+
+Host behavioral twin 中，两个世界只在 open work identity 上不同：一个应该继续 Finance，另一个应该继续 Media。删掉 Host 以后，两个 successor packet 在 bytes 上完全相同，而正确 action 相反。
+
+Harness twin 中，两个 Provider world 分别是：
+
+```text
+dispatch ambiguous
+vs
+failed before dispatch safely
+```
+
+正确动作分别是 resume 与 safe retry。删掉 recovery carrier 后，两个 packet 同样变得不可区分。
+
+Atlas/currentness twin 则把 inherited candidate 分成 current 与 source-advanced-stale；删除 currentness carrier 后两个世界也变得完全相同。
+
+所以三类信息都有一种严格的信息必要性：
+
+```text
+without the relevant coordinate
+→ at least two action-distinct worlds become observationally identical
+```
+
+但这不能推出：
+
+```text
+Atlas + Host + Harness
+= new central intelligence substrate
+```
+
+因为 responsibility 仍然分散在：
+
+```text
+Atlas       = qualified history / retrieval / currentness health projection
+Host        = work identity / obligation / frontier continuity
+Harness     = bounded Run / Provider / Tool recovery
+Runtime     = physical execution/recovery where Runtime owns the operation
+Domain owner= current semantic/world truth in its own scope
+```
+
+组合价值来自这些边界能被 successor 正确消费。
+
+它们没有因此合并成一个新的 truth owner。
+
+## 8. Information necessity 也不等于 finite-Agent 能稳定用好
+
+Atlas twin 给了一个很重要的 negative result。
+
+从信息论意义上，current 与 stale world 在删除 Atlas/currentness carrier 后确实不可辨识。
+
+但是 fresh Agent 的五次实验里：
+
+```text
+FULL       7/10
+NO_ATLAS   7/10
+```
+
+FULL 没有形成稳定行为优势。
+
+这说明：
+
+```text
+InformationNecessary
+!=
+FiniteAgentConsumable
+```
+
+一个 representation 可以携带 logically essential information，却仍然：
+
+- 排序不好；
+- distinction 不够 salient；
+- 与其他 evidence 竞争注意力；
+- 让 Agent 过早补全缺失语义；
+- 不能稳定改变 action selection。
+
+这和 Chapter 2 的 representation 结论直接连接。
+
+Successor substrate 的问题从来不是“信息有没有”。
+
+还包括：
+
+> **在 replacement 的有限 token、attention、tool budget 下，这些 distinction 是否以足够好的几何进入 successor cognition。**
+
+这也是为什么把所有历史完整塞进 Context 不是答案。
+
+## 9. Currentness 也必须允许历史继续有用
+
+Succession 还有一个容易被忽略的双向风险。
+
+我们通常担心 future Agent 忘掉过去：
+
+```text
+under-retention
+→ rediscovery
+→ repeated failure
+```
+
+但组织学习与 currentness 实验同时提醒：另一个方向同样危险。
+
+```text
+over-retention
+→ stale authority
+→ competency trap
+→ obsolete routines
+```
+
+因此长期智能不能只优化 retention fidelity。
+
+一个 historical episode 可以：
+
+```text
+仍然是历史
++
+今天仍然支持某个 claim
+```
+
+也可以：
+
+```text
+今天仍能恢复
++
+已经不能支持当前 action
+```
+
+所以至少要保留：
+
+```text
+TemporalRole
+!=
+PresentClaimSupport
+!=
+Authority
+```
+
+这意味着 successor 的任务不是把过去全部带进现在。
+
+而是重新决定：
+
+```text
+what to inherit as current constraint
+what to inherit as history
+what to revalidate
+what to reject
+what to leave unknown
+```
+
+真正的 continuity 因此同时需要：
+
+```text
+selective retention
++
+selective invalidation / forgetting
+```
+
+## 10. 人类组织为什么能跨成员继续
+
+这里终于可以重新回答最初的文明类比。
+
+组织研究里，routines 与 transactive memory systems 提供了两个很不同的 continuity carrier。
+
+Routine 可以把一组 interdependent action patterns 固化成不同成员都能执行的结构，因此相对能承受 member turnover。
+
+Transactive memory system 更像：
+
+```text
+who knows what
+```
+
+它依赖成员的 specialized knowledge 与彼此之间的 routing knowledge，因此在 turnover 后更容易失配，但在 uncertainty 和 innovation 环境中又非常重要。
+
+这两个机制甚至可以互相转化：
+
+```text
+TMS
+→ repeated coordination
+→ routine
+```
+
+以及：
+
+```text
+routine
+→ recurring expertise relations
+→ new TMS
+```
+
+这给 Ordivon 一个比“Memory”更好的类比。
+
+长期能力至少需要两种东西：
+
+### 稳定结构
+
+```text
+procedures
+guards
+semantic operations
+institutional roles
+routines
+```
+
+让 successor 不需要每次重新发现全部工作结构。
+
+### 动态 routing
+
+```text
+which owner knows this now?
+which source advanced?
+which effect owner can reconcile?
+which expert / capability is currently available?
+```
+
+让系统在 Reality 与成员变化后仍能重新找到正确关系。
+
+如果只有 routine，系统可能僵化。
+
+如果只有 routing，每一代都要重新协调。
+
+这也是为什么文明不是一个 database。
+
+它更像一个由：
+
+```text
+archives
+roles
+institutions
+routines
+expert networks
+procedures
+criticism
+revision
+succession
+```
+
+共同形成的 distributed capability environment。
+
+## 11. Succession 仍然不是 Ratchet
+
+即使一个 successor 能很好地进入前任位置，我们仍然不能说系统发生了 cumulative intelligence。
+
+这是这一章最重要的第二次收缩。
+
+Succession 只要求：
+
+```text
+later Agent
+can recover and continue
+```
+
+Ratchet 要求更强：
+
+```text
+generation A leaves something useful
+→ B inherits it
+→ B produces a genuine improvement
+→ improvement survives transmission
+→ C begins from that improved frontier
+→ process repeats
+```
+
+累计文化研究把这种现象称为 cumulative culture / ratchet effect。
+
+它通常要求的不只是 social transmission，而是反复发生：
+
+```text
+change
++
+transmission
++
+performance improvement
++
+iteration
+```
+
+所以：
+
+```text
+SuccessfulHandoff
+!=
+CumulativeCapability
+```
+
+以及：
+
+```text
+MoreStoredKnowledge
+!=
+HigherCapabilityFrontier
+```
+
+这一点对 Ordivon 特别重要。
+
+如果 A→B→C→D 每一代都能恢复同样的 workflow，但没有一代真正留下更好的 representation、procedure、standing、tool、environment 或 decision capability，那么系统只是 durable。
+
+它没有 ratchet。
+
+## 12. 高 fidelity 也可能把错误一起锁死
+
+Ratchet 又引入一个非常有意思的 tension。
+
+累计文化理论强调 transmission fidelity：如果每一代都把前代成果丢掉很多，复杂能力很难累积。
+
+但是有限智能系统又不能追求：
+
+```text
+perfectly preserve everything
+```
+
+因为 Reality 会变化，standing 会失效，工具会变化，旧 routine 会变成 competency trap。
+
+所以长期积累更像在两个轴上同时优化：
+
+```text
+Inheritance Fidelity
+×
+Current-Reality Adaptability
+```
+
+可以得到四个直观区域：
+
+| Inheritance | Adaptability | 结果 |
+| --- | --- | --- |
+| 低 | 低 | 既忘记又不会适应 |
+| 低 | 高 | 每一代都聪明，但反复 rediscover |
+| 高 | 低 | bureaucracy / dogma / stale routine |
+| 高 | 高 | 最接近 cumulative intelligence |
+
+因此：
+
+```text
+continuity quality
+!=
+maximum copying fidelity
+```
+
+更接近：
+
+> **足够忠实地保留已经赚得约束力的结构，同时让 Reality 有能力推翻已经失效的 standing。**
+
+可以把它写成：
+
+```text
+high-enough fidelity
++
+nonzero plasticity
+```
+
+而不是 perfect replay。
+
+## 13. 我们原本以为的“联合能力”，被 generic baseline 大量解释了
+
+COJC Continuity 研究最重要的科学纪律，是不断把看似新的能力还给已经成熟的领域。
+
+我们先后发现：
+
+- Event Sourcing 已经解决大量历史/replay；
+- indexed retrieval/materialized view 已经解决大量 history scaling；
+- build/incremental systems 已经有 selective invalidation 与 change pruning；
+- TMS/ATMS、AGM、MCS 已经覆盖很多 belief/context revision；
+- durable workflow 已经覆盖 process replacement、wait、resume；
+- distributed transactions/idempotency 已经覆盖 effect ambiguity；
+- case management 已经覆盖 non-preplanned open work；
+- commitment protocols 已经覆盖 Agent-independent obligation lifecycle；
+- organizational routines/TMS 已经覆盖 member turnover 下的知识/协调；
+- cumulative-culture research 已经覆盖 transmission 与 ratchet。
+
+在 Ordivon 自己的实验里，generic indexed retrieval + typed policy composition 甚至复现了一个 H=256 multi-stage ratchet control 的 33/33；16-world recursive successor state 也可以被 generic transition model 零 mismatch 重现。
+
+因此我们不能再说：
+
+> “Atlas×Host×Harness 的组合本身就是新的 Persistent Intelligence substrate。”
+
+当前证据只允许一个更窄的 standing：
+
+> **Ordivon 正在形成一套 responsibility-preserving reactivation discipline。**
+
+它要求 successor 在 discontinuity 后：
+
+```text
+recover named obligation
+→ recover qualified history
+→ resolve current owners
+→ reconcile owner-relative ambiguous effects
+→ re-observe load-bearing Reality
+→ recompile current action / non-action
+```
+
+这个工程纪律可能很有价值。
+
+但它的 constituents 大量来自成熟机制，当前也没有自然 deletion-positive consequence 证明 Atlas×Host×Harness 作为组合产生了不可替代的新 capability class。
+
+## 14. 所以 COJC 最后选择了停止，而不是继续找正结果
+
+一个研究 programme 很容易因为已经投入很多实验，就不断制造下一组 workload。
+
+这条线最后反过来给出了一个更成熟的停止规则。
+
+未来只有当一个新的自然 cross-owner successor/recovery case 同时满足：
+
+```text
+NaturalPressure
+AND
+MatureBaselineResidual
+AND
+IdentifiableDeletion
+AND
+IndependentConsequence
+```
+
+才重新打开 physical COJC experiment。
+
+这里每个 gate 都有意义。
+
+### NaturalPressure
+
+真实 owner workload 自然卡住，而不是为了测试而制造一个坏世界。
+
+### MatureBaselineResidual
+
+最强的成熟 generic mechanism 与 owner-local composition 仍然解释不了问题。
+
+### IdentifiableDeletion
+
+可以做一个不会破坏自然 bypass、不会偷偷改 Reality 的 same-cut intervention。
+
+### IndependentConsequence
+
+删除以后有独立 owner-native downstream consequence，而不是只有 evaluator score 变了。
+
+这意味着当前 Continuity standing 是：
+
+```text
+DORMANT_NATURAL_PRESSURE_REOPEN_ONLY
+```
+
+不是因为问题不重要。
+
+而是因为继续主动制造实验，已经不再增加足够的信息。
+
+## 15. 一个更准确的 Continuity Capability Map
+
+经过这些 subtraction，Continuity 不需要一个巨大 ontology。
+
+保留六个问题已经足够：
+
+| 能力 | 核心问题 |
+| --- | --- |
+| Retention | 什么跨时间仍然存在？ |
+| Qualification | 过去留下的对象现在具有什么 standing？ |
+| Responsibility | 谁现在仍然负责什么？ |
+| Recovery | 不确定 occurrence/effect 应向谁 reconcile？ |
+| Re-entry | successor 如何以有限成本进入当前 Reality？ |
+| Ratchet | successor 是否留下真正更高的未来 capability？ |
+
+它们不是六个必须实现的 shared service。
+
+它们只是六种如果被压成一个 `memory`，就很容易制造错误的 pressure。
+
+## 16. 现在再看 Atlas、Host 和 Harness
+
+经过整个研究之后，它们最合理的位置反而更朴素。
+
+### Atlas
+
+Atlas 不是长期大脑。
+
+它更像一种：
+
+```text
+qualified institutional / historical navigation
+```
+
+帮助 successor 找到：
+
+- owner；
+- historical result；
+- currentness health；
+- negative history；
+- recovery locator；
+- curated synthesis。
+
+但 semantic equivalence、novelty、owner truth 仍然不由 Atlas 自动决定。
+
+### Host
+
+Host 不是全局 current state。
+
+它更像：
+
+```text
+persistent semantic office / obligation handoff
+```
+
+保证一个 named work identity 可以跨 Agent replacement 存在，同时用 revision fencing 防止 stale successor 覆盖新的 continuation state。
+
+### Harness
+
+Harness 不是长期 world model。
+
+它更像：
+
+```text
+recoverable bounded cognitive/execution substrate
+```
+
+保存 Run 内 current cognition、Provider/Tool effects、budgets、receipts 与 recovery semantics，却不自动把整个 transcript 变成未来 cognition。
+
+### Owner-native Reality
+
+而真正决定：
+
+```text
+what is true now
+```
+
+的仍然是当前 owner / Reality surface。
+
+这四者加在一起可以支持 successor re-entry。
+
+但当前没有证据让我们把它们重新命名为一个新的 central substrate。
+
+## 17. 文明最值得借鉴的不是“记得多”，而是让历史成为 affordance
+
+人类文明真正惊人的地方，并不是任何一个人拥有几千年的 memory。
+
+恰恰相反，一个今天进入实验室、工程团队、法律体系或数学学科的人，通常不需要重新经历：
+
+- 每个失败实验；
+- 每次旧争论；
+- 每个工具发明过程；
+- 每一代人的完整 cognition。
+
+他直接进入：
+
+```text
+books
+notations
+instruments
+institutions
+roles
+standards
+routines
+methods
+libraries
+peer criticism
+training
+```
+
+也就是说：
+
+```text
+historical cognition
+→
+present affordance
+```
+
+这和 Chapter 5 的 Environmentalization 连接起来。
+
+成功的 succession 并不要求未来 Agent “读懂全部历史”。
+
+更高层的积累，是让一些已经稳定、值得保留的过去选择成为未来 cognition 的 starting condition，同时保留 source、challenge、revision 与 escape path。
+
+因此文明式能力不是：
+
+```text
+perfect memory
+```
+
+而更像：
+
+```text
+distributed inheritance
++
+role succession
++
+selective environmentalization
++
+continued criticism
++
+retained improvement
+```
+
+## 18. 这一章真正保留的最小模型
+
+如果一定要把整章压成一条链，它不是：
+
+```text
+store memory
+→ load memory
+→ continue
+```
+
+而更接近：
+
+```text
+past capability leaves qualified residues
+→ predecessor cognition disappears
+→ successor recovers the named responsibility position
+→ current owners re-establish load-bearing Reality
+→ ambiguous effects are reconciled owner-relatively
+→ current action / non-action is recompiled
+→ successor acts, waits, revises, or abstains
+→ only validated improvement is sedimented for the next successor
+```
+
+前半段解决：
+
+```text
+Succession / Re-entry
+```
+
+最后一步才开始接近：
+
+```text
+Ratchet
+```
+
+所以长期智能最危险的两个错误恰好相反：
+
+```text
+forget too much
+→ perpetual rediscovery
+```
+
+以及：
+
+```text
+preserve too much authority
+→ inherited blindness
+```
+
+真正的 cumulative capability 必须同时抵抗这两种失败。
+
+## 19. 这一章没有证明什么
+
+本章没有建立：
+
+- Atlas × Host × Harness 是新的 Persistent Intelligence Substrate；
+- 一个 universal Continuity owner/service/schema；
+- 一个 global successor state machine；
+- 一个 global `WAIT` / `OPEN_BLOCKED` ontology；
+- 一个 universal currentness graph；
+- Agent identity 必须跨 replacement 保持；
+- replay 是 cognition continuity 的正确目标；
+- Host Task lifecycle 等于 domain lifecycle；
+- no selected Tool 自动等于 completion；
+- 所有 `UNKNOWN` 都由 Harness 负责；
+- Information necessity 已经保证 Agent 能稳定消费；
+- Atlas currentness representation 当前已经行为最优；
+- generic durable workflows 不足；
+- CMMN/GSM、social commitments、organizational routines/TMS、cumulative-culture research 是 Ordivon 发明的；
+- 高 transmission fidelity 单调提高长期智能；
+- succession 已经证明 cumulative ratchet；
+- 当前 Ordivon 已经实现 autonomous cumulative intelligence；
+- current Continuity COJC 应继续主动制造实验。
+
+当前最强 standing 只是：
+
+> **Ordivon 已经拥有多种 successor-supporting institutional mechanisms，并形成了 responsibility-preserving reactivation 的工程纪律；但它们是否构成不可由成熟 generic composition 解释的新 joint capability，以及系统是否具备真正 cumulative ratchet，当前都没有建立。**
+
+所以未来 Agent 遇到这类问题时，不应该先问：
+
+> “Memory 应该存在哪里？”
+
+而应该先问：
+
+> **什么只是需要保存？什么需要由 successor 重新取得当前 standing？什么责任必须跨 Agent 存续？什么 effect 只能由特定 owner reconcile？什么当前只能 WAIT？以及这次 succession 之后，究竟有没有留下一个真实更高的 capability frontier？**
+
+只有最后一个问题反复得到肯定答案，长期 continuity 才开始接近真正的 cumulative intelligence。
