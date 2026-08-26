@@ -102,13 +102,25 @@ def _windows_file_version(path: Path) -> str | None:
 
 
 
-def _workstation_equipment_binding(equipment_id: str, executable: str) -> dict[str, Any] | None:
+def _workstation_equipment_binding(
+    equipment_id: str,
+    executable: str | None = None,
+    *,
+    mode: str = "isolated",
+) -> dict[str, Any] | None:
     tool = Path(os.environ.get("ORDIVON_EQUIPMENT_BINDING", "/root/tools/bin/equipment-binding"))
     if not tool.is_file() or not os.access(tool, os.X_OK):
         return None
+    if mode not in {"isolated", "managed"}:
+        raise ValueError(f"unsupported Workstation equipment binding mode: {mode}")
+    if mode == "isolated" and not executable:
+        raise ValueError("isolated Workstation equipment binding requires executable identity")
+    arguments = [str(tool), mode, "--equipment-id", equipment_id]
+    if mode == "isolated":
+        arguments.extend(["--executable", str(executable)])
     try:
         result = subprocess.run(
-            [str(tool), "isolated", "--equipment-id", equipment_id, "--executable", executable],
+            arguments,
             capture_output=True, text=True, timeout=15, check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
@@ -184,8 +196,13 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
     for item in world.get("equipment", []):
         candidates: list[dict[str, Any]] = []
         for spec in item.get("discovery", []):
-            if spec.get("kind") == "workstation-isolated-binding":
-                binding = _workstation_equipment_binding(str(spec["equipmentId"]), str(spec["executable"]))
+            if spec.get("kind") in {"workstation-isolated-binding", "workstation-managed-binding"}:
+                binding_mode = "managed" if spec.get("kind") == "workstation-managed-binding" else "isolated"
+                binding = _workstation_equipment_binding(
+                    str(spec["equipmentId"]),
+                    str(spec["executable"]) if binding_mode == "isolated" else None,
+                    mode=binding_mode,
+                )
                 if binding is not None:
                     path = Path(str(binding["executable"]))
                     version = _run_version(path, spec.get("versionArgs", ["--version"]), _binding_environment(binding))
@@ -540,7 +557,7 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
         args = [input_path, "--export-filename", output]
         if parameters.get("width") is not None:
             args.extend(["--export-width", str(int(parameters["width"]))])
-        binding = _workstation_equipment_binding("game-inkscape-e1", "inkscape")
+        binding = _workstation_equipment_binding("game-inkscape-e1", mode="managed")
         if binding is not None:
             environment = tuple(sorted(_binding_environment(binding).items()))
             return EquipmentPlan(

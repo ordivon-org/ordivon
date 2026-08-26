@@ -234,8 +234,9 @@ class EquipmentWorldTests(unittest.TestCase):
             executable.write_text("#!/bin/sh\necho Inkscape 1.4\n", encoding="utf-8")
             executable.chmod(0o755)
             binding_tool = root / "equipment-binding"
+            binding_log = root / "binding-args.json"
             binding_tool.write_text(
-                "#!/usr/bin/env python3\nimport json\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.isolated-equipment\",\"bindingDigest\":\"sha256:" + "a"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{\"libraryDirs\":[],\"pythonSitePackages\":[]},\"providerIdentity\":{\"ownerTask\":\"task:test\"},\"validUntilMs\":9999999999999}))\n",
+                "#!/usr/bin/env python3\nimport json,sys\nopen(" + repr(str(binding_log)) + ", 'w').write(json.dumps(sys.argv[1:]))\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "a"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "b"*64 + "\"}}))\n",
                 encoding="utf-8",
             )
             binding_tool.chmod(0o755)
@@ -243,7 +244,7 @@ class EquipmentWorldTests(unittest.TestCase):
                 "equipment": [{
                     "id": "inkscape", "family": "vector", "capabilities": ["vector.export"],
                     "retention": "specialist-on-demand", "reason": "test",
-                    "discovery": [{"kind": "workstation-isolated-binding", "platform": "linux", "equipmentId": "game-inkscape-e1", "executable": "inkscape", "versionArgs": ["--version"]}],
+                    "discovery": [{"kind": "workstation-managed-binding", "platform": "linux", "equipmentId": "game-inkscape-e1", "versionArgs": ["--version"]}],
                 }]
             }
             with mock.patch.dict(os.environ, {"ORDIVON_EQUIPMENT_BINDING": str(binding_tool)}):
@@ -251,8 +252,9 @@ class EquipmentWorldTests(unittest.TestCase):
                 plan = compile_operation("inkscape", "vector.export", {"input": "in.svg", "output": "out.png"})
             row = inventory["equipment"][0]
             self.assertTrue(row["present"])
-            self.assertEqual(row["candidates"][0]["provider"], "workstation.isolated-equipment")
+            self.assertEqual(row["candidates"][0]["provider"], "workstation.managed-external")
             self.assertTrue(row["candidates"][0]["bindingDigest"].startswith("sha256:"))
+            self.assertEqual(json.loads(binding_log.read_text()), ["managed", "--equipment-id", "game-inkscape-e1"])
             self.assertEqual(plan.executable, str(executable))
             self.assertIn("EquipmentBinding", " ".join(plan.notes))
             self.assertNotIn("capability", row["candidates"][0])
