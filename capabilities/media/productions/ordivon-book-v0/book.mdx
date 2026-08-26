@@ -10,6 +10,7 @@
 4. 现在不是一个时间戳：History, Currentness and Recovery
 5. 环境不是背景：Standing 如何成为未来的默认
 6. 继承不是复制：Succession, Re-entry and Cumulative Ratchet
+7. 组合不是涌现：Interaction, Irreducibility and Joint Capability
 
 **Future Horizon — 实验室与 Reality 中的 Ordivon**：[`future-horizon-laboratory.mdx`](future-horizon-laboratory.mdx)
 
@@ -4052,3 +4053,1631 @@ preserve too much authority
 > **什么只是需要保存？什么需要由 successor 重新取得当前 standing？什么责任必须跨 Agent 存续？什么 effect 只能由特定 owner reconcile？什么当前只能 WAIT？以及这次 succession 之后，究竟有没有留下一个真实更高的 capability frontier？**
 
 只有最后一个问题反复得到肯定答案，长期 continuity 才开始接近真正的 cumulative intelligence。
+
+---
+
+# 组合不是涌现：Interaction, Irreducibility and Joint Capability
+
+当两个本来独立的能力组合之后，系统做成了一件任何一个部分单独都做不到的事，我们很容易说：
+
+```text
+new capability
+synergy
+emergence
+phase transition
+```
+
+这些词都可能有意义。
+
+但它们绝不是同一个判断。
+
+一把钥匙和一把锁共同决定一扇门能不能打开；CPU、内存、操作系统和程序共同决定一个计算能不能完成；传感器、执行器、控制器和电源共同决定机器人能不能移动。删掉其中一个部分，系统都可能失败。
+
+这并不意味着每一次“缺一不可”都产生了 emergent capability。
+
+成熟 systems engineering 本来就在研究这样的系统：系统级结果来自多个元素以及它们之间的关系。经济学里的 complementarity / supermodularity 也早已能描述“一个变量增加以后，另一个变量的边际价值也上升”的系统效应。因果推断则更进一步：如果要讨论两个因素是否存在 causal interaction，就必须定义联合 intervention 和对应的 counterfactual outcome，而不是仅仅观察两个因素同时出现。
+
+所以这一章不能从：
+
+```text
+whole > sum(parts)
+```
+
+开始，并把它当成一个新发现。
+
+真正困难的问题是：
+
+> **一个有限智能面对多个相互作用的能力、owner、制度、接口和环境时，怎样知道自己看到的只是普通 composition、必要串联、coordination/representation gain，还是一个成熟 generic composition 无法复现的新的 joint reachability？**
+
+这也是前六章没有直接回答的问题。
+
+Chapter 1 问怎样从 Reality 形成 Standing。
+
+Chapter 2 问 representation 怎样改变可达的问题与判断。
+
+Chapter 3 问 Standing 怎样跨过 authority、commitment、effect 到达 Reality。
+
+Chapter 4 问怎样在多个时间坐标里恢复 Actionable Now。
+
+Chapter 5 问什么 standing 值得沉进未来 environment。
+
+Chapter 6 问这些结构怎样跨 Agent replacement 被 successor 重新进入，并在什么条件下才接近 cumulative ratchet。
+
+它们主要沿着一条纵向链展开：
+
+```text
+Reality
+→ cognition
+→ representation
+→ action
+→ currentness
+→ environment
+→ succession
+```
+
+但当 Ordivon 的 owner 越来越多、每个 owner 自己又越来越成熟以后，一个新的横向问题出现了：
+
+```text
+Capability_A
+× Capability_B
+× Capability_C
+→ ?
+```
+
+这一章处理的就是这个问号。
+
+它不是一章“复杂系统概论”。
+
+也不是一章“涌现理论”。
+
+它更像一套防止 finite intelligence 在组合系统里**过早给因果、能力与新颖性升级**的判断纪律。
+
+## 1. 共同出现，不等于共同产生
+
+一个最常见的错误是把 participation 当成 causal contribution。
+
+假设一个成功 workload 同时经过：
+
+```text
+Atlas
+Host
+Harness
+Runtime
+Domain owner
+```
+
+然后任务成功了。
+
+我们可以安全地说：
+
+> 这些 component 出现在这条实现路径里。
+
+但不能直接说：
+
+> 它们共同产生了一个不可由其他组合复现的新 capability。
+
+因为：
+
+```text
+Participation
+!=
+CausalContribution
+```
+
+一个 component 可能只是：
+
+- carrier；
+- transport；
+- convenience layer；
+- representation layer；
+- redundant path；
+- historical implementation choice；
+- generic mechanism 的一个具体实现；
+- 当前实验里存在，但对 target outcome 没有 deletion-essential contribution。
+
+这在今天的 Representation 实验中非常清楚。
+
+一个自然 workload 里，operation-relative projection 显著提高了 fresh Agent 的 relation reconstruction：
+
+```text
+FULL_SOURCE          93 / 120
+OPERATION_PROJECTION 111 / 120
+paired wins          3 / 3
+prompt tokens        -74.31%
+```
+
+如果只看参与者，很容易把结果写成：
+
+```text
+Media × SCD × Harness
+→ Representation capability
+```
+
+但 mechanism audit 发现：
+
+- source owners 提供事实；
+- Computing 手工编译 treatment；
+- Harness 只是 carrier / measurement apparatus；
+- Media-specific experimental role = NULL；
+- SCD-specific experimental role = NULL。
+
+于是这个 positive result 仍然成立，但它支持的是：
+
+> **这个 operation-relative representation 在这个 workload 上有价值。**
+
+它不支持：
+
+> **Media × SCD × Harness 作为 owner coalition 产生了新的 joint capability。**
+
+把一个局部效果错误地归给所有在场 component，是组合研究最危险的第一步。
+
+## 2. 缺一个就失败，也还不够
+
+更强的证据似乎是 deletion。
+
+如果：
+
+```text
+FULL succeeds
+remove A -> fails
+remove B -> fails
+```
+
+那么 A、B 看起来都必不可少。
+
+但这里仍然有一个重要 distinction：
+
+```text
+DeletionEssential
+!=
+JointIrreducible
+```
+
+为什么？
+
+因为普通串联系统本来就可能是 deletion-essential 的。
+
+例如：
+
+```text
+source
+→ parser
+→ planner
+→ executor
+```
+
+删掉 parser，系统失败。
+
+删掉 executor，也失败。
+
+这只能说明它们在这个 implementation path 里必要。
+
+不能说明：
+
+> parser + executor 之间产生了一个成熟系统工程无法表示的新能力类别。
+
+同样，两个 factor 都是 necessary condition，也不等于它们存在一个新的 interaction mechanism。
+
+在 causal inference 里，interaction 必须相对于一个明确的 outcome、intervention 与 effect scale 定义。单纯看到两个因素都重要，并不足以回答“联合效果是否超出各自效果可以解释的范围”。
+
+所以 deletion 是必要的因果工具，却不是 emergence detector。
+
+## 3. Complementarity 也不是 Emergence
+
+另一个容易被升级的词是 synergy。
+
+当：
+
+```text
+Value(A+B)
+>
+Value(A) + Value(B)
+```
+
+或者一个 factor 提高了另一个 factor 的 marginal value，我们可以合理讨论 complementarity。
+
+这已经有成熟的 supermodularity 理论。
+
+它非常重要，因为现实中的组织、技术系统、生产过程和策略组合经常不是可加的。
+
+但：
+
+```text
+Complementarity
+!=
+Emergence
+```
+
+一个系统可以具有强烈 complementarity，同时它的联合结果仍然完全能够由已有 primitive、relation 和成熟模型解释。
+
+例如一个测量系统里：
+
+```text
+high-resolution sensor
++
+precise timestamp synchronization
+```
+
+二者可能互相提高价值。
+
+没有同步，高分辨率数据无法正确对齐；没有足够精度，同步也没有太多意义。
+
+这可以是很强的 complementarity。
+
+但没有必要因此创建：
+
+```text
+Emergent Measurement Intelligence
+```
+
+这对 Ordivon 特别重要。
+
+我们希望研究 owner 之间的组合效应，正是因为项目独立深入以后，可能出现单 owner 无法提供的 capability。
+
+但如果“组合以后更好”就自动叫 emergence，那么几乎所有成熟系统都能被重新命名成 emergence。
+
+概念会失去判别力。
+
+## 4. Interaction 也只是更强的一个问题，不是终点
+
+相比 complementarity，causal interaction 更接近我们真正想知道的东西。
+
+可以把一个最简单的二因素问题写成：
+
+```text
+Y(a,b)
+```
+
+然后比较：
+
+```text
+Y(1,1)
+Y(1,0)
+Y(0,1)
+Y(0,0)
+```
+
+问题变成：
+
+> A 的 effect 是否依赖 B 的取值？A+B 的联合 effect 是否不同于选定 effect scale 下的独立组合预期？
+
+这迫使实验者明确：
+
+- treatment 是什么；
+- target outcome 是什么；
+- baseline 是什么；
+- 哪些世界真的被干预；
+- 哪种 joint comparison 有意义。
+
+因此：
+
+```text
+Co-occurrence
+→ insufficient
+
+Deletion
+→ stronger
+
+Joint intervention
+→ stronger again
+```
+
+但即使观测到 interaction，也仍然不能自动推出新 capability。
+
+因为 interaction 本身可以是成熟机制的预期结果。
+
+例如：
+
+```text
+cache × memory locality
+redundancy × failure correlation
+training × data quality
+permission × physical capability
+```
+
+都可能存在明确 interaction。
+
+如果已有理论已经完整解释它，那么正确的 standing 是：
+
+```text
+identified interaction
+```
+
+而不是：
+
+```text
+new irreducible capability
+```
+
+## 5. 真正需要被 subtract 的，是最强 mature composition
+
+这就是 COJC 最后形成的一个关键修正。
+
+不能只问：
+
+> 单 owner 能不能做到？
+
+因为现实系统里本来就允许组合。
+
+真正应该问：
+
+> **在 primitive、information、authority 与 resource 条件公平的情况下，一个成熟 generic composition 能不能复现这个结果？**
+
+这条 baseline 很苛刻。
+
+一个 fair generic baseline 可以使用：
+
+- owner-native facts；
+- mature search / indexing；
+- ordinary policy composition；
+- workflow；
+- provenance；
+- currentness revalidation；
+- retry / reconciliation；
+- standard systems engineering；
+- domain-standard algorithms。
+
+但它不能得到：
+
+- hidden oracle；
+- future labels；
+- treatment 的答案；
+- 被实验者偷偷移除的 natural bypass；
+- 实际系统没有的 authority。
+
+同时它必须支付真实成本：
+
+```text
+construction
+currentness
+maintenance
+recovery
+representation
+coordination
+```
+
+如果这个 baseline 能复现 candidate，那么：
+
+```text
+Candidate works
++
+Generic composition works too
+→
+Operational composition / scoped interaction
+```
+
+而不是：
+
+```text
+Joint irreducibility
+```
+
+## 6. Continuity 给了一个很干净的 Generic Composition negative control
+
+Chapter 6 里，我们看到 Atlas × Host × Harness 很容易被想象成：
+
+> persistent intelligence substrate。
+
+因为 successor 需要：
+
+- historical/currentness navigation；
+- work identity / obligation continuity；
+- bounded cognition / recovery；
+
+这些 component 看起来确实互补。
+
+但 COJC 后续加入了更强 generic control。
+
+用：
+
+```text
+generic indexed retrieval
++
+generic typed policy composition
+```
+
+三个新的 H=256 multi-stage ratchet replicate 得到：
+
+```text
+33 / 33
+```
+
+复现了此前 operation-compiled successor representation 的优势。
+
+随后 16-world Recursive Successor State control 也全部 converged，并与 generic transition implementation：
+
+```text
+0 mismatch
+```
+
+这并没有让 Atlas、Host、Harness 失去价值。
+
+相反，它把它们的价值放回了更准确的位置：
+
+```text
+valuable Ordivon components
++
+useful composition
+!=
+proven novel joint capability
+```
+
+当前留下的是 responsibility-preserving reactivation discipline，而不是一个新 central substrate。
+
+这正是 Generic Composition Subtraction 的意义：
+
+> **它不是为了证明组合“不特别”，而是为了把真正特别的 residual 从普通工程价值里分离出来。**
+
+## 7. 不能为了得到 deletion-positive 结果而破坏 Reality
+
+当实验非常想证明某个 component 必不可少时，还有一个更危险的诱惑：
+
+```text
+把 bypass 关掉
+```
+
+例如一个自然系统原本有：
+
+```text
+A path
+or
+B path
+```
+
+为了证明 A 重要，实验者关闭 B，然后删除 A，系统失败。
+
+这当然可以制造 deletion-essentiality。
+
+但它回答的是一个人为构造的新世界：
+
+```text
+World_without_B
+```
+
+而不是原来的 Reality。
+
+因此今天 COJC 很重要的一条 negative rule 是：
+
+> **不能禁用一个自然存在的 bypass，只为了让某个 owner deletion 变成 positive。**
+
+这不仅是实验伦理问题，也是因果识别问题。
+
+真正关心的是：
+
+```text
+what capability exists in the current system
+```
+
+而不是：
+
+```text
+what capability would become necessary after we intentionally cripple the system
+```
+
+Finance × Workstation 的 successor case 就因此被关闭。
+
+当时历史 Finance observation 暴露 `EGRESS_NOT_CURRENT`，看起来很适合测试某个跨 owner continuation。
+
+但当前 Workstation Reality 没有自然提供一个可比较的 same-cut positive。要获得 positive factorial，必须主动改变网络/服务状态。
+
+于是正确结果不是“把环境修好再测”。
+
+而是：
+
+```text
+EXPERIMENT_NOT_CURRENTLY_IDENTIFIABLE
+```
+
+然后停止。
+
+这是研究质量，不是缺乏积极性。
+
+## 8. Requested intervention 也不等于 Realized causal footprint
+
+即使实验没有故意破坏 Reality，一个 intervention 的实际 footprint 也可能与实验者想象不同。
+
+例如我们写：
+
+```text
+remove owner A
+```
+
+实际系统可能发生：
+
+- fallback 被激活；
+- cached data 继续存在；
+-另一个 owner 重建了同样 information；
+- treatment 同时改变了 representation；
+- shared state 被连带修改；
+- currentness 在 intervention 期间前进；
+- downstream consumer 没有真的读取被删除的 coordinate。
+
+因此：
+
+```text
+AttemptedIntervention
+!=
+RealizedTargetRelevantFootprint
+```
+
+这里还必须把两种看起来相似、因果意义却相反的情况分开。
+
+第一种是 **natural fallback**：实验者只请求删除 A，但系统本来就存在的 B 自然接管，在 consumer 行动前恢复了同一个 load-bearing premise。此时不是“实验者制造了一个坏世界”，而是：
+
+```text
+requested deletion
+→ target-relevant deletion never realized
+→ INTERVENTION_NOT_IDENTIFIED
+```
+
+它告诉我们：当前 Reality 没有提供一个能隔离 A 的 intervention footprint。
+
+第二种才是 **manufactured deletion**：实验者为了让 A 显得必要，先主动关闭原本存在的 B，再删除 A。此时：
+
+```text
+natural bypass deliberately disabled
+→ experimental world differs from live capability ecology
+→ INVALID_MANUFACTURED_DELETION
+```
+
+因此：
+
+```text
+NaturalFallbackPreventsDeletion
+!=
+ExperimenterDisablesFallback
+```
+
+前者要求停止因果归因，因为 treatment 没有真正落到 target；后者要求拒绝把人为瘫痪后的 failure 当作当前系统的必要性证据。
+
+COJC 的 causal-unit 研究最后没有创建一个新的 global causal graph。
+
+留下的是一个更朴素的要求：
+
+> 当 causal credit 真正重要时，要用 owner-native / Runtime evidence 确认实际改变了什么，而不是用实验命令的名字替代 causal treatment。
+
+这也意味着：
+
+```text
+compound treatment success
+!=
+component causal credit
+```
+
+如果 A+B 一起删除会失败，而 A、B 没有可识别的独立 intervention，我们只能对 compound effect 负责。
+
+不能因为系统图里画着两个框，就把 causal credit 平分给它们。
+
+## 9. Owner subset 不是最好的默认 search coordinate
+
+COJC 最初很自然地从 owner combination 开始：
+
+```text
+Security × Interlocus
+Media × SCD × Harness
+Finance × World × CP × Interlocus
+Game × Security × Normative
+Atlas × Host × Harness
+```
+
+这种方式很适合生成 hypothesis。
+
+但它也有一个严重副作用：
+
+> 组合名称本身会让研究者预设“这些 owner 之间应该存在一个东西”。
+
+最终 campaign 反过来修改了 search geometry。
+
+未来更好的起点是：
+
+```text
+NaturalBlockedOutcome
+```
+
+然后问：
+
+```text
+这个 outcome 的 binding responsibility cut 在哪里？
+哪些 owner-native premise 真正 load-bearing？
+最强成熟机制已经解释了多少？
+剩下哪一个 deletion / intervention 是可识别的？
+有什么独立 consequence 会改变？
+```
+
+所以：
+
+```text
+OwnerCoalition
+!=
+CausalUnit
+```
+
+更好的 causal unit 往往是：
+
+```text
+operation
++
+obligation
++
+load-bearing responsibility path
++
+realized intervention footprint
+```
+
+这并不要求建立一个全局 Responsibility Graph。
+
+它只是告诉 finite intelligence：
+
+> 不要因为系统在 repository 里被分成若干 owner，就假定 Reality 的因果结构也按照同样的边界切开。
+
+## 10. Representation effect 是组合研究里的一个巨大混淆变量
+
+今天 Representation 研究给 COJC 施加了一个特别强的压力。
+
+同一个 Agent、同样 semantic atoms、同样 Tools，仅改变 representation，结果就可能发生显著变化。
+
+更重要的是，这种变化**甚至不稳定同号**。
+
+两个 independently frozen natural workloads 给出：
+
+### World P：cross-source join burden 高
+
+```text
+FULL_SOURCE          93 / 120
+OPERATION_PROJECTION 111 / 120
+prompt tokens        -74.31%
+```
+
+主要改善发生在需要跨 artifact 重建 downstream-use lineage 的 relation。
+
+### World N：判断对象主要 source-local
+
+```text
+FULL_SOURCE       79 / 90
+SOURCE_BOUND_CECB 75 / 90
+prompt tokens     -67.6%
+```
+
+context 大幅减少，但 protected `ObjectiveAchievement` / `BoundedImprovement` 等 local scoped distinction 发生退化。
+
+所以：
+
+```text
+MoreCompression
+!=
+MoreCapability
+
+CECBPresent
+!=
+ProjectionBeneficial
+
+SourceComplete
+!=
+ConsumerComplete
+
+TaskRelevantSummary
+!=
+SufficientStatistic
+```
+
+对组合研究而言，这意味着一个非常重要的警告：
+
+> **如果 Full system 比 deletion baseline 表现好，先检查是否只是 representation/search geometry 改变，而不是 owner capability 本身发生了不可替代 interaction。**
+
+否则 finite consumer 的注意力/检索优势会被错误地记在 owner causal credit 上。
+
+## 11. 一个 representation 可以改变能力表现，却仍不产生新的 owner
+
+这里还有一个更细的 distinction。
+
+如果 representation 改变 finite Agent 的可达判断，我们完全可以说：
+
+```text
+Representation changed effective capability on this workload
+```
+
+这在 Chapter 2 已经成立。
+
+但：
+
+```text
+CapabilityEffect
+!=
+NewSemanticOwner
+```
+
+更不等于：
+
+```text
+Emergence
+```
+
+一个 compiler、index、diagram、query plan 或 evidence card 可以显著改变 finite computation。
+
+它仍然可以只是一个 mature representation mechanism。
+
+这也是为什么今天没有创建：
+
+- Representation service；
+- CECB registry；
+- global card schema；
+- new Harness representation owner。
+
+系统可以因为 representation 变强，而不需要把每一次能力变化都本体化成新的项目边界。
+
+## 12. J3-AIC：强系统效应，不等于 Institution Emergence
+
+Game × Security × Normative 是今天最容易被“涌现”叙事吸引的一条线。
+
+Synthetic institutional world 里确实存在：
+
+- world transitions；
+- authority；
+- effective control；
+- sanctions；
+- elections；
+- partial-order events；
+- precedence policy；
+- consequential action。
+
+而实验结果也很强。
+
+S4B 中，对已经证明 institutionally equivalent 的 history pair：
+
+```text
+RAW_HISTORY
+both-response-correct = 48.4%
+invariance            = 61.3%
+safety-error pairs    = 16.1%
+
+ORTHOGONAL_FRONTIER
+both-response-correct = 100%
+invariance            = 100%
+safety-error pairs    = 0%
+```
+
+S5B-B v2 的 34 个完整 paired blocks 中：
+
+```text
+Binding Set
+safe action       = 94.1%
+multiplicity      = 88.2%
+strict            = 73.5%
+safety errors     = 0
+
+Forced Linearization
+safe action       = 67.6%
+multiplicity      = 32.4%
+strict            = 11.8%
+safety errors     = 3
+
+Raw Partial Order
+safe action       = 61.8%
+multiplicity      = 67.6%
+strict            = 5.9%
+safety errors     = 1
+```
+
+而且 earned 了预注册结果：
+
+```text
+LINEARIZATION_COLLAPSE_HARM
+```
+
+这是真正有价值的系统结果。
+
+但它仍然不是：
+
+```text
+institution emergence demonstrated
+```
+
+为什么？
+
+因为实验真正识别的是：
+
+> forced linearization 会把 evidence 只支持的 partial order 错误压成一个 fictitious unique Now，从而增加 finite-Agent semantic safety error。
+
+它没有识别：
+
+> Game、Security、Normative 三个 owner 的 proper-subset deletion 下，一个新的 institution-level capability 只有 full coalition 才存在。
+
+因此：
+
+```text
+StrongCrossOwnerResult
+!=
+HigherOrderIrreducibility
+```
+
+Programme Track 名字里有 `J3`，也不能被误读成 evidence ladder 的 `J3 higher-order irreducibility`。
+
+名字不是 standing。
+
+## 13. Partial order 告诉我们：组合后的“Now”也可能不是一个点
+
+J3-AIC 还给出了一个很适合这一章的更一般性结果。
+
+多个 component 各自提供真实 evidence，并不意味着它们组合后自动形成一个唯一 current state。
+
+在 partial-order world 中：
+
+```text
+OccurrenceOrder
+!=
+ObservationOrder
+!=
+AuthenticatedOrderEvidence
+!=
+InstitutionalPrecedence
+```
+
+而且：
+
+```text
+Authenticated
+!=
+Authoritative
+```
+
+这意味着 composition 不是把多个 owner 的“最新值”简单 join 起来。
+
+有时真正正确的 composite representation 是：
+
+```text
+set of admissible bindings
+```
+
+而不是一个被伪造出来的 single state。
+
+这与 Chapter 4 的 Actionable Now 连接，但问题更横向：
+
+> 当多个 owner 的 current evidence 不能被一个全序合法压平时，组合系统必须保存 unresolved relation，而不是为了方便 consumer 发明唯一世界。
+
+这也是为什么：
+
+```text
+Determinate
+!=
+Safe
+```
+
+九个 order-witness race 里，即使 admitted precedence 消除了 ordering ambiguity，仍有 case 选出了 determinate 但 unsafe 的结果。
+
+所以组合系统的安全性不能用“终于只剩一个答案”衡量。
+
+## 14. MULTIPLE 不是 HOLD，ONE 也不是 ALLOW
+
+S5D 进一步把这个问题推到 action。
+
+一个常见 heuristic 是：
+
+```text
+有多个可能世界
+→ HOLD
+
+只有一个可能世界
+→ ALLOW
+```
+
+实验直接 falsify 了这两个等号。
+
+```text
+MULTIPLE != HOLD
+ONE      != ALLOW
+```
+
+真正决定 immediate action safety 的，是 admissible consequence envelope。
+
+在 frozen action class 中：
+
+```text
+ALLOW
+iff
+all admissible bindings are AUTHORIZED
+and all preserve the same holder/controller principal
+```
+
+因此一个组合系统可能有多个 unresolved binding，却在目标 consequence 上完全等价，仍然可以安全行动。
+
+也可能只有一个 binding，但那个唯一 binding 本身不安全。
+
+这给 joint capability 一个很好的提醒：
+
+> **不要用 representation cardinality、component count 或 uncertainty count 代替 target-relative consequence analysis。**
+
+## 15. Capability 必须相对于一个 target 定义
+
+我们经常说：
+
+```text
+System has capability C
+```
+
+但组合研究越深入，这句话越需要补全。
+
+至少要问：
+
+```text
+capability for what target?
+under what resource envelope?
+with what authority?
+against what Reality state?
+for which consumer?
+with what validity/safety constraint?
+```
+
+Constructive Capability Environment 研究也给出了同一个方向的修正：
+
+```text
+AssetExists
+!=
+CurrentCapability(target,time)
+```
+
+以及：
+
+```text
+LatentAffordance
+!=
+RealizedCapability
+```
+
+一个 GRAPH 里可以存在三步 feasible route，而 live finite Agent 仍然 0/4 找不到或执行不了它。
+
+所以组合以后“理论上有路径”，也不等于当前 consumer 已经获得实际 capability。
+
+反过来，一个系统为了 safety/authority 删除一些 raw actions，也可能保留更多未来 valid reachability：
+
+```text
+MoreRawActions
+!=
+MoreValidCapability
+```
+
+这使 joint capability 不再是一个简单的 action-set union。
+
+## 16. Joint capability 最少要跨过哪些怀疑？
+
+经过今天的 destructive subtraction，COJC 最后保留了四个 gate：
+
+```text
+NaturalPressure
+AND
+MatureBaselineResidual
+AND
+IdentifiableDeletion
+AND
+IndependentConsequence
+```
+
+这四个 gate 不是一个 universal schema。
+
+它们更像四个不同方向的怀疑。
+
+### 16.1 Natural Pressure
+
+这个 capability question 是否来自真实 owner-native blocked / limited outcome？
+
+如果没有，一个漂亮组合很可能只是 hypothesis generator。
+
+### 16.2 Mature Baseline Residual
+
+成熟 systems engineering、search、workflow、control、decision theory、distributed systems、representation、owner-local composition 已经能解决多少？
+
+如果最强 baseline 能复现，就没有必要为了 novelty 再造一个 owner。
+
+### 16.3 Identifiable Deletion
+
+是否存在一个不会偷偷改变其他 load-bearing coordinate、不会禁用 natural bypass、不会制造目标 failure 的 intervention？
+
+如果没有，应该保留 `NOT_IDENTIFIED`，而不是用更多 replicas 把不可识别包装成统计显著。
+
+### 16.4 Independent Consequence
+
+删除以后，是否有一个独立 owner-native downstream consequence 改变？
+
+如果只有：
+
+```text
+LLM score +5
+```
+
+而没有 target capability / decision / reachability / effect / owner outcome 的变化，证据仍然弱。
+
+这四个问题合起来，是为了防止一种常见升级路径：
+
+```text
+interesting combination
+→ benchmark delta
+→ name a capability
+→ name an owner
+→ call it emergence
+```
+
+## 17. 四个 gate 不是一个“发现涌现”的算法
+
+这里必须立即自我限制。
+
+即使一个 candidate 同时通过四 gate，我们最多获得：
+
+> **一个值得认真研究的 joint-irreducibility candidate。**
+
+并不自动获得：
+
+```text
+emergence
+phase transition
+new institution
+new ontology
+```
+
+为什么？
+
+因为 emergence 在成熟文献里本来就有多种含义。
+
+一些定义强调：
+
+- system-level property 不存在于单个 component；
+- whole property 对 micro-components 有 dependence；
+- 同时具有某种 autonomy / non-aggregativity / multiple realizability / distinctive efficacy；
+- 或者只是从 interaction 中产生难以由局部行为直接预测的 collective behavior。
+
+这些定义并不等价。
+
+所以 Book 不应该选择一个词义，然后把整个 Ordivon programme 绑定在它上面。
+
+当前更安全的做法是：
+
+> **先精确说清楚观测到了哪一种 relation：composition、complementarity、causal interaction、deletion-essentiality、generic-composition residual、new reachability、system-level autonomous behavior。**
+
+只有当某个更强 emergence claim 真正需要时，再明确它采用哪一个定义。
+
+## 18. Evidence ladder 可以辅助思考，但不能变成 Reality 的阶梯
+
+为了研究方便，我们当然可以写出一个直观 progression：
+
+```text
+composition
+→ complementarity
+→ interaction
+→ joint irreducibility
+→ emergence
+→ phase transition
+```
+
+但这个顺序非常容易被误解成：
+
+```text
+每一个系统都应该沿着它升级
+```
+
+这不是当前 standing。
+
+有些系统的最高、最正确描述就是：
+
+```text
+ordinary composition
+```
+
+有些只有：
+
+```text
+strong complementarity
+```
+
+有些存在 causal interaction，但没有任何理由叫 emergence。
+
+还有些系统可能有宏观 emergent behavior，却不适合用 owner deletion 来表示。
+
+因此 evidence ladder 只是 research navigation。
+
+它不是：
+
+- universal ontology；
+- maturity score；
+- capability hierarchy；
+- architecture roadmap。
+
+Finite intelligence 的目标不是把每一个结果推到最高 label。
+
+而是让 label 的强度不超过 evidence。
+
+## 19. False positive 往往来自把不同坐标压成一个坐标
+
+今天大量看似“联合能力”的 false positive，可以归结成同一种 representation error：把多个不同问题压成一个词。
+
+例如：
+
+```text
+works together
+```
+
+可能意味着：
+
+- components are serially necessary；
+- one improves another's marginal value；
+- one removes search burden；
+- one transports another's result；
+- one grants authority；
+- one changes currentness；
+- one changes effective control；
+- one changes consumer representation；
+- one changes actual world reachability。
+
+这些不是同一种 relation。
+
+所以：
+
+```text
+CompositionClaim
+```
+
+至少必须知道自己在说哪一个 target relation。
+
+否则系统会把：
+
+```text
+representation gain
+```
+
+误叫：
+
+```text
+causal owner synergy
+```
+
+把：
+
+```text
+shared transport
+```
+
+误叫：
+
+```text
+joint capability
+```
+
+把：
+
+```text
+institutional constraint
+```
+
+误叫：
+
+```text
+emergent norm
+```
+
+这与 Chapter 2 的基本规律完全一致：
+
+> Representation 不只是描述结果，也会改变什么 relation 对有限智能可见。
+
+## 20. 一个更好的 Joint Capability 实验从 blocked outcome 开始
+
+如果未来再次出现一个很有潜力的 cross-owner case，更好的实验路径不是：
+
+```text
+选三四个 owner
+→ 枚举 subset
+→ 跑 benchmark
+```
+
+而是：
+
+```text
+1. 找到自然出现的 blocked / limited owner-native outcome
+2. 明确 target capability / consequence
+3. 找到 load-bearing responsibility cut
+4. 建立最强 mature generic + owner-local baseline
+5. 冻结 source/currentness/resource/authority cut
+6. 设计一个不会制造 failure 的 admissible intervention
+7. 验证 realized causal footprint
+8. 测量独立 owner-native consequence
+9. 如果 generic baseline 仍无法解释，再升级 standing
+```
+
+这不是为了让实验变慢。
+
+恰恰相反，它减少大量没有 discriminative value 的组合搜索。
+
+一旦：
+
+```text
+mature baseline reproduces
+```
+
+就应该停止。
+
+一旦：
+
+```text
+delete cannot be identified naturally
+```
+
+也应该停止。
+
+一旦：
+
+```text
+only representation score changes
+```
+
+就把问题送回 Representation，而不是继续挖 owner synergy。
+
+这种 ability to stop，是 finite research system 的重要能力。
+
+## 21. NO_JOINT_CAPABILITY 可以是一个高价值结果
+
+传统研发叙事很容易偏好 positive novelty。
+
+但对一个长期自我扩展的系统来说，negative composition result 价值很高。
+
+因为它可以阻止：
+
+- 新 owner；
+- 新 service；
+- 新 schema；
+- 新 registry；
+- 新 monitoring loop；
+- 新长期 maintenance burden；
+- 错误的 causal credit；
+- 后续研究沿错误 ontology 继续生长。
+
+今天 COJC 的很多最重要结果都是这种形式：
+
+```text
+Media × SCD × Harness
+→ useful scoped representation effect
+→ NO joint-owner attribution
+
+Atlas × Host × Harness
+→ useful succession composition
+→ generic baseline reproduces
+→ NO persistent-intelligence joint capability
+
+Finance × World × CP × Interlocus
+→ Finance remains consequential consumer
+→ World deleted, CP unearned
+→ NO four-owner irreducibility
+
+SCD × CP
+→ generic diagnosis/repair mature
+→ no natural Diagnostic Separation Witness
+→ DORMANT
+```
+
+这些关闭不是“没找到东西”。
+
+它们让 Ordivon 的 project topology 没有被每一次组合兴趣继续膨胀。
+
+## 22. 真正新的 capability 应该改变 reachability，而不只是描述
+
+如果一个 joint capability 最终真的值得这个名字，它最有说服力的证据之一应该是：
+
+```text
+Reachable_full
+≠
+Reachable_strongest_generic_baseline
+```
+
+而且这个 difference 必须发生在一个具体、受约束的 target 上。
+
+例如未来可能出现：
+
+- 某个实验只有多个 owner 的独立 authority/evidence/action relation 正确组合后才合法可执行；
+- 某个 adversarial environment 只有新的制度 structure 才能维持此前不存在的 strategy space；
+- 某个 physical Lab setup 通过新的 measurement/action composition 使原本不可辨识的 rival worlds 变得可辨识；
+- 某个 multi-Agent environment 出现系统级行为，强 generic composition 无法在 primitive/authority parity 下复现。
+
+这时我们才开始接近：
+
+```text
+new joint reachability
+```
+
+而不是“组合后更方便”。
+
+这里也要保留：
+
+```text
+ReachabilityExpansion
+!=
+RealizedBenefit
+```
+
+Chapter 3 和 Chapter 5 仍然要求 consequence / benefit 另行验证。
+
+## 23. Institution 也应该被当作 capability hypothesis，而不是神秘宏观对象
+
+Game × Security × Normative 的一个长期问题是：
+
+> 什么时候一个人工世界不再只是 simulation，而开始拥有 authority、incentives、adversaries、institutions 与 norms？
+
+这一章给它一个更稳的入口。
+
+不要先问：
+
+```text
+institution emerged?
+```
+
+先问：
+
+```text
+哪一种 system-level capability / constraint / strategy space 改变了？
+```
+
+例如：
+
+- rule 是否保护了 future valid reachability？
+- authority 是否改变了哪些 transition 可以合法发生？
+- adversarial adaptation 是否产生了只有 institutional response 才能处理的新 pressure？
+- precedence 是否解决了真实 conflict，而不是只是把事件排序？
+- incentive structure 是否稳定产生新的 strategy family？
+
+然后再做 mature subtraction。
+
+Game 的 critical-item constraint 就给过一个很小的正例：限制一个 primitive-legal pickup，反而保留了未来 sealing reachability。
+
+但经典 safe-state / deadlock-avoidance 已经解释一般机制。
+
+所以这个结果正确的 standing 是：
+
+```text
+option-preserving constraint witness
+```
+
+不是：
+
+```text
+institution emergence
+```
+
+如果以后某个 institutional structure 真正留下 mature baseline 无法解释的 residual，再继续升级。
+
+## 24. 组合系统里的 authority 不能随 capability 一起“涌现”出来
+
+组合研究还有一个特别危险的 normative collapse。
+
+假设 A 有 information，B 有 physical capability，C 有 execution mechanism。
+
+把它们连起来以后，系统突然“能做”一件以前做不到的事。
+
+这绝不意味着：
+
+```text
+new physical capability
+→
+new authority
+```
+
+Chapter 3 已经明确：
+
+```text
+Capability
+!=
+Authority
+!=
+Commitment
+!=
+Effect
+```
+
+组合系统只会让这条边界更重要。
+
+尤其在 Future Lab 中：
+
+```text
+sensor
++
+robot
++
+fabrication
++
+model
++
+Runtime
+```
+
+可能迅速扩大 physical reachability。
+
+但 permission、safety interlock、consent、institutional authority、emergency stop responsibility 都必须独立存在。
+
+所以任何所谓 joint capability 都不能把 authority 当作 composition 的副产品。
+
+## 25. 这一章真正增加给前六章的是什么
+
+如果把 Chapter 7 删掉，前六章仍然可以很好地解释：
+
+- 一个 claim 怎样形成；
+- representation 怎样适配 consumer；
+- action 怎样被授权和执行；
+- currentness 怎样恢复；
+- standing 怎样进入 environment；
+- successor 怎样重新进入。
+
+但它们还缺一个问题：
+
+> **当这些已经正确分工的机制组合起来以后，我们怎样判断系统是真的拥有了一个新的 joint capability，而不是普通系统工程、representation gain、necessary series composition 或已知 complementarity？**
+
+这一章增加的就是这个判别层。
+
+它的核心不是一个新 object。
+
+而是一组 anti-promotion distinctions：
+
+```text
+Participation
+!=
+CausalContribution
+
+DeletionEssential
+!=
+JointIrreducible
+
+Complementarity
+!=
+Emergence
+
+Interaction
+!=
+NovelCapability
+
+RepresentationEffect
+!=
+OwnerSynergy
+
+Determinate
+!=
+Safe
+
+NaturalBypass
+!=
+ExperimentalNuisance
+
+StrongSystemResult
+!=
+HigherOrderIrreducibility
+```
+
+以及一个研究顺序：
+
+```text
+NaturalBlockedOutcome
+→ responsibility cut
+→ mature baseline subtraction
+→ identifiable intervention
+→ independent consequence
+→ bounded promotion
+```
+
+## 26. 当前 Ordivon 没有证明 emergence，这反而让这章成立
+
+这章最容易被误解的地方是：
+
+> 如果 Ordivon 还没有证明一个真正 emergent joint capability，为什么要写这一章？
+
+因为这章的对象不是“我们已经拥有的 emergent capability catalog”。
+
+它的对象是：
+
+> **有限智能怎样在强系统效应面前保持 epistemic restraint。**
+
+如果今天 COJC 找到十个漂亮 positive，然后直接各自建立新 owner，这章反而不可信。
+
+真正让它值得进入 Book 的，是一整天的研究最后不断得到：
+
+```text
+interesting
+→ test
+→ stronger baseline
+→ narrower standing
+→ sometimes delete
+→ sometimes preserve a scoped effect
+→ stop before stronger label
+```
+
+这使“组合判断”从研究兴趣变成了一个稳定的 finite-intelligence problem。
+
+一个会不断扩展自己的系统，不仅需要发现新的能力。
+
+它也需要阻止自己把每一次协调、压缩、串联和共同成功都误认为新能力。
+
+## 27. 当前最小 Composition Capability Map
+
+不需要建立一个新的 ontology。
+
+保留以下问题已经足够：
+
+| 问题 | 要防止的错误 |
+| --- | --- |
+| Target | 不知道“能力”到底相对什么目标 |
+| Participation | 把在场当因果 |
+| Baseline | 用弱 baseline 制造 novelty |
+| Intervention | 把请求删除当真实 causal footprint |
+| Bypass | 为了 positive result 人为破坏自然系统 |
+| Representation | 把 finite-consumer geometry 当 owner capability |
+| Consequence | 只有 benchmark delta，没有独立 Reality outcome |
+| Promotion | 把 complementarity/interaction 直接升级成 emergence |
+
+它们不是八个 shared service。
+
+只是八个如果被压成一个 `synergy`，就很容易造成错误的维度。
+
+## 28. Reopen：什么时候才值得重新追逐 Joint Capability
+
+当前 COJC campaign 已经进入 dormant。
+
+未来不是定期重新跑 owner combination matrix。
+
+真正的 reopen condition 是：
+
+```text
+一个新的自然 owner-native workload
+```
+
+同时出现：
+
+1. **真实 capability limitation**：当前 outcome 真的被限制，而不是研究者想测组合；
+2. **强 baseline 仍失败**：成熟 generic composition 与 owner-local solution 都不能复现；
+3. **可识别 intervention**：存在 same-cut deletion / treatment，不需要禁用 natural bypass；
+4. **独立 consequence**：真实 downstream owner outcome / reachability / effect 改变；
+5. **standing 会被反例改变**：失败结果能够让我们放弃或收窄 candidate，而不是无论如何都继续调 benchmark。
+
+第五点不是 canonical four-gate 的一个新硬 gate。
+
+它只是这本 Book 对 research integrity 的补充提醒：
+
+> 一个不会被反例改变的 emergence programme，不是在测 emergence。
+
+## 29. 这一章没有证明什么
+
+本章没有建立：
+
+- Ordivon 已经观察到 emergence；
+- Ordivon 已经观察到 phase transition；
+- Game × Security × Normative 已经形成不可约 institution capability；
+- Media × SCD × Harness 已经形成 Representation joint capability；
+- Atlas × Host × Harness 已经形成 Persistent Intelligence Substrate；
+- Finance × World × CP × Interlocus 已经形成四 owner 决策能力；
+- owner subset 是 Reality 的自然 causal unit；
+- component deletion automatically proves causal contribution；
+- complementarity automatically means synergy in every effect scale；
+- interaction automatically means novelty；
+- `whole > sum(parts)` 是 Ordivon 的新理论；
+- 一套 universal emergence ontology / evidence ladder / scalar score；
+- 一个 Composition Owner、Capability Graph、Interaction Registry 或 Emergence Detector；
+- representation efficiency 可以替代 owner causal attribution；
+- 一个唯一 current binding 总比 set-valued standing 好；
+- 更多 raw actions、更多 components、更多 Tools 或更多 information 单调增加 capability；
+- physical capability 可以通过 composition 自动获得 authority；
+- 关闭 COJC campaign 等于否定未来 joint capability。
+
+当前最强 standing 更克制：
+
+> **Ordivon 已经证明，cross-owner interaction、representation gain、complementarity、deletion-essentiality 与 strong system-level effects 都可能真实存在，却仍不足以单独建立 joint irreducibility 或 emergence。一个 finite intelligence 如果要把“组合成功”提升为“新联合能力”，必须从自然 blocked outcome 出发，在公平的成熟 baseline 下获得可识别的 causal residual，并让这个 residual 改变独立的 downstream consequence。**
+
+所以未来遇到一个令人兴奋的组合时，第一句话不应该是：
+
+> “这里是不是涌现了？”
+
+而应该是：
+
+> **到底有什么新的 target-relative reachability 出现了？谁真的造成了它？最强的普通组合为什么做不到？删掉什么以后，哪个独立 consequence 真的改变？**
+
+如果这些问题还答不出来，最成熟的 standing 往往不是 `emergence`。
+
+而是：
+
+```text
+interesting interaction
++
+keep testing
++
+do not promote yet
+```
+
+对于一个会长期扩张、会不断把能力沉进未来环境的系统，这种“不急着升级”的能力，本身就是一种重要能力。

@@ -296,3 +296,146 @@ Do not create a universal Environment ontology/service, automatic knowledge inje
 11. `Retention != Succession != Ratchet`: durable artifacts and successful handoff are necessary but insufficient evidence for cumulative intelligence.
 12. `NoActionNow != Complete` is a real ecological successor boundary, but durable workflow/case-management prior art subtracts it from Ordivon novelty; the residual is owner-preserving reactivation under changing Reality.
 13. The mature Continuity result is a stopping discipline as much as a mechanism: current Atlas×Host×Harness evidence remains below a new joint-capability claim, and future physical work reopens only under the four canonical COJC gates.
+
+
+### Chapter-7 composition / joint-capability admission — 2026-08-26
+
+Candidate chapter: `组合不是涌现：Interaction, Irreducibility and Joint Capability`.
+
+Exact admitted Chapter-7 digest: `sha256:cecd9d13fe65aeaade03ae0d5081b9c33eaf2318ff27fa2d5c6fcb4f24c63ad4`.
+
+Exact admitted seven-chapter whole-Book digest: `sha256:799af49c40d0e4162cc0c7cfdeebf563b0c915157a97fd789004ea388fff23b1`.
+
+Current exact Computing binding: `ordivon-computing@fad943d0fb486c248832bda2f3e00d1673872e95`; canonical local Computing `main` was revalidated at the same revision immediately before integration.
+
+#### SELECT / destructive subtraction
+
+The six-chapter Book already formed a longitudinal finite-intelligence model: Reality/Standing -> Representation -> Action -> Actionable Now -> Environmentalization -> Succession/Ratchet. The surviving unrepresented problem was horizontal: when several independently valid capabilities/owners interact, how can a finite consumer distinguish ordinary composition, complementarity, causal interaction and representation effects from genuinely new joint reachability without automatically promoting to emergence?
+
+Mature external subtraction removed false novelty:
+
+- systems engineering already treats a system as interacting elements producing system-level capability;
+- supermodularity/increasing-differences theory already formalizes complementarity/systems effects;
+- counterfactual causal-interaction work already requires joint interventions/outcomes rather than co-occurrence;
+- emergence has multiple weak/strong dependence/autonomy interpretations and is not one stable synonym for synergy.
+
+The admitted residual is therefore a **promotion-control / causal-credit discipline**, not a new Ordivon emergence theory.
+
+#### EXPERIMENT — invalid apparatus retained, not counted
+
+First A/B job `job-01a0395e-3465-73c1-8509-84b8a906d5c6` returned an apparent 30/30 vs 30/30, but the evaluation payload accidentally exposed each case's `expected` label to the consumer. This is `INVALID_APPARATUS`; none of its semantic scores are admission evidence.
+
+A second blind runner removed the answer key. It produced useful six-chapter baseline errors, but the first Chapter-7 treatment response contained semantically correct case classifications inside malformed extra rationale JSON, causing the runner to terminate. That episode is carrier/format evidence only and is not counted as a complete A/B.
+
+#### EXPERIMENT — blind confirmatory A/B
+
+Accepted job: `job-01a03961-5063-7623-b9d3-ec5ed4139b26`.
+
+Three blind replicates per arm, same model/cases/labels, exact six-chapter baseline versus six chapters plus Chapter 7:
+
+```text
+BOOK6  = 22 / 30
+BOOK7  = 27 / 30
+```
+
+The baseline repeatedly over/under-promoted distinctions such as serial necessity, J3-AIC strong currentness effects, qualified residual reachability and binding-cardinality action safety. Chapter 7 removed most of these errors while preserving in every replicate:
+
+```text
+grandTheoryEstablished             = false
+currentOrdivonEmergenceDemonstrated = false
+newCompositionOwnerRequired        = false
+```
+
+The three remaining Chapter-7 errors all concerned one boundary: a naturally active fallback prevented the requested deletion from reaching the target footprint. This exposed a chapter representation ambiguity rather than a reason to change the evaluator. The text was repaired to distinguish:
+
+```text
+NaturalFallbackPreventsDeletion
+!=
+ExperimenterDisablesFallback
+```
+
+with the first mapped to `INTERVENTION_NOT_IDENTIFIED` and the second to `INVALID_MANUFACTURED_DELETION`.
+
+#### EXPERIMENT — independent holdout
+
+Accepted job: `job-01a03963-affa-7f03-b083-b39f62ed0045`.
+
+A new ten-case holdout used materially different examples: standard software stack, supermodular tools, thermal interaction, natural failover, deliberately disabled replica, laboratory residual reachability, partial-order institutional currentness, joint-capability candidate, emergence candidate and phase-transition candidate.
+
+Raw frozen-oracle result:
+
+```text
+BOOK6  = 23 / 30
+BOOK7  = 28 / 30
+```
+
+The only two Chapter-7 misses selected `CONDITIONAL_REPRESENTATION_EFFECT` for the `partial-order-safe` case while the evaluator expected `STRONG_SYSTEM_EFFECT_BELOW_JOINT_IRREDUCIBILITY`. Post-result semantic audit found the evaluator had over-promoted the case: its own wording explicitly stated that the effect was reproduced as a representation/currentness improvement and that no joint irreducibility was identified. The more precise standing is therefore `CONDITIONAL_REPRESENTATION_EFFECT`.
+
+Under that corrected semantic oracle the observed classifications correspond to:
+
+```text
+BOOK6  = 26 / 30
+BOOK7  = 30 / 30
+```
+
+Because the oracle correction occurred after result visibility, this adjusted score is retained as **semantic correction / directional evidence**, not as a pristine preregistered confirmation. The raw 23/30 vs 28/30 remains preserved above.
+
+#### INTEGRATE — exact seven-chapter consumer
+
+Accepted job: `job-01a03ba2-866f-76e3-a8d8-51e19c44f5d8`.
+
+Three fresh no-Tool whole-Book replicates, one model call each:
+
+```text
+3 / 3 exact acceptance vectors
+0 semantic mismatches
+```
+
+All three recovered the chapter roles as:
+
+```text
+1 reality-representation-standing-revision-loop
+2 operation-relative-representation-and-search-sufficiency
+3 standing-authority-commitment-effect-consequence
+4 history-currentness-recovery-actionable-present
+5 environmentalization-admission-and-responsibility-placement
+6 successor-reentry-and-cumulative-ratchet-boundary
+7 composition-interaction-joint-capability-promotion-control
+```
+
+and held:
+
+```text
+chapter7RedundantWithEarlierChapters = false
+chapter7ChangesEarlierChapterRoles   = false
+grandTheoryEstablished               = false
+bookOutranksOwners                    = false
+currentOrdivonEmergenceDemonstrated  = false
+newCompositionOwnerRequired          = false
+```
+
+They also recovered all four current COJC reopen gates and all five anti-promotion nonidentities in the requested acceptance vector.
+
+#### Mechanical / source-fence gate
+
+- `Studio production models are valid.`
+- 27 targeted Foundational Media / Model / Production Context / Agent Surface / Learning Context tests passed.
+- 48 claims across 17 exact source bindings; 59 unique claim/evidence paths checked by exact Git revision; missing = 0.
+- The first source-fence checker used the wrong physical locator for `workstation-lab`; after resolving the owner repo to `/root/workstation-lab`, both historical Chapter-6 Workstation paths validated at their exact bound revision. This was a validator path-resolution defect, not missing source evidence.
+- Current Chapter-7 Computing `main` fence matched `fad943d0...`.
+- External subtraction was rechecked against NASA Systems Engineering, Milgrom/Roberts complementarity-supermodularity, counterfactual causal-interaction literature and SEP `Emergent Properties`.
+
+#### DECIDE
+
+Approve Chapter 7 at `sha256:cecd9d13fe65aeaade03ae0d5081b9c33eaf2318ff27fa2d5c6fcb4f24c63ad4` and the integrated seven-chapter Book at `sha256:799af49c40d0e4162cc0c7cfdeebf563b0c915157a97fd789004ea388fff23b1`. Keep the parent Production at `review`; Chapter outputs and the current integrated semantic-text output may be `approved`.
+
+Do **not** create a Composition owner, capability graph, causal registry, emergence detector, universal evidence ladder, representation service, or active COJC queue. Canonical Computing remains dormant natural-pressure-first, and current Ordivon emergence / phase transition remain not established.
+
+#### LEARNING
+
+1. A Book chapter can be nonredundant even when it does not add a new domain object: Chapter 7 adds a judgment boundary over combinations rather than new infrastructure.
+2. Promotion errors are bidirectional. The consumer must resist both over-promotion (`serial necessity -> emergence`) and under-promotion when emergence/phase-transition evidence is actually supplied.
+3. The evaluator itself is part of the representation environment. Exposed answer keys, malformed structured output and an over-strong oracle were all discovered and demoted instead of being hidden behind aggregate scores.
+4. `Natural fallback prevents identification` and `experimenter disables fallback` are causally opposite cases despite superficial similarity.
+5. Strong system-level improvements such as J3-AIC can be valuable, reproducible and consequential while remaining below joint irreducibility.
+6. The final Book architecture now has both a longitudinal axis (Reality -> cognition -> action -> environment -> succession) and a horizontal composition-adjudication axis without introducing a new central owner.

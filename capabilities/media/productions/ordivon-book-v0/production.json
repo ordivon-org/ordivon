@@ -106,6 +106,12 @@
       "repository": "workstation-lab",
       "revision": "dff14e2765a155fc789ef159cf4466fd5c628c80",
       "role": "current Workstation semantic effect contracts for read-only egress observation versus separately authorized environment mutation used by Chapter 6 natural witness"
+    },
+    {
+      "id": "computing-ch7",
+      "repository": "ordivon-computing",
+      "revision": "fad943d0fb486c248832bda2f3e00d1673872e95",
+      "role": "current completed COJC sedimentation, representation cross-world reconciliation, J3-AIC institutional-currentness standing, promotion guards and dormant natural-pressure reopen boundary used by Chapter 7"
     }
   ],
   "workingProfile": {},
@@ -134,7 +140,7 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:52d03ba9634eae00e1b8e7b024ed3cc2354a7476b85609ef8b697998f6fa9b67"
+      "blobDigest": "sha256:799af49c40d0e4162cc0c7cfdeebf563b0c915157a97fd789004ea388fff23b1"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
@@ -170,6 +176,13 @@
       "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-7-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:cecd9d13fe65aeaade03ae0d5081b9c33eaf2318ff27fa2d5c6fcb4f24c63ad4"
     }
   ]
 }

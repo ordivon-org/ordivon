@@ -883,6 +883,157 @@
         "Workstation read-only observation mutates network state",
         "Chapter 6 proves the current egress profile remains unavailable now"
       ]
+    },
+    {
+      "id": "composition-promotion-nonidentities",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "The completed COJC campaign preserves explicit anti-promotion guards: participation is not causal contribution; deletion-essentiality is not joint irreducibility; interaction is not novel capability; complementarity is not emergence.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "participation does not establish causal credit",
+        "deletion-essentiality does not by itself establish joint capability",
+        "interaction/complementarity may be real without constituting emergence"
+      ],
+      "avoid": [
+        "A+B succeeds while A and B fail therefore emergence is proven",
+        "all components on a successful path share causal credit",
+        "non-additivity automatically establishes a new capability class"
+      ]
+    },
+    {
+      "id": "generic-composition-subtraction-ch7",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "A joint-capability candidate must leave a qualified residual beyond a fair primitive-parity mature generic + owner-local composition baseline that receives no hidden oracle/future information and pays its own construction/currentness/maintenance/recovery cost.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "fair mature generic composition is a required subtraction pressure before joint-capability promotion",
+        "generic reproduction preserves useful composition while blocking joint-irreducibility promotion"
+      ],
+      "avoid": [
+        "single-owner failure is enough to prove cross-owner novelty",
+        "a deliberately weak baseline can justify a new owner",
+        "generic mechanisms are disallowed merely because Ordivon owners participated"
+      ]
+    },
+    {
+      "id": "intervention-footprint-and-natural-bypass",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Requested intervention is not realized target-relevant footprint. A natural fallback that prevents the requested deletion from reaching the target makes the causal intervention unidentifiable; deliberately disabling that natural fallback to manufacture a positive deletion tests a crippled world instead of current capability ecology.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "natural fallback can make a deletion unidentifiable",
+        "manufactured bypass removal is not valid evidence of current-system necessity",
+        "realized footprint must be checked when causal credit matters"
+      ],
+      "avoid": [
+        "the name of a deletion command proves the target was removed",
+        "natural redundancy should be disabled to obtain a cleaner positive result",
+        "compound failure automatically allocates component-level causal credit"
+      ]
+    },
+    {
+      "id": "representation-effect-owner-attribution-separation",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/experiments/representation-cross-world-reconciliation-v0/CROSS-WORLD-PPD-SYNTHESIS.md"
+      },
+      "meaning": "The same broad representation family can help a high cross-source-join workload and harm source-local scoped judgements. A finite-consumer representation effect is therefore conditional on operation/consumer/support topology and does not itself establish Media/SCD/Harness causal ownership or joint capability.",
+      "evidence": [
+        "research/experiments/representation-cross-world-reconciliation-v0/CROSS-WORLD-PPD-SYNTHESIS.md",
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "representation can change effective finite-Agent capability without creating a new semantic owner",
+        "representation benefit is conditional rather than globally monotone",
+        "representation effect does not establish owner synergy"
+      ],
+      "avoid": [
+        "more compression means more capability",
+        "any representation improvement proves Media×SCD×Harness joint capability",
+        "source completeness guarantees finite-consumer completeness"
+      ]
+    },
+    {
+      "id": "j3-aic-strong-effect-below-emergence",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/J3-AIC-INSTITUTIONAL-CURRENTNESS-STANDING-20260825.md"
+      },
+      "meaning": "J3-AIC establishes a bounded institutional-currentness/representation result, including LINEARIZATION_COLLAPSE_HARM and safer set-valued binding reasoning, but explicitly does not establish Game×Security×Normative higher-order irreducibility, institution emergence, or phase transition.",
+      "evidence": [
+        "research/J3-AIC-INSTITUTIONAL-CURRENTNESS-STANDING-20260825.md",
+        "research/experiments/joint-capability-j3-aic-v0/J3-AIC-CLOSEOUT.md"
+      ],
+      "allowedWording": [
+        "J3-AIC is a strong system/representation-currentness result below joint irreducibility",
+        "forced linearization can create unsafe fictitious uniqueness",
+        "MULTIPLE is not HOLD and ONE is not ALLOW for the tested action class"
+      ],
+      "avoid": [
+        "J3-AIC proves institution emergence",
+        "programme label J3 proves higher-order irreducibility",
+        "a determinate binding is automatically safe"
+      ]
+    },
+    {
+      "id": "joint-capability-reopen-four-gates-ch7",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Future physical COJC work is dormant and reopens only from a materially new natural blocked/capability-limited owner-native outcome satisfying NaturalPressure, MatureBaselineResidual, IdentifiableDeletion and IndependentConsequence. Interesting owner combinations alone are not a reopen trigger.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/PORTFOLIO.md"
+      ],
+      "allowedWording": [
+        "COJC is dormant natural-pressure-first",
+        "owner coalition names are hypothesis generators rather than causal units",
+        "NO_JOINT_CAPABILITY can be a high-value stopping result"
+      ],
+      "avoid": [
+        "keep enumerating owner subsets for momentum",
+        "open scientific residuals are an active experiment backlog",
+        "four gates constitute an emergence detector"
+      ]
+    },
+    {
+      "id": "current-emergence-nonclaim",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Current canonical Computing standing explicitly leaves COJC emergence and phase transition not established and admits no new shared Composition/Capability/Representation infrastructure from the completed campaign.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "current Ordivon emergence is not established",
+        "joint-capability and emergence labels remain bounded evidence claims",
+        "no new Composition owner or emergence detector is earned"
+      ],
+      "avoid": [
+        "Ordivon has demonstrated emergence",
+        "the evidence ladder is a universal ontology",
+        "cross-owner composition should automatically create shared infrastructure"
+      ]
     }
   ]
 }

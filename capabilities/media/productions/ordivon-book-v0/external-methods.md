@@ -232,3 +232,35 @@ recover named obligation
 The final line is a **ratchet aspiration**, not a demonstrated current Ordivon mechanism.
 
 External comparison surfaces include Microsoft Azure Durable Functions external-event guidance, AWS Durable Execution wait/callback/condition semantics, the OMG CMMN standard, Guard–Stage–Milestone case-lifecycle work, multi-Agent social-commitment protocols, organizational routines/transactive-memory research, and cumulative-cultural-evolution/ratchet literature. They constrain novelty and provide mature baselines; they do not confer Ordivon standing.
+
+
+
+## Chapter 7 pressure — systems composition, complementarity, causal interaction and emergence
+
+Chapter 7 is deliberately pressure-tested against mature fields that already own the broad claims that system-level capability depends on relations among components, complementarities can create non-additive systems effects, causal interaction requires a joint-treatment/counterfactual question, and `emergence` is not one univocal concept.
+
+| External line | Mature contribution | Chapter-7 consequence | What Ordivon does **not** claim |
+| --- | --- | --- | --- |
+| NASA Systems Engineering Handbook / general systems engineering | a system is a combination of elements functioning together to produce required capability; system-level value/results arise importantly from the relations/interconnections among elements | ordinary cross-component capability and relation-dependent system effects are mature systems-engineering territory; `whole works` is not novelty evidence | no claim that relation-dependent system capability is an Ordivon discovery |
+| Topkis / Milgrom–Shannon / Milgrom–Roberts supermodularity and complementarity | increasing differences and supermodularity formalize complementarity and systems effects in which one choice raises the marginal return of another | non-additive joint value may justify a complementarity standing without implying emergence or new owner ontology | no universal scalar utility or assumption that every joint capability is supermodular |
+| counterfactual causal-interaction literature (e.g. VanderWeele and collaborators) | interaction is defined relative to interventions/counterfactual outcomes and an effect scale rather than mere co-occurrence | `A and B both matter` is weaker than an identified joint causal interaction; treatment footprint and outcome must be explicit | no requirement that every Ordivon experiment adopt one epidemiological interaction measure |
+| Stanford Encyclopedia of Philosophy, Emergent Properties | emergence has several weak/strong formulations and commonly combines micro-dependence with some macro-level autonomy/non-aggregativity/distinctive efficacy; the variants are contested | Book should name the exact stronger claim being made rather than use `emergence` as a synonym for synergy or complexity | no metaphysical commitment to one universal emergence definition and no current Ordivon emergence claim |
+
+### Chapter-7 subtraction result
+
+After subtraction, the surviving Book-level problem is not `how systems combine` and not a new theory of emergence. It is a finite-intelligence **promotion-control problem**:
+
+```text
+observed cross-component success
+→ identify target-relative outcome
+→ separate participation from causal contribution
+→ subtract fair mature generic composition
+→ distinguish natural fallback from manufactured deletion
+→ verify realized intervention footprint
+→ demand independent downstream consequence
+→ promote only to the strongest standing actually earned
+```
+
+This retains mature systems engineering, complementarity and causal-interaction theory as positive solution content while preventing the Book from turning every useful composition into a new capability class.
+
+Primary comparison surfaces used for this subtraction include the NASA Systems Engineering Handbook; Topkis/Milgrom–Shannon monotone-comparative-statics work; Milgrom & Roberts on complementarities and systems; counterfactual causal-interaction work by VanderWeele and collaborators; and the Stanford Encyclopedia of Philosophy entry `Emergent Properties`.

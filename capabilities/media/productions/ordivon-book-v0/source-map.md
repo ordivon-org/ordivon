@@ -542,3 +542,67 @@ AND MatureBaselineResidual
 AND IdentifiableDeletion
 AND IndependentConsequence
 ```
+
+
+
+## Chapter 7 — Composition / Interaction / Joint Capability
+
+Chapter 7 is a non-authoritative Book-level integration of the **completed** 2026-08-25 COJC / Capability Ecology campaign. It does not reopen that campaign and does not create a Composition owner, causal graph, capability registry, interaction service, emergence detector or scalar synergy score.
+
+### Chapter-7 exact binding
+
+| Binding | Repository | Revision | Chapter-7 role |
+| --- | --- | --- | --- |
+| `computing-ch7` | `ordivon-computing` | `fad943d0fb486c248832bda2f3e00d1673872e95` | current COJC sedimentation canon, final cross-world Representation standing, J3-AIC institutional-currentness standing, promotion guards, evidence ladder and dormant natural-pressure reopen boundary |
+
+The binding was revalidated against canonical local Computing `main` immediately before integration; `main` resolved to the exact same revision.
+
+### Load-bearing Chapter-7 files
+
+| Ref | Binding | Path | Chapter-7 use | Ceiling |
+| --- | --- | --- | --- | --- |
+| C7-C1 | `computing-ch7` | `research/COJC-SEDIMENTATION-CANON-20260825.md` | final campaign standing; anti-promotion guards; fair Generic Composition subtraction; evidence/promotion ladder; four-gate reopen rule | current Computing research standing, not universal ontology |
+| C7-C2 | `computing-ch7` | `research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md` | campaign-wide negative/positive result map and stopping discipline | completed campaign evidence, not active queue |
+| C7-R1 | `computing-ch7` | `research/experiments/representation-cross-world-reconciliation-v0/CROSS-WORLD-PPD-SYNTHESIS.md` | World N / World J sign reversal and conditional operation-consumer-support-topology representation model | retrospective moderator standing, not universal optimizer |
+| C7-J1 | `computing-ch7` | `research/J3-AIC-INSTITUTIONAL-CURRENTNESS-STANDING-20260825.md` | institutional currentness / partial-order / binding-set action-safety standing | strong bounded system result; no institution emergence |
+| C7-J2 | `computing-ch7` | `research/experiments/joint-capability-j3-aic-v0/J3-AIC-CLOSEOUT.md` | exact J3-AIC experiment closeout and non-claims | experiment-specific evidence |
+| C7-P1 | `computing-ch7` | `research/PORTFOLIO.md` | current dormant/reference status and natural-pressure-first recovery path | Computing current WIP/status projection only |
+
+### Chapter-7 integration ceiling
+
+The Book may preserve the anti-promotion distinctions:
+
+```text
+Participation != CausalContribution
+AttemptedIntervention != RealizedInterventionFootprint
+DeletionEssential != JointIrreducible
+Complementarity != Emergence
+Interaction != NovelCapability
+RepresentationEffect != OwnerSynergy
+StrongSystemResult != HigherOrderIrreducibility
+```
+
+and the bounded investigation order:
+
+```text
+NaturalBlockedOutcome
+→ load-bearing responsibility cut
+→ strongest mature generic + owner-local baseline
+→ admissible same-cut intervention
+→ realized footprint
+→ independent owner-native consequence
+→ bounded promotion only if residual survives
+```
+
+It may also distinguish a natural fallback that prevents an attempted deletion from being realized (`INTERVENTION_NOT_IDENTIFIED`) from an experimenter deliberately disabling an existing fallback to manufacture failure (`INVALID_MANUFACTURED_DELETION`).
+
+It may **not** infer that current Ordivon has demonstrated emergence, phase transition, a new institution-level capability, Media×SCD×Harness joint capability, Atlas×Host×Harness persistent substrate, or any new cross-owner shared infrastructure.
+
+Current canonical Computing disposition remains:
+
+```text
+INITIAL_COJC_CAMPAIGN               = COMPLETED
+ACTIVE_PHYSICAL_COJC_EXPERIMENT     = NONE
+COJC_EMERGENCE / PHASE_TRANSITION   = NOT_ESTABLISHED
+REOPEN_MODE                          = DORMANT_NATURAL_PRESSURE_ONLY
+```
