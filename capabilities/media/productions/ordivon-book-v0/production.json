@@ -112,6 +112,12 @@
       "repository": "ordivon-computing",
       "revision": "fad943d0fb486c248832bda2f3e00d1673872e95",
       "role": "current completed COJC sedimentation, representation cross-world reconciliation, J3-AIC institutional-currentness standing, promotion guards and dormant natural-pressure reopen boundary used by Chapter 7"
+    },
+    {
+      "id": "computing-capability-exposure",
+      "repository": "ordivon-computing",
+      "revision": "db1e63c96816d1789093ee269767a1f1e63f1964",
+      "role": "capability-exposure falsifier and canonical EOF-normalized confirmation establishing GESTALT_ONLY as a representation/self-model recovery repair while explicitly not establishing underlying action-capability gain"
     }
   ],
   "workingProfile": {},
@@ -126,42 +132,42 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747"
+      "blobDigest": "sha256:bb1a14412b98c576479f5fa6f0950314309a8d73a817b5e354e68fc6367cb8f1"
     },
     {
       "id": "ordivon-book-v0-chapter-2-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9"
+      "blobDigest": "sha256:af70e8b0f8a3f93943c25dd01fef10e6be1d8d84839fd7e99b9e5287d2bd097a"
     },
     {
       "id": "ordivon-book-v0-current-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:799af49c40d0e4162cc0c7cfdeebf563b0c915157a97fd789004ea388fff23b1"
+      "blobDigest": "sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4"
     },
     {
       "id": "ordivon-book-v0-chapter-3-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f"
+      "blobDigest": "sha256:bcf33947a2aeff2867900a7126fe2a9c6d69a0122fbeed6b45856be36d08b0de"
     },
     {
       "id": "ordivon-book-v0-chapter-4-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b"
+      "blobDigest": "sha256:38cbcb4e3f0b8f8b00f401f554fd90505a43047a7bc2bcbb62c223dd1eeacba3"
     },
     {
       "id": "ordivon-book-v0-chapter-5-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7"
+      "blobDigest": "sha256:7ae8104ffc6b8b1af5f2207ad95046815017fed79b3013107d6203948944f442"
     },
     {
       "id": "ordivon-book-v0-future-horizon-laboratory-zh",
@@ -175,14 +181,14 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0"
+      "blobDigest": "sha256:063a401e225f88f61af39c91225cc1273d4f87fdcd1a123bcf30459cfc49b218"
     },
     {
       "id": "ordivon-book-v0-chapter-7-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:cecd9d13fe65aeaade03ae0d5081b9c33eaf2318ff27fa2d5c6fcb4f24c63ad4"
+      "blobDigest": "sha256:3675074fada87e77d15538151b06f9397c6c222eeb4e913011868e8fafbd909e"
     }
   ]
 }

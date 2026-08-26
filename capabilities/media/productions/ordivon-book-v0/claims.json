@@ -1034,6 +1034,29 @@
         "the evidence ladder is a universal ontology",
         "cross-owner composition should automatically create shared infrastructure"
       ]
+    },
+    {
+      "id": "book-capability-exposure-representation-effect",
+      "source": {
+        "binding": "computing-capability-exposure",
+        "path": "research/experiments/book-capability-exposure-v0/RESULT.md"
+      },
+      "meaning": "A frozen seven-chapter Book experiment found that the existing Book already contained constructive capability content but fresh-Agent recovery of the seven capability families was variable. Adding one bounded chapter-end capability gestalt without moving/deleting existing distinction or non-claim prose produced 7/7 family recovery in 3/3 tested replicates with no observed authority/routing regression in a ceilinged safety battery. This establishes a representation/self-model recovery effect only; underlying owner capability and action-quality gain were not established.",
+      "evidence": [
+        "research/experiments/book-capability-exposure-v0/RESULT.md",
+        "research/experiments/book-capability-exposure-v0/decision.json"
+      ],
+      "allowedWording": [
+        "bounded capability gestalts made already-earned capability structure more reliably recoverable for the tested fresh Agent",
+        "capability exposure improved without deleting the existing anti-collapse boundaries",
+        "the admitted repair is representational and does not establish new owner capability or action gain"
+      ],
+      "avoid": [
+        "the Book experiment proved new underlying Ordivon capability",
+        "positive wording is universally better than distinction language",
+        "chapter reordering was necessary",
+        "capability exposure creates authority"
+      ]
     }
   ]
 }

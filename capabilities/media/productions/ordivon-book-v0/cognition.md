@@ -1,6 +1,6 @@
 # Ordivon Book v0 — current production cognition
 
-Status: active six-chapter Book decision record
+Status: active seven-chapter Book decision record
 Profile: [`writing`](../../research/expression/profiles/writing.md)
 Constitution: [`constitution.md`](constitution.md)
 Source map: [`source-map.md`](source-map.md)
@@ -11,7 +11,7 @@ This cognition record owns only current editorial/integration judgment. `product
 
 ## FRAME
 
-Book v0 now has six approved chapter consumers:
+Book v0 now has seven approved chapter consumers:
 
 1. `story.mdx` — Reality contact -> Representation -> Evidence/Standing -> authorized Action -> claim-relative Consequence -> Revision.
 2. `chapter-02.mdx` — operation/consumer/continuation-relative representation sufficiency, search geometry and recoverable re-entry after compression.
@@ -19,6 +19,7 @@ Book v0 now has six approved chapter consumers:
 4. `chapter-04.mdx` — History/Currentness/Recovery -> operation-relative Actionable Now without turning history, continuity, recency or UNKNOWN into current authority.
 5. `chapter-05.mdx` — Environmentalization Admission / Responsibility Placement: when a validated standing earns the right to become part of a future consumer's default/routine/interface/guard, where that responsibility belongs, and how owner/currentness/authority plus future challenge/demotion remain intact.
 6. `chapter-06.mdx` — Retention / Succession / Ratchet: how a fresh successor re-enters current owner/obligation/effect/Reality relations across Agent replacement, why `NoActionNow != Complete`, and why successful succession still does not establish a cumulative ratchet.
+7. `chapter-07.mdx` — Composition / Interaction / Joint Capability: how to subtract mature composition, realized causal footprint and representation effects before promoting a combination to genuinely new reachability.
 
 Chapter 5 is intentionally narrower than a general Agent–Environment theory. Chapter 1 already owns the fact that stable standing can sediment into defaults/affordances and must remain challengeable. Chapter 5 adds the missing decision model between explicit Standing and future Environment:
 
@@ -28,7 +29,7 @@ Correct / Preserved Standing
 Default-worthy / Environmentalized Standing
 ```
 
-The six chapters remain complementary, not a closed grand theory.
+The seven chapters remain complementary, not a closed grand theory.
 
 ## BIND
 
@@ -49,8 +50,10 @@ Current permanent claim fences now include the previous historical/exact chapter
 - Chapter-6 Atlas `47dfb9b476ffa54914def99e9e808bbf9f2ad3b3` — current non-authoritative Continuity/Succession/Ratchet closeout and first-look;
 - Chapter-6 Computing `069dc0a7fdb955dfbf2857c965da20350e4228d3` — canonical COJC stop/reopen and Generic Composition subtraction;
 - Chapter-6 Workstation `dff14e2765a155fc789ef159cf4466fd5c628c80` — current read-only egress observation versus separately authorized mutation contract.
+- Chapter-7 Computing `fad943d0fb486c248832bda2f3e00d1673872e95` — completed COJC sedimentation / joint-capability promotion-control standing.
+- Capability-exposure Computing `db1e63c96816d1789093ee269767a1f1e63f1964` — exact representation falsifier plus normalized-output confirmation; does not mint owner/action capability.
 
-The newer Chapter-5 Finance/Harness bindings do not rewrite the historical Chapter-3/4 source roles. Current Book carries 41 Git-bound Claims across 16 exact source bindings.
+The newer Chapter-5 Finance/Harness bindings do not rewrite the historical Chapter-3/4 source roles. Current Book carries 49 Git-bound Claims across 18 exact source bindings, including the source-fenced capability-exposure representation experiment.
 
 Chapter-5 owner witnesses:
 
@@ -109,15 +112,16 @@ The surviving cross-owner Continuity standing is responsibility-preserving react
 
 Exact approved semantic artifacts:
 
-- Chapter 1 `story.mdx` — raw SHA-256 `c6835bcf306542801bdcd76cfb32492747d1fb2267f9f8c3164e30303cea1747`.
-- Chapter 2 `chapter-02.mdx` — raw SHA-256 `876c2eaec5e15b63aec11d2a3e815c151cc388294f676342225f76c80780d5b9`.
-- Chapter 3 `chapter-03.mdx` — raw SHA-256 `7d655614b15302182e65d1b360f003df0bf6f5219555833073fc9c865b41e45f`.
-- Chapter 4 `chapter-04.mdx` — raw SHA-256 `ebf36b9d00dfecf170396fd9aac38945476b2d364106e6a5ca65210fa39b6d5b`.
-- Chapter 5 `chapter-05.mdx` — raw SHA-256 `f2772c4054116dcb8c17c4a2633a92be9b8518219fe56a987d2aeda1bfb910e7`.
-- Chapter 6 `chapter-06.mdx` — raw SHA-256 `c2155ca27b58062071930862cb5ad66c487197ff104cb340d824dd254772bed0`.
-- current six-chapter `book.mdx` — raw SHA-256 `52d03ba9634eae00e1b8e7b024ed3cc2354a7476b85609ef8b697998f6fa9b67`.
+- Chapter 1 `story.mdx` with bounded capability gestalt — raw SHA-256 `bb1a14412b98c576479f5fa6f0950314309a8d73a817b5e354e68fc6367cb8f1`.
+- Chapter 2 `chapter-02.mdx` with bounded capability gestalt — raw SHA-256 `af70e8b0f8a3f93943c25dd01fef10e6be1d8d84839fd7e99b9e5287d2bd097a`.
+- Chapter 3 `chapter-03.mdx` with bounded capability gestalt — raw SHA-256 `bcf33947a2aeff2867900a7126fe2a9c6d69a0122fbeed6b45856be36d08b0de`.
+- Chapter 4 `chapter-04.mdx` with bounded capability gestalt — raw SHA-256 `38cbcb4e3f0b8f8b00f401f554fd90505a43047a7bc2bcbb62c223dd1eeacba3`.
+- Chapter 5 `chapter-05.mdx` with bounded capability gestalt — raw SHA-256 `7ae8104ffc6b8b1af5f2207ad95046815017fed79b3013107d6203948944f442`.
+- Chapter 6 `chapter-06.mdx` with bounded capability gestalt — raw SHA-256 `063a401e225f88f61af39c91225cc1273d4f87fdcd1a123bcf30459cfc49b218`.
+- Chapter 7 `chapter-07.mdx` — raw SHA-256 `43c91e6de5af989f7cd6b55fae968c8fde5e59bd42aeafe51953ff5503f40c0c`.
+- current seven-chapter `book.mdx` with bounded capability gestalts — raw SHA-256 `14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4`.
 
-Chapter 1–5 exact bytes remain unchanged. `book.mdx` contains exactly one Chapter-6 heading and one Chapter-6 TOC entry. The historical five-chapter acceptance digest `10ed267c...` predates the later Future-Horizon TOC link; Media `f8a105c...` moved the current integrated Book to `e2590c0a...` without changing Chapter 1–5 bytes, and Chapter 6 was integrated from that current cut.
+Current Chapter 1–7 outputs preserve their previously admitted prose in the same order and append exactly one bounded capability gestalt each. No existing distinction/non-claim section was moved or deleted. Historical chapter/whole-Book digests below remain historical acceptance evidence rather than current Output digests.
 
 The parent Production remains `review`: no public publisher is selected and Human-specific continuous-reading effects remain unclaimed.
 
@@ -439,3 +443,20 @@ Do **not** create a Composition owner, capability graph, causal registry, emerge
 4. `Natural fallback prevents identification` and `experimenter disables fallback` are causally opposite cases despite superficial similarity.
 5. Strong system-level improvements such as J3-AIC can be valuable, reproducible and consequential while remaining below joint irreducibility.
 6. The final Book architecture now has both a longitudinal axis (Reality -> cognition -> action -> environment -> succession) and a horizontal composition-adjudication axis without introducing a new central owner.
+
+
+### Capability-exposure representation repair — 2026-08-26
+
+Computing `db1e63c96816d1789093ee269767a1f1e63f1964` established a bounded representation effect: the seven capability families were already present semantically, but fresh-Agent recovery was unstable on the baseline Book. `GESTALT_ONLY` made all seven recoverable in 3/3 tested replicates without moving/deleting the existing distinction/non-claim prose.
+
+Current editorial standing:
+
+```text
+Discrimination remains load-bearing.
+Capability organization/exposure is now explicit when earned.
+Capability exposure != new owner capability.
+Capability exposure != authority.
+Action-quality gain = NOT ESTABLISHED.
+```
+
+The admitted repair changes chapter/output representation plus the Book Constitution consumer contract. It does not create a Capability ontology, registry, service, scoring system or global positive-language ratio.

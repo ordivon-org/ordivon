@@ -606,3 +606,27 @@ ACTIVE_PHYSICAL_COJC_EXPERIMENT     = NONE
 COJC_EMERGENCE / PHASE_TRANSITION   = NOT_ESTABLISHED
 REOPEN_MODE                          = DORMANT_NATURAL_PRESSURE_ONLY
 ```
+
+
+## Capability-exposure representation repair — 2026-08-26
+
+This is a source-fenced **representation repair**, not a new owner-capability claim.
+
+- binding id: `computing-capability-exposure`
+- repository: `ordivon-computing`
+- revision: `db1e63c96816d1789093ee269767a1f1e63f1964`
+- result: `research/experiments/book-capability-exposure-v0/RESULT.md`
+- decision: `ADMIT_GESTALT_ONLY_REPRESENTATION_REPAIR`
+
+The frozen experiment compared the exact seven-chapter Book with reordering and capability-gestalt treatments. `GESTALT_ONLY` preserved the original chapter/non-claim order and added one bounded capability gestalt per chapter. Fresh-Agent capability-family recovery was `4/7, 7/7, 4/7` on baseline and `7/7, 7/7, 7/7` on `GESTALT_ONLY`; the latter added 467 prompt tokens (+1.345%) on the tested carrier. After Media EOF normalization, the exact final Book bytes `sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4` were rerun for three fresh replicates and again recovered `7/7, 7/7, 7/7`; this normalized-byte confirmation is included in the bound Computing result. A 12-case owner/authority routing control was 36/36 for NOBOOK, BASELINE, REORDER, GESTALT and GESTALT_ONLY, so it establishes no observed boundary regression but is ceilinged and does not establish action gain.
+
+The first structured-result treatment runs exposed a `representation × carrier/conformance` interaction (`conclusion_rejected.argumentError=invalid_json`). Those runs are explicitly `INVALID_FOR_EFFICACY`; corrected record/summary runs were used for the admitted result.
+
+Therefore the Book may expose already-earned capability geometry more explicitly, but may not infer:
+
+```text
+capability exposure -> new owner capability
+capability exposure -> better action outcome
+capability gestalt -> authority
+positive wording -> universal writing law
+```

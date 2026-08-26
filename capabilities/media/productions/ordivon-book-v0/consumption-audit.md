@@ -735,3 +735,44 @@ Public publication = NOT SELECTED
 ```
 
 Chapter 5 earns no universal Environment service, automatic Knowledge injection, global consumer graph, relevance engine, responsibility optimizer, Research→Environment lifecycle or new Book authority. The admitted change is explanatory/representational: future consumers now receive an explicit model for deciding when a stable standing should remain explicit Knowledge versus become a challengeable default/environmental responsibility.
+
+
+## Capability-exposure repair acceptance — 2026-08-26
+
+A frozen Computing falsifier at `ordivon-computing@db1e63c96816d1789093ee269767a1f1e63f1964` tested whether the seven-chapter Book under-exposed constructive capability while correctly preserving anti-collapse boundaries.
+
+Corrected fresh-Agent recovery (three replicates per arm):
+
+```text
+BASELINE     = 4/7, 7/7, 4/7 capability families
+REORDER      = 5/7, 6/7, 7/7
+GESTALT      = 7/7, 7/7, 7/7
+GESTALT_ONLY = 7/7, 7/7, 7/7
+```
+
+`GESTALT_ONLY` is the minimal successful arm: existing prose and non-claim order remain unchanged; only one bounded capability gestalt is added per chapter. The tested prompt cost rose 34,727 -> 35,194 tokens (+1.345%). The canonical EOF-normalized final Book at `sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4` was separately rerun 3× and remained `7/7, 7/7, 7/7`.
+
+Authority/action safety control (12 cases × three replicates):
+
+```text
+NOBOOK       = 36/36
+BASELINE     = 36/36
+REORDER      = 36/36
+GESTALT      = 36/36
+GESTALT_ONLY = 36/36
+```
+
+This control is ceilinged. It supports `no observed routing/boundary regression`; it does **not** support action-capability gain. A harder far-transfer smoke also ceilinged at NOBOOK 10/10 and was not promoted into efficacy evidence.
+
+The original structured-result pilot is retained only as apparatus evidence because the Provider emitted malformed conclusion JSON under some treatments. `carrier failure != semantic failure` was applied before rerunning the efficacy matrix with a stable carrier.
+
+Acceptance:
+
+```text
+Capability/self-model recovery effect = ESTABLISHED for tested Agent/model/operation
+Underlying owner capability gain      = NOT ESTABLISHED
+Action-quality gain                    = NOT ESTABLISHED
+Universal positive-writing law         = NOT ESTABLISHED
+Chapter reordering required            = FALSE
+GESTALT_ONLY representation repair     = APPROVED
+```

@@ -12,7 +12,7 @@ The Book exists to answer a specific finite-intelligence problem:
 
 The Book is therefore a **current explanatory projection**, not an archive and not a source of truth.
 
-A successful Book reduces reconstruction cost while preserving the distinctions that change correct judgment, action, currentness, or recovery.
+A successful Book reduces reconstruction cost while preserving the distinctions that change correct judgment, action, currentness, or recovery, and makes recoverable the bounded capability geometry those distinctions actually support.
 
 ## 2. Authority split
 
@@ -103,10 +103,11 @@ A mature chapter should make the following recoverable without turning them into
 1. **Phenomenon / Reality pressure** — what makes the question matter?
 2. **Distinctions** — what convenient identities currently fail?
 3. **Current standing** — what is accepted, scoped, rejected, historical, or unknown?
-4. **Derivation / historical repair** — which changes of representation matter to understanding the current model?
-5. **Practice / consequence** — what decisions, actions, systems, or problem spaces change?
-6. **Reopen conditions** — what evidence or consumer failure would force revision?
-7. **Source map** — where can a skeptical reader recover the load-bearing inputs?
+4. **Constructed capability / reachability** — preserving those distinctions, what can the declared consumer now reliably distinguish, form, recover, route, decide, build, or reach that was not stable before, and what remains only candidate or conditional?
+5. **Derivation / historical repair** — which changes of representation matter to understanding the current model?
+6. **Practice / consequence** — what decisions, actions, systems, or problem spaces change?
+7. **Reopen conditions** — what evidence or consumer failure would force revision?
+8. **Source map** — where can a skeptical reader recover the load-bearing inputs?
 
 The prose may reorder these for comprehension. The epistemic boundaries may not be removed for elegance.
 
@@ -123,6 +124,7 @@ Prefer:
 - explicit changes of level: Reality, representation, standing, action, consequence;
 - current and historical tense that cannot be mistaken for one another;
 - endings that change the reader's model or expose the next unresolved pressure;
+- when a chapter has earned one, an explicit capability gestalt near the ending that states the new reliable possibility together with its scope, maturity, and non-claim boundary;
 - enough compression to make the whole model consumable, but no more.
 
 Reject:
@@ -145,6 +147,7 @@ A fresh Agent should be able to read the current chapter and answer, without fir
 - Which distinctions are load-bearing?
 - Which parts are owner truth versus synthesis?
 - What does the model permit or forbid inferring about action?
+- What can the system or consumer now reliably distinguish, form, recover, route, build, decide, or reach that was not stable before, and under what scope/maturity boundary?
 - Where should deeper provenance be recovered?
 - What kind of Reality pressure would justify revision?
 
@@ -164,6 +167,7 @@ The Book must be revised or narrowed when it causes any of the following:
 - **feedback collapse** — any observed feedback is treated as learning, gain, or truth;
 - **consumer collapse** — Human readership is treated as the universal terminal of every Ordivon claim;
 - **structure inflation** — prose pressure is answered by inventing new schema/services instead of fixing the representation;
+- **capability occlusion** — load-bearing distinctions survive, but the chapter leaves the capability/reachability they jointly support difficult for the declared consumer to recover;
 - **archive substitution** — Book growth becomes accumulation rather than integration.
 
 ## 10. Promotion and exit
