@@ -28,7 +28,7 @@ const SPECS: Record<GameEquipmentOperation, Spec> = {
     admission: "Accept only committed .aseprite/export metadata whose exact tags/frames pass Game expression-asset validation.",
   },
   "vector.asset.author": {
-    equipmentId: "game-inkscape-e1", executable: "inkscape", source: "isolated", role: "specialist",
+    equipmentId: "game-inkscape-e1", source: "managed", role: "specialist",
     authority: "Vector output is expression material and never owns gameplay state or topology.",
     admission: "Inspect/export the exact artifact and admit it only through the owning Game/Studio asset workflow.",
   },

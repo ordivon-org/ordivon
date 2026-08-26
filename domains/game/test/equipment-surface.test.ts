@@ -48,6 +48,24 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("Inkscape is requested as managed equipment without an overlay executable contract", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-equipment-"));
+  try {
+    const log = join(root, "args.json");
+    const tool = join(root, "equipment-binding");
+    writeFileSync(tool, `#!/usr/bin/env python3
+import json,sys
+open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-inkscape-e1","executable":"/managed/inkscape"}))
+`);
+    chmodSync(tool, 0o755);
+    const value = resolveGameEquipment("vector.asset.author", { ORDIVON_EQUIPMENT_BINDING: tool });
+    assert.equal(value.state, "AVAILABLE");
+    const args = JSON.parse(readFileSync(log, "utf8"));
+    assert.deepEqual(args, ["managed", "--equipment-id", "game-inkscape-e1"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("missing Workstation projection is unresolved rather than replaced by ambient PATH folklore", () => {
   const value = resolveGameEquipment("gpu.frame.inspect", { ORDIVON_EQUIPMENT_BINDING: join(tmpdir(), "definitely-missing-equipment-binding") });
   assert.equal(value.state, "UNRESOLVED");
