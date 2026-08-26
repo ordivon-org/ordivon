@@ -630,3 +630,82 @@ capability exposure -> better action outcome
 capability gestalt -> authority
 positive wording -> universal writing law
 ```
+
+
+## Future Horizon — Civilization-mediated reachability revision
+
+Status: `USER-ADOPTED WORLD-MODEL / DESIGN-HORIZON REVISION / NOT CURRENT CAPABILITY EVIDENCE`
+
+Adopted on `2026-08-26` after Laboratory Capability Atlas work exposed a remaining locality/ownership bias: a finite consumer may incorrectly treat `not internally owned`, `not local`, `not represented by a current owner`, or `not previously performed` as evidence that a target lies outside Ordivon's reachability space.
+
+Canonical Book carrier:
+
+- `future-horizon-laboratory.mdx`, section 18.
+
+### Computing research binding
+
+- repository: `ordivon-computing`
+- source base revalidated during the revision against local `main@a4af03a37af54ae6d77e5ce0a2e250858e87ab35`
+- detached research revision: `f328494e0de393ceaad2650f99f8726500bfe42d`
+- path: `research/CIVILIZATION-MEDIATED-REACHABILITY-WORLD-MODEL-REVISION-20260826.md`
+- companion update: `research/COMPUTER-TO-REALITY-WORLD-MODEL-REVISION-20260825.md`
+- role: bounded shared world-model research / source-neutral reachability prior
+- currentness note: the detached revision was cleanly replayed on the then-current Computing main source cut and passed `git diff --check`. It is **not claimed here as canonical Computing main** because the Computing root worktree contained substantial unrelated concurrent changes and the branch had advanced during this audit; canonical promotion was intentionally not forced across that active work.
+
+### Imported claim ceiling
+
+The Book imports only the narrow relations:
+
+```text
+NotOwned != NotReachable
+NotLocal != NotReachable
+OwnerBoundary != CarrierBoundary != ReachabilityBoundary
+HumanRealized != CurrentOrdivonCapability
+HumanRealized -> CandidateReachabilityPressure
+CandidateReachable != PathQualified != RealizedCurrentCapability
+PhysicalPossibility != EpistemicRecoverability
+PhysicalReachability != AuthorizedReachability != SafeAdmissibleReachability
+SupplierExists != CurrentCapability
+DomainUnfamiliarity != Impossibility
+```
+
+The intended default search correction is:
+
+```text
+important target
+→ do not close by domain/ownership boundary
+→ ask whether civilization already realizes an equivalent target
+→ search source-neutral carrier paths
+→ classify the actual blocker
+→ choose the strongest admissible current path
+→ construct only the residual
+→ verify target consequence
+→ preserve the cheapest trustworthy route back
+```
+
+### Mature external subtraction
+
+The broad idea is **not** claimed as novel Ordivon theory. Mature make-or-buy / transaction-cost economics already treats internal production and external procurement as alternative governance structures; distributed-cognition research already treats functional cognitive systems as extending across persons, artifacts and material/cultural environments; current on-demand manufacturing and remote cloud laboratories demonstrate that substantial physical capabilities can be externally callable.
+
+These external sources are subtraction/background, not Ordivon authority:
+
+- American Economic Association — Loertscher & Riordan (2019), *Make and Buy: Outsourcing, Vertical Integration, and Cost Reduction*: `https://www.aeaweb.org/articles?id=10.1257%2Fmic.20160347`
+- NobelPrize.org — Oliver E. Williamson interview on comparative make-or-buy contractual alternatives: `https://www.nobelprize.org/prizes/economic-sciences/2009/ostrom/164465-ostrom-williamson-interview-transcript/`
+- Edwin Hutchins / UC San Diego — cognition in social, cultural and material context: `https://pages.ucsd.edu/~ehutchins/`
+- Emerald Cloud Lab — remote software-controlled experimental laboratory: `https://www.emeraldcloudlab.com/`
+- Xometry — on-demand industrial manufacturing: `https://www.xometry.com/manufacturing/`
+
+### Explicit non-claims
+
+This revision does **not** establish:
+
+- that every human-achievable capability is currently or eventually reachable by Ordivon;
+- that human realization removes resource, scale, location, authority, safety, regulatory, precision, information or compute constraints;
+- that supplier existence proves current capability;
+- that external carriers are intrinsically superior to local ownership;
+- that outsourcing replaces domain expertise;
+- that human civilization is literally a uniform API;
+- a Reachability owner, Civilization API, Capability Graph, global registry, procurement service or universal scalar;
+- a Chapter 8 or a rewrite of the seven-chapter Book core.
+
+The seven-chapter Book remains unchanged. This revision belongs in the Future Laboratory Horizon because it changes the adopted long-term capability-search stance while retaining strict separation between candidate reachability and current capability truth.

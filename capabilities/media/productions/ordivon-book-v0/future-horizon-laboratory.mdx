@@ -1184,3 +1184,411 @@ recoverable experiment protocols
 这不会削弱“Information Consumer → Evidence Producer”的长期目标；它只是给这个目标增加了一个更成熟的约束：
 
 > **Ordivon 最终应该擅长的，不是拥有所有环境，而是在 Reality 真正提出压力时，形成最小、可信、当前、可恢复的实验环境，然后让 Reality 给出新的 evidence。**
+
+
+---
+
+## 18. 2026-08-26 世界模型修正：文明已经实现，不等于我们已经拥有；但也不应先判为不可达
+
+继续展开实验室 Capability Atlas 时，一个比“软件是否应该向硬件下沉”更一般的问题浮现出来。
+
+过去很容易把下面几件事混在一起：
+
+```text
+我们没有内部实现
+我们没有对应设备
+我们没有这个专业 owner
+我们没有亲自做过
+我们当前做不到
+这件事原则上不可达
+```
+
+这些不是同一个 standing。
+
+尤其当人类文明已经稳定实现某个 target 时，`当前 Ordivon 没有内部实现` 对于“原则上是否存在一条 Reality path”其实是很弱的负证据。
+
+### 18.1 新的默认先验不是“都能做”，而是“先不要关闭”
+
+本 Horizon 现在增加一个更精确的 search prior：
+
+```text
+Human-civilization-realized capability
+→ CandidateReachable
+```
+
+它明确不等于：
+
+```text
+Human-civilization-realized capability
+→ CurrentOrdivonCapability
+```
+
+因此：
+
+```text
+NotOwned
+!=
+NotReachable
+
+NotLocal
+!=
+NotReachable
+
+NotInCurrentOwner
+!=
+OutsideOrdivonProblemSpace
+```
+
+但同时：
+
+```text
+SupplierExists
+!=
+CurrentCapability
+
+HumanRealized
+!=
+CurrentOrdivonCapability
+```
+
+这不是乐观主义声明，而是一条**防止有限智能过早收缩搜索空间**的规则。
+
+当某个 target 已经被人类、企业、实验室、工业系统或公共基础设施稳定实现时，更成熟的第一反应不是：
+
+> “我们没有这个领域，所以不做。”
+
+而是：
+
+> **“哪一条 causal path 能把这个已经被文明实现的 capability，转换成当前 target 下可调用、可授权、可验证的能力？”**
+
+### 18.2 Ordivon 的 capability boundary 不应等于 implementation boundary
+
+人类文明已经形成了一个巨大的 capability ecology：
+
+```text
+people
+experts
+firms
+markets
+standards
+logistics
+machines
+manufacturing networks
+shared facilities
+remote laboratories
+software
+institutions
+```
+
+一个 target 的实际路径可以自然穿过多个不同 carrier：
+
+```text
+Ordivon design
+→ contract PCB assembly
+→ vendor surface treatment
+→ local fixture
+→ shared metrology
+→ software analysis
+→ new Standing
+```
+
+其中某一步没有被 Ordivon 自己实现，并不会自动让整条 path 失去 capability 意义。
+
+因此未来应继续区分：
+
+```text
+OwnerBoundary
+!=
+CarrierBoundary
+!=
+ReachabilityBoundary
+```
+
+这与本 Horizon 原有的：
+
+```text
+Self-built != Better
+```
+
+一致，但更强。
+
+原来的原则主要回答：
+
+> 已知需要某个 capability 时，是否应该自己造？
+
+新的原则更早一步回答：
+
+> **我们是否因为它“不在自己这里”，就在问题形成阶段把它删掉了？**
+
+### 18.3 “做不到”必须被拆成具体 blocker
+
+以后一个 target 不能只被标记成模糊的 `cannot do`。
+
+至少要问它究竟被什么挡住。
+
+可能是真正的 hard boundary：
+
+```text
+logical contradiction
+physical impossibility under the relevant regime
+causal / information destruction
+fundamental computability / decidability limit
+```
+
+也可能只是当前有限系统的 contingent / effective blocker：
+
+```text
+knowledge / method
+compute / search / time
+capital
+instrument / facility
+material / supply
+logistics / lead time
+precision / metrology
+interface / integration
+authority / consent
+safety
+law / regulation
+transaction / coordination
+provenance / verification
+```
+
+这一区分很重要，因为：
+
+```text
+PhysicallyPossible
+!=
+EpistemicallyRecoverableNow
+```
+
+同时：
+
+```text
+PhysicallyReachable
+!=
+AuthorizedReachable
+!=
+SafeAdmissibleReachable
+```
+
+一个已经被别人做过的目标，可以排除一部分“绝对不可能”解释，却不能自动消除预算、地点、制度、信息、精度和安全约束。
+
+### 18.4 Candidate reachability、路径成立与当前 capability 必须分开
+
+新的 Horizon 使用三个层次：
+
+```text
+CandidateReachable
+!=
+PathQualified
+!=
+RealizedCurrentCapability
+```
+
+**CandidateReachable**：已有足够理由认为值得寻找路径。文明已有实现是很强的正证据。
+
+**PathQualified**：已经找到具体 carrier chain，并对 access、成本、currentness、authority、安全、接口与验证要求有足够边界，可以认真规划执行。
+
+**RealizedCurrentCapability**：当前 consumer 真能发现、admit、execute 这条 path，并获得 target-valid consequence / evidence。
+
+这延续了此前已经建立的：
+
+```text
+LatentAffordance != RealizedCapability
+```
+
+所以新认知不会反过来制造 capability inflation。
+
+### 18.5 “文明 API”只能是比喻，不是新架构
+
+按需制造、共享实验设施、Cloud Lab、专家服务和成熟供应链确实让越来越多过去必须自建的能力变成可调用 carrier。
+
+但不能因此创建：
+
+```text
+Civilization API
+Global Capability Graph
+Reachability Registry
+Universal Provider Contract
+```
+
+文明中的 carrier 具有完全不同的：
+
+```text
+authority
+currentness
+latency
+cost
+quality
+interface
+reliability
+verification
+failure semantics
+```
+
+所以真正值得保留的是：
+
+> **把文明视为 capability search space，而不是统一 capability platform。**
+
+### 18.6 Reachability 会递归扩张，但不保证单调增长
+
+一个新 capability 可以成为另一个 capability 的 carrier。
+
+例如：
+
+```text
+MCU control
+→ custom sensing
+→ new physical evidence
+→ better experiment design
+→ custom fixture
+→ new measurement geometry
+→ previously hidden mechanism becomes discriminable
+```
+
+因此 capability acquisition 可能改变未来的 reachability graph。
+
+这也是为什么实验室的价值可能具有复利性质。
+
+但不能写成：
+
+```text
+more equipment
+=>
+monotonically more capability
+```
+
+新设备也会增加：
+
+```text
+maintenance
+calibration
+complexity
+attack surface
+safety burden
+attention cost
+```
+
+而一个 constraint 甚至可能通过删除局部 action，保存更多未来 valid reachability。
+
+因此更窄的 standing 是：
+
+> **Capability 可以通过新 carrier 与新组合递归地打开后续路径；是否形成净能力增长仍然由 target-relative consequence 判断。**
+
+### 18.7 这重新定义了自己的实验室为什么重要
+
+自己的实验室不再是：
+
+> “Ordivon 能接触物理 Reality 的地方。”
+
+因为大量物理能力本来就可以通过外部 carrier 获得。
+
+它更像是一个：
+
+```text
+Reachability Amplifier
+```
+
+尤其在以下关系上有价值：
+
+```text
+feedback latency
+iteration cadence
+local physical identity
+currentness
+independent observation
+troubleshooting / re-entry
+automation
+safe interlock
+provenance
+reconfiguration
+uncertain-effect recovery
+```
+
+所以实验室最应该内部拥有的，不是“所有技术门类”，而是那些：
+
+- 高频；
+- 低 latency 极其重要；
+- 需要反复修改；
+- external handoff 会破坏 provenance / currentness / recovery；
+- 能成为大量后续 capability 的通用 carrier；
+- ownership 明显改善 target-relative consequence；
+
+的能力。
+
+而稀疏、昂贵、专业维护重、设施要求高、监管复杂、独立外部测量反而更有证据价值的过程，可以长期保持 external/shared/contract-first。
+
+### 18.8 因此 Future Lab 的总体扩展法再次修正
+
+原来的：
+
+```text
+important capability pressure
+→ blocking Reality relation
+→ strongest mature external carrier first
+→ residual local construction
+```
+
+现在在最前面再加一步：
+
+```text
+important target
+→ do not close by domain / ownership boundary
+→ ask whether civilization already realizes an equivalent target
+→ search source-neutral carrier paths
+→ classify actual blocker
+→ choose strongest admissible path
+→ construct only residual relation
+→ verify consequence
+→ preserve the cheapest trustworthy route back
+```
+
+这意味着未来 Ordivon 面对 chemistry、materials、mechanics、optics、biology、manufacturing 或任何陌生领域时，不应该因为当前项目 topology 没有对应 owner 就预先缩小问题。
+
+领域只是知识与实践的历史组织方式。
+
+真正的 stopping condition 应该是：
+
+```text
+在当前 target / resource / authority / evidence boundary 下，
+没有一条 admissible path 能跨过已经识别的 blocker
+```
+
+或者相反：
+
+```text
+一个成熟外部 carrier 已经足够好，
+所以没有任何本地 construction residual 值得拥有
+```
+
+二者都是成熟结果。
+
+### 18.9 当前采用的更强长期表述
+
+因此，截至 2026-08-26，本 Horizon 对 Ordivon 潜在能力边界的表述进一步修正为：
+
+> **Ordivon 的能力边界不应由当前软件仓库、项目 owner、已有设备或自己直接执行的工艺来定义。凡是人类文明已经可靠实现的 target，应首先保留在 candidate reachability search space 中，然后寻找由内部与外部 carrier 组成的具体 causal path，并用 currentness、resource、authority、safety、precision 与 evidence 约束它。只有在具体 blocker 被识别以后，才有资格说当前不可达；只有当路径真正被当前 consumer 可靠实现以后，才有资格说 Ordivon 已经拥有该 capability。**
+
+这个 standing 不承诺：
+
+> “人类能做到的，Ordivon 最终都一定能做到。”
+
+它只拒绝一种更早、更隐蔽的失败：
+
+> **在 Reality 还没有真正阻止我们之前，先因为自己的组织边界、知识边界或资产边界，把可能的路径从世界模型里删掉。**
+
+这使未来实验室的意义更加清楚。
+
+它不是把 Ordivon 从 software 变成一个封闭的 full-stack physical organization。
+
+它是让有限智能越来越擅长：
+
+```text
+发现可达路径
+调用文明已有能力
+构造缺失 residual
+验证真实 consequence
+再把新 capability 变成下一轮 reachability 的 carrier
+```
+
+从这个角度看，自己的实验室只是更大 capability ecology 中一个高带宽、低延迟、可重构、可验证的本地节点。
