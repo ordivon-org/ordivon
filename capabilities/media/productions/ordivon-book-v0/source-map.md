@@ -709,3 +709,91 @@ This revision does **not** establish:
 - a Chapter 8 or a rewrite of the seven-chapter Book core.
 
 The seven-chapter Book remains unchanged. This revision belongs in the Future Laboratory Horizon because it changes the adopted long-term capability-search stance while retaining strict separation between candidate reachability and current capability truth.
+
+
+
+## Future Horizon — Historical Reachability / Evidence Ecology experimental correction
+
+Status: `SOURCE-FENCED RESEARCH + USER-ADOPTED HORIZON SYNTHESIS / NOT CURRENT CAPABILITY AUTHORITY`
+
+This section supersedes the earlier Future-Horizon Computing provenance only for the later Historical Reachability / Evidence Ecology correction. It does **not** rewrite the historical `f328494...` source event; that detached revision remains the exact earlier civilization-mediated reachability patch.
+
+### Final Computing research binding for this correction
+
+- repository: `ordivon-computing`
+- canonical local `main` source cut observed and held stable during this programme: `797b519d013b5de3a03bce9a8bfa5f52a3dc5ef1`
+- final detached source-fenced research revision: `3da4390a20091923ea6bbc4da54877c82e47d3dc`
+- root-worktree currentness boundary: canonical Computing root still contained 86 unrelated dirty changes; no branch update or overwrite was attempted
+- load-bearing files:
+  - `research/CIVILIZATION-MEDIATED-REACHABILITY-WORLD-MODEL-REVISION-20260826.md`
+  - `research/HISTORICAL-REACHABILITY-EVIDENCE-ECOLOGY-REVISION-20260826.md`
+  - `research/COMPUTER-TO-REALITY-WORLD-MODEL-REVISION-20260825.md`
+  - `research/experiments/historical-reachability-hr0-hr4-v0/CLOSEOUT.md`
+  - `research/experiments/historical-reachability-hr3-formal-v0/CLOSEOUT.md`
+  - `research/experiments/historical-reachability-hr4-civilization-v0/CLOSEOUT.md`
+
+The detached lineage was built from the exact `797b519...` source cut, then accumulated the civilization-mediated reachability revision, HR0–HR2 empirical/model-consumer work, HR3 formal/synthetic countermodels, and HR4 current-carrier contrast. `git diff --check` passed and the final detached workspace was clean.
+
+### Experimental narrowing imported by Horizon §18.10–18.14
+
+The Book imports the following **bounded** findings:
+
+1. `NaturalPressure != OnlyAdmissiblePressure` and `RealityAuthority != ResearchPassivity`: PPD may actively construct discriminating pressure using history, experiments, measurements, countermodels, simulation, synthetic worlds, external mature research and formal constructions while preserving evidence-specific claim ceilings.
+2. HR1 terminal-only vs causal-lineage multiple choice was a ceiling-control / bad discriminator; `20/20` terminal-only and `19/20 + one carrier error` causal-lineage does not establish terminal sufficiency or lineage additivity.
+3. HR0 rejects a fixed T1–T10 Historical Reachability taxonomy as persistent representation: effective `18/18` pairs, only `3/18` exact label-set agreement, mean Jaccard about `0.565`; a future-importance predictor split `19/17` and is rejected.
+4. HR2 supports a lower-commitment causal-delta representation in the tested corpus:
+
+```text
+BeforeBlocker
+BasisChange
+PathDelta
+RemainingBoundary
+EvidenceCeiling
+```
+
+   On ten preselected cross-era cases, both Flash and pre-frozen Pro adjudication judged all five fields semantically equivalent `10/10`, both extraction replicas source-grounded `10/10`, with `0/10` material contradictions. This is model-based representation evidence, not independent human historiography and not a universal schema claim.
+5. HR3 formal/synthetic countermodels support the two-sided relation:
+
+```text
+CurrentNonReachability != PermanentNonReachability
+CandidateMetaReachability != GuaranteedEventualReachability
+```
+
+   Generated-world frequencies are explicitly non-empirical.
+6. HR4 supports the current-carrier relation:
+
+```text
+HistoricalConstructionBurden
+can migrate into
+CarrierQualificationBurden
+```
+
+   Historical importance does not by itself create local ownership pressure.
+
+### Current external carrier comparison used by HR4
+
+Current official service surfaces were used only to establish that mature external carriers now absorb relations that historically had to be constructed locally. They are not Book authority and they do not prove current target-specific Ordivon capability.
+
+- Emerald Cloud Lab — remotely controlled automated laboratory and broad instrument/workflow surface: `https://www.emeraldcloudlab.com/`
+- Xometry — on-demand manufacturing across CNC/additive/sheet/injection and related production routes: `https://www.xometry.com/manufacturing/`
+- Eurofins Materials & Engineering Sciences — contract characterization / imaging / analytical testing including SEM/TEM, Raman, FTIR, NMR, XRD/XRF: `https://www.eurofins.com/en/materials-engineering-sciences/materials-testing-services/`
+- JLCPCB — digital PCB/PCBA path spanning fabrication, component sourcing, SMT/THT assembly and production inspection/testing surfaces: `https://jlcpcb.com/pcb-assembly`
+
+These carriers support only the bounded observation that historical construction burden can sometimes be inherited. Current specification, identity/provenance, method fitness, authority/safety, integration, verification, latency and re-entry remain target-relative.
+
+### Representation deletion / non-admission
+
+The Book deliberately does **not** import:
+
+- T1–T10 as a Historical Reachability ontology;
+- `terminalOnlyLikelySufficient` or another context-free future-importance score;
+- a History owner;
+- a Reachability owner/service/planner;
+- a global capability/basis/transition graph;
+- a requirement to retain raw process transcripts or private reasoning;
+- a rule that naturally occurring events outrank all designed evidence;
+- authority/currentness transfer from historical, formal, synthetic or model evidence into present Reality.
+
+The Book-level survivor is a reasoning discipline:
+
+> actively manufacture discriminating pressure without manufacturing truth; when historical/process lineage matters, preserve the smallest source-fenced causal delta that changes reconstruction, rejection, reopening or route generation; then ask which historically load-bearing relations current civilization already supplies before constructing anything locally.
