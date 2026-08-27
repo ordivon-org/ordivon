@@ -20,12 +20,10 @@ from ordivon_studio.resolve_adapter import (
     OPERATION_FILENAME,
     RUNNER_FILENAME,
     build_assembly_conform_operation,
-    build_assembly_operation,
     build_compatibility_operation,
     build_probe_operation,
     build_smoke_operation,
     install_runner,
-    prepare_assembly,
     prepare_assembly_conform,
     prepare_probe,
     prepare_smoke,
@@ -546,27 +544,6 @@ def _write_assembly_sources(root: Path) -> tuple[Path, Path]:
     return production_root, media_root
 
 
-def _build_test_assembly_operation(
-    production_root: Path,
-    media_root: Path,
-    operation_id: str,
-) -> dict[str, object]:
-    operation = build_assembly_operation(
-        production_root=production_root,
-        media_root=media_root,
-        windows_media_root=str(media_root),
-        operation_id=operation_id,
-    )
-    parameters = operation["parameters"]
-    assert isinstance(parameters, dict)
-    segments = parameters["segments"]
-    assert isinstance(segments, list)
-    for segment in segments:
-        assert isinstance(segment, dict)
-        segment["mediaPath"] = str(media_root / str(segment["fileName"]))
-    return operation
-
-
 def _build_test_assembly_conform_operation(
     production_root: Path,
     media_root: Path,
@@ -660,25 +637,6 @@ class ResolveAdapterTests(unittest.TestCase):
                 execute_operation(operation, resolve, "test-double")
             self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
 
-    def test_assembly_compiles_from_production_assets_and_otio(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            production_root, media_root = _write_assembly_sources(root)
-            operation = build_assembly_operation(
-                production_root=production_root,
-                media_root=media_root,
-                windows_media_root=str(media_root),
-                operation_id="resolve-assembly-test-001",
-            )
-            validate_operation(operation)
-            parameters = operation["parameters"]
-            self.assertEqual(parameters["projectName"], ASSEMBLY_PROJECT_NAME)
-            self.assertEqual(parameters["timelineName"], ASSEMBLY_TIMELINE_NAME)
-            self.assertEqual(parameters["totalFrames"], 2340)
-            self.assertEqual(len(parameters["segments"]), 11)
-            self.assertEqual(sum(segment["placeholder"] for segment in parameters["segments"]), 8)
-            self.assertEqual(parameters["segments"][-1]["startFrame"], 2250)
-
     def test_assembly_conform_compiles_resolve_facing_otio(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -771,65 +729,6 @@ class ResolveAdapterTests(unittest.TestCase):
             with patch.object(runner_menu, "_developer_readme_path", return_value=developer_readme):
                 with self.assertRaisesRegex(ValueError, "OTIO digest does not match"):
                     execute_operation(operation, resolve, "test-double")
-            self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
-
-    def test_assembly_executes_exact_layout_then_reuses_it(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            production_root, media_root = _write_assembly_sources(root)
-            operation = _build_test_assembly_operation(
-                production_root,
-                media_root,
-                "resolve-assembly-test-002",
-            )
-            resolve = FakeResolve()
-
-            first = execute_operation(operation, resolve, "test-double")
-            second = execute_operation(operation, resolve, "test-double")
-
-            self.assertEqual(first["project"]["disposition"], "created")
-            self.assertEqual(first["timeline"]["videoItemCount"], 11)
-            self.assertEqual(first["timeline"]["totalFrames"], 2340)
-            self.assertEqual(first["timeline"]["markerCount"], 11)
-            self.assertEqual(first["placeholderCount"], 8)
-            self.assertTrue(all(segment["timelineDisposition"] == "appended" for segment in first["segments"]))
-            self.assertTrue(all(segment["timelineDisposition"] == "reused" for segment in second["segments"]))
-            self.assertTrue(all(asset["disposition"] == "reused" for asset in second["assets"]))
-            self.assertEqual(resolve.project_manager.current.GetName(), "Previous Project")
-            self.assertTrue(first["restoredPreviousProject"])
-
-    def test_assembly_rejects_existing_layout_drift(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            production_root, media_root = _write_assembly_sources(root)
-            operation = _build_test_assembly_operation(
-                production_root,
-                media_root,
-                "resolve-assembly-test-003",
-            )
-            resolve = FakeResolve()
-            execute_operation(operation, resolve, "test-double")
-            assembly = resolve.project_manager.projects[ASSEMBLY_PROJECT_NAME]
-            assert assembly.current_timeline is not None
-            assembly.current_timeline.video_items[0].duration += 1
-
-            with self.assertRaisesRegex(RuntimeError, "unexpected duration"):
-                execute_operation(operation, resolve, "test-double")
-            self.assertEqual(resolve.project_manager.current.GetName(), "Previous Project")
-
-    def test_assembly_rejects_digest_mismatch_before_project_creation(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            production_root, media_root = _write_assembly_sources(root)
-            operation = _build_test_assembly_operation(
-                production_root,
-                media_root,
-                "resolve-assembly-test-004",
-            )
-            operation["parameters"]["segments"][0]["mediaDigest"] = "sha256:" + "0" * 64
-            resolve = FakeResolve()
-            with self.assertRaisesRegex(ValueError, "digest does not match"):
-                execute_operation(operation, resolve, "test-double")
             self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
 
     def test_version_specific_compatibility_probe_runs_all_cases_and_cleans_up(self) -> None:
@@ -965,19 +864,6 @@ class ResolveAdapterTests(unittest.TestCase):
             )
             self.assertFalse((control / "resolve-result.json").exists())
             self.assertEqual(smoke["operation"]["action"], "create-smoke-project")
-
-            production_root, media_root = _write_assembly_sources(root / "assembly")
-            (control / "resolve-result.json").write_text("{}", encoding="utf-8")
-            assembly = prepare_assembly(
-                production_root=production_root,
-                control_directory=control,
-                media_root=media_root,
-                windows_media_root=str(media_root),
-                operation_id="resolve-assembly-test-005",
-            )
-            self.assertFalse((control / "resolve-result.json").exists())
-            self.assertEqual(assembly["operation"]["action"], "assemble-review")
-            self.assertEqual(assembly["assembly"]["totalSeconds"], 78)
 
     def test_result_validator_rejects_identity_drift_and_private_path(self) -> None:
         result = {

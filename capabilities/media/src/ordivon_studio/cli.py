@@ -355,20 +355,6 @@ def _command_resolve_prepare_assembly_conform(args: argparse.Namespace) -> int:
     return 0
 
 
-def _command_resolve_prepare_assembly(args: argparse.Namespace) -> int:
-    _write_json(
-        _resolve_adapter().prepare_assembly(
-            production_id=args.production_id,
-            production_root=_optional_path(args.production_root),
-            control_directory=_optional_path(args.control_directory),
-            media_root=_optional_path(args.media_root),
-            windows_media_root=args.windows_media_root,
-            operation_id=args.operation_id,
-        )
-    )
-    return 0
-
-
 def _command_resolve_result(args: argparse.Namespace) -> int:
     result = _resolve_adapter().read_result(
         control_directory=_optional_path(args.control_directory),
@@ -576,17 +562,6 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_assembly_conform.add_argument("--developer-readme")
     resolve_assembly_conform.add_argument("--operation-id")
     resolve_assembly_conform.set_defaults(handler=_command_resolve_prepare_assembly_conform)
-
-    resolve_assembly = resolve_commands.add_parser(
-        "prepare-assembly", help="compile the selected Production OTIO snapshot into a bounded Resolve operation"
-    )
-    resolve_assembly.add_argument("--production-id", default="runtime-introduction")
-    resolve_assembly.add_argument("--production-root")
-    resolve_assembly.add_argument("--control-directory")
-    resolve_assembly.add_argument("--media-root")
-    resolve_assembly.add_argument("--windows-media-root")
-    resolve_assembly.add_argument("--operation-id")
-    resolve_assembly.set_defaults(handler=_command_resolve_prepare_assembly)
 
     resolve_result = resolve_commands.add_parser("result", help="validate and print the latest Resolve result")
     resolve_result.add_argument("--control-directory")

@@ -496,14 +496,12 @@ def _write_resolve_assembly_otio(
     otio.adapters.write_to_file(timeline, str(path), adapter_name="otio_json")
 
 
-def build_assembly_operation(
+def _build_assembly_source_parameters(
     *,
     production_root: Path,
     media_root: Path,
     windows_media_root: str,
-    operation_id: str | None = None,
 ) -> dict[str, Any]:
-    operation_id = _validate_operation_id(operation_id or _new_operation_id("assembly"))
     production_path = production_root / "production.json"
     assets_path = production_root / "assets.json"
     production = _load_json(production_path)
@@ -619,25 +617,19 @@ def build_assembly_operation(
     global_start = timeline.global_start_time or otio.opentime.RationalTime(108000, expected_rate)
     start_timecode = otio.opentime.to_timecode(global_start, rate=expected_rate)
     return {
-        "schemaVersion": 1,
-        "operationId": operation_id,
-        "action": "assemble-review",
-        "requestedAt": _requested_at(),
-        "parameters": {
-            "productionId": production_id,
-            "projectName": ASSEMBLY_PROJECT_NAME,
-            "timelineName": ASSEMBLY_TIMELINE_NAME,
-            "startTimecode": start_timecode,
-            "settings": {"frameRate": 30, "width": 1920, "height": 1080},
-            "totalFrames": cursor,
-            "sourceDigests": {
-                "production": _hash_file(production_path),
-                "assets": _hash_file(assets_path),
-                "timeline": _hash_file(otio_path),
-            },
-            "segments": segments,
-            "restorePreviousProject": True,
+        "productionId": production_id,
+        "projectName": ASSEMBLY_PROJECT_NAME,
+        "timelineName": ASSEMBLY_TIMELINE_NAME,
+        "startTimecode": start_timecode,
+        "settings": {"frameRate": 30, "width": 1920, "height": 1080},
+        "totalFrames": cursor,
+        "sourceDigests": {
+            "production": _hash_file(production_path),
+            "assets": _hash_file(assets_path),
+            "timeline": _hash_file(otio_path),
         },
+        "segments": segments,
+        "restorePreviousProject": True,
     }
 
 
@@ -652,13 +644,11 @@ def build_assembly_conform_operation(
     operation_id: str | None = None,
 ) -> dict[str, Any]:
     operation_id = _validate_operation_id(operation_id or _new_operation_id("assembly-conform"))
-    operation = build_assembly_operation(
+    parameters = _build_assembly_source_parameters(
         production_root=production_root,
         media_root=media_root,
         windows_media_root=windows_media_root,
-        operation_id=operation_id,
     )
-    parameters = operation["parameters"]
     suffix = operation_id.removeprefix("resolve-assembly-conform-")
     _write_resolve_assembly_otio(
         resolve_otio_path,
@@ -679,8 +669,13 @@ def build_assembly_conform_operation(
             "cleanupProject": True,
         }
     )
-    operation["action"] = "probe-assembly-conform"
-    return operation
+    return {
+        "schemaVersion": 1,
+        "operationId": operation_id,
+        "action": "probe-assembly-conform",
+        "requestedAt": _requested_at(),
+        "parameters": parameters,
+    }
 
 
 def _prepare_operation(control: Path, operation: dict[str, Any]) -> dict[str, Any]:
@@ -843,44 +838,6 @@ def prepare_assembly_conform(
     return prepared
 
 
-def prepare_assembly(
-    *,
-    production_id: str = "runtime-introduction",
-    production_root: Path | None = None,
-    control_directory: Path | None = None,
-    media_root: Path | None = None,
-    windows_media_root: str | None = None,
-    operation_id: str | None = None,
-) -> dict[str, Any]:
-    repository_root = Path(__file__).resolve().parents[2]
-    production_root = production_root or repository_root / "productions" / production_id
-    control = control_directory or discover_resolve_paths().control_directory
-    if media_root is None and windows_media_root is None:
-        discovered = discover_production_media(production_id)
-        media_root = discovered.directory
-        windows_media_root = discovered.windows_directory
-    elif media_root is None:
-        media_root = Path(_wslpath(windows_media_root, "-u"))  # type: ignore[arg-type]
-    elif windows_media_root is None:
-        windows_media_root = _wslpath(str(media_root), "-w")
-
-    operation = build_assembly_operation(
-        production_root=production_root,
-        media_root=media_root,
-        windows_media_root=windows_media_root,
-        operation_id=operation_id,
-    )
-    prepared = _prepare_operation(control, operation)
-    prepared["assembly"] = {
-        "productionId": production_id,
-        "segmentCount": len(operation["parameters"]["segments"]),
-        "totalFrames": operation["parameters"]["totalFrames"],
-        "totalSeconds": operation["parameters"]["totalFrames"] / 30,
-        "placeholderCount": sum(1 for segment in operation["parameters"]["segments"] if segment["placeholder"]),
-    }
-    return prepared
-
-
 def validate_result(result: dict[str, Any], *, expected_operation_id: str | None = None) -> list[str]:
     errors: list[str] = []
     if result.get("schemaVersion") != 1:
@@ -893,7 +850,6 @@ def validate_result(result: dict[str, Any], *, expected_operation_id: str | None
         "create-smoke-project",
         "probe-compatibility",
         "probe-assembly-conform",
-        "assemble-review",
     }:
         errors.append("action is unsupported")
     if result.get("status") not in {"succeeded", "failed"}:
@@ -980,24 +936,6 @@ def validate_result(result: dict[str, Any], *, expected_operation_id: str | None
                     errors.append("assembly conform disposable project was not deleted")
                 if not isinstance(resolve, dict) or resolve.get("versionString") != COMPATIBILITY_VERSION_STRING:
                     errors.append("assembly conform Resolve profile differs")
-        elif action == "assemble-review":
-            assembly = result.get("assembly")
-            if not isinstance(assembly, dict):
-                errors.append("successful assembly result must contain assembly")
-            else:
-                project = assembly.get("project")
-                timeline = assembly.get("timeline")
-                segments = assembly.get("segments")
-                if not isinstance(project, dict) or project.get("name") != ASSEMBLY_PROJECT_NAME:
-                    errors.append("assembly result has an invalid project")
-                if not isinstance(timeline, dict) or timeline.get("name") != ASSEMBLY_TIMELINE_NAME:
-                    errors.append("assembly result has an invalid timeline")
-                elif timeline.get("totalFrames") != 2340 or timeline.get("videoItemCount") != 11:
-                    errors.append("assembly timeline structure is incomplete")
-                if not isinstance(segments, list) or len(segments) != 11:
-                    errors.append("assembly result must contain 11 segments")
-                if assembly.get("restoredPreviousProject") is not True:
-                    errors.append("assembly result did not restore the previous project")
     if result.get("status") == "failed" and not isinstance(result.get("error"), dict):
         errors.append("failed result must contain error")
     encoded = json.dumps(result, ensure_ascii=False, sort_keys=True)

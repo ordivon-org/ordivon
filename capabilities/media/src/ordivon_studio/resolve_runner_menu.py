@@ -186,9 +186,9 @@ def _validate_compatibility_parameters(parameters):
     return parameters
 
 
-def _validate_assembly_parameters(parameters):
+def _validate_assembly_source_parameters(parameters):
     if not isinstance(parameters, dict):
-        raise ValueError("assemble-review requires parameters")
+        raise ValueError("assembly source parameters must be an object")
     allowed = {
         "productionId",
         "projectName",
@@ -210,19 +210,19 @@ def _validate_assembly_parameters(parameters):
 
     production_id = _require_string(parameters.get("productionId"), "productionId")
     if production_id != "runtime-introduction":
-        raise ValueError("assemble-review is limited to runtime-introduction")
+        raise ValueError("assembly source parameters are limited to runtime-introduction")
     if parameters.get("projectName") != _ASSEMBLY_PROJECT_NAME:
-        raise ValueError("assemble-review projectName is not reserved")
+        raise ValueError("assembly source projectName is not reserved")
     if parameters.get("timelineName") != _ASSEMBLY_TIMELINE_NAME:
-        raise ValueError("assemble-review timelineName is not reserved")
+        raise ValueError("assembly source timelineName is not reserved")
     start_timecode = parameters.get("startTimecode")
     if not isinstance(start_timecode, str) or not _TIMECODE.fullmatch(start_timecode):
         raise ValueError("startTimecode has an invalid format")
     settings = _validate_settings(parameters.get("settings"))
     if settings != {"frameRate": 30, "width": 1920, "height": 1080}:
-        raise ValueError("assemble-review requires 1920x1080 at 30 fps")
+        raise ValueError("assembly source parameters require 1920x1080 at 30 fps")
     if parameters.get("totalFrames") != 2340:
-        raise ValueError("assemble-review requires exactly 2340 frames")
+        raise ValueError("assembly source parameters require exactly 2340 frames")
 
     source_digests = parameters.get("sourceDigests")
     if not isinstance(source_digests, dict) or set(source_digests) != {"production", "assets", "timeline"}:
@@ -233,7 +233,7 @@ def _validate_assembly_parameters(parameters):
 
     segments = parameters.get("segments")
     if not isinstance(segments, list) or len(segments) != 11:
-        raise ValueError("assemble-review requires exactly 11 segments")
+        raise ValueError("assembly source parameters require exactly 11 segments")
     cursor = 0
     seen_ids = set()
     for segment in segments:
@@ -322,7 +322,7 @@ def _validate_assembly_conform_parameters(parameters):
     assembly_parameters = {key: parameters[key] for key in assembly_fields}
     assembly_parameters["projectName"] = _ASSEMBLY_PROJECT_NAME
     assembly_parameters["timelineName"] = _ASSEMBLY_TIMELINE_NAME
-    _validate_assembly_parameters(assembly_parameters)
+    _validate_assembly_source_parameters(assembly_parameters)
 
     _require_string(parameters.get("projectName"), "projectName", _ASSEMBLY_CONFORM_PROJECT_PREFIX)
     if parameters.get("timelineName") != _ASSEMBLY_CONFORM_TIMELINE_NAME:
@@ -366,7 +366,6 @@ def validate_operation(operation):
         "create-smoke-project",
         "probe-compatibility",
         "probe-assembly-conform",
-        "assemble-review",
     }:
         raise ValueError("unsupported Resolve action")
     requested_at = operation.get("requestedAt")
@@ -381,8 +380,6 @@ def validate_operation(operation):
         _validate_compatibility_parameters(operation.get("parameters"))
     elif action == "probe-assembly-conform":
         _validate_assembly_conform_parameters(operation.get("parameters"))
-    else:
-        _validate_assembly_parameters(operation.get("parameters"))
     return operation
 
 
@@ -1222,11 +1219,6 @@ def _find_item_at(snapshots, start_frame):
     return matches[0] if matches else None
 
 
-def _overlaps(snapshot, start_frame, duration_frames):
-    end_frame = start_frame + duration_frames
-    return snapshot["startFrame"] < end_frame and start_frame < snapshot["endFrame"]
-
-
 def probe_assembly_conform(resolve_object, operation, acquisition):
     parameters = operation["parameters"]
     segments = parameters["segments"]
@@ -1472,258 +1464,6 @@ def probe_assembly_conform(resolve_object, operation, acquisition):
     return result
 
 
-def _ensure_timeline_marker(timeline, segment, operation_id):
-    custom_data = "ordivon:" + operation_id + ":" + segment["id"]
-    markers = _call(timeline, "GetMarkers") or {}
-    for marker in markers.values():
-        if isinstance(marker, dict) and marker.get("customData") == custom_data:
-            return "reused"
-    color = "Yellow" if segment["placeholder"] else "Blue"
-    name = ("PLACEHOLDER · " if segment["placeholder"] else "MOTION · ") + segment["id"]
-    note = "Replace before picture lock" if segment["placeholder"] else "Selected programmatic motion"
-    _require_true(
-        _call(
-            timeline,
-            "AddMarker",
-            segment["startFrame"],
-            color,
-            name,
-            note,
-            segment["durationFrames"],
-            custom_data,
-        ),
-        "Timeline.AddMarker",
-    )
-    return "created"
-
-
-def assemble_review(resolve_object, operation):
-    parameters = operation["parameters"]
-    project_name = parameters["projectName"]
-    timeline_name = parameters["timelineName"]
-    settings = parameters["settings"]
-    segments = parameters["segments"]
-    restore_previous = parameters.get("restorePreviousProject", True)
-
-    # Validate every byte identity before touching Resolve state.
-    for segment in segments:
-        media_path = Path(segment["mediaPath"])
-        if not media_path.is_file():
-            raise FileNotFoundError("assembly media file does not exist: " + segment["fileName"])
-        if _hash_file(media_path) != segment["mediaDigest"]:
-            raise ValueError("assembly media digest does not match: " + segment["fileName"])
-
-    project_manager = _require_object(_call(resolve_object, "GetProjectManager"), "GetProjectManager")
-    previous_project = _call(project_manager, "GetCurrentProject")
-    previous_name = _call(previous_project, "GetName") if previous_project else None
-    if previous_project:
-        _require_true(_call(project_manager, "SaveProject"), "SaveProject(previous)")
-
-    project = None
-    result = None
-    operation_error = None
-    restored = not bool(previous_name and previous_name != project_name and restore_previous)
-    try:
-        project, project_disposition = _project_for_operation(project_manager, project_name)
-        _apply_project_settings(project, settings)
-        media_pool = _require_object(_call(project, "GetMediaPool"), "GetMediaPool")
-        root = _require_object(_call(media_pool, "GetRootFolder"), "GetRootFolder")
-
-        folders = {}
-        bin_results = []
-        for bin_name in sorted(_ASSEMBLY_BINS):
-            folder, disposition = _ensure_folder(media_pool, root, bin_name)
-            folders[bin_name] = folder
-            bin_results.append({"name": bin_name, "disposition": disposition})
-
-        clips = {}
-        asset_results = []
-        for segment in segments:
-            asset_id = segment["assetId"]
-            if asset_id in clips:
-                continue
-            folder = folders[segment["binName"]]
-            _require_true(_call(media_pool, "SetCurrentFolder", folder), "SetCurrentFolder")
-            clip = _find_clip(folder, segment["fileName"])
-            if clip is None:
-                imported = _call(media_pool, "ImportMedia", [segment["mediaPath"]]) or []
-                if len(imported) != 1:
-                    raise RuntimeError("ImportMedia did not return exactly one clip: " + segment["fileName"])
-                clip = imported[0]
-                disposition = "imported"
-            else:
-                disposition = "reused"
-            if _clip_file_name(clip) != segment["fileName"]:
-                raise RuntimeError("imported media identity differs: " + segment["fileName"])
-            clips[asset_id] = clip
-            asset_results.append(
-                {
-                    "assetId": asset_id,
-                    "fileName": segment["fileName"],
-                    "binName": segment["binName"],
-                    "digest": segment["mediaDigest"],
-                    "disposition": disposition,
-                }
-            )
-
-        _require_true(_call(media_pool, "SetCurrentFolder", root), "SetCurrentFolder(root)")
-        timeline = _find_timeline(project, timeline_name)
-        if timeline is None:
-            timeline = _require_object(_call(media_pool, "CreateEmptyTimeline", timeline_name), "CreateEmptyTimeline")
-            timeline_disposition = "created"
-        else:
-            timeline_disposition = "reused"
-        _require_true(_call(project, "SetCurrentTimeline", timeline), "SetCurrentTimeline")
-
-        timeline_start, existing = _video_item_snapshots(timeline)
-        if not existing:
-            _require_true(_call(timeline, "SetStartTimecode", parameters["startTimecode"]), "SetStartTimecode")
-            timeline_start, existing = _video_item_snapshots(timeline)
-        elif _call(timeline, "GetStartTimecode") != parameters["startTimecode"]:
-            raise RuntimeError("existing Assembly v0 uses an unexpected start timecode")
-
-        segment_results = []
-        for segment in segments:
-            timeline_start, snapshots = _video_item_snapshots(timeline)
-            existing_item = _find_item_at(snapshots, segment["startFrame"])
-            expected_media_id = _media_id(clips[segment["assetId"]])
-            if existing_item is not None:
-                if existing_item["mediaId"] != expected_media_id:
-                    raise RuntimeError(
-                        "existing Assembly v0 contains unexpected media at "
-                        + str(segment["startFrame"])
-                        + ": actual="
-                        + existing_item["fileName"]
-                        + ", expected="
-                        + segment["fileName"]
-                    )
-                if existing_item["durationFrames"] != segment["durationFrames"]:
-                    raise RuntimeError(
-                        "existing Assembly v0 contains an unexpected duration at "
-                        + str(segment["startFrame"])
-                        + ": actual="
-                        + str(existing_item["durationFrames"])
-                        + ", expected="
-                        + str(segment["durationFrames"])
-                    )
-                timeline_item_disposition = "reused"
-                verified = existing_item
-            else:
-                for snapshot in snapshots:
-                    if _overlaps(snapshot, segment["startFrame"], segment["durationFrames"]):
-                        raise RuntimeError("existing Assembly v0 overlaps the requested segment: " + segment["id"])
-                record_frame = timeline_start + segment["startFrame"]
-                clip_info = {
-                    "mediaPoolItem": clips[segment["assetId"]],
-                    "mediaType": 1,
-                    "trackIndex": 1,
-                    "recordFrame": record_frame,
-                }
-                appended = _call(media_pool, "AppendToTimeline", [clip_info]) or []
-                if not appended:
-                    raise RuntimeError("AppendToTimeline returned no item: " + segment["id"])
-                timeline_start, refreshed = _video_item_snapshots(timeline)
-                verified = _find_item_at(refreshed, segment["startFrame"])
-                if verified is None:
-                    raise RuntimeError("appended Assembly item could not be recovered: " + segment["id"])
-                if verified["mediaId"] != expected_media_id or verified["durationFrames"] != segment["durationFrames"]:
-                    raise RuntimeError(
-                        "appended Assembly item failed verification: "
-                        + segment["id"]
-                        + "; actualMedia="
-                        + verified["fileName"]
-                        + "; actualDuration="
-                        + str(verified["durationFrames"])
-                        + "; expectedDuration="
-                        + str(segment["durationFrames"])
-                    )
-                timeline_item_disposition = "appended"
-
-            marker_disposition = _ensure_timeline_marker(timeline, segment, operation["operationId"])
-            segment_results.append(
-                {
-                    "id": segment["id"],
-                    "assetId": segment["assetId"],
-                    "fileName": segment["fileName"],
-                    "placeholder": segment["placeholder"],
-                    "requestedStartFrame": segment["startFrame"],
-                    "actualStartFrame": verified["startFrame"],
-                    "requestedDurationFrames": segment["durationFrames"],
-                    "actualDurationFrames": verified["durationFrames"],
-                    "actualEndFrame": verified["endFrame"],
-                    "timelineDisposition": timeline_item_disposition,
-                    "markerDisposition": marker_disposition,
-                }
-            )
-
-        timeline_start, final_items = _video_item_snapshots(timeline)
-        expected_layout = sorted(
-            (
-                segment["startFrame"],
-                segment["durationFrames"],
-                _media_id(clips[segment["assetId"]]),
-            )
-            for segment in segments
-        )
-        actual_layout = sorted((item["startFrame"], item["durationFrames"], item["mediaId"]) for item in final_items)
-        if actual_layout != expected_layout:
-            raise RuntimeError("Assembly v0 final layout differs from the compiled editorial snapshot")
-        verified_total_frames = max(item["endFrame"] for item in final_items) if final_items else 0
-        if verified_total_frames != parameters["totalFrames"]:
-            raise RuntimeError("Assembly v0 verified duration differs from totalFrames")
-
-        _require_true(_call(project_manager, "SaveProject"), "SaveProject(assembly)")
-        result = {
-            "productionId": parameters["productionId"],
-            "sourceDigests": parameters["sourceDigests"],
-            "project": {
-                "name": project_name,
-                "disposition": project_disposition,
-                "frameRate": _call(project, "GetSetting", "timelineFrameRate"),
-                "width": _call(project, "GetSetting", "timelineResolutionWidth"),
-                "height": _call(project, "GetSetting", "timelineResolutionHeight"),
-            },
-            "bins": bin_results,
-            "assets": asset_results,
-            "timeline": {
-                "name": timeline_name,
-                "disposition": timeline_disposition,
-                "startTimecode": _call(timeline, "GetStartTimecode"),
-                "startFrame": timeline_start,
-                "endFrame": int(round(float(_call(timeline, "GetEndFrame")))),
-                "totalFrames": verified_total_frames,
-                "videoTrackCount": int(_call(timeline, "GetTrackCount", "video") or 0),
-                "videoItemCount": len(final_items),
-                "markerCount": len(_call(timeline, "GetMarkers") or {}),
-            },
-            "segments": segment_results,
-            "placeholderCount": sum(1 for segment in segments if segment["placeholder"]),
-            "previousProject": previous_name,
-        }
-    except Exception as error:
-        operation_error = error
-    finally:
-        if project:
-            try:
-                _call(project_manager, "SaveProject")
-            except Exception:
-                pass
-        if previous_name and previous_name != project_name and restore_previous:
-            try:
-                restored = bool(_call(project_manager, "LoadProject", previous_name))
-            except Exception:
-                restored = False
-
-    if operation_error is not None:
-        if not restored:
-            raise RuntimeError(type(operation_error).__name__ + "; previous project restoration failed") from operation_error
-        raise operation_error
-    if not restored:
-        raise RuntimeError("previous project restoration failed")
-    result["restoredPreviousProject"] = restored
-    return result
-
-
 def execute_operation(operation, resolve_object=None, acquisition=None):
     validate_operation(operation)
     if resolve_object is None:
@@ -1738,7 +1478,7 @@ def execute_operation(operation, resolve_object=None, acquisition=None):
         return probe_compatibility(resolve_object, operation, acquisition or "provided")
     if operation["action"] == "probe-assembly-conform":
         return probe_assembly_conform(resolve_object, operation, acquisition or "provided")
-    return assemble_review(resolve_object, operation)
+    raise RuntimeError("validated Resolve action has no executor")
 
 
 def _default_control_directory():
