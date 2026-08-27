@@ -125,14 +125,17 @@ python3 scripts/studio-agent-surface.py
 ## Fresh Workspace bootstrap
 
 ```bash
-pnpm bootstrap
-pnpm check
+scripts/owner-environment bootstrap
+scripts/owner-environment doctor
+scripts/owner-environment test
 ```
+
+The owner entrypoint consumes the existing pinned `mise.toml`, `pnpm-lock.yaml`, `uv.lock`, and Python materialization receipt. `cold-start` proves the same default check surface from a copied source fence with neither `node_modules` nor `.venv`.
 
 Resolve is optional equipment:
 
 ```bash
-pnpm check:equipment:resolve
+scripts/owner-environment test-resolve
 ```
 
 ## License

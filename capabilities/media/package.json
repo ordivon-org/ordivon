@@ -10,6 +10,10 @@
   },
   "scripts": {
     "deps:check": "pnpm deps:js:check && pnpm deps:python:check",
+    "bootstrap:js": "/root/tools/bin/pnpm install --frozen-lockfile",
+    "bootstrap:python": "/usr/bin/python3 scripts/materialize-python.py",
+    "bootstrap:resolve": "/usr/bin/python3 scripts/materialize-python.py --extra resolve",
+    "bootstrap": "pnpm bootstrap:js && pnpm bootstrap:python",
     "tokens:build": "node --experimental-strip-types packages/identity/scripts/build-tokens.ts",
     "models:check": "pnpm deps:python:check && .venv/bin/python -m ordivon_studio.models",
     "culture:capabilities": "pnpm deps:python:check && .venv/bin/python -m ordivon_studio.observatory capabilities",
