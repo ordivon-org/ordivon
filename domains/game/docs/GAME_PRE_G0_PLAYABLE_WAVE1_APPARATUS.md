@@ -34,7 +34,7 @@ The frozen first wave remains exactly:
 
 ## Materialized surface
 
-A separate local browser surface is served at `/pre-g0`. It is intentionally distinct from `/lab`, `/casefile`, `/v3`, and the registered Station Zero product surface.
+A separate local browser surface is served at `/pre-g0` when the explicit Game research profile is enabled (`ORDIVON_GAME_RESEARCH_SURFACES=1`). It is intentionally distinct from `/lab`, `/casefile`, `/v3`, and the registered Station Zero product surface; the default server does not mount it.
 
 Common boundaries:
 

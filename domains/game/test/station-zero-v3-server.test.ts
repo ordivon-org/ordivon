@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -19,9 +19,47 @@ async function json(response: Response): Promise<any> {
   return body;
 }
 
+test("research-specific server options fail closed without the explicit research profile", () => {
+  assert.throws(
+    () => createGameServer({ dbPath: ":memory:", v3DbPath: ":memory:" }),
+    /researchSurfaces=true/,
+  );
+});
+
+test("default server mounts only the registered product and does not materialize research stores", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-game-default-server-"));
+  const dbPath = join(directory, "current.sqlite3");
+  const game = createGameServer({ dbPath });
+  const base = await listen(game);
+  try {
+    assert.equal(game.v3Store, null);
+    assert.equal(game.v3Play, null);
+    assert.equal(game.casefileStore, null);
+    assert.equal(game.casefile, null);
+    assert.equal((await fetch(`${base}/`)).status, 200);
+    for (const path of [
+      "/v3",
+      "/casefile",
+      "/lab",
+      "/pre-g0",
+      "/api/station-zero-v3/catalog",
+      "/api/casefile/catalog",
+    ]) {
+      assert.equal((await fetch(`${base}${path}`)).status, 404, `${path} must require the explicit research profile`);
+    }
+  } finally {
+    await game.close();
+  }
+  assert.equal(existsSync(dbPath), true);
+  assert.equal(existsSync(`${dbPath}.v3`), false);
+  assert.equal(existsSync(`${dbPath}.casefile`), false);
+  rmSync(directory, { recursive: true, force: true });
+});
+
 test("v3 preview API is isolated from the current executable and supports one explicit Turn commit", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-server-"));
   const game = createGameServer({
+    researchSurfaces: true,
     dbPath: join(directory, "current.sqlite3"),
     v3DbPath: join(directory, "v3.sqlite3"),
   });
@@ -111,7 +149,7 @@ test("v3 preview API is isolated from the current executable and supports one ex
 
     const beforeCommit = await json(await fetch(`${base}/api/station-zero-v3/state?runId=${encodeURIComponent(runId)}`));
     assert.equal(beforeCommit.run.turn, 0);
-    assert.equal(game.v3Store.turnCount(runId), 0);
+    assert.equal(game.v3Store!.turnCount(runId), 0);
 
     const committed = await json(await fetch(`${base}/api/station-zero-v3/commit?runId=${encodeURIComponent(runId)}`, {
       method: "POST",
@@ -121,7 +159,7 @@ test("v3 preview API is isolated from the current executable and supports one ex
     assert.equal(committed.worldRevision, 1);
     assert.equal(committed.view.run.turn, 1);
     assert.ok(committed.view.aftermath.visibleFacts.length > 0);
-    assert.equal(game.v3Store.turnCount(runId), 1);
+    assert.equal(game.v3Store!.turnCount(runId), 1);
 
     const resumed = await json(await fetch(`${base}/api/station-zero-v3/resume?runId=${encodeURIComponent(runId)}`, {
       method: "POST",
@@ -138,7 +176,7 @@ test("v3 preview API is isolated from the current executable and supports one ex
 
 test("v3 HTTP rejects invalid strategic controls before changing the Order", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-server-invalid-"));
-  const game = createGameServer({ dbPath: ":memory:", v3DbPath: ":memory:" });
+  const game = createGameServer({ researchSurfaces: true, dbPath: ":memory:", v3DbPath: ":memory:" });
   const base = await listen(game);
   const runId = "run:station-zero-v3:http-invalid";
   try {

@@ -184,13 +184,20 @@ pnpm start
 
 `scripts/owner-environment cold-start` proves the default typecheck/webcheck/test surface from a copied source fence without inheriting `node_modules`. Browser/E2E and model-backed evaluation remain explicit higher-capability gates.
 
+The default server mounts only the registered Station Zero product. Retained Game Core / Pre-G0 research apparatus is not a default executable affordance and does not materialize its v3 or Casefile stores. Enable those surfaces explicitly for reproduction work:
+
+```bash
+ORDIVON_GAME_RESEARCH_SURFACES=1 pnpm start
+```
+
 Open:
 
 ```text
-Registered Station Zero: http://127.0.0.1:4173/
-Station Zero v3 reference experiment: http://127.0.0.1:4173/v3
-Game Core Concept Lab: http://127.0.0.1:4173/lab
-Casefile epistemic experiment: http://127.0.0.1:4173/casefile
+Registered Station Zero (default): http://127.0.0.1:4173/
+Research profile only — Station Zero v3: http://127.0.0.1:4173/v3
+Research profile only — Game Core Concept Lab: http://127.0.0.1:4173/lab
+Research profile only — Casefile: http://127.0.0.1:4173/casefile
+Research profile only — Pre-G0 apparatus: http://127.0.0.1:4173/pre-g0
 ```
 
 Browser acceptance journeys:
@@ -227,6 +234,8 @@ GET  /api/compare
 
 ### Casefile research treatment
 
+Available only when `ORDIVON_GAME_RESEARCH_SURFACES=1`.
+
 ```text
 GET  /api/casefile/catalog
 GET  /api/casefile/runs
@@ -238,6 +247,8 @@ POST /api/casefile/action
 Casefile is an executable epistemic/social-deduction research treatment with a separate SQLite store and exact state-derived action surface. Nonterminal public projections do not expose culprit, motive, reconstruction, or uninspected clue text. The current witness policy is deterministic; Casefile runtime makes no model calls. Its existence does not select a product or product stage.
 
 ### Station Zero v3 preview
+
+Available only when `ORDIVON_GAME_RESEARCH_SURFACES=1`.
 
 ```text
 GET  /api/station-zero-v3/catalog

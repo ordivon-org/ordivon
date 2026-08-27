@@ -16,7 +16,7 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-core-lab-"));
-const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
+const game = createGameServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 const base = await listen(game);
 const executablePath = resolveChromiumExecutable(chromium.executablePath());
 if (!executablePath) throw new Error("No Chromium executable is available for Game Core Concept Lab E2E");

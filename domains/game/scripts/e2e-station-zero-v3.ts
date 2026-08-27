@@ -20,6 +20,7 @@ process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-e2e-"));
 const game = createGameServer({
+  researchSurfaces: true,
   dbPath: join(directory, "current.sqlite3"),
   v3DbPath: join(directory, "v3.sqlite3"),
 });
@@ -254,8 +255,8 @@ try {
   }, runId);
   assert.equal(retained.run.status, "terminal");
   assert.equal(retained.run.turn, 20);
-  assert.equal(game.v3Store.turnCount(runId), 20);
-  assert.equal(game.v3Play.turns.recover(runId).world.turnCount, 20);
+  assert.equal(game.v3Store!.turnCount(runId), 20);
+  assert.equal(game.v3Play!.turns.recover(runId).world.turnCount, 20);
 
   console.log(JSON.stringify({
     runId,

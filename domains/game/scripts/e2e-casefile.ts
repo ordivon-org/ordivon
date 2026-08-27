@@ -22,6 +22,7 @@ async function act(page: import("playwright").Page, actionId: string, expectedRe
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-casefile-e2e-"));
 const game = createGameServer({
+  researchSurfaces: true,
   dbPath: join(directory, "v2.sqlite3"),
   v3DbPath: join(directory, "v3.sqlite3"),
   casefileDbPath: join(directory, "casefile.sqlite3"),

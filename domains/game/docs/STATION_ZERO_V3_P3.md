@@ -387,11 +387,13 @@ Consequently, v3 Runs do not appear in the current `/api/runs` contract.
 
 ## Browser first-playable
 
-The preview is served at:
+With the explicit Game research profile enabled (`ORDIVON_GAME_RESEARCH_SURFACES=1`), the preview is served at:
 
 ```text
 http://127.0.0.1:4173/v3
 ```
+
+The default registered-product server does not mount this research surface.
 
 The interface provides:
 

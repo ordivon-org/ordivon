@@ -34,7 +34,7 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-g5-e2e-"));
-const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
+const game = createGameServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 const base = await listen(game);
 const executablePath = resolveChromiumExecutable(chromium.executablePath());
 if (!executablePath) throw new Error("No Chromium executable is available for Station Zero v3 G5 E2E");
@@ -95,9 +95,9 @@ try {
   assert.equal(retained.run.turn, 20);
   assert.equal(retained.generatedFrom.worldRevision, 20);
   assert.equal(zoneCapacity(retained, "junction-cover"), 1);
-  assert.equal(game.v3Store.getRun(runId).scenarioCaseId, "junction-bottleneck");
-  assert.equal(game.v3Store.verify(runId).verified, true);
-  assert.equal(game.v3Play.turns.recover(runId).world.turnCount, 20);
+  assert.equal(game.v3Store!.getRun(runId).scenarioCaseId, "junction-bottleneck");
+  assert.equal(game.v3Store!.verify(runId).verified, true);
+  assert.equal(game.v3Play!.turns.recover(runId).world.turnCount, 20);
 
   await page.reload({ waitUntil: "networkidle" });
   await page.getByTestId("operation-debrief").waitFor();

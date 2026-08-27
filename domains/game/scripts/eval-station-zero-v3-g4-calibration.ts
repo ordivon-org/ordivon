@@ -243,7 +243,7 @@ async function repeatedTurnCalibration(browser: Browser, base: string): Promise<
 }
 
 const tempDirectory = mkdtempSync(join(tmpdir(), "station-zero-g4-calibration-server-"));
-const server = createGameServer({ dbPath: join(tempDirectory, "v2.sqlite3"), v3DbPath: join(tempDirectory, "v3.sqlite3") });
+const server = createGameServer({ researchSurfaces: true, dbPath: join(tempDirectory, "v2.sqlite3"), v3DbPath: join(tempDirectory, "v3.sqlite3") });
 await new Promise<void>((resolvePromise) => server.server.listen(0, "127.0.0.1", () => resolvePromise()));
 const address = server.server.address();
 if (!address || typeof address === "string") throw new Error("G4 calibration server did not expose a TCP address");

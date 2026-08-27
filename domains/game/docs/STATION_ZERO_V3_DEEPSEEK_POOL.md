@@ -89,7 +89,7 @@ The default retry limit is automatic: `max(4, usable credential count × 2)`. Qu
 Enable the live Provider:
 
 ```bash
-ORDIVON_GAME_V3_PROVIDER=deepseek pnpm start
+ORDIVON_GAME_RESEARCH_SURFACES=1 ORDIVON_GAME_V3_PROVIDER=deepseek pnpm start
 ```
 
 Relevant variables:

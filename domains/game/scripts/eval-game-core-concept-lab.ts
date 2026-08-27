@@ -279,7 +279,7 @@ async function playSession(
 
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-core-fresh-agent-"));
-const game = createGameServer({ dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
+const game = createGameServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));
 const address = game.server.address();
 if (!address || typeof address === "string") throw new Error("server has no TCP address");
