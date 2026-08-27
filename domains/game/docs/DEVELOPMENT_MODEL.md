@@ -66,18 +66,18 @@ Three organizations were tested against the work Game actually has to do:
 
 | Model | What it gets right | What it loses | Verdict |
 | --- | --- | --- | --- |
-| ordinary game stages only | concept, prototype, slice, production, QA, release | no explicit proof that Agent observation/action/consequence is legitimate or valuable | keep as outer lifecycle, insufficient alone |
-| Agent-first creative loop as the whole lifecycle | fast hypothesis search, matched play, falsification | content, art/audio, production throughput, platform and shipping become secondary | reject as outer lifecycle |
+| ordinary game stages only | concept, prototype, slice, production, QA, release | hides concurrent responsibility/evidence standing and has no explicit Agent-value proof | retain as stage projection, insufficient alone |
+| Agent-first creative loop as the whole lifecycle | fast hypothesis search, matched play, falsification | content, art/audio, production throughput, platform and shipping become secondary | reject as stage/process authority |
 | nested model | normal production outside; Agent consequence/research inside | requires resisting process inflation | **retain** |
 
 Deletion pressure makes the distinction operational:
 
-- remove the outer lifecycle and the project cannot tell when a prototype has earned vertical-slice or production investment;
+- remove the stage/commitment projection and the project loses a coarse coordination language for product investment and scope;
 - remove the Agent lane and an LLM feature can reach production without proving bounded observation, legal action or meaningful consequence;
-- promote the Agent research loop to the outer lifecycle and Game becomes research-rich but production-poor again;
+- promote the Agent research loop to stage/process authority and Game becomes research-rich but production-poor again;
 - remove classification and current tools/architecture begin choosing the product by accident.
 
-There is one product lifecycle, not two process authorities.
+There is one product-stage authority, not two competing process authorities. G0–G8 remain the canonical stage projection; they do not by themselves explain the causal work of discovering and developing a game.
 
 ## 1. What an Ordivon game is
 
@@ -106,6 +106,31 @@ A useful game can be discussed through five responsibilities without turning the
 | **Runtime** | Which engine, renderer, input, persistence, networking and platform mechanisms execute the product? |
 
 Evidence, replay, playtest data and production receipts support these responsibilities; they are not a sixth gameplay layer.
+
+### Development Core beneath the stage projection
+
+The five responsibilities above describe the product being made. They are not sufficient to represent **development standing**. Current cross-paradigm research in [`GAME_DEVELOPMENT_CORE.md`](GAME_DEVELOPMENT_CORE.md) therefore exposes eight concurrent development views:
+
+```text
+D1 Intent / Audience Context
+D2 Play Causality
+D3 Player Learning / Legibility
+D4 Evidence / Prototyping
+D5 Content / Progression Architecture
+D6 Expression / Feel
+D7 Production Realization
+D8 Product Ecology / Evolution
+```
+
+These are responsibility/evidence views, not new Foundations, services or stage names.
+
+```text
+GameDevelopmentCore != G0–G8 StageProjection
+```
+
+The stage projection remains useful for coordination and commitment. The Development Core explains what can be mature, weak, stale or reopened **inside the same stage**. A G4 project can have strong pipeline proof and weak Human experience evidence; the stage must not silently upgrade the weaker claim.
+
+The external-paradigm comparison and the reasons for this repair are retained in [`GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`](GAME_DEVELOPMENT_PARADIGM_RESEARCH.md).
 
 ## 2. Classification before implementation
 
@@ -246,7 +271,7 @@ Ask whether Agent participation materially improves or creates:
 
 If the Agent mostly adds latency, cost and prose while the trajectory is equivalent, shrink it to the cheaper mechanism.
 
-## 4. Complete development lifecycle
+## 4. Canonical G0–G8 stage projection
 
 The lifecycle below is the outer process for Ordivon games. It is intentionally recognizable as normal game development.
 
@@ -261,7 +286,7 @@ Produce a bounded Game Definition:
 - Runtime Agent Participation Profile **when claimed**; a game with no runtime Agents records `none`;
 - Production Agent strategy separately from the product definition;
 - target platform/input/session shape;
-- one-sentence core loop;
+- one-sentence loop summary plus loop topology when materially multi-scale;
 - initial visual/audio direction only at the level needed to constrain production;
 - explicit non-goals.
 
@@ -292,9 +317,11 @@ Use competing designs and deletion tests. Avoid polishing content before the cor
 
 **Question:** Do the rules and Agent roles produce interesting decisions before expensive presentation exists?
 
-Build the cheapest executable surface that can test:
+Choose the cheapest **valid evidence carrier**, not merely the cheapest implementation. Paper/tabletop, formal models, simulations, interactive mocks, grayboxes, technical spikes and engine prototypes represent different dimensions and carry different false-positive/false-negative risks. A material prototype should name its target question, represented and omitted dimensions, comparison/baseline, observation method and decision rule.
 
-- core loop;
+Build the cheapest valid surface that can test:
+
+- core loop / loop topology;
 - major rules and verbs;
 - information boundaries;
 - runtime-Agent decision/action consequence, only when the form claims runtime Agents;
@@ -329,6 +356,8 @@ This phase tests comprehension and consequence, not final beauty.
 
 **Question:** Can one representative slice demonstrate the intended final quality and prove the production pipeline?
 
+A vertical slice is a **compound evidence bundle**, not one indivisible truth. It may separately establish experience representativeness, quality bar, integration proof, pipeline proof, throughput estimate and performance envelope. Audience resonance or market/population claims remain separately evidenced.
+
 A vertical slice combines, in one bounded piece of real gameplay:
 
 - near-final gameplay quality;
@@ -343,7 +372,7 @@ A vertical slice combines, in one bounded piece of real gameplay:
 
 This is the first stage where broad Studio consumption is expected.
 
-**Exit gate:** the team can answer both “is this worth producing?” and “can we repeatedly produce it?” A beautiful demo that depends on bespoke one-off labor fails the second question.
+**Exit gate:** the team can answer both “is this worth producing at the currently justified evidence scope?” and “can we repeatedly produce it?” Preserve the component standing: a beautiful demo can pass quality and fail pipeline/throughput; a repeatable pipeline can exist without strong Human Player Value evidence.
 
 ### G5 — Production / content expansion
 
@@ -415,7 +444,24 @@ Depending on the game form:
 
 A finite game may end here except for maintenance. A live or persistent game may loop G5–G8 repeatedly.
 
-## 5. The Agent research lane inside the lifecycle
+## 5. Evidence loops inside the stage projection
+
+Stages do not decide which evidence method is valid. Start from the decision:
+
+```text
+DecisionToInform
+→ ClaimType
+→ valid evidence carrier / population / method
+→ observation
+→ scoped standing
+→ retain / revise / delete / reopen
+```
+
+For Human/player claims, use a typed Player Evidence record rather than a generic “playtest passed” bit: target population/context, method, sample scope, decision, known limitation and result standing. Early context interviews, observed comprehension tests, experience/resonance studies, broader quantitative balance work and post-launch population experiments answer different questions.
+
+For machine/synthetic evidence, retain the same discipline: reachability, strategy, causal control, robustness and regression evidence do not become Human experience by fluent narration or sample volume.
+
+## 6. The Agent research lane inside the lifecycle
 
 Agent-first development is primarily a **method of research, production and iteration**, not a promise that the shipped game contains Agents and not a substitute lifecycle.
 
@@ -483,7 +529,7 @@ survives materially different game pressure
 
 Counterevidence may narrow, demote or retire any prior. Historical AF/GX/R results therefore remain evidence, not permanent workflow structure.
 
-## 6. Game ↔ Studio production contract
+## 7. Game ↔ Studio production contract
 
 Game and Studio solve different problems.
 
@@ -566,7 +612,7 @@ Game then owns how the asset participates in gameplay. Studio does not decide hi
 
 Some games pull Studio earlier because expression is itself part of the core mechanic. The table is a default pressure model, not a prohibition.
 
-## 7. Tool consumption follows the production need
+## 8. Tool consumption follows the production need
 
 Installed tools expand reachable production worlds; they do not prescribe them.
 
@@ -595,7 +641,7 @@ AND ownership boundary remains clear
 
 Otherwise defer it.
 
-## 8. Content and infrastructure use different admission standards
+## 9. Content and infrastructure use different admission standards
 
 Infrastructure must justify persistent complexity:
 
@@ -613,7 +659,7 @@ Creative content is admitted by experience value:
 
 Do not optimize content with the same minimalism used for authority infrastructure. That produces a technically elegant empty game.
 
-## 9. Falsifier cases: the model must survive games unlike Station Zero
+## 10. Falsifier cases: the model must survive games unlike Station Zero
 
 ### Case A — real-time action game with one adaptive boss
 
@@ -660,7 +706,7 @@ This case falsifies any definition of Game that equates consequence with tactica
 The following survive all four cases:
 
 ```text
-normal game-development outer lifecycle
+canonical G0–G8 stage projection + Development Core responsibility model
 Conventional Form Profile
 Agent Participation Profile
 Agentic Consequence Loop
@@ -672,7 +718,7 @@ production-need-driven tool selection
 
 Station Zero-specific Plans, Turns, Commander forms, factions, tactical Zones, sealed enemy Plans and exact Host execution shape do not survive and therefore remain product-local.
 
-## 10. Start packet for any future Ordivon game
+## 11. Start packet for any future Ordivon game
 
 Before implementation, answer these in one bounded record:
 
@@ -681,14 +727,17 @@ Before implementation, answer these in one bounded record:
 3. **Production Agent leverage:** which research/build/test/production roles can materially change cost, search breadth or iteration speed, and what review/rework debt do they add?
 4. **Runtime Agent role:** if any shipped Agent is claimed, what autonomy/authority does it own, what player-relevant distinction requires it, and why is a cheaper script/policy/human baseline insufficient?
 5. **Kernel:** what authoritative state, resources, information and consequences define play?
-6. **Core loop:** what does the player repeatedly observe/decide/do and why is the repetition interesting?
-7. **Content grammar:** what kinds of levels/characters/items/events/creations must be repeatedly produced?
-8. **Production risk:** which art/audio/animation/network/model/runtime capabilities are likely to dominate cost or uncertainty?
-9. **First falsifier:** what is the cheapest prototype that could prove the concept is not worth continuing?
+6. **Play causality / loop topology:** what does the player repeatedly observe/decide/do; which dynamics are expected to create the target experience; which micro/session/meta loops matter?
+7. **Player learning:** what must become legible, learnable, practiced and progressively recombined?
+8. **Content/progression architecture:** what grammar, introduction order, variation/combination space and macro structure must be repeatedly produced?
+9. **Expression criticality:** which input/camera/UI/art/audio/animation/feel dimensions are merely representative and which are constitutive of the hypothesis?
+10. **Production risk:** which tools, pipelines, art/audio/animation/network/model/runtime capabilities dominate cost, throughput or uncertainty?
+11. **Evidence plan:** what decision is currently blocked, what is the cheapest valid evidence carrier, what dimensions does it omit, and what observation would change the decision?
+12. **Player/product ecology:** which audience/context/distribution/community/telemetry/live-operation assumptions constrain this form now rather than only after release?
 
 Only after this packet should engine, provider and production-equipment choices become commitments.
 
-## 11. Stage routing rule
+## 12. Stage routing rule
 
 When work feels confused, do not invent another numbered research series first. Ask:
 

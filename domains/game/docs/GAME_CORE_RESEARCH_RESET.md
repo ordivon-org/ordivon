@@ -80,7 +80,7 @@ None of these statements assigns a new product to G0–G8.
 
 ## What the research is actually trying to learn
 
-Canonical Game Core remains:
+The Station Zero-era compression:
 
 ```text
 Ordivon Game
@@ -90,11 +90,21 @@ Ordivon Game
 + persistent consequence
 ```
 
-The research question is not “which prototype wins after one round?” It is:
+remains useful as a **historical pressure lens**, but current GDF0–GDF3 research does not justify treating it as a universal Game ontology. In particular, `persistent consequence` is conditional on the relevant evaluation/history horizon, `player experience` is an evidence target rather than Game-owned phenomenological truth, and some valid GameForms require neither a rich World nor cross-session persistence.
 
-> Across materially different conventional game forms, which mappings from this Core reliably create play, curiosity, mastery, tension, attachment, surprise, expression, exploration, or other player value?
+Current work therefore separates:
 
-We are therefore searching for **stable Core → Experience laws**, not yet selecting a production title.
+```text
+Game semantic foundations             → GDF0–GDF3
+Development-use Game responsibilities → GAME_DEVELOPMENT_CORE.md
+Product stage projection              → DEVELOPMENT_MODEL.md G0–G8
+```
+
+The research question is now broader than “which Core mapping wins?” It is:
+
+> Which stable responsibilities, causal bridges and evidence loops let Ordivon discover, validate, produce and evolve materially different games without prototype momentum, Agent affinity, measurability bias or stage labels choosing the product?
+
+The cross-paradigm evidence is retained in `GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`; the current responsibility/evidence model is `GAME_DEVELOPMENT_CORE.md`.
 
 Examples of candidate laws to attack rather than assume:
 
@@ -194,13 +204,14 @@ Do not currently:
 
 ## Current frontier
 
-Return to Game Core itself.
+Return to Game Core and **Game Development Core**, not to the existing prototypes.
 
-Next work should combine previous Station Zero/Agent-first/World research with the new cross-form experiments to:
+Current direction:
 
-1. decompose the Core into stable responsibilities and experiential mechanisms;
-2. map which game forms stress each mechanism;
-3. estimate the direction/search space before narrowing it;
-4. identify missing experimental axes;
-5. derive a research programme that maximizes information gain rather than prototype count;
-6. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.
+1. retain Station Zero, Casefile, Concept Lab and Pre-G0 playables as experiment/regression apparatus; do not advance them as products;
+2. preserve GDF0–GDF3 and GPR0–GPR7 unless a concrete reopen condition fires;
+3. treat G0–G8 as the canonical **stage projection**, while `GAME_DEVELOPMENT_CORE.md` exposes the concurrent responsibility/evidence state underneath it;
+4. use `GAME_DEVELOPMENT_PARADIGM_RESEARCH.md` to compare external design, prototyping, player-research, content-production, live-operations and Agent-era practices without importing them as authority by popularity;
+5. prefer existing mature games, paper/formal analysis, simulations and retained apparatus over creating another prototype unless a specific unresolved claim requires a new valid evidence carrier;
+6. measure research progress by **decision-relevant uncertainty removed**, not prototype count, code volume or Agent density;
+7. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.

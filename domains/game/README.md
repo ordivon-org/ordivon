@@ -39,14 +39,16 @@ Ordivon Game currently ships one executable world: **Station Zero**, a determini
 
 ## Current boundary
 
-The registered executable remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. Station Zero v3, Casefile, Last Light, and Echo Hunt are currently **Game Core research treatments**, not competing product stages. No new Ordivon Game product has been selected from the recent direction experiments. Canonical G0–G8 meanings remain exclusively those in `docs/DEVELOPMENT_MODEL.md`; research rounds do not redefine them.
+The registered executable remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. Station Zero v3, Casefile, Last Light, Echo Hunt, Concept Lab and Pre-G0 playables are retained as **Game Core research / regression apparatus**, not candidate product momentum. No new Ordivon Game product has been selected. Canonical G0–G8 meanings remain exclusively those in `docs/DEVELOPMENT_MODEL.md`; `docs/GAME_DEVELOPMENT_CORE.md` exposes the concurrent development responsibility/evidence state underneath that stage projection without creating new stages.
 
 ## Start here
 
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
-- [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) defines how Ordivon classifies and develops games, where Agent-specific mechanisms fit inside the normal game lifecycle, and how Game consumes Studio production without taking over Studio authority.
+- [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) owns canonical G0–G8 product-stage semantics and their development routing.
+- [`docs/GAME_DEVELOPMENT_CORE.md`](docs/GAME_DEVELOPMENT_CORE.md) defines the current responsibility/evidence model beneath the stage projection: intent/audience, play causality, player learning, evidence/prototyping, content/progression architecture, expression/feel, production realization, and product ecology/evolution.
+- [`docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`](docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md) records the external-method comparison that motivated the stage-vs-core repair without importing external practice as product authority.
 - [`research/README.md`](research/README.md) is the thin canonical Game research entry point: current GDF0–GDF3, practical GPR reconstruction, coverage/frontier, R/F genealogy, negative/superseded history, and product/direction research are separated without moving the underlying evidence tree.
 - [`docs/STATION_ZERO_V3_CONTRACTION.md`](docs/STATION_ZERO_V3_CONTRACTION.md) records only Game-local contraction verdicts and reopen conditions; cross-project synthesis stays in Ordivon Computing.
 - [`docs/GAME_CORE_RESEARCH_RESET.md`](docs/GAME_CORE_RESEARCH_RESET.md) reserves G0–G8 for the normal product lifecycle and defines Station Zero/Concept Lab/Casefile as research treatments rather than product-stage winners.

@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
-  "description": "Intervention-driven multi-Agent mission game with deterministic world state and verified replay.",
+  "description": "Research-engineering owner for game semantics, development-core evidence, authoritative interactive worlds, and retained playable experiments.",
   "engines": {
     "node": ">=26.0.0"
   },

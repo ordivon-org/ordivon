@@ -7,7 +7,7 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 
-test("Game development model keeps normal game development as the outer lifecycle", () => {
+test("Game development model keeps canonical G0-G8 stages while exposing deeper development standing", () => {
   for (const stage of [
     "G0 — Define",
     "G1 — Preproduction / core design",

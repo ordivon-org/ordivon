@@ -17,8 +17,8 @@ test("current direction context projects exact owner frontier without gaining pr
   assert.equal(value.direction.sourcePath, "docs/GAME_CORE_RESEARCH_RESET.md");
   assert.equal(value.direction.sourceDigest, digest(value.direction.sourcePath));
   assert.match(value.direction.exactSource, /^## Current frontier/);
-  assert.match(value.direction.exactSource, /Return to Game Core itself\./);
-  assert.match(value.direction.exactSource, /maximizes information gain rather than prototype count/);
+  assert.match(value.direction.exactSource, /Return to Game Core and \*\*Game Development Core\*\*/);
+  assert.match(value.direction.exactSource, /decision-relevant uncertainty removed/);
   assert.match(value.direction.exactSource, /only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0/);
   assert.equal(value.authority.sourceDigest, digest(value.authority.sourcePath));
   assert.deepEqual(value.authority.exactGuards, [

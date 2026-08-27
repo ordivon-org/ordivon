@@ -20,10 +20,14 @@ This lane is deliberately separate from semantic Foundations.
 
 - [Product](../../docs/PRODUCT.md)
 - [Development Model](../../docs/DEVELOPMENT_MODEL.md)
+- [Development Core Responsibility Model](../../docs/GAME_DEVELOPMENT_CORE.md)
+- [Game Development Paradigm Research](../../docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md)
 - [Authority](../../docs/authority.md)
 
 ## Game Core direction research
 
+- [Game Development Core](../../docs/GAME_DEVELOPMENT_CORE.md)
+- [Development Paradigm Research](../../docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md)
 - [Game Core Research Reset](../../docs/GAME_CORE_RESEARCH_RESET.md)
 - [Game Core Direction Space](../../docs/GAME_CORE_DIRECTION_SPACE.md)
 - [Game Core Experiment Findings](../../docs/GAME_CORE_EXPERIMENT_FINDINGS.md)
