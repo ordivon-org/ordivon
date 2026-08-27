@@ -24,7 +24,7 @@ require_tools() {
   [[ -n "$mise_bin" ]] || { echo 'Studio owner environment requires mise' >&2; exit 1; }
   [[ -x "$pnpm_bin" ]] || { echo "Studio owner environment requires pinned pnpm: $pnpm_bin" >&2; exit 1; }
 }
-pnpm_mise() { (cd "$repo" && "$mise_bin" exec -- "$pnpm_bin" "$@"); }
+pnpm_mise() { (cd "$repo" && CI=true "$mise_bin" exec -- "$pnpm_bin" "$@"); }
 bootstrap() {
   require_tools
   (cd "$repo" && "$mise_bin" install)
