@@ -327,6 +327,8 @@ latency and cost.
 
 It does not inherit design or Player Value authority.
 
+Current external-environment comparison and consume/adapt/own rules are in [`GAME_PRODUCTION_AGENT_ENVIRONMENT.md`](GAME_PRODUCTION_AGENT_ENVIRONMENT.md). Engine/editor selection is treated as an operation-relative Production Graph decision, not a universal Ordivon platform choice.
+
 ## 9. D8 — Product Ecology / Evolution
 
 Question:
@@ -459,6 +461,8 @@ post-launch why            → telemetry + qualitative follow-up
 ```
 
 No method is universal.
+
+The current practical evidence model is [`GAME_PLAYER_EVIDENCE_PROGRAMME.md`](GAME_PLAYER_EVIDENCE_PROGRAMME.md). It separates evidence subject, method, measure, claim family, horizon, population transport, causal scope and result standing; it does not create a player truth store or telemetry platform.
 
 ## 13. Product stages as projection
 

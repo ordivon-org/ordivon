@@ -508,6 +508,8 @@ The D1-D8 top-level decomposition survives this first falsification pass. The st
 
 No D9 or new Foundation is admitted.
 
+The next evidence-method pressure pass is retained in [`GAME_PLAYER_EVIDENCE_PROGRAMME.md`](GAME_PLAYER_EVIDENCE_PROGRAMME.md), which replaces the coarse Human-vs-Machine operational split with claim-relative evidence ecology. Current Agent-era editor/engine affordances and consume/adapt/own boundaries are retained in [`GAME_PRODUCTION_AGENT_ENVIRONMENT.md`](GAME_PRODUCTION_AGENT_ENVIRONMENT.md).
+
 ## 7. Final disposition
 
 ```text

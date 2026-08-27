@@ -215,5 +215,7 @@ Current direction:
 5. deepen D5 through `GAME_CONTENT_PROGRESSION_ARCHITECTURE.md`: align Possibility, Player Capability/Model, Exposure/Content and Production graphs; preserve carrier-relative progression and evidence horizons;
 6. prefer existing mature games, paper/formal analysis, simulations and retained apparatus over creating another prototype unless a specific unresolved claim requires a new valid evidence carrier;
 7. measure research progress by **decision-relevant uncertainty removed**, not prototype count, code volume or Agent density;
-8. next pressure-test the Player Evidence Programme and Agent-era production environment only where those tests can falsify current Development Core standing;
-9. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.
+8. use `GAME_PLAYER_EVIDENCE_PROGRAMME.md` to select evidence from the decision/claim outward: EvidenceSubject, Method, Measure and Claim remain distinct; preserve population transport, evidence horizon and causal scope;
+9. use `GAME_PRODUCTION_AGENT_ENVIRONMENT.md` to consume/adapt mature external editor/engine/analytics capabilities before owning another production platform; capability pressure, control and recovery determine when to move from consume → adapt → fork → own;
+10. next falsify these two derived models only with concrete player-research or production workflows; do not turn them into databases/services until repeated operational pressure appears;
+11. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.
