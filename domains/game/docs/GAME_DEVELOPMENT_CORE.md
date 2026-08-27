@@ -176,6 +176,7 @@ Every material prototype should be representable as:
 PrototypeEvidenceContract =
 TargetQuestion
 + ClaimToChange
++ EvidenceHorizon
 + Medium
 + RepresentedDimensions
 + OmittedDimensions
@@ -186,6 +187,14 @@ TargetQuestion
 + DecisionRule
 + ReuseIntent
 ```
+
+`EvidenceHorizon` records how long the relevant consequence takes to become observable:
+
+```text
+interaction | encounter | session | run | campaign | cross-session | population/time-window
+```
+
+Fast evidence is not automatically more decision-relevant. High-frequency micro-loop evidence can otherwise crowd out slower macro/progression evidence.
 
 Prototype media may include:
 
@@ -247,6 +256,8 @@ Generation != Authorship
 ```
 
 A procedural or Agent generator may participate here, but the game still owns constraints, validation, selection and gameplay consequence.
+
+Cross-case pressure now shows this responsibility is richer than a content-class list. Current practical construction is defined in [`GAME_CONTENT_PROGRESSION_ARCHITECTURE.md`](GAME_CONTENT_PROGRESSION_ARCHITECTURE.md), which separates Possibility, Player Capability/Model, Exposure/Content and Production graphs; progression carriers; mechanic-depth construction; macro topology; and content-production economics. It remains a derived development view rather than a new Foundation or runtime schema.
 
 ## 7. D6 — Expression / Feel
 
@@ -492,7 +503,7 @@ Are D8 operators. They can retrieve and propose analyses/experiments without own
 
 ## 15. Current consequences for Ordivon Game
 
-1. Do not build another treatment merely to fill a GameForm matrix.
+1. Use [`GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md`](GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md) as the current real-history falsification set for D1-D8; do not build another treatment merely to fill a GameForm matrix.
 2. Existing Station Zero / Casefile / Concept Lab / Pre-G0 implementations remain regression and experiment apparatus.
 3. Use external mature games and existing apparatus until a specific unresolved claim requires a new carrier.
 4. Replace `prototype count` with `decision-relevant uncertainty removed` as the search-progress measure.

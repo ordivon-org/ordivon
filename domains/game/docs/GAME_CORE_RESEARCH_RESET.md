@@ -211,7 +211,9 @@ Current direction:
 1. retain Station Zero, Casefile, Concept Lab and Pre-G0 playables as experiment/regression apparatus; do not advance them as products;
 2. preserve GDF0–GDF3 and GPR0–GPR7 unless a concrete reopen condition fires;
 3. treat G0–G8 as the canonical **stage projection**, while `GAME_DEVELOPMENT_CORE.md` exposes the concurrent responsibility/evidence state underneath it;
-4. use `GAME_DEVELOPMENT_PARADIGM_RESEARCH.md` to compare external design, prototyping, player-research, content-production, live-operations and Agent-era practices without importing them as authority by popularity;
-5. prefer existing mature games, paper/formal analysis, simulations and retained apparatus over creating another prototype unless a specific unresolved claim requires a new valid evidence carrier;
-6. measure research progress by **decision-relevant uncertainty removed**, not prototype count, code volume or Agent density;
-7. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.
+4. use `GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md` to attack D1–D8 with materially different real development histories rather than framework vocabulary alone;
+5. deepen D5 through `GAME_CONTENT_PROGRESSION_ARCHITECTURE.md`: align Possibility, Player Capability/Model, Exposure/Content and Production graphs; preserve carrier-relative progression and evidence horizons;
+6. prefer existing mature games, paper/formal analysis, simulations and retained apparatus over creating another prototype unless a specific unresolved claim requires a new valid evidence carrier;
+7. measure research progress by **decision-relevant uncertainty removed**, not prototype count, code volume or Agent density;
+8. next pressure-test the Player Evidence Programme and Agent-era production environment only where those tests can falsify current Development Core standing;
+9. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.

@@ -28,6 +28,8 @@ This lane is deliberately separate from semantic Foundations.
 
 - [Game Development Core](../../docs/GAME_DEVELOPMENT_CORE.md)
 - [Development Paradigm Research](../../docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md)
+- [Development Core Case Pressure Tests](../../docs/GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md)
+- [Content / Progression Architecture](../../docs/GAME_CONTENT_PROGRESSION_ARCHITECTURE.md)
 - [Game Core Research Reset](../../docs/GAME_CORE_RESEARCH_RESET.md)
 - [Game Core Direction Space](../../docs/GAME_CORE_DIRECTION_SPACE.md)
 - [Game Core Experiment Findings](../../docs/GAME_CORE_EXPERIMENT_FINDINGS.md)

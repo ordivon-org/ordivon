@@ -500,7 +500,15 @@ Therefore the four-term formula is retained as a **historical pressure lens**, n
 
 Current development-use Core should instead be a responsibility view over frozen semantics; see `GAME_DEVELOPMENT_CORE.md`.
 
-## 6. Final disposition
+## 6. Real-development follow-up
+
+The first framework-level comparison has now been pressure-tested against materially different real development histories in [`GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md`](GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md): Into the Breach, Celeste, Outer Wilds, Factorio, Hades and the Roblox creator/live environment.
+
+The D1-D8 top-level decomposition survives this first falsification pass. The strongest repair is below D5: [`GAME_CONTENT_PROGRESSION_ARCHITECTURE.md`](GAME_CONTENT_PROGRESSION_ARCHITECTURE.md) now models content/progression as alignment among game Possibility, target Player Capability/Model, Exposure/Content and Production graphs, with carrier-relative progression and explicit evidence horizons.
+
+No D9 or new Foundation is admitted.
+
+## 7. Final disposition
 
 ```text
 GDF0–GDF3 = unchanged
