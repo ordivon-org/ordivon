@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+mode=${1:-}
+pnpm_bin=${PNPM_BIN:-/root/tools/bin/pnpm}
+node_bin=${NODE_BIN:-$(command -v node || true)}
+
+usage() {
+  cat <<'TXT'
+usage: scripts/owner-environment bootstrap|doctor|test|cold-start
+
+bootstrap   materialize the exact pnpm lockfile dependency graph
+doctor      verify Node generation, package manager, and required local executables
+test        bootstrap, doctor, then run typecheck + web syntax + deterministic tests
+cold-start  copy the current source fence and prove test without warmed node_modules
+
+Browser/E2E and model-backed evaluation remain explicit capability/evaluation gates.
+TXT
+}
+require_tools() {
+  [[ -n "$node_bin" ]] || { echo 'Game owner environment requires Node' >&2; exit 1; }
+  [[ -x "$pnpm_bin" ]] || { echo "Game owner environment requires pinned pnpm: $pnpm_bin" >&2; exit 1; }
+}
+bootstrap() {
+  require_tools
+  (cd "$repo" && "$pnpm_bin" install --frozen-lockfile)
+}
+doctor() {
+  require_tools
+  (cd "$repo" && "$node_bin" - <<'JS'
+const fs=require('node:fs');
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const major=Number(process.versions.node.split('.')[0]);
+if (major < 26) throw new Error(`Game requires Node >=26, got ${process.version}`);
+if (pkg.packageManager !== 'pnpm@10.33.2') throw new Error(`unexpected packageManager ${pkg.packageManager}`);
+for (const path of ['node_modules/.bin/tsc','node_modules/.modules.yaml']) {
+  if (!fs.existsSync(path)) throw new Error(`missing materialized dependency surface: ${path}`);
+}
+console.log(`owner environment doctor: valid profile=test node=${process.version}`);
+JS
+  )
+  actual=$($pnpm_bin --version)
+  [[ "$actual" == '10.33.2' ]] || { echo "pnpm=$actual; expected 10.33.2" >&2; exit 1; }
+}
+run_tests() {
+  bootstrap
+  doctor
+  cd "$repo"
+  "$pnpm_bin" check
+}
+case "$mode" in
+  bootstrap) bootstrap ;;
+  doctor) doctor ;;
+  test) run_tests ;;
+  cold-start)
+    tmp=$(mktemp -d -t ordivon-game-owner-env-XXXXXX)
+    trap 'rm -rf "$tmp"' EXIT
+    mkdir -p "$tmp/repo"
+    (cd "$repo" && tar --exclude=.git --exclude=node_modules --exclude=dist --exclude=build --exclude=coverage --exclude=artifacts --exclude=replays -cf - .) | tar -xf - -C "$tmp/repo"
+    "$tmp/repo/scripts/owner-environment" test
+    ;;
+  --help|-h) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

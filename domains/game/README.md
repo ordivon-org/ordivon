@@ -170,10 +170,13 @@ Requirements:
 - pnpm 10.33.2.
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm check
+scripts/owner-environment bootstrap
+scripts/owner-environment doctor
+scripts/owner-environment test
 pnpm start
 ```
+
+`scripts/owner-environment cold-start` proves the default typecheck/webcheck/test surface from a copied source fence without inheriting `node_modules`. Browser/E2E and model-backed evaluation remain explicit higher-capability gates.
 
 Open:
 
