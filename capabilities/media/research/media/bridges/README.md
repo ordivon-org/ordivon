@@ -18,7 +18,7 @@ Runtime owns concrete execution and runtime-state evidence. D-B `ExecutionEligib
 
 ## Other owner boundaries
 
-- Network — transport, routing and reachability substrate.
+- Interlocus (historical owner identity/name: `research-owner:network` / Network) — qualified cross-locus capability, transport/routing/reachability substrate.
 - Harness — generic agent/tool orchestration support.
 - Host / Institution — authority, status, obligation and governance.
 - Human — general cognition, sociality, culture, meaning and evaluation where Media is only an environment.
