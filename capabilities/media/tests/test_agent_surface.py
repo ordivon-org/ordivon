@@ -85,6 +85,13 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn("merged on 2026-08-22", phase1)
         self.assertIn("origin=https://github.com/zycxfyh/ordivon-media.git", phase1)
         self.assertIn("not a current outstanding-work queue", phase1)
+        authority = (root / "docs/authority.md").read_text(encoding="utf-8")
+        self.assertIn("Repository source-integration currentness", authority)
+        self.assertIn("canonical upstream repository `main`", authority)
+        self.assertIn("after explicitly observing remote freshness", authority)
+        self.assertIn("phantom outstanding-work", authority)
+        self.assertIn("not automatically a live work queue", authority)
+        self.assertIn("re-observe the relevant external owner", authority)
 
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

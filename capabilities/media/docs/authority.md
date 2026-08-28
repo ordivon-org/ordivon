@@ -17,6 +17,14 @@ Studio contains source-bound Claims, production manifests, editable creative sou
 - Render/QC/review receipts prove only their scoped mechanical or review consequences.
 - A published Output owns its exact delivery bytes and declared source Production revision. Publication does not make it the source project's current authority.
 
+## Repository source-integration currentness
+
+For a present-tense claim about the **Media repository, current Studio capability plane, or outstanding repository/publication work**, first resolve the canonical upstream repository `main` after explicitly observing remote freshness. In the current Git topology this is the fetched commit corresponding to `origin/main`. A local `refs/heads/main`, worktree `HEAD`, detached Runtime Workspace, or Workspace name can bind exact historical source bytes but does not by itself establish the present repository horizon.
+
+Historical audits remain authoritative for what they observed at their own source/time fence; they are not automatically a live work queue. A stale source can therefore create a **phantom outstanding-work** failure: an external publication, merge, remote configuration, migration, or other bounded item that was genuinely open in the audit may already be complete now. Present work admission must re-enter through the current source horizon and, where the item is externally owned, re-observe the relevant external owner rather than replay the historical instruction.
+
+This repository relation is separate from Media semantic authority, Production-local source bindings, current source-owner facts referenced by Claims, and external publication/platform state. Source integration tells an Agent which current Media repository surface to read; it does not turn Git recency into creative truth, external platform truth, or current production intent.
+
 ## Human-response evidence
 
 Mechanical correctness, factual binding, browser/image transport, and Agent-observer success do not establish human comprehension, preference, trust, recall, emotional response, or aesthetic quality.
