@@ -27,7 +27,7 @@ export interface MissionControlInitializeInput {
 }
 
 export type MissionControlCommand =
-  | { action: "approve"; proposalId: string; issuedBy?: string; expiresAtTick?: number }
+  | { action: "approve"; proposalId: string; expiresAtTick?: number }
   | { action: "deny"; proposalId: string }
   | { action: "redirect-objective"; actorId: string; objectiveId: string }
   | { action: "pause" | "resume" | "cancel"; actorId: string }
@@ -316,7 +316,10 @@ export class MissionControlService {
           operationKind: proposal.command.kind,
           targetId: authorityTargetId(proposal.command),
           expiresAtTick,
-          issuedBy: command.issuedBy?.trim() || "player:mission-control",
+          // Mission Control is a loopback-local player control surface. Provenance for
+          // this product boundary is derived from the trusted ingress rather than from
+          // caller-authored request data. This is not a generic Human identity claim.
+          issuedBy: "player:mission-control",
         }, runId);
       }
       case "deny": {

@@ -243,7 +243,6 @@ function parseCommand(body: Record<string, unknown>): MissionControlCommand {
   switch (action) {
     case "approve": return {
       action, proposalId: requiredString(body.proposalId, "proposalId"),
-      ...(typeof body.issuedBy === "string" ? { issuedBy: body.issuedBy } : {}),
       ...(body.expiresAtTick === undefined ? {} : { expiresAtTick: Number(body.expiresAtTick) }),
     };
     case "deny": return { action, proposalId: requiredString(body.proposalId, "proposalId") };

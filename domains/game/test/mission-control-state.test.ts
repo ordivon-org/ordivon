@@ -94,6 +94,50 @@ test("rejected Proposals are excluded from legal subset selection", async () => 
   }
 });
 
+test("Mission Control approval provenance is derived from the local player ingress", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-mission-control-provenance-"));
+  const game = new GameStore(join(directory, "world.sqlite3"));
+  try {
+    const runId = "run:mission-control-provenance";
+    const service = new MissionControlService(
+      game,
+      () => new FixtureTeamProvider({ breachStrategy: "security-contain" }),
+    );
+    service.initialize({ runId, authorityPolicyMode: "supervised" });
+
+    let proposalId: string | null = null;
+    for (let index = 0; index < 16 && proposalId === null; index += 1) {
+      const review = await service.advance(runId, "proposal-review");
+      const authority = review.view.inbox.find((card) => card.kind === "authority-request");
+      proposalId = authority?.commands.find((command) => command.action === "approve")?.proposalId ?? null;
+      if (proposalId !== null || review.boundary === "terminal") break;
+      await service.advance(runId, "tick-verified");
+    }
+    assert.ok(proposalId, "fixture must reach one require-human Proposal");
+
+    // A JavaScript or HTTP caller may still physically send an extra field. The
+    // product service must not turn caller-authored spelling into authority provenance.
+    const injected = {
+      action: "approve",
+      proposalId,
+      issuedBy: "agent:peer-not-human",
+    } as unknown as Parameters<MissionControlService["command"]>[1];
+    const grant = service.command(runId, injected) as { grantId: string; issuedBy: string };
+    assert.equal(grant.issuedBy, "player:mission-control");
+
+    const team = new TeamHost(game, new FixtureTeamProvider()).team;
+    const persisted = team.listAuthorityGrants(runId).find((entry) => entry.grantId === grant.grantId);
+    assert.equal(persisted?.issuedBy, "player:mission-control");
+
+    await service.advance(runId, "tick-verified");
+    const consumed = team.listAuthorityGrants(runId).find((entry) => entry.grantId === grant.grantId);
+    assert.notEqual(consumed?.consumedAtTick, null);
+  } finally {
+    game.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("Team authority and per-Actor Provider configuration survive a fresh process", () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-m4-config-"));
   const dbPath = join(directory, "world.sqlite3");
