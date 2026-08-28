@@ -35,6 +35,8 @@ The existing `docs/` research corpus remains in place. These indexes make the cu
 Current semantic Foundations = GDF0–GDF3 only
 GDF4 = NOT ADMITTED
 GPR8 = NOT ADMITTED
+
+Historical executable freeze/replay artifacts do not select current Foundation standing or route the next Foundation. In particular, the GDF2-F handoff vocabulary `GDF4 Time / Rhythm / Pacing` records a 2026-08-18 candidate handoff horizon only: its own selection policy is `UNRESOLVED_BY_DESIGN`, not priority ordered, and requires searching beyond known handoffs. Current GDF4 identity/topic remains unadmitted and may only arise from a later admitted residual/falsifier under the current Foundation reopen/coverage discipline.
 C1 = strong survivor, UNADMITTED
 Historical Game Feel GDF3 = cancelled / noncanonical
 R/F = precursor genealogy
