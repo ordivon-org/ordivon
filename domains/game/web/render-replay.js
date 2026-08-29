@@ -24,7 +24,7 @@ function systems(state) {
   return Object.values(state.systems).map((system) => `
     <article class="replay-system ${system.powered ? "online" : "offline"}">
       <strong>${escapeHtml(system.name)}</strong>
-      <span>${system.integrity}% integrity · ${system.powered ? "powered" : "offline"}</span>
+      <span>${Math.round(system.integrity * 100)}% integrity · ${system.powered ? "powered" : "offline"}</span>
     </article>`).join("");
 }
 

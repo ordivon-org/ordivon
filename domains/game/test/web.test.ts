@@ -58,7 +58,7 @@ test("Replay, Diagnosis, and Compare render bounded product evidence", () => {
   const state = {
     turn: 0, mission: { status: "victory", reason: "rescue_signal_verified", turnLimit: 24 },
     resources: { batteryCharge: 10, oxygen: 90, reactorHeat: 20 },
-    agents: {}, systems: {},
+    agents: {}, systems: { cooling: { name: "Reactor Cooling", integrity: 0.35, powered: false } },
   };
   const report: any = {
     runId: "run:test",
@@ -68,7 +68,11 @@ test("Replay, Diagnosis, and Compare render bounded product evidence", () => {
     diagnosis: { terminal: { status: "victory", reason: "rescue_signal_verified", revision: 0 }, claims: [{ evidenceClass: "VERIFIED_DIRECT", revision: 0, title: "Rescue", explanation: "Verified", evidenceNodeIds: ["world-state:test:0"] }], unsupportedCounterfactualReason: "None", diagnosisDigest: "sha256:diagnosis" },
   };
   const frame: any = { revision: 0, verified: true, digest: "sha256:world", state, evidenceNodeIds: ["world-state:test:0"], proposals: [], facts: [], authorityGrants: [], authorityDecisions: [], playerInterventions: [], contexts: [], messages: [], hostRecords: [], round: null, effect: null, dispatch: null, observation: null };
-  assert.match(renderReplay(report, frame), /data-replay-revision/);
+  const replayHtml = renderReplay(report, frame);
+  assert.match(replayHtml, /data-replay-revision/);
+  assert.match(replayHtml, /Reactor Cooling/);
+  assert.match(replayHtml, /35% integrity/);
+  assert.doesNotMatch(replayHtml, /0\.35% integrity/);
   assert.match(renderDiagnosis(report), /Verified direct/);
   const comparison: any = { mode: "exact", compatibilityReasons: ["Compatible"], comparisonDigest: "sha256:compare", inputDifferences: [{ field: "coordinationProfileId", left: "a", right: "b" }], metricDifferences: [{ metric: "status", left: "victory", right: "failure" }], left: { manifest: { runId: "a", coordinationProfileId: "a", manifestDigest: "sha256:a" }, metrics: { status: "victory", reason: "rescue", score: 1, revisions: 1, minimumBattery: 1 } }, right: { manifest: { runId: "b", coordinationProfileId: "b", manifestDigest: "sha256:b" }, metrics: { status: "failure", reason: "power", score: 0, revisions: 2, minimumBattery: 0 } } };
   assert.match(renderCompare(comparison), /Exact compatible comparison/);
