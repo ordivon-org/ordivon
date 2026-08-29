@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-fresh-consumer-natural-firstpass",
+  "productionId": "mhs-hardware-boundary",
+  "articleDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d",
+  "harnessRunId": "harness-run:work3-mhs-revised-firstpass-20260829-v1",
+  "harnessImplementation": "ordivon-harness@bb999dad54126b12f2053b6d4082800d0435efff",
+  "providerModel": "deepseek-v4-flash",
+  "stopCode": "candidate_completed",
+  "modelCalls": 1,
+  "toolCalls": 0,
+  "isolation": {
+    "articleOnly": true,
+    "claimsProvided": false,
+    "cognitionProvided": false,
+    "boardProvided": false,
+    "sourcesProvided": false,
+    "domainTools": false
+  },
+  "usage": {
+    "modelCalls": 1,
+    "toolCalls": 0,
+    "observationBytes": 0,
+    "totalTokens": 3198,
+    "tokenLimit": 20000,
+    "modelRetries": 0,
+    "toolCorrections": 0,
+    "conclusionCorrections": 0,
+    "conclusionCorrectionLimit": 0,
+    "observationOnlyTurns": 0,
+    "observationOnlyTurnLimit": 1,
+    "noProgressTurns": 0,
+    "noProgressTurnLimit": 1,
+    "modelObservationByteLimit": 32768,
+    "providerAttempts": 1,
+    "providerResultsReplayed": 0,
+    "wallTimeMs": 12028,
+    "deadlineOverrunMs": 0,
+    "effectiveDeadlineOverrunMs": 0,
+    "requestedModelId": "deepseek-v4-flash",
+    "effectiveModelIds": [
+      "deepseek-v4-flash"
+    ],
+    "providerUsage": [
+      {
+        "prompt_tokens": 3082,
+        "completion_tokens": 116,
+        "total_tokens": 3198,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3082,
+        "systemFingerprint": "a26a7955944dc5c60445bff77fac9c8e",
+        "providerModel": "deepseek-v4-flash",
+        "providerRequestMode": "non-thinking",
+        "requestedModelId": "deepseek-v4-flash",
+        "effectiveModelId": "deepseek-v4-flash"
+      }
+    ]
+  },
+  "boundary": "Natural first-pass semantic-consumption evidence only. It does not establish source truth, Human experience, population preference or publication authority.",
+  "conclusionStatus": "candidate_completed",
+  "report": "Article report completed."
+}

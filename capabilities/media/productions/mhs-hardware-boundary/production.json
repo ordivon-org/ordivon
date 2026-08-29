@@ -22,13 +22,17 @@
   "sources": {
     "claims": "claims.json",
     "article": "story.mdx",
+    "receipts": [
+      "evidence/revised-owner-audit.json",
+      "evidence/owner-disposition.json"
+    ],
     "cognition": "cognition.md"
   },
   "outputs": [
     {
       "id": "mhs-hardware-boundary-article-en",
       "kind": "article",
-      "status": "rendered",
+      "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d"
     }

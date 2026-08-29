@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-owner-disposition-receipt",
+  "productionId": "mhs-hardware-boundary",
+  "outputId": "mhs-hardware-boundary-article-en",
+  "articleDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d",
+  "evidenceRevision": "6dd8eba3e04f32f9a0f2cc4616d7f40cdccf0041",
+  "disposition": "APPROVED_OUTPUT_PARENT_REVIEW",
+  "primaryBasis": [
+    "revision-fenced external-source evidence projection",
+    "bounded claims and currentness review",
+    "one authorized evidence-first expression revision",
+    "whole-repository Studio model validation",
+    "evidence/revised-owner-audit.json PASS"
+  ],
+  "supplementalObservation": {
+    "role": "valid supplemental natural-reader evidence; not an approval prerequisite",
+    "harnessRunId": "harness-run:work3-mhs-revised-summary-carrier-20260829-v1",
+    "runtimeJobId": "job-01a04c22-3775-7372-a90d-44af191aa52a",
+    "modelCalls": 1,
+    "toolCalls": 0,
+    "isolation": "exact revised article only; no Claims/cognition/Board/evidence; hidden rubric absent",
+    "reportedDisposition": "RETAIN",
+    "reportedStandalone": true
+  },
+  "unknownOrUnselected": [
+    "public destination/publication",
+    "browser-rendered encounter",
+    "discoverability/readership",
+    "Human comprehension or preference",
+    "population-level audience fit",
+    "behavioral consequence",
+    "realized benefit"
+  ],
+  "boundary": "Output approval is Media owner standing for the exact Writing artifact only. It does not grant destination/publication authority or external consequence truth. Valid evidence acquired outside the owner-selected approval claim remains supplemental and cannot retroactively redefine the approval basis."
+}
