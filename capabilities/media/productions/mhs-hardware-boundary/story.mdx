@@ -8,15 +8,15 @@ That is a meaningful change. It also makes another engineering boundary easier t
 
 **An agent that can operate a device does not yet have a valid experiment.**
 
-The gap is not one missing safety feature that MHS should somehow absorb. It is a stack of different responsibilities that become visible once integration stops dominating the whole problem.
+The gap is not one missing safety feature that MHS should somehow absorb. It is a set of distinct engineering questions that become visible once integration stops dominating the whole problem.
 
 ## 1. Operability: can the agent address the machine?
 
-The first layer is the one MHS directly attacks.
+The operability question is the one MHS directly attacks.
 
 Can the agent discover the device? Can it read current state? Can it invoke a bounded operation? Can several instruments be coordinated without a bespoke translator for every pair?
 
-This layer matters because a great scientific model is useless if every physical action requires weeks of integration work. Anthropic says MHS reduces that integration burden by giving unlike devices a common driver shape and a shared description of state and procedures.
+This interface matters because a great scientific model is useless if every physical action requires weeks of integration work. Anthropic says MHS reduces that integration burden by giving unlike devices a common driver shape and a shared description of state and procedures.
 
 But successful invocation proves only a narrow fact: a command reached an interface that knew how to execute it.
 
@@ -26,7 +26,7 @@ It does not prove that the command was physically wise, that the sensor reading 
 
 Physical systems already contain safety responsibilities below an agent-facing interface.
 
-Universal Robots makes this explicit in its MHS proof of concept. Robot bounds, interlocks, and emergency stops can be declared to the agent through MHS, but the company's underlying safety architecture remains in charge. The intelligence operates above a platform designed to satisfy the stability and safety requirements of a real factory.
+Universal Robots makes this explicit in its MHS proof of concept. Robot bounds, interlocks, and emergency stops can be declared to the agent through MHS, but the company's underlying safety architecture remains in charge. The intelligence operates above a platform whose underlying safety architecture remains responsible for enforcing the machine-level constraints.
 
 That is a useful design pattern because it refuses a common collapse:
 
@@ -56,7 +56,7 @@ The more standardized the interface becomes, the more important it is not to mis
 
 Scientific equipment introduces a second distinction that ordinary software APIs often hide: **a value can be successfully read and still be an inadequate measurement for the decision at hand.**
 
-NIST's metrology guidance is deliberately strict about this. Metrological traceability is a property of a particular measurement result, not of an instrument, calibration certificate, or laboratory in the abstract. A calibrated instrument does not automatically make every result traceable, and traceability alone does not guarantee fitness for purpose; uncertainty still has to be appropriate for the intended use.
+NIST's metrology guidance is deliberately strict about a narrower point. Metrological traceability, when it is required for a result, is a property of that particular measurement result rather than of an instrument, calibration certificate, or laboratory in the abstract. A calibrated instrument does not automatically make every result traceable, and traceability alone does not guarantee fitness for purpose; uncertainty, method, conditions, and the needs of the intended use still matter.
 
 That matters for agent-controlled laboratories because the attractive abstraction is:
 
@@ -78,15 +78,21 @@ measurand
 
 MHS can make the call to the instrument uniform without needing to own that entire measurement argument. The evaluator still needs to know where measurement credibility comes from.
 
-## 5. Result admission: when is an experimental result strong enough to act on?
+## 5. Intended-use evidence: what supports the downstream decision?
 
-The final layer is not device control at all. It is the rule by which an observation becomes a conclusion, release decision, or next experiment.
+A separate question is what evidence is sufficient for the downstream decision: a scientific conclusion, release decision, next experiment, or operational use.
 
-The QuEra laser case in Anthropic's preview shows why this matters. The agent used MHS to explore control settings and improve laser recovery and tuning. But the strongest evidence did not stop at “the agent found parameters” or even at the proxy it was optimizing. The resulting tune was compared against an expert retune using a separate phase-noise analyzer, and its behavior was observed over a long run.
+QuEra's own account of its MHS laser work shows why this matters. The agent used MHS to explore control settings and improve laser recovery and tuning. But the strongest evidence did not stop at “the agent found parameters” or even at the proxy it was optimizing. QuEra compared the resulting tune with an expert configuration using an independent, out-of-loop measurement instrument that the optimization could not touch, and also observed long-horizon lock behavior.
 
 That is the difference between making a system move and establishing that the movement produced the property you actually care about.
 
 NASA systems engineering uses a related distinction in another domain: verification asks whether a product conforms to its specified requirements; validation asks whether it is the right product for its intended use and environment. The terms should not be transplanted mechanically into laboratory science, but the engineering habit transfers well: **evidence that one boundary passed should not be promoted into a stronger downstream claim without the evidence that claim requires.**
+
+## These distinctions are not new protocol primitives
+
+The underlying ideas predate MHS. LAP, an agent-to-instrument protocol published in June 2026, already treats instrument operations as stateful, safety-critical and physically embodied, and defines measurement results with units, calibration, uncertainty and provenance. NIST and NASA likewise supply mature measurement and verification/validation distinctions.
+
+So the useful claim here is not that agent-controlled hardware needs a newly invented five-part ontology. It is narrower and current: **MHS makes operability cheap enough, and its own partner cases concrete enough, that engineers can see exactly where stronger physical and evidential claims must come from after the interface works.**
 
 ## A five-question review for agent-controlled hardware
 
@@ -95,14 +101,14 @@ When evaluating an agent-to-hardware system, the following questions are more us
 | Boundary | Question | Typical authority/evidence |
 | --- | --- | --- |
 | Operability | Can the agent discover state and invoke the intended operation? | driver/interface behavior, command receipt, device state |
-| Native safety | What prevents a dangerous physical action even when the agent is wrong? | controller limits, interlocks, emergency stops, certified safety mechanisms |
+| Native safety | What prevents a dangerous physical action even when the agent is wrong? | controller limits, interlocks, emergency stops, independently enforced safety mechanisms |
 | Physical diagnosis | Does the observed state identify the real physical failure or mechanism? | independent sensors, causal checks, expert/physical-model evidence, controlled interventions |
-| Measurement adequacy | Is the measured result traceable and sufficiently uncertain/precise for this use? | calibration/reference chain, uncertainty analysis, procedure and environment controls |
-| Result admission | Does this evidence justify the experimental or operational conclusion we want to make? | protocol criteria, independent validation, held-out tests, replication, domain decision rules |
+| Measurement adequacy | What makes this result adequate for this use? | traceability where required, uncertainty, method/procedure, sampling and environment conditions appropriate to the declared use |
+| Intended-use evidence | Does this evidence justify the experimental or operational conclusion we want to make? | protocol criteria, independent validation, held-out tests, replication, domain decision rules |
 
-The owners of these rows will vary. A single system may legitimately combine some of them. The point is not to force five services or five approvals into every lab.
+The owners of these questions will vary, and they are not a strict pipeline. Native safety is orthogonal in an important way: safe actuation can coexist with a bad physical diagnosis, while a good measurement can exist under a different safety architecture. A single system may legitimately combine several responsibilities. The point is not to force five services or five approvals into every lab.
 
-The point is to know which question has actually been answered.
+The point is to know which question has actually been answered—and which stronger claim is still waiting for evidence.
 
 ## Why a standard like MHS makes this more important, not less
 
@@ -118,5 +124,7 @@ Those are not arguments against standardization. They are the conditions under w
 
 - Anthropic, “Previewing the Model Hardware Standard,” 27 Aug 2026: https://www.anthropic.com/news/model-hardware-standard-research-preview
 - Universal Robots, “Testing Agentic Physical AI on UR Cobots,” 28 Aug 2026: https://www.universal-robots.com/blog/testing-agentic-physical-ai-univeral-robots-cobots/
+- QuEra, “Holding the Light: Teaching an AI to Lock and Tune our Quantum Computer’s Lasers,” 27 Aug 2026: https://www.quera.com/blog-posts/holding-the-light-teaching-an-ai-to-lock-and-tune-our-quantum-computers-lasers
+- Zhu et al., “LAP: An Agent-to-Instrument Protocol for Autonomous Science,” 2 Jun 2026: https://arxiv.org/abs/2606.03755
 - NIST, “Metrological Traceability: Frequently Asked Questions and NIST Policy”: https://www.nist.gov/metrology/metrological-traceability
 - NASA Systems Engineering Handbook, “Product Verification” and “Product Validation”: https://www.nasa.gov/reference/5-3-product-verification/ and https://www.nasa.gov/reference/5-4-product-validation/

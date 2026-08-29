@@ -47,58 +47,60 @@
         "binding": "mhs-evidence",
         "path": "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       },
-      "meaning": "NIST guidance treats metrological traceability as a property of a particular measurement result and states that traceability alone does not guarantee fitness for purpose; instrument identity/calibration alone is insufficient.",
+      "meaning": "NIST guidance treats metrological traceability, when applicable, as a property of a particular measurement result and states that traceability alone does not guarantee fitness for purpose; instrument identity/calibration alone is insufficient to establish result adequacy for a declared use.",
       "evidence": [
         "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       ],
       "allowedWording": [
         "device readability is not itself measurement adequacy",
-        "traceability belongs to results, not instruments in the abstract"
+        "traceability where required still does not by itself establish fitness for purpose",
+        "measurement adequacy depends on the declared use, uncertainty, method and conditions"
       ],
       "avoid": [
-        "every agent measurement requires NIST calibration",
+        "every agent measurement requires metrological traceability",
         "traceability guarantees validity",
         "MHS should implement metrology"
       ]
     },
     {
-      "id": "result-admission-boundary",
+      "id": "intended-use-evidence-boundary",
       "source": {
         "binding": "mhs-evidence",
         "path": "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       },
-      "meaning": "The QuEra public case used independent phase-noise analysis and long-horizon lock behavior to check agent-derived settings; NASA V&V supplies a mature engineering analogue for separating conformance evidence from intended-use validation.",
+      "meaning": "QuEra owner-primary evidence shows agent-derived laser settings were checked with an independent out-of-loop measurement and long-horizon behavior; NASA V&V supplies a mature engineering analogue for separating conformance evidence from intended-use validation.",
       "evidence": [
         "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       ],
       "allowedWording": [
-        "operation or proxy success need not settle the stronger result/use claim",
+        "operation or proxy success need not settle the stronger intended-use claim",
         "verification and intended-use validation are distinct engineering questions"
       ],
       "avoid": [
         "QuEra followed NASA V&V",
         "one validation pattern is universal across science",
-        "the MHS interface owns result admission"
+        "the MHS interface owns downstream result/use admission"
       ]
     },
     {
-      "id": "five-boundary-synthesis",
+      "id": "five-question-synthesis",
       "source": {
         "binding": "mhs-evidence",
         "path": "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       },
-      "meaning": "A scoped synthesis of the cited cases separates agent-hardware operability, native safety, physical diagnosis, measurement adequacy and result/use admission. The separation is a review heuristic, not a required five-service architecture.",
+      "meaning": "A scoped synthesis of MHS/UR/QuEra cases, LAP prior art and mature NIST/NASA references separates agent-hardware operability, native safety, physical diagnosis, measurement adequacy and intended-use evidence sufficiency. These are distinct questions/contracts, not a required sequential pipeline or five-service architecture.",
       "evidence": [
         "research/expression/evidence/mhs-agent-hardware-boundary-20260829.md"
       ],
       "allowedWording": [
-        "ask which boundary has actually been established",
-        "the five questions may have different evidence owners"
+        "ask which question has actually been established",
+        "the questions may have different evidence owners",
+        "passing one question does not grant the others"
       ],
       "avoid": [
         "every system requires five components",
-        "the five boundaries are an MHS specification",
-        "this is a universal ontology of physical AI"
+        "the five questions are an MHS specification",
+        "this is a novel universal ontology of physical AI"
       ]
     }
   ]

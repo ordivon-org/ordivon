@@ -6,11 +6,11 @@ Audience: engineers and researchers building or evaluating agent-controlled labo
 
 ## BIND
 
-Claims bind to Media evidence projection `research/expression/evidence/mhs-agent-hardware-boundary-20260829.md` at exact revision `2379cc9be9425649b1deadd04989efe138d0a7d5`. That projection records public source URLs, publication/observation dates, bounded paraphrases, and the explicit rule that external sources retain authority. Currentness matters because MHS is a research preview; revalidate sources before public publication. Do not infer unpublished specification details.
+Claims bind to Media evidence projection `research/expression/evidence/mhs-agent-hardware-boundary-20260829.md` at exact revision `6dd8eba3e04f32f9a0f2cc4616d7f40cdccf0041`. That projection records public source URLs, publication/observation dates, bounded paraphrases, and the explicit rule that external sources retain authority. Currentness matters because MHS is a research preview; revalidate sources before public publication. Do not infer unpublished specification details.
 
 ## EXPRESS
 
-Strategy: begin by crediting the real integration bottleneck MHS attacks, then progressively separate five stronger questions. Use concrete source cases instead of abstract taxonomy: Universal Robots for native safety layering; Genentech foaming for physical diagnosis; NIST for result-level traceability/fitness; QuEra + NASA analogue for stronger result/use validation. End with a five-question table that is usable without adopting any Ordivon terminology.
+Strategy: begin by crediting the real integration bottleneck MHS attacks, then progressively separate five stronger questions. Use concrete source cases instead of abstract taxonomy: Universal Robots for native safety authority; Genentech foaming for physical diagnosis; QuEra owner-primary evidence for independent physical validation; NIST for result-level adequacy/traceability limits; NASA for the verification/validation analogue; and LAP as closest protocol prior art. End with a five-question table that is usable without adopting any Ordivon terminology and explicitly rejects a sequential pipeline.
 
 ## RENDER
 
@@ -18,11 +18,11 @@ Writing-only artifact. Inspect the exact MDX as the rendered semantic carrier be
 
 ## AUDIT
 
-Check for implicit claims that MHS is unsafe, that MHS should own metrology/validation, that five layers require five services, that NIST/NASA frameworks directly govern MHS, or that one partner proof of concept proves broad physical-AI reliability. Keep `research preview`, proof-of-concept scope, observer/source boundaries, and external-source authority explicit. The synthesis should remain useful even if MHS later changes implementation details.
+Check for implicit claims that MHS is unsafe, that MHS should own metrology/validation, that five questions require five services/stages, that NIST/NASA frameworks directly govern MHS, that traceability is universally required, that the distinctions are novel despite LAP/NIST/NASA prior art, or that one partner proof of concept proves broad physical-AI reliability. Keep `research preview`, proof-of-concept scope, observer/source boundaries, and external-source authority explicit. The synthesis should remain useful even if MHS later changes implementation details.
 
 ## DECIDE
 
-First authored generation enters review, not approval. Next evidence: exact-source model validation plus one strict fresh-Agent article-only consumption focused on recovering the five boundaries and rejecting the tempting collapses. Revise at most once for a reproduced semantic/portability defect before owner disposition. No Web publication is selected yet.
+Generation 1 entered review at digest `sha256:dc6b04ef6a166f58777a5d8306bf5e411279c2c0d602a5ac1c7e7a068e6573f2`. Independent source/carrier review then established objective reconsideration triggers before approval: LAP prior art, QuEra owner-primary evidence, over-broad traceability wording and false linearity. One bounded evidence-first revision is therefore authorized. After revision, run exactly one diagnosis-free fresh-Agent article-only first pass; do not expose producer hypotheses or rerun until favorable. No Web publication is selected yet.
 
 ## LEARNING
 
