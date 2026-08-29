@@ -1,0 +1,122 @@
+# The hardware interface is not the experiment
+
+Anthropic's new Model Hardware Standard is aimed at a real bottleneck: physical equipment is difficult to integrate. A microscope, liquid handler, plate reader, robot arm, or laser controller may each expose a different programming model. Before an AI agent can do useful work across them, somebody has to make the devices discoverable, describe what they can do, expose state, and translate commands.
+
+MHS is a serious attempt to make that layer cheaper. In Anthropic's research preview, devices can expose standardized state and read/write operations, describe machine characteristics and safety limits, and be orchestrated through MCP, a command line, or code. Partner demonstrations span liquid handling, microscopy, robotics, and quantum-computing hardware.
+
+That is a meaningful change. It also makes another engineering boundary easier to see:
+
+**An agent that can operate a device does not yet have a valid experiment.**
+
+The gap is not one missing safety feature that MHS should somehow absorb. It is a stack of different responsibilities that become visible once integration stops dominating the whole problem.
+
+## 1. Operability: can the agent address the machine?
+
+The first layer is the one MHS directly attacks.
+
+Can the agent discover the device? Can it read current state? Can it invoke a bounded operation? Can several instruments be coordinated without a bespoke translator for every pair?
+
+This layer matters because a great scientific model is useless if every physical action requires weeks of integration work. Anthropic says MHS reduces that integration burden by giving unlike devices a common driver shape and a shared description of state and procedures.
+
+But successful invocation proves only a narrow fact: a command reached an interface that knew how to execute it.
+
+It does not prove that the command was physically wise, that the sensor reading means what the agent thinks it means, or that the resulting data is good enough for the decision the experiment is supposed to support.
+
+## 2. Native safety: what is allowed to happen physically?
+
+Physical systems already contain safety responsibilities below an agent-facing interface.
+
+Universal Robots makes this explicit in its MHS proof of concept. Robot bounds, interlocks, and emergency stops can be declared to the agent through MHS, but the company's underlying safety architecture remains in charge. The intelligence operates above a platform designed to satisfy the stability and safety requirements of a real factory.
+
+That is a useful design pattern because it refuses a common collapse:
+
+```text
+agent knows the limit
+!=
+machine is safe only because the agent remembers the limit
+```
+
+An agent-readable safety envelope can prevent bad requests earlier. It does not need to replace the machinery that actually enforces hard physical constraints.
+
+For an evaluator, the practical question is therefore not merely “does the agent have a safety prompt?” It is: **which constraints are descriptive, which are enforced by the device or controller, and what happens if the agent is wrong?**
+
+## 3. Physical diagnosis: does the agent understand what actually went wrong?
+
+Even a correctly executed, safely bounded command can produce a bad physical state.
+
+Anthropic's Genentech example is unusually useful here. During liquid-handling work, viscous protein samples produced bubbles and foam. Claude initially treated the resulting errors like a software or runtime problem and tried parameter changes that agitated the fluid further. The interface was functioning. The important missing fact was physical: the liquid itself required gentler handling.
+
+This is not an argument that an AI agent cannot learn physical behavior. In the same programme, agents did adapt parameters from experimental feedback. The narrower lesson is that **interface state is not automatically a sufficient physical model**.
+
+A driver can truthfully report a pressure, position, completion flag, camera frame, or error code while the load-bearing causal distinction lives somewhere else: viscosity, backlash, thermal drift, contamination, optical saturation, sample preparation, a loose fixture, or an environmental disturbance.
+
+The more standardized the interface becomes, the more important it is not to mistake a clean software surface for a complete ontology of the machine.
+
+## 4. Measurement adequacy: is the observation good enough for this purpose?
+
+Scientific equipment introduces a second distinction that ordinary software APIs often hide: **a value can be successfully read and still be an inadequate measurement for the decision at hand.**
+
+NIST's metrology guidance is deliberately strict about this. Metrological traceability is a property of a particular measurement result, not of an instrument, calibration certificate, or laboratory in the abstract. A calibrated instrument does not automatically make every result traceable, and traceability alone does not guarantee fitness for purpose; uncertainty still has to be appropriate for the intended use.
+
+That matters for agent-controlled laboratories because the attractive abstraction is:
+
+```text
+sensor.read() -> number
+```
+
+while the engineering reality may be closer to:
+
+```text
+measurand
++ instrument state
++ calibration/reference chain
++ uncertainty
++ sample/environment conditions
++ acquisition procedure
+-> result usable for a declared question
+```
+
+MHS can make the call to the instrument uniform without needing to own that entire measurement argument. The evaluator still needs to know where measurement credibility comes from.
+
+## 5. Result admission: when is an experimental result strong enough to act on?
+
+The final layer is not device control at all. It is the rule by which an observation becomes a conclusion, release decision, or next experiment.
+
+The QuEra laser case in Anthropic's preview shows why this matters. The agent used MHS to explore control settings and improve laser recovery and tuning. But the strongest evidence did not stop at “the agent found parameters” or even at the proxy it was optimizing. The resulting tune was compared against an expert retune using a separate phase-noise analyzer, and its behavior was observed over a long run.
+
+That is the difference between making a system move and establishing that the movement produced the property you actually care about.
+
+NASA systems engineering uses a related distinction in another domain: verification asks whether a product conforms to its specified requirements; validation asks whether it is the right product for its intended use and environment. The terms should not be transplanted mechanically into laboratory science, but the engineering habit transfers well: **evidence that one boundary passed should not be promoted into a stronger downstream claim without the evidence that claim requires.**
+
+## A five-question review for agent-controlled hardware
+
+When evaluating an agent-to-hardware system, the following questions are more useful than one global “is it safe?” or “did it work?” bit:
+
+| Boundary | Question | Typical authority/evidence |
+| --- | --- | --- |
+| Operability | Can the agent discover state and invoke the intended operation? | driver/interface behavior, command receipt, device state |
+| Native safety | What prevents a dangerous physical action even when the agent is wrong? | controller limits, interlocks, emergency stops, certified safety mechanisms |
+| Physical diagnosis | Does the observed state identify the real physical failure or mechanism? | independent sensors, causal checks, expert/physical-model evidence, controlled interventions |
+| Measurement adequacy | Is the measured result traceable and sufficiently uncertain/precise for this use? | calibration/reference chain, uncertainty analysis, procedure and environment controls |
+| Result admission | Does this evidence justify the experimental or operational conclusion we want to make? | protocol criteria, independent validation, held-out tests, replication, domain decision rules |
+
+The owners of these rows will vary. A single system may legitimately combine some of them. The point is not to force five services or five approvals into every lab.
+
+The point is to know which question has actually been answered.
+
+## Why a standard like MHS makes this more important, not less
+
+Before a common hardware interface, integration friction can consume so much effort that the deeper distinctions remain hidden inside bespoke code and operator expertise. If MHS or standards like it succeed, agents will be able to reach more machines with less glue.
+
+That is precisely when the next bottlenecks become load-bearing.
+
+A clean hardware interface can standardize how an agent asks a device to act. A native safety system can bound what the machine is physically allowed to do. Neither one, by itself, proves that the agent diagnosed the world correctly, that a number is a fit-for-purpose measurement, or that an experimental result deserves to be accepted.
+
+Those are not arguments against standardization. They are the conditions under which standardization can be trusted without asking it to become a theory of the whole physical world.
+
+## Sources
+
+- Anthropic, “Previewing the Model Hardware Standard,” 27 Aug 2026: https://www.anthropic.com/news/model-hardware-standard-research-preview
+- Universal Robots, “Testing Agentic Physical AI on UR Cobots,” 28 Aug 2026: https://www.universal-robots.com/blog/testing-agentic-physical-ai-univeral-robots-cobots/
+- NIST, “Metrological Traceability: Frequently Asked Questions and NIST Policy”: https://www.nist.gov/metrology/metrological-traceability
+- NASA Systems Engineering Handbook, “Product Verification” and “Product Validation”: https://www.nasa.gov/reference/5-3-product-verification/ and https://www.nasa.gov/reference/5-4-product-validation/
