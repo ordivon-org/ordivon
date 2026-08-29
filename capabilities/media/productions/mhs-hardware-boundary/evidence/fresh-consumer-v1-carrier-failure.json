@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-consumer-carrier-failure",
+  "productionId": "mhs-hardware-boundary",
+  "articleDigest": "sha256:dc6b04ef6a166f58777a5d8306bf5e411279c2c0d602a5ac1c7e7a068e6573f2",
+  "runtimeJobId": "job-01a04c13-0a67-7f00-be61-6debb3ec86d1",
+  "harnessRunId": "harness-run:work3-mhs-article-fresh-consumer-20260829-v1",
+  "providerModel": "deepseek-v4-flash",
+  "stopCode": "invalid_model_output",
+  "modelCalls": 2,
+  "toolCalls": 0,
+  "conclusionCorrections": 1,
+  "totalTokens": 9372,
+  "semanticDisposition": "NO_SEMANTIC_RESULT",
+  "boundary": "The structured completion carrier failed before an admitted consumer result existed. This is Harness/Provider apparatus evidence only and neither accepts nor rejects the article."
+}
