@@ -124,7 +124,13 @@
   "sources": {
     "claims": "claims.json",
     "article": "book.mdx",
-    "cognition": "cognition.md"
+    "cognition": "cognition.md",
+    "scripts": [
+      "portable/render_pdf.py"
+    ],
+    "receipts": [
+      "portable/portable-pdf.receipt.json"
+    ]
   },
   "outputs": [
     {
@@ -189,6 +195,13 @@
       "status": "approved",
       "profile": "writing",
       "blobDigest": "sha256:3675074fada87e77d15538151b06f9397c6c222eeb4e913011868e8fafbd909e"
+    },
+    {
+      "id": "ordivon-book-v0-portable-pdf-zh",
+      "kind": "publication-package",
+      "status": "approved",
+      "profile": "private-local-a5-pdf",
+      "blobDigest": "sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7"
     }
   ]
 }
