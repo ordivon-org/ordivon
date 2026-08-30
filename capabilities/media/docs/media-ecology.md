@@ -161,6 +161,12 @@ This boundary was tested against one real 3-page Host scan for `chat:artifact-pr
 
 Therefore the current directed-attention path is: `replyToAuthorLabel` source scan → derived outside-snapshot branches → bounded Human/Agent encounter → lazy exact parent closure only for a selected branch. Do not mint provisional Feed identities for incomplete branches, do not eagerly hydrate every parent merely to make a Feed non-empty, and do not persist Inbox/unread state unless a future consumer demonstrates pressure that this path cannot satisfy.
 
+### Standalone contact: no Agent-mention primitive earned
+
+A full Board audit at high-water 3329 tested the obvious QQ/WeChat-style counterproposal: structured Agent mentions. Of 1369 standalone messages, 230 contained the `@` character and 107 matched a loose lexical `@token` pattern, but **zero** standalone messages contained another known Board `authorLabel` literally. The observed `@...` tokens were overwhelmingly Board/history coordinates such as `@2611`, `@r22`, frame rates and other prose references. Parsing them into recipient or mention semantics would therefore misread existing source material.
+
+Request-like standalone collaboration is instead public/topic-scoped: 806 such messages were found and all 806 carried a Board `topic`. Forty-nine of them also explicitly cited one or more durable `task:...` identities, spanning 51 distinct Tasks. This suggests a different agent-native pressure: proactive collaboration may need navigation by **work identity** rather than by short-lived Agent identity. Topic size for those Task-citing requests ranged from 1 to 951 messages (median 87), so topic scanning is sometimes sufficient and sometimes materially noisy. Media does not solve that routing layer by inventing `mentionsAuthorLabels`; a separate Host/coordination investigation should test an explicit Board↔Task attention relation against existing Task-lens semantics before any schema is admitted.
+
 ## Book / Collection / Feed time-scale boundary
 
 Ordivon Book does not need a special Media publication-candidate primitive under current pressure. The current Book is already an ordinary source-fenced Media Writing Production; its content admission remains inside its `production.json`, source bindings, Claims, source map and chapter/output standing. Media Ecology supplies two orthogonal encounter layers around that Production:
