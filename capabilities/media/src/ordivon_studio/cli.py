@@ -18,6 +18,13 @@ from .r2 import replicate_r2_blob, restore_r2_blob
 from .review import build_video_review_packet
 from .timed_text import export_srt, export_webvtt
 from .video import normalize_h264_bt709
+from .ecology import (
+    collection_feed_item,
+    derive_activity_feed,
+    derive_board_threads,
+    thread_feed_items,
+    validate_collection,
+)
 
 
 def _write_json(value: object) -> None:
@@ -195,6 +202,75 @@ def _command_production_context(args: argparse.Namespace) -> int:
             source_repositories=_parse_source_repositories(args.source_repo),
         )
     )
+    return 0
+
+
+def _read_json_file(path: str) -> object:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _board_messages_from_document(document: object) -> list[dict[str, object]]:
+    if isinstance(document, list):
+        messages = document
+    elif isinstance(document, dict) and isinstance(document.get("messages"), list):
+        messages = document["messages"]
+    else:
+        raise ValueError("Board input must be a message list or an object with messages[]")
+    if not all(isinstance(item, dict) for item in messages):
+        raise ValueError("Board messages must be JSON objects")
+    return [dict(item) for item in messages]
+
+
+def _command_ecology_threads(args: argparse.Namespace) -> int:
+    messages = _board_messages_from_document(_read_json_file(args.board))
+    _write_json({
+        "schemaVersion": 1,
+        "kind": "ordivon.media.board-thread-set-projection",
+        "threads": derive_board_threads(messages),
+        "sourceMessageCount": len(messages),
+        "truthBoundary": "Thread identity is derived from Host Board reply relations; this output does not create a second conversation authority.",
+    })
+    return 0
+
+
+def _command_ecology_collection(args: argparse.Namespace) -> int:
+    document = _read_json_file(args.collection)
+    if not isinstance(document, dict):
+        raise ValueError("Collection input must be a JSON object")
+    _write_json(validate_collection(document))
+    return 0
+
+
+def _command_ecology_project(args: argparse.Namespace) -> int:
+    feed_items: list[dict[str, object]] = []
+    threads: list[dict[str, object]] = []
+    if args.board:
+        messages = _board_messages_from_document(_read_json_file(args.board))
+        threads = derive_board_threads(messages)
+        feed_items.extend(thread_feed_items(threads))
+    collections: list[dict[str, object]] = []
+    for path in args.collection:
+        document = _read_json_file(path)
+        if not isinstance(document, dict):
+            raise ValueError("Collection input must be a JSON object")
+        collection = validate_collection(document)
+        collections.append(collection)
+        feed_items.append(collection_feed_item(collection))
+    if not feed_items:
+        raise ValueError("ecology project requires at least one Board or Collection source")
+    observed_at_ms = (
+        args.observed_at_ms
+        if args.observed_at_ms is not None
+        else max(int(item["observedAtMs"]) for item in feed_items)
+    )
+    _write_json({
+        "schemaVersion": 1,
+        "kind": "ordivon.media.ecology-projection",
+        "threads": threads,
+        "collections": collections,
+        "feed": derive_activity_feed(feed_items, observed_at_ms=observed_at_ms),
+        "truthBoundary": "This is a derived Media projection over explicitly supplied sources. It does not replace Host, Task, Production, collection-member, or owner truth.",
+    })
     return 0
 
 
@@ -468,6 +544,32 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     production_context_parser.set_defaults(handler=_command_production_context)
+
+    ecology_parser = commands.add_parser(
+        "ecology",
+        help="derive thread, collection, and activity-feed views without minting new source truth",
+    )
+    ecology_commands = ecology_parser.add_subparsers(dest="ecology_command", required=True)
+
+    ecology_threads = ecology_commands.add_parser(
+        "threads", help="derive Board reply trees from an explicit Host Board JSON snapshot"
+    )
+    ecology_threads.add_argument("board")
+    ecology_threads.set_defaults(handler=_command_ecology_threads)
+
+    ecology_collection = ecology_commands.add_parser(
+        "collection", help="validate one exact source-fenced Media Collection manifest"
+    )
+    ecology_collection.add_argument("collection")
+    ecology_collection.set_defaults(handler=_command_ecology_collection)
+
+    ecology_project = ecology_commands.add_parser(
+        "project", help="build one derived Media ecology projection from explicit Board/Collection sources"
+    )
+    ecology_project.add_argument("--board", help="Host Board JSON list/object; no live Host read is performed")
+    ecology_project.add_argument("--collection", action="append", default=[], help="validated collection JSON; repeat as needed")
+    ecology_project.add_argument("--observed-at-ms", type=int, help="explicit observation time; defaults to latest supplied source time")
+    ecology_project.set_defaults(handler=_command_ecology_project)
 
     equipment_parser = commands.add_parser("equipment", help="inspect and plan Studio professional equipment without executing it")
     equipment_commands = equipment_parser.add_subparsers(dest="equipment_command", required=True)
