@@ -25,3 +25,13 @@ Human encounter pilot:
 `build.py` deterministically generates `projection.json` and `index.html`. `browser-check.py` uses the current Workstation-managed Playwright Chromium binding at desktop and mobile viewports, rejects horizontal overflow, checks the expected activity/member counts, and retains screenshot digests rather than screenshot payloads in `browser-acceptance.json`.
 
 Source-fence note: `board-snapshot.json` predates Host's machine-readable Board query fence. Current builds therefore retain it as `selectionMode=unknown-legacy-response` and explicitly make no completeness claim. New Host Board snapshots preserve `latest-window` versus `incremental-page` selection semantics for downstream Media recovery.
+
+## Large projection rendering
+
+`build.py` can render an existing ecology projection without rewriting it. Human-card limits are presentation-only chronological windows, not ranking:
+
+```bash
+python build.py --projection /path/to/project.json --html /tmp/ecology.html --activity-limit 24 --thread-limit 24
+```
+
+The generated page exposes both visible and total counts in its DOM and labels the windows `not priority`. Source-set inputs are shown as independent acquisition scopes rather than collapsed into a false single scan.

@@ -13,8 +13,8 @@
       "horizontalOverflow": false,
       "activityCards": 2,
       "collectionWorks": 5,
-      "screenshotBytes": 94531,
-      "screenshotDigest": "sha256:19e672b884c3de9a8456461c43a390cde71aa82096a2a9ea6c400e975e92166d"
+      "screenshotBytes": 100242,
+      "screenshotDigest": "sha256:142234a638330b9595f9aa5d1f49e9723cb0a65b8a9141db3556bf0f8ff369c8"
     },
     {
       "name": "mobile",
@@ -25,8 +25,8 @@
       "horizontalOverflow": false,
       "activityCards": 2,
       "collectionWorks": 5,
-      "screenshotBytes": 53188,
-      "screenshotDigest": "sha256:41ef3fd330a9639196710a65746a0e1aa4624b24c564a84c5c7d4b7b358d7370"
+      "screenshotBytes": 54877,
+      "screenshotDigest": "sha256:ec232d7b6977c91d580d5682a3dc88f4c6dd8f8d5e63948401f23ce93a5fef78"
     }
   ]
 }

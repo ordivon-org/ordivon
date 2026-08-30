@@ -148,3 +148,7 @@ Feed ranking/recommendation is a separate future problem. It must be admitted by
 ## Non-claims
 
 This pilot does not establish a social ontology, a universal communication model, a public/audience model, a recommendation system, a new identity service, a global search/index, an authenticated social graph, or a Book expansion. It does not claim that every useful thought should persist. It does not turn Host Board collaboration into Media truth, and it does not turn curation into member ownership.
+
+## Human encounter
+
+The Human renderer may apply explicit chronological presentation windows without changing source truth. `--activity-limit` and `--thread-limit` affect only rendered cards; the projection stays complete relative to its explicit input set and no priority is inferred.

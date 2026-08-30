@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from datetime import UTC, datetime
 from html import escape
 import json
@@ -54,7 +55,12 @@ def _projection() -> dict[str, object]:
     }
 
 
-def _render(projection: dict[str, object]) -> str:
+def _render(
+    projection: dict[str, object],
+    *,
+    activity_limit: int | None = None,
+    thread_limit: int | None = None,
+) -> str:
     feed = projection["feed"]
     threads = projection["threads"]
     collections = projection["collections"]
@@ -64,18 +70,48 @@ def _render(projection: dict[str, object]) -> str:
     assert isinstance(collections, list)
 
     if isinstance(board_source_fence, dict):
-        selection_mode = escape(str(board_source_fence.get("selectionMode")))
-        requested_limit = board_source_fence.get("requestedLimit")
-        source_note = (
-            f"Board acquisition: <strong>{selection_mode}</strong>"
-            + (f" · requested limit {int(requested_limit)}" if isinstance(requested_limit, int) else "")
-            + " · completeness not claimed"
-        )
+        source_kind = str(board_source_fence.get("kind"))
+        if source_kind == "ordivon.media.host-board-source-set":
+            source_note = (
+                "Board acquisition: <strong>independent source set</strong>"
+                f" · {int(board_source_fence['scopeCount'])} scopes"
+                f" · {int(board_source_fence['returnedMessageCount'])} exact messages"
+                " · completeness not claimed"
+            )
+        else:
+            selection_mode = escape(str(board_source_fence.get("selectionMode")))
+            requested_limit = board_source_fence.get("requestedLimit")
+            source_note = (
+                f"Board acquisition: <strong>{selection_mode}</strong>"
+                + (
+                    f" · requested limit {int(requested_limit)}"
+                    if isinstance(requested_limit, int)
+                    else ""
+                )
+                + " · completeness not claimed"
+            )
     else:
         source_note = "Board acquisition: raw message array · source selection semantics unavailable"
 
+    feed_items = list(feed["items"])
+    thread_items = list(threads)
+    if activity_limit is not None:
+        if activity_limit < 1:
+            raise ValueError("activity_limit must be positive when supplied")
+        feed_items = feed_items[:activity_limit]
+    if thread_limit is not None:
+        if thread_limit < 1:
+            raise ValueError("thread_limit must be positive when supplied")
+        thread_items = thread_items[:thread_limit]
+    activity_window = (
+        f"showing {len(feed_items)} of {len(feed['items'])} · chronological window · not priority"
+    )
+    thread_window = (
+        f"showing {len(thread_items)} of {len(threads)} · latest observed threads · not priority"
+    )
+
     feed_cards: list[str] = []
-    for item in feed["items"]:
+    for item in feed_items:
         feed_cards.append(
             f'''<article class="card activity" data-kind="{escape(str(item['kind']))}">
   <div class="eyebrow">{escape(str(item['kind']))} · derived</div>
@@ -87,9 +123,9 @@ def _render(projection: dict[str, object]) -> str:
         )
 
     thread_cards: list[str] = []
-    for thread in threads:
+    for thread in thread_items:
         thread_cards.append(
-            f'''<article class="card">
+            f'''<article class="card conversation-card">
   <div class="eyebrow">conversation projection</div>
   <h2>{escape(str(thread['rootTopic'] or thread['threadId']))}</h2>
   <p>{int(thread['messageCount'])} messages · {int(thread['replyCount'])} replies · depth {int(thread['maxDepth'])}</p>
@@ -168,9 +204,9 @@ summary {{ cursor: pointer; font-size: .8rem; }}
   <p class="source-fence">{source_note}</p>
 </header>
 <div class="rule"></div>
-<section class="zone"><h2>Recent activity</h2><div class="grid">{''.join(feed_cards)}</div></section>
+<section class="zone"><h2>Recent activity · {escape(activity_window)}</h2><div class="grid">{''.join(feed_cards)}</div></section>
 <div class="rule"></div>
-<section class="zone"><h2>Conversation</h2><div class="grid">{''.join(thread_cards)}</div></section>
+<section class="zone"><h2>Conversation · {escape(thread_window)}</h2><div class="grid">{''.join(thread_cards)}</div></section>
 <div class="rule"></div>
 <section class="zone"><h2>Collection</h2>{''.join(collection_cards)}</section>
 <p class="boundary">{escape(str(projection['truthBoundary']))}</p>
@@ -179,6 +215,9 @@ summary {{ cursor: pointer; font-size: .8rem; }}
 const root = document.documentElement;
 root.dataset.overflowX = String(root.scrollWidth > root.clientWidth);
 root.dataset.activityCards = String(document.querySelectorAll('.activity').length);
+root.dataset.activityTotal = "{len(feed['items'])}";
+root.dataset.threadCards = String(document.querySelectorAll('.conversation-card').length);
+root.dataset.threadTotal = "{len(threads)}";
 root.dataset.collectionWorks = String(document.querySelectorAll('.work').length);
 </script>
 </body>
@@ -186,11 +225,36 @@ root.dataset.collectionWorks = String(document.querySelectorAll('.work').length)
 
 
 def main() -> None:
-    projection = _projection()
-    (HERE / "projection.json").write_text(
-        json.dumps(projection, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    parser = argparse.ArgumentParser(
+        description="Render one Human-facing Media Ecology projection without changing source truth."
     )
-    (HERE / "index.html").write_text(_render(projection) + "\n", encoding="utf-8")
+    parser.add_argument("--projection", help="existing ecology projection JSON; default rebuilds the pilot")
+    parser.add_argument("--html", help="HTML output path; default is the pilot index.html")
+    parser.add_argument("--activity-limit", type=int, help="chronological Human presentation window")
+    parser.add_argument("--thread-limit", type=int, help="latest-observed Human thread window")
+    args = parser.parse_args()
+
+    if args.projection:
+        raw = json.loads(Path(args.projection).read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("projection input must be a JSON object")
+        projection = raw
+    else:
+        projection = _projection()
+        (HERE / "projection.json").write_text(
+            json.dumps(projection, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+    html_path = Path(args.html) if args.html else HERE / "index.html"
+    html_path.write_text(
+        _render(
+            projection,
+            activity_limit=args.activity_limit,
+            thread_limit=args.thread_limit,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     print(projection["feed"]["projectionDigest"])
 
 

@@ -41,7 +41,7 @@ summary { cursor: pointer; font-size: .8rem; }
   <p class="source-fence">Board acquisition: <strong>unknown-legacy-response</strong> · completeness not claimed</p>
 </header>
 <div class="rule"></div>
-<section class="zone"><h2>Recent activity</h2><div class="grid"><article class="card activity" data-kind="board-thread">
+<section class="zone"><h2>Recent activity · showing 2 of 2 · chronological window · not priority</h2><div class="grid"><article class="card activity" data-kind="board-thread">
   <div class="eyebrow">board-thread · derived</div>
   <h2>ordivon-media-ecology</h2>
   <p>4 messages; 3 replies; topics=ordivon-media-ecology</p>
@@ -55,7 +55,7 @@ summary { cursor: pointer; font-size: .8rem; }
   <code>collection:daily-cabinet:2026-08-30</code>
 </article></div></section>
 <div class="rule"></div>
-<section class="zone"><h2>Conversation</h2><div class="grid"><article class="card">
+<section class="zone"><h2>Conversation · showing 1 of 1 · latest observed threads · not priority</h2><div class="grid"><article class="card conversation-card">
   <div class="eyebrow">conversation projection</div>
   <h2>ordivon-media-ecology</h2>
   <p>4 messages · 3 replies · depth 1</p>
@@ -110,6 +110,9 @@ summary { cursor: pointer; font-size: .8rem; }
 const root = document.documentElement;
 root.dataset.overflowX = String(root.scrollWidth > root.clientWidth);
 root.dataset.activityCards = String(document.querySelectorAll('.activity').length);
+root.dataset.activityTotal = "2";
+root.dataset.threadCards = String(document.querySelectorAll('.conversation-card').length);
+root.dataset.threadTotal = "1";
 root.dataset.collectionWorks = String(document.querySelectorAll('.work').length);
 </script>
 </body>
