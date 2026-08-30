@@ -131,6 +131,28 @@ class EcologyTests(unittest.TestCase):
         self.assertEqual(fence["selectionMode"], "latest-window")
         self.assertFalse(fence["sourceCompletenessClaimed"])
 
+    def test_current_host_reply_to_author_label_filter_is_preserved(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-board-list",
+            "scope": "host-global-coordination-messages",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 0,
+            "requestedLimit": 100,
+            "messages": [_message(8, "reply-a", topic="social", reply_to="parent-a")],
+            "messageCount": 20,
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "replyToAuthorLabel": "agent:a",
+        }
+        messages, fence = normalize_board_source(document)
+        self.assertEqual(len(messages), 1)
+        assert fence is not None
+        self.assertEqual(fence["replyToAuthorLabel"], "agent:a")
+        self.assertEqual(fence["selectionMode"], "incremental-page")
+        self.assertFalse(fence["sourceCompletenessClaimed"])
+
     def test_current_host_incremental_page_requires_preserved_cursor(self) -> None:
         document = {
             "kind": "ordivon.host-board-list",
@@ -281,6 +303,15 @@ class EcologyTests(unittest.TestCase):
         exact_second["clientMessageId"] = "b"
         with self.assertRaisesRegex(ValueError, "filters differ"):
             compose_board_sources([exact_first, exact_second])
+        author_first = dict(first)
+        author_first["replyToAuthorLabel"] = "agent:a"
+        author_second = dict(first)
+        author_second["requestedAfterSequence"] = 5
+        author_second["messages"] = []
+        author_second["nextAfterSequence"] = 7
+        author_second["replyToAuthorLabel"] = "agent:b"
+        with self.assertRaisesRegex(ValueError, "filters differ"):
+            compose_board_sources([author_first, author_second])
         latest = dict(second)
         latest["selectionMode"] = "latest-window"
         latest["requestedAfterSequence"] = None
@@ -357,6 +388,40 @@ class EcologyTests(unittest.TestCase):
         self.assertEqual(
             [scope["clientMessageId"] for scope in source_set["scopes"]],
             ["gap-a", "gap-b"],
+        )
+
+    def test_distinct_reply_to_author_labels_are_independent_source_scopes(self) -> None:
+        first = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(8, "reply-a", topic="social", reply_to="parent-a")],
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "social",
+            "replyToAuthorLabel": "agent:a",
+        }
+        second = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(9, "reply-b", topic="social", reply_to="parent-b")],
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "social",
+            "replyToAuthorLabel": "agent:b",
+        }
+        messages, source_set = compose_board_source_set([first, second])
+        self.assertEqual([item["clientMessageId"] for item in messages], ["reply-a", "reply-b"])
+        assert source_set is not None
+        self.assertEqual(source_set["scopeCount"], 2)
+        self.assertEqual(
+            [scope["replyToAuthorLabel"] for scope in source_set["scopes"]],
+            ["agent:a", "agent:b"],
         )
 
     def test_source_set_groups_incremental_pages_by_exact_filters(self) -> None:
@@ -498,6 +563,14 @@ class EcologyTests(unittest.TestCase):
         ])
         self.assertEqual(feed["items"][0]["sourceIdentity"], "collection:daily-cabinet:test")
         self.assertIn("absence does not establish", feed["truthBoundary"])
+
+    def test_empty_feed_is_valid_without_priority_or_completeness_claim(self) -> None:
+        feed = derive_activity_feed([], observed_at_ms=1234)
+        self.assertEqual(feed["inputItemCount"], 0)
+        self.assertEqual(feed["items"], [])
+        self.assertFalse(feed["priorityInferred"])
+        self.assertFalse(feed["sourceCompletenessClaimed"])
+        self.assertIn("only the explicitly supplied source projections", feed["truthBoundary"])
 
     def test_feed_rejects_duplicate_source_identity(self) -> None:
         item = {

@@ -124,13 +124,31 @@ def _render(
 
     thread_cards: list[str] = []
     for thread in thread_items:
+        root_present = thread.get("rootStatus") == "present"
+        if root_present:
+            coordinate = str(thread["threadId"])
+            title = str(thread.get("rootTopic") or coordinate)
+            eyebrow = "conversation projection"
+            identity_detail = (
+                f"<code>{escape(coordinate)}</code>"
+                f"<p>Root: {escape(str(thread['rootClientMessageId']))}</p>"
+            )
+        else:
+            ancestor = str(thread["externalAncestorClientMessageId"])
+            topics = thread.get("topics") or []
+            title = str(topics[0]) if topics else "Reply branch · context outside supplied source"
+            eyebrow = "reply branch · ancestor outside source"
+            identity_detail = (
+                "<p>No complete Thread identity is claimed.</p>"
+                f"<p>External ancestor: <code>{escape(ancestor)}</code></p>"
+            )
         thread_cards.append(
-            f'''<article class="card conversation-card">
-  <div class="eyebrow">conversation projection</div>
-  <h2>{escape(str(thread['rootTopic'] or thread['threadId']))}</h2>
-  <p>{int(thread['messageCount'])} messages · {int(thread['replyCount'])} replies · depth {int(thread['maxDepth'])}</p>
+            f'''<article class="card conversation-card" data-root-status="{escape(str(thread['rootStatus']))}">
+  <div class="eyebrow">{escape(eyebrow)}</div>
+  <h2>{escape(title)}</h2>
+  <p>{int(thread['messageCount'])} visible messages · {int(thread['replyCount'])} replies · visible depth {int(thread['maxDepth'])}</p>
   <div class="chips">{''.join(f'<span>{escape(str(topic))}</span>' for topic in thread['topics'])}</div>
-  <details><summary>Exact Board identity</summary><code>{escape(str(thread['threadId']))}</code><p>Root: {escape(str(thread['rootClientMessageId']))}</p></details>
+  <details><summary>Exact Board coordinate</summary>{identity_detail}</details>
 </article>'''
         )
 

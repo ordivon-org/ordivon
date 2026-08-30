@@ -77,6 +77,9 @@ def normalize_board_source(
             reply_target = document.get("replyToClientMessageId")
             if reply_target is not None:
                 _string(reply_target, "replyToClientMessageId")
+            reply_to_author_label = document.get("replyToAuthorLabel")
+            if reply_to_author_label is not None:
+                _string(reply_to_author_label, "replyToAuthorLabel")
 
             def optional_nonnegative(field: str) -> int | None:
                 raw = document.get(field)
@@ -97,6 +100,7 @@ def normalize_board_source(
                 "topic": topic,
                 "clientMessageId": client_message_id,
                 "replyToClientMessageId": reply_target,
+                "replyToAuthorLabel": reply_to_author_label,
                 "globalMessageCount": optional_nonnegative("messageCount"),
                 "lastSequence": optional_nonnegative("lastSequence"),
                 "nextAfterSequence": optional_nonnegative("nextAfterSequence"),
@@ -139,11 +143,13 @@ def compose_board_sources(
     topic = fences[0].get("topic")
     client_message_id = fences[0].get("clientMessageId")
     reply_target = fences[0].get("replyToClientMessageId")
+    reply_to_author_label = fences[0].get("replyToAuthorLabel")
     for fence in fences[1:]:
         if (
             fence.get("topic") != topic
             or fence.get("clientMessageId") != client_message_id
             or fence.get("replyToClientMessageId") != reply_target
+            or fence.get("replyToAuthorLabel") != reply_to_author_label
         ):
             raise ValueError("Board page filters differ within one source scan")
 
@@ -179,6 +185,7 @@ def compose_board_sources(
         "topic": topic,
         "clientMessageId": client_message_id,
         "replyToClientMessageId": reply_target,
+        "replyToAuthorLabel": reply_to_author_label,
         "scanStartAfterSequence": fences[0].get("requestedAfterSequence"),
         "finalNextAfterSequence": fences[-1].get("nextAfterSequence"),
         "finalLastSequence": fences[-1].get("lastSequence"),
@@ -217,13 +224,14 @@ def compose_board_source_set(
     if any(fence["selectionMode"] == "unknown-legacy-response" for fence in fences):
         raise ValueError("legacy Board responses cannot be safely composed across source scopes")
 
-    groups: dict[tuple[object, object, object], list[object]] = defaultdict(list)
-    first_index: dict[tuple[object, object, object], int] = {}
+    groups: dict[tuple[object, object, object, object], list[object]] = defaultdict(list)
+    first_index: dict[tuple[object, object, object, object], int] = {}
     for index, (document, fence) in enumerate(zip(documents, fences)):
         key = (
             fence.get("topic"),
             fence.get("clientMessageId"),
             fence.get("replyToClientMessageId"),
+            fence.get("replyToAuthorLabel"),
         )
         groups[key].append(document)
         first_index.setdefault(key, index)

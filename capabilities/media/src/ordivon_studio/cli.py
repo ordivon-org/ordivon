@@ -249,13 +249,14 @@ def _command_ecology_project(args: argparse.Namespace) -> int:
         collection = validate_collection(document)
         collections.append(collection)
         feed_items.append(collection_feed_item(collection))
-    if not feed_items:
+    if not threads and not collections:
         raise ValueError("ecology project requires at least one Board or Collection source")
-    observed_at_ms = (
-        args.observed_at_ms
-        if args.observed_at_ms is not None
-        else max(int(item["observedAtMs"]) for item in feed_items)
-    )
+    if args.observed_at_ms is not None:
+        observed_at_ms = args.observed_at_ms
+    elif feed_items:
+        observed_at_ms = max(int(item["observedAtMs"]) for item in feed_items)
+    else:
+        observed_at_ms = max(int(thread["lastRecordedAtMs"]) for thread in threads)
     _write_json({
         "schemaVersion": 1,
         "kind": "ordivon.media.ecology-projection",
