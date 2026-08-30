@@ -7,6 +7,7 @@ from ordivon_studio.ecology import (
     COLLECTION_TRUTH_ROLE,
     FEED_TRUTH_ROLE,
     collection_feed_item,
+    compose_board_source_set,
     compose_board_sources,
     derive_activity_feed,
     derive_board_threads,
@@ -252,6 +253,103 @@ class EcologyTests(unittest.TestCase):
         latest["requestedAfterSequence"] = None
         with self.assertRaisesRegex(ValueError, "incremental-page chain"):
             compose_board_sources([first, latest])
+
+    def test_independent_latest_windows_compose_as_source_set(self) -> None:
+        alpha = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(5, "alpha-root", topic="alpha")],
+            "messageCount": 20,
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "alpha",
+        }
+        beta = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(8, "beta-reply", topic="beta", reply_to="alpha-root")],
+            "messageCount": 20,
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "beta",
+        }
+        messages, source_set = compose_board_source_set([alpha, beta])
+        self.assertEqual([item["clientMessageId"] for item in messages], ["alpha-root", "beta-reply"])
+        assert source_set is not None
+        self.assertEqual(source_set["kind"], "ordivon.media.host-board-source-set")
+        self.assertEqual(source_set["scopeCount"], 2)
+        self.assertEqual(source_set["returnedMessageCount"], 2)
+        self.assertEqual(source_set["overlapMessageCount"], 0)
+        self.assertFalse(source_set["sourceCompletenessClaimed"])
+        threads = derive_board_threads(messages)
+        self.assertEqual(len(threads), 1)
+        self.assertEqual(threads[0]["topics"], ["alpha", "beta"])
+        self.assertEqual(threads[0]["rootStatus"], "present")
+
+    def test_source_set_groups_incremental_pages_by_exact_filters(self) -> None:
+        alpha_page_1 = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 0,
+            "requestedLimit": 1,
+            "messages": [_message(5, "a1", topic="alpha")],
+            "lastSequence": 20,
+            "nextAfterSequence": 5,
+            "hasMore": True,
+            "topic": "alpha",
+        }
+        beta = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(7, "b1", topic="beta")],
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "beta",
+        }
+        alpha_page_2 = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 5,
+            "requestedLimit": 1,
+            "messages": [_message(9, "a2", topic="alpha")],
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "alpha",
+        }
+        messages, source_set = compose_board_source_set([alpha_page_1, beta, alpha_page_2])
+        self.assertEqual([item["sequence"] for item in messages], [5, 7, 9])
+        assert source_set is not None
+        self.assertEqual(source_set["scopeCount"], 2)
+        self.assertEqual(source_set["scopes"][0]["kind"], "ordivon.media.host-board-source-scan")
+        self.assertEqual(source_set["scopes"][0]["pageCount"], 2)
+        self.assertEqual(source_set["scopes"][1]["selectionMode"], "latest-window")
+
+    def test_source_set_rejects_multiple_latest_windows_for_same_scope(self) -> None:
+        first = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 1,
+            "messages": [_message(5, "a1", topic="alpha")],
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "topic": "alpha",
+        }
+        second = dict(first)
+        second["messages"] = [_message(6, "a2", topic="alpha")]
+        with self.assertRaisesRegex(ValueError, "same filters"):
+            compose_board_source_set([first, second])
 
     def test_board_thread_identity_is_derived_from_root_not_topic(self) -> None:
         threads = derive_board_threads(

@@ -185,6 +185,96 @@ def compose_board_sources(
     return messages, scan
 
 
+def compose_board_source_set(
+    documents: Sequence[object],
+) -> tuple[list[dict[str, object]], dict[str, object] | None]:
+    """Compose independent Board source scopes while preserving each acquisition fence.
+
+    Multiple pages with the same exact Host filters are one cursor-linked source scan. Different
+    filter scopes remain independent members of a source set. Message overlap across scopes is
+    deduplicated only when the exact Board bytes agree.
+    """
+
+    if not documents:
+        raise ValueError("at least one Board source is required")
+    if len(documents) == 1:
+        return normalize_board_source(documents[0])
+
+    normalized = [normalize_board_source(document) for document in documents]
+    if any(fence is None for _, fence in normalized):
+        raise ValueError("multiple Board sources require self-describing Host Board responses")
+    fences = [fence for _, fence in normalized if fence is not None]
+    if any(fence["selectionMode"] == "unknown-legacy-response" for fence in fences):
+        raise ValueError("legacy Board responses cannot be safely composed across source scopes")
+
+    groups: dict[tuple[object, object], list[object]] = defaultdict(list)
+    first_index: dict[tuple[object, object], int] = {}
+    for index, (document, fence) in enumerate(zip(documents, fences)):
+        key = (fence.get("topic"), fence.get("replyToClientMessageId"))
+        groups[key].append(document)
+        first_index.setdefault(key, index)
+
+    descriptors: list[dict[str, object]] = []
+    merged_by_id: dict[str, dict[str, object]] = {}
+    sequence_to_id: dict[int, str] = {}
+    raw_count = 0
+
+    for key in sorted(groups, key=lambda item: first_index[item]):
+        group_documents = groups[key]
+        if len(group_documents) == 1:
+            messages, descriptor = normalize_board_source(group_documents[0])
+        else:
+            group_normalized = [normalize_board_source(document) for document in group_documents]
+            group_fences = [fence for _, fence in group_normalized if fence is not None]
+            modes = {str(fence["selectionMode"]) for fence in group_fences}
+            if modes != {"incremental-page"}:
+                raise ValueError(
+                    "multiple Board responses with the same filters must form one incremental-page chain"
+                )
+            messages, descriptor = compose_board_sources(group_documents)
+        if descriptor is None:
+            raise ValueError("multi-scope Board composition lost a source descriptor")
+        descriptors.append(descriptor)
+        raw_count += len(messages)
+        for message in messages:
+            client_id = _string(message.get("clientMessageId"), "clientMessageId")
+            sequence = _integer(message.get("sequence"), "sequence")
+            prior = merged_by_id.get(client_id)
+            if prior is not None:
+                if prior != message:
+                    raise ValueError("overlapping Board scopes disagree on one message identity")
+                continue
+            prior_id = sequence_to_id.get(sequence)
+            if prior_id is not None and prior_id != client_id:
+                raise ValueError("overlapping Board scopes disagree on sequence identity")
+            merged_by_id[client_id] = dict(message)
+            sequence_to_id[sequence] = client_id
+
+    messages = sorted(
+        merged_by_id.values(),
+        key=lambda item: (int(item["sequence"]), str(item["clientMessageId"])),
+    )
+    source_set = {
+        "schemaVersion": 1,
+        "kind": "ordivon.media.host-board-source-set",
+        "sourceKind": "ordivon.host-board-list",
+        "scopeCount": len(descriptors),
+        "scopes": descriptors,
+        "rawReturnedMessageCount": raw_count,
+        "returnedMessageCount": len(messages),
+        "overlapMessageCount": raw_count - len(messages),
+        "sourceCompletenessClaimed": False,
+        "truthRole": "source-acquisition-set-not-board-or-domain-truth",
+        "truthBoundary": (
+            "This set preserves independent Host Board acquisition scopes and only reunifies exact "
+            "message bytes for derived reply-graph recovery. Scope membership, final-page exhaustion, "
+            "and combined visibility do not establish global completeness, conversation boundaries, "
+            "priority, or domain truth."
+        ),
+    }
+    return messages, source_set
+
+
 def derive_board_threads(messages: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
     """Project Host Board reply relations into thread-shaped views.
 

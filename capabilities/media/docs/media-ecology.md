@@ -54,6 +54,8 @@ Older saved Host responses that predate this machine-readable query fence are ac
 Natural dogfood on `artifact-production-iteration-loop` demonstrated the distinction: a 100-message `latest-window` covered sequences 2520–3116 and produced 58 local thread projections, 11 with ancestors outside the supplied window; an `incremental-page` from sequence zero covered 507–663, returned `hasMore=true`, and produced 22 thread projections, two with ancestors outside that page. Existing `outside-snapshot` Thread semantics handled both cases without a new Thread store.
 A full cursor-linked scan of that topic required ten pages and recovered 951 unique messages with strictly increasing sequence identity. Media composed those pages into one source scan and derived 259 threads. Forty-nine still had roots outside the filtered topic because cross-topic reply edges are legal; this is evidence that topic filtering must not be reified as conversation identity.
 
+Multi-scope dogfood then combined three independently acquired Host scopes: `artifact-production-iteration-loop` (951 messages / 10 pages), `institutional-power-capability` (566 / 6), and `agent-native-collaboration-paradigm` (150 / 2). Media preserves these as three independent members of `ordivon.media.host-board-source-set`; it does not flatten their query semantics into one pseudo-scan. Separate derivation produced 806 threads with 58 outside-snapshot roots. Joint derivation over the same 1,667 exact messages produced 791 threads with 43 outside-snapshot roots and 13 genuine cross-topic threads: 15 previously split thread fragments reunited only because both sides of real Board reply edges became visible. This is recovery evidence, not a new conversation identity.
+
 ## Board thread projection
 
 `derive_board_threads()` interprets only the existing Board reply relation.
@@ -117,7 +119,7 @@ ordivon-studio ecology project \
   --collection COLLECTION.json
 ```
 
-`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot. Multiple `--board` inputs are allowed only when they are self-describing Host `incremental-page` responses forming one exact cursor-linked chain with identical filters. Media rejects cursor gaps, mixed latest windows, filter drift, regressing high-water marks and duplicate message identities. The resulting `ordivon.media.host-board-source-scan` preserves every page fence and records whether the final read was exhausted, while still keeping `sourceCompletenessClaimed=false`.
+`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot. Multiple `--board` inputs remain self-describing rather than being concatenated blindly. Responses sharing the same exact Host filters are composed only when they form one valid `incremental-page` cursor chain; independent filter scopes become members of `ordivon.media.host-board-source-set`. Media rejects cursor gaps, same-scope mixed latest windows, filter drift inside a scan, regressing high-water marks and conflicting duplicate identities. Exact duplicate messages visible through overlapping scopes may be deduplicated only when their Board bytes agree. Every scan/window fence remains present and the aggregate keeps `sourceCompletenessClaimed=false`.
 
 ## Natural evidence cut — 2026-08-30
 

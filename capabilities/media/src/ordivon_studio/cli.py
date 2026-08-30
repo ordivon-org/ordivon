@@ -20,7 +20,7 @@ from .timed_text import export_srt, export_webvtt
 from .video import normalize_h264_bt709
 from .ecology import (
     collection_feed_item,
-    compose_board_sources,
+    compose_board_source_set,
     derive_activity_feed,
     derive_board_threads,
     thread_feed_items,
@@ -211,7 +211,7 @@ def _read_json_file(path: str) -> object:
 
 
 def _command_ecology_threads(args: argparse.Namespace) -> int:
-    messages, source_fence = compose_board_sources([_read_json_file(path) for path in args.board])
+    messages, source_fence = compose_board_source_set([_read_json_file(path) for path in args.board])
     _write_json({
         "schemaVersion": 1,
         "kind": "ordivon.media.board-thread-set-projection",
@@ -236,7 +236,7 @@ def _command_ecology_project(args: argparse.Namespace) -> int:
     threads: list[dict[str, object]] = []
     board_source_fence: dict[str, object] | None = None
     if args.board:
-        messages, board_source_fence = compose_board_sources(
+        messages, board_source_fence = compose_board_source_set(
             [_read_json_file(path) for path in args.board]
         )
         threads = derive_board_threads(messages)
