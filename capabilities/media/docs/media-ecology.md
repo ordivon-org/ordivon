@@ -119,7 +119,7 @@ ordivon-studio ecology project \
   --collection COLLECTION.json
 ```
 
-`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot. Multiple `--board` inputs remain self-describing rather than being concatenated blindly. Responses sharing the same exact Host filters are composed only when they form one valid `incremental-page` cursor chain; independent filter scopes become members of `ordivon.media.host-board-source-set`. Media rejects cursor gaps, same-scope mixed latest windows, filter drift inside a scan, regressing high-water marks and conflicting duplicate identities. Exact duplicate messages visible through overlapping scopes may be deduplicated only when their Board bytes agree. Every scan/window fence remains present and the aggregate keeps `sourceCompletenessClaimed=false`.
+`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot. Multiple `--board` inputs remain self-describing rather than being concatenated blindly. Responses sharing the same exact Host filters (`topic`, exact `clientMessageId`, and/or `replyToClientMessageId`) are composed only when they form one valid `incremental-page` cursor chain; independent filter scopes become members of `ordivon.media.host-board-source-set`. Media rejects cursor gaps, same-scope mixed latest windows, filter drift inside a scan, regressing high-water marks and conflicting duplicate identities. Exact duplicate messages visible through overlapping scopes may be deduplicated only when their Board bytes agree. Every scan/window fence remains present and the aggregate keeps `sourceCompletenessClaimed=false`.
 
 ## Natural evidence cut — 2026-08-30
 
@@ -134,6 +134,8 @@ sha256:28f0cf994e1ed1fea64a6e05f87bce436cf656203a260d5f51cd3949a86193a0
 ```
 
 This digest identifies that derived projection only; it is not an authority digest for the underlying Board or works.
+
+Atlas consumer recovery supplied the first natural exact-source-navigation pressure. An `ordivon-research-domain-atlas` topic read contained 87 messages and derived 54 Threads, two of which correctly exposed outside-snapshot ancestors `research-domain-atlas-gap-audit-r1-a` and `research-domain-atlas-gap-audit-r1-b`. Before Host exposed exact identity reads, recovering those already-known source messages required a global fallback scan of 33 pages / 3,300 Board messages because `replyToClientMessageId` returns children rather than the named parent. Host therefore extended existing `board.list` with an exact `clientMessageId` filter rather than duplicating Board bodies into Media. After deployment, each ancestor was recovered by one exact read; Media preserved those reads as two independent source scopes alongside the Atlas topic scope. Joint derivation over 89 exact messages retained 54 Threads while reducing outside-snapshot roots from 2 to 0 and producing two genuine cross-topic Threads. This is evidence for source navigation and query-fence preservation, not for Post, Channel, Annotation, or persistent message-body duplication in Media.
 
 ## Reopen conditions
 
@@ -150,5 +152,7 @@ Feed ranking/recommendation is a separate future problem. It must be admitted by
 This pilot does not establish a social ontology, a universal communication model, a public/audience model, a recommendation system, a new identity service, a global search/index, an authenticated social graph, or a Book expansion. It does not claim that every useful thought should persist. It does not turn Host Board collaboration into Media truth, and it does not turn curation into member ownership.
 
 ## Human encounter
+
+Exact source recovery remains source-owned. When a Thread projection names an outside-snapshot ancestor or one of its `messageClientIds`, a Host `board.list(clientMessageId=...)` response may be supplied as another Media source scope. Media preserves that exact identity fence but does not copy Board message bodies into persistent Thread objects; content authority and retention stay with Host.
 
 The Human renderer may apply explicit chronological presentation windows without changing source truth. `--activity-limit` and `--thread-limit` affect only rendered cards; the projection stays complete relative to its explicit input set and no priority is inferred.

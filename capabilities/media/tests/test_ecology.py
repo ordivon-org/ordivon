@@ -107,6 +107,30 @@ class EcologyTests(unittest.TestCase):
         self.assertEqual(fence["returnedMessageCount"], 1)
         self.assertFalse(fence["sourceCompletenessClaimed"])
 
+    def test_current_host_exact_client_message_id_filter_is_preserved(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-board-list",
+            "scope": "host-global-coordination-messages",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(3208, "research-domain-atlas-gap-audit-r1-a", topic="gap")],
+            "messageCount": 3324,
+            "lastSequence": 3324,
+            "nextAfterSequence": 3324,
+            "hasMore": False,
+            "clientMessageId": "research-domain-atlas-gap-audit-r1-a",
+        }
+        messages, fence = normalize_board_source(document)
+        self.assertEqual(len(messages), 1)
+        assert fence is not None
+        self.assertEqual(
+            fence["clientMessageId"], "research-domain-atlas-gap-audit-r1-a"
+        )
+        self.assertEqual(fence["selectionMode"], "latest-window")
+        self.assertFalse(fence["sourceCompletenessClaimed"])
+
     def test_current_host_incremental_page_requires_preserved_cursor(self) -> None:
         document = {
             "kind": "ordivon.host-board-list",
@@ -248,6 +272,15 @@ class EcologyTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "filters differ"):
             compose_board_sources([first, second])
+        exact_first = dict(first)
+        exact_first["clientMessageId"] = "a"
+        exact_second = dict(first)
+        exact_second["requestedAfterSequence"] = 5
+        exact_second["messages"] = []
+        exact_second["nextAfterSequence"] = 7
+        exact_second["clientMessageId"] = "b"
+        with self.assertRaisesRegex(ValueError, "filters differ"):
+            compose_board_sources([exact_first, exact_second])
         latest = dict(second)
         latest["selectionMode"] = "latest-window"
         latest["requestedAfterSequence"] = None
@@ -291,6 +324,40 @@ class EcologyTests(unittest.TestCase):
         self.assertEqual(len(threads), 1)
         self.assertEqual(threads[0]["topics"], ["alpha", "beta"])
         self.assertEqual(threads[0]["rootStatus"], "present")
+
+    def test_distinct_exact_client_message_id_reads_are_independent_source_scopes(self) -> None:
+        first = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(3208, "gap-a", topic="gap")],
+            "lastSequence": 3324,
+            "nextAfterSequence": 3324,
+            "hasMore": False,
+            "topic": "gap",
+            "clientMessageId": "gap-a",
+        }
+        second = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(3209, "gap-b", topic="gap")],
+            "lastSequence": 3324,
+            "nextAfterSequence": 3324,
+            "hasMore": False,
+            "topic": "gap",
+            "clientMessageId": "gap-b",
+        }
+        messages, source_set = compose_board_source_set([first, second])
+        self.assertEqual([item["clientMessageId"] for item in messages], ["gap-a", "gap-b"])
+        assert source_set is not None
+        self.assertEqual(source_set["scopeCount"], 2)
+        self.assertEqual(
+            [scope["clientMessageId"] for scope in source_set["scopes"]],
+            ["gap-a", "gap-b"],
+        )
 
     def test_source_set_groups_incremental_pages_by_exact_filters(self) -> None:
         alpha_page_1 = {
