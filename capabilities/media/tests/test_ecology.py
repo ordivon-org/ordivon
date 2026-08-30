@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pytest
+import unittest
 
 from ordivon_studio.ecology import (
     BOARD_THREAD_TRUTH_ROLE,
@@ -76,103 +76,97 @@ def _collection() -> dict[str, object]:
     }
 
 
-def test_board_thread_identity_is_derived_from_root_not_topic() -> None:
-    threads = derive_board_threads(
-        [
-            _message(1, "root", topic="alpha"),
-            _message(2, "r1", topic="alpha", reply_to="root"),
-            _message(3, "r2", topic="beta", reply_to="r1"),
-        ]
-    )
-    assert len(threads) == 1
-    thread = threads[0]
-    assert thread["threadId"] == "board-thread:root"
-    assert thread["rootStatus"] == "present"
-    assert thread["messageCount"] == 3
-    assert thread["replyCount"] == 2
-    assert thread["maxDepth"] == 2
-    assert thread["topics"] == ["alpha", "beta"]
-    assert thread["truthRole"] == BOARD_THREAD_TRUTH_ROLE
-
-
-def test_bounded_board_snapshot_does_not_invent_missing_root() -> None:
-    threads = derive_board_threads(
-        [
-            _message(8, "local-r1", reply_to="outside-root"),
-            _message(9, "local-r2", reply_to="local-r1"),
-        ]
-    )
-    assert len(threads) == 1
-    thread = threads[0]
-    assert thread["threadId"] is None
-    assert thread["rootStatus"] == "outside-snapshot"
-    assert thread["externalAncestorClientMessageId"] == "outside-root"
-    assert thread["messageCount"] == 2
-
-
-def test_board_thread_cycle_fails_closed() -> None:
-    with pytest.raises(ValueError, match="cycle"):
-        derive_board_threads(
+class EcologyTests(unittest.TestCase):
+    def test_board_thread_identity_is_derived_from_root_not_topic(self) -> None:
+        threads = derive_board_threads(
             [
-                _message(1, "a", reply_to="b"),
-                _message(2, "b", reply_to="a"),
+                _message(1, "root", topic="alpha"),
+                _message(2, "r1", topic="alpha", reply_to="root"),
+                _message(3, "r2", topic="beta", reply_to="r1"),
             ]
         )
+        self.assertEqual(len(threads), 1)
+        thread = threads[0]
+        self.assertEqual(thread["threadId"], "board-thread:root")
+        self.assertEqual(thread["rootStatus"], "present")
+        self.assertEqual(thread["messageCount"], 3)
+        self.assertEqual(thread["replyCount"], 2)
+        self.assertEqual(thread["maxDepth"], 2)
+        self.assertEqual(thread["topics"], ["alpha", "beta"])
+        self.assertEqual(thread["truthRole"], BOARD_THREAD_TRUTH_ROLE)
 
+    def test_bounded_board_snapshot_does_not_invent_missing_root(self) -> None:
+        threads = derive_board_threads(
+            [
+                _message(8, "local-r1", reply_to="outside-root"),
+                _message(9, "local-r2", reply_to="local-r1"),
+            ]
+        )
+        self.assertEqual(len(threads), 1)
+        thread = threads[0]
+        self.assertIsNone(thread["threadId"])
+        self.assertEqual(thread["rootStatus"], "outside-snapshot")
+        self.assertEqual(thread["externalAncestorClientMessageId"], "outside-root")
+        self.assertEqual(thread["messageCount"], 2)
 
-def test_collection_is_only_a_curation_relation() -> None:
-    collection = validate_collection(_collection())
-    assert collection["truthRole"] == COLLECTION_TRUTH_ROLE
-    assert len(collection["members"]) == 2
-    assert collection["members"][0]["sourceRevision"] == "a" * 40
+    def test_board_thread_cycle_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            derive_board_threads(
+                [
+                    _message(1, "a", reply_to="b"),
+                    _message(2, "b", reply_to="a"),
+                ]
+            )
 
+    def test_collection_is_only_a_curation_relation(self) -> None:
+        collection = validate_collection(_collection())
+        self.assertEqual(collection["truthRole"], COLLECTION_TRUTH_ROLE)
+        self.assertEqual(len(collection["members"]), 2)
+        self.assertEqual(collection["members"][0]["sourceRevision"], "a" * 40)
 
-def test_collection_rejects_ephemeral_conversation_source_revision() -> None:
-    value = _collection()
-    value["members"][0]["sourceRevision"] = "turn9news1"
-    with pytest.raises(ValueError, match="ephemeral conversation citation"):
-        validate_collection(value)
+    def test_collection_rejects_ephemeral_conversation_source_revision(self) -> None:
+        value = _collection()
+        value["members"][0]["sourceRevision"] = "turn9news1"
+        with self.assertRaisesRegex(ValueError, "ephemeral conversation citation"):
+            validate_collection(value)
 
+    def test_collection_rejects_duplicate_member_identity(self) -> None:
+        value = _collection()
+        value["members"][1]["memberId"] = "work:a"
+        with self.assertRaisesRegex(ValueError, "unique"):
+            validate_collection(value)
 
-def test_collection_rejects_duplicate_member_identity() -> None:
-    value = _collection()
-    value["members"][1]["memberId"] = "work:a"
-    with pytest.raises(ValueError, match="unique"):
-        validate_collection(value)
+    def test_feed_orders_supplied_sources_without_priority_claim(self) -> None:
+        threads = derive_board_threads(
+            [
+                _message(1, "root-a", recorded_at_ms=1000),
+                _message(2, "reply-a", reply_to="root-a", recorded_at_ms=7000),
+                _message(3, "root-b", recorded_at_ms=4000),
+            ]
+        )
+        items = thread_feed_items(threads)
+        items.append(collection_feed_item(_collection()))
+        feed = derive_activity_feed(items, observed_at_ms=10000)
+        self.assertEqual(feed["truthRole"], FEED_TRUTH_ROLE)
+        self.assertFalse(feed["priorityInferred"])
+        self.assertFalse(feed["sourceCompletenessClaimed"])
+        self.assertEqual([item["kind"] for item in feed["items"]], [
+            "collection",
+            "board-thread",
+            "board-thread",
+        ])
+        self.assertEqual(feed["items"][0]["sourceIdentity"], "collection:daily-cabinet:test")
+        self.assertIn("absence does not establish", feed["truthBoundary"])
 
-
-def test_feed_orders_supplied_sources_without_priority_claim() -> None:
-    threads = derive_board_threads(
-        [
-            _message(1, "root-a", recorded_at_ms=1000),
-            _message(2, "reply-a", reply_to="root-a", recorded_at_ms=7000),
-            _message(3, "root-b", recorded_at_ms=4000),
-        ]
-    )
-    items = thread_feed_items(threads)
-    items.append(collection_feed_item(_collection()))
-    feed = derive_activity_feed(items, observed_at_ms=10000)
-    assert feed["truthRole"] == FEED_TRUTH_ROLE
-    assert feed["priorityInferred"] is False
-    assert feed["sourceCompletenessClaimed"] is False
-    assert [item["kind"] for item in feed["items"]] == [
-        "collection",
-        "board-thread",
-        "board-thread",
-    ]
-    assert feed["items"][0]["sourceIdentity"] == "collection:daily-cabinet:test"
-    assert "absence does not establish" in feed["truthBoundary"]
-
-
-def test_feed_rejects_duplicate_source_identity() -> None:
-    item = {
-        "kind": "board-thread",
-        "sourceIdentity": "board-thread:x",
-        "observedAtMs": 100,
-        "title": "x",
-        "summary": "x",
-        "truthRole": BOARD_THREAD_TRUTH_ROLE,
-        "sourceDigest": "sha256:" + "0" * 64,
-    }
-    with pytest.raises(ValueError, match="duplicate"):
-        derive_activity_feed([item, dict(item)], observed_at_ms=101)
+    def test_feed_rejects_duplicate_source_identity(self) -> None:
+        item = {
+            "kind": "board-thread",
+            "sourceIdentity": "board-thread:x",
+            "observedAtMs": 100,
+            "title": "x",
+            "summary": "x",
+            "truthRole": BOARD_THREAD_TRUTH_ROLE,
+            "sourceDigest": "sha256:" + "0" * 64,
+        }
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            derive_activity_feed([item, dict(item)], observed_at_ms=101)
