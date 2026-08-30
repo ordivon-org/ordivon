@@ -151,6 +151,33 @@ This keeps source authority with Host, prevents topic filters from becoming conv
 
 Batch exact-ID retrieval is therefore not admitted yet. A large projection may expose many outside roots, but those are recovery affordances rather than a requirement to fetch all ancestors. Batch retrieval should reopen only if a real consumer repeatedly needs many exact closures in one bounded semantic operation and per-ID calls become the demonstrated bottleneck.
 
+## Book / Collection / Feed time-scale boundary
+
+Ordivon Book does not need a special Media publication-candidate primitive under current pressure. The current Book is already an ordinary source-fenced Media Writing Production; its content admission remains inside its `production.json`, source bindings, Claims, source map and chapter/output standing. Media Ecology supplies two orthogonal encounter layers around that Production:
+
+- `Feed` is a temporal encounter projection over supplied source events. It does not infer priority or archive completeness.
+- `Collection` is a curator-authored grouping/order relation over exact source-bound works. Membership does not approve, publish, select or semantically import a member.
+- `Book` is a long-horizon explanatory Production. It may itself appear as a Collection member, but curation of the Book is not content admission into the Book.
+
+A natural compatibility test added exact Book v0 as the sixth member of an experimental Collection using the ordinary `sourceOwner/sourceIdentity/sourceRevision/sourceObjects` contract. `book.mdx` remained bound at `sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4`; the current `production.json` digest was `sha256:71071fd9c0d2e05f22e16870cdc5427950b4a6d5a397d48f99624bc3f3018696`. Collection validation and Feed derivation passed with `priorityInferred=false` and `sourceCompletenessClaimed=false`; the Human encounter rendered all six works on desktop and mobile without overflow. At the same time, ordinary Studio Production standing still reported Book `status=review`, `currentProductionId=null` and `selectionPriorityInferred=false`, and the Production context exposed no Collection/Feed fields.
+
+Therefore the current relation is deliberately asymmetric:
+
+```text
+Thread / source evidence
+    --consumer-specific reasoning--> possible Book editorial pressure
+
+Book Production
+    --ordinary source-bound membership--> Collection
+    --Collection event--> Feed encounter
+
+Collection membership != Book source admission
+Feed appearance != Book priority
+Book curation != publication state
+```
+
+A dedicated publication candidate, Edition, publisher/distribution state or editorial-intake queue should reopen only when a real editorial/publication consumer cannot express its work with the existing Production + source-binding + Collection relations. Book must not become a long-term dump of Feed/Thread chronology merely because those structures exist.
+
 ## Reopen conditions
 
 A first-class Post should be reconsidered only if at least two heterogeneous real consumers need a durable authored object that cannot truthfully be a Board message/root or a Media Production/source without recurring loss or ceremony.
