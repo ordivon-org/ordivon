@@ -1,6 +1,24 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.media.ecology-pilot-encounter",
+  "boardSourceFence": {
+    "schemaVersion": 1,
+    "kind": "ordivon.media.host-board-source-fence",
+    "sourceKind": "ordivon.host-board-list",
+    "selectionMode": "unknown-legacy-response",
+    "requestedAfterSequence": null,
+    "requestedLimit": null,
+    "topic": "ordivon-media-ecology",
+    "replyToClientMessageId": null,
+    "globalMessageCount": 3319,
+    "lastSequence": 3319,
+    "nextAfterSequence": 3319,
+    "hasMore": false,
+    "returnedMessageCount": 4,
+    "sourceCompletenessClaimed": false,
+    "truthRole": "source-acquisition-fence-not-board-or-domain-truth",
+    "truthBoundary": "This fence preserves how Host selected the supplied Board bytes. It does not turn a latest window or one incremental page into a complete-history claim."
+  },
   "threads": [
     {
       "schemaVersion": 1,

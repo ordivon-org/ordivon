@@ -9,6 +9,7 @@ from ordivon_studio.ecology import (
     collection_feed_item,
     derive_activity_feed,
     derive_board_threads,
+    normalize_board_source,
     thread_feed_items,
     validate_collection,
 )
@@ -77,6 +78,88 @@ def _collection() -> dict[str, object]:
 
 
 class EcologyTests(unittest.TestCase):
+    def test_current_host_board_response_preserves_latest_window_fence(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-board-list",
+            "scope": "host-global-coordination-messages",
+            "selectionMode": "latest-window",
+            "requestedAfterSequence": None,
+            "requestedLimit": 100,
+            "messages": [_message(2520, "recent-root", topic="busy")],
+            "messageCount": 3320,
+            "lastSequence": 3320,
+            "nextAfterSequence": 3320,
+            "hasMore": False,
+            "topic": "busy",
+            "truthBoundary": "board messages are coordination only",
+        }
+        messages, fence = normalize_board_source(document)
+        self.assertEqual(len(messages), 1)
+        self.assertIsNotNone(fence)
+        assert fence is not None
+        self.assertEqual(fence["selectionMode"], "latest-window")
+        self.assertEqual(fence["requestedLimit"], 100)
+        self.assertIsNone(fence["requestedAfterSequence"])
+        self.assertEqual(fence["globalMessageCount"], 3320)
+        self.assertEqual(fence["returnedMessageCount"], 1)
+        self.assertFalse(fence["sourceCompletenessClaimed"])
+
+    def test_current_host_incremental_page_requires_preserved_cursor(self) -> None:
+        document = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 0,
+            "requestedLimit": 100,
+            "messages": [_message(507, "historical-root", topic="busy")],
+            "messageCount": 3320,
+            "lastSequence": 3320,
+            "nextAfterSequence": 663,
+            "hasMore": True,
+            "topic": "busy",
+        }
+        _, fence = normalize_board_source(document)
+        assert fence is not None
+        self.assertEqual(fence["selectionMode"], "incremental-page")
+        self.assertEqual(fence["requestedAfterSequence"], 0)
+        self.assertTrue(fence["hasMore"])
+        self.assertFalse(fence["sourceCompletenessClaimed"])
+
+    def test_legacy_host_board_response_does_not_infer_selection_mode(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-board-list",
+            "messages": [_message(10, "legacy-root")],
+            "messageCount": 10,
+            "lastSequence": 10,
+            "nextAfterSequence": 10,
+            "hasMore": False,
+            "topic": "media",
+        }
+        _, fence = normalize_board_source(document)
+        assert fence is not None
+        self.assertEqual(fence["selectionMode"], "unknown-legacy-response")
+        self.assertIsNone(fence["requestedAfterSequence"])
+        self.assertIsNone(fence["requestedLimit"])
+        self.assertFalse(fence["sourceCompletenessClaimed"])
+
+    def test_bare_board_message_list_has_no_acquisition_fence(self) -> None:
+        messages, fence = normalize_board_source([_message(1, "root")])
+        self.assertEqual(len(messages), 1)
+        self.assertIsNone(fence)
+
+    def test_board_source_fence_rejects_incoherent_selection_mode(self) -> None:
+        with self.assertRaisesRegex(ValueError, "latest-window"):
+            normalize_board_source(
+                {
+                    "kind": "ordivon.host-board-list",
+                    "selectionMode": "latest-window",
+                    "requestedAfterSequence": 0,
+                    "requestedLimit": 10,
+                    "messages": [_message(1, "root")],
+                }
+            )
+
     def test_board_thread_identity_is_derived_from_root_not_topic(self) -> None:
         threads = derive_board_threads(
             [

@@ -43,6 +43,16 @@ Explicit thread / collection projections
 
 Media never live-reads Host implicitly in the CLI. The caller supplies an explicit Board JSON snapshot. This keeps Host currentness/source acquisition outside Media and makes the projection reproducible from named inputs.
 
+## Board source acquisition fence
+
+Dogfood against a high-volume Host Board topic exposed a source-scope ambiguity rather than a missing social primitive. Host supports two intentionally different filtered reads: omitting `afterSequence` returns a newest bounded window, while explicitly supplying `afterSequence` (including zero) returns an incremental page. Persisting only `messages[]` erased that distinction.
+
+Current Host Board responses therefore preserve `selectionMode`, `requestedAfterSequence`, and `requestedLimit`, and Media retains those semantics as `ordivon.media.host-board-source-fence`. The fence also carries the response high-water/cursor/filter metadata and always sets `sourceCompletenessClaimed=false`. `hasMore=false` on `latest-window` must never be reinterpreted as complete topic history.
+
+Older saved Host responses that predate this machine-readable query fence are accepted for compatibility but are projected as `selectionMode=unknown-legacy-response`; Media does not infer the lost request from cursors, result count, or `hasMore`. Bare message arrays remain usable but have no acquisition fence.
+
+Natural dogfood on `artifact-production-iteration-loop` demonstrated the distinction: a 100-message `latest-window` covered sequences 2520–3116 and produced 58 local thread projections, 11 with ancestors outside the supplied window; an `incremental-page` from sequence zero covered 507–663, returned `hasMore=true`, and produced 22 thread projections, two with ancestors outside that page. Existing `outside-snapshot` Thread semantics handled both cases without a new Thread store.
+
 ## Board thread projection
 
 `derive_board_threads()` interprets only the existing Board reply relation.

@@ -22,6 +22,7 @@ from .ecology import (
     collection_feed_item,
     derive_activity_feed,
     derive_board_threads,
+    normalize_board_source,
     thread_feed_items,
     validate_collection,
 )
@@ -209,23 +210,12 @@ def _read_json_file(path: str) -> object:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _board_messages_from_document(document: object) -> list[dict[str, object]]:
-    if isinstance(document, list):
-        messages = document
-    elif isinstance(document, dict) and isinstance(document.get("messages"), list):
-        messages = document["messages"]
-    else:
-        raise ValueError("Board input must be a message list or an object with messages[]")
-    if not all(isinstance(item, dict) for item in messages):
-        raise ValueError("Board messages must be JSON objects")
-    return [dict(item) for item in messages]
-
-
 def _command_ecology_threads(args: argparse.Namespace) -> int:
-    messages = _board_messages_from_document(_read_json_file(args.board))
+    messages, source_fence = normalize_board_source(_read_json_file(args.board))
     _write_json({
         "schemaVersion": 1,
         "kind": "ordivon.media.board-thread-set-projection",
+        "boardSourceFence": source_fence,
         "threads": derive_board_threads(messages),
         "sourceMessageCount": len(messages),
         "truthBoundary": "Thread identity is derived from Host Board reply relations; this output does not create a second conversation authority.",
@@ -244,8 +234,9 @@ def _command_ecology_collection(args: argparse.Namespace) -> int:
 def _command_ecology_project(args: argparse.Namespace) -> int:
     feed_items: list[dict[str, object]] = []
     threads: list[dict[str, object]] = []
+    board_source_fence: dict[str, object] | None = None
     if args.board:
-        messages = _board_messages_from_document(_read_json_file(args.board))
+        messages, board_source_fence = normalize_board_source(_read_json_file(args.board))
         threads = derive_board_threads(messages)
         feed_items.extend(thread_feed_items(threads))
     collections: list[dict[str, object]] = []
@@ -266,6 +257,7 @@ def _command_ecology_project(args: argparse.Namespace) -> int:
     _write_json({
         "schemaVersion": 1,
         "kind": "ordivon.media.ecology-projection",
+        "boardSourceFence": board_source_fence,
         "threads": threads,
         "collections": collections,
         "feed": derive_activity_feed(feed_items, observed_at_ms=observed_at_ms),

@@ -13,6 +13,7 @@ from ordivon_studio.ecology import (  # noqa: E402
     collection_feed_item,
     derive_activity_feed,
     derive_board_threads,
+    normalize_board_source,
     thread_feed_items,
     validate_collection,
 )
@@ -31,9 +32,8 @@ def _iso(ms: object) -> str:
 
 def _projection() -> dict[str, object]:
     board = _read_json("board-snapshot.json")
-    if not isinstance(board, dict) or not isinstance(board.get("messages"), list):
-        raise ValueError("board-snapshot.json must contain messages[]")
-    threads = derive_board_threads(board["messages"])
+    messages, board_source_fence = normalize_board_source(board)
+    threads = derive_board_threads(messages)
     collection_raw = _read_json("daily-cabinet.collection.json")
     if not isinstance(collection_raw, dict):
         raise ValueError("daily-cabinet.collection.json must be an object")
@@ -43,6 +43,7 @@ def _projection() -> dict[str, object]:
     return {
         "schemaVersion": 1,
         "kind": "ordivon.media.ecology-pilot-encounter",
+        "boardSourceFence": board_source_fence,
         "threads": threads,
         "collections": [collection],
         "feed": derive_activity_feed(items, observed_at_ms=observed_at_ms),
@@ -57,9 +58,21 @@ def _render(projection: dict[str, object]) -> str:
     feed = projection["feed"]
     threads = projection["threads"]
     collections = projection["collections"]
+    board_source_fence = projection.get("boardSourceFence")
     assert isinstance(feed, dict)
     assert isinstance(threads, list)
     assert isinstance(collections, list)
+
+    if isinstance(board_source_fence, dict):
+        selection_mode = escape(str(board_source_fence.get("selectionMode")))
+        requested_limit = board_source_fence.get("requestedLimit")
+        source_note = (
+            f"Board acquisition: <strong>{selection_mode}</strong>"
+            + (f" · requested limit {int(requested_limit)}" if isinstance(requested_limit, int) else "")
+            + " · completeness not claimed"
+        )
+    else:
+        source_note = "Board acquisition: raw message array · source selection semantics unavailable"
 
     feed_cards: list[str] = []
     for item in feed["items"]:
@@ -141,6 +154,7 @@ summary {{ cursor: pointer; font-size: .8rem; }}
 .works {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }}
 .work {{ padding: 16px; border-radius: 14px; background: color-mix(in srgb, Canvas 90%, CanvasText 10%); min-width: 0; }}
 .work ul {{ padding-left: 18px; }} .work li {{ margin: 9px 0; }} .work small {{ display: block; overflow-wrap: anywhere; opacity: .55; }}
+.source-fence {{ padding: 10px 12px; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 12px; font-size: .78rem; opacity: .76; }}
 .boundary {{ margin-top: 32px; padding: 16px 0; border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); font-size: .82rem; opacity: .68; }}
 @media (max-width: 760px) {{ main {{ width: min(100% - 22px, 680px); padding-top: 28px; }} .grid, .works {{ grid-template-columns: 1fr; }} .card {{ border-radius: 16px; }} }}
 </style>
@@ -151,6 +165,7 @@ summary {{ cursor: pointer; font-size: .8rem; }}
   <div class="eyebrow">Media Ecology · natural pilot · 2026-08-30</div>
   <h1>Activity without a second truth system.</h1>
   <p>A Human-facing encounter over explicit Board and Collection projections. Threads are derived from Host reply edges; collection membership is curatorial; chronological placement is not priority.</p>
+  <p class="source-fence">{source_note}</p>
 </header>
 <div class="rule"></div>
 <section class="zone"><h2>Recent activity</h2><div class="grid">{''.join(feed_cards)}</div></section>

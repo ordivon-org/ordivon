@@ -30,6 +30,91 @@ def _integer(value: object, field: str) -> int:
     return value
 
 
+def normalize_board_source(
+    document: object,
+) -> tuple[list[dict[str, object]], dict[str, object] | None]:
+    """Preserve Host Board acquisition semantics alongside consumed messages.
+
+    Bare message arrays remain supported but have no source-envelope semantics. A Host Board
+    response produced before query-fence fields existed is explicitly marked unknown rather
+    than inferred from hasMore/cursors.
+    """
+
+    if isinstance(document, list):
+        messages = document
+        fence = None
+    elif isinstance(document, Mapping) and isinstance(document.get("messages"), list):
+        messages = document["messages"]
+        if document.get("kind") == "ordivon.host-board-list":
+            selection_mode = document.get("selectionMode")
+            if selection_mode is None:
+                mode = "unknown-legacy-response"
+                requested_after: int | None = None
+                requested_limit: int | None = None
+            else:
+                if selection_mode not in {"latest-window", "incremental-page"}:
+                    raise ValueError("Host Board selectionMode is invalid")
+                mode = str(selection_mode)
+                raw_after = document.get("requestedAfterSequence")
+                if raw_after is not None:
+                    _integer(raw_after, "requestedAfterSequence")
+                requested_after = None if raw_after is None else int(raw_after)
+                raw_limit = document.get("requestedLimit")
+                if type(raw_limit) is not int or raw_limit < 1 or raw_limit > 100:
+                    raise ValueError("Host Board requestedLimit must be in [1, 100]")
+                requested_limit = int(raw_limit)
+                if mode == "latest-window" and requested_after is not None:
+                    raise ValueError("latest-window Board response must have null requestedAfterSequence")
+                if mode == "incremental-page" and requested_after is None:
+                    raise ValueError("incremental-page Board response must preserve requestedAfterSequence")
+
+            topic = document.get("topic")
+            if topic is not None:
+                _string(topic, "topic")
+            reply_target = document.get("replyToClientMessageId")
+            if reply_target is not None:
+                _string(reply_target, "replyToClientMessageId")
+
+            def optional_nonnegative(field: str) -> int | None:
+                raw = document.get(field)
+                if raw is None:
+                    return None
+                return _integer(raw, field)
+
+            raw_has_more = document.get("hasMore")
+            if raw_has_more is not None and type(raw_has_more) is not bool:
+                raise ValueError("Host Board hasMore must be boolean when present")
+            fence = {
+                "schemaVersion": 1,
+                "kind": "ordivon.media.host-board-source-fence",
+                "sourceKind": "ordivon.host-board-list",
+                "selectionMode": mode,
+                "requestedAfterSequence": requested_after,
+                "requestedLimit": requested_limit,
+                "topic": topic,
+                "replyToClientMessageId": reply_target,
+                "globalMessageCount": optional_nonnegative("messageCount"),
+                "lastSequence": optional_nonnegative("lastSequence"),
+                "nextAfterSequence": optional_nonnegative("nextAfterSequence"),
+                "hasMore": raw_has_more,
+                "returnedMessageCount": len(messages),
+                "sourceCompletenessClaimed": False,
+                "truthRole": "source-acquisition-fence-not-board-or-domain-truth",
+                "truthBoundary": (
+                    "This fence preserves how Host selected the supplied Board bytes. It does not "
+                    "turn a latest window or one incremental page into a complete-history claim."
+                ),
+            }
+        else:
+            fence = None
+    else:
+        raise ValueError("Board input must be a message list or an object with messages[]")
+
+    if not all(isinstance(item, Mapping) for item in messages):
+        raise ValueError("Board messages must be JSON objects")
+    return [dict(item) for item in messages], fence
+
+
 def derive_board_threads(messages: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
     """Project Host Board reply relations into thread-shaped views.
 
