@@ -20,9 +20,9 @@ from .timed_text import export_srt, export_webvtt
 from .video import normalize_h264_bt709
 from .ecology import (
     collection_feed_item,
+    compose_board_sources,
     derive_activity_feed,
     derive_board_threads,
-    normalize_board_source,
     thread_feed_items,
     validate_collection,
 )
@@ -211,7 +211,7 @@ def _read_json_file(path: str) -> object:
 
 
 def _command_ecology_threads(args: argparse.Namespace) -> int:
-    messages, source_fence = normalize_board_source(_read_json_file(args.board))
+    messages, source_fence = compose_board_sources([_read_json_file(path) for path in args.board])
     _write_json({
         "schemaVersion": 1,
         "kind": "ordivon.media.board-thread-set-projection",
@@ -236,7 +236,9 @@ def _command_ecology_project(args: argparse.Namespace) -> int:
     threads: list[dict[str, object]] = []
     board_source_fence: dict[str, object] | None = None
     if args.board:
-        messages, board_source_fence = normalize_board_source(_read_json_file(args.board))
+        messages, board_source_fence = compose_board_sources(
+            [_read_json_file(path) for path in args.board]
+        )
         threads = derive_board_threads(messages)
         feed_items.extend(thread_feed_items(threads))
     collections: list[dict[str, object]] = []
@@ -546,7 +548,7 @@ def build_parser() -> argparse.ArgumentParser:
     ecology_threads = ecology_commands.add_parser(
         "threads", help="derive Board reply trees from an explicit Host Board JSON snapshot"
     )
-    ecology_threads.add_argument("board")
+    ecology_threads.add_argument("board", nargs="+", help="one Host Board response or a cursor-linked sequence of incremental pages")
     ecology_threads.set_defaults(handler=_command_ecology_threads)
 
     ecology_collection = ecology_commands.add_parser(
@@ -558,7 +560,7 @@ def build_parser() -> argparse.ArgumentParser:
     ecology_project = ecology_commands.add_parser(
         "project", help="build one derived Media ecology projection from explicit Board/Collection sources"
     )
-    ecology_project.add_argument("--board", help="Host Board JSON list/object; no live Host read is performed")
+    ecology_project.add_argument("--board", action="append", default=[], help="Host Board JSON response; repeat for cursor-linked incremental pages; no live Host read is performed")
     ecology_project.add_argument("--collection", action="append", default=[], help="validated collection JSON; repeat as needed")
     ecology_project.add_argument("--observed-at-ms", type=int, help="explicit observation time; defaults to latest supplied source time")
     ecology_project.set_defaults(handler=_command_ecology_project)

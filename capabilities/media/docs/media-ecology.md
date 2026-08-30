@@ -52,6 +52,7 @@ Current Host Board responses therefore preserve `selectionMode`, `requestedAfter
 Older saved Host responses that predate this machine-readable query fence are accepted for compatibility but are projected as `selectionMode=unknown-legacy-response`; Media does not infer the lost request from cursors, result count, or `hasMore`. Bare message arrays remain usable but have no acquisition fence.
 
 Natural dogfood on `artifact-production-iteration-loop` demonstrated the distinction: a 100-message `latest-window` covered sequences 2520–3116 and produced 58 local thread projections, 11 with ancestors outside the supplied window; an `incremental-page` from sequence zero covered 507–663, returned `hasMore=true`, and produced 22 thread projections, two with ancestors outside that page. Existing `outside-snapshot` Thread semantics handled both cases without a new Thread store.
+A full cursor-linked scan of that topic required ten pages and recovered 951 unique messages with strictly increasing sequence identity. Media composed those pages into one source scan and derived 259 threads. Forty-nine still had roots outside the filtered topic because cross-topic reply edges are legal; this is evidence that topic filtering must not be reified as conversation identity.
 
 ## Board thread projection
 
@@ -109,14 +110,14 @@ This is closer to a recoverable activity lens than a recommender system.
 ## CLI
 
 ```text
-ordivon-studio ecology threads BOARD.json
+ordivon-studio ecology threads BOARD.json [BOARD_PAGE_2.json ...]
 ordivon-studio ecology collection COLLECTION.json
 ordivon-studio ecology project \
-  --board BOARD.json \
+  --board BOARD.json [--board BOARD_PAGE_2.json ...] \
   --collection COLLECTION.json
 ```
 
-`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot.
+`ecology project` performs no live Host call. A caller that needs current Host Board bytes must acquire them from Host under Host authority and then supply that exact snapshot. Multiple `--board` inputs are allowed only when they are self-describing Host `incremental-page` responses forming one exact cursor-linked chain with identical filters. Media rejects cursor gaps, mixed latest windows, filter drift, regressing high-water marks and duplicate message identities. The resulting `ordivon.media.host-board-source-scan` preserves every page fence and records whether the final read was exhausted, while still keeping `sourceCompletenessClaimed=false`.
 
 ## Natural evidence cut — 2026-08-30
 

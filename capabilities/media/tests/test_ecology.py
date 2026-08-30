@@ -7,6 +7,7 @@ from ordivon_studio.ecology import (
     COLLECTION_TRUTH_ROLE,
     FEED_TRUTH_ROLE,
     collection_feed_item,
+    compose_board_sources,
     derive_activity_feed,
     derive_board_threads,
     normalize_board_source,
@@ -159,6 +160,98 @@ class EcologyTests(unittest.TestCase):
                     "messages": [_message(1, "root")],
                 }
             )
+
+    def test_cursor_linked_board_pages_compose_without_losing_fences(self) -> None:
+        pages = [
+            {
+                "kind": "ordivon.host-board-list",
+                "selectionMode": "incremental-page",
+                "requestedAfterSequence": 0,
+                "requestedLimit": 2,
+                "messages": [_message(5, "a", topic="busy"), _message(8, "b", topic="busy")],
+                "messageCount": 20,
+                "lastSequence": 20,
+                "nextAfterSequence": 8,
+                "hasMore": True,
+                "topic": "busy",
+            },
+            {
+                "kind": "ordivon.host-board-list",
+                "selectionMode": "incremental-page",
+                "requestedAfterSequence": 8,
+                "requestedLimit": 2,
+                "messages": [_message(11, "c", topic="busy")],
+                "messageCount": 20,
+                "lastSequence": 20,
+                "nextAfterSequence": 20,
+                "hasMore": False,
+                "topic": "busy",
+            },
+        ]
+        messages, scan = compose_board_sources(pages)
+        self.assertEqual([item["sequence"] for item in messages], [5, 8, 11])
+        self.assertIsNotNone(scan)
+        assert scan is not None
+        self.assertEqual(scan["kind"], "ordivon.media.host-board-source-scan")
+        self.assertEqual(scan["selectionMode"], "incremental-page-chain")
+        self.assertEqual(scan["pageCount"], 2)
+        self.assertEqual(scan["returnedMessageCount"], 3)
+        self.assertTrue(scan["scanExhaustedAtFinalRead"])
+        self.assertFalse(scan["sourceCompletenessClaimed"])
+        self.assertEqual(len(scan["pageFences"]), 2)
+
+    def test_board_page_composition_rejects_cursor_gap(self) -> None:
+        pages = [
+            {
+                "kind": "ordivon.host-board-list",
+                "selectionMode": "incremental-page",
+                "requestedAfterSequence": 0,
+                "requestedLimit": 1,
+                "messages": [_message(5, "a")],
+                "nextAfterSequence": 5,
+                "hasMore": True,
+            },
+            {
+                "kind": "ordivon.host-board-list",
+                "selectionMode": "incremental-page",
+                "requestedAfterSequence": 6,
+                "requestedLimit": 1,
+                "messages": [_message(7, "b")],
+                "nextAfterSequence": 7,
+                "hasMore": False,
+            },
+        ]
+        with self.assertRaisesRegex(ValueError, "cursor chain"):
+            compose_board_sources(pages)
+
+    def test_board_page_composition_rejects_mixed_filters_and_latest_windows(self) -> None:
+        first = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 0,
+            "requestedLimit": 1,
+            "messages": [_message(5, "a", topic="alpha")],
+            "nextAfterSequence": 5,
+            "hasMore": True,
+            "topic": "alpha",
+        }
+        second = {
+            "kind": "ordivon.host-board-list",
+            "selectionMode": "incremental-page",
+            "requestedAfterSequence": 5,
+            "requestedLimit": 1,
+            "messages": [_message(7, "b", topic="beta")],
+            "nextAfterSequence": 7,
+            "hasMore": False,
+            "topic": "beta",
+        }
+        with self.assertRaisesRegex(ValueError, "filters differ"):
+            compose_board_sources([first, second])
+        latest = dict(second)
+        latest["selectionMode"] = "latest-window"
+        latest["requestedAfterSequence"] = None
+        with self.assertRaisesRegex(ValueError, "incremental-page chain"):
+            compose_board_sources([first, latest])
 
     def test_board_thread_identity_is_derived_from_root_not_topic(self) -> None:
         threads = derive_board_threads(

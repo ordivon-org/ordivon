@@ -115,6 +115,76 @@ def normalize_board_source(
     return [dict(item) for item in messages], fence
 
 
+def compose_board_sources(
+    documents: Sequence[object],
+) -> tuple[list[dict[str, object]], dict[str, object] | None]:
+    """Compose one or more explicit Board inputs without erasing page acquisition fences."""
+
+    if not documents:
+        raise ValueError("at least one Board source is required")
+    normalized = [normalize_board_source(document) for document in documents]
+    if len(normalized) == 1:
+        return normalized[0]
+
+    if any(fence is None for _, fence in normalized):
+        raise ValueError("multiple Board sources require self-describing Host Board responses")
+    fences = [fence for _, fence in normalized if fence is not None]
+    if any(fence["selectionMode"] != "incremental-page" for fence in fences):
+        raise ValueError("multiple Board sources must form an incremental-page chain")
+
+    topic = fences[0].get("topic")
+    reply_target = fences[0].get("replyToClientMessageId")
+    for fence in fences[1:]:
+        if fence.get("topic") != topic or fence.get("replyToClientMessageId") != reply_target:
+            raise ValueError("Board page filters differ within one source scan")
+
+    for previous, current in zip(fences, fences[1:]):
+        if previous.get("nextAfterSequence") != current.get("requestedAfterSequence"):
+            raise ValueError("Board page cursor chain is discontinuous")
+        previous_last = previous.get("lastSequence")
+        current_last = current.get("lastSequence")
+        if isinstance(previous_last, int) and isinstance(current_last, int) and current_last < previous_last:
+            raise ValueError("Board page high-water regressed within one source scan")
+
+    messages: list[dict[str, object]] = []
+    seen_ids: set[str] = set()
+    seen_sequences: set[int] = set()
+    for page_messages, _ in normalized:
+        for message in page_messages:
+            client_id = _string(message.get("clientMessageId"), "clientMessageId")
+            sequence = _integer(message.get("sequence"), "sequence")
+            if client_id in seen_ids or sequence in seen_sequences:
+                raise ValueError("Board page chain contains duplicate message identity")
+            seen_ids.add(client_id)
+            seen_sequences.add(sequence)
+            messages.append(message)
+    messages.sort(key=lambda item: (int(item["sequence"]), str(item["clientMessageId"])))
+
+    scan = {
+        "schemaVersion": 1,
+        "kind": "ordivon.media.host-board-source-scan",
+        "sourceKind": "ordivon.host-board-list",
+        "selectionMode": "incremental-page-chain",
+        "pageCount": len(fences),
+        "pageFences": fences,
+        "topic": topic,
+        "replyToClientMessageId": reply_target,
+        "scanStartAfterSequence": fences[0].get("requestedAfterSequence"),
+        "finalNextAfterSequence": fences[-1].get("nextAfterSequence"),
+        "finalLastSequence": fences[-1].get("lastSequence"),
+        "scanExhaustedAtFinalRead": fences[-1].get("hasMore") is False,
+        "returnedMessageCount": len(messages),
+        "sourceCompletenessClaimed": False,
+        "truthRole": "source-acquisition-scan-not-board-or-domain-truth",
+        "truthBoundary": (
+            "This scan composes an exact cursor-linked sequence of Host Board pages. Exhaustion means "
+            "the final filtered read had no later matching row at that observation; it is not a future "
+            "completeness, conversation-boundary, priority, or domain-truth claim."
+        ),
+    }
+    return messages, scan
+
+
 def derive_board_threads(messages: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
     """Project Host Board reply relations into thread-shaped views.
 
