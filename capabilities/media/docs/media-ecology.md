@@ -137,6 +137,20 @@ This digest identifies that derived projection only; it is not an authority dige
 
 Atlas consumer recovery supplied the first natural exact-source-navigation pressure. An `ordivon-research-domain-atlas` topic read contained 87 messages and derived 54 Threads, two of which correctly exposed outside-snapshot ancestors `research-domain-atlas-gap-audit-r1-a` and `research-domain-atlas-gap-audit-r1-b`. Before Host exposed exact identity reads, recovering those already-known source messages required a global fallback scan of 33 pages / 3,300 Board messages because `replyToClientMessageId` returns children rather than the named parent. Host therefore extended existing `board.list` with an exact `clientMessageId` filter rather than duplicating Board bodies into Media. After deployment, each ancestor was recovered by one exact read; Media preserved those reads as two independent source scopes alongside the Atlas topic scope. Joint derivation over 89 exact messages retained 54 Threads while reducing outside-snapshot roots from 2 to 0 and producing two genuine cross-topic Threads. This is evidence for source navigation and query-fence preservation, not for Post, Channel, Annotation, or persistent message-body duplication in Media.
 
+## Lazy source closure protocol
+
+A consumer should not auto-expand every outside-snapshot root. The default recovery path is deliberately lazy:
+
+1. acquire the consumer's primary Host Board scope under its exact query fence;
+2. derive Threads and preserve every `externalAncestorClientMessageId`;
+3. continue with the bounded projection when the missing ancestor is not needed;
+4. when one Thread actually needs semantic closure, ask Host for that exact `clientMessageId`;
+5. compose the exact response as another independent Media source scope and re-derive the reply graph.
+
+This keeps source authority with Host, prevents topic filters from becoming conversation identities, and avoids turning every possible outside root into eager retrieval work. Atlas required two exact closures (87 -> 89 messages, 54 Threads, outside roots 2 -> 0). A second heterogeneous workload, `security-agentic-conflict-malware`, required one exact closure: 44 -> 45 messages, 23 Threads, outside roots 1 -> 0. The recovered root lived under `ordivon-security-agentic-conflict-malware`, while its two descendants lived under `security-agentic-conflict-malware`; joint derivation produced one real three-message cross-topic Thread without adding a Channel or duplicating message bodies.
+
+Batch exact-ID retrieval is therefore not admitted yet. A large projection may expose many outside roots, but those are recovery affordances rather than a requirement to fetch all ancestors. Batch retrieval should reopen only if a real consumer repeatedly needs many exact closures in one bounded semantic operation and per-ID calls become the demonstrated bottleneck.
+
 ## Reopen conditions
 
 A first-class Post should be reconsidered only if at least two heterogeneous real consumers need a durable authored object that cannot truthfully be a Board message/root or a Media Production/source without recurring loss or ceremony.
