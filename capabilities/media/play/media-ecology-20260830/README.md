@@ -14,3 +14,12 @@ uv run ordivon-studio ecology project \
 ```
 
 The resulting Thread and Feed are derived projections. The Board remains collaboration authority, and every Collection member remains owned by its declared source.
+
+Human encounter pilot:
+
+```text
+.venv/bin/python play/media-ecology-20260830/build.py
+.venv/bin/python play/media-ecology-20260830/browser-check.py
+```
+
+`build.py` deterministically generates `projection.json` and `index.html`. `browser-check.py` uses the current Workstation-managed Playwright Chromium binding at desktop and mobile viewports, rejects horizontal overflow, checks the expected activity/member counts, and retains screenshot digests rather than screenshot payloads in `browser-acceptance.json`.
