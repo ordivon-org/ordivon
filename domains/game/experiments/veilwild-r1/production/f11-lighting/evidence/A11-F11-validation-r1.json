@@ -1,0 +1,63 @@
+{
+  "schema": "veilwild.f11-validation.r1",
+  "agentId": "A11",
+  "frontId": "F11",
+  "closureId": "V-V8",
+  "baseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "a04Input": {
+    "commit": "d523d712fb096d2bae1ea58b85fa799089ca3de9",
+    "artifact": "experiments/veilwild-r1/art-direction/VEILWILD_VISUAL_GRAMMAR_R1.json",
+    "digest": "sha256:b2ef66fd6ace236cbbc68269c07c5181377bfb4ee22921afc0757fc237764b95",
+    "revalidation": "git show exact artifact; Runtime stdout digest matched advertised digest"
+  },
+  "lightingSource": {
+    "authoritativeEditable": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+    "derivedRuntimeCopy": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+    "digest": "sha256:827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+    "copyEqualityJob": "job-01a07acf-737a-7561-a645-b9ccfe9a8a4a"
+  },
+  "mechanicalValidation": [
+    {
+      "kind": "Godot structural oracle",
+      "jobId": "job-01a07ace-59cf-7430-b436-f54080bc8fb1",
+      "result": "PASS",
+      "observed": "F11_VALIDATE_PASS key_energy=0.920 ambient_energy=0.480 shadow_max=48.0 mode=2"
+    },
+    {
+      "kind": "Godot X11 Compatibility render/capture",
+      "jobId": "job-01a07ace-a204-79b1-be55-8de06a09cd8a",
+      "result": "PASS_WITH_CONDITION_QUALIFICATION",
+      "observed": "960x540 capture, Mesa llvmpipe Compatibility renderer; VSync unsupported warning only; audio driver explicitly Dummy",
+      "captureDigest": "sha256:7a33ce899b4b0efa79ea9637f9859fb0269a1f535544e9ceefe290f4ef01c297"
+    },
+    {
+      "kind": "frame luminance proxy",
+      "jobId": "job-01a07acf-20b0-7360-bf0a-b06301414a66",
+      "result": "MECHANICAL_PROXY_ONLY",
+      "observed": "mean=0.596612 sd=0.0508293"
+    },
+    {
+      "kind": "near-black coverage proxy",
+      "jobId": "job-01a07acf-4d6b-7bc3-a9c3-5711e2fbb5f0",
+      "result": "MECHANICAL_PROXY_ONLY",
+      "observed": "fraction_above_10pct=0.909747; therefore approximately 9.03% of pixels at/below threshold in this proxy frame"
+    }
+  ],
+  "a04BindingConsequences": [
+    "key remains high lateral/back-diagonal and does not track the creature",
+    "key energy reduced from 1.08 to 0.92 after A04 contract arrival",
+    "ambient energy increased from 0.34 to 0.48 and background lifted toward canopy_deep family so concealment does not depend on crushed blacks",
+    "exposure remains fixed; no creature-state exposure behavior is authored",
+    "no hero rim/spotlight or emissive locator is present"
+  ],
+  "conditionQualification": "The fixture uses proxy geometry/materials and Mesa llvmpipe under Xvfb. It is not evidence for the real A05/A10/A12/A25 integrated frame, RTX performance, or Human detectability/readability.",
+  "standing": "PROTOTYPED_LOCAL",
+  "humanClaims": {
+    "detectability": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "believability": "UNKNOWN",
+    "immersion": "UNKNOWN",
+    "fun": "UNKNOWN"
+  }
+}

@@ -6,7 +6,7 @@
   "consumerFronts": ["F12", "F17", "F21", "F25"],
   "semanticMeaning": "Explicit runtime illumination/visibility condition for Veilwild that supports search readability without making camouflage either arbitrary darkness or trivial exposure.",
   "representationCarrier": "Godot 4.7.1 scene resource plus machine-readable JSON contract",
-  "revisionArtifactIdentity": "lighting_rig.tscn sha256:0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210; exact A11 commit published separately",
+  "revisionArtifactIdentity": "A04-bound lighting revision; exact rig digest and A11 commit published after validation",
   "unitsCoordinateConventions": {
     "worldUnits": "Godot 3D units treated as meters for fixture only; real environment owner must confirm",
     "upAxis": "+Y",
@@ -16,17 +16,17 @@
   "fixtureDefaultsNotProductAuthority": {
     "keySunRotationDegreesXYZ": [-48.0, -32.0, 0.0],
     "keySunColorLinearDisplayInput": [1.0, 0.91, 0.78, 1.0],
-    "keySunEnergy": 1.08,
+    "keySunEnergy": 0.92,
     "shadowsEnabled": true,
     "directionalShadowMode": "PARALLEL_4_SPLITS",
     "directionalShadowBlendSplits": true,
     "directionalShadowMaxDistance": 48.0,
-    "ambientColor": [0.26, 0.34, 0.29, 1.0],
-    "ambientEnergy": 0.34,
+    "ambientColor": [0.40, 0.46, 0.33, 1.0],
+    "ambientEnergy": 0.48,
     "ambientLightSource": "COLOR",
     "ambientLightSkyContribution": 0.0,
-    "backgroundColor": [0.035, 0.055, 0.045, 1.0],
-    "backgroundEnergyMultiplier": 0.75,
+    "backgroundColor": [0.106, 0.165, 0.137, 1.0],
+    "backgroundEnergyMultiplier": 0.82,
     "tonemapMode": "FILMIC"
   },
   "preconditions": [
@@ -47,5 +47,5 @@
     "lighting settings cause material frame-time or pacing cost on exact integrated condition"
   ],
   "validationOracle": "On the exact integrated scene/build/camera/render condition, explicit authored lighting is present and mechanically stable; real environment/material/camouflage remains readable enough to preserve declared cues without collapsing concealment. Human detectability/usefulness/fairness remain UNKNOWN until real participant evidence.",
-  "compatibilityStatus": "PROVISIONAL_PENDING_A04_A05_A10_A12_A17_REAL_INPUTS"
+  "compatibilityStatus": "A04_VISUAL_GRAMMAR_BOUND_PENDING_A05_A10_A12_A17_A25_REAL_INPUTS"
 }
