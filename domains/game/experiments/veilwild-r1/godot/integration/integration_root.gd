@@ -4,6 +4,7 @@ extends Node3D
 
 const ObservationCommitBinding = preload("res://integration/observation_commit_binding.gd")
 const FinalCreatureCamouflageAdapter = preload("res://modules/f12/final_creature_camouflage_adapter.gd")
+const A09AnimationBehaviorBinding = preload("res://integration/a09_animation_behavior_binding.gd")
 
 const MODULE_SPECS: Array[Dictionary] = [
     {"id": "environment", "setting": "veilwild/integration/environment_scene", "mount": "EnvironmentMount"},
@@ -22,12 +23,14 @@ var loaded_modules: Dictionary = {}
 var load_failures: Array[String] = []
 var observation_binding: Node = null
 var camouflage_adapter: Node = null
+var animation_binding: Node = null
 var integration_failures: Array[String] = []
 
 func _ready() -> void:
     add_to_group("veilwild.integration_root")
     _load_configured_modules()
     _bind_final_creature_camouflage_adapter()
+    _bind_animation_behavior_adapter()
     _bind_observation_commit_adapter()
     var status := candidate_health(bool(ProjectSettings.get_setting("veilwild/integration/strict_candidate", false)))
     if status["pass"]:
@@ -45,16 +48,22 @@ func candidate_health(strict: bool = false) -> Dictionary:
             if not loaded_modules.has(spec["id"]):
                 missing.append(spec["id"])
     var observation_health: Dictionary = {} if observation_binding == null else observation_binding.call("get_binding_health")
+    var animation_health: Dictionary = {} if animation_binding == null else animation_binding.call("snapshot")
     var integration_ok := integration_failures.is_empty()
     var observation_ready := bool(observation_health.get("candidateReady", false))
+    var animation_ready := bool(animation_health.get("candidateReady", false))
+    if strict and animation_binding != null and animation_ready:
+        animation_ready = bool(animation_binding.call("strict_probe"))
+        animation_health = animation_binding.call("snapshot")
     return {
-        "pass": load_failures.is_empty() and integration_ok and (not strict or (missing.is_empty() and observation_ready)),
+        "pass": load_failures.is_empty() and integration_ok and (not strict or (missing.is_empty() and observation_ready and animation_ready)),
         "strict": strict,
         "loadedModules": loaded_modules.keys(),
         "loadFailures": load_failures.duplicate(),
         "integrationFailures": integration_failures.duplicate(),
         "missingModules": missing,
         "observationBinding": observation_health,
+        "animationBinding": animation_health,
     }
 
 func _load_configured_modules() -> void:
@@ -108,6 +117,25 @@ func _bind_final_creature_camouflage_adapter() -> void:
     if not bool(camouflage_adapter.call("bind_creature", creature)):
         var owner_error: Variant = camouflage_adapter.get("last_error")
         integration_failures.append("camouflage adapter: " + str(owner_error))
+
+func _bind_animation_behavior_adapter() -> void:
+    if not loaded_modules.has("animation_system") or not loaded_modules.has("creature") or not loaded_modules.has("behavior"):
+        return
+    var systems_mount := get_node_or_null("SystemsMount")
+    if systems_mount == null:
+        integration_failures.append("missing SystemsMount for A09 animation binding")
+        return
+    animation_binding = A09AnimationBehaviorBinding.new()
+    animation_binding.name = "A09AnimationBehaviorBinding"
+    systems_mount.add_child(animation_binding)
+    var ok := bool(animation_binding.call(
+        "bind_runtime",
+        loaded_modules["animation_system"]["instance"],
+        loaded_modules["creature"]["instance"],
+        loaded_modules["behavior"]["instance"]
+    ))
+    if not ok:
+        integration_failures.append("A09 animation binding: " + str(animation_binding.get("last_error")))
 
 func _bind_observation_commit_adapter() -> void:
     observation_binding = ObservationCommitBinding.new()
