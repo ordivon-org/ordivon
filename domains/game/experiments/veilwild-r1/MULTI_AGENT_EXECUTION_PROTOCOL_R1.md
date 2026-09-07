@@ -337,3 +337,37 @@ scope split justified
 ```
 
 Do not generate filler work after the front has satisfied its current product responsibility.
+
+## 14. Board collaboration protocol
+
+Board is the preferred durable collaboration surface **after first-verdict freeze**.
+
+```text
+topic = game-e2e:veilwild-r1:production-r1
+root clientMessageId = veilwild-r1-production-r1-board-root-859e3ac
+root Board sequence = 12321
+```
+
+Before first-verdict freeze, do not read current-round peer Board messages. After freezing, use Host `board.list` / `board.search` for navigation and `board.post` for narrow durable collaboration. Prefer direct replies to the concrete message being consumed.
+
+Good Board traffic: interface contracts, consumer requests, blocker/failing-oracle receipts, repair receipts, artifact identities/exact revisions, compatibility changes, friction receipts, handoff availability, and consumption acknowledgements.
+
+Avoid dumping entire scratchpads or persuasive verdict narratives. Board messages are coordination records only: not execution authority, ownership, delivery/consumption proof, or domain truth. Revalidate exact source/artifact/runtime state before acting on a Board claim.
+
+When consuming a peer Board message, record its `clientMessageId` and how the relevant state was independently revalidated.
+
+## 15. Workstation professional-carrier policy
+
+All legitimate professional software/capability carriers already materialized on the Ordivon Workstation are available when relevant. Do not artificially restrict work to text/code tools. Prefer mature professional software over bespoke substitutes.
+
+Known capability families include Godot, Blender, Cascadeur, Krita, REAPER, DaVinci Resolve/Fusion, TouchDesigner, OBS, Figma, FFmpeg/FFprobe, ImageMagick, QGIS, OpenSCAD, CadQuery, trimesh, PyMeshLab, isolated Open3D, Perforce CLI, PIX and other Workstation carriers. This list is navigation, not current physical truth.
+
+Before relying on a carrier: inspect Workstation source-current declaration where relevant; verify actual executable/environment/path/version now; use it on the real product artifact; verify resulting artifact/runtime consequence; record usage and friction.
+
+Godot remains the selected first runtime carrier. Other engines/tools may assist production, diagnosis or interchange but may not silently replace product/runtime semantics. Do not bypass account, license, admin, driver, credential or secret boundaries.
+
+## 16. Friction as product evidence
+
+Every Agent must return `frictionReceipts`, even if empty. Record only observed friction. Categories include tool discovery, install/acquisition, auth/license, admin/permission, network/distribution, format/interchange, DCC automation, GUI-only/Agent operability, version/driver, performance/resource, Workstation routing, build/reproducibility and Board collaboration.
+
+Each receipt binds exact surface+condition → observed consequence → workaround/resolution → probable owner route → severity → reusable lesson. Friction is not automatically a Workstation defect: product-semantic friction stays in Game; carrier/materialization friction routes to Workstation; generic implementation/build defects route through Engineering; network/distribution defects route through Network where appropriate.

@@ -28,3 +28,17 @@ live stale 24-role/A01-A24 launch truth=0
 ```
 
 This receipt is mechanical/pre-run evidence. It does not claim Veilwild product success or Human outcome.
+
+Additional launch-protocol validation:
+
+```text
+Board collaboration contract = present
+Board topic = game-e2e:veilwild-r1:production-r1
+Board root clientMessageId = veilwild-r1-production-r1-board-root-859e3ac
+Board root sequence = 12321
+first-verdict-before-peer-Board-read guard = enforced in schema/prompt
+Workstation professional-carrier policy = present
+workstationUse handoff surface = required
+frictionReceipts handoff surface = required
+Board/workstation/friction prompt surfaces = 25/25 PASS
+```

@@ -15,7 +15,10 @@
     "validation",
     "blockers",
     "standing",
-    "knownLimitations"
+    "knownLimitations",
+    "boardCollaboration",
+    "workstationUse",
+    "frictionReceipts"
   ],
   "properties": {
     "schemaVersion": {
@@ -371,6 +374,222 @@
               "type": "string",
               "minLength": 1
             }
+          }
+        }
+      }
+    },
+    "boardCollaboration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "rootClientMessageId",
+        "firstVerdictFrozenBeforePeerRead",
+        "posts",
+        "consumedMessages"
+      ],
+      "properties": {
+        "topic": {
+          "const": "game-e2e:veilwild-r1:production-r1"
+        },
+        "rootClientMessageId": {
+          "const": "veilwild-r1-production-r1-board-root-859e3ac"
+        },
+        "firstVerdictFrozenBeforePeerRead": {
+          "const": true
+        },
+        "posts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "clientMessageId",
+              "kind",
+              "purpose"
+            ],
+            "properties": {
+              "clientMessageId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "interface",
+                  "question",
+                  "proposal",
+                  "warning",
+                  "blocker",
+                  "repair",
+                  "artifact",
+                  "friction",
+                  "handoff",
+                  "consumption-ack"
+                ]
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1
+              },
+              "replyToClientMessageId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "consumedMessages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "clientMessageId",
+              "howRevalidated"
+            ],
+            "properties": {
+              "clientMessageId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "howRevalidated": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "workstationUse": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability",
+          "carrier",
+          "availabilityVerified",
+          "versionOrIdentity",
+          "purpose",
+          "result"
+        ],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "carrier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availabilityVerified": {
+            "type": "boolean"
+          },
+          "versionOrIdentity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "enum": [
+              "USED_SUCCESSFULLY",
+              "USED_WITH_FRICTION",
+              "UNAVAILABLE",
+              "BLOCKED_BY_AUTHORITY",
+              "NOT_NEEDED"
+            ]
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "frictionReceipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frictionId",
+          "category",
+          "surface",
+          "observedConsequence",
+          "exactCondition",
+          "workaroundOrResolution",
+          "ownerRoute",
+          "severity",
+          "reusableLesson"
+        ],
+        "properties": {
+          "frictionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "TOOL_DISCOVERY",
+              "INSTALL_OR_ACQUISITION",
+              "AUTH_OR_LICENSE",
+              "ADMIN_OR_PERMISSION",
+              "NETWORK_OR_DISTRIBUTION",
+              "FORMAT_OR_INTERCHANGE",
+              "DCC_AUTOMATION",
+              "GUI_ONLY_OR_AGENT_OPERABILITY",
+              "VERSION_OR_DRIVER",
+              "PERFORMANCE_OR_RESOURCE",
+              "WORKSTATION_ROUTING",
+              "BUILD_OR_REPRODUCIBILITY",
+              "BOARD_COLLABORATION",
+              "OTHER"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observedConsequence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exactCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workaroundOrResolution": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ownerRoute": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "BLOCKING"
+            ]
+          },
+          "reusableLesson": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
