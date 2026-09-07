@@ -21,7 +21,7 @@ renderer/rendering_method.mobile="mobile"
 
 [veilwild]
 integration/strict_candidate=false
-integration/environment_scene=""
+integration/environment_scene="res://modules/f05/veilwild_forest_environment.glb"
 integration/creature_scene=""
 integration/lighting_scene="res://modules/f11/lighting_rig.tscn"
 integration/navigation_scene=""

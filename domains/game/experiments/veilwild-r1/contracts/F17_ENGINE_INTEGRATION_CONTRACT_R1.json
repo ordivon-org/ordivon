@@ -95,7 +95,7 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + source-current F13 R2 + collision-safe A21 F22 + provisional A25 F18 player/UI mounted; environment/creature/navigation/animation/audio absent; not a frozen playable candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F05 environment + source-current F11/F13 + collision-safe F22 + provisional F18 player/UI mounted; creature/navigation/animation/audio absent; not a frozen playable candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
     {
@@ -161,6 +161,27 @@
       "projectSetting": "veilwild/integration/behavior_scene",
       "semanticBoundary": "A17 mounts exact producer module and preserves playerCueAuthorization payload verbatim. Authorization metadata is not cue exposure/perception; F13 does not prove reacquisition or observation success.",
       "round2Qualification": "CONSUMED_ON_ERROR_CLEAN_A17_MOUNT; standalone F13 test_behavior fixture still emits SceneTree get_node errors because it exercises runtime outside active tree, so that fixture is not accepted as clean composite evidence."
+    },
+    {
+      "bindingId": "F05_ENVIRONMENT_INTERCHANGE_R2",
+      "producer": "A05/F05",
+      "producerSourceCommit": "ffbee6188e17e39cd174ec3e9a7d63cedefc2743",
+      "round2OwnerWorkspaceHeadObservedByA18": "18a9e0106ba60becb99888369af1c0b750984ab6",
+      "f19AdmissionProducer": "A18/F19",
+      "f19AdmissionCommit": "dc60346334cf91f1ce23cc059a2fce21a33444f6",
+      "f19AdmissionRegistryPath": "experiments/veilwild-r1/evidence/a18-r2/A18_F19_RUNTIME_ASSET_ADMISSION_R2.json",
+      "f19AdmissionRegistrySha256": "e899d3e9b05a2682e4205319554aa92c59660438f86929038cc70ac454629ac6",
+      "authoritativeSourcePath": "assets/environment/source/veilwild_forest_environment.blend",
+      "authoritativeSourceSha256": "97eb0b3c00cd027eb6d97eb8dc24ae09803a634dab2052bfb5e72fd60e020dd5",
+      "derivedInterchangePath": "assets/environment/exports/veilwild_forest_environment.glb",
+      "derivedInterchangeSha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "derivedRuntimeCopyPath": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
+      "derivedRuntimeCopySha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "projectResourcePath": "res://modules/f05/veilwild_forest_environment.glb",
+      "mount": "EnvironmentMount",
+      "projectSetting": "veilwild/integration/environment_scene",
+      "coordinateBoundary": "A17 performs no facing conversion; environment has no declared semantic front. Godot imported coordinates are preserved exactly. Marker reachability remains F14 authority.",
+      "round2Compatibility": "F19_ADMITTED_INTERCHANGE_CONSUMER_PATH_PENDING_A18_REPLAY"
     }
   ]
 }
