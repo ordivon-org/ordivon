@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "veilwild.f22-telemetry-evidence-contract.r1",
+  "campaignId": "veilwild-r1",
+  "ownerAgent": "A21",
+  "ownerFront": "F22",
+  "ownedClosure": "V-C9",
+  "baseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "authority": "telemetry-envelope-evidence-transport-condition-binding-only",
+  "status": "OWNER_CONTRACT_READY_FOR_PRODUCER_BINDING",
+  "upstreamBindings": [
+    {
+      "producer": "A01/F01",
+      "commit": "66040f75d505e40e0069412b419e380daa5c73fc",
+      "path": "experiments/veilwild-r1/contracts/F01_PRODUCT_CORE_LOOP_CONTRACT_R1.json",
+      "sha256": "0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb",
+      "revalidated": true,
+      "consumed": ["core-loop phases", "intentional observation semantics", "recoverable evasion", "minimum telemetry semantics"]
+    },
+    {
+      "producer": "A02/F02",
+      "commit": "63ea64cd4e9e61ba71edfcaaa14e47880a51b153",
+      "path": "experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json",
+      "sha256": "0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33",
+      "revalidated": true,
+      "consumed": ["session phase IDs", "cue class IDs", "Human UNKNOWN guard", "success telemetry requirement"]
+    }
+  ],
+  "eventEnvelope": {
+    "schemaVersion": "veilwild.telemetry-event.r1",
+    "required": [
+      "schemaVersion",
+      "eventId",
+      "eventType",
+      "runId",
+      "sequence",
+      "monotonicTimeMs",
+      "sourceRevision",
+      "buildId",
+      "conditionId",
+      "accessibilityConditionId",
+      "sourceFront",
+      "producerSemanticId"
+    ],
+    "optional": [
+      "sessionPhaseId",
+      "reasonId",
+      "entityId",
+      "cueClass",
+      "worldPositionMeters",
+      "playerDistanceMeters",
+      "scalar",
+      "producerData"
+    ],
+    "identityRules": [
+      "eventId MUST equal runId + ':' + sequence",
+      "sequence MUST start at 1 and increase by exactly 1 within a run",
+      "monotonicTimeMs MUST be nondecreasing within a run and uses engine monotonic ticks, not wall-clock time",
+      "sourceRevision/buildId/conditionId/accessibilityConditionId are frozen at begin_run and MUST NOT drift within the evidence run",
+      "producerSemanticId is producer-owned semantic identity; A21 event transport MUST NOT silently rename it",
+      "worldPositionMeters uses Godot world-space meters as [x,y,z] only when the producer owns or exposes that position",
+      "playerDistanceMeters is a mechanical scalar in meters and MUST NOT be interpreted as Human detectability"
+    ]
+  },
+  "eventTypes": [
+    {"id": "session_started", "semanticMeaning": "Exact evidence run began under frozen source/build/condition identity.", "minimumProducer": "A17/F17 or integration carrier"},
+    {"id": "session_phase_changed", "semanticMeaning": "Player/session flow moved between A02-owned phase semantics.", "minimumProducer": "A02/F02-bound runtime state"},
+    {"id": "cue_exposed", "semanticMeaning": "A declared cue opportunity became mechanically available; this does NOT prove the Human perceived or used it.", "minimumProducer": "cue carrier owner"},
+    {"id": "creature_state_changed", "semanticMeaning": "A13-owned creature state/transition changed and the exact producer semantic ID/reason is retained.", "minimumProducer": "A13/F13"},
+    {"id": "detection_opportunity", "semanticMeaning": "A declared mechanical counter-cue/detection condition existed; not Human detection truth.", "minimumProducer": "A12/A13/A17 product binding as admitted"},
+    {"id": "threat_changed", "semanticMeaning": "Implementation-owned threat/risk signal changed and exact producer semantic/reason is retained.", "minimumProducer": "A13/F13"},
+    {"id": "evade_started", "semanticMeaning": "Pre-success creature evasion began.", "minimumProducer": "A13/F13"},
+    {"id": "reacquisition_opportunity", "semanticMeaning": "A recoverable search/reacquisition opportunity became mechanically available after loss/evasion.", "minimumProducer": "A13/A14/A17 binding"},
+    {"id": "observe_action_started", "semanticMeaning": "A25-owned explicit observe action/request began; distinct from mere proximity or detection.", "minimumProducer": "A25/F18"},
+    {"id": "observe_action_cancelled", "semanticMeaning": "Explicit observe action ended before commitment with retained reason.", "minimumProducer": "A25/F18"},
+    {"id": "observation_progress", "semanticMeaning": "A qualified intentional observation is mechanically progressing; no Human comprehension inference.", "minimumProducer": "A25/A17 binding"},
+    {"id": "observation_committed", "semanticMeaning": "A01 product observation-success conditions were mechanically satisfied and committed.", "minimumProducer": "A17 runtime integration consuming A01/A25/A13 semantics"},
+    {"id": "success_consequence", "semanticMeaning": "The explicit post-commit player-facing success consequence occurred.", "minimumProducer": "A25/A17 binding"},
+    {"id": "audio_cue_started", "semanticMeaning": "A16 interactive/spatial cue began using an A16/A15 semantic event identity.", "minimumProducer": "A16/F16"},
+    {"id": "audio_cue_stopped", "semanticMeaning": "A16 interactive/spatial cue ended with retained reason where meaningful.", "minimumProducer": "A16/F16"},
+    {"id": "session_ended", "semanticMeaning": "Evidence run ended with an explicit mechanical status; not a Human outcome grade.", "minimumProducer": "A17/F17 or integration carrier"}
+  ],
+  "sessionPhaseIdsFromA02": [
+    "ORIENT",
+    "SEARCH",
+    "HYPOTHESIS",
+    "DETECT_OR_REVISE",
+    "APPROACH_OR_REACQUIRE",
+    "OBSERVE_OR_REACQUIRE",
+    "SUCCESS_OR_REACQUIRE",
+    "OPTIONAL_REPLAY_OR_END"
+  ],
+  "cueClassIdsFromA02": [
+    "TRACE",
+    "BEHAVIOR_AUDIO",
+    "MOTION_COUNTERCUE",
+    "CAMOUFLAGE_MISMATCH",
+    "THREAT_RESPONSE",
+    "OBSERVATION_PROGRESS",
+    "SUCCESS_CONSEQUENCE"
+  ],
+  "durability": {
+    "runtimeCarrier": "Godot 4.7.x FileAccess JSON Lines",
+    "pathClass": "user:// evidence output under runtime user-data authority",
+    "recordFlushPolicy": "flush after every admitted material event for R1 evidence integrity",
+    "finalManifest": "veilwild.telemetry-manifest.r1 with raw JSONL SHA-256, eventCount and frozen condition identity",
+    "rawEvidenceRule": "raw JSONL bytes are evidence artifacts; summaries/metrics are derived projections and never replace raw evidence"
+  },
+  "privacyAndHumanBoundary": {
+    "directParticipantIdentifiersInRuntimeTelemetry": "PROHIBITED",
+    "participantRef": "not stored in raw runtime events; attach a locally assigned pseudonymous participantRef only in the Human evidence package when a real participant is used",
+    "prohibitedExamples": ["participantName", "realName", "email", "phone", "address", "ipAddress"],
+    "reason": "R1 can attribute the needed product/run consequences without direct identifying data; evidence collection should remain purpose-limited and data-minimal.",
+    "humanInferenceGuards": [
+      "cue_exposed != cue_perceived",
+      "detection_opportunity != Human_detected",
+      "observation_committed != Human_comprehension",
+      "session_duration != fun",
+      "mechanical_success != fairness"
+    ]
+  },
+  "consumerInterfaces": [
+    {"consumer": "A17/F17", "need": "mount/own recorder lifecycle and supply run/source/build/condition identity without changing A21 envelope semantics"},
+    {"consumer": "A19/F20", "need": "include exact recorder/contract revision in build reproducibility and preserve evidence file paths"},
+    {"consumer": "A20/F21", "need": "consume monotonic event timing only for correlation with frame evidence; telemetry timing is not a profiler substitute"},
+    {"consumer": "A23/F25", "need": "independently verify frozen-candidate telemetry manifest/raw file identity before using evidence in QA/admission"},
+    {"consumer": "A24/F26", "need": "telemetry artifacts contain no third-party content/provenance claim by identity"},
+    {"consumer": "A25/F18", "need": "emit explicit observe/action/feedback events using producer-owned semantics"}
+  ],
+  "validationOracles": [
+    "Every event in one run has exact contiguous sequence and deterministic eventId.",
+    "Monotonic time never decreases.",
+    "sourceRevision/buildId/conditionId/accessibilityConditionId remain byte-for-byte stable within a run.",
+    "Raw JSONL SHA-256 in manifest matches the actual file.",
+    "Unknown event types or missing producerSemanticId/sourceFront are rejected rather than silently serialized.",
+    "Direct participant identifiers are rejected from event payloads.",
+    "Human claims remain UNKNOWN in the absence of real participant evidence."
+  ],
+  "knownFailureModes": [
+    "producer_semantic_drift",
+    "condition_identity_missing_or_changes_mid_run",
+    "event_drop_or_sequence_gap",
+    "non_monotonic_or_wall_clock_timing_used_for_order",
+    "telemetry_file_not_finalized_or_digest_missing",
+    "direct_participant_identifier_leak",
+    "mechanical_event_laundered_into_Human_claim"
+  ],
+  "humanClaims": {
+    "fun": "UNKNOWN",
+    "immersion": "UNKNOWN",
+    "believability": "UNKNOWN",
+    "detectability": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "comprehension": "UNKNOWN"
+  }
+}

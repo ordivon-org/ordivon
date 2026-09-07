@@ -1,0 +1,60 @@
+{
+  "schema": "veilwild.agent-first-verdict.r1",
+  "campaignId": "veilwild-r1",
+  "agentId": "A21",
+  "ownedFronts": ["F22", "F24"],
+  "ownedClosures": ["V-C9", "V-H2"],
+  "exactBaseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "declaredCampaignSourceStateDigest": "sha256:639a042f92ba4be8cbd91891f238d652973ccd65211f73087c0d39aae4f40b89",
+  "runtimeWorkspaceSourceStateDigestAtOpen": "sha256:5027397f80e3514531f1f4e1a7671653eb3b30d41804f308d9285edb3d58e6b4",
+  "roleInterpretation": "Own Veilwild runtime telemetry/evidence instrumentation and the claim-specific Player Evidence/Human Playtest process, including evidence transport and condition binding. Do not own producer semantics, product authority, Red-Team judgment, accessibility authority, or Human participant truth.",
+  "currentStanding": "APPARATUS_ONLY",
+  "standingRationale": "The exact baseline contains a current Player Evidence Programme, generic replay/evidence infrastructure, and passing evidence-boundary tests, but no Veilwild-specific telemetry contract, runtime event emission, durable condition-bound evidence artifact, frozen Player Evidence Contract, or real participant evidence.",
+  "topFalsifiers": [
+    "Veilwild runtime cannot emit or durably retain the minimum player-facing event set needed to attribute cue/state/detection/escape/observation outcomes.",
+    "Producer semantic drift causes telemetry names or payloads to stop matching A02 cue semantics, A13 creature-state semantics, A25 observe-action semantics, or A17 runtime/build identity.",
+    "Evidence records omit exact source/build/condition identity, making later Human or QA evidence stale, ambiguous, or non-transportable.",
+    "Instrumentation changes timing, input behavior, cue visibility, or other player-facing consequences enough to contaminate the condition being measured.",
+    "The Human protocol fails to bind a concrete decision/claim/population/context/method/measure/decision rule before exposure, allowing post-hoc metric storytelling.",
+    "Synthetic, expert, mechanical, or Agent-generated observations are represented as Human outcome evidence.",
+    "Unnecessary participant-identifying data is collected or retained despite a local/minimal evidence path being sufficient."
+  ],
+  "expectedInputs": [
+    "A01/F01: exact decision/product-loop claims that Human evidence may later inform, without delegating product authority.",
+    "A02/F02: cue vocabulary, intended cue meanings, onboarding/session milestones, and player-facing claim statements.",
+    "A13/F13: creature-state transition vocabulary and runtime state identifiers.",
+    "A16/F16: interactive/spatial audio cue event semantics where they are part of the declared information budget.",
+    "A17/F17: runtime integration hook, scene/run identity, monotonic clock/tick source, source revision and frozen candidate/build identity.",
+    "A19/F20: reproducible build/artifact identity and exact run condition metadata.",
+    "A22/F23: accessibility conditions/settings that materially qualify participant condition and telemetry interpretation.",
+    "A25/F18: player input/observe-action, detection/false-detection, feedback and success/failure event semantics.",
+    "A23/F25: frozen-candidate admission/QA receipts needed before any Human-ready standing is asserted."
+  ],
+  "expectedOutputs": [
+    "Veilwild telemetry/evidence event contract with stable event names, required fields, units, condition identity, failure modes and validation oracle.",
+    "Runtime-consumable durable telemetry/evidence sink or adapter that preserves ordered events and exact build/run identity without claiming Human truth.",
+    "Claim-specific Veilwild Player Evidence Contract and Human playtest protocol with explicit Human-UNKNOWN guards.",
+    "Evidence transport/replay validation that proves raw event records can be traced to exact runtime/build condition.",
+    "A21 handoff interfaces for A02/A17/A19/A22/A23/A25 and any producer whose state/cue identifiers enter evidence records."
+  ],
+  "highestRiskBoundaryAssumption": "A21 can instrument the real Godot candidate through stable producer-owned state/action interfaces while preserving exact build/condition identity, without inventing upstream semantics or converting instrumentation completeness into Human standing; the actual Human participant remains an external evidence source.",
+  "scopeSplitAssessment": "NO_SPLIT_BEFORE_IMPLEMENTATION. F22 and F24 share the same evidence identity/condition-binding boundary and can remain one A21 role. The real Human participant is external evidence, not an Agent/front to self-activate. Revisit only if a distinct repeated instrumentation-vs-research process bottleneck develops with separate stable inputs/outputs/oracles.",
+  "firstRecommendation": "PROCEED_WITH_CONSTRAINTS",
+  "independence": {
+    "peerCurrentRoundReadBeforeFreeze": false,
+    "boardCurrentRoundReadBeforeFreeze": false,
+    "peerRepairCommitReadBeforeFreeze": false,
+    "currentRoundCoordinatorSynthesisReadBeforeFreeze": false
+  },
+  "preCampaignEvidence": {
+    "playerEvidenceProgramme": "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md",
+    "genericReplayEvidence": "src/replay/evidence.ts",
+    "baselinePlayerEvidenceTests": "7/7 PASS via node --test test/game-player-evidence-programme.test.ts",
+    "baselineTestJobId": "job-01a07ac1-d98f-79c3-986c-408b1680d4dc"
+  },
+  "externalAuthorityNotes": [
+    "ISO 9241-11:2018 remains current (confirmed 2023) and treats usability as an outcome for specified users/goals/context of use.",
+    "ISO 9241-210:2019 remains current (confirmed 2025) and supports human-centred design activities throughout the interactive-system lifecycle.",
+    "ICO UK GDPR guidance emphasizes purpose limitation and data minimisation; local R1 telemetry should avoid collecting participant-identifying data unless necessary for the declared evidence purpose."
+  ]
+}

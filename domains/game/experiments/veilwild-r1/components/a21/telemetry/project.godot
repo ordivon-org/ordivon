@@ -1,0 +1,13 @@
+; A21 local mechanical fixture only. Not the Veilwild integration project.
+config_version=5
+
+[application]
+config/name="Veilwild A21 Telemetry Fixture"
+
+[display]
+window/size/viewport_width=640
+window/size/viewport_height=360
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
