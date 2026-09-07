@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/f22/evidence_runtime.gd" id="1_f22"]
+
+[node name="VeilwildEvidenceRuntime" type="Node"]
+script = ExtResource("1_f22")

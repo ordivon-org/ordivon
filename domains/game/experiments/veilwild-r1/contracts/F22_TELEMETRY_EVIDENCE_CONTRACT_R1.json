@@ -14,15 +14,69 @@
       "path": "experiments/veilwild-r1/contracts/F01_PRODUCT_CORE_LOOP_CONTRACT_R1.json",
       "sha256": "0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb",
       "revalidated": true,
-      "consumed": ["core-loop phases", "intentional observation semantics", "recoverable evasion", "minimum telemetry semantics"]
+      "consumed": [
+        "core-loop phases",
+        "intentional observation semantics",
+        "recoverable evasion",
+        "minimum telemetry semantics"
+      ]
     },
     {
       "producer": "A02/F02",
-      "commit": "63ea64cd4e9e61ba71edfcaaa14e47880a51b153",
+      "commit": "b0ad6d244f4321ec008744434623723f0095bdfa",
       "path": "experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json",
-      "sha256": "0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33",
+      "sha256": "6e947124669cb0e6f131a9fcb51397080bad651394bc612f30fe1ecff42337ee",
       "revalidated": true,
-      "consumed": ["session phase IDs", "cue class IDs", "Human UNKNOWN guard", "success telemetry requirement"]
+      "supersedesConsumed": "63ea64cd4e9e61ba71edfcaaa14e47880a51b153@0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33",
+      "consumed": [
+        "session phase IDs",
+        "cue class IDs",
+        "Human UNKNOWN guard",
+        "runtime semantic oracle forecast"
+      ]
+    },
+    {
+      "producer": "A13/F13",
+      "commit": "80fa3a6ff57b21ac0d7eb4d179e7ec1c94d468ad",
+      "path": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R1.json",
+      "sha256": "dc0252285caae72720ac018ec0f3db5023fbd4ac04cfdf5cfae0a44abf3ee879",
+      "revalidated": true,
+      "consumed": [
+        "state_name",
+        "transition_reason_name",
+        "threat",
+        "camouflage_drive"
+      ],
+      "transportRule": "When F13 directly emits a state transition, preserve state_name as producerSemanticId and transition_reason_name as reasonId; do not infer cue class or Human meaning from the state name."
+    },
+    {
+      "producer": "A17/F17",
+      "commit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
+      "path": "experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json",
+      "sha256": "4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
+      "revalidated": true,
+      "consumed": [
+        "EvidenceMount",
+        "veilwild/integration/evidence_scene",
+        "Godot 4.7.x runtime carrier",
+        "1 unit = 1 meter world basis"
+      ],
+      "transportRule": "A21 provides a producer-owned PackedScene for EvidenceMount; A17 owns composition only and does not reinterpret event semantics."
+    },
+    {
+      "producer": "A22/F23",
+      "commit": "df812fbedd94b542a015efe9e3d59d16b0a5a78a",
+      "path": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_CONTRACT_R1.json",
+      "sha256": "a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1",
+      "receiptSchemaPath": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_RECEIPT_SCHEMA_R1.json",
+      "receiptSchemaSha256": "3cee5cc61f03be9e2883792c9a7c6c0e218612333ef2c3041f885276a9e09aab",
+      "revalidated": true,
+      "consumed": [
+        "accessibilityConditionId",
+        "exact accessibility condition fields",
+        "unsupported settings explicitness",
+        "Human accessibility fit UNKNOWN"
+      ]
     }
   ],
   "eventEnvelope": {
@@ -62,22 +116,86 @@
     ]
   },
   "eventTypes": [
-    {"id": "session_started", "semanticMeaning": "Exact evidence run began under frozen source/build/condition identity.", "minimumProducer": "A17/F17 or integration carrier"},
-    {"id": "session_phase_changed", "semanticMeaning": "Player/session flow moved between A02-owned phase semantics.", "minimumProducer": "A02/F02-bound runtime state"},
-    {"id": "cue_exposed", "semanticMeaning": "A declared cue opportunity became mechanically available; this does NOT prove the Human perceived or used it.", "minimumProducer": "cue carrier owner"},
-    {"id": "creature_state_changed", "semanticMeaning": "A13-owned creature state/transition changed and the exact producer semantic ID/reason is retained.", "minimumProducer": "A13/F13"},
-    {"id": "detection_opportunity", "semanticMeaning": "A declared mechanical counter-cue/detection condition existed; not Human detection truth.", "minimumProducer": "A12/A13/A17 product binding as admitted"},
-    {"id": "threat_changed", "semanticMeaning": "Implementation-owned threat/risk signal changed and exact producer semantic/reason is retained.", "minimumProducer": "A13/F13"},
-    {"id": "evade_started", "semanticMeaning": "Pre-success creature evasion began.", "minimumProducer": "A13/F13"},
-    {"id": "reacquisition_opportunity", "semanticMeaning": "A recoverable search/reacquisition opportunity became mechanically available after loss/evasion.", "minimumProducer": "A13/A14/A17 binding"},
-    {"id": "observe_action_started", "semanticMeaning": "A25-owned explicit observe action/request began; distinct from mere proximity or detection.", "minimumProducer": "A25/F18"},
-    {"id": "observe_action_cancelled", "semanticMeaning": "Explicit observe action ended before commitment with retained reason.", "minimumProducer": "A25/F18"},
-    {"id": "observation_progress", "semanticMeaning": "A qualified intentional observation is mechanically progressing; no Human comprehension inference.", "minimumProducer": "A25/A17 binding"},
-    {"id": "observation_committed", "semanticMeaning": "A01 product observation-success conditions were mechanically satisfied and committed.", "minimumProducer": "A17 runtime integration consuming A01/A25/A13 semantics"},
-    {"id": "success_consequence", "semanticMeaning": "The explicit post-commit player-facing success consequence occurred.", "minimumProducer": "A25/A17 binding"},
-    {"id": "audio_cue_started", "semanticMeaning": "A16 interactive/spatial cue began using an A16/A15 semantic event identity.", "minimumProducer": "A16/F16"},
-    {"id": "audio_cue_stopped", "semanticMeaning": "A16 interactive/spatial cue ended with retained reason where meaningful.", "minimumProducer": "A16/F16"},
-    {"id": "session_ended", "semanticMeaning": "Evidence run ended with an explicit mechanical status; not a Human outcome grade.", "minimumProducer": "A17/F17 or integration carrier"}
+    {
+      "id": "session_started",
+      "semanticMeaning": "Exact evidence run began under frozen source/build/condition identity.",
+      "minimumProducer": "A17/F17 or integration carrier"
+    },
+    {
+      "id": "session_phase_changed",
+      "semanticMeaning": "Player/session flow moved between A02-owned phase semantics.",
+      "minimumProducer": "A02/F02-bound runtime state"
+    },
+    {
+      "id": "cue_exposed",
+      "semanticMeaning": "A declared cue opportunity became mechanically available; this does NOT prove the Human perceived or used it.",
+      "minimumProducer": "cue carrier owner"
+    },
+    {
+      "id": "creature_state_changed",
+      "semanticMeaning": "A13-owned creature state/transition changed and the exact producer semantic ID/reason is retained.",
+      "minimumProducer": "A13/F13"
+    },
+    {
+      "id": "detection_opportunity",
+      "semanticMeaning": "A declared mechanical counter-cue/detection condition existed; not Human detection truth.",
+      "minimumProducer": "A12/A13/A17 product binding as admitted"
+    },
+    {
+      "id": "threat_changed",
+      "semanticMeaning": "Implementation-owned threat/risk signal changed and exact producer semantic/reason is retained.",
+      "minimumProducer": "A13/F13"
+    },
+    {
+      "id": "evade_started",
+      "semanticMeaning": "Pre-success creature evasion began.",
+      "minimumProducer": "A13/F13"
+    },
+    {
+      "id": "reacquisition_opportunity",
+      "semanticMeaning": "A recoverable search/reacquisition opportunity became mechanically available after loss/evasion.",
+      "minimumProducer": "A13/A14/A17 binding"
+    },
+    {
+      "id": "observe_action_started",
+      "semanticMeaning": "A25-owned explicit observe action/request began; distinct from mere proximity or detection.",
+      "minimumProducer": "A25/F18"
+    },
+    {
+      "id": "observe_action_cancelled",
+      "semanticMeaning": "Explicit observe action ended before commitment with retained reason.",
+      "minimumProducer": "A25/F18"
+    },
+    {
+      "id": "observation_progress",
+      "semanticMeaning": "A qualified intentional observation is mechanically progressing; no Human comprehension inference.",
+      "minimumProducer": "A25/A17 binding"
+    },
+    {
+      "id": "observation_committed",
+      "semanticMeaning": "A01 product observation-success conditions were mechanically satisfied and committed.",
+      "minimumProducer": "A17 runtime integration consuming A01/A25/A13 semantics"
+    },
+    {
+      "id": "success_consequence",
+      "semanticMeaning": "The explicit post-commit player-facing success consequence occurred.",
+      "minimumProducer": "A25/A17 binding"
+    },
+    {
+      "id": "audio_cue_started",
+      "semanticMeaning": "A16 interactive/spatial cue began using an A16/A15 semantic event identity.",
+      "minimumProducer": "A16/F16"
+    },
+    {
+      "id": "audio_cue_stopped",
+      "semanticMeaning": "A16 interactive/spatial cue ended with retained reason where meaningful.",
+      "minimumProducer": "A16/F16"
+    },
+    {
+      "id": "session_ended",
+      "semanticMeaning": "Evidence run ended with an explicit mechanical status; not a Human outcome grade.",
+      "minimumProducer": "A17/F17 or integration carrier"
+    }
   ],
   "sessionPhaseIdsFromA02": [
     "ORIENT",
@@ -108,7 +226,14 @@
   "privacyAndHumanBoundary": {
     "directParticipantIdentifiersInRuntimeTelemetry": "PROHIBITED",
     "participantRef": "not stored in raw runtime events; attach a locally assigned pseudonymous participantRef only in the Human evidence package when a real participant is used",
-    "prohibitedExamples": ["participantName", "realName", "email", "phone", "address", "ipAddress"],
+    "prohibitedExamples": [
+      "participantName",
+      "realName",
+      "email",
+      "phone",
+      "address",
+      "ipAddress"
+    ],
     "reason": "R1 can attribute the needed product/run consequences without direct identifying data; evidence collection should remain purpose-limited and data-minimal.",
     "humanInferenceGuards": [
       "cue_exposed != cue_perceived",
@@ -119,12 +244,30 @@
     ]
   },
   "consumerInterfaces": [
-    {"consumer": "A17/F17", "need": "mount/own recorder lifecycle and supply run/source/build/condition identity without changing A21 envelope semantics"},
-    {"consumer": "A19/F20", "need": "include exact recorder/contract revision in build reproducibility and preserve evidence file paths"},
-    {"consumer": "A20/F21", "need": "consume monotonic event timing only for correlation with frame evidence; telemetry timing is not a profiler substitute"},
-    {"consumer": "A23/F25", "need": "independently verify frozen-candidate telemetry manifest/raw file identity before using evidence in QA/admission"},
-    {"consumer": "A24/F26", "need": "telemetry artifacts contain no third-party content/provenance claim by identity"},
-    {"consumer": "A25/F18", "need": "emit explicit observe/action/feedback events using producer-owned semantics"}
+    {
+      "consumer": "A17/F17",
+      "need": "mount/own recorder lifecycle and supply run/source/build/condition identity without changing A21 envelope semantics"
+    },
+    {
+      "consumer": "A19/F20",
+      "need": "include exact recorder/contract revision in build reproducibility and preserve evidence file paths"
+    },
+    {
+      "consumer": "A20/F21",
+      "need": "consume monotonic event timing only for correlation with frame evidence; telemetry timing is not a profiler substitute"
+    },
+    {
+      "consumer": "A23/F25",
+      "need": "independently verify frozen-candidate telemetry manifest/raw file identity before using evidence in QA/admission"
+    },
+    {
+      "consumer": "A24/F26",
+      "need": "telemetry artifacts contain no third-party content/provenance claim by identity"
+    },
+    {
+      "consumer": "A25/F18",
+      "need": "emit explicit observe/action/feedback events using producer-owned semantics"
+    }
   ],
   "validationOracles": [
     "Every event in one run has exact contiguous sequence and deterministic eventId.",
@@ -152,5 +295,39 @@
     "cueUsefulness": "UNKNOWN",
     "fairness": "UNKNOWN",
     "comprehension": "UNKNOWN"
-  }
+  },
+  "runtimeModule": {
+    "authoritativeRecorderSource": "experiments/veilwild-r1/components/a21/telemetry/veilwild_telemetry_recorder.gd",
+    "authoritativeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+    "derivedRuntimeRecorder": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
+    "derivedRuntimeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+    "packedScene": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+    "a17ResourcePath": "res://modules/f22/evidence_runtime.tscn",
+    "a17Setting": "veilwild/integration/evidence_scene",
+    "a17Mount": "EvidenceMount",
+    "semanticBoundary": "EvidenceRuntime forwards eventType plus producer-owned fields into F22; it does not subscribe to generic bus topics and guess their meaning."
+  },
+  "accessibilityConditionBinding": {
+    "contractProducer": "A22/F23",
+    "requiredEnvelopeField": "accessibilityConditionId",
+    "requiredConditionReceiptFields": [
+      "sourceRevision",
+      "buildId",
+      "resolution",
+      "inputDeviceProfile",
+      "inputBindingProfileId",
+      "textScalePercent",
+      "captionMode",
+      "criticalCueAlternativeMode",
+      "observeActivationMode",
+      "cameraBobMode",
+      "cameraShakeMode",
+      "motionBlurMode",
+      "fieldOfViewDegrees",
+      "audioMixProfileId",
+      "unsupportedOrNotApplicableSettings"
+    ],
+    "rule": "accessibilityConditionId identifies apparatus/settings only and never implies Human accessibility fit."
+  },
+  "integrationValidationBoundary": "A17 shell + A21 EvidenceMount composite replay may establish mount/transport compatibility only. Until all constitutive producer modules and one frozen candidate/build exist, that replay is not V-C9 product-candidate evidence."
 }

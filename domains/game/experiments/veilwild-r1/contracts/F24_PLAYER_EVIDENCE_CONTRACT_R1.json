@@ -9,39 +9,96 @@
   "status": "PROTOCOL_READY_HUMAN_EVIDENCE_NOT_EXECUTED",
   "decisionToInform": "For a frozen Veilwild candidate, decide whether the current observation interaction/cue/recovery design is ready for another production iteration or needs owner-correct repair before broader Human testing.",
   "upstreamBindings": [
-    {"producer": "A01/F01", "commit": "66040f75d505e40e0069412b419e380daa5c73fc", "sha256": "0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb", "revalidated": true},
-    {"producer": "A02/F02", "commit": "63ea64cd4e9e61ba71edfcaaa14e47880a51b153", "sha256": "0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33", "revalidated": true},
-    {"producer": "A21/F22", "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json", "relationship": "raw runtime telemetry supplies condition-bound behavior/event evidence but never Human perception/experience truth"}
+    {
+      "producer": "A01/F01",
+      "commit": "66040f75d505e40e0069412b419e380daa5c73fc",
+      "sha256": "0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb",
+      "revalidated": true
+    },
+    {
+      "producer": "A02/F02",
+      "commit": "b0ad6d244f4321ec008744434623723f0095bdfa",
+      "sha256": "6e947124669cb0e6f131a9fcb51397080bad651394bc612f30fe1ecff42337ee",
+      "revalidated": true,
+      "supersedesConsumed": "63ea64cd4e9e61ba71edfcaaa14e47880a51b153@0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33"
+    },
+    {
+      "producer": "A22/F23",
+      "commit": "df812fbedd94b542a015efe9e3d59d16b0a5a78a",
+      "sha256": "a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1",
+      "revalidated": true,
+      "consumed": [
+        "accessibility condition vocabulary",
+        "residual barrier explicitness",
+        "Human fit UNKNOWN"
+      ]
+    },
+    {
+      "producer": "A21/F22",
+      "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "relationship": "raw runtime telemetry supplies condition-bound behavior/event evidence but never Human perception/experience truth"
+    }
   ],
   "claimSpecificQuestions": [
     {
       "claimId": "PE-C1-OBSERVE-ACTION",
       "claimFamily": "Usability / Actionability",
       "claimStatement": "Under the frozen candidate and declared input condition, a participant can discover/use the explicit observation interaction rather than assuming proximity alone is sufficient.",
-      "primaryEvidence": ["observed Human action", "observe_action_started/observation_progress/observation_committed telemetry", "brief post-session explanation"],
-      "notEstablishedBy": ["mechanical success alone", "Agent play", "presence of an input binding"]
+      "primaryEvidence": [
+        "observed Human action",
+        "observe_action_started/observation_progress/observation_committed telemetry",
+        "brief post-session explanation"
+      ],
+      "notEstablishedBy": [
+        "mechanical success alone",
+        "Agent play",
+        "presence of an input binding"
+      ]
     },
     {
       "claimId": "PE-C2-CUE-MENTAL-MODEL",
       "claimFamily": "Understanding / Mental Model / Learning",
       "claimStatement": "The participant can use at least one declared cue class to form/revise a search hypothesis without being given the current creature location.",
-      "primaryEvidence": ["observed search decisions", "cue_exposed opportunity trace", "post-session cue recall/explanation probe"],
-      "notEstablishedBy": ["cue_exposed event alone", "camera facing direction alone", "Agent interpretation"]
+      "primaryEvidence": [
+        "observed search decisions",
+        "cue_exposed opportunity trace",
+        "post-session cue recall/explanation probe"
+      ],
+      "notEstablishedBy": [
+        "cue_exposed event alone",
+        "camera facing direction alone",
+        "Agent interpretation"
+      ]
     },
     {
       "claimId": "PE-C1-RECOVERY",
       "claimFamily": "Usability / Actionability",
       "claimStatement": "After at least one pre-success evasion/loss, the participant can continue the same session and attempt reacquisition without developer intervention or process restart.",
-      "primaryEvidence": ["observed continued search", "evade_started and reacquisition_opportunity trace", "session phase progression"],
-      "notEstablishedBy": ["navmesh reachability alone", "scripted replay without Human exposure"]
+      "primaryEvidence": [
+        "observed continued search",
+        "evade_started and reacquisition_opportunity trace",
+        "session phase progression"
+      ],
+      "notEstablishedBy": [
+        "navmesh reachability alone",
+        "scripted replay without Human exposure"
+      ]
     },
     {
       "claimId": "PE-C3-DETECTABILITY-PILOT",
       "claimFamily": "Experience / Appeal / Meaning",
       "claimStatement": "For the exact participant/build/condition only, camouflage leaves a usable but non-trivial search experience rather than obvious locator behavior or practical invisibility.",
-      "primaryEvidence": ["observed detection/search course", "participant report", "cue/detection-opportunity telemetry"],
+      "primaryEvidence": [
+        "observed detection/search course",
+        "participant report",
+        "cue/detection-opportunity telemetry"
+      ],
       "transportScope": "single-participant pilot only; no population prevalence, fairness, or general detectability inference",
-      "notEstablishedBy": ["shader proxy score", "distance threshold", "one Agent screenshot"]
+      "notEstablishedBy": [
+        "shader proxy score",
+        "distance threshold",
+        "one Agent screenshot"
+      ]
     }
   ],
   "evidenceSubject": "real Human participant external to all A01-A25 Agent roles",
@@ -53,8 +110,15 @@
     "language": "use a language the participant can understand; if the build/protocol locale is not admitted, record as a limitation rather than self-activating Localization E2E"
   },
   "recruitmentEligibility": {
-    "required": ["adult participant", "can voluntarily stop", "can operate the admitted input device or uses an admitted accessibility alternative"],
-    "avoidForFirstPilot": ["current A01-A25 Agent outputs presented as Human evidence", "participant who already knows exact creature location/encounter solution unless explicitly labeled as expert/developer pilot"],
+    "required": [
+      "adult participant",
+      "can voluntarily stop",
+      "can operate the admitted input device or uses an admitted accessibility alternative"
+    ],
+    "avoidForFirstPilot": [
+      "current A01-A25 Agent outputs presented as Human evidence",
+      "participant who already knows exact creature location/encounter solution unless explicitly labeled as expert/developer pilot"
+    ],
     "sensitiveDataCollection": "not required for R1 pilot"
   },
   "conditionFreeze": {
@@ -97,13 +161,48 @@
     ]
   },
   "measuresAndObservations": [
-    {"id": "M1", "measure": "observe_action_discovery", "definition": "Whether/how the participant initiates explicit observe before any successful observation commitment.", "source": "observation + F22 events"},
-    {"id": "M2", "measure": "time_to_first_declared_cue_opportunity_ms", "definition": "monotonic difference from session_started to first cue_exposed; measures opportunity timing, NOT perception.", "source": "F22 telemetry"},
-    {"id": "M3", "measure": "cue_explanation", "definition": "post-session account of which cue(s) informed search and how; qualitative, not inferred from telemetry.", "source": "Human probe"},
-    {"id": "M4", "measure": "evasion_recovery", "definition": "after evade_started, whether participant continues into a reacquisition attempt without developer coaching/process restart.", "source": "observation + F22 telemetry"},
-    {"id": "M5", "measure": "observation_outcome", "definition": "whether an explicit observation commitment occurred under the frozen run; mechanical outcome only.", "source": "F22 telemetry"},
-    {"id": "M6", "measure": "critical_blocker_notes", "definition": "observer-recorded point where participant cannot identify a plausible next action or the product contradicts its cue/feedback semantics.", "source": "Human observation"},
-    {"id": "M7", "measure": "subjective_search_report", "definition": "participant description of search tension/clarity/obviousness; exploratory single-participant self-report only.", "source": "Human probe"}
+    {
+      "id": "M1",
+      "measure": "observe_action_discovery",
+      "definition": "Whether/how the participant initiates explicit observe before any successful observation commitment.",
+      "source": "observation + F22 events"
+    },
+    {
+      "id": "M2",
+      "measure": "time_to_first_declared_cue_opportunity_ms",
+      "definition": "monotonic difference from session_started to first cue_exposed; measures opportunity timing, NOT perception.",
+      "source": "F22 telemetry"
+    },
+    {
+      "id": "M3",
+      "measure": "cue_explanation",
+      "definition": "post-session account of which cue(s) informed search and how; qualitative, not inferred from telemetry.",
+      "source": "Human probe"
+    },
+    {
+      "id": "M4",
+      "measure": "evasion_recovery",
+      "definition": "after evade_started, whether participant continues into a reacquisition attempt without developer coaching/process restart.",
+      "source": "observation + F22 telemetry"
+    },
+    {
+      "id": "M5",
+      "measure": "observation_outcome",
+      "definition": "whether an explicit observation commitment occurred under the frozen run; mechanical outcome only.",
+      "source": "F22 telemetry"
+    },
+    {
+      "id": "M6",
+      "measure": "critical_blocker_notes",
+      "definition": "observer-recorded point where participant cannot identify a plausible next action or the product contradicts its cue/feedback semantics.",
+      "source": "Human observation"
+    },
+    {
+      "id": "M7",
+      "measure": "subjective_search_report",
+      "definition": "participant description of search tension/clarity/obviousness; exploratory single-participant self-report only.",
+      "source": "Human probe"
+    }
   ],
   "analysisPlan": [
     "Verify telemetry manifest/raw SHA-256 and sequence/condition integrity before interpreting any Human session.",
@@ -113,11 +212,31 @@
     "Contradictions between telemetry, observation and participant report are retained as evidence, not averaged away."
   ],
   "decisionRules": [
-    {"ruleId": "DR1", "condition": "participant cannot discover/execute intentional observe because controls/feedback are missing or misleading", "decision": "route owner-correct repair to A25/A02/A17 as evidence indicates before claiming Human-ready closure"},
-    {"ruleId": "DR2", "condition": "pre-success evade leaves no understandable/reachable same-session reacquisition path", "decision": "route composite failure to A13/A14/A02/A17; V-H2 remains INCONCLUSIVE/CONTRADICTED for recovery claim"},
-    {"ruleId": "DR3", "condition": "cue opportunity exists mechanically but participant reports/behaves as if no usable cue exists", "decision": "do not call telemetry wrong by identity; route hypothesis to cue carrier/A02/A22 and retest changed build"},
-    {"ruleId": "DR4", "condition": "telemetry integrity, build identity, or protocol condition binding fails", "decision": "Human evidence package is inadmissible for product standing; preserve as apparatus failure and rerun only after repair"},
-    {"ruleId": "DR5", "condition": "one pilot completes loop and reports positive experience", "decision": "may support a case-specific pilot finding only; fun/immersion/fairness/population detectability remain unestablished"}
+    {
+      "ruleId": "DR1",
+      "condition": "participant cannot discover/execute intentional observe because controls/feedback are missing or misleading",
+      "decision": "route owner-correct repair to A25/A02/A17 as evidence indicates before claiming Human-ready closure"
+    },
+    {
+      "ruleId": "DR2",
+      "condition": "pre-success evade leaves no understandable/reachable same-session reacquisition path",
+      "decision": "route composite failure to A13/A14/A02/A17; V-H2 remains INCONCLUSIVE/CONTRADICTED for recovery claim"
+    },
+    {
+      "ruleId": "DR3",
+      "condition": "cue opportunity exists mechanically but participant reports/behaves as if no usable cue exists",
+      "decision": "do not call telemetry wrong by identity; route hypothesis to cue carrier/A02/A22 and retest changed build"
+    },
+    {
+      "ruleId": "DR4",
+      "condition": "telemetry integrity, build identity, or protocol condition binding fails",
+      "decision": "Human evidence package is inadmissible for product standing; preserve as apparatus failure and rerun only after repair"
+    },
+    {
+      "ruleId": "DR5",
+      "condition": "one pilot completes loop and reports positive experience",
+      "decision": "may support a case-specific pilot finding only; fun/immersion/fairness/population detectability remain unestablished"
+    }
   ],
   "stopConditions": [
     "participant requests stop",
