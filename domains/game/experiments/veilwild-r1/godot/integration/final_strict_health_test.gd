@@ -88,7 +88,7 @@ func _readiness_witness(integration: Node) -> Dictionary:
     if not loaded.has("navigation"):
         return {"ready": false, "reason": "navigation_not_loaded", "loadedCount": loaded.size()}
     var nav_instance: Node = loaded["navigation"]["instance"]
-    var nav_ready := nav_instance.has_method("is_initialized") and bool(nav_instance.call("is_initialized"))
+    var nav_ready: bool = nav_instance.has_method("is_initialized") and bool(nav_instance.call("is_initialized"))
     var observation: Dictionary = {} if integration.observation_binding == null else integration.observation_binding.call("get_binding_health")
     var animation: Dictionary = {} if integration.animation_binding == null else integration.animation_binding.call("snapshot")
     var ready: bool = nav_ready and bool(observation.get("candidateReady", false)) and bool(observation.get("ownerWorldQualifierBound", false)) and String(observation.get("worldQualifierOwner", "")) == "A14/F14" and bool(animation.get("candidateReady", false)) and integration.load_failures.is_empty() and integration.integration_failures.is_empty()
