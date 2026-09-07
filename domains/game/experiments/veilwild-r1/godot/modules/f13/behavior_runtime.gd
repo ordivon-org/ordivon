@@ -42,10 +42,45 @@ func submit_perception(delta_s: float, perception: Dictionary) -> Dictionary:
 		}
 		behavior_transition.emit(event)
 		_publish(&"creature.behavior.transition", event)
+		_publish_owner_f22_transition_events(event)
 	return last_decision
 
 func get_last_decision() -> Dictionary:
 	return last_decision.duplicate(true)
+
+func _publish_owner_f22_transition_events(event: Dictionary) -> void:
+	# F13 owns behavior-state and transition semantics. A21 transports only exact
+	# producer-authored F22 event types and must never infer these from generic
+	# behavior transition traffic.
+	var producer_data := {
+		"behaviorStateId": event["behaviorStateId"],
+		"previousBehaviorStateId": event["previousBehaviorStateId"],
+		"productIntent": event["productIntent"],
+		"transitionSemanticId": event["transitionSemanticId"],
+		"transitionSequence": event["transitionSequence"],
+		"reasonId": event["reasonId"],
+		"playerCueAuthorization": event["playerCueAuthorization"],
+		"observationAbort": event["observationAbort"],
+		"reacquisitionPhase": event["reacquisitionPhase"],
+		"reacquisitionProven": event["reacquisitionProven"],
+	}
+	var state_payload := {
+		"sourceFront": "A13/F13",
+		"producerSemanticId": "F13.CREATURE_STATE_CHANGED",
+		"reasonId": event["reasonId"],
+		"producerData": producer_data.duplicate(true),
+	}
+	_publish(&"creature_state_changed", state_payload)
+	if event["behaviorStateId"] == Policy.STATE_IDS[Policy.State.EVADE]:
+		var evade_payload := {
+			"sourceFront": "A13/F13",
+			"producerSemanticId": "F13.EVADE_STARTED",
+			"reasonId": event["reasonId"],
+			"producerData": producer_data.duplicate(true),
+		}
+		_publish(&"evade_started", evade_payload)
+	# RECOVER is behavior truth only. F13 deliberately never publishes
+	# reacquisition_opportunity; A14/world integration owns that consequence.
 
 func _publish(topic: StringName, payload: Dictionary) -> void:
 	var bus := get_node_or_null("/root/VeilwildEventBus")
