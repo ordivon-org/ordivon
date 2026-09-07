@@ -1,0 +1,482 @@
+{
+  "schema": "veilwild.a17-r4a-selected-runtime-inventory.v1",
+  "producer": {
+    "agentId": "A17",
+    "frontId": "F17",
+    "phase": "R4A"
+  },
+  "truthRole": "candidate-selected-runtime-identity-authority-not-human-outcome",
+  "supersession": {
+    "supersedesPath": "experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json",
+    "supersedesSha256": "e32bfc1da708ff4c98959a7313e5391ebaa332cc84e9e6c0515b39a6bd8b8c32",
+    "scope": "CANDIDATE_SELECTED_RUNTIME_IDENTITY_ONLY",
+    "preservedHistoricalRole": "Historical semantic/mount boundary remains evidence; historical sourceBindings are NOT candidate identity authority."
+  },
+  "sourceIdentity": {
+    "runtimeValidatedParentRevision": "0094abeb8676f42534f9264bbc2fc96f6b42f1e1",
+    "finalSourceRevisionBinding": "GIT_COMMIT_CONTAINING_THIS_INVENTORY",
+    "selfReferenceNote": "A Git commit hash cannot be embedded in its own tracked content without changing that hash. Consumers must resolve the exact commit containing this file and verify the runtime tree is unchanged from runtimeValidatedParentRevision except evidence-only inventory content.",
+    "sourceRepo": "/root/projects/ordivon-game",
+    "projectPath": "experiments/veilwild-r1/godot",
+    "projectGodotSha256": "1bf44d6898e2a62c5ef7c54cd728b77c077f4ce1be7de4bb958bc513ebed4391",
+    "mainScene": "res://main.tscn",
+    "mainSceneRepoPath": "experiments/veilwild-r1/godot/main.tscn",
+    "mainSceneSha256": "fa6f427044801140ecaeb42c03bf4acddf00ac13593ffd87e595ac8a1a1ca942",
+    "exportPresetSha256": "258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05",
+    "godotVersion": "4.7.1.stable.arch_linux.a13da4feb"
+  },
+  "projectModuleSelections": {
+    "environment_scene": "res://modules/f05/veilwild_forest_environment.glb",
+    "creature_scene": "res://modules/f10/veilrunner_f10_material_bound_r4a.glb",
+    "lighting_scene": "res://modules/f11/lighting_rig.tscn",
+    "navigation_scene": "res://modules/f14/navigation_mount.tscn",
+    "animation_system_scene": "res://modules/f09/animation_system_module.tscn",
+    "behavior_scene": "res://modules/f13/behavior_runtime.tscn",
+    "audio_scene": "res://modules/f16/F16AudioSystem.tscn",
+    "player_runtime_scene": "res://player/player_runtime.tscn",
+    "evidence_scene": "res://modules/f22/evidence_runtime.tscn",
+    "ui_scene": "res://player/player_ui.tscn"
+  },
+  "selectedArtifacts": [
+    {
+      "artifactId": "F05_ENVIRONMENT_GLB",
+      "producerFront": "A05/F05",
+      "producerCommit": "ffbee6188e17e39cd174ec3e9a7d63cedefc2743",
+      "producerPath": "assets/environment/exports/veilwild_forest_environment.glb",
+      "producerArtifactSha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
+      "runtimeResourcePath": "res://modules/f05/veilwild_forest_environment.glb",
+      "runtimeArtifactSha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F10_FINAL_CREATURE_GLB",
+      "producerFront": "A10/F10",
+      "producerCommit": "3f9f443256212e3286c4bf90c84fd1d5c224b1fc",
+      "producerPath": "experiments/veilwild-r1/production/f10-final-material-binding/veilrunner_f10_material_bound_r4a.glb",
+      "producerArtifactSha256": "73b36673858464190acfddc32030544ec66efc29f0f0a78d04e331a06b13345e",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f10/veilrunner_f10_material_bound_r4a.glb",
+      "runtimeResourcePath": "res://modules/f10/veilrunner_f10_material_bound_r4a.glb",
+      "runtimeArtifactSha256": "73b36673858464190acfddc32030544ec66efc29f0f0a78d04e331a06b13345e",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F11_LIGHTING_SCENE",
+      "producerFront": "A11/F11",
+      "producerCommit": "4a33d0958dcf8c19605b8b41b8c498f4b4ad4acf",
+      "producerPath": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+      "producerArtifactSha256": "4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+      "runtimeResourcePath": "res://modules/f11/lighting_rig.tscn",
+      "runtimeArtifactSha256": "4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F09_ANIMATION_SYSTEM_MODULE_TSCN",
+      "producerFront": "A09/F09",
+      "producerCommit": "be64167aa1a96921996349fafc3a6318226ff92a",
+      "producerPath": "experiments/veilwild-r1/runtime/F09/animation_system_module.tscn",
+      "producerArtifactSha256": "5681d826cef941347b7d660ed6ea1259704a1fdce9dbfce483d8f0e6209d3484",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f09/animation_system_module.tscn",
+      "runtimeResourcePath": "res://modules/f09/animation_system_module.tscn",
+      "runtimeArtifactSha256": "5681d826cef941347b7d660ed6ea1259704a1fdce9dbfce483d8f0e6209d3484",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F09_CREATURE_ANIMATION_CONTROLLER_GD",
+      "producerFront": "A09/F09",
+      "producerCommit": "be64167aa1a96921996349fafc3a6318226ff92a",
+      "producerPath": "experiments/veilwild-r1/runtime/F09/creature_animation_controller.gd",
+      "producerArtifactSha256": "eba3d38c54812f75b87bab5562a34aff1a18e0d7960eb02f5b35755c54ce6c8e",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f09/creature_animation_controller.gd",
+      "runtimeResourcePath": "res://modules/f09/creature_animation_controller.gd",
+      "runtimeArtifactSha256": "eba3d38c54812f75b87bab5562a34aff1a18e0d7960eb02f5b35755c54ce6c8e",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F09_CREATURE_ANIMATION_SYSTEM_GD",
+      "producerFront": "A09/F09",
+      "producerCommit": "be64167aa1a96921996349fafc3a6318226ff92a",
+      "producerPath": "experiments/veilwild-r1/runtime/F09/creature_animation_system.gd",
+      "producerArtifactSha256": "35c1e304137ab459849dba19eb794fab893aebe523e288b7995572dc33fb9960",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f09/creature_animation_system.gd",
+      "runtimeResourcePath": "res://modules/f09/creature_animation_system.gd",
+      "runtimeArtifactSha256": "35c1e304137ab459849dba19eb794fab893aebe523e288b7995572dc33fb9960",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F12_FINAL_CREATURE_CAMOUFLAGE_ADAPTER_GD",
+      "producerFront": "A12/F12",
+      "producerCommit": "049561eaec5dac2abc20cecce19d726a9de54e6f",
+      "producerPath": "experiments/veilwild-r1/production/a12-f12/final_creature_camouflage_adapter.gd",
+      "producerArtifactSha256": "6234d434504524110ec5c739bc9ff52425d5fdb522f5e13f23ccc23698a26afe",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/final_creature_camouflage_adapter.gd",
+      "runtimeResourcePath": "res://modules/f12/final_creature_camouflage_adapter.gd",
+      "runtimeArtifactSha256": "6234d434504524110ec5c739bc9ff52425d5fdb522f5e13f23ccc23698a26afe",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "2f9c6c5f3b0355b5afbd59544e6ccbb08bab1edd"
+    },
+    {
+      "artifactId": "F12_CAMOUFLAGE_BINDING_GD",
+      "producerFront": "A12/F12",
+      "producerCommit": "049561eaec5dac2abc20cecce19d726a9de54e6f",
+      "producerPath": "experiments/veilwild-r1/production/a12-f12/camouflage_binding.gd",
+      "producerArtifactSha256": "5f1d32b163a37d575b00d56af2ef468450c8232f52b06788cbe1f6ebd29af0d7",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/camouflage_binding.gd",
+      "runtimeResourcePath": "res://modules/f12/camouflage_binding.gd",
+      "runtimeArtifactSha256": "5f1d32b163a37d575b00d56af2ef468450c8232f52b06788cbe1f6ebd29af0d7",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "2f9c6c5f3b0355b5afbd59544e6ccbb08bab1edd"
+    },
+    {
+      "artifactId": "F12_CAMOUFLAGE_SPATIAL_GDSHADER",
+      "producerFront": "A12/F12",
+      "producerCommit": "049561eaec5dac2abc20cecce19d726a9de54e6f",
+      "producerPath": "experiments/veilwild-r1/production/a12-f12/camouflage_spatial.gdshader",
+      "producerArtifactSha256": "01af7ef64075f57888170a53af3b3e43a1e7cff23c07b26cec86bf8a3984f3d0",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/camouflage_spatial.gdshader",
+      "runtimeResourcePath": "res://modules/f12/camouflage_spatial.gdshader",
+      "runtimeArtifactSha256": "01af7ef64075f57888170a53af3b3e43a1e7cff23c07b26cec86bf8a3984f3d0",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "2f9c6c5f3b0355b5afbd59544e6ccbb08bab1edd"
+    },
+    {
+      "artifactId": "F13_BEHAVIOR_RUNTIME_TSCN",
+      "producerFront": "A13/F13",
+      "producerCommit": "998e0ef0dcec60d1558f4e17b9b2c48525cbd09b",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "producerArtifactSha256": "8826e06190bb7a55cbad82c7f0359c3bde4c0794a7ed590c4ddc37f13177d5c0",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "runtimeResourcePath": "res://modules/f13/behavior_runtime.tscn",
+      "runtimeArtifactSha256": "8826e06190bb7a55cbad82c7f0359c3bde4c0794a7ed590c4ddc37f13177d5c0",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F13_BEHAVIOR_RUNTIME_GD",
+      "producerFront": "A13/F13",
+      "producerCommit": "998e0ef0dcec60d1558f4e17b9b2c48525cbd09b",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "producerArtifactSha256": "367db3f1c65fb1a0add69f406ed15487fccac283be58449b74ee96c6a1eb2e41",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "runtimeResourcePath": "res://modules/f13/behavior_runtime.gd",
+      "runtimeArtifactSha256": "367db3f1c65fb1a0add69f406ed15487fccac283be58449b74ee96c6a1eb2e41",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F13_CREATURE_BEHAVIOR_POLICY_GD",
+      "producerFront": "A13/F13",
+      "producerCommit": "998e0ef0dcec60d1558f4e17b9b2c48525cbd09b",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "producerArtifactSha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "runtimeResourcePath": "res://modules/f13/creature_behavior_policy.gd",
+      "runtimeArtifactSha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F14_CONCEALMENT_AFFORDANCE_3D_GD",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/concealment_affordance_3d.gd",
+      "producerArtifactSha256": "b13878763173be8776c5442358aa93e3bc46fb5ee678396d787a68da7abb0a40",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/concealment_affordance_3d.gd",
+      "runtimeResourcePath": "res://modules/f14/concealment_affordance_3d.gd",
+      "runtimeArtifactSha256": "b13878763173be8776c5442358aa93e3bc46fb5ee678396d787a68da7abb0a40",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F14_ENVIRONMENT_NAVIGATION_MOUNT_GD",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/environment_navigation_mount.gd",
+      "producerArtifactSha256": "c45caeeed54646d752b2e506962c568034e60fe9b1fec50b2eda71bc181ee82c",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/environment_navigation_mount.gd",
+      "runtimeResourcePath": "res://modules/f14/environment_navigation_mount.gd",
+      "runtimeArtifactSha256": "c45caeeed54646d752b2e506962c568034e60fe9b1fec50b2eda71bc181ee82c",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F14_NAVIGATION_MOUNT_TSCN",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/navigation_mount.tscn",
+      "producerArtifactSha256": "1e77ad820ffc4ee9f88c5fcb78613a3d373a54e43ea206faac21bddaa4415231",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/navigation_mount.tscn",
+      "runtimeResourcePath": "res://modules/f14/navigation_mount.tscn",
+      "runtimeArtifactSha256": "1e77ad820ffc4ee9f88c5fcb78613a3d373a54e43ea206faac21bddaa4415231",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F14_NAVIGATION_RUNTIME_GD",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/navigation_runtime.gd",
+      "producerArtifactSha256": "cb94449ba880a117f3b7dd2f5d6199bc3a121d0904dde13777968dcf1ccef076",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/navigation_runtime.gd",
+      "runtimeResourcePath": "res://modules/f14/navigation_runtime.gd",
+      "runtimeArtifactSha256": "cb94449ba880a117f3b7dd2f5d6199bc3a121d0904dde13777968dcf1ccef076",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F14_VEILRUNNER_NAVIGATION_CONTROLLER_GD",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/veilrunner_navigation_controller.gd",
+      "producerArtifactSha256": "148b9f2df18cf6366061384fedf599de7d88c8b5fba3cdd30b4e29ebd10fe10e",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/veilrunner_navigation_controller.gd",
+      "runtimeResourcePath": "res://modules/f14/veilrunner_navigation_controller.gd",
+      "runtimeArtifactSha256": "148b9f2df18cf6366061384fedf599de7d88c8b5fba3cdd30b4e29ebd10fe10e",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F14_WORLD_QUALIFICATION_RUNTIME_GD",
+      "producerFront": "A14/F14",
+      "producerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "producerPath": "experiments/veilwild-r1/round4/a14/runtime/world_qualification_runtime.gd",
+      "producerArtifactSha256": "e46c5d493da5f957e151dd992050c6f56058ef00c6b24df901f2861869dda48c",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/world_qualification_runtime.gd",
+      "runtimeResourcePath": "res://modules/f14/world_qualification_runtime.gd",
+      "runtimeArtifactSha256": "e46c5d493da5f957e151dd992050c6f56058ef00c6b24df901f2861869dda48c",
+      "byteIdentity": "EXACT",
+      "ownerAuthorizationCommit": "d588f23190637ff38249045b9ac9d4029347fe4b"
+    },
+    {
+      "artifactId": "F16_F16AUDIOSYSTEM_TSCN",
+      "producerFront": "A16/F16",
+      "producerCommit": "a4d409bf2aa27f67e747f584160f8e7c5164a5a9",
+      "producerPath": "experiments/veilwild-r1/f16/modules/f16/F16AudioSystem.tscn",
+      "producerArtifactSha256": "e6ca5ad8ea2489b55062031ba6eade2d61721be50756fb8061e7830881d8c5be",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f16/F16AudioSystem.tscn",
+      "runtimeResourcePath": "res://modules/f16/F16AudioSystem.tscn",
+      "runtimeArtifactSha256": "e6ca5ad8ea2489b55062031ba6eade2d61721be50756fb8061e7830881d8c5be",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F16_AUDIO_SYSTEM_GD",
+      "producerFront": "A16/F16",
+      "producerCommit": "a4d409bf2aa27f67e747f584160f8e7c5164a5a9",
+      "producerPath": "experiments/veilwild-r1/f16/modules/f16/audio_system.gd",
+      "producerArtifactSha256": "7b2c1ac97b6cbd8bf10cff77c6a52bc3cde8a0f82a5ee39cee962d4a2e373021",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f16/audio_system.gd",
+      "runtimeResourcePath": "res://modules/f16/audio_system.gd",
+      "runtimeArtifactSha256": "7b2c1ac97b6cbd8bf10cff77c6a52bc3cde8a0f82a5ee39cee962d4a2e373021",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F16_INTERACTIVE_AUDIO_ROUTER_GD",
+      "producerFront": "A16/F16",
+      "producerCommit": "a4d409bf2aa27f67e747f584160f8e7c5164a5a9",
+      "producerPath": "experiments/veilwild-r1/f16/modules/f16/interactive_audio_router.gd",
+      "producerArtifactSha256": "927d7891e7b6c0fa334f01d7f3a853575c960a151662d9d7875be19a947ebd34",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f16/interactive_audio_router.gd",
+      "runtimeResourcePath": "res://modules/f16/interactive_audio_router.gd",
+      "runtimeArtifactSha256": "927d7891e7b6c0fa334f01d7f3a853575c960a151662d9d7875be19a947ebd34",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F18_PLAYER_RUNTIME_TSCN",
+      "producerFront": "A25/F18",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+      "producerPath": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "producerArtifactSha256": "390d1bfee021d3f87fddd09c769389a7790dbe2b1efd79e08b7eb7377674cb0d",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "runtimeResourcePath": "res://player/player_runtime.tscn",
+      "runtimeArtifactSha256": "390d1bfee021d3f87fddd09c769389a7790dbe2b1efd79e08b7eb7377674cb0d",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F18_PLAYER_CONTROLLER_GD",
+      "producerFront": "A25/F18",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+      "producerPath": "experiments/veilwild-r1/godot/player/player_controller.gd",
+      "producerArtifactSha256": "c6cc0c1c9f95dc23df30f84cdb80ff1cc9e0699c1e89d4386955cb9a9f3b0ee3",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/player/player_controller.gd",
+      "runtimeResourcePath": "res://player/player_controller.gd",
+      "runtimeArtifactSha256": "c6cc0c1c9f95dc23df30f84cdb80ff1cc9e0699c1e89d4386955cb9a9f3b0ee3",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F18_PLAYER_UI_TSCN",
+      "producerFront": "A25/F18",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+      "producerPath": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "producerArtifactSha256": "b53e6467fa0d399951c3d373009ed6819d913323d5e3a9933057b615aaa27b0f",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "runtimeResourcePath": "res://player/player_ui.tscn",
+      "runtimeArtifactSha256": "b53e6467fa0d399951c3d373009ed6819d913323d5e3a9933057b615aaa27b0f",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F18_PLAYER_UI_GD",
+      "producerFront": "A25/F18",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+      "producerPath": "experiments/veilwild-r1/godot/player/player_ui.gd",
+      "producerArtifactSha256": "deae7b87a0c1e3bd18ee6fed0b74e50ec6e9b290b6bdff8dfb8ebdb3d174c161",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/player/player_ui.gd",
+      "runtimeResourcePath": "res://player/player_ui.gd",
+      "runtimeArtifactSha256": "deae7b87a0c1e3bd18ee6fed0b74e50ec6e9b290b6bdff8dfb8ebdb3d174c161",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F22_EVIDENCE_RUNTIME_TSCN",
+      "producerFront": "A21/F22",
+      "producerCommit": "180c5a78056bd81a133143bec197eb20b5f80185",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "producerArtifactSha256": "956f3efe326dc4ecfbcc7a5003e3f8bcd4958996ba4d37faee9d575cf411f995",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "runtimeResourcePath": "res://modules/f22/evidence_runtime.tscn",
+      "runtimeArtifactSha256": "956f3efe326dc4ecfbcc7a5003e3f8bcd4958996ba4d37faee9d575cf411f995",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F22_EVIDENCE_RUNTIME_GD",
+      "producerFront": "A21/F22",
+      "producerCommit": "180c5a78056bd81a133143bec197eb20b5f80185",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.gd",
+      "producerArtifactSha256": "67ad5f8e02f292d52f9f307a77e1c085a3e6f35df0b06517b61d99601d0c63d7",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.gd",
+      "runtimeResourcePath": "res://modules/f22/evidence_runtime.gd",
+      "runtimeArtifactSha256": "67ad5f8e02f292d52f9f307a77e1c085a3e6f35df0b06517b61d99601d0c63d7",
+      "byteIdentity": "EXACT"
+    },
+    {
+      "artifactId": "F22_VEILWILD_TELEMETRY_RECORDER_GD",
+      "producerFront": "A21/F22",
+      "producerCommit": "180c5a78056bd81a133143bec197eb20b5f80185",
+      "producerPath": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
+      "producerArtifactSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
+      "runtimeResourcePath": "res://modules/f22/veilwild_telemetry_recorder.gd",
+      "runtimeArtifactSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
+      "byteIdentity": "EXACT"
+    }
+  ],
+  "sourceFixedCompanions": [
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f09/creature_animation_controller.gd.uid",
+      "runtimeResourcePath": "res://modules/f09/creature_animation_controller.gd.uid",
+      "sha256": "dbf088a52dfa359f59ed3d5605ecc7888a92276942722fe6796078a587dd8338",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f09/creature_animation_system.gd.uid",
+      "runtimeResourcePath": "res://modules/f09/creature_animation_system.gd.uid",
+      "sha256": "c3dd69c703dd87952dc83f9a71af97492c5b4111e443f6459bce0a60fc29b676",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/camouflage_binding.gd.uid",
+      "runtimeResourcePath": "res://modules/f12/camouflage_binding.gd.uid",
+      "sha256": "33983d01b27fa2661d4dccb562b0a6b89f4bc8046ee88c2c041ecfa541f2ce93",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/camouflage_spatial.gdshader.uid",
+      "runtimeResourcePath": "res://modules/f12/camouflage_spatial.gdshader.uid",
+      "sha256": "bbf9c4314efd1ccc3093f358b5ad6b7546f4dba0c3b338a0bbf5e66b22c70c78",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f12/final_creature_camouflage_adapter.gd.uid",
+      "runtimeResourcePath": "res://modules/f12/final_creature_camouflage_adapter.gd.uid",
+      "sha256": "7c1f5ea111bf5bfdb9ecf591a69e4276e0e1c8388a4db6a15c618044685407ba",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/concealment_affordance_3d.gd.uid",
+      "runtimeResourcePath": "res://modules/f14/concealment_affordance_3d.gd.uid",
+      "sha256": "3eb3f3f26bb93ede41ec339a98d46c628929e9048e946cb4c1ac055d1b3ead63",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/environment_navigation_mount.gd.uid",
+      "runtimeResourcePath": "res://modules/f14/environment_navigation_mount.gd.uid",
+      "sha256": "f7e9b070c0befd490b52196a58d738f664023e20230f8407dec940e614b1a032",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/navigation_runtime.gd.uid",
+      "runtimeResourcePath": "res://modules/f14/navigation_runtime.gd.uid",
+      "sha256": "c061f9aed38c8ba678160a42e475fda745b7ce6084b5ce8d0004b0efe3f10e64",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/veilrunner_navigation_controller.gd.uid",
+      "runtimeResourcePath": "res://modules/f14/veilrunner_navigation_controller.gd.uid",
+      "sha256": "b7fd0064f2d0d555ec16f0e31b7974f445f40b5dc6a2a3154180756839514bc5",
+      "role": "SOURCE_FIXED_COMPANION"
+    },
+    {
+      "candidateRepoPath": "experiments/veilwild-r1/godot/modules/f14/world_qualification_runtime.gd.uid",
+      "runtimeResourcePath": "res://modules/f14/world_qualification_runtime.gd.uid",
+      "sha256": "95390a3eefd6d8575632f3ceb545d7b56e52259fd7cbccc3b263cb518737f523",
+      "role": "SOURCE_FIXED_COMPANION"
+    }
+  ],
+  "ownerAuthority": {
+    "A12/F12": {
+      "finalAuthorizationCommit": "2f9c6c5f3b0355b5afbd59544e6ccbb08bab1edd"
+    },
+    "A14/F14": {
+      "finalOwnerHead": "d588f23190637ff38249045b9ac9d4029347fe4b",
+      "runtimeProducerCommit": "f1df4f886d9072699cfc6b8c35edaf7fc8f41ed9",
+      "sceneIdRepairProducerCommit": "2603f88c96f070eaba4d341ab1c2a201b2103239",
+      "sceneIdRepairReceiptSha256": "f853d3c3c41a531e8df647b001511a021f28f543f2f314585d61345d8f3bf686",
+      "finalReadyReceiptSha256": "5ddf0b1d7336b8c7caa80a951180a541f55543acdfd336f11867405fcf00013a"
+    }
+  },
+  "a17IntegrationGlue": [
+    {
+      "path": "experiments/veilwild-r1/godot/integration/integration_root.gd",
+      "sha256": "ac6af6bd40ac885d1d65735882ea79f13813615ad2a5ed6b13ff8e4680954a6b",
+      "role": "mount/lifecycle composition"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/observation_commit_binding.gd",
+      "sha256": "51816ef9ff1d29d5e7264543c27c253452cfaa35aa14e76cb106abfbec919381",
+      "role": "owner-qualified request/commit ordering"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/a09_animation_behavior_binding.gd",
+      "sha256": "8b4b28d767803f22b16ce480035688d419aad3dd0ee81f509151f77498a967af",
+      "role": "F13->F09->final-creature exact profile binding"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/final_strict_health_test.gd",
+      "sha256": "59077476a776743ad6e101bb52b30c2118cca3c2cd5523d07af601dcf796dd42",
+      "role": "bounded final positive strict acceptance oracle"
+    }
+  ],
+  "mechanicalAcceptance": {
+    "validatedRuntimeSourceRevision": "0094abeb8676f42534f9264bbc2fc96f6b42f1e1",
+    "jobId": "job-01a07bdb-382c-7a60-9255-62312ab83ed9",
+    "coldImport": "PASS",
+    "finalStrictHealth": "PASS",
+    "loadedModuleCount": 10,
+    "ownerWorldQualifier": "A14/F14",
+    "worldQualifierAllowDeny": "PASS",
+    "observationCommittedCount": 1,
+    "successConsequenceCount": 1,
+    "reacquisitionOpportunityCount": 1,
+    "hiddenTargetCoordinatesExposed": false,
+    "animationWitness": {
+      "behaviorStateId": "veilwild.behavior.unaware.r1",
+      "clip": "VW_MOTION_IDLE",
+      "transitionSerial": 1
+    },
+    "postReplayGitClean": true
+  },
+  "candidateBoundary": {
+    "candidateId": null,
+    "buildId": null,
+    "buildArtifactId": null,
+    "nominationStatus": "NOT_YET_NOMINATED",
+    "rightsStanding": "INCONCLUSIVE",
+    "humanClaims": "UNKNOWN"
+  }
+}
