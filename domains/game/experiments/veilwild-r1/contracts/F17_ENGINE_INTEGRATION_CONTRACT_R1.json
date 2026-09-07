@@ -95,7 +95,7 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior and F11 lighting source-bound/mounted; remaining producer modules absent; not a frozen playable candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior, F11 lighting, and F22 telemetry recorder source-bound/mounted; remaining producer modules absent; not a frozen playable candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
     {
@@ -121,6 +121,18 @@
       "runtimeCopySha256": "0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
       "adapterScene": null,
       "semanticBoundary": "A17 only configures res://modules/f11/lighting_rig.tscn into LightingMount; A11 owns lighting values and semantics."
+    },
+    {
+      "bindingId": "F22_TELEMETRY_RECORDER_RUNTIME_COPY_R1",
+      "producer": "A21/F22",
+      "producerCommit": "50db2feb750b8dd3e752cd42b9bf452783dabc32",
+      "producerInterfacePath": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "producerInterfaceSha256": "fc141dbd88a4b00732bd7ded03f0507fb84def1404587f0c1299446282616556",
+      "authoritativeRecorderPath": "experiments/veilwild-r1/components/a21/telemetry/veilwild_telemetry_recorder.gd",
+      "authoritativeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+      "runtimeCopyPath": "experiments/veilwild-r1/godot/vendor/f22/veilwild_telemetry_recorder.gd",
+      "adapterScene": "res://adapters/f22_evidence_host.tscn",
+      "semanticBoundary": "A17 supplies lifecycle/run context only; event types and producerSemanticId stay producer/A21 contract-bound; candidate buildId must come from exact build/candidate authority."
     }
   ]
 }

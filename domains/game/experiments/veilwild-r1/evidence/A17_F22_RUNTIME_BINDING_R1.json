@@ -1,0 +1,29 @@
+{
+  "schema": "veilwild.a17-runtime-input-binding.r1",
+  "bindingId": "F22_TELEMETRY_RECORDER_RUNTIME_COPY_R1",
+  "producer": {
+    "agentId": "A21",
+    "frontId": "F22",
+    "producerCommit": "50db2feb750b8dd3e752cd42b9bf452783dabc32"
+  },
+  "producerContract": {
+    "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+    "sha256": "sha256:fc141dbd88a4b00732bd7ded03f0507fb84def1404587f0c1299446282616556"
+  },
+  "authoritativeSource": {
+    "path": "experiments/veilwild-r1/components/a21/telemetry/veilwild_telemetry_recorder.gd",
+    "sha256": "sha256:e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2"
+  },
+  "derivedRuntimeCopy": {
+    "path": "experiments/veilwild-r1/godot/vendor/f22/veilwild_telemetry_recorder.gd",
+    "sha256": "sha256:e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+    "artifactClass": "DERIVED_RUNTIME_COPY"
+  },
+  "mount": {
+    "setting": "veilwild/integration/evidence_scene",
+    "resourcePath": "res://adapters/f22_evidence_host.tscn",
+    "mount": "EvidenceMount"
+  },
+  "semanticBoundary": "A17 owns recorder lifecycle/run-context injection; A21 owns envelope validation/storage. No A17 mapping invents producer event semantics. A19 build identity remains externally supplied for any candidate run.",
+  "oracle": "A21 owner fixture/contract validator replay PASS; runtime copy digest exact; A17 mount test rejects incomplete identity then emits/finalizes one explicitly non-candidate session_started fixture."
+}
