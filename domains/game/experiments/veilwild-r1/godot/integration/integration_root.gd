@@ -3,6 +3,7 @@ extends Node3D
 ## It deliberately does not define player, creature, cue, animation, audio, or evidence semantics.
 
 const ObservationCommitBinding = preload("res://integration/observation_commit_binding.gd")
+const FinalCreatureCamouflageAdapter = preload("res://modules/f12/final_creature_camouflage_adapter.gd")
 
 const MODULE_SPECS: Array[Dictionary] = [
     {"id": "environment", "setting": "veilwild/integration/environment_scene", "mount": "EnvironmentMount"},
@@ -20,11 +21,13 @@ const MODULE_SPECS: Array[Dictionary] = [
 var loaded_modules: Dictionary = {}
 var load_failures: Array[String] = []
 var observation_binding: Node = null
+var camouflage_adapter: Node = null
 var integration_failures: Array[String] = []
 
 func _ready() -> void:
     add_to_group("veilwild.integration_root")
     _load_configured_modules()
+    _bind_final_creature_camouflage_adapter()
     _bind_observation_commit_adapter()
     var status := candidate_health(bool(ProjectSettings.get_setting("veilwild/integration/strict_candidate", false)))
     if status["pass"]:
@@ -75,6 +78,14 @@ func _load_configured_modules() -> void:
         mount.add_child(instance)
         loaded_modules[spec["id"]] = {"path": scene_path, "instance": instance}
 
+func get_camouflage_region_witnesses() -> Dictionary:
+    if camouflage_adapter == null:
+        return {}
+    var witnesses: Variant = camouflage_adapter.call("region_witnesses")
+    if not (witnesses is Dictionary):
+        return {}
+    return (witnesses as Dictionary).duplicate(true)
+
 func get_observation_binding() -> Node:
     return observation_binding
 
@@ -82,6 +93,21 @@ func bind_observation_world_qualifier(qualifier: Callable, owner_source_front: S
     if observation_binding == null:
         return false
     return bool(observation_binding.call("bind_world_qualifier", qualifier, owner_source_front))
+
+func _bind_final_creature_camouflage_adapter() -> void:
+    if not loaded_modules.has("creature"):
+        return
+    var systems_mount := get_node_or_null("SystemsMount")
+    if systems_mount == null:
+        integration_failures.append("missing SystemsMount for camouflage adapter")
+        return
+    camouflage_adapter = FinalCreatureCamouflageAdapter.new()
+    camouflage_adapter.name = "FinalCreatureCamouflageAdapter"
+    systems_mount.add_child(camouflage_adapter)
+    var creature: Node = loaded_modules["creature"]["instance"]
+    if not bool(camouflage_adapter.call("bind_creature", creature)):
+        var owner_error: Variant = camouflage_adapter.get("last_error")
+        integration_failures.append("camouflage adapter: " + str(owner_error))
 
 func _bind_observation_commit_adapter() -> void:
     observation_binding = ObservationCommitBinding.new()
