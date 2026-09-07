@@ -1,0 +1,26 @@
+{
+  "schema": "veilwild.a17-runtime-input-binding.r1",
+  "bindingId": "F11_LIGHTING_MODULE_R1",
+  "producer": {
+    "agentId": "A11",
+    "frontId": "F11",
+    "producerCommit": "53165292543e670959c7761c43e3c7a7b1399f85"
+  },
+  "authoritativeSource": {
+    "path": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+    "sha256": "sha256:0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+    "artifactClass": "AUTHORITATIVE_EDITABLE_SOURCE"
+  },
+  "derivedRuntimeCopy": {
+    "path": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+    "sha256": "sha256:0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+    "artifactClass": "DERIVED_RUNTIME_COPY"
+  },
+  "mount": {
+    "setting": "veilwild/integration/lighting_scene",
+    "resourcePath": "res://modules/f11/lighting_rig.tscn",
+    "mount": "LightingMount"
+  },
+  "semanticBoundary": "No A11 light/environment parameter is changed by A17.",
+  "oracle": "A11 owner structural validation replays PASS; A17 exact runtime main mounts the unchanged PackedScene under LightingMount with expected root/node types."
+}

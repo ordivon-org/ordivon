@@ -95,7 +95,7 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior policy source-bound and mounted; remaining producer modules absent; not a frozen playable candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior and F11 lighting source-bound/mounted; remaining producer modules absent; not a frozen playable candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
     {
@@ -109,6 +109,18 @@
       "runtimeCopyPath": "experiments/veilwild-r1/godot/vendor/f13/creature_behavior_policy.gd",
       "adapterScene": "res://adapters/f13_behavior_host.tscn",
       "semanticBoundary": "A17 supplies no perception values and does not alter A13 states/thresholds/decisions."
+    },
+    {
+      "bindingId": "F11_LIGHTING_MODULE_R1",
+      "producer": "A11/F11",
+      "producerCommit": "53165292543e670959c7761c43e3c7a7b1399f85",
+      "producerInterfacePath": "experiments/veilwild-r1/handoffs/A11-F11-interface.json",
+      "authoritativeSourcePath": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+      "authoritativeSourceSha256": "0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+      "runtimeCopyPath": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+      "runtimeCopySha256": "0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+      "adapterScene": null,
+      "semanticBoundary": "A17 only configures res://modules/f11/lighting_rig.tscn into LightingMount; A11 owns lighting values and semantics."
     }
   ]
 }
