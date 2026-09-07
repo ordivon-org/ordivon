@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://integration/integration_root.gd" id="1_a17"]
+
+[node name="Veilwild" type="Node3D"]
+script = ExtResource("1_a17")
+
+[node name="EnvironmentMount" type="Node3D" parent="."]
+
+[node name="CreatureMount" type="Node3D" parent="."]
+
+[node name="LightingMount" type="Node3D" parent="."]
+
+[node name="NavigationMount" type="Node3D" parent="."]
+
+[node name="PlayerRuntimeMount" type="Node3D" parent="."]
+
+[node name="SystemsMount" type="Node" parent="."]
+
+[node name="AudioMount" type="Node3D" parent="."]
+
+[node name="EvidenceMount" type="Node" parent="."]
+
+[node name="UIOverlay" type="CanvasLayer" parent="."]

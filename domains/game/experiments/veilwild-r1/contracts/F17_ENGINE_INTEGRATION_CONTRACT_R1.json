@@ -1,0 +1,100 @@
+{
+  "schema": "veilwild.f17-engine-integration-contract.r1",
+  "producer": {
+    "agentId": "A17",
+    "frontId": "F17",
+    "closureId": "V-R1"
+  },
+  "semanticMeaning": "Godot runtime composition boundary only; mounted scene semantics remain with producer owners.",
+  "carrier": {
+    "engine": "Godot",
+    "requiredVersionFamily": "4.7.x",
+    "projectPath": "experiments/veilwild-r1/godot",
+    "mainScene": "res://main.tscn",
+    "eventTransport": "autoload VeilwildEventBus using Godot signal envelope_published(topic,payload,source)"
+  },
+  "runtimeCoordinates": {
+    "space": "Godot world space after import",
+    "unit": "1 Godot unit treated as 1 meter for Veilwild runtime composition",
+    "axes": {
+      "right": "+X",
+      "up": "+Y",
+      "forward": "-Z"
+    },
+    "interchangeConversionOwner": "A18/F19 validates producer interchange into this runtime basis"
+  },
+  "mounts": [
+    {
+      "name": "EnvironmentMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A05/F05 via A18 validation"
+    },
+    {
+      "name": "CreatureMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A06-A12 composite via validated runtime scene"
+    },
+    {
+      "name": "LightingMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A11/F11"
+    },
+    {
+      "name": "NavigationMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A14/F14"
+    },
+    {
+      "name": "PlayerRuntimeMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A25/F18"
+    },
+    {
+      "name": "SystemsMount",
+      "nodeType": "Node",
+      "intendedProducer": "A09/F09+A13/F13 and engine adapters"
+    },
+    {
+      "name": "AudioMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A16/F16"
+    },
+    {
+      "name": "EvidenceMount",
+      "nodeType": "Node",
+      "intendedProducer": "A21/F22"
+    },
+    {
+      "name": "UIOverlay",
+      "nodeType": "CanvasLayer",
+      "intendedProducer": "A25/F18"
+    }
+  ],
+  "moduleSettings": [
+    "environment_scene",
+    "creature_scene",
+    "lighting_scene",
+    "navigation_scene",
+    "animation_system_scene",
+    "behavior_scene",
+    "audio_scene",
+    "player_runtime_scene",
+    "evidence_scene",
+    "ui_scene"
+  ],
+  "preconditions": [
+    "Mounted artifacts must be validated runtime PackedScenes or A17-owned narrow adapters over owner-validated runtime artifacts.",
+    "Producer semantic contracts must remain source-bound and exact-revision identified.",
+    "A17 must not reinterpret player interaction, behavior state, cue meaning, animation meaning, camouflage truth, or evidence semantics."
+  ],
+  "consumerVisibleFailureModes": [
+    "configured scene path missing",
+    "configured resource is not a PackedScene",
+    "required mount missing",
+    "strict candidate missing one or more admitted modules",
+    "cross-module contract mismatch detected by owner or composite replay"
+  ],
+  "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
+  "compatibility": "PROVISIONAL_ENGINE_SHELL; no producer artifact consumed yet",
+  "humanBoundary": "No Human outcome claim follows from engine integration."
+}
