@@ -113,14 +113,16 @@
     {
       "bindingId": "F11_LIGHTING_MODULE_R1",
       "producer": "A11/F11",
-      "producerCommit": "53165292543e670959c7761c43e3c7a7b1399f85",
+      "producerCommit": "f0a51cec1d6b78de154bab5df93b99c22b5673ce",
       "producerInterfacePath": "experiments/veilwild-r1/handoffs/A11-F11-interface.json",
       "authoritativeSourcePath": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
-      "authoritativeSourceSha256": "0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+      "authoritativeSourceSha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
       "runtimeCopyPath": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
-      "runtimeCopySha256": "0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+      "runtimeCopySha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
       "adapterScene": null,
-      "semanticBoundary": "A17 only configures res://modules/f11/lighting_rig.tscn into LightingMount; A11 owns lighting values and semantics."
+      "semanticBoundary": "A17 only configures res://modules/f11/lighting_rig.tscn into LightingMount; A11 owns lighting values and semantics.",
+      "producerInterfaceSha256": "6c0c06858ba467acc5e0f7708e92ef64b223be9fb031403cc66a85bedf1b8a3e",
+      "round2ConsumptionStatus": "REVALIDATED_SOURCE_CURRENT_R1_INPUT"
     },
     {
       "bindingId": "F22_EVIDENCE_RUNTIME_MODULE_R1",
