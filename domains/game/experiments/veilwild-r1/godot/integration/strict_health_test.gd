@@ -14,13 +14,21 @@ func _run() -> void:
     await process_frame
     var status: Dictionary = instance.candidate_health(true)
     if bool(status["pass"]):
-        push_error("A17 strict gate accepted an empty integration candidate")
+        push_error("A17 strict gate accepted an incomplete integration candidate")
         quit(3)
         return
     var missing: Array = status["missingModules"]
-    if missing.size() != 10:
-        push_error("A17 strict gate expected 10 missing modules, got %d" % missing.size())
+    if missing.is_empty():
+        push_error("A17 strict gate failed without missing-module evidence")
         quit(4)
         return
-    print("VEILWILD_A17_STRICT_GATE_VALID missing=%d" % missing.size())
+    if "behavior" in missing:
+        push_error("A17 strict gate did not recognize configured F13 behavior module")
+        quit(5)
+        return
+    if not instance.loaded_modules.has("behavior"):
+        push_error("A17 strict gate did not mount configured F13 behavior module")
+        quit(6)
+        return
+    print("VEILWILD_A17_STRICT_GATE_VALID loaded=%d missing=%d" % [instance.loaded_modules.size(), missing.size()])
     quit(0)

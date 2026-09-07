@@ -23,9 +23,9 @@ func _ready() -> void:
     _load_configured_modules()
     var status := candidate_health(bool(ProjectSettings.get_setting("veilwild/integration/strict_candidate", false)))
     if status["pass"]:
-        print("VEILWILD_ENGINE_INTEGRATION_READY loaded=%d strict=%s" % [loaded_modules.size(), status["strict"]])
+        print("VEILWILD_ENGINE_COMPOSITION_HEALTH_PASS loaded=%d strict=%s" % [loaded_modules.size(), status["strict"]])
     else:
-        push_error("VEILWILD_ENGINE_INTEGRATION_NOT_READY %s" % JSON.stringify(status))
+        push_error("VEILWILD_ENGINE_COMPOSITION_HEALTH_FAIL %s" % JSON.stringify(status))
 
 func get_mount(mount_name: StringName) -> Node:
     return get_node_or_null(NodePath(String(mount_name)))

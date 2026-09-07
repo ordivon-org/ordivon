@@ -95,6 +95,20 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PROVISIONAL_ENGINE_SHELL; no producer artifact consumed yet",
-  "humanBoundary": "No Human outcome claim follows from engine integration."
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior policy source-bound and mounted; remaining producer modules absent; not a frozen playable candidate",
+  "humanBoundary": "No Human outcome claim follows from engine integration.",
+  "sourceBindings": [
+    {
+      "bindingId": "F13_BEHAVIOR_POLICY_RUNTIME_COPY_R1",
+      "producer": "A13/F13",
+      "producerCommit": "80fa3a6ff57b21ac0d7eb4d179e7ec1c94d468ad",
+      "producerInterfacePath": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R1.json",
+      "producerInterfaceSha256": "dc0252285caae72720ac018ec0f3db5023fbd4ac04cfdf5cfae0a44abf3ee879",
+      "authoritativePolicyPath": "experiments/veilwild-r1/f13-behavior/creature_behavior_policy.gd",
+      "authoritativePolicySha256": "8ad2a4f449969444dd27b1b5c28956e80de368070a0de0b03f3a901370e4a847",
+      "runtimeCopyPath": "experiments/veilwild-r1/godot/vendor/f13/creature_behavior_policy.gd",
+      "adapterScene": "res://adapters/f13_behavior_host.tscn",
+      "semanticBoundary": "A17 supplies no perception values and does not alter A13 states/thresholds/decisions."
+    }
+  ]
 }

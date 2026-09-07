@@ -12,5 +12,9 @@ assert 'run/main_scene="res://main.tscn"' in project
 assert 'VeilwildEventBus="*res://integration/event_bus.gd"' in project
 assert not missing, f'missing mounts: {missing}'
 assert contract['producer']=={'agentId':'A17','frontId':'F17','closureId':'V-R1'}
-assert contract['compatibility'].startswith('PROVISIONAL_')
+assert contract['compatibility'].startswith(('PROVISIONAL_', 'PARTIAL_RUNTIME_INTEGRATION'))
+if contract['compatibility'].startswith('PARTIAL_RUNTIME_INTEGRATION'):
+    bindings = contract.get('sourceBindings', [])
+    assert any(b.get('producer') == 'A13/F13' for b in bindings), 'partial integration must identify consumed F13 source binding'
+    assert 'not a frozen playable candidate' in contract['compatibility']
 print('VEILWILD_A17_ENGINE_SHELL_VALID mounts=%d modules=%d' % (len(required_mounts), len(contract['moduleSettings'])))

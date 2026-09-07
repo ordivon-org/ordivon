@@ -1,0 +1,32 @@
+{
+  "schema": "veilwild.a17-runtime-input-binding.r1",
+  "bindingId": "F13_BEHAVIOR_POLICY_RUNTIME_COPY_R1",
+  "producer": {
+    "agentId": "A13",
+    "frontId": "F13",
+    "producerCommit": "80fa3a6ff57b21ac0d7eb4d179e7ec1c94d468ad"
+  },
+  "authoritativeSource": {
+    "path": "experiments/veilwild-r1/f13-behavior/creature_behavior_policy.gd",
+    "sha256": "sha256:8ad2a4f449969444dd27b1b5c28956e80de368070a0de0b03f3a901370e4a847"
+  },
+  "derivedRuntimeCopy": {
+    "path": "experiments/veilwild-r1/godot/vendor/f13/creature_behavior_policy.gd",
+    "sha256": "sha256:8ad2a4f449969444dd27b1b5c28956e80de368070a0de0b03f3a901370e4a847",
+    "artifactClass": "DERIVED_RUNTIME_COPY"
+  },
+  "adapter": {
+    "path": "experiments/veilwild-r1/godot/adapters/f13_behavior_host.tscn",
+    "meaning": "Node wrapper invokes A13 policy only from caller-supplied perception dictionaries; no perception or state semantics are invented."
+  },
+  "reason": "Godot res:// is project-root scoped; the A13 sibling project cannot resolve its own res:// preload when executed under the A17 godot project.",
+  "oracle": "authoritative source digest equals derived runtime-copy digest; A13 owner fixture replays PASS; A17 project mounts adapter and caller-supplied fixture returns the A13 decision schema.",
+  "reproductionCommand": "python3 experiments/veilwild-r1/scripts/sync_a17_runtime_inputs.py",
+  "observedBoundaryFailure": {
+    "condition": "A13 sibling-project test executed under A17 Godot project root",
+    "consequence": "res://creature_behavior_policy.gd resolved under A17 root and was absent",
+    "exitCode": 1,
+    "godotError": "Parse Error: Preload file res://creature_behavior_policy.gd does not exist."
+  },
+  "adapterRepair": "Adapter explicitly preloads res://vendor/f13/creature_behavior_policy.gd; source semantics unchanged."
+}
