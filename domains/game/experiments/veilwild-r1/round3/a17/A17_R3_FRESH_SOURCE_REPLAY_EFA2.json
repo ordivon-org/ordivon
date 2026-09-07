@@ -1,0 +1,16 @@
+{
+  "schema": "veilwild.a17-fresh-source-replay.r3",
+  "testedCommit": "efa2ac6f38de19131d8384aa0a2dc2f6fba444da",
+  "workspaceId": "ws-veilwild-r1-r3-a17-repro-efa2",
+  "jobId": "job-01a07b5d-01cb-7dd2-8d15-51e87bbd5a6e",
+  "operation": "delete .godot + isolated XDG user data; physical Godot 4.7.1 --headless --path . --import; then git status --porcelain",
+  "result": "PASS",
+  "stderrBytes": 0,
+  "gitStatusAfterImport": "",
+  "meaning": "Committed source-adjacent metadata is reproducible enough that a fresh source checkout no longer acquires untracked/modified source files merely by import.",
+  "notMeaning": [
+    "packaging reproducibility",
+    "candidate build",
+    "gameplay success"
+  ]
+}
