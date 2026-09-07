@@ -2,23 +2,23 @@
 
 [ext_resource type="Script" path="res://integration/integration_root.gd" id="1_a17"]
 
-[node name="Veilwild" type="Node3D"]
+[node name="Veilwild" type="Node3D" unique_id=1999628772]
 script = ExtResource("1_a17")
 
-[node name="EnvironmentMount" type="Node3D" parent="."]
+[node name="EnvironmentMount" type="Node3D" parent="." unique_id=400844442]
 
-[node name="CreatureMount" type="Node3D" parent="."]
+[node name="CreatureMount" type="Node3D" parent="." unique_id=656766382]
 
-[node name="LightingMount" type="Node3D" parent="."]
+[node name="LightingMount" type="Node3D" parent="." unique_id=2052223223]
 
-[node name="NavigationMount" type="Node3D" parent="."]
+[node name="NavigationMount" type="Node3D" parent="." unique_id=595896582]
 
-[node name="PlayerRuntimeMount" type="Node3D" parent="."]
+[node name="PlayerRuntimeMount" type="Node3D" parent="." unique_id=622656865]
 
-[node name="SystemsMount" type="Node" parent="."]
+[node name="SystemsMount" type="Node" parent="." unique_id=1302905532]
 
-[node name="AudioMount" type="Node3D" parent="."]
+[node name="AudioMount" type="Node3D" parent="." unique_id=648565012]
 
-[node name="EvidenceMount" type="Node" parent="."]
+[node name="EvidenceMount" type="Node" parent="." unique_id=1887065956]
 
-[node name="UIOverlay" type="CanvasLayer" parent="."]
+[node name="UIOverlay" type="CanvasLayer" parent="." unique_id=970038958]

@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/usr/bin/godot",
+    "--headless",
+    "--path",
+    ".",
+    "--script",
+    "res://integration/strict_health_test.gd"
+  ],
+  "cwd": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+  "exitCode": 0,
+  "fatalMatches": [],
+  "fatalPatterns": [
+    "(?m)^SCRIPT ERROR:"
+  ],
+  "kind": "ordivon.workstation-godot-checked-run",
+  "pass": true,
+  "reason": "process and declared health gates passed",
+  "requiredOutputs": [],
+  "schemaVersion": 1,
+  "stderr": {
+    "bytes": 0,
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 213,
+    "sha256": "sha256:c139fc0651d810ad4e9552bf12a68d3a095b83cc105720b86e27b6a7c7ac0065"
+  },
+  "timedOut": false,
+  "timeoutSeconds": 25.0
+}

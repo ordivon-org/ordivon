@@ -1,0 +1,229 @@
+{
+  "schema": "veilwild.a17-source-identity-repair.r3",
+  "roundId": "VEILWILD_R1_ROUND_3",
+  "owner": "A17/F17",
+  "openingProjectCommit": "40be2155ec05283324af2337b3367c9f17db1d37",
+  "godot": {
+    "version": "4.7.1.stable.arch_linux.a13da4feb",
+    "executable": "/usr/bin/godot"
+  },
+  "professionalCarrierOperations": [
+    {
+      "operation": "fresh project import from deleted .godot cache",
+      "jobId": "job-01a07b56-4e57-7e80-87ca-b9ffdc3ef37c",
+      "result": "PASS empty stderr; generated 19 source-adjacent .uid/.import files"
+    },
+    {
+      "operation": "cross-workspace metadata byte comparison",
+      "result": "PASS 19/19 regenerated files byte-identical to preserved Round-2 dirty copies; diff=0 missingOld=0"
+    },
+    {
+      "operation": "A17 main PackedScene repack probe",
+      "jobId": "job-01a07b59-0315-7812-9aad-94c67e406ab1",
+      "result": "REJECTED_AS_CLEAN_RECEIPT: process exited 0 but leaked Canvas/ObjectDB/resource at exit"
+    },
+    {
+      "operation": "A17 main PackedScene lifecycle-clean repack",
+      "jobId": "job-01a07b59-867f-71d3-80d8-cbf6cc6bd955",
+      "result": "PASS empty stderr; generated unique_id for all 10 A17-owned main nodes"
+    },
+    {
+      "operation": "A19 d6317e9 scene-node preflight + current composite replay",
+      "jobId": "job-01a07b5a-97e2-79d3-9ddd-e4db31b1e770",
+      "result": "A17 main 10/10 repaired; current total 50 node headers, remaining 40 producer-owned IDs missing; mounted module replays remain error-clean"
+    }
+  ],
+  "sourceSideMetadata": [
+    {
+      "path": "experiments/veilwild-r1/godot/integration/event_bus.gd.uid",
+      "sha256": "9a25d6bdb20a48a7e67441cf7ea3a0389b58abe885f0f1b84ffe31bf75303e23",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/f05_binding_test.gd.uid",
+      "sha256": "c8bec91378b89b7c95a9358c2913016bea18f5a92cd64ef2125ce688a645acea",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/f11_binding_test.gd.uid",
+      "sha256": "e17f5d5a5c7a7935271d43d96f89c2e90d291400d3a7011fcafdc28d194ccfd3",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/f13_binding_test.gd.uid",
+      "sha256": "c3f0c49659afd7592bc5b8f753936c73ed7e6f5b921d8ebf36a3f9677512cf27",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/f18_binding_test.gd.uid",
+      "sha256": "2a89af559c418251e7d3ffcd30df86ce295663f0686578efa42797cf979c1dd3",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/f22_binding_test.gd.uid",
+      "sha256": "a317760a0945575a3f5e8788be92e2d29fb95f8170ed164c038a477099ce7103",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/integration_root.gd.uid",
+      "sha256": "3dfec61e0ee602134e0999944154067cc5848343d3d0fe68beb27c4431e1dfc9",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/integration/strict_health_test.gd.uid",
+      "sha256": "17ddd5718c5761ae3a5b704c8df6a305a7a18d6d9f81c556bd636b1d7cdd3a53",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb.import",
+      "sha256": "ee592ff414aca559b4e8dfdc3bcddc91ff386acf8fd07837b6e013fbe7cdaa62",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd.uid",
+      "sha256": "04d3d5b2a82e1033f2ad8089a1164f44cfaa6ef93ae02cf761f28ea7ba0dec13",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd.uid",
+      "sha256": "a9248ab37ce64bed8e0c508ea96b53c9efb3225db2fcc14192fcf9b6466b23ab",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/tests/test_a17_mount.gd.uid",
+      "sha256": "5de61c6b1c209fe002aa68a65407c9d4042781fa5516442550e769730fe61088",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/tests/test_behavior.gd.uid",
+      "sha256": "a8f44efd28a467156d02b0a6856c4ee1249d807e1d06f5869d9d6d044183f261",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.gd.uid",
+      "sha256": "67e4ba8260f17e5ae0052c65ebfa93492adeb198af96ca95f91e6cf150c4e45f",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/test_a17_evidence_mount.gd.uid",
+      "sha256": "8b1296e47a33cea422a50c4c46e45c04cb47fa4dab6f2e4e048f4df9c0e1ed12",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd.uid",
+      "sha256": "2c7b557978aaf4e92e6f3d067b20654fc2971d2ab9f37afd91638cd676cc0e13",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/f18_mechanical_test.gd.uid",
+      "sha256": "006e2c5e01161f7002b0c286ad77f0cd1271fc541476b75c997df599ee47af00",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_controller.gd.uid",
+      "sha256": "ccb332bb7d6dc0b9151471136eb63811d9277e82806a03c00ff57fd4f3407ae1",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_ui.gd.uid",
+      "sha256": "cc4d6f3cacb570fa64655a481f8eb4c8a9619818b80a68310a08bf16a84cd6f5",
+      "class": "GODOT_SOURCE_ADJACENT_IMPORT_OR_RESOURCE_UID_METADATA"
+    }
+  ],
+  "mainSceneRepair": {
+    "path": "experiments/veilwild-r1/godot/main.tscn",
+    "owner": "A17/F17",
+    "nodeHeaders": 10,
+    "missingUniqueIdAfterRepair": 0,
+    "sha256": "fa6f427044801140ecaeb42c03bf4acddf00ac13593ffd87e595ac8a1a1ca942",
+    "method": "Physical Godot PackedScene repack generated valid IDs. A17 merged only generated unique_id attributes into original serialization, retaining pre-existing load_steps/header and all node names/types/parents/scripts."
+  },
+  "scenePreflight": [
+    {
+      "path": "experiments/veilwild-r1/godot/main.tscn",
+      "nodeHeaders": 10,
+      "missingUniqueIdCount": 0,
+      "sha256": "fa6f427044801140ecaeb42c03bf4acddf00ac13593ffd87e595ac8a1a1ca942"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+      "nodeHeaders": 3,
+      "missingUniqueIdCount": 3,
+      "sha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "nodeHeaders": 1,
+      "missingUniqueIdCount": 1,
+      "sha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "nodeHeaders": 1,
+      "missingUniqueIdCount": 1,
+      "sha256": "556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "nodeHeaders": 5,
+      "missingUniqueIdCount": 5,
+      "sha256": "e536bd3fb38f83f8d66b40508772ed3966e7f1945a52fa0a9fd0701a0699c6db"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "nodeHeaders": 30,
+      "missingUniqueIdCount": 30,
+      "sha256": "fc1f5045be5df74713f4a09386441e3d3f2f94301d4e1a79c3940373d5c86205"
+    }
+  ],
+  "remainingOwnerPressure": [
+    {
+      "owner": "A11/F11",
+      "path": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+      "missingNodeIds": 3
+    },
+    {
+      "owner": "A13/F13",
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "missingNodeIds": 1
+    },
+    {
+      "owner": "A21/F22",
+      "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "missingNodeIds": 1
+    },
+    {
+      "owner": "A25/F18",
+      "paths": [
+        "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+        "experiments/veilwild-r1/godot/player/player_ui.tscn"
+      ],
+      "missingNodeIds": 35
+    }
+  ],
+  "externalEvaluation": [
+    {
+      "authority": "Godot 4.7 official Import process documentation",
+      "applicability": "F05 GLB source-adjacent import configuration",
+      "criterionUsed": "<asset>.import contains important import metadata and should be committed; .godot/imported is regenerable cache and should not be committed",
+      "standing": "PASS",
+      "effect": "Commit deterministic .import while retaining repository .godot ignore."
+    },
+    {
+      "authority": "Godot ResourceUID official documentation",
+      "applicability": "source-stable resource identity",
+      "criterionUsed": "Resource UIDs keep references intact across file rename/move and are project resource identity material",
+      "standing": "PASS",
+      "effect": "Retain deterministic generated .gd.uid metadata in exact F17 source."
+    },
+    {
+      "authority": "A19/F20 exact d6317e9 preflight, itself correlated to Godot upstream issue 115971",
+      "applicability": "candidate packaging reproducibility",
+      "criterionUsed": "pack/export fail when any text-scene node header lacks unique_id",
+      "standing": "PARTIAL",
+      "effect": "A17 main repaired; 40 owner-scene IDs still block packaging."
+    }
+  ],
+  "semanticBoundary": "UID/import metadata and node IDs are resource/build identity only. They do not change Game semantics, visual judgment, navigation truth, evidence semantics, accessibility standing, rights standing, or Human claims.",
+  "candidateStatus": "BLOCKED_ON_REMAINING_PRODUCER_SCENE_IDS_AND_OTHER_P1_CHAINS"
+}
