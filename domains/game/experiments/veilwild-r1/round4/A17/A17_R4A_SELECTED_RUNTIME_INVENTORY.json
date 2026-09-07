@@ -23,7 +23,8 @@
     "mainSceneRepoPath": "experiments/veilwild-r1/godot/main.tscn",
     "mainSceneSha256": "fa6f427044801140ecaeb42c03bf4acddf00ac13593ffd87e595ac8a1a1ca942",
     "exportPresetSha256": "258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05",
-    "godotVersion": "4.7.1.stable.arch_linux.a13da4feb"
+    "godotVersion": "4.7.1.stable.arch_linux.a13da4feb",
+    "strictOracleSchedulerRepairParentRevision": "f9bbf4b109475a41275cc73556c300ad174baaf0"
   },
   "projectModuleSelections": {
     "environment_scene": "res://modules/f05/veilwild_forest_environment.glb",
@@ -448,7 +449,7 @@
     },
     {
       "path": "experiments/veilwild-r1/godot/integration/final_strict_health_test.gd",
-      "sha256": "59077476a776743ad6e101bb52b30c2118cca3c2cd5523d07af601dcf796dd42",
+      "sha256": "db426f919c8d710c009341559d50072de00308dce4be070c3e57e205d4a25735",
       "role": "bounded final positive strict acceptance oracle"
     }
   ],
@@ -469,7 +470,16 @@
       "clip": "VW_MOTION_IDLE",
       "transitionSerial": 1
     },
-    "postReplayGitClean": true
+    "postReplayGitClean": true,
+    "coldFirstRunSchedulerProof": {
+      "jobId": "job-01a07be2-3ebd-7531-9ff4-d06bc1404519",
+      "sourceRevision": "f9bbf4b109475a41275cc73556c300ad174baaf0",
+      "method": "fresh .godot cache -> cold editor import -> temporary exact oracle with readiness loop advancing process_frame then physics_frame",
+      "result": "PASS",
+      "predicateChange": "NONE",
+      "schedulerReason": "A14 initialization uses call_deferred; strict polling must advance idle/process and physics scheduling."
+    },
+    "coldFirstRunPriorFailureClassification": "A17_ORACLE_SCHEDULER_STARVATION_NOT_F14_RUNTIME_FAILURE"
   },
   "candidateBoundary": {
     "candidateId": null,

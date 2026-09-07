@@ -22,6 +22,7 @@ func _run() -> void:
         if bool(last_wait_witness.get("ready", false)):
             ready = true
             break
+        await process_frame
         await physics_frame
     if not ready:
         push_error("A17 final strict health: bounded readiness timeout %s" % JSON.stringify(last_wait_witness))
