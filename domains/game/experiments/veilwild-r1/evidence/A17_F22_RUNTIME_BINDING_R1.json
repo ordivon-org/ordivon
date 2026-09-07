@@ -1,29 +1,31 @@
 {
   "schema": "veilwild.a17-runtime-input-binding.r1",
-  "bindingId": "F22_TELEMETRY_RECORDER_RUNTIME_COPY_R1",
+  "bindingId": "F22_EVIDENCE_RUNTIME_MODULE_R1",
   "producer": {
     "agentId": "A21",
     "frontId": "F22",
-    "producerCommit": "50db2feb750b8dd3e752cd42b9bf452783dabc32"
+    "producerCommit": "d19581f65096b5a3588d57d6dab7b9ca9fbd213b"
   },
   "producerContract": {
     "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
-    "sha256": "sha256:fc141dbd88a4b00732bd7ded03f0507fb84def1404587f0c1299446282616556"
+    "sha256": "sha256:5cc4f8575815490e8c06f314585fab89beacc4eedc3085d742f51a52e895a85f"
   },
-  "authoritativeSource": {
-    "path": "experiments/veilwild-r1/components/a21/telemetry/veilwild_telemetry_recorder.gd",
-    "sha256": "sha256:e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2"
-  },
-  "derivedRuntimeCopy": {
-    "path": "experiments/veilwild-r1/godot/vendor/f22/veilwild_telemetry_recorder.gd",
-    "sha256": "sha256:e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+  "producerModule": {
+    "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+    "sha256": "sha256:556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9",
     "artifactClass": "DERIVED_RUNTIME_COPY"
+  },
+  "producerRuntimeRecorder": {
+    "path": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
+    "sha256": "sha256:e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2"
   },
   "mount": {
     "setting": "veilwild/integration/evidence_scene",
-    "resourcePath": "res://adapters/f22_evidence_host.tscn",
+    "resourcePath": "res://modules/f22/evidence_runtime.tscn",
     "mount": "EvidenceMount"
   },
-  "semanticBoundary": "A17 owns recorder lifecycle/run-context injection; A21 owns envelope validation/storage. No A17 mapping invents producer event semantics. A19 build identity remains externally supplied for any candidate run.",
-  "oracle": "A21 owner fixture/contract validator replay PASS; runtime copy digest exact; A17 mount test rejects incomplete identity then emits/finalizes one explicitly non-candidate session_started fixture."
+  "semanticBoundary": "A21 owns module API/envelope/storage; A17 only mounts and injects run context. Candidate buildId remains external to this mechanical fixture.",
+  "supersedesA17TemporaryAdapter": "The earlier A17 f22_evidence_host + vendor runtime copy was removed once A21 published the owner-correct module.",
+  "collisionGuard": "A17 composition test uses invocation-scoped user:// output rather than A21 fixed shared fixture path, preventing concurrent overwrite during campaign replay.",
+  "oracle": "Current A21 module bytes/source are revalidated; producer module test and A17 invocation-scoped mount test must PASS with no SCRIPT ERROR."
 }

@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://adapters/f22_evidence_host.gd" id="1_f22"]
-
-[node name="F22EvidenceHost" type="Node"]
-script = ExtResource("1_f22")

@@ -23,8 +23,8 @@
     "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "stdout": {
-    "bytes": 277,
-    "sha256": "sha256:cc123887a927566d3bbf0e2760ac692ff86913ab68ef3eca1f5f9f0fa41185f1"
+    "bytes": 340,
+    "sha256": "sha256:5a7fa4a02164184f20a3185c7faf958b5472bbe83ac231e14e410898552dac27"
   },
   "timedOut": false,
   "timeoutSeconds": 20.0
