@@ -29,3 +29,8 @@ replays/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Veilwild R1 generated runtime/import/build state
+experiments/veilwild-r1/godot/.godot/
+experiments/veilwild-r1/build/*
+!experiments/veilwild-r1/build/.gitkeep
