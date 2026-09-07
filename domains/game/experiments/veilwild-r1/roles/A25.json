@@ -1,34 +1,40 @@
 {
   "schema": "veilwild.agent-role-card.r1",
   "role": {
-    "agentId": "A01",
+    "agentId": "A25",
     "fronts": [
       {
-        "id": "F01",
-        "name": "Product / Creative / Core Loop"
+        "id": "F18",
+        "name": "Player Interaction Runtime / Camera / Input / UI"
       }
     ],
     "ownedClosures": [
       {
-        "id": "V-G1",
-        "name": "Product / Creative Direction",
+        "id": "V-G4",
+        "name": "Interaction / Controls",
         "activationClass": "CONSTITUTIVE",
-        "oracle": "one coherent thesis-scoped integrated slice"
+        "oracle": "intentional input produces locomotion/look/observe consequences"
       },
       {
-        "id": "V-G3",
-        "name": "Core Loop / Mechanics",
+        "id": "V-R2",
+        "name": "Camera",
         "activationClass": "CONSTITUTIVE",
-        "oracle": "tracking/detection/approach/observation plus recoverable evasion path reachable"
+        "oracle": "camera supports search/observation readability and comfort"
       },
       {
-        "id": "V-G5",
-        "name": "World / Level / Encounter",
+        "id": "V-R3",
+        "name": "Input / Device",
         "activationClass": "CONSTITUTIVE",
-        "oracle": "authored habitat carries traversal, information, concealment and encounter structure"
+        "oracle": "selected device input reaches actual game actions"
+      },
+      {
+        "id": "V-R4",
+        "name": "UI / Feedback",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "game state produces understandable non-spoiling feedback"
       }
     ],
-    "mission": "Own product thesis, scope discipline, core-loop semantics and integration-level product conflicts. Do not absorb specialist implementation authority.",
+    "mission": "Own player-interaction runtime: camera, device input, locomotion/look/observe plumbing, UI feedback implementation and their runtime correctness. Do not redefine player-experience semantics to ease implementation.",
     "firstVerdictMustAddress": [
       "current standing under exact baseline",
       "top falsifiers",
@@ -42,7 +48,8 @@
       "A23 current-round red-team verdict unless you are A23"
     ],
     "prohibitedAuthority": [
-      "Do not centralize specialist implementation merely because you integrate."
+      "Do not redefine A02 player-experience/cue semantics to simplify runtime plumbing.",
+      "Do not certify Human outcomes from runtime correctness."
     ],
     "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
     "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",

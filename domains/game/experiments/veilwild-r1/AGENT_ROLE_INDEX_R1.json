@@ -100,8 +100,7 @@
     "A17": {
       "path": "roles/A17.json",
       "fronts": [
-        "F17",
-        "F18"
+        "F17"
       ]
     },
     "A18": {
@@ -146,6 +145,12 @@
       "path": "roles/A24.json",
       "fronts": [
         "F26"
+      ]
+    },
+    "A25": {
+      "path": "roles/A25.json",
+      "fronts": [
+        "F18"
       ]
     }
   }

@@ -1,8 +1,8 @@
 # Veilwild R1 — Pre-Run Topology Falsification Gate
 
-Status: `MUST_PASS_BEFORE_PRODUCTION_AGENT_LAUNCH`
+Status: `INDEPENDENT_REVIEW_COMPLETE_COORDINATOR_CONVERGENCE_APPLIED`
 
-The 24-Agent opening topology is a candidate, not an authority truth. Before launching production Agents, run six independent topology reviewers TA–TF from the same candidate baseline. They review the graph/protocol, not the single-Agent prototype and not each other.
+The opening production topology is a candidate, not an authority truth. Before launching production Agents, run six independent topology reviewers TA–TF from the same candidate baseline. They review the graph/protocol, not the single-Agent prototype and not each other.
 
 ## Independence
 
@@ -96,7 +96,7 @@ REQUIRED_REPAIRS_BEFORE_LAUNCH
 
 ## Admission
 
-Production A01–A24 may launch only after Coordinator synthesis classifies every high-confidence topology defect as one of:
+Production A01–A25 may launch only after Coordinator synthesis classifies every high-confidence topology defect as one of:
 
 ```text
 REPAIRED_BEFORE_LAUNCH
@@ -106,3 +106,7 @@ INCONCLUSIVE_BUT_NON_BLOCKING
 ```
 
 Any unresolved defect that can cause missing owner authority, Red-Team contamination, Human-claim laundering, or an unowned constitutive closure blocks launch.
+
+## Coordinator convergence result
+
+Production launch is admitted only from the post-convergence exact commit after both validators pass. See `TOPOLOGY_COORDINATOR_SYNTHESIS_R1.md`.

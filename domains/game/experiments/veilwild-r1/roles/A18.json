@@ -10,18 +10,6 @@
     ],
     "ownedClosures": [
       {
-        "id": "V-H1",
-        "name": "UX",
-        "activationClass": "CONSTITUTIVE",
-        "oracle": "player can understand and complete the intended task under exact condition"
-      },
-      {
-        "id": "V-C1",
-        "name": "Asset Authoring",
-        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
-        "oracle": "future-revisable editable sources exist for constitutive selected assets"
-      },
-      {
         "id": "V-C2",
         "name": "Asset Interchange",
         "activationClass": "CLOSURE_CRITICAL_SUPPORT",
@@ -40,7 +28,7 @@
         "oracle": "exact runtime dependency resolves/imports/loads into build"
       }
     ],
-    "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss.",
+    "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss; do not own UX.",
     "firstVerdictMustAddress": [
       "current standing under exact baseline",
       "top falsifiers",
@@ -49,7 +37,7 @@
       "whether scope should split before implementation"
     ],
     "mustNotReadBeforeFirstVerdict": [
-      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
       "current-round Coordinator synthesis",
       "A23 current-round red-team verdict unless you are A23"
     ],

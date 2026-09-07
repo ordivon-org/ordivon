@@ -5,7 +5,7 @@
     "fronts": [
       {
         "id": "F02",
-        "name": "Player Experience / Session / Onboarding"
+        "name": "Player Experience / Session / Onboarding / UX / Cue Design"
       }
     ],
     "ownedClosures": [
@@ -22,13 +22,25 @@
         "oracle": "fresh launch through loop completion/recoverable failure/replay is coherent"
       },
       {
+        "id": "V-G7",
+        "name": "Multimodal Cue / Information Design",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "shared creature/world state yields coherent learnable visual-motion-audio-trace feedback without trivializing search or relying on one inaccessible modality"
+      },
+      {
         "id": "V-R5",
         "name": "Onboarding / Learnability",
         "activationClass": "CONSTITUTIVE",
         "oracle": "fresh player can learn basic interaction/cue model without developer coaching"
+      },
+      {
+        "id": "V-H1",
+        "name": "UX",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "player can understand and complete the intended task under exact condition"
       }
     ],
-    "mission": "Independently own player-experience promise, session flow, onboarding and player-comprehension hypotheses. Preserve Human-unknown boundaries.",
+    "mission": "Independently own player-experience promise, session flow, onboarding, UX/task-completion hypotheses and multimodal information/cue design. Preserve Human-unknown boundaries.",
     "firstVerdictMustAddress": [
       "current standing under exact baseline",
       "top falsifiers",
@@ -37,7 +49,7 @@
       "whether scope should split before implementation"
     ],
     "mustNotReadBeforeFirstVerdict": [
-      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
       "current-round Coordinator synthesis",
       "A23 current-round red-team verdict unless you are A23"
     ],

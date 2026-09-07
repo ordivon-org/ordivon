@@ -7,7 +7,7 @@ r=json.loads((root/'TOPOLOGY_FALSIFICATION_REVIEWERS_R1.json').read_text())['rev
 if a.reviewer_id not in r: raise SystemExit('unknown reviewer')
 c=r[a.reviewer_id]
 print(f"{a.reviewer_id}\nOrdivon Game E2E — Veilwild R1 Pre-Run Topology Falsification\n\nEXACT_BASELINE = {a.baseline}\n\nRole: {c['name']}\n\n{c['mission']}\n")
-print('Before freezing your first recommendation, do not read another current-round TA-TF report, verdict, scratchpad, Coordinator synthesis, or A01-A24 production result. Do not read the single-Agent prototype commits after the clean campaign baseline.')
+print('Before freezing your first recommendation, do not read another current-round TA-TF report, verdict, scratchpad, Coordinator synthesis, or A01-A25 production result. Do not read the single-Agent prototype commits after the clean campaign baseline.')
 print('\nRead the common Game/Veilwild design, ACTIVATED_E2E_SUBGRAPH_R1.md/.json, MULTI_AGENT_EXECUTION_PROTOCOL_R1.md, AGENT_HANDOFF_SCHEMA_R1.json, AGENT_ROLE_CARDS_R1.json, and TOPOLOGY_FALSIFICATION_GATE_R1.md.')
 print('\nFocus:')
 for x in c['focus']: print('- '+x)

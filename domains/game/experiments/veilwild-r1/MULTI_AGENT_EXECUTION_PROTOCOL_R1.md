@@ -12,11 +12,11 @@ E2EGraph is a product/capability topology.
 They are related but not identical.
 ```
 
-The opening production campaign currently proposes 24 logical Agent roles over 27 execution fronts and 46 active E2E closures.
+The opening production campaign currently proposes 25 logical Agent roles over 27 execution fronts and 46 active E2E closures.
 
 ## 2. Independence rule before first verdict freeze
 
-Every A01–A24 Agent receives the same campaign baseline and its own role card.
+Every A01–A25 Agent receives the same campaign baseline and its own role card.
 
 Before freezing its first verdict, an Agent may read:
 
@@ -30,7 +30,7 @@ Before freezing its first verdict, an Agent may read:
 Before first-verdict freeze, an Agent **must not** read:
 
 ```text
-another A01–A24 current-round report
+another A01–A25 current-round report
 another current-round verdict
 another current-round scratchpad
 another current-round repair commit
@@ -126,11 +126,11 @@ It should not invent upstream product truth merely to stay busy.
 
 ### Phase 0 — common admission
 
-All A01–A24 independently verify exact baseline/source truth and role scope.
+All A01–A25 independently verify exact baseline/source truth and role scope.
 
 ### Phase 1 — independent first verdict
 
-All A01–A24 freeze their first verdict without current-round peer results.
+All A01–A25 freeze their first verdict without current-round peer results.
 
 No Coordinator synthesis before all expected first verdicts are frozen or explicitly marked unavailable.
 
@@ -140,12 +140,14 @@ Primary fronts:
 
 ```text
 A01 Product/Core Loop
-A02 Player Experience/Session/Onboarding
+A02 Player Experience/Session/Onboarding/UX/Cue Design
 A03 Research-to-Product
 A04 Art Direction
+A21 Telemetry / Player Evidence protocol preparation
+A22 Accessibility constraints
 ```
 
-Their outputs constrain downstream production but do not own specialist implementation.
+Their outputs constrain downstream production but do not own specialist implementation. A21/A22 begin early so evidence and accessibility requirements are not bolted on after integration.
 
 ### Phase 2B — parallel specialist production
 
@@ -156,7 +158,6 @@ A10 Material/LookDev
 A11 Lighting
 A13 Behavior
 A15 Sound Design
-A22 Accessibility
 A24 Rights/Provenance
 ```
 
@@ -176,10 +177,11 @@ These Agents may begin earlier with requirements/oracles, but actual product bin
 ### Phase 2D — runtime / interchange / build integration
 
 ```text
-A17 Engine + Camera/Input/UI runtime plumbing
+A17 Engine Integration
 A18 Asset Interchange/Validation/Runtime Loading
 A19 Build/Reproducibility + Workstation/Engineering repair router
-A21 Telemetry + Human protocol/readiness
+A21 Telemetry / Player Evidence instrumentation integration
+A25 Player Interaction Runtime / Camera / Input / UI
 ```
 
 ### Phase 3 — exact-condition technical evaluation
@@ -302,7 +304,11 @@ Human fairness = UNKNOWN
 
 Expert inspection or synthetic image/audio metrics may narrow technical hypotheses but do not change these standings.
 
-## 11. Dynamic split / merge rule
+## 11. Scope-pressure admission and implementation escalation
+
+A production Agent may discover pressure; it may not unilaterally change the R1 topology. A proposed new pressure-triggered E2E must use `scopePressureProposals` with exact blocker evidence and distinct input/output/failure/oracle. Admission requires affected-owner technical evidence + A01 product-thesis necessity + Coordinator record. `DORMANT_R1` requires explicit scope amendment and fresh topology falsification. Implementation depth inside an active closure changes zero topology counts unless a distinct stable responsibility emerges.
+
+## 12. Dynamic split / merge rule
 
 An opening Agent role should split when a sub-front develops:
 
@@ -318,7 +324,7 @@ Opening roles may merge only after evidence shows the distinction is not carryin
 
 Do not merge solely because one Agent finished early.
 
-## 12. Stop conditions
+## 13. Stop conditions
 
 A front stops its current wave when one of these is true:
 

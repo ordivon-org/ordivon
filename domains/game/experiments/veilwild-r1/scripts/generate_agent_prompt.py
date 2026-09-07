@@ -36,7 +36,7 @@ Set exactly:
 AGENT_ID = {args.agent_id}
 OWNED_FRONTS = {fronts}
 
-You are one independent Agent occurrence in a 24-role opening campaign.
+You are one independent Agent occurrence in a 25-role opening campaign.
 Agent count is an execution topology, not the E2E ontology.
 You are not the global coordinator.
 
@@ -44,7 +44,7 @@ You are not the global coordinator.
 
 Before freezing your first verdict, do NOT read:
 
-- another current-round A01-A24 report;
+- another current-round A01-A25 report;
 - another current-round verdict;
 - another current-round scratchpad;
 - another current-round repair commit;

@@ -38,7 +38,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -54,7 +54,7 @@
       "fronts": [
         {
           "id": "F02",
-          "name": "Player Experience / Session / Onboarding"
+          "name": "Player Experience / Session / Onboarding / UX / Cue Design"
         }
       ],
       "ownedClosures": [
@@ -71,13 +71,25 @@
           "oracle": "fresh launch through loop completion/recoverable failure/replay is coherent"
         },
         {
+          "id": "V-G7",
+          "name": "Multimodal Cue / Information Design",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "shared creature/world state yields coherent learnable visual-motion-audio-trace feedback without trivializing search or relying on one inaccessible modality"
+        },
+        {
           "id": "V-R5",
           "name": "Onboarding / Learnability",
           "activationClass": "CONSTITUTIVE",
           "oracle": "fresh player can learn basic interaction/cue model without developer coaching"
+        },
+        {
+          "id": "V-H1",
+          "name": "UX",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "player can understand and complete the intended task under exact condition"
         }
       ],
-      "mission": "Independently own player-experience promise, session flow, onboarding and player-comprehension hypotheses. Preserve Human-unknown boundaries.",
+      "mission": "Independently own player-experience promise, session flow, onboarding, UX/task-completion hypotheses and multimodal information/cue design. Preserve Human-unknown boundaries.",
       "firstVerdictMustAddress": [
         "current standing under exact baseline",
         "top falsifiers",
@@ -86,7 +98,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -122,7 +134,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -156,7 +168,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -190,7 +202,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -224,7 +236,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -258,7 +270,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -292,7 +304,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -326,7 +338,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -360,7 +372,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -394,7 +406,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -434,7 +446,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -468,7 +480,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -514,7 +526,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -548,7 +560,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -594,7 +606,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -609,10 +621,6 @@
         {
           "id": "F17",
           "name": "Engine Integration"
-        },
-        {
-          "id": "F18",
-          "name": "Camera / Input / UI Feedback"
         }
       ],
       "ownedClosures": [
@@ -621,33 +629,9 @@
           "name": "Engine Integration",
           "activationClass": "CONSTITUTIVE",
           "oracle": "all constitutive semantics/assets/systems exist in one playable Godot condition"
-        },
-        {
-          "id": "V-G4",
-          "name": "Interaction / Controls",
-          "activationClass": "CONSTITUTIVE",
-          "oracle": "intentional input produces locomotion/look/observe consequences"
-        },
-        {
-          "id": "V-R2",
-          "name": "Camera",
-          "activationClass": "CONSTITUTIVE",
-          "oracle": "camera supports search/observation readability and comfort"
-        },
-        {
-          "id": "V-R3",
-          "name": "Input / Device",
-          "activationClass": "CONSTITUTIVE",
-          "oracle": "selected device input reaches actual game actions"
-        },
-        {
-          "id": "V-R4",
-          "name": "UI / Feedback",
-          "activationClass": "CONSTITUTIVE",
-          "oracle": "game state produces understandable non-spoiling feedback"
         }
       ],
-      "mission": "Own Godot integration plus camera/input/UI runtime plumbing. Consume specialist truth; do not redefine creative or Human semantics to ease integration.",
+      "mission": "Own Godot Engine Integration only. Consume specialist/runtime interfaces and produce one integrated executable condition without absorbing player-interaction semantics or specialist truth.",
       "firstVerdictMustAddress": [
         "current standing under exact baseline",
         "top falsifiers",
@@ -656,11 +640,13 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
-      "prohibitedAuthority": [],
+      "prohibitedAuthority": [
+        "Do not absorb F18/A25 player-interaction semantic ownership."
+      ],
       "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
       "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
       "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
@@ -674,18 +660,6 @@
         }
       ],
       "ownedClosures": [
-        {
-          "id": "V-H1",
-          "name": "UX",
-          "activationClass": "CONSTITUTIVE",
-          "oracle": "player can understand and complete the intended task under exact condition"
-        },
-        {
-          "id": "V-C1",
-          "name": "Asset Authoring",
-          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
-          "oracle": "future-revisable editable sources exist for constitutive selected assets"
-        },
         {
           "id": "V-C2",
           "name": "Asset Interchange",
@@ -705,7 +679,7 @@
           "oracle": "exact runtime dependency resolves/imports/loads into build"
         }
       ],
-      "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss.",
+      "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss; do not own UX.",
       "firstVerdictMustAddress": [
         "current standing under exact baseline",
         "top falsifiers",
@@ -714,7 +688,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -770,7 +744,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -810,7 +784,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -842,12 +816,12 @@
         },
         {
           "id": "V-H2",
-          "name": "Human Playtest",
+          "name": "Player Evidence / Human Playtest",
           "activationClass": "CONSTITUTIVE",
-          "oracle": "frozen build/question exposed to real participant yields admissible Human evidence"
+          "oracle": "claim-specific Player Evidence Contract plus a real participant under a frozen build/condition yields admissible evidence; no Agent substitutes for the participant"
         }
       ],
-      "mission": "Own telemetry/evidence instrumentation and Human playtest protocol/readiness preparation. You are not a Human participant.",
+      "mission": "Own telemetry/evidence instrumentation plus Player Evidence/Human Playtest protocol and evidence transport. A real Human participant is an external evidence source; you are not the participant.",
       "firstVerdictMustAddress": [
         "current standing under exact baseline",
         "top falsifiers",
@@ -856,12 +830,13 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
       "prohibitedAuthority": [
-        "Do not simulate Human participant evidence."
+        "Do not simulate Human participant evidence.",
+        "Do not turn instrumentation completeness into Human-claim standing."
       ],
       "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
       "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
@@ -892,7 +867,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -926,7 +901,7 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
@@ -964,11 +939,66 @@
         "whether scope should split before implementation"
       ],
       "mustNotReadBeforeFirstVerdict": [
-        "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
         "current-round Coordinator synthesis",
         "A23 current-round red-team verdict unless you are A23"
       ],
       "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A25": {
+      "agentId": "A25",
+      "fronts": [
+        {
+          "id": "F18",
+          "name": "Player Interaction Runtime / Camera / Input / UI"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-G4",
+          "name": "Interaction / Controls",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "intentional input produces locomotion/look/observe consequences"
+        },
+        {
+          "id": "V-R2",
+          "name": "Camera",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "camera supports search/observation readability and comfort"
+        },
+        {
+          "id": "V-R3",
+          "name": "Input / Device",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "selected device input reaches actual game actions"
+        },
+        {
+          "id": "V-R4",
+          "name": "UI / Feedback",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "game state produces understandable non-spoiling feedback"
+        }
+      ],
+      "mission": "Own player-interaction runtime: camera, device input, locomotion/look/observe plumbing, UI feedback implementation and their runtime correctness. Do not redefine player-experience semantics to ease implementation.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not redefine A02 player-experience/cue semantics to simplify runtime plumbing.",
+        "Do not certify Human outcomes from runtime correctness."
+      ],
       "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
       "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
       "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"

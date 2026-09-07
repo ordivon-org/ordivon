@@ -168,6 +168,20 @@ fresh launch
 
 The target 8–15 minute first session is guidance, not a duration-padding requirement.
 
+#### V-G7 — Multimodal Cue / Information Design E2E
+
+Closure:
+
+```text
+creature/world/encounter state
+→ declared player-information budget
+→ coherent visual + motion + audio + trace + bounded UI cues
+→ accessible redundant carriers where needed
+→ learnable but non-trivial inference opportunity
+```
+
+Oracle: cue meanings remain coherent across carriers; no inaccessible single modality is the only constitutive carrier; Human learnability/detectability remains UNKNOWN until real evidence.
+
 ### B. Knowledge-to-product
 
 #### V-K1 — Biomimetics Research-to-Product Transfer E2E
@@ -492,35 +506,25 @@ player goal
 → task completion
 ```
 
-#### V-H2 — Human Playtest E2E
+#### V-H2 — Player Evidence / Human Playtest E2E
 
 Closure:
 
 ```text
-frozen question/build/condition
+material Human/player claim
+→ claim-specific Player Evidence Contract
+→ target population/context + frozen build/condition
+→ method/measure/instrumentation/decision rule
 → real participant exposure
-→ observation + participant report
-→ evidence
+→ admissible evidence
 → adjudicated product standing
 ```
 
-Before execution:
-
-```text
-HumanDetectability = UNKNOWN
-HumanComprehension = UNKNOWN
-HumanBelievability = UNKNOWN
-HumanFairness = UNKNOWN
-HumanFun = UNKNOWN
-```
+A21 owns protocol/instrumentation/evidence transport. The participant is an external evidence source and cannot be simulated by an Agent. Before execution, all Human standings remain UNKNOWN.
 
 ## 4. CLOSURE_CRITICAL_SUPPORT subgraph
 
 These do not independently define the forest-observation fantasy, but they are necessary for credible closure.
-
-### V-C1 — Asset Authoring E2E
-
-Editable source must exist for selected environment, creature, motion, material and audio assets where future revision is constitutive.
 
 ### V-C2 — Asset Interchange E2E
 
@@ -634,26 +638,11 @@ External constituent owned outside Game. The frozen professional loadout is appa
 
 Game composes existing Engineering capabilities for requirements, architecture, implementation, integration, test, build, maintainability and repair. Game does not create a duplicate generic Engineering ontology.
 
-## 5. PRESSURE_TRIGGERED capabilities
+## 5. PRESSURE_TRIGGERED candidates and implementation escalations
 
-These are known adjacent capabilities. Activate only when current constitutive paths fail under real product pressure.
+Seven candidate new E2Es remain pressure-triggered: VFX, Procedural Content, Advanced Ecology Simulation, Photogrammetry/Capture, Persistence/Save, Localization and External Distribution. Five deeper mechanisms are implementation escalations inside active closures by default: Navmesh/advanced pathfinding, IK/procedural motion, adaptive ambience/music, advanced audio propagation and specialized GPU diagnostics.
 
-| Capability | Trigger for activation |
-| --- | --- |
-| VFX E2E | camouflage/readability/event feedback cannot close through material/lighting/animation alone |
-| Procedural Content E2E | authored habitat iteration cost or variation becomes a demonstrated blocker |
-| Advanced Ecology Simulation E2E | simple stateful behavior cannot produce required environment-dependent systemic consequence |
-| Advanced Pathfinding / Navmesh E2E | simple authored escape/traversal fails because obstacles/topology require a reusable solver |
-| Procedural Motion / IK E2E | contact/sliding/terrain adaptation materially hurts creature believability or gameplay |
-| Photogrammetry / Capture E2E | authored environment/creature production has a real capture-derived requirement |
-| Adaptive Music / Ambience E2E | state-responsive music demonstrably improves the thesis beyond soundscape alone |
-| Advanced Audio Occlusion/Propagation E2E | direct attenuation cannot provide usable/credible spatial information in the authored habitat |
-| Specialized GPU Diagnostics / Nsight E2E depth | RenderDoc/basic profiling cannot localize a real GPU/frame-pacing blocker |
-| Persistence / Save E2E | replay/progression requirements cross process/session boundaries |
-| Localization E2E | R1 Human/product scope expands beyond the current language condition |
-| External Distribution E2E | candidate must leave local/test distribution and reach a real provider/store |
-
-These are not failures merely because they remain inactive.
+No Agent may self-activate a new E2E. Admission requires a durable scope-pressure receipt with exact blocker, attempted existing carrier, distinct input/output/failure/oracle, owner/front, scope delta and stop condition; affected owner supplies technical evidence, A01 confirms product necessity, Coordinator records admission. Dormant families require explicit product-scope amendment plus fresh topology falsification.
 
 ## 6. DORMANT_R1 capability families
 
@@ -695,9 +684,9 @@ These are not ordinary children in the E2E graph.
 
 Every meaningful claim must bind to exact source/artifact/build/execution/Human condition and an appropriate oracle.
 
-### P2 — Authority / Admission Plane
+### P2 — Authority / Admission / Cross-Owner Boundary Plane
 
-Veilwild experiment authority is separate from canonical Game G0–G8 authority. Specialist lane success cannot unilaterally promote Game or capability standing.
+Veilwild experiment authority is separate from canonical Game G0–G8 authority. This plane also governs Game↔Studio/Research/Engineering/Workstation ownership, scope admission and standing promotion. A separate eighth authority plane would duplicate this semantics.
 
 ### P3 — Condition / Revision Plane
 
@@ -738,6 +727,12 @@ V-G1 Product / Creative
   ├──> V-G2 Player Experience Promise
   ├──> V-G3 Core Loop / Mechanics
   └──> V-G5 World / Encounter
+
+V-G2 Player Experience Promise + V-G3 Core Loop
+  └──> V-G7 Multimodal Cue / Information Design
+        ├──> motion / camouflage / sound / UI carriers
+        ├──> onboarding
+        └──> accessibility validation
 
 V-K1 Research Transfer
   ├──> V-V3 Creature 3D
@@ -789,11 +784,10 @@ V-A1 Sound Design
         └──> V-A3 Spatial Audio
               └──> V-A4 Mix / Information Hierarchy
 
-V-V2/V-V3/V-V5/V-V7/V-A1
-  └──> V-C1 Authoring
-        └──> V-C2 Interchange
-              └──> V-C3 Validation
-                    └──> V-C4 Runtime Asset Loading
+V-V2/V-V3/V-V4/V-V5/V-V7/V-A1 editable producer sources
+  └──> V-C2 Interchange
+        └──> V-C3 Validation
+              └──> V-C4 Runtime Asset Loading
 
 V-G3/V-G4/V-G5
 + V-V6/V-V9/V-V10
@@ -826,8 +820,8 @@ This graph is intentionally many-to-many. No permanent service/schema is implied
 Using the closure boundaries above:
 
 ```text
-CONSTITUTIVE              = 32
-CLOSURE_CRITICAL_SUPPORT  = 14
+CONSTITUTIVE              = 33
+CLOSURE_CRITICAL_SUPPORT  = 13
 --------------------------------
 ACTIVE / REQUIRED GRAPH   = 46 E2E closures
 ```
@@ -842,7 +836,7 @@ Before choosing exact population, the 46 closures collapse into the following **
 
 ```text
 F01 Product / Creative / Core Loop
-F02 Player Experience / Session / Onboarding
+F02 Player Experience / Session / Onboarding / UX / Cue Design
 F03 Research-to-Product
 F04 Visual Development / Art Direction
 F05 Environment 3D
@@ -858,7 +852,7 @@ F14 Environment Affordance / Navigation / Collision
 F15 Sound Design
 F16 Interactive / Spatial Audio / Mix
 F17 Engine Integration
-F18 Camera / Input / UI Feedback
+F18 Player Interaction Runtime / Camera / Input / UI
 F19 Asset Interchange / Validation / Runtime Loading
 F20 Build / Packaging / Reproducibility
 F21 Performance Engineering / Frame Evaluation
@@ -905,73 +899,39 @@ A naive 27-Agent one-front-per-Agent mapping would still be wrong because:
 
 Therefore exact campaign population must be selected from **independent work fronts + expected contention + judge separation**, not from E2E count.
 
-## 13. Candidate Round-1 execution population
+## 13. Converged Round-1 execution population
 
-Structural validation rejected the earlier 20-Agent draft because it left `F18 Camera/Input/UI Feedback` and `F27 Workstation/Engineering constituent repair router` unassigned. The corrected opening topology uses **24 logical Agent roles covering all 27 work fronts exactly once**.
-
-The count is derived from three explicit front merges where coupling is high enough to justify one opening owner:
+Independent topology falsification split F17 and F18. The converged topology uses **25 logical Agent roles over 27 fronts**.
 
 ```text
-A17 = F17 Engine Integration + F18 Camera/Input/UI runtime plumbing
-A19 = F20 Build/Reproducibility + F27 Workstation/Engineering repair router
-A21 = F22 Telemetry/Instrumentation + F24 Human protocol/readiness
+A01 F01 Product / Creative / Core Loop
+A02 F02 Player Experience / Session / Onboarding / UX / Cue Design
+A03 F03 Research-to-Product
+A04 F04 Visual Development / Art Direction
+A05 F05 Environment 3D
+A06 F06 Creature 3D
+A07 F07 Rigging / Deformation
+A08 F08 Animation Production
+A09 F09 Animation System / Gameplay Motion Integration
+A10 F10 Material / LookDev
+A11 F11 Lighting / Visibility
+A12 F12 Camouflage Shader / Rendering
+A13 F13 Creature Behavior / Systemic Simulation
+A14 F14 Navigation / Collision / Environment Affordance
+A15 F15 Sound Design
+A16 F16 Interactive / Spatial Audio / Mix
+A17 F17 Engine Integration
+A18 F19 Asset Interchange / Validation / Runtime Loading
+A19 F20+F27 Build/Reproducibility + Workstation/Engineering repair router
+A20 F21 Performance Engineering / Frame Evaluation
+A21 F22+F24 Telemetry / Evidence + Player Evidence/Human Playtest process
+A22 F23 Accessibility
+A23 F25 Independent Product QA / Red Team
+A24 F26 Rights / Provenance
+A25 F18 Player Interaction Runtime / Camera / Input / UI
 ```
 
-Every other front remains independently owned in the opening round.
-
-Corrected candidate population:
-
-```text
-A01  F01  Product / Creative / Core Loop
-A02  F02  Player Experience / Session / Onboarding
-A03  F03  Research-to-Product
-A04  F04  Visual Development / Art Direction
-A05  F05  Environment 3D
-A06  F06  Creature 3D
-A07  F07  Rigging / Deformation
-A08  F08  Animation Production
-A09  F09  Animation System / Gameplay Motion Integration
-A10  F10  Material / LookDev
-A11  F11  Lighting / Visibility
-A12  F12  Camouflage Shader / Rendering
-A13  F13  Creature Behavior / Systemic Simulation
-A14  F14  Navigation / Collision / Environment Affordance
-A15  F15  Sound Design
-A16  F16  Interactive / Spatial Audio / Mix
-A17  F17+F18  Engine Integration + Camera/Input/UI runtime plumbing
-A18  F19  Asset Interchange / Validation / Runtime Loading
-A19  F20+F27  Build/Reproducibility + Workstation/Engineering repair router
-A20  F21  Performance Engineering / Frame Evaluation
-A21  F22+F24  Telemetry / Evidence Instrumentation + Human Protocol Readiness
-A22  F23  Accessibility
-A23  F25  Independent Product QA / Red Team
-A24  F26  Rights / Provenance
-```
-
-Independence constraints:
-
-```text
-A23 Red Team
-!= any producer front
-
-A24 Rights / Provenance
-!= A23 product adjudication
-
-A21 Human protocol designer
-!= real Human participant
-
-A01 Product owner
-!= A02 independent player-experience owner
-```
-
-The population may split later. Examples:
-
-- A17 splits if camera/input/UI becomes a sustained UX-runtime problem independent of Engine Integration;
-- A19 splits if Workstation/Engineering repair pressure becomes persistent rather than episodic;
-- A21 splits if telemetry/instrumentation and Human-study design become independently complex;
-- any pressure-triggered capability that develops stable inputs/outputs/failure modes/oracles can gain a new owner occurrence.
-
-The population should **not** be merged below 24 merely to match a historical 10-Agent convention.
+A17/F18 was split because engine wiring and player-interaction runtime have distinct failure modes and oracles. A19 and A21 retain their bounded merges.
 
 ## 14. Explicit dormant frontier
 
@@ -1002,16 +962,17 @@ Proposed standing:
 
 ```text
 VEILWILD_R1_E2E_SUBGRAPH
-= 32 CONSTITUTIVE
-+ 14 CLOSURE_CRITICAL_SUPPORT
-+ pressure-triggered frontier
+= 33 CONSTITUTIVE
++ 13 CLOSURE_CRITICAL_SUPPORT
++ 7 pressure-triggered E2E candidates
++ 5 implementation escalations inside active closures
 + explicit dormant frontier
 + 7 cross-cutting planes
 
 OPENING_EXECUTION_FRONTS = 27
-CANDIDATE_OPENING_AGENT_POPULATION = 24
+CANDIDATE_OPENING_AGENT_POPULATION = 25
 
 NOT_CANONICAL_GAME_ONTOLOGY
 NOT_G0_PRODUCT_SELECTION
-READY_FOR_INDEPENDENT_AGENT_TOPOLOGY_REVIEW
+TOPOLOGY_REVIEW_CONVERGED_READY_FOR_PRE_RUN_VALIDATION
 ```

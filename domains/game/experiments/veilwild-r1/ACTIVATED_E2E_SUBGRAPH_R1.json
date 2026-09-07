@@ -45,6 +45,13 @@
       "oracle": "fresh launch through loop completion/recoverable failure/replay is coherent"
     },
     {
+      "id": "V-G7",
+      "name": "Multimodal Cue / Information Design",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F02",
+      "oracle": "shared creature/world state yields coherent learnable visual-motion-audio-trace feedback without trivializing search or relying on one inaccessible modality"
+    },
+    {
       "id": "V-K1",
       "name": "Biomimetics Research-to-Product Transfer",
       "activationClass": "CONSTITUTIVE",
@@ -216,22 +223,15 @@
       "id": "V-H1",
       "name": "UX",
       "activationClass": "CONSTITUTIVE",
-      "front": "F19",
+      "front": "F02",
       "oracle": "player can understand and complete the intended task under exact condition"
     },
     {
       "id": "V-H2",
-      "name": "Human Playtest",
+      "name": "Player Evidence / Human Playtest",
       "activationClass": "CONSTITUTIVE",
       "front": "F24",
-      "oracle": "frozen build/question exposed to real participant yields admissible Human evidence"
-    },
-    {
-      "id": "V-C1",
-      "name": "Asset Authoring",
-      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
-      "front": "F19",
-      "oracle": "future-revisable editable sources exist for constitutive selected assets"
+      "oracle": "claim-specific Player Evidence Contract plus a real participant under a frozen build/condition yields admissible evidence; no Agent substitutes for the participant"
     },
     {
       "id": "V-C2",
@@ -332,6 +332,16 @@
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
+      "from": "V-A1",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-A1",
+      "to": "V-C2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
       "from": "V-A2",
       "to": "V-A3",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
@@ -357,16 +367,6 @@
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
-      "from": "V-C1",
-      "to": "V-C12",
-      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
-    },
-    {
-      "from": "V-C1",
-      "to": "V-C2",
-      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
-    },
-    {
       "from": "V-C10",
       "to": "V-C11",
       "edgeType": "VALIDATION_INPUT"
@@ -388,7 +388,7 @@
     },
     {
       "from": "V-C13",
-      "to": "V-C1",
+      "to": "V-C2",
       "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
@@ -493,6 +493,16 @@
     },
     {
       "from": "V-G2",
+      "to": "V-G7",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G2",
+      "to": "V-H2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G2",
       "to": "V-R2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
@@ -504,6 +514,11 @@
     {
       "from": "V-G3",
       "to": "V-G4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G3",
+      "to": "V-G7",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
@@ -557,6 +572,36 @@
       "edgeType": "FEEDBACK_OR_EVIDENCE_UPDATE"
     },
     {
+      "from": "V-G7",
+      "to": "V-A1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G7",
+      "to": "V-C10",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-G7",
+      "to": "V-R4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G7",
+      "to": "V-R5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G7",
+      "to": "V-V5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-G7",
+      "to": "V-V9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
       "from": "V-H1",
       "to": "V-H2",
       "edgeType": "FEEDBACK_OR_EVIDENCE_UPDATE"
@@ -570,6 +615,11 @@
       "from": "V-K1",
       "to": "V-A2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-K1",
@@ -738,6 +788,11 @@
     },
     {
       "from": "V-V2",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-V2",
       "to": "V-C2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
@@ -763,6 +818,11 @@
     },
     {
       "from": "V-V3",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-V3",
       "to": "V-C2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
@@ -778,7 +838,22 @@
     },
     {
       "from": "V-V4",
+      "to": "V-C2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-V4",
       "to": "V-V5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-V5",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-V5",
+      "to": "V-C2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
@@ -789,6 +864,16 @@
     {
       "from": "V-V6",
       "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
+    },
+    {
+      "from": "V-V7",
+      "to": "V-C12",
+      "edgeType": "VALIDATION_INPUT"
+    },
+    {
+      "from": "V-V7",
+      "to": "V-C2",
       "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
@@ -814,7 +899,7 @@
   ],
   "fronts": {
     "F01": "Product / Creative / Core Loop",
-    "F02": "Player Experience / Session / Onboarding",
+    "F02": "Player Experience / Session / Onboarding / UX / Cue Design",
     "F03": "Research-to-Product",
     "F04": "Visual Development / Art Direction",
     "F05": "Environment 3D",
@@ -830,7 +915,7 @@
     "F15": "Sound Design",
     "F16": "Interactive / Spatial Audio / Mix",
     "F17": "Engine Integration",
-    "F18": "Camera / Input / UI Feedback",
+    "F18": "Player Interaction Runtime / Camera / Input / UI",
     "F19": "Asset Interchange / Validation / Runtime Loading",
     "F20": "Build / Packaging / Reproducibility",
     "F21": "Performance Engineering / Frame Evaluation",
@@ -844,51 +929,73 @@
   "pressureTriggered": [
     {
       "name": "VFX E2E",
-      "trigger": "material/light/animation cannot close camouflage/readability/event feedback"
+      "trigger": "a constitutive visual/readability event requires authored time-varying/effect behavior that existing material, lighting, animation and UI carriers cannot close",
+      "blockedActiveClosures": [
+        "V-V9",
+        "V-R4"
+      ],
+      "admissionOracle": "exact failing case survives owner-correct attempts and VFX has a distinct authored-source -> runtime-effect -> frame-consequence oracle",
+      "ownerRoute": "new VFX front only after scope admission"
     },
     {
       "name": "Procedural Content E2E",
-      "trigger": "authored habitat variation/iteration cost becomes demonstrated blocker"
+      "trigger": "required habitat variation or iteration throughput becomes a measured blocker for the declared encounter/replay thesis",
+      "blockedActiveClosures": [
+        "V-G5",
+        "V-V2"
+      ],
+      "admissionOracle": "authored production cannot meet the required condition and generator/seed -> reproducible content -> encounter acceptance is independently testable",
+      "ownerRoute": "new procedural-content front only after scope admission"
     },
     {
       "name": "Advanced Ecology Simulation E2E",
-      "trigger": "simple stateful behavior cannot produce required systemic environmental consequence"
-    },
-    {
-      "name": "Advanced Pathfinding / Navmesh E2E",
-      "trigger": "authored traversal/escape fails under obstacle/topology pressure"
-    },
-    {
-      "name": "Procedural Motion / IK E2E",
-      "trigger": "contact/sliding/terrain adaptation materially harms gameplay/believability"
+      "trigger": "the declared encounter requires persistent multi-entity or environment dynamics beyond V-S1/V-S2",
+      "blockedActiveClosures": [
+        "V-S1",
+        "V-S2"
+      ],
+      "admissionOracle": "frozen systemic consequence requires distinct ecology state evolution, failure modes and oracle",
+      "ownerRoute": "new ecology-simulation front only after scope admission"
     },
     {
       "name": "Photogrammetry / Capture E2E",
-      "trigger": "real product requirement demands capture-derived assets"
-    },
-    {
-      "name": "Adaptive Music / Ambience E2E",
-      "trigger": "state-responsive music demonstrably improves thesis"
-    },
-    {
-      "name": "Advanced Audio Occlusion / Propagation E2E",
-      "trigger": "simple attenuation cannot provide usable/credible spatial information"
-    },
-    {
-      "name": "Specialized GPU Diagnostics depth",
-      "trigger": "current open profiling cannot localize exact GPU/frame blocker"
+      "trigger": "a constitutive visual/content requirement specifically demands capture-derived source material",
+      "blockedActiveClosures": [
+        "V-V2",
+        "V-V3"
+      ],
+      "admissionOracle": "capture/calibration/reconstruction has a distinct source -> editable asset -> runtime acceptance closure",
+      "ownerRoute": "new capture front only after scope admission"
     },
     {
       "name": "Persistence / Save E2E",
-      "trigger": "required replay/progression crosses process/session boundary"
+      "trigger": "a required replay/progression condition must survive process or session termination",
+      "blockedActiveClosures": [
+        "V-G6"
+      ],
+      "admissionOracle": "terminate/relaunch/restore preserves declared authoritative state under exact versioned condition",
+      "ownerRoute": "new persistence front only after scope admission"
     },
     {
       "name": "Localization E2E",
-      "trigger": "Human/product condition expands beyond current language scope"
+      "trigger": "the admitted Human/product condition adds a required locale",
+      "blockedActiveClosures": [
+        "V-G2",
+        "V-R4",
+        "V-C10"
+      ],
+      "admissionOracle": "versioned locale resources are selected at runtime and admitted locale can complete intended interaction without source-language dependence",
+      "ownerRoute": "new localization front only after scope admission"
     },
     {
       "name": "External Distribution E2E",
-      "trigger": "candidate must reach real external provider/store"
+      "trigger": "an admitted participant/provider condition requires the exact candidate outside the local/test boundary",
+      "blockedActiveClosures": [
+        "V-C5",
+        "V-H2"
+      ],
+      "admissionOracle": "exact artifact identity survives declared external delivery/install/launch channel",
+      "ownerRoute": "new distribution front only after scope admission"
     }
   ],
   "dormantR1": [
@@ -918,7 +1025,7 @@
   ],
   "crossCuttingPlanes": [
     "Evidence / Judgment",
-    "Authority / Admission",
+    "Authority / Admission / Cross-Owner Boundary",
     "Condition / Revision",
     "Provenance / Rights",
     "Performance / Resource Budget",
@@ -975,8 +1082,7 @@
       "F16"
     ],
     "A17": [
-      "F17",
-      "F18"
+      "F17"
     ],
     "A18": [
       "F19"
@@ -1000,20 +1106,24 @@
     ],
     "A24": [
       "F26"
+    ],
+    "A25": [
+      "F18"
     ]
   },
   "notes": [
-    "Agent bundles are execution topology, not ontology.",
-    "A23/F25 Independent Product QA / Red Team is judge-only for first-verdict independence and is not bundled with any producer front.",
-    "A24/F26 Rights / Provenance remains separate from A23 so provenance remediation and product adjudication do not collapse into one authority.",
-    "A21 combines instrumentation and Human protocol design because both own evidence-shape preparation; a real Human participant remains an external evidence source and cannot be simulated by A21.",
-    "A17 combines Engine Integration with Camera/Input/UI runtime plumbing because these have the highest direct runtime coupling, while A02 retains independent Player Experience / Session / Onboarding judgment.",
-    "A19 combines Build/Reproducibility with the Workstation/Engineering repair router; it may route constituent defects but must not absorb specialist semantic ownership."
+    "A23/F25 Independent Product QA / Red Team remains judge-only.",
+    "A24/F26 Rights / Provenance remains separate from A23.",
+    "A21 owns telemetry plus Player Evidence/Human Playtest protocol and evidence transport; real Human participant is external evidence source.",
+    "A17 owns Engine Integration only; A25 independently owns player-interaction runtime.",
+    "A19 may route Workstation/Engineering defects but not absorb specialist ownership.",
+    "V-C1 generic Asset Authoring removed; editable-source authority stays inside concrete production E2Es.",
+    "P2 Authority / Admission covers Game↔Studio/Research/Engineering/Workstation cross-owner boundaries; no duplicate eighth authority plane."
   ],
   "executionProtocol": {
     "phase0": {
       "name": "Common baseline / source-current admission",
-      "agents": "A01-A24",
+      "agents": "A01-A25",
       "peerCurrentRoundRead": false,
       "outputs": [
         "baseline acknowledgement",
@@ -1022,7 +1132,7 @@
     },
     "phase1": {
       "name": "Independent first verdict / interface forecast",
-      "agents": "A01-A24",
+      "agents": "A01-A25",
       "peerCurrentRoundRead": false,
       "outputs": [
         "frozen first verdict",
@@ -1037,7 +1147,9 @@
         "A01",
         "A02",
         "A03",
-        "A04"
+        "A04",
+        "A21",
+        "A22"
       ],
       "peerCurrentRoundRead": "interfaces-only after phase1 freeze"
     },
@@ -1050,7 +1162,6 @@
         "A11",
         "A13",
         "A15",
-        "A22",
         "A24"
       ],
       "peerCurrentRoundRead": "declared interfaces and upstream handoffs only"
@@ -1073,7 +1184,8 @@
         "A17",
         "A18",
         "A19",
-        "A21"
+        "A21",
+        "A25"
       ],
       "peerCurrentRoundRead": "validated handoffs only"
     },
@@ -1097,7 +1209,7 @@
       "peerCurrentRoundRead": "only defect receipts/interfaces needed for repair"
     },
     "phase6": {
-      "name": "Human-playtest-ready admission / real Human evidence when available",
+      "name": "Human-playtest execution / evidence update under frozen admission condition",
       "agents": [
         "A02",
         "A21",
@@ -1105,7 +1217,86 @@
         "A23"
       ],
       "peerCurrentRoundRead": "frozen candidate/protocol/evidence only",
-      "humanParticipant": "external real Human; never simulated by an Agent"
+      "humanParticipant": "external real Human participant is an evidence source, never simulated by an Agent; A21 owns protocol/evidence transport, not participant truth"
     }
+  },
+  "implementationEscalations": [
+    {
+      "name": "Advanced Pathfinding / Navmesh depth",
+      "withinClosures": [
+        "V-S3"
+      ],
+      "trigger": "direct/authored movement cannot robustly traverse required obstacle topology",
+      "rule": "use a mature solver inside V-S3; topology changes only if a distinct stable closure emerges"
+    },
+    {
+      "name": "Procedural Motion / IK depth",
+      "withinClosures": [
+        "V-V5",
+        "V-V6",
+        "V-S3"
+      ],
+      "trigger": "contact/sliding/terrain adaptation materially breaks required motion/gameplay",
+      "rule": "deepen existing motion/navigation ownership; no automatic E2E activation"
+    },
+    {
+      "name": "Adaptive Music / Ambience depth",
+      "withinClosures": [
+        "V-A1",
+        "V-A2",
+        "V-A4"
+      ],
+      "trigger": "state-responsive score/ambience is selected as the cheapest valid carrier for a declared requirement",
+      "rule": "remain inside active audio ownership unless independent music-production responsibility emerges"
+    },
+    {
+      "name": "Advanced Audio Occlusion / Propagation depth",
+      "withinClosures": [
+        "V-A3"
+      ],
+      "trigger": "simple attenuation cannot satisfy admitted spatial-information condition",
+      "rule": "deepen V-A3; no new E2E unless distinct propagation closure emerges"
+    },
+    {
+      "name": "Specialized GPU Diagnostics / Nsight depth",
+      "withinClosures": [
+        "V-C7"
+      ],
+      "trigger": "current profiling cannot localize a material GPU/frame blocker",
+      "rule": "diagnostic-tool depth is Performance Engineering implementation, not a new E2E"
+    }
+  ],
+  "scopeChangeProtocol": {
+    "unilateralActivationProhibited": true,
+    "proposalReceiptRequiredFields": [
+      "blockedActiveClosure",
+      "exactCandidateOrCondition",
+      "failingOracle",
+      "attemptedExistingCarrier",
+      "whyExistingCarrierIsInsufficient",
+      "proposedCapability",
+      "stableInput",
+      "stableOutput",
+      "distinctFailureModes",
+      "distinctOracle",
+      "proposedOwnerOrFront",
+      "scopeDelta",
+      "revertOrStopCondition"
+    ],
+    "productNecessityAuthority": "A01 confirms product-thesis necessity but not specialist truth",
+    "technicalBlockerAuthority": "affected active-front owner supplies exact failing oracle and attempted-carrier evidence",
+    "admissionAuthority": "Coordinator records topology mutation only after required receipt and product-necessity signoff; no producer self-activates a new E2E",
+    "implementationEscalationRule": "implementation depth inside active closure changes zero E2E/front/Agent counts unless distinct stable responsibility emerges",
+    "newE2EAdmissionCriteria": [
+      "stable distinct input",
+      "stable distinct output",
+      "distinct repeated failure modes",
+      "distinct oracle",
+      "product necessity within R1 scope",
+      "explicit owner/front",
+      "scope delta and stop/revert condition"
+    ],
+    "withdrawalRule": "if an existing carrier closes the blocker before admission, withdraw proposal",
+    "dormantReopenRule": "DORMANT_R1 requires A01 scope amendment, Coordinator-recorded authority and fresh topology falsification before ownership"
   }
 }

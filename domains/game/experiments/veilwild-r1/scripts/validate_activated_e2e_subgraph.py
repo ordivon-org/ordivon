@@ -1,69 +1,65 @@
 #!/usr/bin/env python3
-import json, sys
+import json,sys
 from collections import Counter
 from pathlib import Path
-
-path = Path(__file__).resolve().parents[1] / 'ACTIVATED_E2E_SUBGRAPH_R1.json'
-j = json.loads(path.read_text())
+root=Path(__file__).resolve().parents[1]
+j=json.loads((root/'ACTIVATED_E2E_SUBGRAPH_R1.json').read_text())
 errors=[]
-
-def fail(msg): errors.append(msg)
-
-nodes=j['nodes']; ids=[n['id'] for n in nodes]; node_ids=set(ids)
-if len(ids)!=len(node_ids): fail('duplicate node IDs')
+def fail(x): errors.append(x)
+nodes=j['nodes']; ids=[n['id'] for n in nodes]; byid={n['id']:n for n in nodes}
+if len(ids)!=46: fail(f'active node count {len(ids)} != 46')
+if len(ids)!=len(set(ids)): fail('duplicate node IDs')
 classes=Counter(n['activationClass'] for n in nodes)
-if classes != Counter({'CONSTITUTIVE':32,'CLOSURE_CRITICAL_SUPPORT':14}):
-    fail(f'unexpected class counts: {dict(classes)}')
-fronts=set(j['fronts'])
+if classes!=Counter({'CONSTITUTIVE':33,'CLOSURE_CRITICAL_SUPPORT':13}): fail(f'bad class counts {dict(classes)}')
+if 'V-C1' in byid: fail('generic V-C1 Asset Authoring must not be an independent closure')
+for cid,front in [('V-G7','F02'),('V-H1','F02'),('V-H2','F24')]:
+    if byid.get(cid,{}).get('front')!=front: fail(f'{cid} must be on {front}')
+if byid.get('V-G7',{}).get('activationClass')!='CONSTITUTIVE': fail('V-G7 must be constitutive')
+if byid.get('V-H2',{}).get('name')!='Player Evidence / Human Playtest': fail('V-H2 naming/closure guard drift')
+fronts=j['fronts']
+if len(fronts)!=27: fail(f'front count {len(fronts)} != 27')
 for n in nodes:
-    if n['front'] not in fronts: fail(f"node {n['id']} has unknown front {n['front']}")
-    if not n.get('oracle'): fail(f"node {n['id']} missing oracle")
-for e in j['edges']:
-    if e['from'] not in node_ids: fail(f'dangling edge source {e}')
-    if e['to'] not in node_ids: fail(f'dangling edge target {e}')
-
-agents=j['candidateOpeningAgents']
-front_owners={}
-for agent,fs in agents.items():
+    if n['front'] not in fronts: fail(f"{n['id']} unknown front {n['front']}")
+    if not n.get('oracle'): fail(f"{n['id']} missing oracle")
+edge_types={'PRODUCTION_OR_SEMANTIC_DEPENDENCY','VALIDATION_INPUT','ADMISSION_INPUT','FEEDBACK_OR_EVIDENCE_UPDATE','SUPPORTS_OR_REPAIRS'}
+edges={(e['from'],e['to'],e.get('edgeType')) for e in j['edges']}
+for a,b,t in edges:
+    if a not in byid or b not in byid: fail(f'dangling edge {a}->{b}')
+    if t not in edge_types: fail(f'bad edge type {t} on {a}->{b}')
+required={('V-G2','V-G7'),('V-G3','V-G7'),('V-G7','V-V5'),('V-G7','V-V9'),('V-G7','V-A1'),('V-G7','V-R4'),('V-G7','V-R5'),('V-G7','V-C10'),('V-V2','V-C2'),('V-V3','V-C2'),('V-V4','V-C2'),('V-V5','V-C2'),('V-V7','V-C2'),('V-A1','V-C2'),('V-C2','V-C3'),('V-C3','V-C4'),('V-C4','V-R1'),('V-C11','V-H2'),('V-H2','V-G2')}
+pairs={(a,b) for a,b,_ in edges}
+for e in sorted(required-pairs): fail(f'missing required semantic edge {e}')
+ag=j['candidateOpeningAgents']
+if len(ag)!=25: fail(f'opening agent count {len(ag)} != 25')
+front_owner={}
+for aid,fs in ag.items():
     for f in fs:
-        if f not in fronts: fail(f'{agent} owns unknown front {f}')
-        if f in front_owners: fail(f'front {f} multiply assigned to {front_owners[f]} and {agent}')
-        front_owners[f]=agent
-missing=sorted(fronts-set(front_owners))
-if missing: fail(f'unassigned fronts: {missing}')
-extra=sorted(set(front_owners)-fronts)
-if extra: fail(f'unknown assigned fronts: {extra}')
-if len(agents)!=24: fail(f'opening agent count is {len(agents)}, expected 24')
-if agents.get('A23') != ['F25']: fail('A23 must remain dedicated independent Red Team / Product QA')
-if 'F25' in agents.get('A24',[]): fail('Rights / Provenance must remain separate from Red Team')
-if 'F24' not in agents.get('A21',[]): fail('A21 must own Human protocol/readiness preparation')
-
-# Key semantic dependency guards.
-edges={(e['from'],e['to']) for e in j['edges']}
-required_edges={
-    ('V-G1','V-K1'), ('V-G1','V-V1'), ('V-G2','V-R2'), ('V-G4','V-R3'),
-    ('V-V2','V-S2'), ('V-V3','V-V4'), ('V-V4','V-V5'), ('V-S1','V-V6'),
-    ('V-S2','V-S1'), ('V-A1','V-A2'), ('V-A2','V-A3'), ('V-C2','V-C3'),
-    ('V-C3','V-C4'), ('V-C4','V-R1'), ('V-R1','V-C5'), ('V-C7','V-C8'),
-    ('V-C11','V-H2'), ('V-H2','V-G2'), ('V-C1','V-C12')
-}
-for e in sorted(required_edges-edges): fail(f'missing required semantic edge {e}')
-
-# Explicit dormant anti-scope guards.
-for required in ['multiplayer session','online identity/accounts','commerce/IAP','LLM runtime NPCs','giant/open-world streaming']:
-    if required not in j['dormantR1']: fail(f'missing dormant scope guard: {required}')
-
+        if f not in fronts: fail(f'{aid} owns unknown front {f}')
+        if f in front_owner: fail(f'{f} multiply owned by {front_owner[f]} and {aid}')
+        front_owner[f]=aid
+if set(front_owner)!=set(fronts): fail(f'front coverage mismatch missing={sorted(set(fronts)-set(front_owner))}')
+if ag.get('A17')!=['F17']: fail(f'A17 must own only F17, got {ag.get("A17")}')
+if ag.get('A25')!=['F18']: fail(f'A25 must own only F18, got {ag.get("A25")}')
+if ag.get('A23')!=['F25']: fail('A23 must remain dedicated F25 Red Team')
+if len(j.get('pressureTriggered',[]))!=7: fail('pressure-triggered new-E2E count must be 7')
+if len(j.get('implementationEscalations',[]))!=5: fail('implementation escalation count must be 5')
+for x in j.get('pressureTriggered',[]):
+    for k in ['name','trigger','blockedActiveClosures','admissionOracle','ownerRoute']:
+        if not x.get(k): fail(f'pressure entry {x.get("name")} missing {k}')
+for x in j.get('implementationEscalations',[]):
+    for k in ['name','withinClosures','trigger','rule']:
+        if not x.get(k): fail(f'escalation {x.get("name")} missing {k}')
+scp=j.get('scopeChangeProtocol',{})
+if not scp.get('unilateralActivationProhibited'): fail('unilateral topology activation must be prohibited')
+if len(scp.get('proposalReceiptRequiredFields',[]))<10: fail('scope-pressure receipt is under-specified')
+if len(j.get('crossCuttingPlanes',[]))!=7: fail('cross-cutting planes must remain 7')
+if 'Authority / Admission / Cross-Owner Boundary' not in j.get('crossCuttingPlanes',[]): fail('P2 cross-owner authority semantics missing')
+for d in ['multiplayer session','online identity/accounts','commerce/IAP','LLM runtime NPCs','giant/open-world streaming']:
+    if d not in j['dormantR1']: fail(f'dormant guard missing {d}')
+for ph in ['phase0','phase1','phase2a','phase2b','phase2c','phase2d','phase3','phase4','phase5','phase6']:
+    if ph not in j.get('executionProtocol',{}): fail(f'missing phase {ph}')
 if errors:
-    print('VEILWILD_E2E_SUBGRAPH_INVALID')
-    for e in errors: print(' -',e)
-    sys.exit(1)
+    print('VEILWILD_E2E_SUBGRAPH_INVALID'); [print(' -',e) for e in errors]; sys.exit(1)
 print('VEILWILD_E2E_SUBGRAPH_VALID')
-print('active_nodes=',len(nodes))
-print('constitutive=',classes['CONSTITUTIVE'])
-print('closure_critical_support=',classes['CLOSURE_CRITICAL_SUPPORT'])
-print('edges=',len(j['edges']))
-print('fronts=',len(fronts))
-print('opening_agents=',len(agents))
-print('pressure_triggered=',len(j['pressureTriggered']))
-print('dormant_r1=',len(j['dormantR1']))
-print('cross_cutting_planes=',len(j['crossCuttingPlanes']))
+print('active_nodes=46 constitutive=33 support=13 edges=',len(j['edges']))
+print('fronts=27 opening_agents=25 pressure_triggered=7 implementation_escalations=5 dormant=',len(j['dormantR1']),'planes=7')
