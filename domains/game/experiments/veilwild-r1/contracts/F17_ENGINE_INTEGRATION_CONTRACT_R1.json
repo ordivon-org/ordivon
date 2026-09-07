@@ -95,21 +95,9 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + R1 F13 fallback + collision-safe A21 F22 + provisional A25 F18 player/UI mounted; environment/creature/navigation/animation/audio absent; not a frozen candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + source-current F13 R2 + collision-safe A21 F22 + provisional A25 F18 player/UI mounted; environment/creature/navigation/animation/audio absent; not a frozen playable candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
-    {
-      "bindingId": "F13_BEHAVIOR_POLICY_RUNTIME_COPY_R1",
-      "producer": "A13/F13",
-      "producerCommit": "80fa3a6ff57b21ac0d7eb4d179e7ec1c94d468ad",
-      "producerInterfacePath": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R1.json",
-      "producerInterfaceSha256": "dc0252285caae72720ac018ec0f3db5023fbd4ac04cfdf5cfae0a44abf3ee879",
-      "authoritativePolicyPath": "experiments/veilwild-r1/f13-behavior/creature_behavior_policy.gd",
-      "authoritativePolicySha256": "8ad2a4f449969444dd27b1b5c28956e80de368070a0de0b03f3a901370e4a847",
-      "runtimeCopyPath": "experiments/veilwild-r1/godot/vendor/f13/creature_behavior_policy.gd",
-      "adapterScene": "res://adapters/f13_behavior_host.tscn",
-      "semanticBoundary": "A17 supplies no perception values and does not alter A13 states/thresholds/decisions."
-    },
     {
       "bindingId": "F11_LIGHTING_MODULE_R1",
       "producer": "A11/F11",
@@ -154,6 +142,25 @@
       "semanticBoundary": "A25 owns locomotion/look/camera/input/observe-request/UI presentation; A17 only mounts/lifecycles. observe_request remains necessary but insufficient and A17 does not infer success from proximity/detection/crosshair/time.",
       "round2Compatibility": "PROVISIONAL_CONSUMED_PENDING_A25_SOURCE_CURRENT_F23_REBIND",
       "qualification": "Exact F18 commit is not self-contained as a Godot project; consumer replay was performed by overlaying exact F18 bytes onto the current A17 project. F23 47b->8dd9 diff is source-binding/compatibility-only, so runtime bytes are provisionally compatible, but candidate freeze requires A25 owner-correct source-current binding."
+    },
+    {
+      "bindingId": "F13_BEHAVIOR_RUNTIME_R2",
+      "producer": "A13/F13",
+      "producerCommit": "60cb5faf0d386ae9815647c1ffddc9bc0c123af3",
+      "producerInterfacePath": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R2.json",
+      "producerInterfaceSha256": "bb4d5e27d457bae528454fdc917cbff62a30a445d0c9a4c8e554c6b894fa4824",
+      "cueAuthorizationPath": "experiments/veilwild-r1/f13-behavior/PLAYER_CUE_AUTHORIZATION_R2.json",
+      "cueAuthorizationSha256": "bd32688e9895dee587949979eb5120f3ff4c734e79178ff876aeb630880a6115",
+      "policyPath": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "policySha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5",
+      "runtimeScriptPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "runtimeScriptSha256": "2da9f35433f8f660825c8f8b24aa332b75cfd39e76bfb786a7b8a2520b5f50c2",
+      "runtimeScenePath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "runtimeSceneSha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f",
+      "mount": "SystemsMount",
+      "projectSetting": "veilwild/integration/behavior_scene",
+      "semanticBoundary": "A17 mounts exact producer module and preserves playerCueAuthorization payload verbatim. Authorization metadata is not cue exposure/perception; F13 does not prove reacquisition or observation success.",
+      "round2Qualification": "CONSUMED_ON_ERROR_CLEAN_A17_MOUNT; standalone F13 test_behavior fixture still emits SceneTree get_node errors because it exercises runtime outside active tree, so that fixture is not accepted as clean composite evidence."
     }
   ]
 }

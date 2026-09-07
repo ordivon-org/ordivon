@@ -5,12 +5,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDINGS = [
-    {
-        "id": "F13_BEHAVIOR_POLICY_RUNTIME_COPY_R1",
-        "source": ROOT / "f13-behavior/creature_behavior_policy.gd",
-        "target": ROOT / "godot/vendor/f13/creature_behavior_policy.gd",
-        "expected_sha256": "8ad2a4f449969444dd27b1b5c28956e80de368070a0de0b03f3a901370e4a847",
-    },
 ]
 
 def sha256(path: Path) -> str:

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "veilwild.f13-creature-behavior-interface.r2",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "producer": "A13/F13",
+  "protocolBaseline": "7175430cfe8267e9ea8aa8b85d93bc468f0a1d52",
+  "supersedesOwnerInterface": {
+    "commit": "badad7b",
+    "path": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R1.json",
+    "reason": "Round-2 source-current producer binding plus explicit player cue authorization is additive; stable behavior state/transition IDs are preserved."
+  },
+  "sourceBoundInputs": [
+    {"producer":"A01/F01","commit":"66040f75d505e40e0069412b419e380daa5c73fc","path":"experiments/veilwild-r1/contracts/F01_PRODUCT_CORE_LOOP_CONTRACT_R1.json","sha256":"0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb"},
+    {"producer":"A01/F01_TRACE","commit":"253feed6d6eabe019e6f05633dc62391102e3164","path":"experiments/veilwild-r1/contracts/F01_PRODUCT_TRACE_ORACLE_R1.json","sha256":"0d45ec20bcaccf0193be498f36e29a4b89367fe308a862dbb3ce23db6ac679df"},
+    {"producer":"A02/F02","commit":"b0ad6d244f4321ec008744434623723f0095bdfa","path":"experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json","sha256":"6e947124669cb0e6f131a9fcb51397080bad651394bc612f30fe1ecff42337ee"},
+    {"producer":"A03/F03","commit":"09eff389f0fd4d2d67cda4b4bc7e3c0c56f3b261","path":"experiments/veilwild-r1/contracts/F03_BIOMIMETICS_TRANSFER_CONTRACT_R1.json","sha256":"75bf8e85e69031146d14b5d822db6cf2b2866851052ecb0d7c974d913e77b066"},
+    {"producer":"A14/F14","commit":"5c627b598e90319c2f9aa529f182f928a6b312da","path":"experiments/veilwild-r1/f14/F14_INTERFACE_CONTRACT_R1.json","sha256":"a35e460dde73a838704b759ab544dd33fa217a1410bc972e4c7e0f4f163e3f22","oracleReplay":"Godot 4.7.1 owner fixture replay PASS under Workstation godot_checked_run during A13 R2"},
+    {"producer":"A21/F22","commit":"d19581f65096b5a3588d57d6dab7b9ca9fbd213b","path":"experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json","sha256":"5cc4f8575815490e8c06f314585fab89beacc4eedc3085d742f51a52e895a85f","qualification":"R1 transport identity only; later A21 R2 transport supersession may be consumed without changing F13 semantic IDs."}
+  ],
+  "stableBehaviorStates": [
+    "veilwild.behavior.unaware.r1",
+    "veilwild.behavior.orient.r1",
+    "veilwild.behavior.freeze.r1",
+    "veilwild.behavior.conceal.r1",
+    "veilwild.behavior.evade.r1",
+    "veilwild.behavior.recover.r1"
+  ],
+  "stableTransitionIds": [
+    "veilwild.behavior.transition.stimulus_acquired.r1",
+    "veilwild.behavior.transition.threat_escalated.r1",
+    "veilwild.behavior.transition.concealment_selected.r1",
+    "veilwild.behavior.transition.concealment_lost.r1",
+    "veilwild.behavior.transition.escape_selected.r1",
+    "veilwild.behavior.transition.escape_unavailable.r1",
+    "veilwild.behavior.transition.threat_decayed.r1",
+    "veilwild.behavior.transition.recovery_complete.r1"
+  ],
+  "playerCueAuthorization": {
+    "contractPath": "experiments/veilwild-r1/f13-behavior/PLAYER_CUE_AUTHORIZATION_R2.json",
+    "runtimeDecisionField": "player_cue_authorization",
+    "runtimeTransitionField": "playerCueAuthorization",
+    "meaning": "Authorization-only metadata: sustained_classes, edge_classes, explicit_none_classes. No concrete carrier is guaranteed to emit.",
+    "backwardCompatibility": "cue_opportunities remains a deprecated union for R1 consumers. R2 consumers must use player_cue_authorization to distinguish EDGE/SUSTAINED/NONE."
+  },
+  "f14Binding": {
+    "authority": "A14/F14 owns legal/current-map affordance/path realization.",
+    "inputsConsumed": {
+      "concealment_available": "true iff F14 has at least one structurally valid reachable concealment affordance",
+      "concealment_quality": "selected F14 legal affordance concealmentSuitability [0,1], game-normalized only",
+      "concealment_affordance_id": "stable F14 affordanceId when supplied",
+      "escape_available": "true iff F14 has at least one legal reachable evasion affordance satisfying positive threat-separation requirement",
+      "escape_affordance_id": "stable F14 evasion affordanceId when supplied"
+    },
+    "outputsToF14": [
+      "veilwild.nav.none.r1",
+      "veilwild.nav.face_threat.r1",
+      "veilwild.nav.hold_position.r1",
+      "veilwild.nav.concealment_request.r1",
+      "veilwild.nav.evade_request.r1",
+      "veilwild.nav.recover_request.r1"
+    ],
+    "guard": "F13 never interprets empty path on an unsynchronized map, never chooses global geometry, and never treats concealmentSuitability as Human detectability."
+  },
+  "recoveryBoundary": {
+    "behaviorFacts": [
+      "EVADE sets observation_abort=true.",
+      "Threat decay after minimum evade dwell may transition to RECOVER.",
+      "RECOVER sets reacquisition_phase=true and reacquisition_proven=false."
+    ],
+    "notProvenByF13": "A same-session reacquisition opportunity exists or is player reachable/perceivable.",
+    "requiredIntegratedProducer": "A14/world/cue integration must establish reacquisition_opportunity independently before A01/A23 product trace may count recovery."
+  },
+  "runtimeRepresentation": {
+    "policy": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+    "node": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+    "scene": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+    "a17Setting": "veilwild/integration/behavior_scene=res://modules/f13/behavior_runtime.tscn",
+    "a17Mount": "SystemsMount",
+    "signals": ["behavior_decision(decision)","behavior_transition(event)"],
+    "eventBusTopics": ["creature.behavior.decision","creature.behavior.transition"]
+  },
+  "authorityBoundary": {
+    "F13Owns": ["behavior state semantics","transition semantics","behavior decision","semantic nav intent","cue-class authorization windows"],
+    "F13DoesNotOwn": ["F14 path/affordance geometry","F08/F09 motion/clip names","F12 shader/material consequence","F15 sound files","F16 playback/attenuation/priority/spatialization","A25 observe input/success","A21 telemetry transport","A22 accessibility adjudication","A17 integrated candidate authority"]
+  },
+  "compatibility": "READY_FOR_R2_CONSUMPTION_PENDING_EXACT_CONSUMER_REPLAY",
+  "standingGuard": "This owner interface/runtime can be PROTOTYPED_LOCAL after local replay. It cannot claim a frozen candidate, integrated reacquisition, or Human outcome."
+}

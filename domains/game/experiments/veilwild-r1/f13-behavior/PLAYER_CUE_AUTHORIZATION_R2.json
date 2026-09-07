@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "veilwild.f13-player-cue-authorization.r2",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "producer": "A13/F13",
+  "protocolBaseline": "7175430cfe8267e9ea8aa8b85d93bc468f0a1d52",
+  "semanticPurpose": "Owner-correct authorization boundary from F13 behavior semantics to player cue classes. This artifact says which cue classes may be exposed because a behavior state/transition is active. It does not assert that any concrete carrier must emit, and it does not choose audio files, attenuation, playback priority, UI text, animation clip names, accessibility presentation, or telemetry adjudication.",
+  "sourceBoundInputs": [
+    {"producer":"A02/F02","commit":"b0ad6d244f4321ec008744434623723f0095bdfa","path":"experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json","sha256":"6e947124669cb0e6f131a9fcb51397080bad651394bc612f30fe1ecff42337ee","revalidated":true},
+    {"producer":"A03/F03","commit":"09eff389f0fd4d2d67cda4b4bc7e3c0c56f3b261","path":"experiments/veilwild-r1/contracts/F03_BIOMIMETICS_TRANSFER_CONTRACT_R1.json","sha256":"75bf8e85e69031146d14b5d822db6cf2b2866851052ecb0d7c974d913e77b066","revalidated":true},
+    {"producer":"A14/F14","commit":"5c627b598e90319c2f9aa529f182f928a6b312da","path":"experiments/veilwild-r1/f14/F14_INTERFACE_CONTRACT_R1.json","sha256":"a35e460dde73a838704b759ab544dd33fa217a1410bc972e4c7e0f4f163e3f22","revalidated":true},
+    {"producer":"A01/F01_TRACE","commit":"253feed6d6eabe019e6f05633dc62391102e3164","path":"experiments/veilwild-r1/contracts/F01_PRODUCT_TRACE_ORACLE_R1.json","sha256":"0d45ec20bcaccf0193be498f36e29a4b89367fe308a862dbb3ce23db6ac679df","revalidated":true},
+    {"producer":"A21/F22","commit":"d19581f65096b5a3588d57d6dab7b9ca9fbd213b","path":"experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json","sha256":"5cc4f8575815490e8c06f314585fab89beacc4eedc3085d742f51a52e895a85f","revalidated":true,"qualification":"R1 source-current at A13 production time; A21 R2 may supersede transport identity without changing F13 cue ownership."}
+  ],
+  "cueClasses": ["TRACE","BEHAVIOR_AUDIO","MOTION_COUNTERCUE","CAMOUFLAGE_MISMATCH","THREAT_RESPONSE"],
+  "triggerModeMeaning": {
+    "EDGE": "The transition itself may authorize one or more player cue consequences once per producer transition edge. Repeated carrier behavior is downstream-owner policy and is not authorized by this mode.",
+    "SUSTAINED": "The cue class remains semantically eligible while the state persists, subject to downstream carrier conditions. SUSTAINED does not mean continuous playback, continuous marker display, or guaranteed visibility.",
+    "NONE": "F13 does not authorize this cue class from this state/transition. Another owner may independently produce the same F02 cue class from its own source semantics."
+  },
+  "stateAuthorization": [
+    {"stateId":"veilwild.behavior.unaware.r1","stateName":"UNAWARE","allowed":{"BEHAVIOR_AUDIO":"SUSTAINED"},"explicitNone":["TRACE","MOTION_COUNTERCUE","CAMOUFLAGE_MISMATCH","THREAT_RESPONSE"],"guard":"BEHAVIOR_AUDIO may be sparse activity/direction evidence only; no constant exact-location beacon."},
+    {"stateId":"veilwild.behavior.orient.r1","stateName":"ORIENT","allowed":{"THREAT_RESPONSE":"SUSTAINED","MOTION_COUNTERCUE":"SUSTAINED"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH"],"guard":"Posture/orientation may carry warning information; no raw ORIENT label may be exposed."},
+    {"stateId":"veilwild.behavior.freeze.r1","stateName":"FREEZE","allowed":{"THREAT_RESPONSE":"SUSTAINED"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","MOTION_COUNTERCUE","CAMOUFLAGE_MISMATCH"],"guard":"Freeze posture may remain a threat-response cue; F13 does not create motion or material mismatch that is not actually present."},
+    {"stateId":"veilwild.behavior.conceal.r1","stateName":"CONCEAL","allowed":{"CAMOUFLAGE_MISMATCH":"SUSTAINED","MOTION_COUNTERCUE":"SUSTAINED"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","THREAT_RESPONSE"],"guard":"Authorization is conditional on actual F12/F09/F14 consequence; no invisibility claim and no hidden-state narration."},
+    {"stateId":"veilwild.behavior.evade.r1","stateName":"EVADE","allowed":{"THREAT_RESPONSE":"SUSTAINED","MOTION_COUNTERCUE":"SUSTAINED"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH"],"guard":"Sustained BEHAVIOR_AUDIO is deliberately denied to prevent an evade beacon. EVADE remains observation-abort behavior, not success/fail authority."},
+    {"stateId":"veilwild.behavior.recover.r1","stateName":"RECOVER","allowed":{"THREAT_RESPONSE":"SUSTAINED","MOTION_COUNTERCUE":"SUSTAINED"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH"],"guard":"RECOVER may expose reassessment/reposition cues but is not evidence that a reacquisition opportunity exists."}
+  ],
+  "transitionAuthorization": [
+    {"transitionId":"veilwild.behavior.transition.stimulus_acquired.r1","reason":"STIMULUS_ACQUIRED","allowed":{"THREAT_RESPONSE":"EDGE","BEHAVIOR_AUDIO":"EDGE","MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","CAMOUFLAGE_MISMATCH"]},
+    {"transitionId":"veilwild.behavior.transition.threat_escalated.r1","reason":"THREAT_ESCALATED","allowed":{"THREAT_RESPONSE":"EDGE","MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH"]},
+    {"transitionId":"veilwild.behavior.transition.concealment_selected.r1","reason":"CONCEALMENT_SELECTED","allowed":{"MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH","THREAT_RESPONSE"],"guard":"F13 selecting CONCEAL does not itself assert a material mismatch; F12/F14 actual context controls that carrier consequence."},
+    {"transitionId":"veilwild.behavior.transition.concealment_lost.r1","reason":"CONCEALMENT_LOST","allowed":{"THREAT_RESPONSE":"EDGE","CAMOUFLAGE_MISMATCH":"EDGE","MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO"]},
+    {"transitionId":"veilwild.behavior.transition.escape_selected.r1","reason":"ESCAPE_SELECTED","allowed":{"THREAT_RESPONSE":"EDGE","BEHAVIOR_AUDIO":"EDGE","MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","CAMOUFLAGE_MISMATCH"],"guard":"BEHAVIOR_AUDIO is edge-only here; F16 may choose silence and owns concrete playback."},
+    {"transitionId":"veilwild.behavior.transition.escape_unavailable.r1","reason":"ESCAPE_UNAVAILABLE","allowed":{"THREAT_RESPONSE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","MOTION_COUNTERCUE","CAMOUFLAGE_MISMATCH"]},
+    {"transitionId":"veilwild.behavior.transition.threat_decayed.r1","reason":"THREAT_DECAYED","allowed":{"THREAT_RESPONSE":"EDGE","MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH"]},
+    {"transitionId":"veilwild.behavior.transition.recovery_complete.r1","reason":"RECOVERY_COMPLETE","allowed":{"MOTION_COUNTERCUE":"EDGE"},"explicitNone":["TRACE","BEHAVIOR_AUDIO","CAMOUFLAGE_MISMATCH","THREAT_RESPONSE"]},
+    {"transitionId":"veilwild.behavior.transition.none.r1","reason":"NONE","allowed":{},"explicitNone":["TRACE","BEHAVIOR_AUDIO","MOTION_COUNTERCUE","CAMOUFLAGE_MISMATCH","THREAT_RESPONSE"]}
+  ],
+  "globalGuards": [
+    "TRACE is explicit NONE for every F13 state and transition because persisted environmental trace semantics are not F13 behavior authority.",
+    "No F13 authorization may expose behaviorStateId, transitionSemanticId or internal threat value as raw player-facing text/marker information.",
+    "SUSTAINED authorization never requires continuous emission. In particular no sustained BEHAVIOR_AUDIO is authorized during ORIENT/FREEZE/CONCEAL/EVADE/RECOVER.",
+    "Concrete audio filename, attenuation, playback priority/concurrency, bus/mix, caption presentation and silence/stop policy remain F15/F16/F22/F23 owner domains as applicable.",
+    "Animation clip identity remains F08/F09 authority and camouflage rendering remains F12 authority.",
+    "EVADE -> RECOVER is not reacquisition proof. Only an integrated A14/world/cue condition may emit or substantiate reacquisition_opportunity.",
+    "Observation success remains outside F13 and requires the explicit A01/A25 observation/commitment path."
+  ],
+  "consumerContract": {
+    "A09":"Use behavior state/transition IDs for motion mapping only; cue authorization does not rename motionSemanticId or clipName.",
+    "A12":"Use CAMOUFLAGE_MISMATCH authorization as permission boundary only; actual material/context response remains F12-owned.",
+    "A14":"Continue supplying legal/reachable concealment and escape inputs; F13 does not reinterpret path geometry or Human visibility.",
+    "A15":"May associate source cues only with authorized cue classes/edges; exact filenames remain A15-owned.",
+    "A16":"May implement play/stop/spatialization only inside these cue-class authorization windows; do not infer additional hidden-state meaning.",
+    "A17":"Host the exact F13 module and preserve playerCueAuthorization payload verbatim.",
+    "A21":"May transport playerCueAuthorization as producer data; it is authorization metadata, not proof that cue_exposed occurred or was perceived."
+  }
+}

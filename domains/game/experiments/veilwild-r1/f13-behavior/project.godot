@@ -1,8 +1,0 @@
-config_version=5
-
-[application]
-config/name="Veilwild F13 Behavior Fixture"
-
-[rendering]
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
