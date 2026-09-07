@@ -1,0 +1,30 @@
+{
+  "schema": "veilwild.r2-consumption-receipt.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "consumer": "A17/F17",
+  "producer": "A25/F18",
+  "producerCommit": "ec19645c895d60d1386b6cd4725311edb068496c",
+  "artifacts": [
+    {
+      "path": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
+      "sha256": "2c35fcc14d281d0c8287083ca6624c0fe649324e18ce63e2d307d99c5b5bb134"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "sha256": "e536bd3fb38f83f8d66b40508772ed3966e7f1945a52fa0a9fd0701a0699c6db"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "sha256": "fc1f5045be5df74713f4a09386441e3d3f2f94301d4e1a79c3940373d5c86205"
+    }
+  ],
+  "independentRevalidation": "Protocol-baseline ancestry + exact Git paths/digests verified. ec19645 lacks project.godot, so producer mount receipt is not self-contained. Exact F18 files were overlaid onto current A17 project in an isolated temporary consumer harness; Python contract validator and Godot 4.7.1 mechanical test both PASS with empty stderr.",
+  "sourceBindingQualification": {
+    "staleConsumer": "A22/F23@47b596d/d27a...",
+    "sourceCurrent": "A22/F23@8dd9c3f/a153...",
+    "exactDiff": "Only additive F01 consumed-input/source-compatibility wording; F23 obligations/oracles unchanged.",
+    "standing": "PROVISIONAL_PENDING_A25_OWNER_REBIND"
+  },
+  "semanticBoundary": "A17 does not change A25 files and does not own observe success. Exact player/UI bytes are mounted unchanged.",
+  "candidateStatus": "CONSTITUENT_CONSUMED_NOT_CANDIDATE"
+}

@@ -95,7 +95,7 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; F13 behavior, F11 lighting, and A21-owned F22 EvidenceMount module source-bound/mounted; remaining producer modules absent; not a frozen playable candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + R1 F13 fallback + A21 F22 + provisional A25 F18 player/UI mounted; remaining environment/creature/navigation/animation/audio modules absent; not a frozen candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
     {
@@ -134,6 +134,24 @@
       "runtimeSceneSha256": "556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9",
       "runtimeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
       "semanticBoundary": "A17 mounts producer-owned module and supplies run context only; A21 owns event envelope/storage; event producer semantics remain their original owners."
+    },
+    {
+      "bindingId": "F18_PLAYER_RUNTIME_UI_R2",
+      "producer": "A25/F18",
+      "producerCommit": "ec19645c895d60d1386b6cd4725311edb068496c",
+      "producerContractPath": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
+      "producerContractSha256": "2c35fcc14d281d0c8287083ca6624c0fe649324e18ce63e2d307d99c5b5bb134",
+      "playerScenePath": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "playerSceneSha256": "e536bd3fb38f83f8d66b40508772ed3966e7f1945a52fa0a9fd0701a0699c6db",
+      "uiScenePath": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "uiSceneSha256": "fc1f5045be5df74713f4a09386441e3d3f2f94301d4e1a79c3940373d5c86205",
+      "mounts": {
+        "player": "PlayerRuntimeMount",
+        "ui": "UIOverlay"
+      },
+      "semanticBoundary": "A25 owns locomotion/look/camera/input/observe-request/UI presentation; A17 only mounts/lifecycles. observe_request remains necessary but insufficient and A17 does not infer success from proximity/detection/crosshair/time.",
+      "round2Compatibility": "PROVISIONAL_CONSUMED_PENDING_A25_SOURCE_CURRENT_F23_REBIND",
+      "qualification": "Exact F18 commit is not self-contained as a Godot project; consumer replay was performed by overlaying exact F18 bytes onto the current A17 project. F23 47b->8dd9 diff is source-binding/compatibility-only, so runtime bytes are provisionally compatible, but candidate freeze requires A25 owner-correct source-current binding."
     }
   ]
 }
