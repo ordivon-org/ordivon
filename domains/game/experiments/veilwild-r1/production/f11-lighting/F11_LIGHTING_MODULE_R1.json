@@ -1,0 +1,19 @@
+{
+  "schema": "veilwild.f11-lighting-module.r1",
+  "producer": {"agentId": "A11", "frontId": "F11", "closureId": "V-V8"},
+  "authoritativeEditableSource": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+  "derivedRuntimeCopy": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+  "sourceDigest": "sha256:0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+  "runtimeCopyDigest": "sha256:0b558d1c760a6cfd176dd0c2c2879c0512da362de78da0fd889f86c7ad557210",
+  "a17Compatibility": {
+    "revalidatedContractCommit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
+    "contractDigest": "sha256:4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
+    "mount": "LightingMount",
+    "projectSetting": "veilwild/integration/lighting_scene",
+    "resourcePath": "res://modules/f11/lighting_rig.tscn",
+    "rootNodeType": "Node3D",
+    "runtimeBasis": "1 Godot unit=1m, +Y up, -Z forward"
+  },
+  "authorityBoundary": "A11 owns lighting scene semantics. A17 owns project setting/mount composition and frozen candidate identity. The runtime copy is derived from the A11 editable source and must not be edited independently.",
+  "compatibility": "READY_FOR_A17_MODULE_MOUNT; product lighting standing remains provisional until real environment/material/camouflage/camera replay"
+}
