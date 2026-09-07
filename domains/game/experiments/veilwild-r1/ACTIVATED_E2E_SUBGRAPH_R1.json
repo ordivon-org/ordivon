@@ -1,0 +1,916 @@
+{
+  "schema": "veilwild.activated-e2e-subgraph.r1",
+  "baseline": "1802c1e0b702d7046af50dff33380bc43ee95115",
+  "nodes": [
+    {
+      "id": "V-G1",
+      "name": "Product / Creative Direction",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F01",
+      "oracle": "one coherent thesis-scoped integrated slice"
+    },
+    {
+      "id": "V-G2",
+      "name": "Player Experience Promise",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F02",
+      "oracle": "real Human consequence eventually matches intended tracking/observation experience"
+    },
+    {
+      "id": "V-G3",
+      "name": "Core Loop / Mechanics",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F01",
+      "oracle": "tracking/detection/approach/observation plus recoverable evasion path reachable"
+    },
+    {
+      "id": "V-G4",
+      "name": "Interaction / Controls",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F18",
+      "oracle": "intentional input produces locomotion/look/observe consequences"
+    },
+    {
+      "id": "V-G5",
+      "name": "World / Level / Encounter",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F01",
+      "oracle": "authored habitat carries traversal, information, concealment and encounter structure"
+    },
+    {
+      "id": "V-G6",
+      "name": "Session / Flow",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F02",
+      "oracle": "fresh launch through loop completion/recoverable failure/replay is coherent"
+    },
+    {
+      "id": "V-K1",
+      "name": "Biomimetics Research-to-Product Transfer",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F03",
+      "oracle": "current evidence changes implemented product requirements without fidelity overclaim"
+    },
+    {
+      "id": "V-V1",
+      "name": "Visual Development / Art Direction",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F04",
+      "oracle": "environment/creature/material/light form one visual grammar on screen"
+    },
+    {
+      "id": "V-V2",
+      "name": "Environment 3D",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F05",
+      "oracle": "editable habitat source survives export/import and supports runtime encounter"
+    },
+    {
+      "id": "V-V3",
+      "name": "Creature 3D",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F06",
+      "oracle": "editable Veilrunner source becomes readable deformation-ready runtime asset"
+    },
+    {
+      "id": "V-V4",
+      "name": "Rigging",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F07",
+      "oracle": "skeleton/deformation supports required motions and engine handoff"
+    },
+    {
+      "id": "V-V5",
+      "name": "Animation Production",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F08",
+      "oracle": "required authored motions export and play in runtime"
+    },
+    {
+      "id": "V-V6",
+      "name": "Animation Systems",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F09",
+      "oracle": "shared game state selects/transitions runtime motion correctly"
+    },
+    {
+      "id": "V-V7",
+      "name": "Materials / LookDev",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F10",
+      "oracle": "editable surface representation produces state/context-responsive runtime material"
+    },
+    {
+      "id": "V-V8",
+      "name": "Lighting",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F11",
+      "oracle": "authored illumination sustains readable but non-trivial concealment/search condition"
+    },
+    {
+      "id": "V-V9",
+      "name": "Shader / Camouflage Rendering",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F12",
+      "oracle": "camouflage compiles/executes and responds to state/environment without invisibility collapse"
+    },
+    {
+      "id": "V-V10",
+      "name": "Rendering",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F12",
+      "oracle": "scene/material/light/camera produce correct frames under exact runtime condition"
+    },
+    {
+      "id": "V-S1",
+      "name": "Game AI / Creature Behavior",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F13",
+      "oracle": "perception/state decision produces conceal/orient/freeze/evade gameplay consequence"
+    },
+    {
+      "id": "V-S2",
+      "name": "Environment Affordance / Concealment Topology",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F14",
+      "oracle": "authored cover has one runtime meaning consumed by behavior/material/navigation"
+    },
+    {
+      "id": "V-S3",
+      "name": "Navigation / Locomotion",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F14",
+      "oracle": "creature traverses/evades authored world without critical stuck/clipping/sliding"
+    },
+    {
+      "id": "V-S4",
+      "name": "Physics / Collision",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F14",
+      "oracle": "player/creature/world contacts preserve critical traversal and observation path"
+    },
+    {
+      "id": "V-A1",
+      "name": "Sound Design",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F15",
+      "oracle": "rights-safe editable sources encode intended cue meanings"
+    },
+    {
+      "id": "V-A2",
+      "name": "Interactive Audio",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F16",
+      "oracle": "shared game state selects/prioritizes/silences runtime cues correctly"
+    },
+    {
+      "id": "V-A3",
+      "name": "Spatial Audio",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F16",
+      "oracle": "world position maps to listener condition and eventually useful tracking information"
+    },
+    {
+      "id": "V-A4",
+      "name": "Audio Mix / Information Hierarchy",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F16",
+      "oracle": "cue hierarchy remains intelligible without trivializing search"
+    },
+    {
+      "id": "V-R1",
+      "name": "Engine Integration",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F17",
+      "oracle": "all constitutive semantics/assets/systems exist in one playable Godot condition"
+    },
+    {
+      "id": "V-R2",
+      "name": "Camera",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F18",
+      "oracle": "camera supports search/observation readability and comfort"
+    },
+    {
+      "id": "V-R3",
+      "name": "Input / Device",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F18",
+      "oracle": "selected device input reaches actual game actions"
+    },
+    {
+      "id": "V-R4",
+      "name": "UI / Feedback",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F18",
+      "oracle": "game state produces understandable non-spoiling feedback"
+    },
+    {
+      "id": "V-R5",
+      "name": "Onboarding / Learnability",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F02",
+      "oracle": "fresh player can learn basic interaction/cue model without developer coaching"
+    },
+    {
+      "id": "V-H1",
+      "name": "UX",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F19",
+      "oracle": "player can understand and complete the intended task under exact condition"
+    },
+    {
+      "id": "V-H2",
+      "name": "Human Playtest",
+      "activationClass": "CONSTITUTIVE",
+      "front": "F24",
+      "oracle": "frozen build/question exposed to real participant yields admissible Human evidence"
+    },
+    {
+      "id": "V-C1",
+      "name": "Asset Authoring",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F19",
+      "oracle": "future-revisable editable sources exist for constitutive selected assets"
+    },
+    {
+      "id": "V-C2",
+      "name": "Asset Interchange",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F19",
+      "oracle": "source export/import preserves required geometry/axis/rig/animation/material/audio semantics"
+    },
+    {
+      "id": "V-C3",
+      "name": "Asset Validation",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F19",
+      "oracle": "independent structural/runtime validation catches malformed selected assets"
+    },
+    {
+      "id": "V-C4",
+      "name": "Resource Loading / Runtime Asset",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F19",
+      "oracle": "exact runtime dependency resolves/imports/loads into build"
+    },
+    {
+      "id": "V-C5",
+      "name": "Build / Packaging / Reproducibility",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F20",
+      "oracle": "exact source/tool condition reproduces playable artifact/run path"
+    },
+    {
+      "id": "V-C6",
+      "name": "Verification / Automated Test",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F20",
+      "oracle": "deterministic non-Human contracts are mechanically replayable"
+    },
+    {
+      "id": "V-C7",
+      "name": "Performance Engineering",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F21",
+      "oracle": "material runtime bottlenecks can be localized/repaired under exact condition"
+    },
+    {
+      "id": "V-C8",
+      "name": "Frame Performance Evaluation",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F21",
+      "oracle": "frame-time/pacing evidence qualifies 1080p/~60Hz ambition under exact condition"
+    },
+    {
+      "id": "V-C9",
+      "name": "Telemetry / Evidence Capture",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F22",
+      "oracle": "runtime events become durable condition-bound evidence for attribution"
+    },
+    {
+      "id": "V-C10",
+      "name": "Accessibility",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F23",
+      "oracle": "visual/audio/input/text/motion barriers are tested with appropriate redundancy/controls"
+    },
+    {
+      "id": "V-C11",
+      "name": "Independent Product QA / Red Team",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F25",
+      "oracle": "independent fresh-run falsification adjudicates integrated candidate"
+    },
+    {
+      "id": "V-C12",
+      "name": "Rights / Provenance",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F26",
+      "oracle": "selected build contributions have defensible origin/license/modification/build inclusion"
+    },
+    {
+      "id": "V-C13",
+      "name": "Workstation / Toolchain composition",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F27",
+      "oracle": "apparatus/toolchain supports constitutive work without speculative reopening"
+    },
+    {
+      "id": "V-C14",
+      "name": "Engineering E2E composition",
+      "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+      "front": "F27",
+      "oracle": "generic engineering requirements/integration/test/build/repair are composed rather than duplicated"
+    }
+  ],
+  "edges": [
+    {
+      "from": "V-A1",
+      "to": "V-A2"
+    },
+    {
+      "from": "V-A2",
+      "to": "V-A3"
+    },
+    {
+      "from": "V-A2",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-A3",
+      "to": "V-A4"
+    },
+    {
+      "from": "V-A3",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-A4",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-C1",
+      "to": "V-C12"
+    },
+    {
+      "from": "V-C1",
+      "to": "V-C2"
+    },
+    {
+      "from": "V-C10",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C10",
+      "to": "V-H1"
+    },
+    {
+      "from": "V-C11",
+      "to": "V-H2"
+    },
+    {
+      "from": "V-C12",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C13",
+      "to": "V-C1"
+    },
+    {
+      "from": "V-C13",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-C14",
+      "to": "V-C5"
+    },
+    {
+      "from": "V-C14",
+      "to": "V-C6"
+    },
+    {
+      "from": "V-C14",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-C2",
+      "to": "V-C3"
+    },
+    {
+      "from": "V-C3",
+      "to": "V-C4"
+    },
+    {
+      "from": "V-C4",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-C5",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C6",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C7",
+      "to": "V-C8"
+    },
+    {
+      "from": "V-C8",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C9",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-C9",
+      "to": "V-H2"
+    },
+    {
+      "from": "V-G1",
+      "to": "V-G2"
+    },
+    {
+      "from": "V-G1",
+      "to": "V-G3"
+    },
+    {
+      "from": "V-G1",
+      "to": "V-G5"
+    },
+    {
+      "from": "V-G1",
+      "to": "V-K1"
+    },
+    {
+      "from": "V-G1",
+      "to": "V-V1"
+    },
+    {
+      "from": "V-G2",
+      "to": "V-A1"
+    },
+    {
+      "from": "V-G2",
+      "to": "V-G6"
+    },
+    {
+      "from": "V-G2",
+      "to": "V-R2"
+    },
+    {
+      "from": "V-G2",
+      "to": "V-R5"
+    },
+    {
+      "from": "V-G3",
+      "to": "V-G4"
+    },
+    {
+      "from": "V-G3",
+      "to": "V-R4"
+    },
+    {
+      "from": "V-G3",
+      "to": "V-S1"
+    },
+    {
+      "from": "V-G4",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-G4",
+      "to": "V-R3"
+    },
+    {
+      "from": "V-G5",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-G5",
+      "to": "V-R2"
+    },
+    {
+      "from": "V-G5",
+      "to": "V-S2"
+    },
+    {
+      "from": "V-G5",
+      "to": "V-V2"
+    },
+    {
+      "from": "V-G6",
+      "to": "V-C11"
+    },
+    {
+      "from": "V-G6",
+      "to": "V-H1"
+    },
+    {
+      "from": "V-H1",
+      "to": "V-H2"
+    },
+    {
+      "from": "V-H2",
+      "to": "V-G2"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-A2"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-H2"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-S1"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-V3"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-V5"
+    },
+    {
+      "from": "V-K1",
+      "to": "V-V7"
+    },
+    {
+      "from": "V-R1",
+      "to": "V-C10"
+    },
+    {
+      "from": "V-R1",
+      "to": "V-C5"
+    },
+    {
+      "from": "V-R1",
+      "to": "V-C6"
+    },
+    {
+      "from": "V-R1",
+      "to": "V-C7"
+    },
+    {
+      "from": "V-R1",
+      "to": "V-C9"
+    },
+    {
+      "from": "V-R2",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-R2",
+      "to": "V-V10"
+    },
+    {
+      "from": "V-R3",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-R4",
+      "to": "V-H1"
+    },
+    {
+      "from": "V-R4",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-R5",
+      "to": "V-H1"
+    },
+    {
+      "from": "V-S1",
+      "to": "V-A2"
+    },
+    {
+      "from": "V-S1",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-S1",
+      "to": "V-S3"
+    },
+    {
+      "from": "V-S1",
+      "to": "V-V6"
+    },
+    {
+      "from": "V-S1",
+      "to": "V-V9"
+    },
+    {
+      "from": "V-S2",
+      "to": "V-S1"
+    },
+    {
+      "from": "V-S2",
+      "to": "V-S3"
+    },
+    {
+      "from": "V-S2",
+      "to": "V-V9"
+    },
+    {
+      "from": "V-S3",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-S3",
+      "to": "V-S4"
+    },
+    {
+      "from": "V-S4",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-V1",
+      "to": "V-R4"
+    },
+    {
+      "from": "V-V1",
+      "to": "V-V2"
+    },
+    {
+      "from": "V-V1",
+      "to": "V-V3"
+    },
+    {
+      "from": "V-V1",
+      "to": "V-V7"
+    },
+    {
+      "from": "V-V1",
+      "to": "V-V8"
+    },
+    {
+      "from": "V-V10",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-V2",
+      "to": "V-C2"
+    },
+    {
+      "from": "V-V2",
+      "to": "V-S2"
+    },
+    {
+      "from": "V-V2",
+      "to": "V-S3"
+    },
+    {
+      "from": "V-V2",
+      "to": "V-S4"
+    },
+    {
+      "from": "V-V2",
+      "to": "V-V8"
+    },
+    {
+      "from": "V-V3",
+      "to": "V-C2"
+    },
+    {
+      "from": "V-V3",
+      "to": "V-V4"
+    },
+    {
+      "from": "V-V3",
+      "to": "V-V7"
+    },
+    {
+      "from": "V-V4",
+      "to": "V-V5"
+    },
+    {
+      "from": "V-V5",
+      "to": "V-V6"
+    },
+    {
+      "from": "V-V6",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-V7",
+      "to": "V-V9"
+    },
+    {
+      "from": "V-V8",
+      "to": "V-V9"
+    },
+    {
+      "from": "V-V9",
+      "to": "V-R1"
+    },
+    {
+      "from": "V-V9",
+      "to": "V-V10"
+    }
+  ],
+  "fronts": {
+    "F01": "Product / Creative / Core Loop",
+    "F02": "Player Experience / Session / Onboarding",
+    "F03": "Research-to-Product",
+    "F04": "Visual Development / Art Direction",
+    "F05": "Environment 3D",
+    "F06": "Creature 3D",
+    "F07": "Rigging / Deformation",
+    "F08": "Animation Production",
+    "F09": "Animation System / Gameplay Motion Integration",
+    "F10": "Material / LookDev",
+    "F11": "Lighting / Visibility",
+    "F12": "Camouflage Shader / Rendering",
+    "F13": "Creature Behavior / Systemic Simulation",
+    "F14": "Navigation / Collision / Environment Affordance",
+    "F15": "Sound Design",
+    "F16": "Interactive / Spatial Audio / Mix",
+    "F17": "Engine Integration",
+    "F18": "Camera / Input / UI Feedback",
+    "F19": "Asset Interchange / Validation / Runtime Loading",
+    "F20": "Build / Packaging / Reproducibility",
+    "F21": "Performance Engineering / Frame Evaluation",
+    "F22": "Telemetry / Evidence Instrumentation",
+    "F23": "Accessibility",
+    "F24": "Human Playtest Protocol / UX Research Readiness",
+    "F25": "Independent Product QA / Red Team",
+    "F26": "Rights / Provenance",
+    "F27": "Workstation / Engineering constituent repair router"
+  },
+  "pressureTriggered": [
+    {
+      "name": "VFX E2E",
+      "trigger": "material/light/animation cannot close camouflage/readability/event feedback"
+    },
+    {
+      "name": "Procedural Content E2E",
+      "trigger": "authored habitat variation/iteration cost becomes demonstrated blocker"
+    },
+    {
+      "name": "Advanced Ecology Simulation E2E",
+      "trigger": "simple stateful behavior cannot produce required systemic environmental consequence"
+    },
+    {
+      "name": "Advanced Pathfinding / Navmesh E2E",
+      "trigger": "authored traversal/escape fails under obstacle/topology pressure"
+    },
+    {
+      "name": "Procedural Motion / IK E2E",
+      "trigger": "contact/sliding/terrain adaptation materially harms gameplay/believability"
+    },
+    {
+      "name": "Photogrammetry / Capture E2E",
+      "trigger": "real product requirement demands capture-derived assets"
+    },
+    {
+      "name": "Adaptive Music / Ambience E2E",
+      "trigger": "state-responsive music demonstrably improves thesis"
+    },
+    {
+      "name": "Advanced Audio Occlusion / Propagation E2E",
+      "trigger": "simple attenuation cannot provide usable/credible spatial information"
+    },
+    {
+      "name": "Specialized GPU Diagnostics depth",
+      "trigger": "current open profiling cannot localize exact GPU/frame blocker"
+    },
+    {
+      "name": "Persistence / Save E2E",
+      "trigger": "required replay/progression crosses process/session boundary"
+    },
+    {
+      "name": "Localization E2E",
+      "trigger": "Human/product condition expands beyond current language scope"
+    },
+    {
+      "name": "External Distribution E2E",
+      "trigger": "candidate must reach real external provider/store"
+    }
+  ],
+  "dormantR1": [
+    "combat",
+    "character progression",
+    "player economy",
+    "quests/missions",
+    "branching narrative",
+    "full dialogue",
+    "voice acting",
+    "multiplayer session",
+    "network replication",
+    "matchmaking/party",
+    "online identity/accounts",
+    "backend game services",
+    "anti-cheat",
+    "UGC/mod publishing",
+    "moderation/trust & safety",
+    "commerce/IAP",
+    "live economy",
+    "live operations",
+    "store/platform certification",
+    "cloud save",
+    "giant/open-world streaming",
+    "LLM runtime NPCs",
+    "social/community systems"
+  ],
+  "crossCuttingPlanes": [
+    "Evidence / Judgment",
+    "Authority / Admission",
+    "Condition / Revision",
+    "Provenance / Rights",
+    "Performance / Resource Budget",
+    "Accessibility",
+    "Security / Privacy (bounded R1 scope)"
+  ],
+  "candidateOpeningAgents": {
+    "A01": [
+      "F01"
+    ],
+    "A02": [
+      "F02"
+    ],
+    "A03": [
+      "F03"
+    ],
+    "A04": [
+      "F04"
+    ],
+    "A05": [
+      "F05"
+    ],
+    "A06": [
+      "F06"
+    ],
+    "A07": [
+      "F07"
+    ],
+    "A08": [
+      "F08"
+    ],
+    "A09": [
+      "F09"
+    ],
+    "A10": [
+      "F10"
+    ],
+    "A11": [
+      "F11"
+    ],
+    "A12": [
+      "F12"
+    ],
+    "A13": [
+      "F13"
+    ],
+    "A14": [
+      "F14"
+    ],
+    "A15": [
+      "F15"
+    ],
+    "A16": [
+      "F16"
+    ],
+    "A17": [
+      "F17",
+      "F18"
+    ],
+    "A18": [
+      "F19"
+    ],
+    "A19": [
+      "F20",
+      "F27"
+    ],
+    "A20": [
+      "F21"
+    ],
+    "A21": [
+      "F22",
+      "F24"
+    ],
+    "A22": [
+      "F23"
+    ],
+    "A23": [
+      "F25"
+    ],
+    "A24": [
+      "F26"
+    ]
+  },
+  "notes": [
+    "Agent bundles are execution topology, not ontology.",
+    "A23/F25 Independent Product QA / Red Team is judge-only for first-verdict independence and is not bundled with any producer front.",
+    "A24/F26 Rights / Provenance remains separate from A23 so provenance remediation and product adjudication do not collapse into one authority.",
+    "A21 combines instrumentation and Human protocol design because both own evidence-shape preparation; a real Human participant remains an external evidence source and cannot be simulated by A21.",
+    "A17 combines Engine Integration with Camera/Input/UI runtime plumbing because these have the highest direct runtime coupling, while A02 retains independent Player Experience / Session / Onboarding judgment.",
+    "A19 combines Build/Reproducibility with the Workstation/Engineering repair router; it may route constituent defects but must not absorb specialist semantic ownership."
+  ]
+}
