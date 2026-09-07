@@ -3,8 +3,8 @@
   "producer": {"agentId": "A11", "frontId": "F11", "closureId": "V-V8"},
   "authoritativeEditableSource": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
   "derivedRuntimeCopy": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
-  "sourceDigest": "sha256:827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
-  "runtimeCopyDigest": "sha256:827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+  "sourceDigest": "sha256:4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
+  "runtimeCopyDigest": "sha256:4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
   "a17Compatibility": {
     "revalidatedContractCommit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
     "contractDigest": "sha256:4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
