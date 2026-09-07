@@ -1,0 +1,57 @@
+{
+  "schema": "veilwild.f16-product-stream-bindings.r2",
+  "producerFront": "F16",
+  "consumerOf": "A15/F15",
+  "sourceProducerCommit": "45d31e4e910351634b183fa7f4ed1b32176afc52",
+  "sourceContractPath": "experiments/veilwild-r1/contracts/F15_SOUND_CUE_CONTRACT_R1.json",
+  "sourceContractDigest": "sha256:b5f41e95fcbfa448f639e9a4d12230c1cb3ab3c5cff2732c4941f5021748e723",
+  "status": "EXACT_PCM16_STREAM_BYTES_BOUND_GODOT47_CONSUMER_REPLAY_PENDING_F13_TRIGGER_AUTHORIZATION_AND_A18_ADMISSION",
+  "copyRule": "Each runtime copy is byte-identical to the A15 owner-published pcm_s16le DERIVED_INTERCHANGE WAV. A16 does not alter audio bytes; A18 independently admits final A17 consumer path.",
+  "bindings": [
+    {
+      "cue_semantic_id": "ENV_BRANCH_SNAP_A",
+      "a15_source_path": "experiments/veilwild-r1/assets/audio/derived/wav/env_branch_snap_a.wav",
+      "resource_path": "res://modules/f16/audio/env_branch_snap_a.wav",
+      "sha256": "7a802d047ef4a65c2fefe93a4368754332c6ac7392d201d604db6269af207b29",
+      "a15_information_role": "ENVIRONMENTAL_CORROBORATION",
+      "runtime_trigger_authority": "PENDING_OWNER_MAPPING"
+    },
+    {
+      "cue_semantic_id": "VR_ORIENT_TICK_A",
+      "a15_source_path": "experiments/veilwild-r1/assets/audio/derived/wav/vr_orient_tick_a.wav",
+      "resource_path": "res://modules/f16/audio/vr_orient_tick_a.wav",
+      "sha256": "8eba035f053a9525aa28cd017c32c9d25d791d8d4e8b49b35b509aa17d1c9e23",
+      "a15_information_role": "BEHAVIOR_AUDIO",
+      "runtime_trigger_authority": "PENDING_F13"
+    },
+    {
+      "cue_semantic_id": "VR_FORAGE_RUSTLE_A",
+      "a15_source_path": "experiments/veilwild-r1/assets/audio/derived/wav/vr_forage_rustle_a.wav",
+      "resource_path": "res://modules/f16/audio/vr_forage_rustle_a.wav",
+      "sha256": "165f9ea55a2943633be7b0dc1204bc66253902137f68a427d3ac1cb733a4d735",
+      "a15_information_role": "BEHAVIOR_AUDIO",
+      "runtime_trigger_authority": "PENDING_F13"
+    },
+    {
+      "cue_semantic_id": "VR_ALERT_CHIRR_A",
+      "a15_source_path": "experiments/veilwild-r1/assets/audio/derived/wav/vr_alert_chirr_a.wav",
+      "resource_path": "res://modules/f16/audio/vr_alert_chirr_a.wav",
+      "sha256": "06d74044566375f3b9bead751b2a9efdeab2b867dd87a058c2eb98e63c41ea60",
+      "a15_information_role": "BEHAVIOR_AUDIO_THREAT_RESPONSE_CANDIDATE",
+      "runtime_trigger_authority": "PENDING_F13"
+    },
+    {
+      "cue_semantic_id": "VR_EVADE_RUSH_A",
+      "a15_source_path": "experiments/veilwild-r1/assets/audio/derived/wav/vr_evade_rush_a.wav",
+      "resource_path": "res://modules/f16/audio/vr_evade_rush_a.wav",
+      "sha256": "a47674855c5e342350336bd881b54a86ebfae807c1f7359b7ffadb0c7afcb8e5",
+      "a15_information_role": "BEHAVIOR_AUDIO_THREAT_RESPONSE_CANDIDATE",
+      "runtime_trigger_authority": "PENDING_F13"
+    }
+  ],
+  "humanClaims": {
+    "cueUsefulness": "UNKNOWN",
+    "spatialUsefulness": "UNKNOWN",
+    "mixIntelligibility": "UNKNOWN"
+  }
+}

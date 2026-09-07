@@ -10,12 +10,12 @@ ambient_light_energy = 0.48
 ambient_light_sky_contribution = 0.0
 tonemap_mode = 2
 
-[node name="VeilwildLightingRig" type="Node3D"]
+[node name="VeilwildLightingRig" type="Node3D" unique_id=1344506874]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=921202880]
 environment = SubResource("Environment_veilwild_f11")
 
-[node name="KeySun" type="DirectionalLight3D" parent="."]
+[node name="KeySun" type="DirectionalLight3D" parent="." unique_id=547295962]
 rotation_degrees = Vector3(-48, -32, 0)
 light_color = Color(1, 0.91, 0.78, 1)
 light_energy = 0.92
