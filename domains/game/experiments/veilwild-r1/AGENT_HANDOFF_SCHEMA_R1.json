@@ -18,7 +18,9 @@
     "knownLimitations",
     "boardCollaboration",
     "workstationUse",
-    "frictionReceipts"
+    "frictionReceipts",
+    "roundContext",
+    "externalEvaluation"
   ],
   "properties": {
     "schemaVersion": {
@@ -586,6 +588,123 @@
             "minLength": 1
           },
           "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "roundContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "roundId",
+        "roundInputRevision",
+        "pressureSources",
+        "materialDelta",
+        "nextRoundRecommendation"
+      ],
+      "properties": {
+        "roundId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roundInputRevision": {
+          "type": "string",
+          "minLength": 7
+        },
+        "pressureSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "materialDelta": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nextRoundRecommendation": {
+          "enum": [
+            "CONTINUE_SAME_FRONT",
+            "CONTINUE_WITH_SPLIT",
+            "CONTINUE_WITH_DIFFERENT_OWNERS",
+            "READY_TO_HOLD_THIS_FRONT",
+            "BLOCKED_PENDING_EXTERNAL_EVIDENCE",
+            "BLOCKED_PENDING_AUTHORITY_OR_APPARATUS"
+          ]
+        },
+        "recommendedNextPressure": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "externalEvaluation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "authorityClass",
+          "applicability",
+          "criterionUsed",
+          "standing",
+          "exactCondition",
+          "evidenceOrRationale"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authorityClass": {
+            "enum": [
+              "INTERNATIONAL_OR_INDUSTRY_STANDARD",
+              "OFFICIAL_PLATFORM_OR_API_SPEC",
+              "OFFICIAL_ENGINE_OR_TOOL_DOC",
+              "ACCESSIBILITY_GUIDELINE",
+              "PEER_REVIEWED_EVIDENCE",
+              "PROFESSIONAL_PRACTICE",
+              "OTHER_AUTHORITATIVE_SOURCE"
+            ]
+          },
+          "applicability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "criterionUsed": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "PARTIAL",
+              "NOT_APPLICABLE",
+              "INCONCLUSIVE"
+            ]
+          },
+          "exactCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceOrRationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deviationRationale": {
             "type": [
               "string",
               "null"

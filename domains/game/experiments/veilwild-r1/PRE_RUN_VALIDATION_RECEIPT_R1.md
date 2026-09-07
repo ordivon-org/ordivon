@@ -42,3 +42,16 @@ workstationUse handoff surface = required
 frictionReceipts handoff surface = required
 Board/workstation/friction prompt surfaces = 25/25 PASS
 ```
+
+Multi-round / external-authority extension:
+
+```text
+multi-round campaign contract = present
+no fixed campaign round cap = explicit
+roundContext handoff surface = required
+externalEvaluation handoff surface = required
+25/25 prompts include external-authority discovery contract
+25/25 prompts include multi-round material-delta law
+external reference spine includes lifecycle, product quality, human-centred design, accessibility, 3D interchange, graphics, engine, audio, performance, research and provenance authorities
+implementation/tool depth != automatic E2E emergence
+```

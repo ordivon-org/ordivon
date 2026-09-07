@@ -51,6 +51,15 @@ fr=hs['properties'].get('frictionReceipts',{})
 frreq=set(fr.get('items',{}).get('required',[]))
 for k in ['frictionId','category','surface','observedConsequence','exactCondition','workaroundOrResolution','ownerRoute','severity','reusableLesson']:
     if k not in frreq: fail(f'friction receipt missing required field {k}')
+for required_surface in ['roundContext','externalEvaluation']:
+    if required_surface not in hs.get('required',[]): fail(f'handoff required surface missing {required_surface}')
+roundctx=hs['properties'].get('roundContext',{})
+for k in ['roundId','roundInputRevision','pressureSources','materialDelta','nextRoundRecommendation']:
+    if k not in set(roundctx.get('required',[])): fail(f'roundContext missing required field {k}')
+ext=hs['properties'].get('externalEvaluation',{})
+extreq=set(ext.get('items',{}).get('required',[]))
+for k in ['reference','authorityClass','applicability','criterionUsed','standing','exactCondition','evidenceOrRationale']:
+    if k not in extreq: fail(f'externalEvaluation missing required field {k}')
 sp=hs['properties'].get('scopePressureProposals',{})
 req={'blockedActiveClosure','exactCandidateOrCondition','failingOracle','attemptedExistingCarrier','whyExistingCarrierIsInsufficient','proposedCapability','stableInput','stableOutput','distinctFailureModes','distinctOracle','proposedOwnerOrFront','scopeDelta','revertOrStopCondition'}
 if not req.issubset(set(sp.get('items',{}).get('required',[]))): fail('scopePressureProposals schema incomplete')
@@ -58,7 +67,7 @@ for aid in sorted(agents):
     cp=subprocess.run([sys.executable,str(root/'scripts/generate_agent_prompt.py'),aid,'--baseline','POST_CONVERGENCE_TEST'],capture_output=True,text=True)
     if cp.returncode!=0: fail(f'prompt generation failed {aid}: {cp.stderr}'); continue
     t=cp.stdout
-    for need in [f'AGENT_ID = {aid}',f'roles/{aid}.json','Independence before first verdict','Human boundary','POST_CONVERGENCE_TEST','10. Board collaboration','11. Workstation professional software','12. Friction receipts','game-e2e:veilwild-r1:production-r1']:
+    for need in [f'AGENT_ID = {aid}',f'roles/{aid}.json','Independence before first verdict','Human boundary','POST_CONVERGENCE_TEST','10. Board collaboration','11. Workstation professional software','12. Friction receipts','game-e2e:veilwild-r1:production-r1','13. External standards and multi-round campaign','EXTERNAL_STANDARDS_AND_MULTI_ROUND_PROTOCOL_R1.md']:
         if need not in t: fail(f'prompt {aid} missing {need}')
     if 'Read:\n- experiments/veilwild-r1/AGENT_ROLE_CARDS_R1.json' in t: fail(f'{aid} instructed to read aggregate role cards')
 revs=objs['TOPOLOGY_FALSIFICATION_REVIEWERS_R1.json']['reviewers']
@@ -70,4 +79,4 @@ if errors:
     print('VEILWILD_PRE_RUN_PACKAGE_INVALID'); [print(' -',e) for e in errors]; sys.exit(1)
 print('VEILWILD_PRE_RUN_PACKAGE_VALID')
 print('active_e2e=46 fronts=27 opening_agents=25 isolated_role_cards=25 topology_reviewers=6')
-print('closure_coverage=46/46 human_unknown_guards=7 scope_pressure_schema=present board_contract=present workstation_friction_contract=present')
+print('closure_coverage=46/46 human_unknown_guards=7 scope_pressure_schema=present board_contract=present workstation_friction_contract=present multiround_contract=present external_standards_contract=present')

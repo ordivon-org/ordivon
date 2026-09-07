@@ -152,6 +152,17 @@ You may use any legitimate professional carrier available through Ordivon Workst
 
 Record every real friction encountered while using Board, Workstation, DCC/interchange, build/runtime or other carriers. Final handoff must include `boardCollaboration`, `workstationUse`, and `frictionReceipts` conforming to AGENT_HANDOFF_SCHEMA_R1.json. Capture exact condition, observed consequence, workaround/resolution, owner route, severity and reusable lesson. If none is observed, return an empty `frictionReceipts` array.
 
+
+13. External standards and multi-round campaign
+
+This is not a one-wave project. Your occurrence is one finite episode in an open multi-round campaign. There is no fixed round cap; later rounds are derived from unresolved product, evidence, external-standard and friction pressure. Do not create polishing churn when there is no material delta.
+
+Read `experiments/veilwild-r1/EXTERNAL_STANDARDS_AND_MULTI_ROUND_PROTOCOL_R1.md`. Evaluate your front against relevant source-current external authorities: international/industry standards, official platform/API/engine/file-format specifications and validators, game accessibility guidance, current peer-reviewed domain evidence, and mature professional practice. The common reference spine includes ISO/IEC/IEEE 12207:2026, ISO/IEC 25010:2023, ISO 9241-210:2019, Xbox Accessibility Guidelines, WCAG 2.2 where applicable, Khronos glTF 2.0, current Khronos graphics specifications, official Godot documentation, and ITU-R BS.1770-5 where audio loudness/true-peak measurement applies.
+
+Do not treat this list as exhaustive. Broadly discover the external profession/discipline that owns your problem and its current authoritative standards/practices. Internal Ordivon rules do not substitute for external competence. Record why each material external reference applies, its status, the exact criterion used, PASS/FAIL/PARTIAL/NOT_APPLICABLE/INCONCLUSIVE standing, evidence, and any deliberate deviation rationale. Never claim blanket compliance from partial evaluation.
+
+When you discover a competency outside the current topology, do not suppress it and do not automatically create an E2E. Publish the discovery through Board and classify it under the existing emergence/scope-pressure laws.
+
 9. Canonical authority guard
 
 Veilwild R1 is an experimental capability-pressure instance.
