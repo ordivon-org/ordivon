@@ -1,19 +1,36 @@
 extends SceneTree
 
 const Recorder := preload("res://veilwild_telemetry_recorder.gd")
-const BASELINE := "8ebc23144ed5b49d685cc32ac11428bbddf64d2f"
-const OUTPUT := "user://veilwild_a21_fixture_events.jsonl"
+const PUBLICATION_PROTOCOL := "veilwild.manifest-last-publication.r1"
 
 func _initialize() -> void:
+	var invocation_id := OS.get_environment("VEILWILD_FIXTURE_RUN_ID")
+	if not _require(_valid_invocation_id(invocation_id), "VEILWILD_FIXTURE_RUN_ID_required_and_must_match_[A-Za-z0-9._-]+"):
+		return
+	var source_revision := OS.get_environment("VEILWILD_SOURCE_REVISION")
+	if not _require(not source_revision.is_empty(), "VEILWILD_SOURCE_REVISION_required"):
+		return
+	var run_id := "a21-fixture-" + invocation_id
+	var output := "user://veilwild_a21_fixture_" + invocation_id + ".jsonl"
+	var manifest_path := output.get_basename() + ".manifest.json"
+	var claim_path := output + ".claim"
 	var recorder := Recorder.new()
 	var begin_result := recorder.begin_run({
-		"runId": "a21-fixture-run-001",
-		"sourceRevision": BASELINE,
+		"runId": run_id,
+		"sourceRevision": source_revision,
 		"buildId": "a21-fixture-build-001",
 		"conditionId": "a21-fixture-condition-headless",
 		"accessibilityConditionId": "a21-fixture-access-default",
-	}, OUTPUT)
+	}, output)
 	if not _require(begin_result.get("ok", false), "begin_run_failed:" + str(begin_result)):
+		return
+	if not _require(begin_result.get("publicationState", "") == "STAGING", "begin_publication_state_not_staging"):
+		return
+	if not _require(not FileAccess.file_exists(output), "final_raw_visible_before_finalize"):
+		return
+	if not _require(not FileAccess.file_exists(manifest_path), "final_manifest_visible_before_finalize"):
+		return
+	if not _require(DirAccess.dir_exists_absolute(claim_path), "claim_not_materialized"):
 		return
 
 	var fixture_events := [
@@ -40,14 +57,26 @@ func _initialize() -> void:
 	})
 	if not _require(not rejected_identifier.get("ok", true) and rejected_identifier.get("error", "") == "direct_participant_identifier_forbidden", "identifier_guard_failed:" + str(rejected_identifier)):
 		return
+	if not _require(not FileAccess.file_exists(output), "final_raw_visible_during_run"):
+		return
+	if not _require(not FileAccess.file_exists(manifest_path), "final_manifest_visible_during_run"):
+		return
 
 	var finish_result := recorder.finalize_run("mechanical_fixture_complete")
 	if not _require(finish_result.get("ok", false), "finalize_failed:" + str(finish_result)):
 		return
 	if not _require(finish_result.get("eventCount", -1) == fixture_events.size(), "unexpected_event_count"):
 		return
+	if not _require(finish_result.get("publicationState", "") == "FINALIZED", "final_publication_state_not_finalized"):
+		return
+	if not _require(finish_result.get("publicationProtocol", "") == PUBLICATION_PROTOCOL, "publication_protocol_mismatch"):
+		return
+	if not _require(FileAccess.file_exists(output) and FileAccess.file_exists(manifest_path), "final_pair_missing"):
+		return
+	if not _require(not DirAccess.dir_exists_absolute(claim_path), "claim_not_cleaned_after_finalize"):
+		return
 
-	var raw_text := FileAccess.get_file_as_string(OUTPUT)
+	var raw_text := FileAccess.get_file_as_string(output)
 	var lines := raw_text.split("\n", false)
 	if not _require(lines.size() == fixture_events.size(), "line_count_mismatch"):
 		return
@@ -59,9 +88,9 @@ func _initialize() -> void:
 		var expected_sequence := index + 1
 		if not _require(event["sequence"] == expected_sequence, "sequence_gap"):
 			return
-		if not _require(event["eventId"] == "a21-fixture-run-001:" + str(expected_sequence), "event_id_mismatch"):
+		if not _require(event["eventId"] == run_id + ":" + str(expected_sequence), "event_id_mismatch"):
 			return
-		if not _require(event["sourceRevision"] == BASELINE, "source_revision_drift"):
+		if not _require(event["sourceRevision"] == source_revision, "source_revision_drift"):
 			return
 		if not _require(event["buildId"] == "a21-fixture-build-001", "build_id_drift"):
 			return
@@ -74,17 +103,42 @@ func _initialize() -> void:
 	var manifest = JSON.parse_string(FileAccess.get_file_as_string(finish_result["manifestPath"]))
 	if not _require(typeof(manifest) == TYPE_DICTIONARY, "manifest_not_dictionary"):
 		return
-	if not _require(manifest["eventFileSha256"] == FileAccess.get_sha256(OUTPUT), "manifest_digest_mismatch"):
+	if not _require(manifest["publicationProtocol"] == PUBLICATION_PROTOCOL, "manifest_publication_protocol_mismatch"):
+		return
+	if not _require(manifest["publicationState"] == "FINALIZED", "manifest_not_finalized"):
+		return
+	if not _require(manifest["eventFile"] == output, "manifest_final_event_path_mismatch"):
+		return
+	if not _require(manifest["eventFileSha256"] == FileAccess.get_sha256(output), "manifest_digest_mismatch"):
 		return
 	if not _require(manifest["eventCount"] == fixture_events.size(), "manifest_count_mismatch"):
 		return
 
-	print("VEILWILD_A21_TELEMETRY_FIXTURE_PASS events=" + str(fixture_events.size()))
-	print("A21_TELEMETRY_OUTPUT=" + ProjectSettings.globalize_path(OUTPUT))
+	var collision_recorder := Recorder.new()
+	var collision_result := collision_recorder.begin_run({
+		"runId": run_id,
+		"sourceRevision": source_revision,
+		"buildId": "a21-fixture-build-001",
+		"conditionId": "a21-fixture-condition-headless",
+		"accessibilityConditionId": "a21-fixture-access-default",
+	}, output)
+	if not _require(not collision_result.get("ok", true) and str(collision_result.get("error", "")).begins_with("output_path_already_exists:"), "collision_guard_failed:" + str(collision_result)):
+		return
+
+	print("VEILWILD_A21_TELEMETRY_FIXTURE_PASS events=" + str(fixture_events.size()) + " collision_guard=PASS publication=MANIFEST_LAST")
+	print("A21_TELEMETRY_OUTPUT=" + ProjectSettings.globalize_path(output))
 	print("A21_TELEMETRY_SHA256=" + str(finish_result["eventSha256"]))
 	print("A21_MANIFEST_OUTPUT=" + ProjectSettings.globalize_path(finish_result["manifestPath"]))
 	print("A21_MANIFEST_SHA256=" + str(finish_result["manifestSha256"]))
 	quit(0)
+
+func _valid_invocation_id(value: String) -> bool:
+	if value.is_empty():
+		return false
+	var regex := RegEx.new()
+	if regex.compile("^[A-Za-z0-9._-]+$") != OK:
+		return false
+	return regex.search(value) != null
 
 func _require(condition: bool, message: String) -> bool:
 	if condition:

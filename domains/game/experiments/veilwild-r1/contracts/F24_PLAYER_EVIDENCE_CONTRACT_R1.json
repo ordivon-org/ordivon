@@ -24,14 +24,15 @@
     },
     {
       "producer": "A22/F23",
-      "commit": "df812fbedd94b542a015efe9e3d59d16b0a5a78a",
-      "sha256": "a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1",
+      "commit": "8dd9c3f7e4401f166c03d0db1e0b4b5ca248172f",
+      "sha256": "a15318c60ba3d1a38f4a3f3e1b3ac11508fb4b7e43b1c49fbfe83713b06ced1e",
       "revalidated": true,
       "consumed": [
         "accessibility condition vocabulary",
         "residual barrier explicitness",
         "Human fit UNKNOWN"
-      ]
+      ],
+      "supersedesConsumed": "df812fbedd94b542a015efe9e3d59d16b0a5a78a@a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1"
     },
     {
       "producer": "A21/F22",
@@ -267,7 +268,8 @@
     "detectability": "UNKNOWN",
     "cueUsefulness": "UNKNOWN",
     "fairness": "UNKNOWN",
-    "comprehension": "UNKNOWN"
+    "comprehension": "UNKNOWN",
+    "comfort": "UNKNOWN"
   },
   "reopenConditions": [
     "material build/cue/interaction change",
@@ -280,5 +282,10 @@
     "ISO 9241-11:2018 current definition makes usability conditional on specified users, goals and context of use; this protocol freezes those dimensions rather than treating usability as a build-global scalar.",
     "ISO 9241-210:2019 remains current and supports iterative Human-centred evaluation throughout the system lifecycle.",
     "ICO guidance on purpose limitation and data minimisation motivates the R1 choice to avoid direct participant identifiers in runtime telemetry when they are not necessary for the evaluation purpose."
-  ]
+  ],
+  "telemetryPublicationRequirement": {
+    "protocol": "veilwild.manifest-last-publication.r1",
+    "admissionRule": "A Human evidence package may consume runtime telemetry only when a FINALIZED manifest is present, its eventFileSha256 matches frozen raw bytes, and run/source/build/condition/accessibility identities match the participant condition.",
+    "incompleteRule": "raw without FINALIZED manifest is apparatus residue, not admissible participant evidence."
+  }
 }

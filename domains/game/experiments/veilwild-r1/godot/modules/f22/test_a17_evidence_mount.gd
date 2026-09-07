@@ -3,7 +3,6 @@ extends SceneTree
 ## loaded by A17's exact EvidenceMount without making this shell a product candidate.
 
 const EVIDENCE_SCENE := "res://modules/f22/evidence_runtime.tscn"
-const OUTPUT := "user://veilwild_a21_a17_mount_events.jsonl"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -12,6 +11,11 @@ func _run() -> void:
 	var source_revision := OS.get_environment("VEILWILD_SOURCE_REVISION")
 	if not _require(source_revision.length() == 40, "missing_exact_source_revision"):
 		return
+	var invocation_id := OS.get_environment("VEILWILD_FIXTURE_RUN_ID")
+	if not _require(_valid_invocation_id(invocation_id), "VEILWILD_FIXTURE_RUN_ID_required_and_must_match_[A-Za-z0-9._-]+"):
+		return
+	var run_id := "a21-a17-mount-" + invocation_id
+	var output := "user://veilwild_a21_a17_mount_" + invocation_id + ".jsonl"
 	ProjectSettings.set_setting("veilwild/integration/evidence_scene", EVIDENCE_SCENE)
 	ProjectSettings.set_setting("veilwild/integration/strict_candidate", false)
 	var main_scene := load("res://main.tscn") as PackedScene
@@ -30,12 +34,12 @@ func _run() -> void:
 		return
 
 	var begin_receipt: Dictionary = evidence_runtime.begin_evidence_run({
-		"runId": "a21-a17-mount-fixture-001",
+		"runId": run_id,
 		"sourceRevision": source_revision,
 		"buildId": "A17_SHELL_PLUS_A21_F22_COMPOSITE_FIXTURE",
 		"conditionId": "A17_EVIDENCE_MOUNT_HEADLESS_FIXTURE",
 		"accessibilityConditionId": "A22_NOT_EVALUATED_COMPOSITE_FIXTURE",
-	}, OUTPUT)
+	}, output)
 	if not _require(begin_receipt.get("ok", false), "begin_failed:" + str(begin_receipt)):
 		return
 	for row in [
@@ -51,12 +55,20 @@ func _run() -> void:
 	if not _require(final_receipt.get("eventCount", -1) == 2, "event_count_mismatch"):
 		return
 	print("VEILWILD_A21_A17_EVIDENCE_MOUNT_PASS loaded_evidence=1 strict=false")
-	print("A21_A17_EVENTS=" + ProjectSettings.globalize_path(OUTPUT))
+	print("A21_A17_EVENTS=" + ProjectSettings.globalize_path(output))
 	print("A21_A17_EVENTS_SHA256=" + str(final_receipt["eventSha256"]))
 	print("A21_A17_MANIFEST=" + ProjectSettings.globalize_path(final_receipt["manifestPath"]))
 	print("A21_A17_MANIFEST_SHA256=" + str(final_receipt["manifestSha256"]))
 	integration_root.queue_free()
 	quit(0)
+
+func _valid_invocation_id(value: String) -> bool:
+	if value.is_empty():
+		return false
+	var regex := RegEx.new()
+	if regex.compile("^[A-Za-z0-9._-]+$") != OK:
+		return false
+	return regex.search(value) != null
 
 func _require(condition: bool, message: String) -> bool:
 	if condition:

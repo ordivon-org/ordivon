@@ -3,6 +3,7 @@ class_name VeilwildTelemetryRecorder
 
 const EVENT_SCHEMA_VERSION := "veilwild.telemetry-event.r1"
 const MANIFEST_SCHEMA_VERSION := "veilwild.telemetry-manifest.r1"
+const PUBLICATION_PROTOCOL := "veilwild.manifest-last-publication.r1"
 const ALLOWED_EVENT_TYPES := {
 	"session_started": true,
 	"session_phase_changed": true,
@@ -41,6 +42,9 @@ var _file: FileAccess = null
 var _context: Dictionary = {}
 var _output_path := ""
 var _manifest_path := ""
+var _claim_path := ""
+var _working_output_path := ""
+var _working_manifest_path := ""
 var _sequence := 0
 var _last_monotonic_ms := -1
 
@@ -58,16 +62,36 @@ func begin_run(context: Dictionary, output_path: String) -> Dictionary:
 	_context = context.duplicate(true)
 	_output_path = output_path
 	_manifest_path = output_path.get_basename() + ".manifest.json"
+	_claim_path = output_path + ".claim"
+	_working_output_path = _claim_path + "/events.partial.jsonl"
+	_working_manifest_path = _claim_path + "/manifest.partial.json"
 	_sequence = 0
 	_last_monotonic_ms = -1
-	_file = FileAccess.open(_output_path, FileAccess.WRITE)
+
+	if FileAccess.file_exists(_output_path) or FileAccess.file_exists(_manifest_path):
+		var collided_path := _output_path
+		_reset_closed_state()
+		return _failure("output_path_already_exists:" + collided_path)
+
+	var claim_error := DirAccess.make_dir_absolute(_claim_path)
+	if claim_error != OK:
+		var claimed_path := _claim_path
+		_reset_closed_state()
+		return _failure("output_path_claim_failed:" + claimed_path + ":" + str(claim_error))
+
+	_file = FileAccess.open(_working_output_path, FileAccess.WRITE)
 	if _file == null:
 		var open_error := FileAccess.get_open_error()
-		_context = {}
-		_output_path = ""
-		_manifest_path = ""
+		DirAccess.remove_absolute(_claim_path)
+		_reset_closed_state()
 		return _failure("open_failed:" + str(open_error))
-	return {"ok": true, "runId": _context["runId"], "outputPath": _output_path}
+	return {
+		"ok": true,
+		"runId": _context["runId"],
+		"outputPath": _output_path,
+		"manifestPath": _manifest_path,
+		"publicationState": "STAGING"
+	}
 
 func record_event(event_type: String, fields: Dictionary) -> Dictionary:
 	if _file == null:
@@ -125,11 +149,13 @@ func finalize_run(final_status: String) -> Dictionary:
 	_file.close()
 	_file = null
 
-	var raw_sha256 := FileAccess.get_sha256(_output_path)
+	var raw_sha256 := FileAccess.get_sha256(_working_output_path)
 	if raw_sha256.is_empty():
-		return _failure("raw_sha256_failed")
+		return _finalization_failure("raw_sha256_failed")
 	var manifest := {
 		"schemaVersion": MANIFEST_SCHEMA_VERSION,
+		"publicationProtocol": PUBLICATION_PROTOCOL,
+		"publicationState": "FINALIZED",
 		"runId": _context["runId"],
 		"eventFile": _output_path,
 		"eventFileSha256": raw_sha256,
@@ -140,13 +166,33 @@ func finalize_run(final_status: String) -> Dictionary:
 		"accessibilityConditionId": _context["accessibilityConditionId"],
 		"finalStatus": final_status,
 	}
-	var manifest_file := FileAccess.open(_manifest_path, FileAccess.WRITE)
+	var manifest_file := FileAccess.open(_working_manifest_path, FileAccess.WRITE)
 	if manifest_file == null:
-		return _failure("manifest_open_failed:" + str(FileAccess.get_open_error()))
+		return _finalization_failure("manifest_open_failed:" + str(FileAccess.get_open_error()))
 	manifest_file.store_string(JSON.stringify(manifest, "  ") + "\n")
 	manifest_file.flush()
 	manifest_file.close()
+
+	if FileAccess.file_exists(_output_path) or FileAccess.file_exists(_manifest_path):
+		return _finalization_failure("publication_target_appeared_during_run")
+
+	var raw_publish_error := DirAccess.rename_absolute(_working_output_path, _output_path)
+	if raw_publish_error != OK:
+		return _finalization_failure("raw_publish_failed:" + str(raw_publish_error))
+	var final_raw_sha256 := FileAccess.get_sha256(_output_path)
+	if final_raw_sha256 != raw_sha256:
+		var rollback_error := DirAccess.rename_absolute(_output_path, _working_output_path)
+		return _finalization_failure("raw_digest_changed_on_publish:rollback=" + str(rollback_error))
+
+	var manifest_publish_error := DirAccess.rename_absolute(_working_manifest_path, _manifest_path)
+	if manifest_publish_error != OK:
+		var rollback_error := DirAccess.rename_absolute(_output_path, _working_output_path)
+		return _finalization_failure("manifest_publish_failed:" + str(manifest_publish_error) + ":raw_rollback=" + str(rollback_error))
+
 	var manifest_sha256 := FileAccess.get_sha256(_manifest_path)
+	if manifest_sha256.is_empty():
+		return _finalization_failure("manifest_sha256_failed_after_publish")
+	var cleanup_error := DirAccess.remove_absolute(_claim_path)
 	var result := {
 		"ok": true,
 		"runId": _context["runId"],
@@ -155,16 +201,38 @@ func finalize_run(final_status: String) -> Dictionary:
 		"eventSha256": raw_sha256,
 		"manifestPath": _manifest_path,
 		"manifestSha256": manifest_sha256,
+		"publicationProtocol": PUBLICATION_PROTOCOL,
+		"publicationState": "FINALIZED",
 	}
-	_context = {}
-	_output_path = ""
-	_manifest_path = ""
-	_sequence = 0
-	_last_monotonic_ms = -1
+	if cleanup_error != OK:
+		result["claimCleanupWarning"] = cleanup_error
+	_reset_closed_state()
 	return result
 
 func is_open() -> bool:
 	return _file != null
+
+func _finalization_failure(code: String) -> Dictionary:
+	var receipt := {
+		"ok": false,
+		"error": code,
+		"publicationState": "INCOMPLETE",
+		"eventPath": _output_path,
+		"manifestPath": _manifest_path,
+		"claimPath": _claim_path,
+	}
+	_reset_closed_state()
+	return receipt
+
+func _reset_closed_state() -> void:
+	_context = {}
+	_output_path = ""
+	_manifest_path = ""
+	_claim_path = ""
+	_working_output_path = ""
+	_working_manifest_path = ""
+	_sequence = 0
+	_last_monotonic_ms = -1
 
 func _failure(code: String) -> Dictionary:
 	return {"ok": false, "error": code}

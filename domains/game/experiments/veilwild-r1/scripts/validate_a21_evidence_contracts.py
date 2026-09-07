@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 BASELINE = "8ebc23144ed5b49d685cc32ac11428bbddf64d2f"
+PUBLICATION_PROTOCOL = "veilwild.manifest-last-publication.r1"
 ROOT = Path(__file__).resolve().parents[1]
 F22 = ROOT / "contracts" / "F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json"
 F24 = ROOT / "contracts" / "F24_PLAYER_EVIDENCE_CONTRACT_R1.json"
@@ -18,6 +19,7 @@ REQUIRED_HUMAN_UNKNOWN = {
     "cueUsefulness",
     "fairness",
     "comprehension",
+    "comfort",
 }
 REQUIRED_EVENTS = {
     "session_started",
@@ -61,6 +63,11 @@ def validate_contracts() -> list[str]:
     for field in ["runId", "sequence", "monotonicTimeMs", "sourceRevision", "buildId", "conditionId", "accessibilityConditionId", "sourceFront", "producerSemanticId"]:
         if field not in envelope_required:
             errors.append(f"missing_envelope_field:{field}")
+    durability = f22.get("durability", {})
+    if durability.get("publicationProtocol") != PUBLICATION_PROTOCOL:
+        errors.append("publication_protocol_contract_missing")
+    if durability.get("publishedPairRule") != "manifest_is_completion_marker_and_must_reference_final_raw_sha256":
+        errors.append("published_pair_rule_missing")
     claims = f22.get("humanClaims", {})
     if set(claims) != REQUIRED_HUMAN_UNKNOWN or any(value != "UNKNOWN" for value in claims.values()):
         errors.append("f22_human_claim_guard_failed")
@@ -85,6 +92,12 @@ def validate_contracts() -> list[str]:
 def validate_evidence(event_path: Path, manifest_path: Path) -> list[str]:
     errors: list[str] = []
     manifest = load(manifest_path)
+    if manifest.get("publicationProtocol") != PUBLICATION_PROTOCOL:
+        errors.append("manifest_publication_protocol_mismatch")
+    if manifest.get("publicationState") != "FINALIZED":
+        errors.append("manifest_not_finalized")
+    if Path(str(manifest.get("eventFile", ""))).name != event_path.name:
+        errors.append("manifest_event_file_name_mismatch")
     raw_digest = sha256(event_path)
     if manifest.get("eventFileSha256") != raw_digest:
         errors.append("manifest_digest_mismatch")
@@ -110,6 +123,10 @@ def validate_evidence(event_path: Path, manifest_path: Path) -> list[str]:
         for key in FORBIDDEN_IDENTIFIER_KEYS:
             if f'"{key}"' in encoded:
                 errors.append(f"forbidden_identifier:{key}:{idx}")
+    if frozen is not None:
+        manifest_frozen = tuple(manifest.get(key) for key in ["runId", "sourceRevision", "buildId", "conditionId", "accessibilityConditionId"])
+        if frozen != manifest_frozen:
+            errors.append("manifest_frozen_identity_mismatch")
     return errors
 
 

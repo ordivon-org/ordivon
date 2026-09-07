@@ -51,23 +51,24 @@
     },
     {
       "producer": "A17/F17",
-      "commit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
+      "commit": "d0caff0232c840a425d81ad915280a290d48a31f",
       "path": "experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json",
-      "sha256": "4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
+      "sha256": "d31b1bbc08929fabf7005b441afbc7156850dfb8de160c7cae4b66b6ded17270",
       "revalidated": true,
       "consumed": [
         "EvidenceMount",
         "veilwild/integration/evidence_scene",
         "Godot 4.7.x runtime carrier",
-        "1 unit = 1 meter world basis"
+        "A17 F22 host integration"
       ],
-      "transportRule": "A21 provides a producer-owned PackedScene for EvidenceMount; A17 owns composition only and does not reinterpret event semantics."
+      "transportRule": "A21 provides a producer-owned PackedScene for EvidenceMount; A17 owns composition only and does not reinterpret event semantics.",
+      "compatibility": "A17_CONSUMED_F22_V1_RUNTIME_COPY; A21_R3_COLLISION_REPAIR_REBIND_REQUIRED"
     },
     {
       "producer": "A22/F23",
-      "commit": "df812fbedd94b542a015efe9e3d59d16b0a5a78a",
+      "commit": "8dd9c3f7e4401f166c03d0db1e0b4b5ca248172f",
       "path": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_CONTRACT_R1.json",
-      "sha256": "a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1",
+      "sha256": "a15318c60ba3d1a38f4a3f3e1b3ac11508fb4b7e43b1c49fbfe83713b06ced1e",
       "receiptSchemaPath": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_RECEIPT_SCHEMA_R1.json",
       "receiptSchemaSha256": "3cee5cc61f03be9e2883792c9a7c6c0e218612333ef2c3041f885276a9e09aab",
       "revalidated": true,
@@ -76,7 +77,8 @@
         "exact accessibility condition fields",
         "unsupported settings explicitness",
         "Human accessibility fit UNKNOWN"
-      ]
+      ],
+      "supersedesConsumed": "df812fbedd94b542a015efe9e3d59d16b0a5a78a@a9b0353a8403aa9a15be0ae37ed7e37724f18b3073fdada2ebc4f222fb6facc1"
     }
   ],
   "eventEnvelope": {
@@ -221,7 +223,26 @@
     "pathClass": "user:// evidence output under runtime user-data authority",
     "recordFlushPolicy": "flush after every admitted material event for R1 evidence integrity",
     "finalManifest": "veilwild.telemetry-manifest.r1 with raw JSONL SHA-256, eventCount and frozen condition identity",
-    "rawEvidenceRule": "raw JSONL bytes are evidence artifacts; summaries/metrics are derived projections and never replace raw evidence"
+    "rawEvidenceRule": "raw JSONL bytes are evidence artifacts; summaries/metrics are derived projections and never replace raw evidence",
+    "outputIdentityPolicy": "Every evidence path is caller/run-scoped; begin_run fails closed if either raw JSONL or its manifest path already exists. Silent overwrite is prohibited.",
+    "fixtureInvocationPolicy": "Mechanical fixtures require VEILWILD_FIXTURE_RUN_ID matching [A-Za-z0-9._-]+ and derive unique raw/manifest paths from it.",
+    "publicationRule": "Report raw+manifest digests only after finalize_run closes raw bytes and writes the manifest; manifest binds raw SHA-256 and frozen run/source/build/condition identity.",
+    "publicationProtocol": "veilwild.manifest-last-publication.r1",
+    "publishedPairRule": "manifest_is_completion_marker_and_must_reference_final_raw_sha256",
+    "claimRule": "begin_run atomically claims the caller-provided final raw path through a sibling .claim directory; a concurrent claimant fails closed before opening a writable evidence stream",
+    "stagingRule": "events and manifest are written only inside the claim directory while the run is active; final raw/manifest paths are absent until finalize_run",
+    "publicationOrder": [
+      "close+hash staging raw",
+      "write+flush+close staging manifest",
+      "verify final targets still absent",
+      "rename staging raw to final raw",
+      "rehash final raw and compare",
+      "rename staging manifest to final manifest",
+      "hash final manifest",
+      "remove empty claim directory"
+    ],
+    "incompleteRunRule": "manifest absence means NOT PUBLISHED. A raw file without the matching FINALIZED manifest is inadmissible evidence even if bytes exist after an interrupted publication.",
+    "noOverwriteRule": "existing final raw, existing final manifest, or an existing output claim causes fail-closed rejection; no recorder path may silently truncate or replace another run."
   },
   "privacyAndHumanBoundary": {
     "directParticipantIdentifiersInRuntimeTelemetry": "PROHIBITED",
@@ -240,7 +261,8 @@
       "detection_opportunity != Human_detected",
       "observation_committed != Human_comprehension",
       "session_duration != fun",
-      "mechanical_success != fairness"
+      "mechanical_success != fairness",
+      "mechanical_telemetry != Human_comfort"
     ]
   },
   "consumerInterfaces": [
@@ -276,7 +298,8 @@
     "Raw JSONL SHA-256 in manifest matches the actual file.",
     "Unknown event types or missing producerSemanticId/sourceFront are rejected rather than silently serialized.",
     "Direct participant identifiers are rejected from event payloads.",
-    "Human claims remain UNKNOWN in the absence of real participant evidence."
+    "Human claims remain UNKNOWN in the absence of real participant evidence.",
+    "Attempting to reuse an existing raw or manifest evidence path is rejected with output_path_already_exists rather than truncating prior evidence."
   ],
   "knownFailureModes": [
     "producer_semantic_drift",
@@ -285,7 +308,8 @@
     "non_monotonic_or_wall_clock_timing_used_for_order",
     "telemetry_file_not_finalized_or_digest_missing",
     "direct_participant_identifier_leak",
-    "mechanical_event_laundered_into_Human_claim"
+    "mechanical_event_laundered_into_Human_claim",
+    "evidence_path_collision_or_silent_overwrite"
   ],
   "humanClaims": {
     "fun": "UNKNOWN",
@@ -294,18 +318,20 @@
     "detectability": "UNKNOWN",
     "cueUsefulness": "UNKNOWN",
     "fairness": "UNKNOWN",
-    "comprehension": "UNKNOWN"
+    "comprehension": "UNKNOWN",
+    "comfort": "UNKNOWN"
   },
   "runtimeModule": {
     "authoritativeRecorderSource": "experiments/veilwild-r1/components/a21/telemetry/veilwild_telemetry_recorder.gd",
-    "authoritativeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+    "authoritativeRecorderSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
     "derivedRuntimeRecorder": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
-    "derivedRuntimeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
+    "derivedRuntimeRecorderSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
     "packedScene": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
     "a17ResourcePath": "res://modules/f22/evidence_runtime.tscn",
     "a17Setting": "veilwild/integration/evidence_scene",
     "a17Mount": "EvidenceMount",
-    "semanticBoundary": "EvidenceRuntime forwards eventType plus producer-owned fields into F22; it does not subscribe to generic bus topics and guess their meaning."
+    "semanticBoundary": "EvidenceRuntime forwards eventType plus producer-owned fields into F22; it does not subscribe to generic bus topics and guess their meaning.",
+    "publicationProtocol": "veilwild.manifest-last-publication.r1"
   },
   "accessibilityConditionBinding": {
     "contractProducer": "A22/F23",
@@ -329,5 +355,27 @@
     ],
     "rule": "accessibilityConditionId identifies apparatus/settings only and never implies Human accessibility fit."
   },
-  "integrationValidationBoundary": "A17 shell + A21 EvidenceMount composite replay may establish mount/transport compatibility only. Until all constitutive producer modules and one frozen candidate/build exist, that replay is not V-C9 product-candidate evidence."
+  "integrationValidationBoundary": "A17 shell + A21 EvidenceMount composite replay may establish mount/transport compatibility only. Until all constitutive producer modules and one frozen candidate/build exist, that replay is not V-C9 product-candidate evidence.",
+  "repairHistory": [
+    {
+      "repairId": "A21-R2-EVIDENCE-IDENTITY-TRANSACTIONAL-PUBLICATION",
+      "triggerClientMessageIds": [
+        "veilwild-r1-a02-to-a21-fixture-userdir-collision-v1",
+        "veilwild-r1-a01-qualify-a21-userdir-collision-v1"
+      ],
+      "failure": "Round-1 fixed user:// fixture output allowed repeated/concurrent execution to replace a previously cited raw+manifest pair; a mere file_exists precheck also leaves a race before FileAccess.WRITE, which truncates an existing file.",
+      "repair": "Caller/run-scoped output paths remain required. begin_run now acquires an exclusive sibling .claim directory, writes raw+manifest only to staging files, and publishes the final raw first and FINALIZED manifest last. Manifest presence is the completion marker; concurrent same-path writers fail closed.",
+      "standingEffect": "Prior shared-path raw digests are not durable evidence identities. New run-scoped post-repair receipts are required. The repair changes evidence publication/identity only, not producer event semantics or Human standing."
+    }
+  ],
+  "consumerOracleBindings": [
+    {
+      "consumer": "A01/F01",
+      "commit": "253feed6d6eabe019e6f05633dc62391102e3164",
+      "path": "experiments/veilwild-r1/contracts/F01_PRODUCT_TRACE_ORACLE_R1.json",
+      "sha256": "0d45ec20bcaccf0193be498f36e29a4b89367fe308a862dbb3ce23db6ac679df",
+      "revalidated": true,
+      "boundary": "A01 adjudicates product-trace ordering over unchanged F22 events; A21 does not absorb product success authority."
+    }
+  ]
 }
