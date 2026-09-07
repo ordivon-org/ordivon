@@ -1,0 +1,29 @@
+{
+  "schema": "veilwild.r2-consumption-receipt.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "consumer": "A17/F17",
+  "producer": "A21/F22+F24",
+  "producerCommit": "784d5c98748e9e7a4cad0049d2e610c539d7baa1",
+  "artifacts": [
+    {
+      "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "sha256": "8989bb70640cd7e25e1e46113e512d7edc8868d1b52be94bb57b147fc37c2a3f"
+    },
+    {
+      "path": "experiments/veilwild-r1/contracts/F24_PLAYER_EVIDENCE_CONTRACT_R1.json",
+      "sha256": "4c729ce61a5677794fe8741ab9da98293fe0e16416a7b9edc724c16a7cc9ded2"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "sha256": "556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd",
+      "sha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f"
+    }
+  ],
+  "independentRevalidation": "Exact Git object/paths/digests revalidated. Static contract validator PASS. Isolated run-scoped fixture PASS with MANIFEST_LAST. Independent simultaneous two-process same-output replay yielded exactly one winner and one output_path_claim_failed reject (exit tuple 0,3), proving fail-closed collision behavior.",
+  "supersedes": "A17 R1 F22 recorder/runtime binding using e0985d7d... which is not valid for R2 candidate evidence identity.",
+  "semanticBoundary": "No event semantic IDs changed. A17 changes only consumed source identity and retains A21 producer-owned EvidenceMount.",
+  "candidateStatus": "CONSTITUENT_CONSUMED_NOT_CANDIDATE"
+}

@@ -95,7 +95,7 @@
     "cross-module contract mismatch detected by owner or composite replay"
   ],
   "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
-  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + R1 F13 fallback + A21 F22 + provisional A25 F18 player/UI mounted; remaining environment/creature/navigation/animation/audio modules absent; not a frozen candidate",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; source-current F11 + R1 F13 fallback + collision-safe A21 F22 + provisional A25 F18 player/UI mounted; environment/creature/navigation/animation/audio absent; not a frozen candidate",
   "humanBoundary": "No Human outcome claim follows from engine integration.",
   "sourceBindings": [
     {
@@ -127,13 +127,15 @@
     {
       "bindingId": "F22_EVIDENCE_RUNTIME_MODULE_R1",
       "producer": "A21/F22",
-      "producerCommit": "d19581f65096b5a3588d57d6dab7b9ca9fbd213b",
+      "producerCommit": "784d5c98748e9e7a4cad0049d2e610c539d7baa1",
       "producerInterfacePath": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
-      "producerInterfaceSha256": "5cc4f8575815490e8c06f314585fab89beacc4eedc3085d742f51a52e895a85f",
+      "producerInterfaceSha256": "8989bb70640cd7e25e1e46113e512d7edc8868d1b52be94bb57b147fc37c2a3f",
       "runtimeScenePath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
       "runtimeSceneSha256": "556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9",
-      "runtimeRecorderSha256": "e0985d7db96d947946a4878c678758495ba55074d2783e8cd82ec3b05b993ee2",
-      "semanticBoundary": "A17 mounts producer-owned module and supplies run context only; A21 owns event envelope/storage; event producer semantics remain their original owners."
+      "runtimeRecorderSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
+      "semanticBoundary": "A17 mounts producer-owned A21 module and supplies run/source/build/condition/accessibility identity only; A21 owns output claim/staging/final manifest publication and event envelope; producer semantic IDs remain source-front owned.",
+      "publicationProtocol": "veilwild.manifest-last-publication.r1",
+      "round2Compatibility": "SOURCE_CURRENT_COLLISION_SAFE_EVIDENCE_IDENTITY_REBIND"
     },
     {
       "bindingId": "F18_PLAYER_RUNTIME_UI_R2",
