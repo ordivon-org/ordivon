@@ -1,0 +1,63 @@
+{
+  "schema": "veilwild.round2-opening-verdict.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "agentId": "A17",
+  "ownedFronts": [
+    "F17"
+  ],
+  "exactCurrentSourceWorkspaceState": {
+    "repository": "/root/projects/ordivon-game",
+    "workspaceId": "ws-veilwild-r1-r2-a17-20260907",
+    "protocolBaseline": "7175430cfe8267e9ea8aa8b85d93bc468f0a1d52",
+    "currentHeadRevision": "7175430cfe8267e9ea8aa8b85d93bc468f0a1d52",
+    "gitStatusPorcelain": "",
+    "protocolDeclaredSourceStateDigest": "sha256:b1228e8031b78d58a4c7d0146f4e7420ceaa4467217099a86d1ef8631f5db213",
+    "runtimeWorkspaceSourceStateDigestObserved": "sha256:881e667859ff66d5cfd9caddef85fa148709dc17b7cfa6412146f0147c2de271",
+    "round1A17DurableRecoveryCommit": "b5ce5e8a90cbe2f5f9269c05effa03a1e64095ad",
+    "round1RecoveryState": "independent of protocol baseline; exact Git object preserved from prior A17 workspace"
+  },
+  "round1Standing": {
+    "closure": "V-R1",
+    "standing": "PROTOTYPED_LOCAL",
+    "basis": "A17 produced a real Godot 4.7.x composition shell and source-bound/mounted F13 behavior, F11 lighting, and the A21-owned F22 EvidenceMount module, with strict incomplete-candidate rejection and owner/composite replay. No frozen playable candidate existed."
+  },
+  "currentMaterialBlockers": [
+    "Protocol baseline 7175430 intentionally does not aggregate producer branches; A17 must reconstruct an exact integration lineage from independently revalidated owner commits.",
+    "No source-bound A17 candidate currently contains the complete constitutive runtime set: environment, creature/rig/animation composite, navigation/reacquisition, player runtime/camera/input/UI, interactive audio, and exact product-loop event bindings remain absent from the last durable A17 integration state.",
+    "Strict candidate health therefore must continue to fail until the admitted producer set is mounted and validated; project.godot launch alone is insufficient.",
+    "A19 packaged Linux export was Round-1 carrier-blocked by absent matching Godot 4.7.1 export templates; source-project candidate identity and packaged-build identity must remain separate.",
+    "Protocol-declared sourceStateDigest differs from Runtime workspace.get digest at the same exact clean protocol Git revision; exact Git object plus artifact digests must remain the source/candidate identity fence until ENG-F1 resolves digest semantics.",
+    "Candidate-bound rights/accessibility/red-team/Human evidence do not exist because no exact A17 candidate has yet been nominated."
+  ],
+  "candidateConsequenceNeeded": {
+    "minimum": "One exact Godot source candidate revision with source-bound producer identities mounted under F17, deterministic launch, strict health PASS, and explicit unsupported-feature list sufficient for A19/A21/A22/A23/A24 intake.",
+    "targetRuntimeTrace": "cue_exposed -> detection_opportunity -> approach/threat witness -> explicit observe -> observation_committed -> success_consequence, plus pre-success evade_started -> reacquisition_opportunity -> later explicit observe/commit/success in the same exact candidate condition."
+  },
+  "expectedFalsifier": [
+    "The reconstructed exact candidate still fails strict health because one or more constitutive producer modules are absent, stale, or not mountable.",
+    "Two independently green producer artifacts cannot coexist under one Godot project because resource paths, scene ownership, runtime coordinate assumptions, signals, collision/navigation semantics, or lifecycle contracts conflict.",
+    "A17 would have to invent product/player/specialist semantic truth to bridge an absent owner contract; in that case nomination must fail closed and route an owner-correct request.",
+    "A source-bound module mounts but cannot produce the exact candidate consequence required by F01/F22/A23 under one run identity.",
+    "Candidate source/build/condition identity cannot be frozen consistently enough for evidence and judge intake."
+  ],
+  "externalAuthorityFamiliesExpectedToApply": [
+    {
+      "family": "Godot 4.7 stable official documentation",
+      "use": "ProjectSettings, PackedScene/ResourceLoader, scene-tree ownership, physics/navigation/runtime invocation and export behavior."
+    },
+    {
+      "family": "ISO/IEC 25010:2023",
+      "use": "integration quality framing for functional suitability, reliability, compatibility, performance efficiency and maintainability; not game-fun authority."
+    },
+    {
+      "family": "ISO/IEC/IEEE 12207:2026",
+      "use": "integration/verification/configuration-management and source/build identity process framing; not runtime game semantics."
+    },
+    {
+      "family": "Khronos glTF 2.0 plus official Godot importer documentation",
+      "use": "only where exact producer assets enter F17 through glTF/GLB; A18 remains semantic-admission owner."
+    }
+  ],
+  "openingRecommendation": "PROCEED_WITH_STRICT_CONVERGENCE",
+  "firstVerdictFrozenBeforeCurrentRoundPeerConclusionRead": true
+}
