@@ -128,20 +128,19 @@
     {
       "bindingId": "F18_PLAYER_RUNTIME_UI_R2",
       "producer": "A25/F18",
-      "producerCommit": "ec19645c895d60d1386b6cd4725311edb068496c",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
       "producerContractPath": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
-      "producerContractSha256": "2c35fcc14d281d0c8287083ca6624c0fe649324e18ce63e2d307d99c5b5bb134",
+      "producerContractSha256": "98987a81f73d0f70caa2f6e87b64437a4538cb61de26b6b99e7b47e74bc0502b",
       "playerScenePath": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
-      "playerSceneSha256": "e536bd3fb38f83f8d66b40508772ed3966e7f1945a52fa0a9fd0701a0699c6db",
+      "playerSceneSha256": "390d1bfee021d3f87fddd09c769389a7790dbe2b1efd79e08b7eb7377674cb0d",
       "uiScenePath": "experiments/veilwild-r1/godot/player/player_ui.tscn",
-      "uiSceneSha256": "fc1f5045be5df74713f4a09386441e3d3f2f94301d4e1a79c3940373d5c86205",
+      "uiSceneSha256": "b53e6467fa0d399951c3d373009ed6819d913323d5e3a9933057b615aaa27b0f",
       "mounts": {
         "player": "PlayerRuntimeMount",
         "ui": "UIOverlay"
       },
       "semanticBoundary": "A25 owns locomotion/look/camera/input/observe-request/UI presentation; A17 only mounts/lifecycles. observe_request remains necessary but insufficient and A17 does not infer success from proximity/detection/crosshair/time.",
-      "round2Compatibility": "PROVISIONAL_CONSUMED_PENDING_A25_SOURCE_CURRENT_F23_REBIND",
-      "qualification": "Exact F18 commit is not self-contained as a Godot project; consumer replay was performed by overlaying exact F18 bytes onto the current A17 project. F23 47b->8dd9 diff is source-binding/compatibility-only, so runtime bytes are provisionally compatible, but candidate freeze requires A25 owner-correct source-current binding."
+      "round3Compatibility": "FUNCTIONAL_REPAIR_CONSUMED_SCENE_IDS_GREEN; source-binds F23 R3@87bb921, while A22 later advanced to 1e3cd66 so exact candidate freeze still requires A25/A22 identity alignment or explicit compatible supersession."
     },
     {
       "bindingId": "F13_BEHAVIOR_RUNTIME_R2",

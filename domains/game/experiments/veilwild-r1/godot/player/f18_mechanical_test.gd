@@ -1,5 +1,15 @@
 extends SceneTree
 
+## Standalone F18 owner oracle. If the consumer project does not provide the
+## A17-owned VeilwildEventBus, this fixture installs a transport-shape mock so
+## owner mechanics and producer payload semantics remain replayable from the
+## exact F18 commit. Exact A17 event transport is a separate composite oracle.
+class FixtureEventBus:
+	extends Node
+	signal envelope_published(topic: StringName, payload: Dictionary, source: StringName)
+	func publish(topic: StringName, payload: Dictionary = {}, source: StringName = &"unknown") -> void:
+		envelope_published.emit(topic, payload, source)
+
 var failures: Array[String] = []
 var published_topics: Array[StringName] = []
 var published_payloads: Array[Dictionary] = []
@@ -30,9 +40,12 @@ func _physical_key_event(key: Key, pressed: bool) -> InputEventKey:
 
 func _run() -> void:
 	var bus: Node = root.get_node_or_null("VeilwildEventBus")
-	_expect(bus != null, "VeilwildEventBus autoload missing")
-	if bus != null:
-		bus.connect("envelope_published", _on_envelope)
+	if bus == null:
+		bus = FixtureEventBus.new()
+		bus.name = "VeilwildEventBus"
+		root.add_child(bus)
+		print("VEILWILD_F18_FIXTURE_EVENT_BUS transport_shape_only=true")
+	bus.connect("envelope_published", _on_envelope)
 
 	var player_scene: PackedScene = load("res://player/player_runtime.tscn") as PackedScene
 	_expect(player_scene != null, "player_runtime.tscn failed to load")
@@ -43,10 +56,17 @@ func _run() -> void:
 	root.add_child(player)
 	await process_frame
 
-	for action: StringName in [&"vw_move_forward", &"vw_move_back", &"vw_move_left", &"vw_move_right", &"vw_observe"]:
+	var live_actions: Array[StringName] = [
+		&"vw_move_forward", &"vw_move_back", &"vw_move_left", &"vw_move_right",
+		&"vw_look_left", &"vw_look_right", &"vw_look_up", &"vw_look_down",
+		&"vw_observe", &"vw_settings", &"vw_pointer_capture", &"vw_cancel",
+	]
+	for action: StringName in live_actions:
 		_expect(InputMap.has_action(action), "InputMap missing action %s" % action)
 		_expect(not InputMap.action_get_events(action).is_empty(), "InputMap action has no device event %s" % action)
-	_expect(InputMap.has_action(&"vw_settings"), "keyboard settings action missing")
+	var input_contract: Dictionary = player.call("get_input_contract")
+	_expect(bool(input_contract["allLiveControlsRemappable"]), "input contract does not declare all live controls remappable")
+	_expect((input_contract["requiredActions"] as Array).size() == live_actions.size(), "input contract live-action inventory mismatch")
 
 	var footprint: Dictionary = player.call("get_player_collision_footprint")
 	_expect(is_equal_approx(float(footprint["radiusMeters"]), 0.35), "unexpected player capsule radius")
@@ -63,6 +83,9 @@ func _run() -> void:
 	_expect(is_equal_approx(float(camera_condition["fovDegrees"]), 70.0), "unexpected camera FOV")
 	_expect(camera_condition["nonEssentialBobShake"] == false, "camera fixture unexpectedly enables bob/shake")
 	_expect(camera_condition["invertXSupported"] == true and camera_condition["invertYSupported"] == true, "independent look inversion support missing")
+	_expect(camera_condition["digitalLookAlternative"]["supported"] == true, "digital look alternative missing")
+	_expect(float(camera_condition["horizontalLookSensitivityRange"][0]) <= 0.5 and float(camera_condition["horizontalLookSensitivityRange"][1]) >= 1.5, "horizontal sensitivity range insufficient")
+	_expect(float(camera_condition["verticalLookSensitivityRange"][0]) <= 0.5 and float(camera_condition["verticalLookSensitivityRange"][1]) >= 1.5, "vertical sensitivity range insufficient")
 
 	var start_position: Vector3 = player.global_position
 	Input.parse_input_event(_physical_key_event(KEY_W, true))
@@ -82,10 +105,23 @@ func _run() -> void:
 	_expect(not is_equal_approx(pitch_node.rotation.x, pitch_before), "mouse motion did not change pitch")
 	player.call("apply_look_delta", Vector2(0.0, 100000.0))
 	_expect(abs(rad_to_deg(pitch_node.rotation.x)) <= float(player.get("pitch_limit_degrees")) + 0.01, "pitch clamp exceeded declared limit")
-	player.call("set_look_sensitivity_multiplier", 0.5)
-	_expect(is_equal_approx(float(player.get("look_sensitivity_multiplier")), 0.5), "50% look sensitivity unavailable")
-	player.call("set_look_sensitivity_multiplier", 1.5)
-	_expect(is_equal_approx(float(player.get("look_sensitivity_multiplier")), 1.5), "+50% look sensitivity unavailable")
+	player.rotation.y = 0.0
+	pitch_node.rotation.x = 0.0
+	player.call("set_look_sensitivity_multipliers", 0.5, 1.5)
+	_expect(is_equal_approx(float(player.get("horizontal_look_sensitivity_multiplier")), 0.5), "50% horizontal sensitivity unavailable")
+	_expect(is_equal_approx(float(player.get("vertical_look_sensitivity_multiplier")), 1.5), "+50% vertical sensitivity unavailable")
+	player.call("apply_look_delta", Vector2(100.0, -100.0))
+	_expect(abs(abs(float(player.rotation.y)) - 0.12) < 0.003, "horizontal sensitivity not applied independently")
+	_expect(abs(abs(float(pitch_node.rotation.x)) - 0.36) < 0.003, "vertical sensitivity not applied independently")
+	player.call("set_look_sensitivity_multipliers", 1.0, 1.0)
+	player.rotation.y = 0.0
+	pitch_node.rotation.x = 0.0
+	Input.parse_input_event(_physical_key_event(KEY_RIGHT, true))
+	await physics_frame
+	await physics_frame
+	Input.parse_input_event(_physical_key_event(KEY_RIGHT, false))
+	await physics_frame
+	_expect(abs(float(player.rotation.y)) > 0.001, "digital look-right action did not rotate camera")
 	player.call("set_look_inversion", true, false)
 	_expect(bool(player.get("invert_look_x")) and not bool(player.get("invert_look_y")), "independent inversion setting failed")
 	player.call("set_camera_fov_degrees", 95.0)
@@ -131,20 +167,63 @@ func _run() -> void:
 
 		var prompt_before := String(ui.get_node("OnboardingPanel/OnboardingText").text)
 		_expect(prompt_before.find("E") >= 0, "onboarding prompt missing current observe binding")
+		_expect(prompt_before.find("Mouse or") >= 0, "onboarding prompt missing digital look alternative")
 		_expect(bool(player.call("remap_action_to_physical_key", &"vw_observe", KEY_Q)), "semantic observe remap failed")
 		await process_frame
 		var prompt_after := String(ui.get_node("OnboardingPanel/OnboardingText").text)
-		_expect(prompt_after.find("Q") >= 0 and prompt_after != prompt_before, "onboarding prompt did not update after remap")
+		_expect(prompt_after.find("Q") >= 0 and prompt_after != prompt_before, "onboarding prompt did not update after observe remap")
 		player.call("remap_action_to_physical_key", &"vw_observe", KEY_E)
 
-		Input.parse_input_event(_physical_key_event(KEY_F1, true))
+		_expect(bool(player.call("remap_action_to_physical_key", &"vw_look_right", KEY_L)), "digital look-right remap failed")
 		await process_frame
-		Input.parse_input_event(_physical_key_event(KEY_F1, false))
+		var prompt_look := String(ui.get_node("OnboardingPanel/OnboardingText").text)
+		_expect(prompt_look.find("L") >= 0, "onboarding prompt did not propagate digital-look remap")
+		player.rotation.y = 0.0
+		Input.parse_input_event(_physical_key_event(KEY_L, true))
+		await physics_frame
+		await physics_frame
+		Input.parse_input_event(_physical_key_event(KEY_L, false))
+		await physics_frame
+		_expect(abs(float(player.rotation.y)) > 0.001, "remapped digital look action did not reach camera")
+
+		_expect(bool(player.call("remap_action_to_physical_key", &"vw_settings", KEY_F2)), "settings action remap failed")
 		await process_frame
-		_expect(bool(ui.call("is_settings_visible")), "F1 did not open keyboard-operable settings")
+		var prompt_settings := String(ui.get_node("OnboardingPanel/OnboardingText").text)
+		_expect(prompt_settings.find("F2") >= 0, "onboarding prompt did not propagate settings remap")
+		Input.parse_input_event(_physical_key_event(KEY_F2, true))
+		await process_frame
+		Input.parse_input_event(_physical_key_event(KEY_F2, false))
+		await process_frame
+		_expect(bool(ui.call("is_settings_visible")), "remapped settings action did not open keyboard-operable settings")
 		_expect(not bool(player.call("is_gameplay_input_enabled")), "gameplay input remained active behind settings")
-		ui.call("set_settings_visible", false)
-		_expect(bool(player.call("is_gameplay_input_enabled")), "gameplay input did not restore after settings close")
+
+		_expect(bool(player.call("remap_action_to_physical_key", &"vw_cancel", KEY_F3)), "cancel/escape semantic action remap failed")
+		await process_frame
+		var settings_help := String(ui.get_node("SettingsPanel/SettingsScroll/SettingsBox/SettingsHelp").text)
+		_expect(settings_help.find("F3") >= 0, "settings help did not propagate cancel remap")
+		Input.parse_input_event(_physical_key_event(KEY_F3, true))
+		await process_frame
+		Input.parse_input_event(_physical_key_event(KEY_F3, false))
+		await process_frame
+		_expect(not bool(ui.call("is_settings_visible")), "remapped cancel action did not close settings")
+		_expect(bool(player.call("is_gameplay_input_enabled")), "gameplay input did not restore after remapped cancel close")
+
+		player.call("set_pointer_captured", false)
+		_expect(bool(player.call("remap_action_to_physical_key", &"vw_pointer_capture", KEY_P)), "pointer capture action remap failed")
+		await process_frame
+		var prompt_capture := String(ui.get_node("OnboardingPanel/OnboardingText").text)
+		_expect(prompt_capture.find("P") >= 0, "onboarding prompt did not propagate pointer-capture remap")
+		Input.parse_input_event(_physical_key_event(KEY_P, true))
+		await process_frame
+		Input.parse_input_event(_physical_key_event(KEY_P, false))
+		await process_frame
+		_expect(bool(player.call("is_pointer_capture_requested")), "remapped pointer-capture action did not execute")
+		var accessibility_receipt: Dictionary = player.call("get_accessibility_runtime_receipt")
+		_expect(bool(accessibility_receipt["allControlsRemappable"]), "accessibility receipt does not close all-controls-remappable criterion")
+		_expect(String(accessibility_receipt["digitalLookAlternativeMode"]) == "SEMANTIC_DIGITAL_ACTIONS", "accessibility receipt missing digital-look mode")
+		_expect(accessibility_receipt.has("horizontalLookSensitivity") and accessibility_receipt.has("verticalLookSensitivity"), "independent sensitivity fields missing")
+		_expect(float(accessibility_receipt["horizontalLookSensitivityRange"][0]) <= 0.5 and float(accessibility_receipt["horizontalLookSensitivityRange"][1]) >= 1.5, "horizontal sensitivity receipt range insufficient")
+		_expect(float(accessibility_receipt["verticalLookSensitivityRange"][0]) <= 0.5 and float(accessibility_receipt["verticalLookSensitivityRange"][1]) >= 1.5, "vertical sensitivity receipt range insufficient")
 		ui.queue_free()
 
 	player.queue_free()
@@ -153,7 +232,7 @@ func _run() -> void:
 
 func _finish() -> void:
 	if failures.is_empty():
-		print("VEILWILD_F18_MECHANICAL_PASS input=remappable observe=single_press camera=adjustable ui=non_locator accessibility=settings")
+		print("VEILWILD_F18_MECHANICAL_PASS input=all_live_remappable digital_look=true hv_sensitivity=independent observe=single_press ui=non_locator accessibility=settings")
 		quit(0)
 		return
 	for failure in failures:

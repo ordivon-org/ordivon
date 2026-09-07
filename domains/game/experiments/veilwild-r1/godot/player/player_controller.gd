@@ -16,9 +16,14 @@ const ACTION_MOVE_FORWARD: StringName = &"vw_move_forward"
 const ACTION_MOVE_BACK: StringName = &"vw_move_back"
 const ACTION_MOVE_LEFT: StringName = &"vw_move_left"
 const ACTION_MOVE_RIGHT: StringName = &"vw_move_right"
+const ACTION_LOOK_LEFT: StringName = &"vw_look_left"
+const ACTION_LOOK_RIGHT: StringName = &"vw_look_right"
+const ACTION_LOOK_UP: StringName = &"vw_look_up"
+const ACTION_LOOK_DOWN: StringName = &"vw_look_down"
 const ACTION_OBSERVE: StringName = &"vw_observe"
 const ACTION_POINTER_CAPTURE: StringName = &"vw_pointer_capture"
 const ACTION_SETTINGS: StringName = &"vw_settings"
+const ACTION_CANCEL: StringName = &"vw_cancel"
 
 const OBSERVE_STARTED_TOPIC: StringName = &"observe_action_started"
 const OBSERVE_CANCELLED_TOPIC: StringName = &"observe_action_cancelled"
@@ -36,7 +41,14 @@ const REMAPPABLE_ACTIONS: Array[StringName] = [
 	ACTION_MOVE_BACK,
 	ACTION_MOVE_LEFT,
 	ACTION_MOVE_RIGHT,
+	ACTION_LOOK_LEFT,
+	ACTION_LOOK_RIGHT,
+	ACTION_LOOK_UP,
+	ACTION_LOOK_DOWN,
 	ACTION_OBSERVE,
+	ACTION_SETTINGS,
+	ACTION_POINTER_CAPTURE,
+	ACTION_CANCEL,
 ]
 
 @export_category("Locomotion")
@@ -46,7 +58,9 @@ const REMAPPABLE_ACTIONS: Array[StringName] = [
 
 @export_category("Camera")
 @export var mouse_sensitivity_rad_per_pixel: float = 0.0024
-@export_range(0.5, 2.0, 0.05) var look_sensitivity_multiplier: float = 1.0
+@export_range(0.5, 2.0, 0.05) var horizontal_look_sensitivity_multiplier: float = 1.0
+@export_range(0.5, 2.0, 0.05) var vertical_look_sensitivity_multiplier: float = 1.0
+@export_range(30.0, 360.0, 5.0) var digital_look_speed_degrees_per_second: float = 120.0
 @export var invert_look_x: bool = false
 @export var invert_look_y: bool = false
 @export_range(30.0, 89.0, 0.5) var pitch_limit_degrees: float = 82.0
@@ -78,14 +92,14 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_apply_locomotion(delta)
+	_apply_digital_look(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(ACTION_SETTINGS):
 		settings_requested.emit()
 		return
-	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
-		if _gameplay_input_enabled:
-			set_pointer_captured(false)
+	if _gameplay_input_enabled and event.is_action_pressed(ACTION_CANCEL):
+		set_pointer_captured(false)
 		return
 	if not _gameplay_input_enabled:
 		return
@@ -131,11 +145,33 @@ func _apply_locomotion(delta: float) -> void:
 func apply_look_delta(relative_pixels: Vector2) -> void:
 	var x_sign := 1.0 if invert_look_x else -1.0
 	var y_sign := 1.0 if invert_look_y else -1.0
-	var sensitivity := mouse_sensitivity_rad_per_pixel * look_sensitivity_multiplier
-	rotate_y(relative_pixels.x * sensitivity * x_sign)
+	var horizontal_sensitivity := mouse_sensitivity_rad_per_pixel * horizontal_look_sensitivity_multiplier
+	var vertical_sensitivity := mouse_sensitivity_rad_per_pixel * vertical_look_sensitivity_multiplier
+	rotate_y(relative_pixels.x * horizontal_sensitivity * x_sign)
 	var limit := deg_to_rad(pitch_limit_degrees)
 	pitch_pivot.rotation.x = clamp(
-		pitch_pivot.rotation.x + relative_pixels.y * sensitivity * y_sign,
+		pitch_pivot.rotation.x + relative_pixels.y * vertical_sensitivity * y_sign,
+		-limit,
+		limit
+	)
+
+func _apply_digital_look(delta: float) -> void:
+	if not _gameplay_input_enabled:
+		return
+	var axis := Input.get_vector(ACTION_LOOK_LEFT, ACTION_LOOK_RIGHT, ACTION_LOOK_UP, ACTION_LOOK_DOWN)
+	if axis.length_squared() <= 0.0001:
+		return
+	apply_digital_look_axis(axis, delta)
+	_mark_action_demonstrated(&"LOOK")
+
+func apply_digital_look_axis(axis: Vector2, delta: float) -> void:
+	var x_sign := 1.0 if invert_look_x else -1.0
+	var y_sign := 1.0 if invert_look_y else -1.0
+	var radians_per_second := deg_to_rad(digital_look_speed_degrees_per_second)
+	rotate_y(axis.x * radians_per_second * horizontal_look_sensitivity_multiplier * delta * x_sign)
+	var limit := deg_to_rad(pitch_limit_degrees)
+	pitch_pivot.rotation.x = clamp(
+		pitch_pivot.rotation.x + axis.y * radians_per_second * vertical_look_sensitivity_multiplier * delta * y_sign,
 		-limit,
 		limit
 	)
@@ -238,8 +274,13 @@ func get_action_binding_label(action_id: StringName) -> String:
 		return "Unbound"
 	return (events[0] as InputEvent).as_text()
 
+func set_look_sensitivity_multipliers(horizontal: float, vertical: float) -> void:
+	horizontal_look_sensitivity_multiplier = clamp(horizontal, 0.5, 2.0)
+	vertical_look_sensitivity_multiplier = clamp(vertical, 0.5, 2.0)
+
 func set_look_sensitivity_multiplier(value: float) -> void:
-	look_sensitivity_multiplier = clamp(value, 0.5, 2.0)
+	# Backward-compatible consumer helper: explicitly sets both independent axes.
+	set_look_sensitivity_multipliers(value, value)
 
 func set_look_inversion(invert_x: bool, invert_y: bool) -> void:
 	invert_look_x = invert_x
@@ -268,7 +309,15 @@ func get_camera_validation_condition() -> Dictionary:
 		"eyeHeightMeters": pitch_pivot.position.y,
 		"pitchLimitDegrees": pitch_limit_degrees,
 		"mouseSensitivityRadiansPerPixel": mouse_sensitivity_rad_per_pixel,
-		"lookSensitivityMultiplierRange": [0.5, 2.0],
+		"horizontalLookSensitivityMultiplier": horizontal_look_sensitivity_multiplier,
+		"verticalLookSensitivityMultiplier": vertical_look_sensitivity_multiplier,
+		"horizontalLookSensitivityRange": [0.5, 2.0],
+		"verticalLookSensitivityRange": [0.5, 2.0],
+		"digitalLookAlternative": {
+			"supported": true,
+			"actions": [String(ACTION_LOOK_LEFT), String(ACTION_LOOK_RIGHT), String(ACTION_LOOK_UP), String(ACTION_LOOK_DOWN)],
+			"baseDegreesPerSecond": digital_look_speed_degrees_per_second,
+		},
 		"invertXSupported": true,
 		"invertYSupported": true,
 		"nonEssentialBobShake": false,
@@ -305,8 +354,11 @@ func get_player_collision_footprint() -> Dictionary:
 func get_input_contract() -> Dictionary:
 	return {
 		"requiredActions": REMAPPABLE_ACTIONS.map(func(value: StringName) -> String: return String(value)),
+		"digitalLookActions": [String(ACTION_LOOK_LEFT), String(ACTION_LOOK_RIGHT), String(ACTION_LOOK_UP), String(ACTION_LOOK_DOWN)],
 		"pointerCaptureAction": String(ACTION_POINTER_CAPTURE),
 		"settingsAction": String(ACTION_SETTINGS),
+		"cancelAction": String(ACTION_CANCEL),
+		"allLiveControlsRemappable": true,
 		"defaultDevice": "keyboard_mouse",
 		"remappingRule": "Semantic Godot InputMap actions; runtime remap replaces only the selected semantic action and emits action_binding_changed.",
 		"observeActivationChoices": OBSERVE_MODES.map(func(value: StringName) -> String: return String(value)),
@@ -327,8 +379,12 @@ func get_accessibility_runtime_receipt() -> Dictionary:
 		})
 	return {
 		"input": actions,
-		"lookSensitivityMultiplier": look_sensitivity_multiplier,
-		"lookSensitivityRange": [0.5, 2.0],
+		"horizontalLookSensitivity": horizontal_look_sensitivity_multiplier,
+		"verticalLookSensitivity": vertical_look_sensitivity_multiplier,
+		"horizontalLookSensitivityRange": [0.5, 2.0],
+		"verticalLookSensitivityRange": [0.5, 2.0],
+		"digitalLookAlternativeMode": "SEMANTIC_DIGITAL_ACTIONS",
+		"allControlsRemappable": true,
 		"invertXSupported": true,
 		"invertYSupported": true,
 		"observeActivationMode": String(get_observe_activation_mode()),
@@ -352,9 +408,14 @@ func _ensure_default_input_actions() -> void:
 	_ensure_key_action(ACTION_MOVE_BACK, KEY_S)
 	_ensure_key_action(ACTION_MOVE_LEFT, KEY_A)
 	_ensure_key_action(ACTION_MOVE_RIGHT, KEY_D)
+	_ensure_key_action(ACTION_LOOK_LEFT, KEY_LEFT)
+	_ensure_key_action(ACTION_LOOK_RIGHT, KEY_RIGHT)
+	_ensure_key_action(ACTION_LOOK_UP, KEY_UP)
+	_ensure_key_action(ACTION_LOOK_DOWN, KEY_DOWN)
 	_ensure_key_action(ACTION_OBSERVE, KEY_E)
 	_ensure_key_action(ACTION_SETTINGS, KEY_F1)
 	_ensure_mouse_button_action(ACTION_POINTER_CAPTURE, MOUSE_BUTTON_LEFT)
+	_ensure_key_action(ACTION_CANCEL, KEY_ESCAPE)
 
 func _ensure_key_action(action: StringName, physical_keycode: Key) -> void:
 	if not InputMap.has_action(action):

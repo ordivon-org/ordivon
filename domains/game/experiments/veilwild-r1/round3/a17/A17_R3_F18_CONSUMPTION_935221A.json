@@ -1,0 +1,23 @@
+{
+  "schema": "veilwild.a17-f18-consumption.r3",
+  "producer": "A25/F18",
+  "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+  "contract": {
+    "path": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
+    "sha256": "98987a81f73d0f70caa2f6e87b64437a4538cb61de26b6b99e7b47e74bc0502b"
+  },
+  "playerScene": {
+    "path": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+    "sha256": "390d1bfee021d3f87fddd09c769389a7790dbe2b1efd79e08b7eb7377674cb0d",
+    "nodeIds": "5/5"
+  },
+  "uiScene": {
+    "path": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+    "sha256": "b53e6467fa0d399951c3d373009ed6819d913323d5e3a9933057b615aaa27b0f",
+    "nodeIds": "43/43"
+  },
+  "independentRevalidation": "Exact Git object/path/digests + protocol ancestry checked by A17. Consumer replay occurs after restore.",
+  "semanticBoundary": "Observe request remains F18 request only. A17 observation_commit_binding owns integration ordering but requires owner world qualification. F18 does not emit observation_committed/success authority.",
+  "sourceBindingQualification": "A25 935221a binds A22/F23 R3@87bb921/3d6d79f5; A22 later source-current is 1e3cd66/6231df22. Functional O2 repairs are independently green, but candidate identity alignment remains pending owner supersession/explicit compatibility.",
+  "candidateStatus": "CONSUMED_PRE_CANDIDATE_NOT_FROZEN"
+}

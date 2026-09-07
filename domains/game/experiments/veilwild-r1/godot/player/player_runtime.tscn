@@ -6,7 +6,7 @@
 radius = 0.35
 height = 1.8
 
-[node name="PlayerRuntime" type="CharacterBody3D"]
+[node name="PlayerRuntime" type="CharacterBody3D" unique_id=795400110]
 collision_layer = 2
 collision_mask = 1
 floor_block_on_wall = true
@@ -21,21 +21,21 @@ up_direction = Vector3(0, 1, 0)
 wall_min_slide_angle = 0.2617994
 script = ExtResource("1_controller")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1258414552]
 position = Vector3(0, 0.9, 0)
 shape = SubResource("Capsule_player")
 
-[node name="PitchPivot" type="Node3D" parent="."]
+[node name="PitchPivot" type="Node3D" parent="." unique_id=1366442380]
 unique_name_in_owner = true
 position = Vector3(0, 1.62, 0)
 
-[node name="Camera3D" type="Camera3D" parent="PitchPivot"]
+[node name="Camera3D" type="Camera3D" parent="PitchPivot" unique_id=1274233483]
 unique_name_in_owner = true
 current = true
 fov = 70.0
 near = 0.08
 far = 300.0
 
-[node name="AudioListener3D" type="AudioListener3D" parent="PitchPivot"]
+[node name="AudioListener3D" type="AudioListener3D" parent="PitchPivot" unique_id=209832306]
 unique_name_in_owner = true
 current = true

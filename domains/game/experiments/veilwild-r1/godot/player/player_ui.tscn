@@ -18,7 +18,7 @@ content_margin_top = 12.0
 content_margin_right = 16.0
 content_margin_bottom = 12.0
 
-[node name="PlayerUI" type="Control"]
+[node name="PlayerUI" type="Control" unique_id=689723142]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,7 +28,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_ui")
 
-[node name="OnboardingPanel" type="PanelContainer" parent="."]
+[node name="OnboardingPanel" type="PanelContainer" parent="." unique_id=1497049886]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 28.0
@@ -38,7 +38,7 @@ offset_bottom = 150.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="OnboardingText" type="Label" parent="OnboardingPanel"]
+[node name="OnboardingText" type="Label" parent="OnboardingPanel" unique_id=1054778807]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -46,7 +46,7 @@ theme_override_font_sizes/font_size = 20
 autowrap_mode = 2
 text = "Move / Look / Observe controls loading…"
 
-[node name="FeedbackPanel" type="PanelContainer" parent="."]
+[node name="FeedbackPanel" type="PanelContainer" parent="." unique_id=589018098]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -64,17 +64,17 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="FeedbackBox" type="VBoxContainer" parent="FeedbackPanel"]
+[node name="FeedbackBox" type="VBoxContainer" parent="FeedbackPanel" unique_id=13584332]
 layout_mode = 2
 
-[node name="FeedbackText" type="Label" parent="FeedbackPanel/FeedbackBox"]
+[node name="FeedbackText" type="Label" parent="FeedbackPanel/FeedbackBox" unique_id=387029086]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 
-[node name="ObservationProgress" type="ProgressBar" parent="FeedbackPanel/FeedbackBox"]
+[node name="ObservationProgress" type="ProgressBar" parent="FeedbackPanel/FeedbackBox" unique_id=594353416]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -83,7 +83,7 @@ max_value = 100.0
 value = 0.0
 show_percentage = false
 
-[node name="SettingsPanel" type="PanelContainer" parent="."]
+[node name="SettingsPanel" type="PanelContainer" parent="." unique_id=1992408198]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -101,30 +101,39 @@ grow_vertical = 2
 mouse_filter = 0
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="SettingsBox" type="VBoxContainer" parent="SettingsPanel"]
+[node name="SettingsScroll" type="ScrollContainer" parent="SettingsPanel" unique_id=265263436]
+unique_name_in_owner = true
 layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="SettingsBox" type="VBoxContainer" parent="SettingsPanel/SettingsScroll" unique_id=505268927]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SettingsTitle" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="SettingsTitle" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=98388225]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 text = "Controls & Camera"
 
-[node name="SettingsHelp" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="SettingsHelp" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1561119000]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 autowrap_mode = 2
-text = "Keyboard: Tab/Shift+Tab moves focus. Enter/Space activates. Escape closes. Remap buttons capture one physical key."
+text = "Keyboard: Tab/Shift+Tab moves focus. Enter/Space activates. The remapped Cancel action or Close exits. Remap buttons capture one physical key."
 
-[node name="SensitivityLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="HorizontalSensitivityLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1579125730]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
-text = "Look sensitivity (50%–200%)"
+text = "Horizontal look sensitivity (50%–200%)"
 
-[node name="SensitivitySlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+[node name="HorizontalSensitivitySlider" type="HSlider" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1653922779]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
@@ -133,13 +142,28 @@ max_value = 2.0
 step = 0.05
 value = 1.0
 
-[node name="FovLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="VerticalSensitivityLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1328988]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Vertical look sensitivity (50%–200%)"
+
+[node name="VerticalSensitivitySlider" type="HSlider" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=2014664478]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+min_value = 0.5
+max_value = 2.0
+step = 0.05
+value = 1.0
+
+[node name="FovLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1069618670]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 text = "Field of view (60°–100°)"
 
-[node name="FovSlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+[node name="FovSlider" type="HSlider" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1132191344]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
@@ -148,39 +172,39 @@ max_value = 100.0
 step = 1.0
 value = 70.0
 
-[node name="InvertXCheck" type="CheckBox" parent="SettingsPanel/SettingsBox"]
+[node name="InvertXCheck" type="CheckBox" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=833269168]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Invert horizontal look"
 
-[node name="InvertYCheck" type="CheckBox" parent="SettingsPanel/SettingsBox"]
+[node name="InvertYCheck" type="CheckBox" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=2032910606]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Invert vertical look"
 
-[node name="ObserveModeLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="ObserveModeLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=986469076]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 text = "Observe activation"
 
-[node name="ObserveMode" type="OptionButton" parent="SettingsPanel/SettingsBox"]
+[node name="ObserveMode" type="OptionButton" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1462769569]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
 theme_override_font_sizes/font_size = 20
 
-[node name="UiScaleLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="UiScaleLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=2048203656]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 text = "UI/text scale (100%–200%)"
 
-[node name="UiScaleSlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+[node name="UiScaleSlider" type="HSlider" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=624321204]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2
@@ -189,16 +213,16 @@ max_value = 2.0
 step = 0.1
 value = 1.0
 
-[node name="RemapLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+[node name="RemapLabel" type="Label" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1605602318]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 20
 text = "Semantic action remap"
 
-[node name="RemapRow1" type="HBoxContainer" parent="SettingsPanel/SettingsBox"]
+[node name="RemapRow1" type="HBoxContainer" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1890533085]
 layout_mode = 2
 
-[node name="RemapForward" type="Button" parent="SettingsPanel/SettingsBox/RemapRow1"]
+[node name="RemapForward" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow1" unique_id=1733640382]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -206,7 +230,7 @@ focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Forward"
 
-[node name="RemapBack" type="Button" parent="SettingsPanel/SettingsBox/RemapRow1"]
+[node name="RemapBack" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow1" unique_id=1901491318]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -214,10 +238,10 @@ focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Back"
 
-[node name="RemapRow2" type="HBoxContainer" parent="SettingsPanel/SettingsBox"]
+[node name="RemapRow2" type="HBoxContainer" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1342056960]
 layout_mode = 2
 
-[node name="RemapLeft" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+[node name="RemapLeft" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow2" unique_id=1768390720]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -225,7 +249,7 @@ focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Left"
 
-[node name="RemapRight" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+[node name="RemapRight" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow2" unique_id=1351803469]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -233,7 +257,7 @@ focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Right"
 
-[node name="RemapObserve" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+[node name="RemapObserve" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow2" unique_id=692878743]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -241,7 +265,73 @@ focus_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Observe"
 
-[node name="CloseSettingsButton" type="Button" parent="SettingsPanel/SettingsBox"]
+
+[node name="RemapRow3" type="HBoxContainer" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1397935319]
+layout_mode = 2
+
+[node name="RemapLookLeft" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow3" unique_id=840143492]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Look left"
+
+[node name="RemapLookRight" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow3" unique_id=1786776222]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Look right"
+
+[node name="RemapRow4" type="HBoxContainer" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1677976887]
+layout_mode = 2
+
+[node name="RemapLookUp" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow4" unique_id=1032701258]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Look up"
+
+[node name="RemapLookDown" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow4" unique_id=543400554]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Look down"
+
+[node name="RemapRow5" type="HBoxContainer" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=328767850]
+layout_mode = 2
+
+[node name="RemapSettings" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow5" unique_id=1497487594]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Settings"
+
+[node name="RemapCapture" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow5" unique_id=1080287049]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Capture pointer"
+
+[node name="RemapCancel" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox/RemapRow5" unique_id=185748563]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Cancel / release"
+
+[node name="CloseSettingsButton" type="Button" parent="SettingsPanel/SettingsScroll/SettingsBox" unique_id=1123584721]
 unique_name_in_owner = true
 layout_mode = 2
 focus_mode = 2

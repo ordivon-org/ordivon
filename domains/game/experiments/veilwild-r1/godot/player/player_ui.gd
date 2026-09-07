@@ -15,14 +15,28 @@ const REMAP_ACTIONS: Array[StringName] = [
 	&"vw_move_back",
 	&"vw_move_left",
 	&"vw_move_right",
+	&"vw_look_left",
+	&"vw_look_right",
+	&"vw_look_up",
+	&"vw_look_down",
 	&"vw_observe",
+	&"vw_settings",
+	&"vw_pointer_capture",
+	&"vw_cancel",
 ]
 const REMAP_BUTTON_NAMES: Array[StringName] = [
 	&"RemapForward",
 	&"RemapBack",
 	&"RemapLeft",
 	&"RemapRight",
+	&"RemapLookLeft",
+	&"RemapLookRight",
+	&"RemapLookUp",
+	&"RemapLookDown",
 	&"RemapObserve",
+	&"RemapSettings",
+	&"RemapCapture",
+	&"RemapCancel",
 ]
 const F22_SOURCE_FRONT := "A25/F18"
 
@@ -32,7 +46,9 @@ const F22_SOURCE_FRONT := "A25/F18"
 @onready var feedback_text: Label = %FeedbackText
 @onready var observation_progress: ProgressBar = %ObservationProgress
 @onready var settings_panel: PanelContainer = %SettingsPanel
-@onready var sensitivity_slider: HSlider = %SensitivitySlider
+@onready var settings_help: Label = $SettingsPanel/SettingsScroll/SettingsBox/SettingsHelp
+@onready var horizontal_sensitivity_slider: HSlider = %HorizontalSensitivitySlider
+@onready var vertical_sensitivity_slider: HSlider = %VerticalSensitivitySlider
 @onready var fov_slider: HSlider = %FovSlider
 @onready var invert_x_check: CheckBox = %InvertXCheck
 @onready var invert_y_check: CheckBox = %InvertYCheck
@@ -63,7 +79,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
 		var key_event := event as InputEventKey
 		if _pending_remap_action != &"":
-			if key_event.keycode == KEY_ESCAPE:
+			if event.is_action_pressed(&"vw_cancel") and _pending_remap_action != &"vw_cancel":
 				_pending_remap_action = &""
 				refresh_remap_buttons()
 			else:
@@ -74,7 +90,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					refresh_remap_buttons()
 			get_viewport().set_input_as_handled()
 			return
-		if key_event.keycode == KEY_ESCAPE:
+		if event.is_action_pressed(&"vw_cancel"):
 			set_settings_visible(false)
 			get_viewport().set_input_as_handled()
 
@@ -98,8 +114,16 @@ func refresh_control_prompt() -> void:
 	var back := String(_player.call("get_action_binding_label", &"vw_move_back"))
 	var left := String(_player.call("get_action_binding_label", &"vw_move_left"))
 	var right := String(_player.call("get_action_binding_label", &"vw_move_right"))
+	var look_left := String(_player.call("get_action_binding_label", &"vw_look_left"))
+	var look_right := String(_player.call("get_action_binding_label", &"vw_look_right"))
+	var look_up := String(_player.call("get_action_binding_label", &"vw_look_up"))
+	var look_down := String(_player.call("get_action_binding_label", &"vw_look_down"))
 	var observe := String(_player.call("get_action_binding_label", &"vw_observe"))
-	onboarding_text.text = "Move: %s / %s / %s / %s   Look: Mouse   Observe: %s\nRead traces, motion, and sound; observation requires an intentional action." % [forward, left, back, right, observe]
+	var settings := String(_player.call("get_action_binding_label", &"vw_settings"))
+	var capture := String(_player.call("get_action_binding_label", &"vw_pointer_capture"))
+	var cancel := String(_player.call("get_action_binding_label", &"vw_cancel"))
+	onboarding_text.text = "Move: %s / %s / %s / %s   Look: Mouse or %s / %s / %s / %s   Observe: %s   Settings: %s   Capture: %s\nRead traces, motion, and sound; observation requires an intentional action." % [forward, left, back, right, look_left, look_up, look_down, look_right, observe, settings, capture]
+	settings_help.text = "Keyboard: Tab/Shift+Tab moves focus. Enter/Space activates. %s closes/releases. Remap buttons capture one physical key." % cancel
 
 func present_feedback(cue_class: StringName, progress_normalized: float = -1.0) -> bool:
 	if cue_class not in ALLOWED_FEEDBACK_CLASSES:
@@ -172,8 +196,10 @@ func get_accessibility_ui_receipt() -> Dictionary:
 		"textScalePercent": int(round(_ui_scale_factor * 100.0)),
 		"baseTextPixels": 20,
 		"criticalTextOpaqueBacking": true,
-		"settingsKeyboardPath": "F1 opens; focusable controls; Escape/Close exits",
-		"remapKeyboardPath": "Settings remap buttons capture one physical key per semantic action",
+		"settingsKeyboardPath": "Remappable Settings action opens; focusable controls; remappable Cancel action or Close exits",
+		"remapKeyboardPath": "Settings remap buttons capture one physical key per live semantic action, including Settings/Cancel/pointer capture/digital look",
+		"digitalLookAlternativeMode": "SEMANTIC_DIGITAL_ACTIONS",
+		"allLiveControlsRemappable": true,
 		"promptReflectsRemap": true,
 		"colorOnlyCriticalMeaning": false,
 		"deliberateRapidFlashing": false,
@@ -195,7 +221,8 @@ func _wire_settings_controls() -> void:
 	observe_mode.add_item("Single press", 0)
 	observe_mode.add_item("Hold", 1)
 	observe_mode.add_item("Toggle", 2)
-	sensitivity_slider.value_changed.connect(_on_sensitivity_changed)
+	horizontal_sensitivity_slider.value_changed.connect(_on_horizontal_sensitivity_changed)
+	vertical_sensitivity_slider.value_changed.connect(_on_vertical_sensitivity_changed)
 	fov_slider.value_changed.connect(_on_fov_changed)
 	invert_x_check.toggled.connect(_on_inversion_changed.bind(true))
 	invert_y_check.toggled.connect(_on_inversion_changed.bind(false))
@@ -210,7 +237,8 @@ func _wire_settings_controls() -> void:
 func _sync_settings_from_player() -> void:
 	if _player == null:
 		return
-	sensitivity_slider.set_value_no_signal(float(_player.get("look_sensitivity_multiplier")))
+	horizontal_sensitivity_slider.set_value_no_signal(float(_player.get("horizontal_look_sensitivity_multiplier")))
+	vertical_sensitivity_slider.set_value_no_signal(float(_player.get("vertical_look_sensitivity_multiplier")))
 	fov_slider.set_value_no_signal(float(_player.get("field_of_view_degrees")))
 	invert_x_check.set_pressed_no_signal(bool(_player.get("invert_look_x")))
 	invert_y_check.set_pressed_no_signal(bool(_player.get("invert_look_y")))
@@ -218,9 +246,13 @@ func _sync_settings_from_player() -> void:
 	ui_scale_slider.set_value_no_signal(_ui_scale_factor)
 	refresh_remap_buttons()
 
-func _on_sensitivity_changed(value: float) -> void:
+func _on_horizontal_sensitivity_changed(value: float) -> void:
 	if _player != null:
-		_player.call("set_look_sensitivity_multiplier", value)
+		_player.call("set_look_sensitivity_multipliers", value, vertical_sensitivity_slider.value)
+
+func _on_vertical_sensitivity_changed(value: float) -> void:
+	if _player != null:
+		_player.call("set_look_sensitivity_multipliers", horizontal_sensitivity_slider.value, value)
 
 func _on_fov_changed(value: float) -> void:
 	if _player != null:
@@ -253,7 +285,14 @@ func _semantic_action_label(action_id: StringName) -> String:
 		&"vw_move_back": return "Back"
 		&"vw_move_left": return "Left"
 		&"vw_move_right": return "Right"
+		&"vw_look_left": return "Look left"
+		&"vw_look_right": return "Look right"
+		&"vw_look_up": return "Look up"
+		&"vw_look_down": return "Look down"
 		&"vw_observe": return "Observe"
+		&"vw_settings": return "Settings"
+		&"vw_pointer_capture": return "Capture pointer"
+		&"vw_cancel": return "Cancel / release"
 	return String(action_id)
 
 func _publish_feedback_event(event_type: StringName, producer_semantic_id: String, cue_class: StringName, scalar: float) -> void:
