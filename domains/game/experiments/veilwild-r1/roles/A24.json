@@ -1,0 +1,37 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A24",
+    "fronts": [
+      {
+        "id": "F26",
+        "name": "Rights / Provenance"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-C12",
+        "name": "Rights / Provenance",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "selected build contributions have defensible origin/license/modification/build inclusion"
+      }
+    ],
+    "mission": "Own rights/provenance traceability for selected research/assets/tools/build contributions. Do not collapse provenance evidence into product-quality judgment.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

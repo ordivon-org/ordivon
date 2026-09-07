@@ -328,391 +328,488 @@
   "edges": [
     {
       "from": "V-A1",
-      "to": "V-A2"
+      "to": "V-A2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-A2",
-      "to": "V-A3"
+      "to": "V-A3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-A2",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-A3",
-      "to": "V-A4"
+      "to": "V-A4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-A3",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-A4",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C1",
-      "to": "V-C12"
+      "to": "V-C12",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C1",
-      "to": "V-C2"
+      "to": "V-C2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C10",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C10",
-      "to": "V-H1"
+      "to": "V-H1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C11",
-      "to": "V-H2"
+      "to": "V-H2",
+      "edgeType": "ADMISSION_INPUT"
     },
     {
       "from": "V-C12",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C13",
-      "to": "V-C1"
+      "to": "V-C1",
+      "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
       "from": "V-C13",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
       "from": "V-C14",
-      "to": "V-C5"
+      "to": "V-C5",
+      "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
       "from": "V-C14",
-      "to": "V-C6"
+      "to": "V-C6",
+      "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
       "from": "V-C14",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "SUPPORTS_OR_REPAIRS"
     },
     {
       "from": "V-C2",
-      "to": "V-C3"
+      "to": "V-C3",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C3",
-      "to": "V-C4"
+      "to": "V-C4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C4",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-C5",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C6",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C7",
-      "to": "V-C8"
+      "to": "V-C8",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C8",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C9",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-C9",
-      "to": "V-H2"
+      "to": "V-H2",
+      "edgeType": "ADMISSION_INPUT"
     },
     {
       "from": "V-G1",
-      "to": "V-G2"
+      "to": "V-G2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G1",
-      "to": "V-G3"
+      "to": "V-G3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G1",
-      "to": "V-G5"
+      "to": "V-G5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G1",
-      "to": "V-K1"
+      "to": "V-K1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G1",
-      "to": "V-V1"
+      "to": "V-V1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G2",
-      "to": "V-A1"
+      "to": "V-A1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G2",
-      "to": "V-G6"
+      "to": "V-G6",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G2",
-      "to": "V-R2"
+      "to": "V-R2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G2",
-      "to": "V-R5"
+      "to": "V-R5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G3",
-      "to": "V-G4"
+      "to": "V-G4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G3",
-      "to": "V-R4"
+      "to": "V-R4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G3",
-      "to": "V-S1"
+      "to": "V-S1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G4",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G4",
-      "to": "V-R3"
+      "to": "V-R3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G5",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G5",
-      "to": "V-R2"
+      "to": "V-R2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G5",
-      "to": "V-S2"
+      "to": "V-S2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G5",
-      "to": "V-V2"
+      "to": "V-V2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-G6",
-      "to": "V-C11"
+      "to": "V-C11",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-G6",
-      "to": "V-H1"
+      "to": "V-H1",
+      "edgeType": "FEEDBACK_OR_EVIDENCE_UPDATE"
     },
     {
       "from": "V-H1",
-      "to": "V-H2"
+      "to": "V-H2",
+      "edgeType": "FEEDBACK_OR_EVIDENCE_UPDATE"
     },
     {
       "from": "V-H2",
-      "to": "V-G2"
+      "to": "V-G2",
+      "edgeType": "FEEDBACK_OR_EVIDENCE_UPDATE"
     },
     {
       "from": "V-K1",
-      "to": "V-A2"
+      "to": "V-A2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-K1",
-      "to": "V-H2"
+      "to": "V-H2",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-K1",
-      "to": "V-S1"
+      "to": "V-S1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-K1",
-      "to": "V-V3"
+      "to": "V-V3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-K1",
-      "to": "V-V5"
+      "to": "V-V5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-K1",
-      "to": "V-V7"
+      "to": "V-V7",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R1",
-      "to": "V-C10"
+      "to": "V-C10",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R1",
-      "to": "V-C5"
+      "to": "V-C5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R1",
-      "to": "V-C6"
+      "to": "V-C6",
+      "edgeType": "VALIDATION_INPUT"
     },
     {
       "from": "V-R1",
-      "to": "V-C7"
+      "to": "V-C7",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R1",
-      "to": "V-C9"
+      "to": "V-C9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R2",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R2",
-      "to": "V-V10"
+      "to": "V-V10",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R3",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R4",
-      "to": "V-H1"
+      "to": "V-H1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R4",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-R5",
-      "to": "V-H1"
+      "to": "V-H1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S1",
-      "to": "V-A2"
+      "to": "V-A2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S1",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S1",
-      "to": "V-S3"
+      "to": "V-S3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S1",
-      "to": "V-V6"
+      "to": "V-V6",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S1",
-      "to": "V-V9"
+      "to": "V-V9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S2",
-      "to": "V-S1"
+      "to": "V-S1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S2",
-      "to": "V-S3"
+      "to": "V-S3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S2",
-      "to": "V-V9"
+      "to": "V-V9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S3",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S3",
-      "to": "V-S4"
+      "to": "V-S4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-S4",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V1",
-      "to": "V-R4"
+      "to": "V-R4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V1",
-      "to": "V-V2"
+      "to": "V-V2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V1",
-      "to": "V-V3"
+      "to": "V-V3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V1",
-      "to": "V-V7"
+      "to": "V-V7",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V1",
-      "to": "V-V8"
+      "to": "V-V8",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V10",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V2",
-      "to": "V-C2"
+      "to": "V-C2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V2",
-      "to": "V-S2"
+      "to": "V-S2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V2",
-      "to": "V-S3"
+      "to": "V-S3",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V2",
-      "to": "V-S4"
+      "to": "V-S4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V2",
-      "to": "V-V8"
+      "to": "V-V8",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V3",
-      "to": "V-C2"
+      "to": "V-C2",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V3",
-      "to": "V-V4"
+      "to": "V-V4",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V3",
-      "to": "V-V7"
+      "to": "V-V7",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V4",
-      "to": "V-V5"
+      "to": "V-V5",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V5",
-      "to": "V-V6"
+      "to": "V-V6",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V6",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V7",
-      "to": "V-V9"
+      "to": "V-V9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V8",
-      "to": "V-V9"
+      "to": "V-V9",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V9",
-      "to": "V-R1"
+      "to": "V-R1",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     },
     {
       "from": "V-V9",
-      "to": "V-V10"
+      "to": "V-V10",
+      "edgeType": "PRODUCTION_OR_SEMANTIC_DEPENDENCY"
     }
   ],
   "fronts": {
@@ -912,5 +1009,103 @@
     "A21 combines instrumentation and Human protocol design because both own evidence-shape preparation; a real Human participant remains an external evidence source and cannot be simulated by A21.",
     "A17 combines Engine Integration with Camera/Input/UI runtime plumbing because these have the highest direct runtime coupling, while A02 retains independent Player Experience / Session / Onboarding judgment.",
     "A19 combines Build/Reproducibility with the Workstation/Engineering repair router; it may route constituent defects but must not absorb specialist semantic ownership."
-  ]
+  ],
+  "executionProtocol": {
+    "phase0": {
+      "name": "Common baseline / source-current admission",
+      "agents": "A01-A24",
+      "peerCurrentRoundRead": false,
+      "outputs": [
+        "baseline acknowledgement",
+        "lane scope check"
+      ]
+    },
+    "phase1": {
+      "name": "Independent first verdict / interface forecast",
+      "agents": "A01-A24",
+      "peerCurrentRoundRead": false,
+      "outputs": [
+        "frozen first verdict",
+        "falsifiers",
+        "expected interfaces",
+        "blocker forecast"
+      ]
+    },
+    "phase2a": {
+      "name": "Upstream product/knowledge/design production",
+      "agents": [
+        "A01",
+        "A02",
+        "A03",
+        "A04"
+      ],
+      "peerCurrentRoundRead": "interfaces-only after phase1 freeze"
+    },
+    "phase2b": {
+      "name": "Parallel specialist production",
+      "agents": [
+        "A05",
+        "A06",
+        "A10",
+        "A11",
+        "A13",
+        "A15",
+        "A22",
+        "A24"
+      ],
+      "peerCurrentRoundRead": "declared interfaces and upstream handoffs only"
+    },
+    "phase2c": {
+      "name": "Dependent production / realization",
+      "agents": [
+        "A07",
+        "A08",
+        "A09",
+        "A12",
+        "A14",
+        "A16"
+      ],
+      "peerCurrentRoundRead": "declared producer handoffs only"
+    },
+    "phase2d": {
+      "name": "Runtime / interchange / build integration",
+      "agents": [
+        "A17",
+        "A18",
+        "A19",
+        "A21"
+      ],
+      "peerCurrentRoundRead": "validated handoffs only"
+    },
+    "phase3": {
+      "name": "Exact-condition performance and system evaluation",
+      "agents": [
+        "A20"
+      ],
+      "peerCurrentRoundRead": "frozen integration candidate + exact condition"
+    },
+    "phase4": {
+      "name": "Independent product falsification / release-style adjudication",
+      "agents": [
+        "A23"
+      ],
+      "peerCurrentRoundRead": "frozen integration candidate and receipts; no producer scratchpads"
+    },
+    "phase5": {
+      "name": "Repair/replay waves",
+      "agents": "owner-correct dynamic",
+      "peerCurrentRoundRead": "only defect receipts/interfaces needed for repair"
+    },
+    "phase6": {
+      "name": "Human-playtest-ready admission / real Human evidence when available",
+      "agents": [
+        "A02",
+        "A21",
+        "A22",
+        "A23"
+      ],
+      "peerCurrentRoundRead": "frozen candidate/protocol/evidence only",
+      "humanParticipant": "external real Human; never simulated by an Agent"
+    }
+  }
 }

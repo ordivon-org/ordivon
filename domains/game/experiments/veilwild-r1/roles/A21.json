@@ -1,0 +1,49 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A21",
+    "fronts": [
+      {
+        "id": "F22",
+        "name": "Telemetry / Evidence Instrumentation"
+      },
+      {
+        "id": "F24",
+        "name": "Human Playtest Protocol / UX Research Readiness"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-C9",
+        "name": "Telemetry / Evidence Capture",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "runtime events become durable condition-bound evidence for attribution"
+      },
+      {
+        "id": "V-H2",
+        "name": "Human Playtest",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "frozen build/question exposed to real participant yields admissible Human evidence"
+      }
+    ],
+    "mission": "Own telemetry/evidence instrumentation and Human playtest protocol/readiness preparation. You are not a Human participant.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [
+      "Do not simulate Human participant evidence."
+    ],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

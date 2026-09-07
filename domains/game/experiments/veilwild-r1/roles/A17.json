@@ -1,0 +1,65 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A17",
+    "fronts": [
+      {
+        "id": "F17",
+        "name": "Engine Integration"
+      },
+      {
+        "id": "F18",
+        "name": "Camera / Input / UI Feedback"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-R1",
+        "name": "Engine Integration",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "all constitutive semantics/assets/systems exist in one playable Godot condition"
+      },
+      {
+        "id": "V-G4",
+        "name": "Interaction / Controls",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "intentional input produces locomotion/look/observe consequences"
+      },
+      {
+        "id": "V-R2",
+        "name": "Camera",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "camera supports search/observation readability and comfort"
+      },
+      {
+        "id": "V-R3",
+        "name": "Input / Device",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "selected device input reaches actual game actions"
+      },
+      {
+        "id": "V-R4",
+        "name": "UI / Feedback",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "game state produces understandable non-spoiling feedback"
+      }
+    ],
+    "mission": "Own Godot integration plus camera/input/UI runtime plumbing. Consume specialist truth; do not redefine creative or Human semantics to ease integration.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

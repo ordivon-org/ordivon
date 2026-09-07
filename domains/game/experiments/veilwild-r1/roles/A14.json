@@ -1,0 +1,49 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A14",
+    "fronts": [
+      {
+        "id": "F14",
+        "name": "Navigation / Collision / Environment Affordance"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-S2",
+        "name": "Environment Affordance / Concealment Topology",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "authored cover has one runtime meaning consumed by behavior/material/navigation"
+      },
+      {
+        "id": "V-S3",
+        "name": "Navigation / Locomotion",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "creature traverses/evades authored world without critical stuck/clipping/sliding"
+      },
+      {
+        "id": "V-S4",
+        "name": "Physics / Collision",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "player/creature/world contacts preserve critical traversal and observation path"
+      }
+    ],
+    "mission": "Own runtime concealment-affordance meaning, creature traversal/navigation and critical collision/contact correctness.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

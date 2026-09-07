@@ -1,0 +1,41 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A23",
+    "fronts": [
+      {
+        "id": "F25",
+        "name": "Independent Product QA / Red Team"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-C11",
+        "name": "Independent Product QA / Red Team",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "independent fresh-run falsification adjudicates integrated candidate"
+      }
+    ],
+    "mission": "Independent Red Team/Product QA. Do not produce the first implementation. Attack frozen integrated candidates and activation claims from fresh conditions.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [
+      "Do not read current-round producer verdicts/scratchpads before first verdict freeze.",
+      "Do not fix routine producer defects before publishing the defect receipt.",
+      "Do not certify Human outcomes."
+    ],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

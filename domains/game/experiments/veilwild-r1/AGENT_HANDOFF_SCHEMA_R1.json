@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Veilwild R1 Agent Handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "campaignId",
+    "agentId",
+    "frontIds",
+    "exactBaseline",
+    "firstVerdict",
+    "interfaces",
+    "artifacts",
+    "validation",
+    "blockers",
+    "standing",
+    "knownLimitations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "veilwild.agent-handoff.r1"
+    },
+    "campaignId": {
+      "const": "veilwild-r1"
+    },
+    "agentId": {
+      "type": "string",
+      "pattern": "^A(0[1-9]|1[0-9]|2[0-4])$"
+    },
+    "frontIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^F(0[1-9]|1[0-9]|2[0-7])$"
+      }
+    },
+    "exactBaseline": {
+      "type": "string",
+      "minLength": 7
+    },
+    "workspaceId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "firstVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frozen",
+        "recommendation",
+        "currentStanding",
+        "topFalsifiers",
+        "expectedInputs",
+        "expectedOutputs",
+        "highestRiskBoundaryAssumption"
+      ],
+      "properties": {
+        "frozen": {
+          "const": true
+        },
+        "recommendation": {
+          "enum": [
+            "PROCEED",
+            "PROCEED_WITH_CONSTRAINTS",
+            "REQUIRES_REPAIR",
+            "SCOPE_SPLIT_REQUIRED",
+            "BLOCKED_BY_AUTHORITY_OR_APPARATUS"
+          ]
+        },
+        "currentStanding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topFalsifiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedInputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedOutputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "highestRiskBoundaryAssumption": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "semanticMeaning",
+          "representation",
+          "consumers",
+          "oracle"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "semanticMeaning": {
+            "type": "string"
+          },
+          "representation": {
+            "type": "string"
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "oracle": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failureModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pathOrIdentity",
+          "artifactClass",
+          "authority"
+        ],
+        "properties": {
+          "pathOrIdentity": {
+            "type": "string"
+          },
+          "artifactClass": {
+            "enum": [
+              "AUTHORITATIVE_EDITABLE_SOURCE",
+              "DERIVED_INTERCHANGE",
+              "DERIVED_RUNTIME_COPY",
+              "BUILD_ARTIFACT",
+              "EVIDENCE_ARTIFACT",
+              "DOCUMENTATION_ONLY"
+            ]
+          },
+          "authority": {
+            "type": "string"
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "oracle",
+          "result"
+        ],
+        "properties": {
+          "oracle": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "INCONCLUSIVE",
+              "NOT_RUN"
+            ]
+          },
+          "condition": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "consequence",
+          "ownerHypothesis",
+          "severity"
+        ],
+        "properties": {
+          "consequence": {
+            "type": "string"
+          },
+          "ownerHypothesis": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "reproduction": {
+            "type": "string"
+          },
+          "failingOracle": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "standing": {
+      "enum": [
+        "NOT_OBSERVED",
+        "APPARATUS_ONLY",
+        "PROTOTYPED_LOCAL",
+        "SUPPORTED_WITHIN_SCOPE",
+        "INDEPENDENTLY_VERIFIED_WITHIN_SCOPE",
+        "CONTRADICTED",
+        "INCONCLUSIVE"
+      ]
+    },
+    "knownLimitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "humanClaims": {
+      "type": "object",
+      "properties": {
+        "fun": {
+          "const": "UNKNOWN"
+        },
+        "immersion": {
+          "const": "UNKNOWN"
+        },
+        "believability": {
+          "const": "UNKNOWN"
+        },
+        "detectability": {
+          "const": "UNKNOWN"
+        },
+        "cueUsefulness": {
+          "const": "UNKNOWN"
+        },
+        "fairness": {
+          "const": "UNKNOWN"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

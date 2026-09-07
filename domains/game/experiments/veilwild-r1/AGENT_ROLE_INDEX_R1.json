@@ -1,0 +1,152 @@
+{
+  "schema": "veilwild.agent-role-index.r1",
+  "roles": {
+    "A01": {
+      "path": "roles/A01.json",
+      "fronts": [
+        "F01"
+      ]
+    },
+    "A02": {
+      "path": "roles/A02.json",
+      "fronts": [
+        "F02"
+      ]
+    },
+    "A03": {
+      "path": "roles/A03.json",
+      "fronts": [
+        "F03"
+      ]
+    },
+    "A04": {
+      "path": "roles/A04.json",
+      "fronts": [
+        "F04"
+      ]
+    },
+    "A05": {
+      "path": "roles/A05.json",
+      "fronts": [
+        "F05"
+      ]
+    },
+    "A06": {
+      "path": "roles/A06.json",
+      "fronts": [
+        "F06"
+      ]
+    },
+    "A07": {
+      "path": "roles/A07.json",
+      "fronts": [
+        "F07"
+      ]
+    },
+    "A08": {
+      "path": "roles/A08.json",
+      "fronts": [
+        "F08"
+      ]
+    },
+    "A09": {
+      "path": "roles/A09.json",
+      "fronts": [
+        "F09"
+      ]
+    },
+    "A10": {
+      "path": "roles/A10.json",
+      "fronts": [
+        "F10"
+      ]
+    },
+    "A11": {
+      "path": "roles/A11.json",
+      "fronts": [
+        "F11"
+      ]
+    },
+    "A12": {
+      "path": "roles/A12.json",
+      "fronts": [
+        "F12"
+      ]
+    },
+    "A13": {
+      "path": "roles/A13.json",
+      "fronts": [
+        "F13"
+      ]
+    },
+    "A14": {
+      "path": "roles/A14.json",
+      "fronts": [
+        "F14"
+      ]
+    },
+    "A15": {
+      "path": "roles/A15.json",
+      "fronts": [
+        "F15"
+      ]
+    },
+    "A16": {
+      "path": "roles/A16.json",
+      "fronts": [
+        "F16"
+      ]
+    },
+    "A17": {
+      "path": "roles/A17.json",
+      "fronts": [
+        "F17",
+        "F18"
+      ]
+    },
+    "A18": {
+      "path": "roles/A18.json",
+      "fronts": [
+        "F19"
+      ]
+    },
+    "A19": {
+      "path": "roles/A19.json",
+      "fronts": [
+        "F20",
+        "F27"
+      ]
+    },
+    "A20": {
+      "path": "roles/A20.json",
+      "fronts": [
+        "F21"
+      ]
+    },
+    "A21": {
+      "path": "roles/A21.json",
+      "fronts": [
+        "F22",
+        "F24"
+      ]
+    },
+    "A22": {
+      "path": "roles/A22.json",
+      "fronts": [
+        "F23"
+      ]
+    },
+    "A23": {
+      "path": "roles/A23.json",
+      "fronts": [
+        "F25"
+      ]
+    },
+    "A24": {
+      "path": "roles/A24.json",
+      "fronts": [
+        "F26"
+      ]
+    }
+  }
+}

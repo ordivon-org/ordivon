@@ -1,0 +1,51 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A01",
+    "fronts": [
+      {
+        "id": "F01",
+        "name": "Product / Creative / Core Loop"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-G1",
+        "name": "Product / Creative Direction",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "one coherent thesis-scoped integrated slice"
+      },
+      {
+        "id": "V-G3",
+        "name": "Core Loop / Mechanics",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "tracking/detection/approach/observation plus recoverable evasion path reachable"
+      },
+      {
+        "id": "V-G5",
+        "name": "World / Level / Encounter",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "authored habitat carries traversal, information, concealment and encounter structure"
+      }
+    ],
+    "mission": "Own product thesis, scope discipline, core-loop semantics and integration-level product conflicts. Do not absorb specialist implementation authority.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [
+      "Do not centralize specialist implementation merely because you integrate."
+    ],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

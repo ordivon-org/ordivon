@@ -1,0 +1,43 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A12",
+    "fronts": [
+      {
+        "id": "F12",
+        "name": "Camouflage Shader / Rendering"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-V9",
+        "name": "Shader / Camouflage Rendering",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "camouflage compiles/executes and responds to state/environment without invisibility collapse"
+      },
+      {
+        "id": "V-V10",
+        "name": "Rendering",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "scene/material/light/camera produce correct frames under exact runtime condition"
+      }
+    ],
+    "mission": "Own camouflage shader/render execution and mechanical rendering falsifiers; never claim Human detectability from synthetic proxies.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A24 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}
