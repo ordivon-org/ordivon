@@ -1,0 +1,249 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://player/player_ui.gd" id="1_ui"]
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+bg_color = Color(0.035, 0.045, 0.045, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.8, 0.76, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[node name="PlayerUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_ui")
+
+[node name="OnboardingPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 28.0
+offset_top = 28.0
+offset_right = 930.0
+offset_bottom = 150.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="OnboardingText" type="Label" parent="OnboardingPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 2
+text = "Move / Look / Observe controls loading…"
+
+[node name="FeedbackPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -180.0
+offset_right = 300.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="FeedbackBox" type="VBoxContainer" parent="FeedbackPanel"]
+layout_mode = 2
+
+[node name="FeedbackText" type="Label" parent="FeedbackPanel/FeedbackBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+
+[node name="ObservationProgress" type="ProgressBar" parent="FeedbackPanel/FeedbackBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+min_value = 0.0
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="SettingsPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -450.0
+offset_top = -350.0
+offset_right = 450.0
+offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="SettingsBox" type="VBoxContainer" parent="SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SettingsTitle" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Controls & Camera"
+
+[node name="SettingsHelp" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 2
+text = "Keyboard: Tab/Shift+Tab moves focus. Enter/Space activates. Escape closes. Remap buttons capture one physical key."
+
+[node name="SensitivityLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Look sensitivity (50%–200%)"
+
+[node name="SensitivitySlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+min_value = 0.5
+max_value = 2.0
+step = 0.05
+value = 1.0
+
+[node name="FovLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Field of view (60°–100°)"
+
+[node name="FovSlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+min_value = 60.0
+max_value = 100.0
+step = 1.0
+value = 70.0
+
+[node name="InvertXCheck" type="CheckBox" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Invert horizontal look"
+
+[node name="InvertYCheck" type="CheckBox" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Invert vertical look"
+
+[node name="ObserveModeLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Observe activation"
+
+[node name="ObserveMode" type="OptionButton" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="UiScaleLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "UI/text scale (100%–200%)"
+
+[node name="UiScaleSlider" type="HSlider" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+min_value = 1.0
+max_value = 2.0
+step = 0.1
+value = 1.0
+
+[node name="RemapLabel" type="Label" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Semantic action remap"
+
+[node name="RemapRow1" type="HBoxContainer" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+
+[node name="RemapForward" type="Button" parent="SettingsPanel/SettingsBox/RemapRow1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Forward"
+
+[node name="RemapBack" type="Button" parent="SettingsPanel/SettingsBox/RemapRow1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Back"
+
+[node name="RemapRow2" type="HBoxContainer" parent="SettingsPanel/SettingsBox"]
+layout_mode = 2
+
+[node name="RemapLeft" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Left"
+
+[node name="RemapRight" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Right"
+
+[node name="RemapObserve" type="Button" parent="SettingsPanel/SettingsBox/RemapRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Observe"
+
+[node name="CloseSettingsButton" type="Button" parent="SettingsPanel/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Close"
