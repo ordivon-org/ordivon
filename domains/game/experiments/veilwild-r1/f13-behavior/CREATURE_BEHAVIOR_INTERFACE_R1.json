@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "veilwild.f13-creature-behavior-interface.r1",
+  "status": "PROVISIONAL_PRODUCT_INTERFACE_PENDING_UPSTREAM_BINDINGS",
+  "producerFront": "F13",
+  "ownerAgent": "A13",
+  "baseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "semanticMeaning": "Deterministic creature perception/state policy that converts bounded player/environment observations into behavior state plus consumer-facing gameplay intents. It does not own pathfinding, cover geometry, animation blending, shader implementation, audio selection, engine integration, or telemetry transport.",
+  "states": [
+    {"name": "UNAWARE", "meaning": "No sustained perceived threat; baseline idle/forage semantics may be mapped downstream."},
+    {"name": "ORIENT", "meaning": "A meaningful stimulus has been acquired; orient/track while threat is below freeze/evade consequence."},
+    {"name": "FREEZE", "meaning": "Threat is material but no accepted concealment/escape consequence is currently available; suppress locomotion while evaluating."},
+    {"name": "CONCEAL", "meaning": "Use or maintain a declared concealment opportunity and raise concealment/camouflage intent without claiming invisibility."},
+    {"name": "EVADE", "meaning": "Threat is high and a downstream-valid escape traversal is available; request escape movement away from threat."},
+    {"name": "RECOVER", "meaning": "Threat has decayed after a defensive state; reassess before returning to UNAWARE."}
+  ],
+  "inputs": {
+    "player_distance_m": "non-negative meters from caller-declared threat source",
+    "line_of_sight": "bounded boolean visibility observation; F13 does not infer through occluders",
+    "visual_exposure": "0..1 current visual observation strength",
+    "player_motion": "0..1 visible motion strength",
+    "observation_pressure": "0..1 explicit player observation/approach pressure supplied by the integrated player/core-loop contract",
+    "nonvisual_stimulus": "optional 0..1 nonvisual perception input; exact source meaning remains consumer/producer-bound",
+    "concealment_available": "temporary adapter boolean meaning that F14 can supply at least one legal concealment affordance; NOT the authoritative F14 representation",
+    "concealment_quality": "temporary 0..1 adapter field reserved for F14-selected affordance quality; current policy does not reinterpret geometry",
+    "escape_available": "temporary adapter boolean meaning F14 can satisfy an escape traversal request; NOT pathfinding ownership"
+  },
+  "outputs": {
+    "state_name": "stable state vocabulary for F09/F12/F16/F17/F22 consumers",
+    "transition_reason_name": "mechanical reason for the latest state change",
+    "awareness": "0..1 deterministic internal perception accumulator",
+    "threat": "0..1 deterministic threat pressure used by this policy",
+    "nav_intent.action": "NONE | FACE_THREAT | HOLD_POSITION | SEEK_OR_MAINTAIN_CONCEALMENT | EVADE_FROM_THREAT | HOLD_OR_SLOW_REPOSITION",
+    "nav_intent.target_semantics": "semantic request only; F14 owns legal path/affordance realization",
+    "orientation_intent": "semantic orientation request consumed by downstream motion/integration",
+    "camouflage_drive": "0..1 concealment intent for F12; shader/material mapping remains F12 ownership"
+  },
+  "consumerFronts": ["F09", "F12", "F14", "F16", "F17", "F22"],
+  "preconditions": [
+    "Caller values must be bound to the exact integrated condition rather than hidden omniscient state.",
+    "F14 must eventually replace the temporary concealment_available/concealment_quality/escape_available adapter expectations with its exact authoritative representation or an explicit adapter.",
+    "A01/A02/A03 may change thresholds or product meaning; fixture defaults are not Human-balanced claims."
+  ],
+  "consumerVisibleFailureModes": [
+    "state thrashing near thresholds",
+    "EVADE emitted when no legal escape traversal exists",
+    "private F13 cover semantics diverge from F14",
+    "state changes without downstream gameplay consequence",
+    "consumer mappings drift from the state vocabulary",
+    "same input sequence produces non-replayable decision traces"
+  ],
+  "validationOracle": "Under deterministic fixtures, player/environment perception causes reproducible ORIENT/FREEZE/CONCEAL/EVADE/RECOVER consequences; EVADE is gated on downstream escape availability; no private path or cover geometry is invented; same input sequence replays identically.",
+  "compatibility": "DRAFT_COMPATIBLE_FOR_CONSUMER_IMPLEMENTATION; upstream semantic and F14 representation bindings still required before integrated standing can exceed PROTOTYPED_LOCAL."
+}
