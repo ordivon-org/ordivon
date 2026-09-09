@@ -1,6 +1,6 @@
 # Ordivon Harness P1 reusable knowledge / procedural capital closeout
 
-> **Historical implementation evidence:** This document records the P1 cross-Run cognition/procedural-capital experiment. Current product boundaries live in [`../README.md`](../README.md), [`STATUS.md`](STATUS.md), [`COMPATIBILITY.md`](COMPATIBILITY.md), and [`authority.md`](authority.md).
+> **Historical implementation evidence:** This document records the P1 cross-Run cognition/procedural-capital experiment and its then-current `knowledge_topology` wrapper. That wrapper has since been retired after a cross-repository census found no production consumers; current cross-Run reuse is external-owner source verification followed by direct `HarnessCognitionSeedSource` admission. Current product boundaries live in [`../README.md`](../README.md), [`STATUS.md`](STATUS.md), [`COMPATIBILITY.md`](COMPATIBILITY.md), and [`authority.md`](authority.md).
 
 ## Question
 

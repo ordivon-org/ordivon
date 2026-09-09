@@ -8,16 +8,11 @@ from ordivon_harness.completion import (
     encode_structured_completion_result,
 )
 from ordivon_harness.core_contracts import STRUCTURED_COMPLETION_MODE
-from ordivon_harness.knowledge_topology import (
-    HarnessReusableCognitionReference,
-    HarnessReusableCognitionSelection,
-    compile_reusable_cognition_seed,
-)
+from ordivon_harness.standalone import HarnessCognitionSeed, HarnessCognitionSeedSource
 from ordivon_harness.ordivon.model import AgentRunConclusion
 from ordivon_harness.working_view import HarnessWorkingViewSource
 
 from tests.test_p0_core_contracts import contract
-from tests.test_p1_reusable_cognition import StaticResolver
 
 
 PROCEDURE_RESULT_SCHEMA = {
@@ -74,7 +69,7 @@ def candidate_result() -> dict[str, object]:
 def external_promote(
     contract_value,
     conclusion: AgentRunConclusion,
-) -> tuple[HarnessWorkingViewSource, HarnessReusableCognitionReference]:
+) -> HarnessWorkingViewSource:
     """Fixture for an external evaluator/promoter, intentionally not Harness code."""
 
     if conclusion.status != "candidate_completed" or conclusion.unresolved_unknowns:
@@ -99,13 +94,10 @@ def external_promote(
             },
         ),
     )
-    reference = HarnessReusableCognitionReference(
-        role="procedure",
-        logical_ref=source.logical_ref,
-        logical_generation=source.logical_generation,
-        source_digest=source.digest,
-    )
-    return source, reference
+    # The external owner is the authority for canonical identity/currentness. Harness
+    # receives the exact selected source directly; its digest remains available to the
+    # owner for external fencing without a Harness-owned reusable-reference ontology.
+    return source
 
 
 class ProceduralCapitalP1Tests(unittest.TestCase):
@@ -125,20 +117,15 @@ class ProceduralCapitalP1Tests(unittest.TestCase):
             decode_structured_completion_result(run_contract, conclusion),
             result,
         )
-        source, reference = external_promote(run_contract, conclusion)
-        seed = compile_reusable_cognition_seed(
+        source = external_promote(run_contract, conclusion)
+        externally_bound_digest = source.digest
+        seed = HarnessCognitionSeed(
             attempt_id="working-attempt:p1-future",
-            selections=(
-                HarnessReusableCognitionSelection(
-                    slot="procedure",
-                    reference=reference,
-                ),
-            ),
+            sources=(HarnessCognitionSeedSource(slot="procedure", source=source),),
             basis="external evaluator promoted one evidence-backed procedure candidate",
-            resolver=StaticResolver(source),
         )
         self.assertEqual(seed.sources[0].source, source)
-        self.assertEqual(reference.source_digest, source.digest)
+        self.assertEqual(seed.sources[0].source.digest, externally_bound_digest)
 
     def test_unresolved_candidate_is_not_automatically_promoted(self) -> None:
         run_contract = procedure_candidate_contract("unresolved")

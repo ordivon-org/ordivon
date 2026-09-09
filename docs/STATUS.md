@@ -96,7 +96,7 @@ The following conclusions survive into current behavior:
 - **Tool-surface optimization is not semantic policy** — pruning that can hide the correct action requires Agent-owned recovery or it changes meaning;
 - **Provider wire state may exceed semantic messages** — current Harness does not turn that fact into a generic opaque-continuation authority; Provider-local continuation remains outside the contracted core unless direct evidence earns a bounded surface;
 - **deliberation-before-Tool composition is not automatically the recommended core** — it remains an advanced/internal composition until independent consumer pressure justifies promotion;
-- **no generic Memory/RAG/Skill store was earned** — exact external reusable sources plus WorkingSet selection and existing structured CompletionProposal evidence are sufficient for current cross-Run knowledge/procedure workloads; semantic evaluation and promotion remain external.
+- **no generic Memory/RAG/Skill or reusable-reference topology subsystem was earned** — external owners verify/select exact `HarnessWorkingViewSource` values and pass them through the existing cognition-seed path; semantic evaluation, promotion, canonical identity and currentness remain external.
 
 The exact P/R/H/X experiment chronology remains evidence, not a prerequisite for using Harness.
 
