@@ -109,6 +109,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/tool_semantics.py",
     "ordivon_harness/host_external_adapter.py",
     "ordivon_harness/host.py",
     "ordivon_harness/host_api.py",
@@ -176,7 +177,7 @@ def validate_archive(wheel: Path) -> str:
             fail("wheel lacks required modules: " + ", ".join(missing))
         forbidden = sorted(FORBIDDEN_MEMBERS & names)
         if forbidden:
-            fail("wheel still contains Host-backed modules: " + ", ".join(forbidden))
+            fail("wheel still contains retired modules: " + ", ".join(forbidden))
         metadata = BytesParser(policy=policy.default).parsebytes(archive.read(metadata_names[0]))
         entries = archive.read(entry_names[0]).decode()
     if metadata.get("Name") != project["name"] or metadata.get("Version") != project["version"]:

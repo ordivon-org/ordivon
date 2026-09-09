@@ -38,6 +38,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         self.assertFalse(observed["hasSqliteStore"])
         self.assertFalse(observed["hasProviderCodec"])
 
+    def test_retired_tool_semantics_module_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'toolSemanticsSpec':importlib.util.find_spec('ordivon_harness.tool_semantics') is not None}))"
+        )
+        self.assertFalse(observed["toolSemanticsSpec"])
+
     def test_package_root_has_no_host_compatibility_exports(self) -> None:
         observed = self.run_probe(
             "import json,sys,ordivon_harness; "

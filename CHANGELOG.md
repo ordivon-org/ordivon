@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- deleted the zero-consumer `ordivon_harness.tool_semantics` module, including the Host-era `NativeToolCatalogSnapshot`, `NativeToolSpec`, recovery-rank table and native Tool semantic switch; exact current-source and cross-repository searches found no code consumer, package export or current runtime dependency. Historical design documents remain unchanged as evidence, while the wheel gate now rejects stale generated copies of the retired module.
+
 - retired the unused caller-neutral Provider Call v2 typed codec and export after an estate-wide falsifier found zero v2 records in the authoritative S0 freeze, no current code consumers, and 66 older v2 objects only in 23 completed mechanism-density experiment roots where every v2 record is a superseded CLAIMED/DISPATCHING event and none is the current Provider head; all 23 roots remain readable through store doctor/events/inspect/status without the v2 codec, while the exact v3 historical reader and current v4 writer remain.
 
 - replaced DeepSeek's hand-owned socket lifecycle with pinned `httpx==0.28.1` async transport while preserving Harness authority: request bytes and Provider identity remain caller-owned, responses use undecoded `aiter_raw()` under the existing byte bound, HTTP status/timeout/cancellation mappings remain unchanged, retries and redirects remain disabled, inherited environment routing is disabled, and each cancellable handle drains its task and async generators before completion; localhost wire tests cover both cancellation phases and failure mappings, while an independent CONNECT/TLS probe proved the loopback proxy sees only the tunnel authority rather than credentials or body;

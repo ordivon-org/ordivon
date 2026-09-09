@@ -47,6 +47,8 @@ Current writers own only independent Harness state: `HarnessRunContract`, Run pr
 
 Pre-H3 Host-backed state is not a current compatibility obligation. Historical receipts remain evidence of the implementation that produced them; they are not a decoder requirement for H3.
 
+The former `ordivon_harness.tool_semantics` / `NativeToolCatalogSnapshot` line is also retired from current code. An exact current-source and cross-repository consumer census found no imports or callers; its remaining mentions are historical design/closeout documentation. Runtime Tool admission, correlation, idempotency and effect semantics now come from the retained caller/tool contracts and Runtime-facing execution paths rather than a parallel Harness-owned native Tool catalog.
+
 Current Provider Call writes use schema v4. Schema v3 remains a narrow typed historical reader because the authoritative S0 freeze contains live historical v3 objects. The earlier caller-neutral schema-v2 typed codec is retired: the current estate scan found no v2 object in the S0 freeze and no current Provider head or code consumer requiring it. Older completed experiment roots may still retain immutable v2 CAS bytes and their event references; generic store doctor/events/inspect/status continue to read those Runs without reinterpreting or deleting those historical bytes.
 
 Schema-v1 caller-neutral `HarnessRunContract` keeps one narrow compatibility rule
