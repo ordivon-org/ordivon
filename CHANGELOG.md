@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- deleted the zero-consumer `ordivon_harness.subprocess_lifecycle` helper after exact current-source and cross-repository searches found no import, caller, package export or persisted-data obligation; the former bounded subprocess cleanup implementation was dead code, and the wheel gate now rejects stale generated copies instead of preserving it as a compatibility surface.
+
 - deleted the zero-consumer `ordivon_harness.tool_semantics` module, including the Host-era `NativeToolCatalogSnapshot`, `NativeToolSpec`, recovery-rank table and native Tool semantic switch; exact current-source and cross-repository searches found no code consumer, package export or current runtime dependency. Historical design documents remain unchanged as evidence, while the wheel gate now rejects stale generated copies of the retired module.
 
 - retired the unused caller-neutral Provider Call v2 typed codec and export after an estate-wide falsifier found zero v2 records in the authoritative S0 freeze, no current code consumers, and 66 older v2 objects only in 23 completed mechanism-density experiment roots where every v2 record is a superseded CLAIMED/DISPATCHING event and none is the current Provider head; all 23 roots remain readable through store doctor/events/inspect/status without the v2 codec, while the exact v3 historical reader and current v4 writer remain.

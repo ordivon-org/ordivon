@@ -109,6 +109,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/subprocess_lifecycle.py",
     "ordivon_harness/tool_semantics.py",
     "ordivon_harness/host_external_adapter.py",
     "ordivon_harness/host.py",

@@ -38,6 +38,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         self.assertFalse(observed["hasSqliteStore"])
         self.assertFalse(observed["hasProviderCodec"])
 
+    def test_retired_subprocess_lifecycle_module_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'subprocessLifecycleSpec':importlib.util.find_spec('ordivon_harness.subprocess_lifecycle') is not None}))"
+        )
+        self.assertFalse(observed["subprocessLifecycleSpec"])
+
     def test_retired_tool_semantics_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "
