@@ -58,6 +58,22 @@ class CompositionProjectionTests(unittest.TestCase):
             ["conclusion", "working-set-transition", "working-set-history"],
         )
 
+    def test_exact_turn_projection_includes_admitted_tool_program_action(self) -> None:
+        tool_program_request = request(
+            capabilities=AgentTurnCapabilities(tool_program=True)
+        )
+        projection = build_durable_workbench_projection(
+            run={"status": "running"},
+            contract=contract("workbench-tool-program"),
+            provider_call={"status": "completed"},
+            provider_request=tool_program_request,
+            snapshot=None,
+            recovery=None,
+            run_receipt=None,
+            completion_proposal=None,
+        )["currentActionSurface"]["projection"]
+        self.assertEqual(projection["nativeActions"], ["conclusion", "tool-program"])
+
     def test_in_process_explain_reports_exact_supported_surfaces_without_liveness_claims(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             clock = FixedClock()

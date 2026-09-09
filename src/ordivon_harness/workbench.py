@@ -91,6 +91,8 @@ def _project_turn_actions(request: AgentTurnRequest) -> dict[str, JsonValue]:
         native.append("caller-ingress-promotion")
     if request.capabilities.working_set_history:
         native.append("working-set-history")
+    if request.capabilities.tool_program:
+        native.append("tool-program")
     value: dict[str, JsonValue] = {
         "schemaVersion": 1,
         "kind": "ordivon.harness-turn-capability-projection",

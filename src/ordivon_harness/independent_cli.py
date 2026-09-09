@@ -25,7 +25,7 @@ from .workbench import build_durable_workbench_projection
 
 
 def capabilities() -> dict[str, JsonValue]:
-    """Describe the exact source-derived installed capability projection."""
+    """Describe only the exact execution profiles supported by this CLI."""
 
     return {
         "ok": True,
