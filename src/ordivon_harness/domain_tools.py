@@ -13,19 +13,17 @@ from typing import Callable, Protocol
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
-from .ordivon.control import CancellationToken, RunDeadline
+from .ordivon.control import CancellationToken as _CancellationToken, RunDeadline
 from .ordivon.events import HarnessRunEvent
 from .ordivon.loop import (
-    AgentLoopResult,
+    AgentLoopResult as _AgentLoopResult,
     OrdivonAgentLoop,
     RunBudget,
-    RunStopCode,
 )
 from .ordivon.model import (
-    AgentRunConclusion,
-    AgentToolCall,
+    AgentToolCall as _AgentToolCall,
     AgentToolDefinition,
-    AgentTurnAdapter,
+    AgentTurnAdapter as _AgentTurnAdapter,
 )
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from .agent_tool_observation import HarnessToolObservation
@@ -109,7 +107,7 @@ class DomainToolBridge(Protocol):
     catalog: DomainToolCatalog
     bridge_identity: dict[str, JsonValue]
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation: ...
+    def execute(self, call: _AgentToolCall, *, step_id: str) -> HarnessToolObservation: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,7 +147,7 @@ class _GrantedDomainToolBridge:
     def definitions(self) -> tuple[AgentToolDefinition, ...]:
         return self._definitions
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
+    def execute(self, call: _AgentToolCall, *, step_id: str) -> HarnessToolObservation:
         if call.name not in self._allowed:
             raise ToolBridgeError(
                 f"domain Tool is not granted: {call.name}",
@@ -168,7 +166,7 @@ class DomainToolLoopRunner:
 
     def __init__(
         self,
-        adapter: AgentTurnAdapter,
+        adapter: _AgentTurnAdapter,
         bridge: DomainToolBridge,
         *,
         clock_ms: Callable[[], int] | None = None,
@@ -216,9 +214,9 @@ class DomainToolLoopRunner:
         self,
         plan: DomainToolLoopPlan,
         *,
-        cancellation: CancellationToken | None = None,
+        cancellation: _CancellationToken | None = None,
         deadline: RunDeadline | None = None,
-    ) -> AgentLoopResult:
+    ) -> _AgentLoopResult:
         bound_bridge = _GrantedDomainToolBridge(self.bridge, plan.allowed_tools)
         loop = OrdivonAgentLoop(
             self.adapter,
@@ -240,18 +238,12 @@ class DomainToolLoopRunner:
 
 
 __all__ = [
-    "AgentLoopResult",
-    "AgentRunConclusion",
-    "AgentToolCall",
     "AgentToolDefinition",
-    "AgentTurnAdapter",
-    "CancellationToken",
     "DomainToolBridge",
     "DomainToolCatalog",
     "DomainToolLoopPlan",
     "DomainToolLoopRunner",
     "RunBudget",
-    "RunStopCode",
     "ToolBridgeError",
     "ToolBridgeErrorKind",
     "HarnessToolObservation",

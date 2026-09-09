@@ -7,8 +7,8 @@ import unittest
 from anc_canonical import canonical_bytes
 
 from ordivon_harness.api import DeepSeekSettings, DeepSeekTurnAdapter, RunBudget
+from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.domain_tools import (
-    AgentToolCall,
     AgentToolDefinition,
     DomainToolCatalog,
     DomainToolLoopPlan,

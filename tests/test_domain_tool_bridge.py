@@ -4,15 +4,15 @@ import unittest
 
 from anc_canonical import canonical_digest
 
+from ordivon_harness.ordivon.loop import RunStopCode
+from ordivon_harness.ordivon.model import AgentRunConclusion, AgentToolCall
+import ordivon_harness.domain_tools as domain_tools
 from ordivon_harness.domain_tools import (
-    AgentRunConclusion,
-    AgentToolCall,
     AgentToolDefinition,
     DomainToolCatalog,
     DomainToolLoopPlan,
     DomainToolLoopRunner,
     RunBudget,
-    RunStopCode,
     HarnessToolObservation,
 )
 from ordivon_harness.ordivon.model import AgentTurnResult, ScriptedTurnAdapter
@@ -85,6 +85,17 @@ def _result(
 
 
 class DomainToolBridgeTests(unittest.TestCase):
+    def test_secondary_agent_control_reexports_are_retired(self) -> None:
+        for name in (
+            "AgentLoopResult",
+            "AgentRunConclusion",
+            "AgentToolCall",
+            "AgentTurnAdapter",
+            "CancellationToken",
+            "RunStopCode",
+        ):
+            self.assertFalse(hasattr(domain_tools, name), name)
+
     def _plan(self, *, allowed_tools: tuple[str, ...] = ("select_team_plan",)):
         return DomainToolLoopPlan(
             harness_run_id="harness-run:security:test",

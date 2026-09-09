@@ -35,6 +35,8 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
+The specialized `ordivon_harness.domain_tools` module no longer secondarily re-exports `AgentLoopResult`, `AgentRunConclusion`, `AgentToolCall`, `AgentTurnAdapter`, `CancellationToken`, or `RunStopCode`. Estate-wide current-code analysis found no consumer of those secondary names; callers use the canonical Agent/control owners instead. DomainTool-specific contracts and `RunBudget` remain available.
+
 `HarnessToolObservation` is the canonical durable Tool Observation type. The temporary supported-API `ToolObservation` compatibility alias is retired after Ordivon Security commit `5e3142b` migrated all five dynamic consumers to `HarnessToolObservation` and an estate-wide current-code census found no remaining short-name consumer. The internal core alias and secondary `ordivon_harness.ordivon` aggregation export remain retired. Durable `ordivon.tool-observation` schema, digests, Runtime/Artifact references, reconciliation semantics and stored bytes are unchanged.
 `HarnessExecutionBinding` schema v2 is deliberately smaller: it carries only one Harness Run identity, Runtime Workspace identity, and the foreign references actually sent to Runtime. Assignment identity/generation/digest, Tool catalog/grant digests, deadline, and the synthetic `runtimeBindingDigest` were duplicate facts already owned by the Run Contract/continuity path and are removed. This is a destructive current-surface migration; there were no persisted binding objects and no external current-code consumers at the cut. Runtime commit-state errors and reconciliation semantics remain unchanged.
 
