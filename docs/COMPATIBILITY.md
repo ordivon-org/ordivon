@@ -35,6 +35,8 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
+The former `ordivon_harness.telemetry` projection and `telemetry` CLI command are retired. They had no independent product consumer or persisted state and only derived a second presentation from the exact `inspect` result. `inspect` remains the single durable Run evidence view; `explain` adds explicit proof boundaries without creating another persisted read model.
+
 The former advanced `ordivon_harness.deliberation` module and H1/H2 two-phase lifecycle helpers are retired. Exact current cross-repository product-source census found no independent consumer; current Security owner code already performs no-Tool deliberation locally with `AgentTurnRequest` and then supplies its own cognition record to `DomainToolLoopRunner`. Historical H1/H2 documents and the legacy `deliberation_phase_completed` event reader remain historical evidence/read compatibility; current execution does not emit that event.
 
 `DomainToolCatalog` remains a current public value object because real Security integrations consume it together with `DomainToolLoopPlan` and `DomainToolLoopRunner`. Its former public `select()` and `granted_digest()` convenience methods are retired; Tool selection and grant hashing are internal to the Runner. This does not change the current `execution_identity()` schema/digest, granted Tool definitions, trace `toolCatalogDigest`, or Security-owned effect/admission boundary.

@@ -238,7 +238,7 @@ Exact supported exports and upgrade expectations are owned by [`docs/COMPATIBILI
 
 ## Operator interface
 
-Operators normally need five questions:
+Operators normally need four questions:
 
 ```bash
 ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID

@@ -53,6 +53,7 @@ class IndependentCliTests(unittest.TestCase):
         profile = value["executionProfiles"][0]
         self.assertEqual(profile["profileId"], "deepseek-no-tool-v1")
         self.assertFalse(profile["runtimeRequired"])
+        self.assertNotIn("telemetry", profile["commands"])
         self.assertNotIn("effectiveCapabilityCatalog", value)
         self.assertNotIn("effectiveCapabilityCatalogDigest", value)
         self.assertEqual(

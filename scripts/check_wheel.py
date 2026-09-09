@@ -233,7 +233,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         for command in CLI_COMMANDS:
             if command not in help_text:
                 fail(f"CLI lacks {command}")
-        for removed in ("host", "cutover-status", "cutover-activate", "--harness-state-root"):
+        for removed in ("host", "telemetry", "cutover-status", "cutover-activate", "--harness-state-root"):
             if removed in help_text:
                 fail(f"CLI still advertises removed surface: {removed}")
         caps = json.loads(checked([str(cli), "capabilities"]).stdout)
