@@ -86,7 +86,7 @@ A Host or Protocol pin update is an architecture compatibility change, not routi
 
 ## Deprecation
 
-Historical package-root aliases are retained during the transition to `ordivon_harness.api`. Removal requires Changelog notice, an observation window and a planned pre-1.0 breaking release. Durable decoders remain until retained state no longer requires them.
+The package root is a minimal package-identity surface and does not mirror `ordivon_harness.api`. Breaking removal of zero-consumer Python aliases is permitted before 1.0 when current-consumer census, Changelog notice, compatibility documentation, and regression gates are complete. Durable decoders remain until retained state no longer requires them.
 
 ## Publication
 

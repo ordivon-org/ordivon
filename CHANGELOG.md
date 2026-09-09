@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-consumer package-root mirror of `ordivon_harness.api`; `ordivon_harness` now exposes only `package_version`, while explicit `ordivon_harness.api` and owner-submodule imports remain supported.
+
 - retired six zero-consumer secondary Agent/control re-exports from `ordivon_harness.domain_tools`; the underlying canonical types and DomainTool runtime behavior are unchanged.
 
 - retired the final supported-API `ToolObservation` compatibility alias after Ordivon Security `5e3142b` migrated all five dynamic consumers to canonical `HarnessToolObservation` and the estate-wide current-code census reached zero short-name consumers. The earlier temporary compatibility restoration remains documented below as migration history; durable Tool Observation bytes and behavior are unchanged.

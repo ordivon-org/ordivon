@@ -223,8 +223,8 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         )
         if probe["version"] != version or set(probe["api"]) != EXPECTED_API:
             fail("installed API/version differs")
-        if set(probe["root"]) != EXPECTED_API | {"package_version"}:
-            fail("package root differs from recommended API")
+        if set(probe["root"]) != {"package_version"}:
+            fail("package root must remain a minimal package-identity surface")
         if probe["hostInstalled"] or probe["hostLoaded"]:
             fail("Host appeared in isolated base installation")
         checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])

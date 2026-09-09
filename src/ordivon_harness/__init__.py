@@ -1,12 +1,10 @@
-"""Ordivon Harness public API.
+"""Ordivon Harness package identity.
 
-The package root is the same caller-neutral, Host-free surface as ``ordivon_harness.api``.
-Higher-level orchestration integrates through this caller-neutral surface rather than a
-Host-specific compatibility adapter.
+Use :mod:`ordivon_harness.api` for the supported application facade. Import exact
+owner submodules for advanced integrations. The package root deliberately does not
+mirror the application API.
 """
 
-from .api import *  # noqa: F403
-from .api import __all__ as _API_ALL
 from .version import package_version
 
-__all__ = [*_API_ALL, "package_version"]
+__all__ = ["package_version"]

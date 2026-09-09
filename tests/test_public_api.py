@@ -123,7 +123,7 @@ class PublicApiTests(unittest.TestCase):
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(package_version(), project["version"])
 
-    def test_package_root_dir_advertises_recommended_capabilities_not_host_compat(self) -> None:
+    def test_package_root_does_not_mirror_recommended_capabilities(self) -> None:
         probe = subprocess.run(
             [
                 sys.executable,
@@ -141,12 +141,20 @@ class PublicApiTests(unittest.TestCase):
         import json
 
         observed = json.loads(probe.stdout)
-        self.assertTrue(observed["hasRunContract"])
+        self.assertFalse(observed["hasRunContract"])
         self.assertFalse(observed["hasHostRunner"])
         self.assertFalse(observed["hostLoaded"])
 
-    def test_package_root_is_the_recommended_api_without_legacy_exports(self) -> None:
-        self.assertEqual(set(ordivon_harness.__all__), EXPECTED_API | {"package_version"})
+    def test_explicit_submodule_imports_remain_available(self) -> None:
+        from ordivon_harness import api as imported_api
+        from ordivon_harness import standalone
+
+        self.assertIs(imported_api, api)
+        self.assertTrue(hasattr(standalone, "StandaloneHarnessRunner"))
+
+    def test_package_root_is_minimal_without_legacy_exports(self) -> None:
+        self.assertEqual(set(ordivon_harness.__all__), {"package_version"})
+        self.assertFalse(hasattr(ordivon_harness, "HarnessRunContract"))
         for removed in (
             "ToolObservation",
             "HarnessRunner",

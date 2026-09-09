@@ -188,7 +188,7 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
             "'hostLoaded':any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules)}))"
         )
         self.assertFalse(observed["hasHostRunner"])
-        self.assertTrue(observed["hasRunContract"])
+        self.assertFalse(observed["hasRunContract"])
         self.assertFalse(observed["hostLoaded"])
         self.assertFalse((ROOT / "src" / "ordivon_harness" / "core.py").exists())
 
