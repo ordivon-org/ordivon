@@ -52,6 +52,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(observed["interactionContext"])
 
+    def test_retired_observation_tool_surface_module_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'observationToolSurface':importlib.util.find_spec('ordivon_harness.observation_tool_surface') is not None}))"
+        )
+        self.assertFalse(observed["observationToolSurface"])
+
     def test_retired_loop_driver_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "
