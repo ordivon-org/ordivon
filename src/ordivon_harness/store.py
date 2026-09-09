@@ -64,7 +64,6 @@ HARNESS_STORE_EVENT_KINDS = frozenset(
         "harness.provider-call-failed",
         "harness.provider-call-unknown",
         "harness.tool-step-prepared",
-        "harness.tool-step-dispatched",
         "harness.tool-step-recorded",
         "harness.tool-step-unknown",
         "harness.tool-step-reconciled",
@@ -72,7 +71,6 @@ HARNESS_STORE_EVENT_KINDS = frozenset(
         "harness.trace-recorded",
         "harness.run-recovery-recorded",
         "harness.run-stopped",
-        "harness.completion-proposed",
         "harness.run-failed",
         "harness.run-completed",
     }

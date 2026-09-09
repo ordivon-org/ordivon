@@ -288,7 +288,12 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                     ttl_ms=100,
                     now_ms=1_001,
                 )
-                for event_kind in ("harness.run-started", "harness.run-resumed"):
+                for event_kind in (
+                    "harness.run-started",
+                    "harness.run-resumed",
+                    "harness.tool-step-dispatched",
+                    "harness.completion-proposed",
+                ):
                     with self.subTest(event_kind=event_kind):
                         with self.assertRaisesRegex(ValueError, "unsupported Harness store event kind"):
                             store.append_event(
