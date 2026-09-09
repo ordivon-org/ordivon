@@ -103,7 +103,7 @@ The exact P/R/H/X experiment chronology remains evidence, not a prerequisite for
 ## Removed
 
 - retired `tool_program_durable_recovery.py`: it had no current product/API/cross-repository consumer and no persisted objects; it only reconstructed a second derived restart projection from already-authoritative Tool Step Intent/Receipt/Observation records. Runtime/Tool Step reconciliation, `tool_program_recovery.py`, UNKNOWN fencing, and current ToolProgram execution remain.
-The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibility package/dependency/extra, Host CLI namespace, cutover/rollback machinery and Host-coupled execution drivers are not supported current paths and have no compatibility aliases. The unreachable Host-era abandonment/disposition layer is also retired: current independent recovery persists `NativeRunRecoveryAssessment` and derives whether retry/resume is safe, but does not create a separate `NativeRunAbandonment`, `ABANDONED` Run state, or `harness.run-abandoned` event.
+The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibility package/dependency/extra, Host CLI namespace, cutover/rollback machinery and Host-coupled execution drivers are not supported current paths and have no compatibility aliases. The unreachable Host-era abandonment/disposition layer and the later zero-state `NativeRunRecoveryAssessment`/`recover` CLI projection are also retired. Current recovery authority is the existing Run/Provider/Tool durable state plus concrete Provider/Runtime reconciliation and normal reopen/resume; Harness does not persist a second generic safe-to-retry verdict.
 
 ## Known limits
 

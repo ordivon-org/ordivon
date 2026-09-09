@@ -16,7 +16,6 @@ from .ordivon.sqlite_agent_bridge import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
 from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from .protocol import HarnessProviderCallStatus
 from .sqlite_store import SQLiteHarnessStore
 from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
@@ -105,15 +104,6 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         execution = handle.resume(additional_messages=_load_messages(args))
         with SQLiteHarnessStore(root) as store:
             return _execution_value(execution, root=root, store=store)
-    if command == "recover":
-        with SQLiteHarnessStore(root) as store:
-            return _recover(
-                store,
-                args.harness_run_id,
-                root=root,
-                trigger=args.trigger,
-                clock_ms=clock_ms,
-            )
     raise ValueError(f"unsupported independent Harness command: {command}")
 
 
@@ -220,11 +210,6 @@ def _inspect(
         snapshot = continuity.load_current_snapshot().snapshot.to_dict()
     except KeyError:
         pass
-    recovery: dict[str, JsonValue] | None = None
-    try:
-        recovery = recorder.load_latest_recovery_assessment().to_dict()
-    except KeyError:
-        pass
     terminal: StoredIndependentRunResult | None = None
     if projection.status.terminal:
         try:
@@ -246,100 +231,11 @@ def _inspect(
         "contract": continuity.contract.to_dict(),
         "providerCall": provider,
         "snapshot": snapshot,
-        "recovery": recovery,
         "runReceipt": run_receipt,
         "completionProposal": completion_proposal,
     }
 
 
-def _recover(
-    store: SQLiteHarnessStore,
-    harness_run_id: str,
-    *,
-    root: Path,
-    trigger: str,
-    clock_ms,
-) -> dict[str, object]:
-    projection = store.load_run(harness_run_id)
-    continuity = SQLiteHarnessRunContinuityStore.open(
-        store,
-        harness_run_id,
-        clock_ms=clock_ms,
-    )
-    if projection.status.terminal:
-        value = _inspect(store, harness_run_id, root=root, clock_ms=clock_ms)
-        value["requiredAction"] = "none"
-        return value
-
-    try:
-        provider = continuity.load_current_provider_call()
-    except KeyError:
-        provider = None
-    if provider is not None and provider.record.status in {
-        HarnessProviderCallStatus.CLAIMED,
-        HarnessProviderCallStatus.COMPLETED,
-        HarnessProviderCallStatus.FAILED,
-    }:
-        return {
-            "ok": True,
-            "authority": "independent-harness-run",
-            "stateRoot": str(root),
-            "run": projection.to_dict(),
-            "providerCall": provider.record.to_dict(),
-            "recovery": None,
-            "requiredAction": "resume"
-            if projection.status is HarnessRunStatus.PAUSED
-            else "retry-run",
-            "reason": "durable Provider state can be reconciled by the normal execution path",
-        }
-
-    recorder = IndependentRunRecorder(
-        store,
-        continuity.contract,
-        continuity.binding,
-        clock_ms=clock_ms,
-    )
-    no_tool = (
-        continuity.contract.tool_catalog_digest == NO_TOOL_AGENT_SURFACE_DIGEST
-        and continuity.contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
-    )
-    unresolved: tuple[str, ...]
-    if provider is not None:
-        unresolved = (
-            f"Provider Call remains {provider.record.status.value}; physical Provider outcome is not safe to infer",
-        )
-    elif no_tool:
-        unresolved = ()
-    else:
-        unresolved = (
-            "CLI has no domain-specific Runtime/Tool reconciliation evidence for this Tool-bearing Run",
-        )
-    assessment = recorder.record_recovery_assessment(
-        trigger=trigger,
-        grant_effect_class="observation-only" if no_tool and not unresolved else "unknown",
-        catalog_status="matched",
-        workspace_status="not_applicable" if no_tool else "unknown",
-        workspace_evidence={
-            "providerCallStatus": None if provider is None else provider.record.status.value,
-            "toolBearing": not no_tool,
-        },
-        unresolved_unknowns=unresolved,
-    )
-    return {
-        "ok": True,
-        "authority": "independent-harness-run",
-        "stateRoot": str(root),
-        "run": store.load_run(harness_run_id).to_dict(),
-        "providerCall": None if provider is None else provider.record.to_dict(),
-        "recovery": assessment.to_dict(),
-        "requiredAction": (
-            "retry-run"
-            if assessment.safe_to_abandon and projection.status is HarnessRunStatus.CREATED
-            else "resume"
-            if assessment.safe_to_abandon and projection.status is HarnessRunStatus.PAUSED
-            else "reconcile-external-state"
-        ),
-    }
 
 
 __all__ = ["dispatch"]

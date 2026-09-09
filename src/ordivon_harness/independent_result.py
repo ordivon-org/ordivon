@@ -11,7 +11,6 @@ from .ordivon.events import HarnessRunEvent, HarnessTrace
 from .ordivon.loop import AgentLoopResult, RunStopCode
 from .ordivon.model import AgentRunConclusion
 from .ordivon.run_store_port import HarnessRunStoreBinding
-from .recovery import NativeRunRecoveryAssessment
 from .store import (
     HarnessEventAdmission,
     HarnessStore,
@@ -21,7 +20,6 @@ from .store import (
 
 _STORE_LEASE_TTL_MS = 30_000
 _TRACE_EVENT_KIND = "harness.trace-recorded"
-_RECOVERY_EVENT_KIND = "harness.run-recovery-recorded"
 _TERMINAL_EVENT_KINDS = frozenset(
     {"harness.run-completed", "harness.run-stopped", "harness.run-failed"}
 )
@@ -632,100 +630,8 @@ class IndependentRunRecorder:
             completion_proposal_object=proposal_object,
         )
 
-    def record_recovery_assessment(
-        self,
-        *,
-        trigger: str,
-        grant_effect_class: str,
-        catalog_status: str,
-        workspace_status: str,
-        workspace_evidence: dict[str, JsonValue],
-        unresolved_unknowns: tuple[str, ...],
-        created_at_ms: int | None = None,
-    ) -> NativeRunRecoveryAssessment:
-        events = self.store.list_run_events(self.contract.harness_run_id)
-        sequence = 1 + sum(event.event_kind == _RECOVERY_EVENT_KIND for event in events)
-        created = self.clock_ms() if created_at_ms is None else created_at_ms
-        token = canonical_digest(
-            {
-                "harnessRunId": self.contract.harness_run_id,
-                "sequence": sequence,
-                "trigger": trigger,
-                "bindingDigest": self.binding.digest,
-            }
-        )[7:31]
-        assessment = NativeRunRecoveryAssessment(
-            assessment_id=f"harness-run-recovery:{token}",
-            sequence=sequence,
-            harness_run_id=self.contract.harness_run_id,
-            assignment_id=self.binding.assignment_id,
-            assignment_generation=self.binding.assignment_generation,
-            assignment_digest=self.binding.assignment_digest,
-            trigger=trigger,
-            grant_effect_class=grant_effect_class,
-            catalog_status=catalog_status,
-            workspace_status=workspace_status,
-            workspace_evidence=workspace_evidence,
-            unresolved_unknowns=unresolved_unknowns,
-            created_at_ms=created,
-        )
-        now_ms = self._recorded_time(created)
-        lease = self._acquire_lease("recovery", assessment.digest, now_ms=now_ms)
-        try:
-            stored = self.store.put_object(
-                assessment.to_dict(), kind="native-run-recovery-assessment"
-            )
-            self.store.append_event(
-                event_id=self._event_id("recovery", assessment.digest),
-                harness_run_id=self.contract.harness_run_id,
-                event_kind=_RECOVERY_EVENT_KIND,
-                data={
-                    "assessmentDigest": assessment.digest,
-                    "assessmentObjectDigest": stored.digest,
-                    "sequence": assessment.sequence,
-                },
-                expected_revision=lease.run_revision,
-                recorded_at_ms=now_ms,
-                lease=lease,
-                lease_checked_at_ms=self.clock_ms(),
-                caused_by_event_id=None if not events else events[-1].event_id,
-                referenced_objects=(stored,),
-            )
-        finally:
-            self.store.release_run_lease(lease)
-        return assessment
-
-    def load_latest_recovery_assessment(self) -> NativeRunRecoveryAssessment:
-        event = next(
-            (
-                event
-                for event in reversed(self.store.list_run_events(self.contract.harness_run_id))
-                if event.event_kind == _RECOVERY_EVENT_KIND
-            ),
-            None,
-        )
-        if event is None:
-            raise KeyError("Harness Run has no Recovery Assessment")
-        raw = self.store.get_object(
-            self._required_digest(event.data, "assessmentObjectDigest"),
-            expected_kind="native-run-recovery-assessment",
-        )
-        if not isinstance(raw, dict):
-            raise ValueError("Recovery Assessment object is invalid")
-        assessment = NativeRunRecoveryAssessment.from_dict(raw)
-        if (
-            assessment.digest != event.data.get("assessmentDigest")
-            or assessment.harness_run_id != self.contract.harness_run_id
-            or assessment.assignment_id != self.binding.assignment_id
-            or assessment.assignment_generation != self.binding.assignment_generation
-            or assessment.assignment_digest != self.binding.assignment_digest
-        ):
-            raise ValueError("Recovery Assessment bindings differ")
-        return assessment
-
     def doctor(self) -> dict[str, JsonValue]:
         trace_segments = 0
-        recovery_assessments = 0
         terminal_results = 0
         for event in self.store.list_run_events(self.contract.harness_run_id):
             if event.event_kind == _TRACE_EVENT_KIND:
@@ -739,17 +645,6 @@ class IndependentRunRecorder:
                 if trace.digest != event.data.get("traceDigest"):
                     raise ValueError("Harness Trace Event digest differs")
                 trace_segments += 1
-            elif event.event_kind == _RECOVERY_EVENT_KIND:
-                raw = self.store.get_object(
-                    self._required_digest(event.data, "assessmentObjectDigest"),
-                    expected_kind="native-run-recovery-assessment",
-                )
-                if not isinstance(raw, dict):
-                    raise ValueError("Recovery Assessment object is invalid")
-                assessment = NativeRunRecoveryAssessment.from_dict(raw)
-                if assessment.digest != event.data.get("assessmentDigest"):
-                    raise ValueError("Recovery Assessment Event digest differs")
-                recovery_assessments += 1
             elif event.event_kind in _TERMINAL_EVENT_KINDS:
                 self.load_terminal_result()
                 terminal_results += 1
@@ -759,7 +654,6 @@ class IndependentRunRecorder:
             "healthy": True,
             "harnessRunId": self.contract.harness_run_id,
             "traceSegments": trace_segments,
-            "recoveryAssessments": recovery_assessments,
             "terminalResults": terminal_results,
         }
 

@@ -110,17 +110,6 @@ class IndependentCliTests(unittest.TestCase):
             self.assertIn("proofBoundaries", explained)
             self.assertIn("does not infer", explained["proofBoundaries"]["processLocal"])
 
-            code, recovery, error = self.invoke(
-                "--state-root",
-                str(root),
-                "recover",
-                run_contract.harness_run_id,
-            )
-            self.assertEqual(code, 0, error)
-            assert recovery is not None
-            self.assertTrue(recovery["recovery"]["safeToAbandon"])
-            self.assertEqual(recovery["requiredAction"], "resume")
-
             with patch(
                 "ordivon_harness.independent_cli._adapter",
                 return_value=ScriptedTurnAdapter((completed_result("h1-cli-resume"),)),
@@ -139,17 +128,6 @@ class IndependentCliTests(unittest.TestCase):
             self.assertEqual(completed["stopCode"], "candidate_completed")
             self.assertIsNotNone(completed["runReceipt"])
             self.assertIsNotNone(completed["completionProposal"])
-
-            code, terminal, error = self.invoke(
-                "--state-root",
-                str(root),
-                "recover",
-                run_contract.harness_run_id,
-            )
-            self.assertEqual(code, 0, error)
-            assert terminal is not None
-            self.assertEqual(terminal["requiredAction"], "none")
-            self.assertEqual(terminal["run"]["status"], "completed")
 
     def test_tool_bearing_contract_fails_closed_before_provider_execution(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

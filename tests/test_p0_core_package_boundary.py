@@ -59,6 +59,22 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         import ordivon_harness.independent_cli as independent_cli
         self.assertFalse(hasattr(independent_cli, "capabilities"))
 
+    def test_retired_native_run_recovery_assessment_surface_is_absent(self) -> None:
+        from ordivon_harness.cli import build_parser
+
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'recoveryModule':importlib.util.find_spec('ordivon_harness.recovery') is not None}))"
+        )
+        self.assertFalse(observed["recoveryModule"])
+        parser = build_parser()
+        command_choices = next(
+            action.choices
+            for action in parser._actions
+            if action.dest == "command" and isinstance(action.choices, dict)
+        )
+        self.assertNotIn("recover", command_choices)
+
     def test_retired_tool_program_durable_recovery_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "

@@ -187,11 +187,14 @@ ordivon-harness --state-root /var/lib/ordivon/harness \
 
 ## Recovery
 
+Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:
+
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness recover HARNESS_RUN_ID
+ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
+ordivon-harness --state-root /var/lib/ordivon/harness resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
-Recovery is evidence-driven. A dispatched Provider or Tool operation with an ambiguous physical outcome is not blindly repeated.
+Harness does not maintain a generic `recover` command or write a second Recovery Assessment. Provider/Tool response loss is reconciled by the existing durable call/intent identities and the concrete owner that can observe the physical effect. An ambiguous physical outcome is never converted into safe redispatch merely by an operator projection.
 
 ## Python API
 

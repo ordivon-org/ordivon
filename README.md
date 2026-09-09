@@ -236,18 +236,17 @@ Exact supported exports and upgrade expectations are owned by [`docs/COMPATIBILI
 
 ## Operator interface
 
-Operators normally need four questions:
+Operators normally need three questions:
 
 ```bash
 ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness recover HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness doctor
 ```
 
 `inspect` remains the exact durable evidence read surface; machine/process observability belongs to the external observability substrate rather than a second Harness-owned telemetry projection.
 
-Recovery is evidence-driven. A dispatched operation with uncertain physical outcome is not automatically safe to repeat. `doctor` is the authority-wide history replay; normal Run reopen validates the relevant Run before new execution.
+Recovery is evidence-driven and occurs through the normal Run reopen/resume path plus the concrete Provider/Runtime owner reconciliation required by the effect boundary. Harness no longer writes a second generic Recovery Assessment merely to restate those facts. A dispatched operation with uncertain physical outcome is not automatically safe to repeat. `doctor` is the authority-wide history replay; normal Run reopen validates the relevant Run before new execution.
 
 See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for backup/restore, cancellation, concurrent worker fencing, Provider/Tool UNKNOWN, and escalation.
 

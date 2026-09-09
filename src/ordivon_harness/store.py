@@ -69,7 +69,6 @@ HARNESS_STORE_EVENT_KINDS = frozenset(
         "harness.tool-step-reconciled",
         "harness.run-paused",
         "harness.trace-recorded",
-        "harness.run-recovery-recorded",
         "harness.run-stopped",
         "harness.run-failed",
         "harness.run-completed",

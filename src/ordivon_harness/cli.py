@@ -8,7 +8,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .ordivon.deepseek import DEFAULT_DEEPSEEK_SECRET_PATH
-from .recovery import NATIVE_RUN_RECOVERY_TRIGGERS
 from .sqlite_store import SQLiteHarnessStore
 from .store_ops import backup_harness_store, restore_harness_backup, verify_harness_backup
 
@@ -46,13 +45,6 @@ def build_parser() -> argparse.ArgumentParser:
     resume = commands.add_parser("resume")
     resume.add_argument("harness_run_id")
     _add_input_options(resume)
-    recover = commands.add_parser("recover")
-    recover.add_argument("harness_run_id")
-    recover.add_argument(
-        "--trigger",
-        choices=NATIVE_RUN_RECOVERY_TRIGGERS,
-        default="process_lost",
-    )
     commands.add_parser("store-init")
     commands.add_parser("store-doctor")
     store_backup = commands.add_parser("store-backup")
