@@ -38,6 +38,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         self.assertFalse(observed["hasSqliteStore"])
         self.assertFalse(observed["hasProviderCodec"])
 
+    def test_retired_atlas_first_look_runtime_bridge_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'atlasBridgeSpec':importlib.util.find_spec('ordivon_harness.ordivon.atlas_first_look_runtime_bridge') is not None}))"
+        )
+        self.assertFalse(observed["atlasBridgeSpec"])
+
     def test_retired_projected_no_tool_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "

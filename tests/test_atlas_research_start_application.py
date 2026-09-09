@@ -261,6 +261,50 @@ class AtlasResearchStartApplicationTests(unittest.TestCase):
         self.assertEqual(receipt["modelView"]["claims"]["noveltyStanding"], "UNKNOWN_CALLER_MUST_ADJUDICATE")
         self.assertTrue(receipt["modelView"]["claims"]["requeryFreedomWithdrawnAfterFirstLook"])
 
+    def test_first_look_response_loss_replays_same_runtime_request_without_second_dispatch(self):
+        class ResponseLossRuntime(FakeRuntime):
+            def __init__(self):
+                super().__init__()
+                self.completed_by_request: dict[str, dict[str, Any]] = {}
+                self.physical_dispatches = 0
+                self.lose_once = True
+
+            def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+                if name != "workspace.exec":
+                    return super().call_tool(name, arguments)
+                request_id = arguments.get("clientRequestId")
+                if not isinstance(request_id, str):
+                    raise AssertionError("workspace.exec request omitted clientRequestId")
+                if request_id in self.completed_by_request:
+                    self.calls.append((name, arguments))
+                    return dict(self.completed_by_request[request_id])
+                result = super().call_tool(name, arguments)
+                self.physical_dispatches += 1
+                self.completed_by_request[request_id] = dict(result)
+                if self.lose_once:
+                    self.lose_once = False
+                    raise RuntimeError("injected Atlas application response loss after durable Runtime completion")
+                return result
+
+        runtime = ResponseLossRuntime()
+        kwargs = {
+            "atlas_workspace_id": "atlas-current",
+            "query": "result consumer benefit",
+            "limit": 8,
+            "request_prefix": "atlas-first-look-response-loss",
+            "consumer_episode_ref": "consumer-episode:atlas-response-loss",
+            "consumer_class": "test",
+        }
+        with self.assertRaisesRegex(RuntimeError, "response loss"):
+            module.run_atlas_first_look_stage_application(runtime, **kwargs)
+        replayed = module.run_atlas_first_look_stage_application(runtime, **kwargs)
+        self.assertEqual(replayed["status"], "bounded_candidates_available")
+        self.assertEqual(runtime.physical_dispatches, 1)
+        self.assertEqual(len(runtime.calls), 2)
+        first_id = runtime.calls[0][1]["clientRequestId"]
+        second_id = runtime.calls[1][1]["clientRequestId"]
+        self.assertEqual(first_id, second_id)
+
     def test_runtime_jobs_are_bound_to_application_provenance_and_phase(self):
         runtime = FakeRuntime()
         self.run_app(runtime)

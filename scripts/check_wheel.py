@@ -108,6 +108,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/ordivon/atlas_first_look_runtime_bridge.py",
     "ordivon_harness/core.py",
     "ordivon_harness/projected_no_tool.py",
     "ordivon_harness/observation_export.py",
