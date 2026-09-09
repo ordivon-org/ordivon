@@ -5,9 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from ordivon_harness.errors import HarnessLifecycleError
 from ordivon_harness.ordivon.run_store_port import (
-    HarnessProviderCallRecoveryRequired,
     HarnessRunContinuityStore,
 )
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
@@ -18,12 +16,8 @@ ROOT = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
 
 
 class HarnessRunStorePortTests(unittest.TestCase):
-    def test_lifecycle_error_has_one_harness_owner(self) -> None:
-        self.assertTrue(issubclass(HarnessProviderCallRecoveryRequired, HarnessLifecycleError))
-
     def test_port_and_current_store_do_not_import_host(self) -> None:
         for relative in (
-            "errors.py",
             "ordivon/run_store_port.py",
             "ordivon/sqlite_run_store.py",
         ):

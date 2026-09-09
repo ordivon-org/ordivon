@@ -5,7 +5,6 @@ from typing import Protocol, runtime_checkable
 
 from anc_canonical import JsonValue, canonical_digest
 
-from ..errors import HarnessLifecycleError
 from ..protocol import (
     HarnessProviderCallFailureReceipt,
     HarnessProviderCallSource,
@@ -135,15 +134,19 @@ class StoredHarnessProviderCall:
     request_object: HarnessStoredObject | None = None
 
 
-class HarnessProviderCallClaimHeld(HarnessLifecycleError):
+class HarnessSuperseded(RuntimeError):
+    """The exact Run/Provider/Tool currentness fence no longer matches."""
+
+
+class HarnessProviderCallClaimHeld(RuntimeError):
     pass
 
 
-class HarnessProviderCallRecoveryRequired(HarnessLifecycleError):
+class HarnessProviderCallRecoveryRequired(RuntimeError):
     pass
 
 
-class HarnessProviderCallRequestMismatch(HarnessLifecycleError):
+class HarnessProviderCallRequestMismatch(RuntimeError):
     pass
 
 

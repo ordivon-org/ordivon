@@ -81,6 +81,7 @@ REQUIRED_MEMBERS = {
 }
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/tool_program_durable_recovery.py",
+    "ordivon_harness/errors.py",
     "ordivon_harness/interaction_context.py",
     "ordivon_harness/observation_tool_surface.py",
     "ordivon_harness/telemetry.py",

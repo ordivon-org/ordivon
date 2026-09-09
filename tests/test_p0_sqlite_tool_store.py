@@ -8,10 +8,10 @@ import unittest
 from anc_canonical import canonical_digest
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
-from ordivon_harness.errors import HarnessSuperseded
 from ordivon_harness.ordivon.sqlite_run_store import (
     SQLiteHarnessRunContinuityStore,
 )
+from ordivon_harness.ordivon.run_store_port import HarnessSuperseded
 from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
 from ordivon_harness.protocol import (
     HarnessProtocolError,
