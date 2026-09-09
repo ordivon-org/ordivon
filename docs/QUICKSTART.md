@@ -54,7 +54,7 @@ ordivon-harness capabilities
 
 ## Run
 
-For one exact attempt, create a caller-authored `HarnessRunContract` JSON. When the caller wants to delegate the goal/resource envelope without prescribing every execution step, use `HarnessExecutionMandate` plus a separately selected `HarnessExecutionStrategy`, then compile one exact attempt with `compile_harness_attempt()`. The current library deliberately does not choose Strategy automatically.
+For one exact attempt, create a caller-authored `HarnessRunContract` JSON. When an external caller/domain/workflow wants an envelope above that attempt, it may supply `HarnessExecutionMandate` plus an already-selected Profile/Strategy and compile one exact Contract with `compile_harness_attempt()`. Harness has no generic Strategy-selection context, evidence aggregator, planner or scheduler.
 
 For bounded built-in cognition scheduling, callers may bind a typed `HarnessLoopDriverRef` to an execution profile with `profile.with_loop_driver(...)`. The stable facade currently publishes `SEQUENTIAL_LOOP_DRIVER` and `DELIBERATE_THEN_ACT_LOOP_DRIVER`. These are exact morphology identities, not plugin factories: they do not load arbitrary code, expand Tool authority, or enable live HMR.
 
@@ -88,7 +88,7 @@ compiled = compile_harness_attempt(
 contract = compiled.contract
 ```
 
-A later attempt must also supply `HarnessMandateConsumption` reconstructed from prior Run receipts. The compiler reserves only the remaining total-token/wall-time envelope. Prior Receipt/observation references may be adopted through `strategy.adopted_context_refs`; the compiler binds those refs into the next Run Contract. This allows evidence to survive a failed or budget-exhausted strategy attempt without turning one Run into an unlimited workflow.
+If an external owner chooses to create a later attempt, it must explicitly supply `HarnessMandateConsumption` reconstructed under that owner's authority. The compiler only checks the remaining token/wall-time envelope. Exact prior Receipt/observation references may be supplied through `strategy.adopted_context_refs`; deciding which evidence matters and whether a successor attempt should exist is outside Harness.
 
 For direct execution, create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Objective, Context, caller identity, Tool grant, budget or completion authority. The recommended API is closed over the values required for basic Contract authoring:
 

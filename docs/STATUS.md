@@ -78,9 +78,9 @@ This page states current maturity. It does not replay the research sequence that
 - structured completion binds caller-defined result shape into the Run Contract. Provider results use a versioned one-MiB-bounded terminal carrier instead of the 8,000-byte human/control summary; legacy summary-encoded results remain readable. Policy-absent v1 remains provider-constrained but not locally schema-verified; opt-in `local-json-schema-draft-2020-12-profile-v1` performs fail-closed local structural validation before candidate completion, while semantic/evidence admission remains caller/domain authority.
 - the contracted current core does not expose a generic `ProviderToolContinuation`; Provider-specific opaque continuation remains integration-local unless fresh direct pressure earns a bounded Harness surface.
 
-### Multi-attempt delegation
+### Delegated attempt compilation
 
-A caller may delegate a broader `HarnessExecutionMandate`. Harness can expose exact prior attempt evidence and remaining resource authority, admit an Agent/application-authored Strategy selection, and compile the next exact attempt. It does **not** choose the Strategy, schedule future attempts, or persist a second Mandate workflow engine.
+A caller may supply a broader `HarnessExecutionMandate`, one exact Profile/Strategy and, for later attempts, explicit prior consumption. `compile_harness_attempt()` mechanically freezes one Contract inside that envelope. The former generic multi-attempt Strategy-selection context/evidence layer is retired; cross-attempt evidence aggregation, resource reallocation, profile discovery and successor selection remain caller/domain/workflow responsibilities.
 
 ## Retained laws from research
 
@@ -108,10 +108,10 @@ The old Host-backed Runner, TaskContract/Assignment persistence, Host compatibil
 
 - Harness is pre-1.0; public schemas and advanced exports may still change under the documented compatibility policy.
 - The primary CLI does not create Tool-bearing Runtime clients.
-- Strategy selection is admitted and compiled, but next-attempt scheduling and semantic Strategy policy remain outside Harness.
+- Harness retains pure Mandate/Profile/Strategy-to-Contract compilation, but generic multi-attempt Strategy selection/evidence aggregation is retired and remains outside Harness.
 - Harness intentionally has no generic capability discovery/ranking service. Large heterogeneous capability ecologies should use their actual owner/tool substrate discovery surfaces; Harness receives exact caller/owner facts only where needed for one Run/turn.
 - Fresh-Agent V1/V2 did not earn a Harness semantic retriever. Reopen retrieval research only when a real owner substrate produces a discriminating discovery failure; current Harness pressure is compact consumption of already-current owner facts.
-- Source/tool discovery and ranking, large-WorkingSet inspection strategy, reusable-source repository ownership, procedure evaluation and canonical promotion remain Agent/application/Host/domain or mature-substrate questions. Harness provides only advanced exact reference-to-seed admission for already-selected cross-Run sources.
+- Source/tool discovery and ranking, large-WorkingSet inspection strategy, reusable-source repository ownership, procedure evaluation and canonical promotion remain Agent/application/Host/domain or mature-substrate questions. Already-selected cross-Run sources enter only through the normal exact cognition-seed path.
 - `CompletionProposal` cannot prove caller/domain completion.
 - structured output constrains Provider shape but does not make Harness a domain or JSON-Schema truth authority.
 - Provider/Tool UNKNOWN may require external reconciliation by the owner that can observe the consequence.

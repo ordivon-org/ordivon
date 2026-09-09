@@ -51,16 +51,7 @@ from .runtime_port import (
     HarnessRuntimeErrorDetail,
     HarnessRuntimeToolRejected,
 )
-from .strategy_selection import (
-    HarnessAgentStrategySelection,
-    HarnessPriorAttemptEvidence,
-    HarnessStrategyEvidence,
-    HarnessStrategySelectionContext,
-    admit_harness_agent_strategy,
-    build_harness_strategy_selection_context,
-    compile_harness_selected_attempt,
-    derive_harness_mandate_consumption,
-)
+
 from .provider_use_policy import (
     HarnessProviderRoute,
     HarnessProviderUsePolicy,
@@ -108,10 +99,6 @@ __all__ = [
     "HarnessExecutionProfile",
     "HarnessExecutionStrategy",
     "HarnessLoopDriverRef",
-    "HarnessAgentStrategySelection",
-    "HarnessPriorAttemptEvidence",
-    "HarnessStrategyEvidence",
-    "HarnessStrategySelectionContext",
     "AgentToolDefinition",
     "DomainToolBridge",
     "DomainToolCatalog",
@@ -138,12 +125,8 @@ __all__ = [
     "RunBudget",
     "RunStopCode",
     "STRUCTURED_COMPLETION_MODE",
-    "admit_harness_agent_strategy",
-    "build_harness_strategy_selection_context",
     "compile_harness_attempt",
-    "compile_harness_selected_attempt",
     "decode_structured_completion_result",
-    "derive_harness_mandate_consumption",
     "structured_completion_contract_digest",
     "structured_completion_result_schema",
     "HarnessProviderRoute",

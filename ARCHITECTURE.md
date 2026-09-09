@@ -135,39 +135,29 @@ Harness does not own caller Task state, domain commitments, final acceptance, or
 
 ## Execution Mandate and strategy
 
-The caller does not have to prescribe every execution step. `HarnessExecutionMandate` is a higher-level delegation envelope over one or more possible Run attempts:
+The normal execution authority is one exact `HarnessRunContract`. For applications that need a broader delegated envelope, Harness retains only a pure compiler boundary:
 
 ```text
-caller / domain / optional Host
+caller / domain / workflow / resource allocator
         │
-        │ HarnessExecutionMandate
-        │ + currently available Profiles
-        │ + exact prior CompiledAttempt / terminal Receipt / optional CompletionProposal
-        │ + exact caller/domain StrategyEvidence
+        │ chooses exact HarnessExecutionMandate
+        │ + HarnessExecutionProfile
+        │ + HarnessExecutionStrategy
+        │ + explicit HarnessMandateConsumption when not attempt 1
         ▼
-HarnessStrategySelectionContext
-        │ mechanically derives attempt index + remaining envelope
-        │ no ranking / no Strategy choice
-        ▼
-      Agent
-        │ HarnessAgentStrategySelection
-        │ exact context digest + chosen Profile/budget/options/evidence
-        ▼
-compile_harness_selected_attempt()
-        │ mechanically admits the choice
+compile_harness_attempt()
+        │ validates envelope, profile, budget and exact adopted refs
         ▼
    HarnessRunContract
    immutable attempt authority
         │
         ▼
-    Run → Receipt
-        │
-        └── exact attempt evidence may enter the next selection context
+    HarnessAgentRun → Receipt
 ```
 
-The distinction is deliberate: **Mandate says what has been delegated; Strategy says how the Agent currently chooses to act; Run Contract freezes one admitted attempt; Receipt says what physically happened; CompletionProposal says what the prior Agent proposed; independent StrategyEvidence says what another caller/domain authority supplied for the next Strategy decision.** `maxModelCalls` and `maxToolCalls` remain valid per-attempt runaway/fencing parameters, while aggregate economic authority remains the Mandate's `maxTotalTokens` / `maxWallTimeMs`. For a later attempt, Harness requires exact `HarnessPriorAttemptEvidence`: the prior immutable `CompiledHarnessAttempt` proves its Mandate/System-Manifest/Contract authority and the paired terminal Receipt proves resource consumption. When the prior Run completed and privacy authority allowed model content retention, that evidence may also carry the exact `IndependentCompletionProposal`, bound back to the same Run/Contract/Receipt/Trace. Caller/domain verification is a separate authority: `HarnessStrategyEvidence` freezes an exact digest-bound JSON object and makes it addressable to the Agent without making Harness its semantic verifier. `derive_harness_mandate_consumption()` reconstructs completed-attempt count and aggregate resource use mechanically; a same-named but changed Mandate cannot inherit old receipts because the prior compiled attempt must bind the exact current Mandate digest.
+Harness does **not** construct a generic multi-attempt selection context, aggregate semantic Strategy evidence, rank profiles, select the next Strategy, or decide when another attempt should exist. Those are caller/domain/workflow/resource-allocation responsibilities. A caller that wants a later attempt must explicitly reconstruct and supply the relevant `HarnessMandateConsumption` and exact adopted Context references; `compile_harness_attempt()` only checks that the proposed attempt remains inside the exact Mandate envelope before freezing one Contract.
 
-Current Mandate support remains intentionally pure and stateless: Harness does not ship a built-in StrategyPolicy, Mandate scheduler, semantic verifier, or second durable Mandate database. `build_harness_strategy_selection_context()` accepts the exact Mandate, currently available Profiles, a contiguous lineage of exact prior-attempt evidence, and optional exact `HarnessStrategyEvidence`; it derives consumption and remaining authority mechanically and exposes that complete selection surface to the Agent. The Agent authors one `HarnessAgentStrategySelection` bound to the exact context digest; Harness only admits the selected Profile/budget/adopted evidence and freezes the next attempt. The Mandate may explicitly carry `HarnessPrivacyPolicy` when cross-attempt model-content retention is required; absence preserves the metadata-only legacy/default authority and serialized identity. Triggering another attempt, discovering candidate Profiles, producing independent verification, and deciding semantic Strategy remain outside Harness policy.
+This keeps the boundary mechanical: **Mandate bounds delegation; Profile identifies one concrete Provider/Tool configuration; Strategy contains the caller/Agent-selected parameters for this attempt; Run Contract is the authority Harness executes.** Receipt and CompletionProposal remain outputs of an executed Run, not a Harness-owned instruction to create or select a successor.
 
 ## Self-change evidence and promotion authority
 
