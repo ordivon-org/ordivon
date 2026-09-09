@@ -88,7 +88,6 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/agent_run.py",
     "ordivon_harness/api.py",
     "ordivon_harness/completion.py",
-    "ordivon_harness/core.py",
     "ordivon_harness/mandate.py",
     "ordivon_harness/core_contracts.py",
     "ordivon_harness/independent_cli.py",
@@ -109,6 +108,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/core.py",
     "ordivon_harness/subprocess_lifecycle.py",
     "ordivon_harness/tool_semantics.py",
     "ordivon_harness/host_external_adapter.py",
@@ -234,7 +234,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("package root differs from recommended API")
         if probe["hostInstalled"] or probe["hostLoaded"]:
             fail("Host appeared in isolated base installation")
-        checked([str(python), str(ROOT / "scripts/check_core_without_host.py")])
+        checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:
             if command not in help_text:
@@ -249,7 +249,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("capabilities still advertise Host compatibility")
         return {
             "installedVersion": version,
-            "hostFreeCoreVerified": True,
+            "hostFreeHarnessVerified": True,
             "cliCommandsVerified": len(CLI_COMMANDS),
         }
 

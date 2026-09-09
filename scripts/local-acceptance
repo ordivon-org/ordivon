@@ -29,7 +29,7 @@ case "$mode" in
       scripts/check_docs.py \
       scripts/check_evidence.py \
       scripts/check_wheel.py \
-      scripts/check_core_without_host.py \
+      scripts/check_harness_without_host.py \
       scripts/harness_p0_scale_acceptance.py \
       scripts/owner-environment; do
       test -f "$repo/$path"

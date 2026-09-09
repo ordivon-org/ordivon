@@ -56,12 +56,13 @@ class RepositoryBoundaryTests(unittest.TestCase):
 
 
     def test_retired_host_era_abandonment_surface_does_not_return(self) -> None:
-        import ordivon_harness.core as core
+        import ordivon_harness.api as api
         from ordivon_harness.store import HARNESS_STORE_EVENT_KINDS, HarnessRunStatus
 
         package = ROOT / "src" / "ordivon_harness"
         self.assertFalse((package / "disposition.py").exists())
-        self.assertFalse(hasattr(core, "NativeRunAbandonment"))
+        self.assertFalse((package / "core.py").exists())
+        self.assertFalse(hasattr(api, "NativeRunAbandonment"))
         self.assertFalse(hasattr(HarnessRunStatus, "ABANDONED"))
         self.assertNotIn("harness.run-abandoned", HARNESS_STORE_EVENT_KINDS)
 

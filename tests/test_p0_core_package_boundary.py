@@ -21,19 +21,19 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         return json.loads(completed.stdout)
 
-    def test_package_root_and_core_do_not_eagerly_load_host(self) -> None:
+    def test_package_root_and_api_do_not_eagerly_load_host(self) -> None:
         observed = self.run_probe(
             "import json,sys,ordivon_harness; "
             "root_loaded=any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules); "
-            "import ordivon_harness.core as core; "
-            "core_loaded=any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules); "
-            "print(json.dumps({'rootLoadedHost':root_loaded,'coreLoadedHost':core_loaded,"
-            "'hasStandalone':'StandaloneHarnessRunner' in core.__all__,"
-            "'hasSqliteStore':'SQLiteHarnessStore' in core.__all__,"
-            "'hasProviderCodec':'HarnessProviderCallRecordV4' in core.__all__}))"
+            "import ordivon_harness.api as api; "
+            "api_loaded=any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules); "
+            "print(json.dumps({'rootLoadedHost':root_loaded,'apiLoadedHost':api_loaded,"
+            "'hasStandalone':'StandaloneHarnessRunner' in api.__all__,"
+            "'hasSqliteStore':'SQLiteHarnessStore' in api.__all__,"
+            "'hasProviderCodec':'HarnessProviderCallRecordV4' in api.__all__}))"
         )
         self.assertFalse(observed["rootLoadedHost"])
-        self.assertFalse(observed["coreLoadedHost"])
+        self.assertFalse(observed["apiLoadedHost"])
         self.assertFalse(observed["hasStandalone"])
         self.assertFalse(observed["hasSqliteStore"])
         self.assertFalse(observed["hasProviderCodec"])
@@ -63,11 +63,11 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         self.assertFalse(observed["hasHostRunner"])
         self.assertTrue(observed["hasRunContract"])
         self.assertFalse(observed["hostLoaded"])
+        self.assertFalse((ROOT / "src" / "ordivon_harness" / "core.py").exists())
 
     def test_independent_modules_have_no_host_compatibility_imports(self) -> None:
         package = ROOT / "src" / "ordivon_harness"
         paths = (
-            "core.py",
             "run_state.py",
             "standalone.py",
             "independent_result.py",

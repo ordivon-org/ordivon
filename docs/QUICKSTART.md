@@ -227,4 +227,4 @@ Recovery is evidence-driven. A dispatched Provider or Tool operation with an amb
 
 ## Python API
 
-Use `ordivon_harness.api` for normal applications and `ordivon_harness.core` for advanced persistence/continuity composition. Higher-level orchestrators should call these caller-neutral surfaces directly; the current package does not ship a Host-specific external adapter.
+Use `ordivon_harness.api` for applications. Advanced persistence/continuity composition imports the explicit caller-neutral owner modules directly; the duplicate `ordivon_harness.core` aggregation facade is retired, and the current package does not ship a Host-specific external adapter.

@@ -20,7 +20,7 @@ from ordivon_harness.api import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
-from ordivon_harness.core import AgentRunConclusion, ScriptedTurnAdapter
+from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
 
 
 def require(condition: bool, message: str) -> None:

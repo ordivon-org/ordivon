@@ -245,7 +245,7 @@ HarnessExecutionMandate
 
 Harness derives remaining token/wall-time consumption from prior exact attempt evidence. It does not ship a Strategy planner.
 
-Use `ordivon_harness.core` only when an advanced integration needs the lower-level Store, Continuity, Provider, Runtime, or recovery primitives. Historical `Standalone*` names remain compatibility aliases where documented; normal applications should not hand-wire those layers.
+Use `ordivon_harness.api` as the supported application facade. Advanced integrations import the explicit owner modules for Store, Continuity, Provider, Runtime, or recovery primitives; the duplicate `ordivon_harness.core` aggregation facade and historical `Standalone*` aliases are retired. Historical names remain documented in the changelog rather than kept as live compatibility surfaces.
 
 Exact supported exports and upgrade expectations are owned by [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md), not by this summary.
 

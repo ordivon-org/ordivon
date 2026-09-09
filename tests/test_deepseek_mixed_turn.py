@@ -132,7 +132,7 @@ class DeepSeekMixedTurnTests(unittest.TestCase):
             transport=transport,
             completion_contract=COMPLETION,
         )
-        from ordivon_harness.core import AgentTurnRequest
+        from ordivon_harness.api import AgentTurnRequest
 
         result = adapter.invoke(
             AgentTurnRequest(

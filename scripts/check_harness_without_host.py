@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove the installed Harness Core completes and reopens without Host."""
+"""Prove the installed Harness completes and reopens without Host."""
 
 from __future__ import annotations
 
@@ -9,15 +9,14 @@ import tempfile
 
 from anc_canonical import canonical_digest
 
-from ordivon_harness.core import (
-    AgentRunConclusion,
+from ordivon_harness.api import (
     AgentTurnResult,
     HarnessBoundReference,
     HarnessRunContract,
     NO_TOOL_AGENT_SURFACE_DIGEST,
     RunBudget,
-    ScriptedTurnAdapter,
 )
+from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
 from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
@@ -37,14 +36,14 @@ class FixedClock:
 
 def main() -> int:
     if importlib.util.find_spec("ordivon_host") is not None:
-        raise RuntimeError("Host-free Core check unexpectedly found ordivon-host")
+        raise RuntimeError("Host-free Harness check unexpectedly found ordivon-host")
     contract = HarnessRunContract(
-        harness_run_id="harness-run:core-without-host",
-        harness_implementation_id="ordivon-harness@core-smoke",
-        caller_id="caller:core-without-host",
-        caller_run_ref="core-smoke:1",
-        objective_ref=HarnessBoundReference("objective:core-smoke", "objective", DIGEST_A),
-        context_refs=(HarnessBoundReference("context:core-smoke", "context", DIGEST_B),),
+        harness_run_id="harness-run:host-free-smoke",
+        harness_implementation_id="ordivon-harness@host-free-smoke",
+        caller_id="caller:host-free-smoke",
+        caller_run_ref="host-free-smoke:1",
+        objective_ref=HarnessBoundReference("objective:host-free-smoke", "objective", DIGEST_A),
+        context_refs=(HarnessBoundReference("context:host-free-smoke", "context", DIGEST_B),),
         provider_id="provider:scripted",
         adapter_id=ScriptedTurnAdapter.adapter_id,
         requested_model_id=ScriptedTurnAdapter.model_id,
@@ -59,22 +58,22 @@ def main() -> int:
         },
         completion_contract={"mode": "record"},
         system_manifest_ref=HarnessBoundReference(
-            "system-manifest:core-smoke", "system-manifest", DIGEST_A
+            "system-manifest:host-free-smoke", "system-manifest", DIGEST_A
         ),
         created_at_ms=1_000,
     )
     result = AgentTurnResult(
-        model_call_id="model-call:core-without-host",
+        model_call_id="model-call:host-free-smoke",
         model_id=ScriptedTurnAdapter.model_id,
         content="completed",
         tool_calls=(),
         conclusion=AgentRunConclusion(
             status="candidate_completed",
-            summary="Host-free Core completed and persisted its Run.",
+            summary="Host-free Harness completed and persisted its Run.",
         ),
         usage={"inputTokens": 5, "outputTokens": 3},
         finish_reason="stop",
-        raw_response_digest=canonical_digest({"core": "without-host"}),
+        raw_response_digest=canonical_digest({"harness": "host-free-smoke"}),
     )
     budget = RunBudget(
         max_model_calls=1,
@@ -85,7 +84,7 @@ def main() -> int:
         max_model_retries=0,
     )
     clock = FixedClock()
-    with tempfile.TemporaryDirectory(prefix="ordivon-harness-core-") as directory:
+    with tempfile.TemporaryDirectory(prefix="ordivon-harness-host-free-") as directory:
         root = Path(directory) / "state"
         with SQLiteHarnessStore.initialize(root) as store:
             store.create_run(contract)
@@ -102,7 +101,7 @@ def main() -> int:
                 monotonic_ms=clock,
             ).run(({"role": "user", "content": "complete"},))
             if execution.terminal_result is None:
-                raise RuntimeError("Host-free Core did not produce terminal evidence")
+                raise RuntimeError("Host-free Harness did not produce terminal evidence")
             receipt_digest = execution.terminal_result.receipt.digest
         with SQLiteHarnessStore(root) as reopened_store:
             reopened = SQLiteHarnessRunContinuityStore.open(
@@ -120,10 +119,10 @@ def main() -> int:
                 monotonic_ms=clock,
             ).inspect_terminal()
             if inspected.receipt.digest != receipt_digest:
-                raise RuntimeError("Host-free Core restart inspection differs")
+                raise RuntimeError("Host-free Harness restart inspection differs")
             if not reopened_store.doctor(full=True)["healthy"]:
-                raise RuntimeError("Host-free Core Store Doctor failed")
-    print("harness core without host: passed")
+                raise RuntimeError("Host-free Harness Store Doctor failed")
+    print("harness without host: passed")
     return 0
 
 

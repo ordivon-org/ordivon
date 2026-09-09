@@ -104,7 +104,7 @@ def capabilities(
             }
         ],
         "toolBearingCliExecution": False,
-        "toolBearingApi": "ordivon_harness.api / ordivon_harness.core",
+        "toolBearingApi": "ordivon_harness.api",
         "executionMandate": {
             "supported": True,
             "authority": "caller-delegated",
@@ -170,7 +170,7 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             raise ValueError(
                 "independent CLI execution currently supports only the canonical "
                 "no-Tool profile; Tool-bearing Runs require an application-supplied "
-                "HarnessRuntimeClient through ordivon_harness.api or ordivon_harness.core"
+                "HarnessRuntimeClient through ordivon_harness.api"
             )
         messages = _load_messages(args)
         if not messages:

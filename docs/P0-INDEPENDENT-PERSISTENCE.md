@@ -258,7 +258,7 @@ This foundation does not yet provide:
 
 ## Package boundary
 
-The base wheel now depends only on the exact Protocol revision. `ordivon_harness.core`, package-root discovery, independent CLI commands, SQLite Journal/CAS operations and the Standalone Runner import and execute without `ordivon-host`. The isolated wheel gate proves a candidate-completed Run can be persisted, closed, reopened, inspected and fully doctored in an environment where `ordivon_host` is absent.
+The base wheel now depends only on the exact Protocol revision. `ordivon_harness.api`, package-root discovery, explicit owner modules, independent CLI commands, SQLite Journal/CAS operations and the Standalone Runner import and execute without `ordivon-host`. The isolated wheel gate proves a candidate-completed Run can be persisted, closed, reopened, inspected and fully doctored in an environment where `ordivon_host` is absent.
 
 The historical Host-backed API remains available through the exact `host` extra and is installed by the repository development group for the complete regression suite. Package-root compatibility exports resolve lazily so importing the package itself does not silently pull Host.
 
