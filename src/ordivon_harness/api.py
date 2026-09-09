@@ -42,11 +42,6 @@ from .runtime_port import (
     HarnessRuntimeToolRejected,
 )
 
-from .provider_use_policy import (
-    HarnessProviderRoute,
-    HarnessProviderUsePolicy,
-    HarnessProviderUsePolicyError,
-)
 from .agent_run import (
     HarnessAgentExecution,
     HarnessAgentRun,
@@ -110,7 +105,4 @@ __all__ = [
     "decode_structured_completion_result",
     "structured_completion_contract_digest",
     "structured_completion_result_schema",
-    "HarnessProviderRoute",
-    "HarnessProviderUsePolicy",
-    "HarnessProviderUsePolicyError",
 ]

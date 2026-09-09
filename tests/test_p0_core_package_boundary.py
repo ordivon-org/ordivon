@@ -66,6 +66,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(observed["telemetry"])
 
+    def test_retired_provider_use_policy_module_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'providerUsePolicy':importlib.util.find_spec('ordivon_harness.provider_use_policy') is not None}))"
+        )
+        self.assertFalse(observed["providerUsePolicy"])
+
     def test_retired_observation_tool_surface_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "

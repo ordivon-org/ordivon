@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-real-consumer Harness `provider_use_policy.py` route-policy ontology and stable API. Authoritative Harness storage contains zero `provider-use-policy-v1`, `ordivon.harness-provider-use-policy`, or `providerUsePolicy` record/reference, and current external product code has no consumer. Provider/data-route authorization now belongs before Harness Contract construction in the caller/domain policy boundary (for example a mature policy engine); Harness still executes the caller-selected exact provider/adapter/model identity and does not mint authorization. Historical GVA4/Campaign evidence remains immutable. Fresh wheels reject resurrection of the retired module.
+
 - retired the zero-external-consumer `capabilities` CLI command and `ordivon.harness-cli-capabilities` self-description schema. CLI availability comes from the actual parser/`--help`; Run authority comes from `HarnessRunContract` and request-bound Agent turn state; the package no longer maintains a second self-reported capability registry.
 
 - removed the stale `executionMandate` object from CLI `capabilities`: the Mandate/Profile/Strategy layer is already retired, and current capability projection now describes only executable surfaces instead of advertising a phantom `supported=true` control layer. No replacement Harness metadata ontology was added.

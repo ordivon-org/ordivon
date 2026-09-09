@@ -11,11 +11,6 @@ from .completion import structured_completion_contract_digest
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
 from .ordivon.model import AgentTurnAdapter
-from .provider_use_policy import (
-    HarnessProviderUsePolicy,
-    HarnessProviderUsePolicyError,
-    validate_provider_use_policy,
-)
 from .ordivon.sqlite_agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
@@ -68,7 +63,6 @@ class HarnessAgentRun:
     cognition_profile: HarnessCognitionProfile | None = None
     execution_binding: HarnessExecutionBinding | None = None
     runtime: HarnessRuntimeClient | None = None
-    provider_use_policy: HarnessProviderUsePolicy | None = None
 
     @classmethod
     def create(
@@ -80,7 +74,6 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None = None,
         execution_binding: HarnessExecutionBinding | None = None,
         runtime: HarnessRuntimeClient | None = None,
-        provider_use_policy: HarnessProviderUsePolicy | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -89,7 +82,6 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
-            provider_use_policy=provider_use_policy,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
         root = Path(state_root).expanduser().resolve()
@@ -114,7 +106,6 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
-            provider_use_policy=provider_use_policy,
             clock_ms=clock_ms,
             monotonic_ms=monotonic_ms,
         )
@@ -129,7 +120,6 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None = None,
         execution_binding: HarnessExecutionBinding | None = None,
         runtime: HarnessRuntimeClient | None = None,
-        provider_use_policy: HarnessProviderUsePolicy | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -144,7 +134,6 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
-            provider_use_policy=provider_use_policy,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
         return cls._bind(
@@ -154,7 +143,6 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
-            provider_use_policy=provider_use_policy,
             clock_ms=clock_ms,
             monotonic_ms=monotonic_ms,
         )
@@ -169,7 +157,6 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None,
         execution_binding: HarnessExecutionBinding | None,
         runtime: HarnessRuntimeClient | None,
-        provider_use_policy: HarnessProviderUsePolicy | None,
         clock_ms: Callable[[], int] | None,
         monotonic_ms: Callable[[], int] | None,
     ) -> HarnessAgentRun:
@@ -184,7 +171,6 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
-            provider_use_policy=provider_use_policy,
         )
         return value
 
@@ -239,19 +225,6 @@ class HarnessAgentRun:
                 "runtimeReferenceCount": len(self.execution_binding.runtime_references),
             }
 
-        if self.provider_use_policy is None:
-            policy: dict[str, JsonValue] = {
-                "supplied": False,
-                "proofRole": "process-local",
-            }
-        else:
-            policy = {
-                "supplied": True,
-                "proofRole": "process-local-and-contract-checked",
-                "policyId": self.provider_use_policy.policy_id,
-                "policyDigest": self.provider_use_policy.digest,
-            }
-
         value: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.harness-process-composition-projection",
@@ -282,7 +255,6 @@ class HarnessAgentRun:
                     "proofRole": "process-local",
                     "liveness": "not-probed",
                 },
-                "providerUsePolicy": policy,
             },
             "proofBoundary": (
                 "process-local objects are reported as supplied/validated only; this projection "
@@ -437,7 +409,6 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None,
         execution_binding: HarnessExecutionBinding | None,
         runtime: HarnessRuntimeClient | None,
-        provider_use_policy: HarnessProviderUsePolicy | None,
     ) -> None:
         """Admit every supported composition fact provable before state creation.
 
@@ -446,10 +417,6 @@ class HarnessAgentRun:
         """
 
         RunBudget.from_contract_dict(contract.budget)
-        try:
-            validate_provider_use_policy(contract, provider_use_policy)
-        except HarnessProviderUsePolicyError as error:
-            raise HarnessAgentRunCompositionError(str(error)) from error
         if cognition_profile is not None:
             if not contract.privacy.allow_model_content:
                 raise HarnessAgentRunCompositionError(
