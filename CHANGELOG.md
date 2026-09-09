@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-external-consumer `telemetry.py` derived read model and `ordivon-harness telemetry` CLI command. It persisted no authority and only recomputed a second schema from the exact `inspect` projection; `inspect` remains the durable evidence read surface, while machine/process observability belongs to the external observability substrate rather than a Harness-owned telemetry ontology. Fresh wheels reject resurrection of the removed module.
+
 - retired the zero-current-consumer advanced `observation_tool_surface` wrapper and its seven self-protecting tests. The underlying `search_workspace` / `workspace.read` lowering, Runtime references, exact digest fencing and ordinary Tool recovery remain current; caller/domain code now owns source selection and any research-publication schema/projection instead of Harness carrying a specialized observation/source-authority ontology. Historical research evidence is unchanged.
 
 - retired the experimental `ordivon_harness.interaction_context` ontology/compiler and the current `first_interface_finance_workstation_composition` naming. The only live composition now executes direct Finance observe → read-only Workstation egress observe → Finance observe recovery based on owner-native results, with no generic affordance/materialization layer and no environment-mutation Tool surface. Historical First-Interface receipts remain immutable evidence.

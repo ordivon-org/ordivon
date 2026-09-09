@@ -44,11 +44,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="inspect one durable Run with explicit proof boundaries",
     )
     explain.add_argument("harness_run_id")
-    telemetry = commands.add_parser(
-        "telemetry",
-        help="project compact read-only Run usage, budget, cache, and recovery telemetry",
-    )
-    telemetry.add_argument("harness_run_id")
     run = commands.add_parser("run")
     run.add_argument("contract", type=Path)
     _add_input_options(run)

@@ -20,7 +20,6 @@ from .protocol import HarnessProviderCallStatus
 from .sqlite_store import SQLiteHarnessStore
 from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
-from .telemetry import build_harness_telemetry_projection
 
 
 def capabilities() -> dict[str, JsonValue]:
@@ -44,7 +43,6 @@ def capabilities() -> dict[str, JsonValue]:
                     "resume",
                     "recover",
                     "status",
-                    "telemetry",
                     "inspect",
                     "explain",
                 ],
@@ -103,10 +101,6 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
                 "external": "Provider/Runtime/domain liveness and world truth are not claimed",
             }
             return inspected
-    if command == "telemetry":
-        with SQLiteHarnessStore(root) as store:
-            inspected = _inspect(store, args.harness_run_id, root=root, clock_ms=clock_ms)
-            return build_harness_telemetry_projection(inspected)
     if command == "run":
         contract = _load_contract(args.contract)
         if (

@@ -210,7 +210,6 @@ ordivon-harness --state-root /var/lib/ordivon/harness \
   run RUN_CONTRACT.json --message 'Start the bounded Run'
 
 ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness telemetry HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 ```
@@ -243,13 +242,12 @@ Operators normally need five questions:
 
 ```bash
 ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness telemetry HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness recover HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness doctor
 ```
 
-`telemetry` is a read-only projection over exact Harness state: it normalizes usage, budget remainder, Provider cache hit/miss counters when present, and recovery/UNKNOWN context. Cache metrics are measurement only; they never become cognition or semantic policy. `inspect` remains the exact deeper evidence escape hatch.
+`inspect` remains the exact durable evidence read surface; machine/process observability belongs to the external observability substrate rather than a second Harness-owned telemetry projection.
 
 Recovery is evidence-driven. A dispatched operation with uncertain physical outcome is not automatically safe to repeat. `doctor` is the authority-wide history replay; normal Run reopen validates the relevant Run before new execution.
 

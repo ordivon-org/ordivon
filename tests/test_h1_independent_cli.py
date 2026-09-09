@@ -141,20 +141,6 @@ class IndependentCliTests(unittest.TestCase):
             self.assertIn("proofBoundaries", explained)
             self.assertIn("does not infer", explained["proofBoundaries"]["processLocal"])
 
-            code, telemetry, error = self.invoke(
-                "--state-root",
-                str(root),
-                "telemetry",
-                run_contract.harness_run_id,
-            )
-            self.assertEqual(code, 0, error)
-            assert telemetry is not None
-            self.assertEqual(telemetry["kind"], "ordivon.harness-telemetry-projection")
-            self.assertEqual(telemetry["run"]["status"], "paused")
-            self.assertEqual(telemetry["continuity"]["pauseReason"], "needs-input")
-            self.assertEqual(telemetry["budget"]["remainingBasis"], "durable-run-snapshot")
-            self.assertFalse(telemetry["cache"]["available"])
-
             code, recovery, error = self.invoke(
                 "--state-root",
                 str(root),
