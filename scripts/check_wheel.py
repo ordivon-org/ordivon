@@ -40,6 +40,7 @@ EXPECTED_API = {
     "ToolBridgeError",
     "ToolBridgeErrorKind",
     "HarnessToolObservation",
+    "ToolObservation",
     "HarnessPrivacyPolicy",
     "HarnessRunContract",
     "HarnessRuntimeClient",

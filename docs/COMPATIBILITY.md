@@ -35,7 +35,7 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
-The zero-external-consumer `ToolObservation` Python compatibility name is retired. The durable type is `HarnessToolObservation`; its `ordivon.tool-observation` schema, digests, Runtime/Artifact references, reconciliation semantics and stored bytes are unchanged. DomainTool and core Agent-loop interfaces name that canonical owner type directly.
+`HarnessToolObservation` is the canonical durable Tool Observation type. The supported `ordivon_harness.api.ToolObservation` name remains as a compatibility alias because current Ordivon Security integrations dynamically consume that public name; it must not be removed until those consumers migrate. The internal core alias and secondary `ordivon_harness.ordivon` aggregation export remain retired. Durable `ordivon.tool-observation` schema, digests, Runtime/Artifact references, reconciliation semantics and stored bytes are unchanged.
 
 The secondary lazy aggregation facade on `ordivon_harness.ordivon` is retired. Estate-wide current-code search found no external consumer; the only package-root imports were Harness tests/demo code, while real integrations already import exact owner submodules. `ordivon_harness.api` remains the supported application facade. The `ordivon_harness.ordivon` package remains as a namespace for implementation submodules but exports no aggregate symbol set.
 
