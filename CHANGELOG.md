@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the generic Harness `OperationalClaim*` / `project_operational_claim_standing_view` public surface. Harness no longer converts caller-classified supporting/counterevidence/unknown roles into generic claim standing; that meaning belongs to the semantic/domain owner. Historical Campaign-3 evidence and research records remain immutable historical artifacts.
+
 - retired the zero-consumer Harness-local `finance_observe` and `finance_research` Runtime bridge scaffolds. Finance itself now owns the current Runtime-domain interface and seven-operation Primary-Agent semantic waist, and the current Finance/Workstation application already invokes the exact Finance owner domain through Runtime directly. The retired Harness bridges duplicated older Finance schemas/grants (including a narrower research shape) without a current application consumer; historical evidence remains immutable and fresh wheels reject their resurrection.
 
 - deleted the zero-consumer `ordivon_harness.subprocess_lifecycle` helper after exact current-source and cross-repository searches found no import, caller, package export or persisted-data obligation; the former bounded subprocess cleanup implementation was dead code, and the wheel gate now rejects stale generated copies instead of preserving it as a compatibility surface.

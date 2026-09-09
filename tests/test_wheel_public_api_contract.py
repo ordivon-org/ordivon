@@ -8,7 +8,7 @@ from ordivon_harness import api
 from tests.test_public_api import EXPECTED_API as PUBLIC_TEST_API
 
 ROOT = Path(__file__).resolve().parents[1]
-CLAIM_STANDING_EXPORTS = {
+RETIRED_CLAIM_STANDING_EXPORTS = {
     "OperationalClaimEvidenceRole",
     "OperationalClaimRef",
     "OperationalClaimStandingView",
@@ -36,13 +36,19 @@ class WheelPublicApiContractTests(unittest.TestCase):
         self.assertEqual(source, docs)
         self.assertEqual(source, wheel)
 
-    def test_claim_standing_exports_are_part_of_current_contract(self) -> None:
+    def test_retired_claim_standing_exports_do_not_resurrect(self) -> None:
         source = set(api.__all__)
-        self.assertTrue(CLAIM_STANDING_EXPORTS <= source)
-        self.assertTrue(CLAIM_STANDING_EXPORTS <= set(PUBLIC_TEST_API))
+        self.assertTrue(RETIRED_CLAIM_STANDING_EXPORTS.isdisjoint(source))
+        self.assertTrue(RETIRED_CLAIM_STANDING_EXPORTS.isdisjoint(set(PUBLIC_TEST_API)))
         self.assertTrue(
-            CLAIM_STANDING_EXPORTS
-            <= _literal_set(ROOT / "scripts" / "check_docs.py", "STABLE_API")
+            RETIRED_CLAIM_STANDING_EXPORTS.isdisjoint(
+                _literal_set(ROOT / "scripts" / "check_docs.py", "STABLE_API")
+            )
+        )
+        self.assertTrue(
+            RETIRED_CLAIM_STANDING_EXPORTS.isdisjoint(
+                _literal_set(ROOT / "scripts" / "check_wheel.py", "EXPECTED_API")
+            )
         )
 
 

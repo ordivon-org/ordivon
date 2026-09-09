@@ -54,10 +54,6 @@ EXPECTED_API = {
     "HarnessProviderRoute",
     "HarnessProviderUsePolicy",
     "HarnessProviderUsePolicyError",
-    "OperationalClaimEvidenceRole",
-    "OperationalClaimRef",
-    "OperationalClaimStandingView",
-    "project_operational_claim_standing_view",
     "HarnessRunContract",
     "HarnessRuntimeClient",
     "HarnessRuntimeClientError",
@@ -108,6 +104,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/claim_standing.py",
     "ordivon_harness/run_tool_surface.py",
     "ordivon_harness/capability_discovery.py",
     "ordivon_harness/capability_catalog.py",

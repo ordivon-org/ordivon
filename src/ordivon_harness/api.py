@@ -10,12 +10,6 @@ Host integrations are adapters around this caller-neutral authority; they do not
 change Harness persistence or execution ownership.
 """
 
-from .claim_standing import (
-    OperationalClaimEvidenceRole,
-    OperationalClaimRef,
-    OperationalClaimStandingView,
-    project_operational_claim_standing_view,
-)
 from .completion import (
     decode_structured_completion_result,
     structured_completion_contract_digest,
@@ -118,9 +112,6 @@ __all__ = [
     "HarnessPriorAttemptEvidence",
     "HarnessStrategyEvidence",
     "HarnessStrategySelectionContext",
-    "OperationalClaimEvidenceRole",
-    "OperationalClaimRef",
-    "OperationalClaimStandingView",
     "AgentToolDefinition",
     "DomainToolBridge",
     "DomainToolCatalog",
@@ -153,7 +144,6 @@ __all__ = [
     "compile_harness_selected_attempt",
     "decode_structured_completion_result",
     "derive_harness_mandate_consumption",
-    "project_operational_claim_standing_view",
     "structured_completion_contract_digest",
     "structured_completion_result_schema",
     "HarnessProviderRoute",
