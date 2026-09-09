@@ -25,7 +25,7 @@ _RECOVERY_EVENT_KIND = "harness.run-recovery-recorded"
 _TERMINAL_EVENT_KINDS = frozenset(
     {"harness.run-completed", "harness.run-stopped", "harness.run-failed"}
 )
-_PAUSED_CODES = frozenset({RunStopCode.NEEDS_INPUT, RunStopCode.NO_PROGRESS})
+_PAUSED_CODES = frozenset({RunStopCode.NEEDS_INPUT})
 _FAILED_CODES = frozenset(
     {
         RunStopCode.PROVIDER_FAILED,

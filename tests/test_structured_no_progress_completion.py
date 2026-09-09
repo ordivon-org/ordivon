@@ -149,8 +149,18 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
 
             self.assertEqual(result.stop_code, RunStopCode.NO_PROGRESS)
             self.assertIsNone(result.conclusion)
-            self.assertTrue(execution.paused)
-            self.assertIsNone(execution.terminal_result)
+            self.assertFalse(execution.paused)
+            self.assertIsNotNone(execution.terminal_result)
+            assert execution.terminal_result is not None
+            self.assertEqual(execution.terminal_result.receipt.stop_reason, "stopped")
+            self.assertEqual(
+                execution.terminal_result.receipt.termination_code,
+                RunStopCode.NO_PROGRESS.value,
+            )
+            self.assertEqual(
+                store.load_run(run_contract.harness_run_id).status.value,
+                "stopped",
+            )
             self.assertEqual(runtime.workspace_exec_count, 1)
             self.assertEqual(result.tool_calls, 1)
             self.assertEqual(result.model_calls, 3)
