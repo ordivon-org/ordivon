@@ -404,6 +404,12 @@ def _after_egress_context(egress: dict[str, Any]) -> InteractionContextInput:
 def _owner_error_code(call: OwnerCall) -> str | None:
     if call.envelope.get("ok") is not False:
         return None
+    if call.owner == "ordivon-finance":
+        if (
+            call.envelope.get("kind") != "ordivon.finance.runtime-domain-error"
+            or call.envelope.get("externalFinancialWriteAttempted") is not False
+        ):
+            raise RuntimeError("Finance owner error violated its fail-closed contract")
     error = call.envelope.get("error")
     if not isinstance(error, dict):
         return None
@@ -427,13 +433,27 @@ def _validate_workstation_read_only(call: OwnerCall) -> None:
 
 
 def _validate_finance_observation(call: OwnerCall) -> None:
-    if call.envelope.get("ok") is not True:
-        raise RuntimeError("Finance observation did not succeed")
+    if call.owner != "ordivon-finance" or call.operation != "finance.observe":
+        raise RuntimeError("Finance observation owner/operation binding differs")
+    if (
+        call.envelope.get("schemaVersion") != 1
+        or call.envelope.get("kind") != "ordivon.finance.runtime-domain-result"
+        or call.envelope.get("domain") != "finance"
+        or call.envelope.get("operation") != "finance.observe"
+        or call.envelope.get("ok") is not True
+    ):
+        raise RuntimeError("Finance observation owner envelope differs")
     effect = call.envelope.get("effectContract")
     if not isinstance(effect, dict):
         raise TypeError("Finance observation omitted effect contract")
     for key, value in {
+        "schemaVersion": 1,
+        "kind": "ordivon.semantic-effect-contract",
+        "owner": "ordivon-finance",
         "effectClass": "CANONICAL_OBSERVATION",
+        "credentialAccess": "read",
+        "environmentMutation": False,
+        "externalWorldRead": True,
         "externalFinancialWrite": False,
         "financialSubmission": False,
         "authorityMutation": False,

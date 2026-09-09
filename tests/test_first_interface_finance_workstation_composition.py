@@ -20,6 +20,14 @@ spec.loader.exec_module(module)
 
 def owner(ok: bool, operation: str, *, result=None, error=None, effect=None):
     value = {"ok": ok, "operation": operation}
+    if operation.startswith("finance."):
+        value["schemaVersion"] = 1
+        if ok:
+            value["kind"] = "ordivon.finance.runtime-domain-result"
+            value["domain"] = "finance"
+        else:
+            value["kind"] = "ordivon.finance.runtime-domain-error"
+            value["externalFinancialWriteAttempted"] = False
     if result is not None:
         value["result"] = result
     if error is not None:
@@ -30,7 +38,13 @@ def owner(ok: bool, operation: str, *, result=None, error=None, effect=None):
 
 
 FINANCE_EFFECT = {
+    "schemaVersion": 1,
+    "kind": "ordivon.semantic-effect-contract",
+    "owner": "ordivon-finance",
     "effectClass": "CANONICAL_OBSERVATION",
+    "credentialAccess": "read",
+    "environmentMutation": False,
+    "externalWorldRead": True,
     "externalFinancialWrite": False,
     "financialSubmission": False,
     "authorityMutation": False,
@@ -228,6 +242,90 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         self.assertEqual(receipt["interactionStages"][0]["selectedTools"], ["finance_observe"])
         self.assertFalse(receipt["invariants"]["environmentMutationAuthorityGranted"])
         self.assertFalse(receipt["invariants"]["toolAuthorityExpanded"])
+
+    def test_finance_observation_rejects_mislabeled_owner_envelope(self):
+        fake = FakeRuntime(
+            [
+                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
+                owner(
+                    True,
+                    "finance.decide",
+                    result={"status": "refreshed"},
+                    effect=FINANCE_EFFECT,
+                ),
+            ]
+        )
+        with self.assertRaisesRegex(RuntimeError, "owner envelope differs"):
+            run(fake)
+
+    def test_finance_observation_rejects_financial_write_effect_claim(self):
+        fake = FakeRuntime(
+            [
+                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
+                owner(
+                    True,
+                    "finance.observe",
+                    result={"status": "refreshed"},
+                    effect={**FINANCE_EFFECT, "externalFinancialWrite": True},
+                ),
+            ]
+        )
+        with self.assertRaisesRegex(RuntimeError, "externalFinancialWrite"):
+            run(fake)
+
+    def test_finance_observe_response_loss_replays_same_runtime_request_without_second_dispatch(self):
+        class ResponseLossRuntime:
+            def __init__(self):
+                self.calls = []
+                self.completed_by_request = {}
+                self.physical_dispatches = 0
+                self.lose_finance_observe_once = True
+
+            def call_tool(self, name, arguments):
+                if name != "workspace.exec":
+                    raise AssertionError(name)
+                self.calls.append((name, arguments))
+                request_id = arguments.get("clientRequestId")
+                if not isinstance(request_id, str):
+                    raise AssertionError("workspace.exec request omitted clientRequestId")
+                if request_id in self.completed_by_request:
+                    return dict(self.completed_by_request[request_id])
+                operation = arguments["execution"]["args"][3]
+                if operation == "finance.context.compile":
+                    envelope = owner(True, operation, result={"stateVersion": "v1"})
+                elif operation == "finance.observe":
+                    envelope = owner(
+                        True,
+                        operation,
+                        result={"status": "refreshed"},
+                        effect=FINANCE_EFFECT,
+                    )
+                else:
+                    raise AssertionError(operation)
+                self.physical_dispatches += 1
+                result = {
+                    "jobId": f"job-{self.physical_dispatches}",
+                    "attemptId": f"attempt-{self.physical_dispatches}",
+                    "status": "succeeded",
+                    "semanticCompletionEvaluated": False,
+                    "stdoutTail": json.dumps(envelope),
+                }
+                self.completed_by_request[request_id] = dict(result)
+                if operation == "finance.observe" and self.lose_finance_observe_once:
+                    self.lose_finance_observe_once = False
+                    raise RuntimeError("injected Finance observe response loss after durable Runtime completion")
+                return result
+
+        runtime = ResponseLossRuntime()
+        with self.assertRaisesRegex(RuntimeError, "response loss"):
+            run(runtime)
+        replayed = run(runtime)
+        self.assertEqual(replayed["status"], "completed")
+        self.assertEqual(runtime.physical_dispatches, 2)
+        self.assertEqual(len(runtime.calls), 4)
+        request_ids = [arguments["clientRequestId"] for _, arguments in runtime.calls]
+        self.assertEqual(request_ids[0], request_ids[2])
+        self.assertEqual(request_ids[1], request_ids[3])
 
     def test_egress_failure_recovers_read_only_then_retries_finance(self):
         fake = FakeRuntime(

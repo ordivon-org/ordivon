@@ -149,16 +149,25 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             "792cd48cc9fbdddb7431462876d8e57d8f003643"
         )
         self.assertFalse(current)
-        self.assertIn(
-            "src/ordivon_harness/ordivon/atlas_first_look_runtime_bridge.py",
+        # This revision predates the Finance observe bridge. After that bridge is retired,
+        # endpoint diffing no longer lists the transient path because it is absent at both
+        # endpoints; currentness must still fail on the remaining verified source changes.
+        self.assertTrue(any(path.startswith("src/") for path in invalidating), invalidating)
+        self.assertNotIn(
+            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
             invalidating,
         )
         current, invalidating = check_evidence._verified_revision_is_current(
             "0cfed2338a28be428c11816668651463cd9ccb8b"
         )
         self.assertFalse(current)
-        self.assertIn(
-            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
+        # This revision also predates the Finance research bridge. Retirement removes the
+        # transient path from the endpoint diff, but the historical implementation remains
+        # stale because later verified source changed. A revision where the bridge already
+        # existed is checked immediately below and must still name the deletion explicitly.
+        self.assertTrue(any(path.startswith("src/") for path in invalidating), invalidating)
+        self.assertNotIn(
+            "src/ordivon_harness/ordivon/finance_research_runtime_bridge.py",
             invalidating,
         )
         current, invalidating = check_evidence._verified_revision_is_current(
