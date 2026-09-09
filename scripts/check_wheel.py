@@ -81,6 +81,7 @@ REQUIRED_MEMBERS = {
 }
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/recovery.py",
+    "ordivon_harness/ordivon/sqlite_repository_repair_bridge.py",
     "ordivon_harness/tool_program_durable_recovery.py",
     "ordivon_harness/errors.py",
     "ordivon_harness/interaction_context.py",

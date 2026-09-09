@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the frozen `HARNESS-REPO-REPAIR-001` repository-repair Runtime bridge and its TS11/current implementation self-tests. The 1,151-line adapter hard-coded one benchmark task, four paths and one visible check, had no current product consumer, and its 18 authoritative-store matches are only historical RunState/AgentTurnRequest message bytes readable without importing the bridge. Generic Runtime lowering, ToolProgram/Tool Step durability, response-loss/currentness machinery, and historical evidence/receipt files remain; no generic writable bridge was introduced as a replacement. Fresh wheels reject resurrection of the retired module.
+
 - retired the zero-external-consumer `ToolObservation` Python alias/re-export chain and standardized current interfaces on canonical `HarnessToolObservation`; durable `ordivon.tool-observation` evidence and Tool execution/recovery behavior are unchanged.
 
 - retired the secondary lazy `ordivon_harness.ordivon` aggregation facade. It had zero external current-code consumers and zero persisted-name obligation; Harness tests/demo code now import exact owner submodules, while `ordivon_harness.api` remains the supported application facade. The `ordivon_harness.ordivon` namespace package and all implementation submodules remain; only the duplicate `_EXPORTS`/`__getattr__` symbol aggregator is removed.

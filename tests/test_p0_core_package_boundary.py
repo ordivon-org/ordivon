@@ -45,6 +45,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(observed["atlasBridgeSpec"])
 
+    def test_retired_repository_repair_trial_bridge_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'repositoryRepairBridgeSpec':importlib.util.find_spec('ordivon_harness.ordivon.sqlite_repository_repair_bridge') is not None}))"
+        )
+        self.assertFalse(observed["repositoryRepairBridgeSpec"])
+
     def test_retired_interaction_context_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "
