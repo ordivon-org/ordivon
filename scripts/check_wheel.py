@@ -110,6 +110,7 @@ REQUIRED_MEMBERS = {
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/run_tool_surface.py",
     "ordivon_harness/capability_discovery.py",
+    "ordivon_harness/capability_catalog.py",
     "ordivon_harness/ordivon/atlas_first_look_runtime_bridge.py",
     "ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
     "ordivon_harness/ordivon/finance_research_runtime_bridge.py",

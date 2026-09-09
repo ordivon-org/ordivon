@@ -22,7 +22,7 @@ exact turn-admitted action surface
 
 ## Retained mechanisms
 
-`ordivon_harness.capability_catalog` derives installed execution/cognition capability projections from their real source definitions. It currently exposes the canonical no-Tool and Runtime-search surfaces plus the maintained repository-repair V1/V2 specialized surfaces, reusing their exact Tool definitions and digests rather than creating a second registry.
+At this historical P0 cut, `ordivon_harness.capability_catalog` derived installed execution/cognition projections from source definitions and exposed the no-Tool, Runtime-search, and repository-repair surfaces. That aggregate module has since been retired; current workbench/explain projections read exact Contract/AgentTurnRequest facts directly.
 
 `HarnessAgentRun.explain()` projects validated process-local composition while leaving Provider/Runtime liveness as `not-probed`. Durable CLI `inspect` now carries a read-only workbench projection, and `explain HARNESS_RUN_ID` exposes that projection directly. Fresh durable inspection never guesses process-local Adapter/Runtime availability and adds no new database or event owner.
 

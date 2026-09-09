@@ -5,9 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, TypeAlias
 
-from anc_canonical import JsonValue
+from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
-from .capability_catalog import project_process_composition
 from .completion import structured_completion_contract_digest
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
@@ -40,6 +39,7 @@ from .standalone import (
 )
 from .store import HarnessRunStatus
 from .working_view import HarnessWorkingViewSource
+from .workbench import _project_run_composition
 from .ordivon.loop import CancellationToken, RunBudget
 
 HarnessCognitionSource = HarnessWorkingViewSource
@@ -199,15 +199,89 @@ class HarnessAgentRun:
 
     def explain(self) -> dict[str, JsonValue]:
         """Project the validated in-process Harness composition."""
-        value = project_process_composition(
-            self.contract,
-            adapter=self.adapter,
-            cognition_profile=self.cognition_profile,
-            execution_binding=self.execution_binding,
-            runtime_supplied=self.runtime is not None,
-            provider_use_policy=self.provider_use_policy,
-        )
-        value["durableRun"] = self.status()
+
+        if self.cognition_profile is None:
+            cognition: dict[str, JsonValue] = {
+                "supplied": False,
+                "mechanisms": [],
+                "proofRole": "process-local",
+            }
+        else:
+            mechanisms: list[str] = []
+            if self.cognition_profile.working_set_transitions:
+                mechanisms.append("working-set-transition")
+            if self.cognition_profile.caller_ingress_promotions:
+                mechanisms.append("caller-ingress-promotion")
+            if self.cognition_profile.working_set_history:
+                mechanisms.append("working-set-history")
+            cognition = {
+                "supplied": True,
+                "mechanisms": mechanisms,
+                "profile": {
+                    "workingSetTransitions": self.cognition_profile.working_set_transitions,
+                    "callerIngressPromotions": self.cognition_profile.caller_ingress_promotions,
+                    "workingSetHistory": self.cognition_profile.working_set_history,
+                },
+                "proofRole": "process-local",
+            }
+
+        if self.execution_binding is None:
+            binding: dict[str, JsonValue] = {
+                "supplied": False,
+                "proofRole": "process-local",
+            }
+        else:
+            binding = {
+                "supplied": True,
+                "proofRole": "process-local-and-contract-checked",
+                "bindingDigest": canonical_digest(self.execution_binding.to_dict()),
+                "toolCatalogDigest": self.execution_binding.tool_catalog_digest,
+                "toolGrantDigest": self.execution_binding.tool_grant_digest,
+                "runtimeReferenceCount": len(self.execution_binding.runtime_references),
+            }
+
+        if self.provider_use_policy is None:
+            policy: dict[str, JsonValue] = {
+                "supplied": False,
+                "proofRole": "process-local",
+            }
+        else:
+            policy = {
+                "supplied": True,
+                "proofRole": "process-local-and-contract-checked",
+                "policyId": self.provider_use_policy.policy_id,
+                "policyDigest": self.provider_use_policy.digest,
+            }
+
+        value: dict[str, JsonValue] = {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-process-composition-projection",
+            "truthRole": "derived-read-only-composition-projection",
+            "run": _project_run_composition(self.contract),
+            "processLocal": {
+                "adapter": {
+                    "supplied": True,
+                    "proofRole": "process-local-and-contract-checked",
+                    "adapterId": getattr(self.adapter, "adapter_id", "unknown"),
+                    "modelId": getattr(self.adapter, "model_id", "unknown"),
+                    "liveness": "not-probed",
+                },
+                "cognition": cognition,
+                "executionBinding": binding,
+                "runtimeClient": {
+                    "supplied": self.runtime is not None,
+                    "proofRole": "process-local",
+                    "liveness": "not-probed",
+                },
+                "providerUsePolicy": policy,
+            },
+            "proofBoundary": (
+                "process-local objects are reported as supplied/validated only; this projection "
+                "does not grant authority or prove Provider/Runtime liveness"
+            ),
+            "durableRun": self.status(),
+        }
+        validate_json_value(value)
         return value
 
     def run(

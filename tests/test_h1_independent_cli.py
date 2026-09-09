@@ -12,6 +12,10 @@ from unittest.mock import patch
 from ordivon_harness.cli import main as cli_main
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+from ordivon_harness.ordivon.sqlite_agent_bridge import (
+    NO_TOOL_AGENT_GRANT_DIGEST,
+    NO_TOOL_AGENT_SURFACE_DIGEST,
+)
 from ordivon_harness.ordivon.sqlite_runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
@@ -49,10 +53,16 @@ class IndependentCliTests(unittest.TestCase):
         profile = value["executionProfiles"][0]
         self.assertEqual(profile["profileId"], "deepseek-no-tool-v1")
         self.assertFalse(profile["runtimeRequired"])
-        catalog = value["effectiveCapabilityCatalog"]
-        self.assertEqual(catalog["truthRole"], "derived-installed-capability-projection")
-        self.assertEqual(len(catalog["executionSurfaces"]), 4)
-        self.assertTrue(value["effectiveCapabilityCatalogDigest"].startswith("sha256:"))
+        self.assertNotIn("effectiveCapabilityCatalog", value)
+        self.assertNotIn("effectiveCapabilityCatalogDigest", value)
+        self.assertEqual(
+            value["executionProfiles"][0]["toolCatalogDigest"],
+            NO_TOOL_AGENT_SURFACE_DIGEST,
+        )
+        self.assertEqual(
+            value["executionProfiles"][0]["toolGrantDigest"],
+            NO_TOOL_AGENT_GRANT_DIGEST,
+        )
 
     def test_independent_run_pause_resume_status_and_inspect_are_first_class(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

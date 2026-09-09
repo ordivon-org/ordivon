@@ -106,8 +106,8 @@ budget = RunBudget(
     max_wall_time_ms=90_000,
     max_total_tokens=16_384,
 )
-# Supply caller/objective/context/provider/system identities, the capability digests
-# reported by `ordivon-harness capabilities`, and `budget.to_contract_dict()` to
+# Supply caller/objective/context/provider/system identities, the exact Tool catalog/grant
+# digests reported by the selected `ordivon-harness capabilities` execution profile, and `budget.to_contract_dict()` to
 # HarnessRunContract. Persist `contract.to_dict()` as RUN_CONTRACT.json.
 ```
 
@@ -127,7 +127,7 @@ ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` returns the package-derived `ordivon_harness.capability_catalog.effective_capability_catalog()`. Its execution surfaces are installed mechanisms, not grants. The same advanced module exposes `project_run_capabilities()` for exact Contract-bound capability facts and `project_turn_capabilities()` for only the Tool/native actions already admitted on one `AgentTurnRequest`. Installed → Run-admitted → turn-admitted is an explicit authority boundary.
+`capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable workbench and in-process `explain()` derive Contract-bound and exact `AgentTurnRequest` action facts directly; no aggregate installed-capability catalog or registry sits between those owners and the projection.
 
 For the built-in DeepSeek profile, the Contract must bind the canonical no-Tool catalog/grant and the configured DeepSeek Adapter/model. The current adapter reserves a conservative request-token upper bound equal to the serialized Provider request bytes plus its 8,192-token completion ceiling. A small Contract such as `max_total_tokens=4_096` can therefore be rejected safely before the first Provider dispatch; `16_384` is a practical starting bound for a small no-Tool Run, not a universal required value.
 

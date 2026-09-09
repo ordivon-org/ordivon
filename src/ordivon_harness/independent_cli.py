@@ -7,10 +7,6 @@ from typing import Any
 from anc_canonical import JsonValue, validate_json_value
 
 from .agent_run import HarnessAgentRun
-from .capability_catalog import (
-    effective_capability_catalog,
-    effective_capability_catalog_digest,
-)
 from .core_contracts import HarnessRunContract
 from .independent_result import IndependentRunRecorder, StoredIndependentRunResult
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
@@ -31,14 +27,11 @@ from .workbench import build_durable_workbench_projection
 def capabilities() -> dict[str, JsonValue]:
     """Describe the exact source-derived installed capability projection."""
 
-    catalog_digest = effective_capability_catalog_digest()
     return {
         "ok": True,
         "schemaVersion": 1,
         "kind": "ordivon.harness-cli-capabilities",
         "defaultAuthority": "independent-harness-run",
-        "effectiveCapabilityCatalogDigest": catalog_digest,
-        "effectiveCapabilityCatalog": effective_capability_catalog(),
         "executionProfiles": [
             {
                 "profileId": "deepseek-no-tool-v1",
