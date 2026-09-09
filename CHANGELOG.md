@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-consumer Harness-local `finance_observe` and `finance_research` Runtime bridge scaffolds. Finance itself now owns the current Runtime-domain interface and seven-operation Primary-Agent semantic waist, and the current Finance/Workstation application already invokes the exact Finance owner domain through Runtime directly. The retired Harness bridges duplicated older Finance schemas/grants (including a narrower research shape) without a current application consumer; historical evidence remains immutable and fresh wheels reject their resurrection.
+
 - deleted the zero-consumer `ordivon_harness.subprocess_lifecycle` helper after exact current-source and cross-repository searches found no import, caller, package export or persisted-data obligation; the former bounded subprocess cleanup implementation was dead code, and the wheel gate now rejects stale generated copies instead of preserving it as a compatibility surface.
 
 - deleted the zero-consumer `ordivon_harness.tool_semantics` module, including the Host-era `NativeToolCatalogSnapshot`, `NativeToolSpec`, recovery-rank table and native Tool semantic switch; exact current-source and cross-repository searches found no code consumer, package export or current runtime dependency. Historical design documents remain unchanged as evidence, while the wheel gate now rejects stale generated copies of the retired module.

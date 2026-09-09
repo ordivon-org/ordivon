@@ -49,6 +49,8 @@ Pre-H3 Host-backed state is not a current compatibility obligation. Historical r
 
 The former `ordivon_harness.tool_semantics` / `NativeToolCatalogSnapshot` line is also retired from current code. An exact current-source and cross-repository consumer census found no imports or callers; its remaining mentions are historical design/closeout documentation. Runtime Tool admission, correlation, idempotency and effect semantics now come from the retained caller/tool contracts and Runtime-facing execution paths rather than a parallel Harness-owned native Tool catalog.
 
+The former Harness-local Finance observe/research Runtime bridge modules are not current compatibility surfaces. Finance owns the current Runtime-domain interface and its semantic operation schemas; current Finance/Workstation composition invokes that owner domain through Runtime directly. Harness retains generic Runtime execution/recovery mechanics rather than shadow Finance-specific grants/parsers. Historical source/evidence references to the retired bridges remain historical evidence.
+
 Current Provider Call writes use schema v4. Schema v3 remains a narrow typed historical reader because the authoritative S0 freeze contains live historical v3 objects. The earlier caller-neutral schema-v2 typed codec is retired: the current estate scan found no v2 object in the S0 freeze and no current Provider head or code consumer requiring it. Older completed experiment roots may still retain immutable v2 CAS bytes and their event references; generic store doctor/events/inspect/status continue to read those Runs without reinterpreting or deleting those historical bytes.
 
 Schema-v1 caller-neutral `HarnessRunContract` keeps one narrow compatibility rule
