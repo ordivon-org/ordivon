@@ -41,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("harness_run_id")
     explain = commands.add_parser(
         "explain",
-        help="project one durable Run as a capability/composition workbench view",
+        help="inspect one durable Run with explicit proof boundaries",
     )
     explain.add_argument("harness_run_id")
     telemetry = commands.add_parser(

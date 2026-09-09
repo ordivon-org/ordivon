@@ -65,7 +65,7 @@ This page states current maturity. It does not replay the research sequence that
 
 - `HarnessAgentRun` is the recommended Python state-root execution handle for normal create/open/run/resume composition.
 - Capability truth has three explicit stages: package-installed mechanisms, immutable Run-admitted Contract/Binding authority, and exact turn-admitted `AgentTurnRequest` actions. Earlier stages never imply later stages.
-- the former aggregate installed-capability catalog is retired; supported execution profiles expose exact source-owned digests directly, while workbench/explain derive only the Run/turn facts they consume.
+- the former aggregate installed-capability catalog and workbench read model are retired; supported execution profiles expose exact source-owned digests directly, durable `inspect` is the single retained-state view, and in-process `explain()` reports only the composition it can validate.
 - the former task-conditioned lexical capability-discovery/descriptor layer is retired; Harness keeps no generic capability search/ranking ontology.
 - experimental First-Interface composition now accepts caller/owner-supplied `InteractionAffordance` facts directly. Only `AVAILABLE` Tools already present in the admitted turn surface are selected; `BLOCKED`/`UNKNOWN` remain context, never authority.
 - preregistered fresh-Agent ablations remain historical evidence: static lexical retrieval did not earn a generic discovery layer, while current standing plus existing admission showed a bounded behavioral consequence. That value is retained in direct caller-supplied affordances instead of a Harness-owned descriptor ontology.

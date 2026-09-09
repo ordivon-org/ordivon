@@ -22,9 +22,9 @@ exact turn-admitted action surface
 
 ## Retained mechanisms
 
-At this historical P0 cut, `ordivon_harness.capability_catalog` derived installed execution/cognition projections from source definitions and exposed the no-Tool, Runtime-search, and repository-repair surfaces. That aggregate module has since been retired; current workbench/explain projections read exact Contract/AgentTurnRequest facts directly.
+At this historical P0 cut, `ordivon_harness.capability_catalog` derived installed execution/cognition projections from source definitions and exposed the no-Tool, Runtime-search, and repository-repair surfaces. That aggregate module was later retired, and the subsequent shared workbench read model was also retired; current durable inspection reads exact retained facts directly while `HarnessAgentRun.explain()` reports validated process-local composition.
 
-`HarnessAgentRun.explain()` projects validated process-local composition while leaving Provider/Runtime liveness as `not-probed`. Durable CLI `inspect` now carries a read-only workbench projection, and `explain HARNESS_RUN_ID` exposes that projection directly. Fresh durable inspection never guesses process-local Adapter/Runtime availability and adds no new database or event owner.
+`HarnessAgentRun.explain()` still projects validated process-local composition while leaving Provider/Runtime liveness as `not-probed`. The historical durable workbench projection described here was later removed: current CLI `inspect` is the exact retained-state view and `explain HARNESS_RUN_ID` adds only proof-boundary annotations to those same facts. Fresh durable inspection never guesses process-local Adapter/Runtime availability and adds no new database or event owner.
 
 `ordivon_harness.observation_tool_surface` now owns the only accepted specialized Runtime-backed surface directly. It remains application-local, exact-digest-bound, requires explicit Runtime/ExecutionBinding inputs, reuses existing Run continuity/Runner, and cannot alter an already-admitted Run. The generic `HarnessAgentRunToolSurface` wrapper was retired instead of becoming a plugin abstraction. Normal `HarnessAgentRun` still fails closed for an unknown Tool surface instead of searching a registry or guessing a bridge.
 

@@ -39,7 +39,6 @@ from .standalone import (
 )
 from .store import HarnessRunStatus
 from .working_view import HarnessWorkingViewSource
-from .workbench import _project_run_composition
 from .ordivon.loop import CancellationToken, RunBudget
 
 HarnessCognitionSource = HarnessWorkingViewSource
@@ -257,7 +256,17 @@ class HarnessAgentRun:
             "schemaVersion": 1,
             "kind": "ordivon.harness-process-composition-projection",
             "truthRole": "derived-read-only-composition-projection",
-            "run": _project_run_composition(self.contract),
+            "run": {
+                "harnessRunId": self.contract.harness_run_id,
+                "contractDigest": self.contract.digest,
+                "providerId": self.contract.provider_id,
+                "adapterId": self.contract.adapter_id,
+                "requestedModelId": self.contract.requested_model_id,
+                "toolCatalogDigest": self.contract.tool_catalog_digest,
+                "toolGrantDigest": self.contract.tool_grant_digest,
+                "privacy": self.contract.privacy.to_dict(),
+                "budget": dict(self.contract.budget),
+            },
             "processLocal": {
                 "adapter": {
                     "supplied": True,

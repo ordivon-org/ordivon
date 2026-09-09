@@ -125,14 +125,7 @@ class IndependentCliTests(unittest.TestCase):
             self.assertEqual(inspected["contract"]["harnessRunId"], run_contract.harness_run_id)
             self.assertEqual(inspected["snapshot"]["pauseReason"], "needs-input")
             self.assertIsNone(inspected["providerCall"])
-            workbench = inspected["workbench"]
-            self.assertEqual(workbench["truthRole"], "derived-read-only-projection")
-            self.assertEqual(
-                workbench["composition"]["toolSurface"]["surfaceId"],
-                "harness.execution.no-tool.v1",
-            )
-            self.assertEqual(workbench["currentActionSurface"]["status"], "not-observed")
-            self.assertIn("not inferred", workbench["proofBoundaries"]["processLocal"])
+            self.assertNotIn("workbench", inspected)
 
             code, explained, error = self.invoke(
                 "--state-root",
@@ -142,7 +135,11 @@ class IndependentCliTests(unittest.TestCase):
             )
             self.assertEqual(code, 0, error)
             assert explained is not None
-            self.assertEqual(explained["explanation"], workbench)
+            self.assertEqual(explained["run"], inspected["run"])
+            self.assertEqual(explained["contract"], inspected["contract"])
+            self.assertEqual(explained["snapshot"], inspected["snapshot"])
+            self.assertIn("proofBoundaries", explained)
+            self.assertIn("does not infer", explained["proofBoundaries"]["processLocal"])
 
             code, telemetry, error = self.invoke(
                 "--state-root",

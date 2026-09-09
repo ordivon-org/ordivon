@@ -21,7 +21,6 @@ from .sqlite_store import SQLiteHarnessStore
 from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
 from .telemetry import build_harness_telemetry_projection
-from .workbench import build_durable_workbench_projection
 
 
 def capabilities() -> dict[str, JsonValue]:
@@ -91,12 +90,19 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
     if command == "explain":
         with SQLiteHarnessStore(root) as store:
             inspected = _inspect(store, args.harness_run_id, root=root, clock_ms=clock_ms)
-            return {
-                "ok": True,
-                "authority": "independent-harness-run",
-                "stateRoot": str(root),
-                "explanation": inspected["workbench"],
+            inspected["proofBoundaries"] = {
+                "durable": (
+                    "Run/Contract/Provider/Snapshot/Recovery objects are exact Harness "
+                    "Journal/CAS projections"
+                ),
+                "processLocal": (
+                    "fresh durable inspection does not infer whether an application-owned "
+                    "Adapter or Runtime client is currently live; use HarnessAgentRun.explain() "
+                    "for validated in-process composition"
+                ),
+                "external": "Provider/Runtime/domain liveness and world truth are not claimed",
             }
+            return inspected
     if command == "telemetry":
         with SQLiteHarnessStore(root) as store:
             inspected = _inspect(store, args.harness_run_id, root=root, clock_ms=clock_ms)
@@ -251,11 +257,9 @@ def _inspect(
         clock_ms=clock_ms,
     )
     provider: dict[str, JsonValue] | None = None
-    provider_request = None
     try:
         retained_provider = continuity.load_current_provider_call()
         provider = retained_provider.record.to_dict()
-        provider_request = retained_provider.request
     except KeyError:
         pass
     snapshot: dict[str, JsonValue] | None = None
@@ -281,16 +285,6 @@ def _inspect(
         if terminal is None or terminal.completion_proposal is None
         else terminal.completion_proposal.to_dict()
     )
-    workbench = build_durable_workbench_projection(
-        run=run_value,
-        contract=continuity.contract,
-        provider_call=provider,
-        provider_request=provider_request,
-        snapshot=snapshot,
-        recovery=recovery,
-        run_receipt=run_receipt,
-        completion_proposal=completion_proposal,
-    )
     return {
         "ok": True,
         "authority": "independent-harness-run",
@@ -302,7 +296,6 @@ def _inspect(
         "recovery": recovery,
         "runReceipt": run_receipt,
         "completionProposal": completion_proposal,
-        "workbench": workbench,
     }
 
 
