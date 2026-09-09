@@ -24,16 +24,12 @@ from .core_contracts import (
 )
 from .execution_binding import HarnessExecutionBinding, HarnessRuntimeReference
 from .independent_result import IndependentCompletionProposal, IndependentHarnessRunReceipt
-from .loop_driver import DELIBERATE_THEN_ACT_LOOP_DRIVER, SEQUENTIAL_LOOP_DRIVER
-from .mandate import (
-    CompiledHarnessAttempt,
-    HarnessExecutionMandate,
-    HarnessExecutionProfile,
-    HarnessExecutionStrategy,
+from .loop_driver import (
+    DELIBERATE_THEN_ACT_LOOP_DRIVER,
+    SEQUENTIAL_LOOP_DRIVER,
     HarnessLoopDriverRef,
-    HarnessMandateConsumption,
-    compile_harness_attempt,
 )
+
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from .ordivon.loop import RunBudget, RunStopCode
 from .ordivon.model import AgentTurnAdapter, AgentTurnRequest, AgentTurnResult
@@ -88,16 +84,11 @@ __all__ = [
     "HarnessCognitionSource",
     "AgentTurnRequest",
     "AgentTurnResult",
-    "CompiledHarnessAttempt",
     "DeepSeekSettings",
     "DeepSeekTurnAdapter",
     "HarnessBoundReference",
     "HarnessCorrelationContext",
     "HarnessExecutionBinding",
-    "HarnessExecutionMandate",
-    "HarnessMandateConsumption",
-    "HarnessExecutionProfile",
-    "HarnessExecutionStrategy",
     "HarnessLoopDriverRef",
     "AgentToolDefinition",
     "DomainToolBridge",
@@ -125,7 +116,6 @@ __all__ = [
     "RunBudget",
     "RunStopCode",
     "STRUCTURED_COMPLETION_MODE",
-    "compile_harness_attempt",
     "decode_structured_completion_result",
     "structured_completion_contract_digest",
     "structured_completion_result_schema",

@@ -133,31 +133,26 @@ Harness does not own caller Task state, domain commitments, final acceptance, or
 
 > **Run terminality is not epistemic closure.** `candidate_completed` means the bounded Run formed a candidate result; it may retain explicit unresolved unknowns for caller/domain judgment.
 
-## Execution Mandate and strategy
+## Run authority and external orchestration
 
-The normal execution authority is one exact `HarnessRunContract`. For applications that need a broader delegated envelope, Harness retains only a pure compiler boundary:
+Harness begins at one exact caller-authored `HarnessRunContract`:
 
 ```text
 caller / domain / workflow / resource allocator
         │
-        │ chooses exact HarnessExecutionMandate
-        │ + HarnessExecutionProfile
-        │ + HarnessExecutionStrategy
-        │ + explicit HarnessMandateConsumption when not attempt 1
-        ▼
-compile_harness_attempt()
-        │ validates envelope, profile, budget and exact adopted refs
+        │ chooses objective/context/provider/model/Tools/budget/privacy/deadline
+        │ and binds one exact system-manifest digest
         ▼
    HarnessRunContract
-   immutable attempt authority
+   immutable Run authority
         │
         ▼
-    HarnessAgentRun → Receipt
+    HarnessAgentRun → Receipt / CompletionProposal
 ```
 
-Harness does **not** construct a generic multi-attempt selection context, aggregate semantic Strategy evidence, rank profiles, select the next Strategy, or decide when another attempt should exist. Those are caller/domain/workflow/resource-allocation responsibilities. A caller that wants a later attempt must explicitly reconstruct and supply the relevant `HarnessMandateConsumption` and exact adopted Context references; `compile_harness_attempt()` only checks that the proposed attempt remains inside the exact Mandate envelope before freezing one Contract.
+Higher-level multi-Run planning, aggregate resource envelopes, profile discovery, Strategy rationale, prior-attempt accounting, successor selection, and retry policy are outside Harness. The former `HarnessExecutionMandate`, `HarnessExecutionProfile`, `HarnessExecutionStrategy`, `HarnessMandateConsumption`, `CompiledHarnessAttempt`, and `compile_harness_attempt()` layer is retired rather than preserved as a second orchestration/resource-allocation ontology.
 
-This keeps the boundary mechanical: **Mandate bounds delegation; Profile identifies one concrete Provider/Tool configuration; Strategy contains the caller/Agent-selected parameters for this attempt; Run Contract is the authority Harness executes.** Receipt and CompletionProposal remain outputs of an executed Run, not a Harness-owned instruction to create or select a successor.
+The surviving Loop morphology boundary is smaller and mechanical: an external system manifest may declare an exact `HarnessLoopDriverRef`; its complete bytes are digest-bound by `HarnessRunContract.system_manifest_ref`, and `HarnessLoopDriverIdentity.from_contract_manifest()` verifies that exact declaration before a built-in scheduling mode can be used. This does not load plugins, create a registry, expand Tool authority, or decide which morphology should be selected.
 
 ## Self-change evidence and promotion authority
 

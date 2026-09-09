@@ -54,43 +54,11 @@ ordivon-harness capabilities
 
 ## Run
 
-For one exact attempt, create a caller-authored `HarnessRunContract` JSON. When an external caller/domain/workflow wants an envelope above that attempt, it may supply `HarnessExecutionMandate` plus an already-selected Profile/Strategy and compile one exact Contract with `compile_harness_attempt()`. Harness has no generic Strategy-selection context, evidence aggregator, planner or scheduler.
+Create one caller-authored `HarnessRunContract` JSON. Harness begins at that exact authority boundary; cross-Run planning, resource allocation, successor selection and retry policy are external.
 
-For bounded built-in cognition scheduling, callers may bind a typed `HarnessLoopDriverRef` to an execution profile with `profile.with_loop_driver(...)`. The stable facade currently publishes `SEQUENTIAL_LOOP_DRIVER` and `DELIBERATE_THEN_ACT_LOOP_DRIVER`. These are exact morphology identities, not plugin factories: they do not load arbitrary code, expand Tool authority, or enable live HMR.
+For bounded built-in cognition scheduling, an external system manifest may declare a typed `HarnessLoopDriverRef`. Bind the complete manifest digest into `HarnessRunContract.system_manifest_ref`, then use `HarnessLoopDriverIdentity.from_contract_manifest()` when constructing the in-process Runner. The stable facade publishes `SEQUENTIAL_LOOP_DRIVER` and `DELIBERATE_THEN_ACT_LOOP_DRIVER`; these identities do not load arbitrary code, expand Tool authority, or enable live HMR.
 
-```python
-from ordivon_harness.api import (
-    HarnessExecutionMandate,
-    HarnessExecutionProfile,
-    HarnessExecutionStrategy,
-    RunBudget,
-    compile_harness_attempt,
-)
-
-# Mandate: objective/context/completion + allowed profiles + aggregate envelope.
-mandate = HarnessExecutionMandate(..., max_total_tokens=65_536, max_wall_time_ms=120_000)
-
-# Strategy: Agent/application-selected profile and exact parameters for attempt 1.
-strategy = HarnessExecutionStrategy(
-    mandate_digest=mandate.digest,
-    attempt_index=1,
-    profile_id=profile.profile_id,
-    budget=RunBudget(...).to_contract_dict(),
-    provider_options={"maxOutputTokens": 2048},
-    rationale="Selected from current evidence and capability needs.",
-)
-compiled = compile_harness_attempt(
-    mandate, profile, strategy,
-    harness_run_id="harness-run:example:1",
-    harness_implementation_id="ordivon-harness@...",
-    created_at_ms=...,
-)
-contract = compiled.contract
-```
-
-If an external owner chooses to create a later attempt, it must explicitly supply `HarnessMandateConsumption` reconstructed under that owner's authority. The compiler only checks the remaining token/wall-time envelope. Exact prior Receipt/observation references may be supplied through `strategy.adopted_context_refs`; deciding which evidence matters and whether a successor attempt should exist is outside Harness.
-
-For direct execution, create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Objective, Context, caller identity, Tool grant, budget or completion authority. The recommended API is closed over the values required for basic Contract authoring:
+Create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Objective, Context, caller identity, Tool grant, budget or completion authority. The recommended API is closed over the values required for basic Contract authoring:
 
 ```python
 from anc_canonical import canonical_digest

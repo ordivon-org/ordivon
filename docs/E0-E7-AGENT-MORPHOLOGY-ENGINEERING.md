@@ -12,7 +12,7 @@ The older `DeliberationThenToolRunner` remains a separate composition product; i
 
 ## E1 — Typed morphology identity
 
-`HarnessLoopDriverRef(driver_id, driver_digest)` is the public consumer type. `HarnessExecutionProfile.with_loop_driver()` writes it into the existing `metadata.loopDriver` wire shape, preserving historical Profile compatibility.
+`HarnessLoopDriverRef(driver_id, driver_digest)` is the public consumer type. Current code binds its exact `to_dict()` declaration inside externally supplied system-manifest bytes whose complete digest is already fenced by `HarnessRunContract.system_manifest_ref`; no Profile/CompiledAttempt layer is required.
 
 The ref is addressability only: it has no load/build/execute/reload/factory surface. Two built-ins are published: `SEQUENTIAL_LOOP_DRIVER` and `DELIBERATE_THEN_ACT_LOOP_DRIVER`. Their digests bind canonical semantic descriptors; an Attempt still freezes the exact ref in its System Manifest.
 

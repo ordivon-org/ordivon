@@ -1,5 +1,8 @@
 # AM2 — Loop Boundary Falsifiers
 
+> **Historical note:** this document records the experiment at its original cut. The current product has since retired the Mandate/Profile/CompiledAttempt layer; the surviving result is direct exact system-manifest binding through `HarnessRunContract` and `HarnessLoopDriverIdentity.from_contract_manifest()`.
+
+
 Status: active research contraction.
 
 ## Result 1 — identity is cheaper than substitutability

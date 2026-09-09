@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-current-state Mandate/Profile/Strategy/Consumption/CompiledAttempt envelope and `compile_harness_attempt()` stable API. Harness now begins at one exact caller-authored `HarnessRunContract`; cross-Run resource allocation, successor selection and retry policy stay with caller/domain/workflow or mature orchestration substrate. The real Loop scheduling boundary survives independently: `HarnessLoopDriverRef` is now owned by `loop_driver.py` and exact system-manifest bytes must hash to the Contract-bound manifest digest before `HarnessLoopDriverIdentity` can be admitted.
+
 - retired the generic multi-attempt `strategy_selection` subsystem and its stable API exports after current-state and cross-repository census found no persisted Strategy-selection objects and no independent runtime consumer. Harness no longer builds a generic prior-attempt/verification evidence aggregation surface or next-Strategy admission context; callers/domain workflows may still use the pure `HarnessExecutionMandate`/Profile/Strategy `compile_harness_attempt()` boundary to freeze one exact Run Contract. Historical RSI P0/P1 evidence remains immutable historical material.
 
 - retired the generic Harness `OperationalClaim*` / `project_operational_claim_standing_view` public surface. Harness no longer converts caller-classified supporting/counterevidence/unknown roles into generic claim standing; that meaning belongs to the semantic/domain owner. Historical Campaign-3 evidence and research records remain immutable historical artifacts.

@@ -39,7 +39,7 @@ A Provider call may be interrupted. A Tool may have changed the world before its
 
 **Ordivon Harness makes that bounded Agent Run durable without taking the Agent's semantic choices away from it.**
 
-The caller binds one exact `HarnessRunContract`. An application may also use the lower-level `HarnessExecutionMandate`/Profile/Strategy compiler to freeze one exact Contract, but selecting or sequencing strategies is caller/domain/workflow responsibility. Harness then preserves the structural truth needed to run, pause, recover, and inspect that attempt: Provider identity, current cognition, admitted actions, Tool effects, budgets, evidence, and completion proposal.
+The caller binds one exact `HarnessRunContract`. Higher-level planning, resource allocation, profile selection, retries across separate Runs, and successor creation remain caller/domain/workflow responsibilities. Harness preserves only the structural truth needed to run, pause, recover, and inspect that exact bounded Run: Provider identity, current cognition, admitted actions, Tool effects, budget, evidence, and completion proposal.
 
 It does **not** build the Agent's world model, decide which evidence is important, or decide whether a domain objective is finally satisfied.
 
@@ -142,7 +142,7 @@ The current product includes:
 - `observation_tool_surface` as the application-local exact source-read composition; arbitrary non-default Tool surfaces no longer receive a generic Harness wrapper;
 - advanced `build_observation_tool_surface()` composition for observation-only `search_workspace + read_workspace`: callers bind exact readable path/digest authority and may additionally bind owner/authority/version/transport evidence. Exact immutable owner publications can be projected by one bound `subjectRef` only after complete-file digest verification; search projects object routing rather than treating matched lines as semantic authority, and Harness never mints owner truth;
 - durable `inspect` is the single exact Journal/CAS read view; CLI `explain` returns that same view plus explicit proof boundaries instead of maintaining a second workbench read model;
-- pure Mandate/Profile/Strategy-to-Contract compilation for callers that need a delegated envelope, without a Harness-owned multi-attempt selector, evidence aggregator, scheduler, or strategy policy;
+- one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration does not get a second Harness envelope;
 - caller-defined structured completion shapes, with optional Contract-bound local structural conformance verification while semantic/evidence admission remains outside Harness;
 - explicit non-support for a generic opaque Provider-continuation primitive in the contracted current core; Provider-local continuation remains integration-local unless new direct pressure earns a bounded surface;
 - conservative UNKNOWN handling: ambiguous Provider or Tool delivery is reconciled from durable evidence rather than blindly repeated.
@@ -160,7 +160,7 @@ Harness does not:
 - choose which evidence is semantically relevant to the Agent;
 - own a global capability registry, semantic capability ranker, task-conditioned discovery service, or owner-currentness service; current affordances arrive from their actual caller/owner and never become authority merely by being retrieved;
 - provide a generic Memory/RAG store, semantic ranking, automatic knowledge extraction, hidden cross-Run injection, or Harness-owned procedure evaluation/promotion service;
-- aggregate prior attempts into a generic Strategy-selection context, choose/schedule a Mandate's next Strategy, or persist a second Mandate workflow engine;
+- own a Mandate/Profile/Strategy/Consumption layer, aggregate prior attempts into a generic selection context, choose/schedule a successor Run, or persist a second workflow/resource-allocation engine;
 - turn Provider JSON Schema, cache locality, or Tool pruning into semantic policy;
 - treat a model-correct Run conclusion as automatically authoritative outside the bounded Run.
 
@@ -224,16 +224,15 @@ The CLI does not invent the Objective, Context, Tool grant, Provider, budget, or
 
 Use `ordivon_harness.api` for normal applications. The recommended execution handle is `HarnessAgentRun`: the caller supplies the exact Contract, Contract-bound Adapter factory, and any Runtime execution authority; Harness mechanically reconstructs the durable composition on resume. The former aggregate `ordivon_harness.capability_catalog` and generic task-conditioned capability-discovery layer are retired; exact request-bound action truth remains on `AgentTurnRequest` and process-local composition is exposed by `HarnessAgentRun.explain()`, while caller/owner current affordances are supplied directly through `ordivon_harness.interaction_context`; cross-Run knowledge/procedure selection remains external and enters Harness directly as exact cognition seed sources; bounded programmatic Tool composition/recovery lives in `ordivon_harness.tool_program*`; and caller-bound observation composition lives in `ordivon_harness.observation_tool_surface`; there is no generic non-default Tool-surface wrapper. None is promoted into the stable package-root facade yet. These projections/admission helpers do not grant authority or own external knowledge repositories/effects.
 
-For callers that need an envelope above one attempt, the current optional path is deliberately smaller:
+The current execution path is deliberately one waist:
 
 ```text
-caller/domain/workflow chooses exact Mandate + Profile + Strategy + any prior consumption
-→ compile_harness_attempt()
-→ immutable HarnessRunContract
+caller/domain/workflow/resource allocator
+→ exact HarnessRunContract
 → HarnessAgentRun
 ```
 
-Harness validates that the chosen attempt stays inside the supplied envelope. Cross-attempt evidence aggregation, resource reallocation, profile discovery, and next-Strategy selection remain with the caller/domain/workflow or a mature external orchestrator rather than a Harness-owned Strategy-selection subsystem.
+Cross-Run budgeting, profile discovery, resource reallocation, successor selection, and retry policy remain with their actual caller/domain/workflow or mature external orchestrator. Harness does not maintain a second Mandate/Profile/Strategy/Consumption/CompiledAttempt authority above the Run Contract.
 
 Use `ordivon_harness.api` as the supported application facade. Advanced integrations import the explicit owner modules for Store, Continuity, Provider, Runtime, or recovery primitives; the duplicate `ordivon_harness.core` aggregation facade and historical `Standalone*` aliases are retired. Historical names remain documented in the changelog rather than kept as live compatibility surfaces.
 

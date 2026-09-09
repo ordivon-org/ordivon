@@ -1,5 +1,8 @@
 # AM1 — LoopDriver Admission-Time Plasticity
 
+> **Historical note:** this document records the experiment at its original cut. The current product has since retired the Mandate/Profile/CompiledAttempt layer; the surviving result is direct exact system-manifest binding through `HarnessRunContract` and `HarnessLoopDriverIdentity.from_contract_manifest()`.
+
+
 Status: identity result retained; AM1 executable factory prototype superseded by AM2 contraction; no live replacement.
 
 ## Hypothesis
