@@ -23,9 +23,9 @@ from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityS
 from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import (
-    StandaloneCognitionProfile,
-    StandaloneCognitionSeed,
-    StandaloneCognitionSeedSource,
+    HarnessCognitionProfile,
+    HarnessCognitionSeed,
+    HarnessCognitionSeedSource,
     StandaloneHarnessRunner,
 )
 from ordivon_harness.working_view import (
@@ -215,11 +215,11 @@ class HistoryProductAdapter:
 
 class R0CognitionProductCompositionTests(unittest.TestCase):
     @staticmethod
-    def seed() -> StandaloneCognitionSeed:
-        return StandaloneCognitionSeed(
+    def seed() -> HarnessCognitionSeed:
+        return HarnessCognitionSeed(
             attempt_id="working-attempt:r0-a",
             sources=(
-                StandaloneCognitionSeedSource(
+                HarnessCognitionSeedSource(
                     slot="task",
                     source=HarnessWorkingViewSource(
                         logical_ref="source://r0/task",
@@ -246,7 +246,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             budget=cognition_budget(),
             clock_ms=clock,
             monotonic_ms=clock,
-            cognition_profile=StandaloneCognitionProfile(
+            cognition_profile=HarnessCognitionProfile(
                 working_set_transitions=True,
                 caller_ingress_promotions=True,
                 working_set_history=False,
@@ -394,7 +394,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
                 budget=run_budget(max_model_calls=4, max_tool_calls=2),
                 clock_ms=clock,
                 monotonic_ms=clock,
-                cognition_profile=StandaloneCognitionProfile.full(),
+                cognition_profile=HarnessCognitionProfile.full(),
             )
             execution = runner.run((), cognition_seed=self.seed())
 
@@ -431,7 +431,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
                 budget=cognition_budget(),
                 clock_ms=clock,
                 monotonic_ms=clock,
-                cognition_profile=StandaloneCognitionProfile(
+                cognition_profile=HarnessCognitionProfile(
                     working_set_transitions=True,
                     caller_ingress_promotions=True,
                     working_set_history=False,

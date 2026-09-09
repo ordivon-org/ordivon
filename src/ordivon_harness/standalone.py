@@ -397,22 +397,11 @@ class StandaloneHarnessRunner:
         budget.require_contract_match(contract)
 
 
-# R0-R2 experimental names remain import-compatible while R3 promotes caller-facing names.
-StandaloneCognitionProfile = HarnessCognitionProfile
-StandaloneCognitionSeedSource = HarnessCognitionSeedSource
-StandaloneCognitionSeed = HarnessCognitionSeed
-StandaloneHarnessExecution = HarnessAgentExecution
-
-
 __all__ = [
     "HarnessAgentExecution",
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
-    "StandaloneCognitionProfile",
-    "StandaloneCognitionSeed",
-    "StandaloneCognitionSeedSource",
-    "StandaloneHarnessExecution",
     "StandaloneHarnessRunner",
     "StandaloneToolBridge",
 ]

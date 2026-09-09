@@ -110,9 +110,10 @@ class ContinuityRecordTests(unittest.TestCase):
         self.assertEqual(value.digest, binding().digest)
         self.assertEqual(value.to_dict()["kind"], "ordivon.harness-run-store-binding")
 
-    def test_provider_v2_codec_is_retired_from_current_surfaces(self) -> None:
+    def test_compatibility_facades_are_retired_from_current_surfaces(self) -> None:
         self.assertFalse(hasattr(continuity_records, "HarnessProviderCallRecordV2"))
         self.assertNotIn("HarnessProviderCallRecordV2", ordivon_internal.__all__)
+        self.assertNotIn("HarnessDispatchFenceV2", ordivon_internal.__all__)
 
     def test_frozen_s0_provider_v3_remains_byte_semantically_readable(self) -> None:
         fixture = (

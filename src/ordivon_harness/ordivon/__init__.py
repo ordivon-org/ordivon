@@ -30,7 +30,6 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     'DeepSeekTransport': ('.deepseek', 'DeepSeekTransport'),
     'DeepSeekTurnAdapter': ('.deepseek', 'DeepSeekTurnAdapter'),
     'ExecutionControl': ('.control', 'ExecutionControl'),
-    'HarnessDispatchFenceV2': ('.continuity_records', 'HarnessDispatchFenceV2'),
     'HarnessProviderCallClaimHeld': ('.run_store_port', 'HarnessProviderCallClaimHeld'),
     'HarnessProviderCallRecoveryRequired': ('.run_store_port', 'HarnessProviderCallRecoveryRequired'),
     'HarnessProviderCallRequestMismatch': ('.run_store_port', 'HarnessProviderCallRequestMismatch'),

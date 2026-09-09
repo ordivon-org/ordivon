@@ -12,9 +12,9 @@ from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityS
 from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import (
-    StandaloneCognitionProfile,
-    StandaloneCognitionSeed,
-    StandaloneCognitionSeedSource,
+    HarnessCognitionProfile,
+    HarnessCognitionSeed,
+    HarnessCognitionSeedSource,
     StandaloneHarnessRunner,
 )
 from ordivon_harness.working_view import (
@@ -85,9 +85,9 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
                 logical_generation=source.logical_generation,
                 resolved_digest=stored_source.digest,
             )
-            seed = StandaloneCognitionSeed(
+            seed = HarnessCognitionSeed(
                 attempt_id="working-attempt:structured-no-progress-a",
-                sources=(StandaloneCognitionSeedSource(slot="primary", source=source),),
+                sources=(HarnessCognitionSeedSource(slot="primary", source=source),),
                 basis="Seed one exact source.",
             )
             same_selection = AgentWorkingSetTransitionProposal(
@@ -129,7 +129,7 @@ class StructuredNoProgressCompletionTests(unittest.TestCase):
                 budget=RunBudget.from_contract_dict(run_contract.budget),
                 clock_ms=clock,
                 monotonic_ms=clock,
-                cognition_profile=StandaloneCognitionProfile(
+                cognition_profile=HarnessCognitionProfile(
                     working_set_transitions=True,
                     caller_ingress_promotions=False,
                     working_set_history=False,
