@@ -59,6 +59,11 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         import ordivon_harness.independent_cli as independent_cli
         self.assertFalse(hasattr(independent_cli, "capabilities"))
 
+    def test_retired_standalone_tool_bridge_protocol_is_absent(self) -> None:
+        from ordivon_harness import standalone
+
+        self.assertFalse(hasattr(standalone, "StandaloneToolBridge"))
+
     def test_retired_native_run_recovery_assessment_surface_is_absent(self) -> None:
         from ordivon_harness.cli import build_parser
 

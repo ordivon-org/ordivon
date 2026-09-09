@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the internal duplicate `StandaloneToolBridge` protocol. It had zero external current-code consumers and zero persisted-name obligation, and its only declared field (`catalog_digest`) was a weaker duplicate of the canonical `ordivon.tool_bridge.ToolBridge` already required by `OrdivonAgentLoop`. `StandaloneHarnessRunner` and `HarnessAgentRun` now annotate the canonical ToolBridge directly; concrete SQLite Tool bridges and all execution/recovery behavior are unchanged.
+
 - retired the zero-consumer `HarnessCognitionSource` compatibility alias and exposed canonical `HarnessWorkingViewSource` on the recommended API instead. No cognition data model, WorkingSet persistence or seed behavior changed.
 
 - retired the standalone generic `errors.py` / `HarnessLifecycleError` layer. No production code catches the generic base and authoritative Harness storage contains no error-class objects; concrete Provider-call and superseded/currentness failures remain typed at the Run Store port and still inherit `RuntimeError`. Fresh wheels reject resurrection of the deleted module.

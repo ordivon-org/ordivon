@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Mapping
-from typing import Callable, Protocol
+from typing import Callable
 
 from anc_canonical import JsonValue
 
@@ -22,6 +22,7 @@ from .ordivon.loop import (
     RunBudget,
 )
 from .ordivon.model import AgentTurnAdapter
+from .ordivon.tool_bridge import ToolBridge
 from .ordivon.run_store_port import HarnessRunContinuityStore
 from .store import HarnessRunStatus
 from .working_view import (
@@ -30,10 +31,6 @@ from .working_view import (
     HarnessWorkingViewSource,
     WorkingSetViewProjector,
 )
-
-
-class StandaloneToolBridge(Protocol):
-    catalog_digest: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,7 +140,7 @@ class StandaloneHarnessRunner:
         contract: HarnessRunContract,
         continuity: HarnessRunContinuityStore,
         adapter: AgentTurnAdapter,
-        tool_bridge: StandaloneToolBridge,
+        tool_bridge: ToolBridge,
         *,
         budget: RunBudget,
         clock_ms: Callable[[], int],
@@ -392,5 +389,4 @@ __all__ = [
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
     "StandaloneHarnessRunner",
-    "StandaloneToolBridge",
 ]

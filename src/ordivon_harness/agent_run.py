@@ -30,10 +30,10 @@ from .standalone import (
     HarnessCognitionSeed,
     HarnessCognitionSeedSource,
     StandaloneHarnessRunner,
-    StandaloneToolBridge,
 )
 from .store import HarnessRunStatus
 from .ordivon.loop import CancellationToken, RunBudget
+from .ordivon.tool_bridge import ToolBridge
 
 
 
@@ -344,7 +344,7 @@ class HarnessAgentRun:
         continuity: SQLiteHarnessRunContinuityStore,
         *,
         provider_source=None,
-    ) -> StandaloneToolBridge:
+    ) -> ToolBridge:
         if self._no_tool_surface:
             return SQLiteHarnessAgentBridge(
                 self.contract, continuity, provider_source=provider_source

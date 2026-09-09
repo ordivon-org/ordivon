@@ -35,6 +35,8 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
+The internal `StandaloneToolBridge` protocol is retired in favor of the canonical `ordivon.tool_bridge.ToolBridge`; it was not part of the recommended API and carried no persisted identity. This is a type-surface subtraction only; Tool execution and recovery semantics are unchanged.
+
 The zero-consumer `HarnessCognitionSource` public alias is retired. It was exactly `HarnessWorkingViewSource`, had no external current-code consumer and no persisted identity obligation. Current callers use the canonical `HarnessWorkingViewSource` directly; cognition seed/WorkingSet semantics and stored data are unchanged.
 
 The former `capabilities` CLI command and `ordivon.harness-cli-capabilities` self-description projection are retired. They had no current external consumer or persisted state and duplicated facts already owned by the CLI parser, `HarnessRunContract`, stable Python API and request-bound Agent turn. Installed-package self-description is not an authority surface.
