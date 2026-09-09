@@ -33,7 +33,6 @@ class HarnessToolStepStatus(StrEnum):
 
 class HarnessRunPauseReason(StrEnum):
     NEEDS_INPUT = "needs-input"
-    APPROVAL_REQUIRED = "approval-required"
     EFFECT_DISPATCH_PENDING = "effect-dispatch-pending"
 
 

@@ -14,8 +14,10 @@ from ordivon_harness.ordivon.sqlite_run_store import (
 )
 from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
 from ordivon_harness.protocol import (
+    HarnessProtocolError,
     HarnessRecoveryConsequence,
     HarnessRunPauseReason,
+    HarnessRunSnapshot,
     HarnessToolStepIntent,
     HarnessToolStepReceipt,
     HarnessToolStepStatus,
@@ -256,6 +258,11 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             clock.advance()
             paused = continuity.record_pause(HarnessRunPauseReason.NEEDS_INPUT)
             self.assertEqual(paused.snapshot.sequence, 1)
+            self.assertFalse(hasattr(HarnessRunPauseReason, "APPROVAL_REQUIRED"))
+            legacy_wire = paused.snapshot.to_dict()
+            legacy_wire["pauseReason"] = "approval-required"
+            with self.assertRaisesRegex(HarnessProtocolError, "pause reason is invalid"):
+                HarnessRunSnapshot.from_dict(legacy_wire)
             with self.assertRaises(HarnessSuperseded):
                 continuity.claim_provider_call(
                     source=initial_source,
