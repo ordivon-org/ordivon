@@ -59,7 +59,7 @@ from .domain_tools import (
     DomainToolLoopRunner,
     ToolBridgeError,
     ToolBridgeErrorKind,
-    ToolObservation,
+    HarnessToolObservation,
 )
 
 __all__ = [
@@ -85,7 +85,7 @@ __all__ = [
     "DomainToolLoopRunner",
     "ToolBridgeError",
     "ToolBridgeErrorKind",
-    "ToolObservation",
+    "HarnessToolObservation",
     "HarnessPrivacyPolicy",
     "HarnessRunContract",
     "HarnessRuntimeClient",

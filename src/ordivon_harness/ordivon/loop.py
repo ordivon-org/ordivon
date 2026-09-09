@@ -41,7 +41,8 @@ from .run_recovery import (
     _search_evidence,
 )
 from .run_store_port import HarnessProviderCallRecoveryRequired, StoredHarnessRunSnapshot
-from .tool_bridge import ToolBridge, ToolObservation
+from ..agent_tool_observation import HarnessToolObservation
+from .tool_bridge import ToolBridge
 from .tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from .turn_projection import AgentTurnProjectionError, AgentTurnProjector
 
@@ -264,7 +265,7 @@ class AgentLoopResult:
     trace: HarnessTrace
     conclusion: AgentRunConclusion | None
     messages: tuple[dict[str, JsonValue], ...]
-    observations: tuple[ToolObservation, ...]
+    observations: tuple[HarnessToolObservation, ...]
     model_calls: int
     tool_calls: int
     observation_bytes: int
@@ -440,7 +441,7 @@ class OrdivonAgentLoop:
         if retained is None:
             remaining_wall_time_ms = self.budget.max_wall_time_ms
             messages = [dict(message) for message in initial_messages]
-            observations: list[ToolObservation] = []
+            observations: list[HarnessToolObservation] = []
             provider_usage: list[dict[str, JsonValue]] = []
             effective_models: list[str] = []
             seen_model_call_ids: set[str] = set()
@@ -584,7 +585,7 @@ class OrdivonAgentLoop:
             messages = [dict(message) for message in state.messages]
             messages.extend(dict(message) for message in initial_messages)
             observations = [
-                ToolObservation.from_dict(item) for item in state.observations
+                HarnessToolObservation.from_dict(item) for item in state.observations
             ]
             provider_usage = [dict(item) for item in state.provider_usage]
             effective_models = list(state.effective_model_ids)
@@ -812,9 +813,9 @@ class OrdivonAgentLoop:
 
         def retain_tool_observation(
             call: AgentToolCall,
-            observation: ToolObservation,
+            observation: HarnessToolObservation,
             *,
-            turn_observations: list[ToolObservation],
+            turn_observations: list[HarnessToolObservation],
             step_id: str | None,
             reconciled: bool,
             count_tool_call: bool = True,
@@ -951,8 +952,8 @@ class OrdivonAgentLoop:
             *,
             turn_id: str,
             sequence: int,
-            turn_observations: list[ToolObservation],
-            raw_observation_sink: list[ToolObservation] | None = None,
+            turn_observations: list[HarnessToolObservation],
+            raw_observation_sink: list[HarnessToolObservation] | None = None,
             project_to_messages: bool = True,
         ) -> AgentLoopResult | None:
             nonlocal tool_calls, tool_corrections
@@ -1030,7 +1031,7 @@ class OrdivonAgentLoop:
                                 f"{type(error).__name__}: {error}"
                             ),
                         )
-                    history_observation = ToolObservation(
+                    history_observation = HarnessToolObservation(
                         call.tool_call_id,
                         call.name,
                         "observed",
@@ -1106,7 +1107,7 @@ class OrdivonAgentLoop:
                             ),
                         )
                     tool_corrections += 1
-                    observation = ToolObservation(
+                    observation = HarnessToolObservation(
                         call.tool_call_id,
                         call.name,
                         "rejected",
@@ -1173,7 +1174,7 @@ class OrdivonAgentLoop:
 
         def evaluate_turn_progress(
             calls: tuple[AgentToolCall, ...],
-            turn_observations: list[ToolObservation],
+            turn_observations: list[HarnessToolObservation],
             *,
             turn_id: str,
         ) -> AgentLoopResult | None:
@@ -2284,8 +2285,8 @@ class OrdivonAgentLoop:
                     "toolProgramAction": action.to_dict(),
                 }
                 messages.append(assistant_program_message)
-                raw_program_observations: list[ToolObservation] = []
-                retained_program_observations: list[ToolObservation] = []
+                raw_program_observations: list[HarnessToolObservation] = []
+                retained_program_observations: list[HarnessToolObservation] = []
                 program_calls: list[AgentToolCall] = []
                 for program_index in range(len(action.program.steps)):
                     try:
@@ -2560,7 +2561,7 @@ class OrdivonAgentLoop:
                     post_caller_tool_exchange_messages.clear()
                 transient_working_set_digest = working_view.working_set_digest
                 post_caller_tool_exchange_messages.append(dict(assistant_tool_message))
-            turn_observations: list[ToolObservation] = []
+            turn_observations: list[HarnessToolObservation] = []
             stopped = execute_tool_calls(
                 result.tool_calls,
                 turn_id=turn_id,

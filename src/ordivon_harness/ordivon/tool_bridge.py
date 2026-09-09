@@ -7,7 +7,6 @@ from typing import Protocol
 from ..agent_tool_observation import HarnessToolObservation
 from .model import AgentToolCall, AgentToolDefinition
 
-ToolObservation = HarnessToolObservation
 
 
 class ToolBridge(Protocol):
@@ -15,7 +14,7 @@ class ToolBridge(Protocol):
 
     def definitions(self) -> tuple[AgentToolDefinition, ...]: ...
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation: ...
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation: ...
 
 
-__all__ = ["ToolBridge", "ToolObservation"]
+__all__ = ["ToolBridge"]

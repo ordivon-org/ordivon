@@ -13,7 +13,7 @@ from ordivon_harness.domain_tools import (
     DomainToolLoopRunner,
     RunBudget,
     RunStopCode,
-    ToolObservation,
+    HarnessToolObservation,
 )
 from ordivon_harness.ordivon.model import AgentTurnResult, ScriptedTurnAdapter
 
@@ -53,9 +53,9 @@ class _SecurityPlanBridge:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation:
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
         self.calls.append((step_id, call.name))
-        return ToolObservation(
+        return HarnessToolObservation(
             tool_call_id=call.tool_call_id,
             tool_name=call.name,
             status="observed",

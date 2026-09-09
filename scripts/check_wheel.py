@@ -39,7 +39,7 @@ EXPECTED_API = {
     "DomainToolLoopRunner",
     "ToolBridgeError",
     "ToolBridgeErrorKind",
-    "ToolObservation",
+    "HarnessToolObservation",
     "HarnessPrivacyPolicy",
     "HarnessRunContract",
     "HarnessRuntimeClient",

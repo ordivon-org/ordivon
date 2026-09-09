@@ -13,7 +13,7 @@ from ordivon_harness.domain_tools import (
     DomainToolCatalog,
     DomainToolLoopPlan,
     DomainToolLoopRunner,
-    ToolObservation,
+    HarnessToolObservation,
 )
 
 
@@ -73,9 +73,9 @@ class CountingBridge:
     def __init__(self) -> None:
         self.executions = 0
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation:
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
         self.executions += 1
-        return ToolObservation(
+        return HarnessToolObservation(
             call.tool_call_id, call.name, "observed", {"value": "physical-observation"}
         )
 

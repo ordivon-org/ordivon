@@ -15,7 +15,7 @@ from ordivon_harness.domain_tools import (
     DomainToolCatalog,
     DomainToolLoopPlan,
     DomainToolLoopRunner,
-    ToolObservation,
+    HarnessToolObservation,
 )
 from ordivon_harness.ordivon.model import AgentTurnRequest
 
@@ -162,7 +162,7 @@ class ChoiceBridge:
     def __init__(self) -> None:
         self.revisions: list[str] = []
 
-    def execute(self, call: Any, *, step_id: str) -> ToolObservation:
+    def execute(self, call: Any, *, step_id: str) -> HarnessToolObservation:
         if call.name != "submit_choice":
             raise ValueError(f"H0 unexpected Tool: {call.name}")
         arguments = call.arguments
@@ -172,7 +172,7 @@ class ChoiceBridge:
         if choice not in CHOICES:
             raise ValueError(f"H0 choice is invalid: {choice}")
         self.revisions.append(cast(str, choice))
-        return ToolObservation(
+        return HarnessToolObservation(
             tool_call_id=call.tool_call_id,
             tool_name=call.name,
             status="observed",

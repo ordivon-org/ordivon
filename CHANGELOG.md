@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-external-consumer `ToolObservation` Python alias/re-export chain and standardized current interfaces on canonical `HarnessToolObservation`; durable `ordivon.tool-observation` evidence and Tool execution/recovery behavior are unchanged.
+
 - retired the secondary lazy `ordivon_harness.ordivon` aggregation facade. It had zero external current-code consumers and zero persisted-name obligation; Harness tests/demo code now import exact owner submodules, while `ordivon_harness.api` remains the supported application facade. The `ordivon_harness.ordivon` namespace package and all implementation submodules remain; only the duplicate `_EXPORTS`/`__getattr__` symbol aggregator is removed.
 
 - retired the internal duplicate `StandaloneToolBridge` protocol. It had zero external current-code consumers and zero persisted-name obligation, and its only declared field (`catalog_digest`) was a weaker duplicate of the canonical `ordivon.tool_bridge.ToolBridge` already required by `OrdivonAgentLoop`. `StandaloneHarnessRunner` and `HarnessAgentRun` now annotate the canonical ToolBridge directly; concrete SQLite Tool bridges and all execution/recovery behavior are unchanged.

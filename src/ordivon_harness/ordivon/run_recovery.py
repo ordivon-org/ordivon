@@ -8,7 +8,7 @@ from anc_canonical import JsonValue, canonical_digest
 
 from ..protocol import HarnessToolStepIntent
 from .model import AgentToolCall
-from .tool_bridge import ToolObservation
+from ..agent_tool_observation import HarnessToolObservation
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,10 +16,10 @@ class _RecoveredToolBatch:
     intent: HarnessToolStepIntent
     calls: tuple[AgentToolCall, ...]
     pending_calls: tuple[AgentToolCall, ...]
-    prior_observations: tuple[ToolObservation, ...]
+    prior_observations: tuple[HarnessToolObservation, ...]
     active_call: AgentToolCall
 
-def _observation_evidence_signature(observation: ToolObservation) -> str:
+def _observation_evidence_signature(observation: HarnessToolObservation) -> str:
     return canonical_digest(
         {
             "toolName": observation.tool_name,
@@ -61,7 +61,7 @@ def _retained_tool_calls(
 
 def _recover_tool_batch(
     messages: list[dict[str, JsonValue]],
-    observations: list[ToolObservation],
+    observations: list[HarnessToolObservation],
     seen_tool_call_ids: set[str],
     intent: HarnessToolStepIntent,
 ) -> _RecoveredToolBatch:
@@ -116,7 +116,7 @@ def _recover_tool_batch(
     ):
         raise ValueError("durable Tool batch cursor is not a contiguous seen prefix")
 
-    observations_by_call: dict[str, ToolObservation] = {}
+    observations_by_call: dict[str, HarnessToolObservation] = {}
     batch_call_ids = {call.tool_call_id for call in calls}
     for observation in observations:
         if observation.tool_call_id not in batch_call_ids:
@@ -124,7 +124,7 @@ def _recover_tool_batch(
         if observation.tool_call_id in observations_by_call:
             raise ValueError("durable Tool batch repeats a Tool Observation")
         observations_by_call[observation.tool_call_id] = observation
-    prior_observations: list[ToolObservation] = []
+    prior_observations: list[HarnessToolObservation] = []
     for call in calls[:active_index]:
         observation = observations_by_call.get(call.tool_call_id)
         if observation is None or observation.tool_name != call.name:
@@ -153,7 +153,7 @@ def _recover_tool_batch(
 
 def _search_evidence(
     call: AgentToolCall,
-    observation: ToolObservation,
+    observation: HarnessToolObservation,
 ) -> tuple[tuple[tuple[str, str], set[str]], ...]:
     query = call.arguments.get("query")
     raw_queries = call.arguments.get("queries")

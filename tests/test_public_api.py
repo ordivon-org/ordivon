@@ -36,7 +36,7 @@ EXPECTED_API = {
     "DomainToolLoopRunner",
     "ToolBridgeError",
     "ToolBridgeErrorKind",
-    "ToolObservation",
+    "HarnessToolObservation",
     "HarnessPrivacyPolicy",
     "HarnessRunContract",
     "HarnessRuntimeClient",
@@ -65,6 +65,8 @@ class PublicApiTests(unittest.TestCase):
         for name in EXPECTED_API:
             self.assertIsNotNone(getattr(api, name))
         self.assertFalse(hasattr(api, "HarnessCognitionSource"))
+        self.assertFalse(hasattr(api, "ToolObservation"))
+        self.assertIsNotNone(api.HarnessToolObservation)
 
         probe = subprocess.run(
             [
@@ -146,6 +148,7 @@ class PublicApiTests(unittest.TestCase):
     def test_package_root_is_the_recommended_api_without_legacy_exports(self) -> None:
         self.assertEqual(set(ordivon_harness.__all__), EXPECTED_API | {"package_version"})
         for removed in (
+            "ToolObservation",
             "HarnessRunner",
             "HarnessHost",
             "HarnessCutoverReceipt",

@@ -28,7 +28,7 @@ from .ordivon.model import (
     AgentTurnAdapter,
 )
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
-from .ordivon.tool_bridge import ToolObservation
+from .agent_tool_observation import HarnessToolObservation
 from .version import package_version
 
 
@@ -109,7 +109,7 @@ class DomainToolBridge(Protocol):
     catalog: DomainToolCatalog
     bridge_identity: dict[str, JsonValue]
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation: ...
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,7 +149,7 @@ class _GrantedDomainToolBridge:
     def definitions(self) -> tuple[AgentToolDefinition, ...]:
         return self._definitions
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation:
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
         if call.name not in self._allowed:
             raise ToolBridgeError(
                 f"domain Tool is not granted: {call.name}",
@@ -254,5 +254,5 @@ __all__ = [
     "RunStopCode",
     "ToolBridgeError",
     "ToolBridgeErrorKind",
-    "ToolObservation",
+    "HarnessToolObservation",
 ]

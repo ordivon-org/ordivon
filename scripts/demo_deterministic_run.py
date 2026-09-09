@@ -14,7 +14,7 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.tool_bridge import ToolObservation
+from ordivon_harness.agent_tool_observation import HarnessToolObservation
 
 
 class Clock:
@@ -43,10 +43,10 @@ class ReadOnlyBridge:
             ),
         )
 
-    def execute(self, call: AgentToolCall, *, step_id: str) -> ToolObservation:
+    def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
         if call.name != "read_demo" or call.arguments != {"key": "alpha"}:
             raise ValueError("demo received an unexpected Tool request")
-        return ToolObservation(
+        return HarnessToolObservation(
             call.tool_call_id,
             call.name,
             "observed",
