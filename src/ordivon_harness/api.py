@@ -62,8 +62,6 @@ from .domain_tools import (
     HarnessToolObservation,
 )
 
-# Compatibility for current Ordivon Security consumers; canonical type is HarnessToolObservation.
-ToolObservation = HarnessToolObservation
 
 __all__ = [
     "AgentTurnAdapter",
@@ -89,7 +87,6 @@ __all__ = [
     "ToolBridgeError",
     "ToolBridgeErrorKind",
     "HarnessToolObservation",
-    "ToolObservation",
     "HarnessPrivacyPolicy",
     "HarnessRunContract",
     "HarnessRuntimeClient",
