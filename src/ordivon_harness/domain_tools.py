@@ -72,8 +72,8 @@ class DomainToolCatalog:
     def digest(self) -> str:
         return canonical_digest(self.to_dict())
 
-    def granted_digest(self, allowed_tools: tuple[str, ...]) -> str:
-        selected = self.select(allowed_tools)
+    def _granted_digest(self, allowed_tools: tuple[str, ...]) -> str:
+        selected = self._select(allowed_tools)
         return canonical_digest(
             {
                 "schemaVersion": 1,
@@ -83,7 +83,7 @@ class DomainToolCatalog:
             }
         )
 
-    def select(self, allowed_tools: tuple[str, ...]) -> tuple[AgentToolDefinition, ...]:
+    def _select(self, allowed_tools: tuple[str, ...]) -> tuple[AgentToolDefinition, ...]:
         if not allowed_tools or len(allowed_tools) != len(set(allowed_tools)):
             raise ValueError("domain Tool grant must be non-empty and unique")
         available = {tool.name: tool for tool in self.tools}
@@ -142,9 +142,9 @@ class _GrantedDomainToolBridge:
         if not bridge.bridge_identity:
             raise ValueError("domain Tool Bridge identity must be non-empty")
         self.bridge = bridge
-        self._definitions = bridge.catalog.select(allowed_tools)
+        self._definitions = bridge.catalog._select(allowed_tools)
         self._allowed = frozenset(tool.name for tool in self._definitions)
-        self.catalog_digest = bridge.catalog.granted_digest(allowed_tools)
+        self.catalog_digest = bridge.catalog._granted_digest(allowed_tools)
 
     def definitions(self) -> tuple[AgentToolDefinition, ...]:
         return self._definitions
@@ -185,7 +185,7 @@ class DomainToolLoopRunner:
         self.event_sink = event_sink
 
     def execution_identity(self, plan: DomainToolLoopPlan) -> dict[str, JsonValue]:
-        granted = self.bridge.catalog.select(plan.allowed_tools)
+        granted = self.bridge.catalog._select(plan.allowed_tools)
         identity: dict[str, JsonValue] = {
             "schemaVersion": 1,
             "kind": "ordivon.domain-tool-loop-identity",
@@ -203,7 +203,7 @@ class DomainToolLoopRunner:
                 "domainId": self.bridge.catalog.domain_id,
                 "catalogRevision": self.bridge.catalog.revision,
                 "catalogDigest": self.bridge.catalog.digest,
-                "grantedCatalogDigest": self.bridge.catalog.granted_digest(plan.allowed_tools),
+                "grantedCatalogDigest": self.bridge.catalog._granted_digest(plan.allowed_tools),
                 "allowedTools": [tool.name for tool in granted],
                 "bridgeIdentity": self.bridge.bridge_identity,
             },

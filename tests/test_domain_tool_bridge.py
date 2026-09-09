@@ -168,10 +168,8 @@ class DomainToolBridgeTests(unittest.TestCase):
             tools=first.tools,
         )
         self.assertNotEqual(first.digest, second.digest)
-        self.assertNotEqual(
-            first.granted_digest(("select_team_plan",)),
-            second.granted_digest(("select_team_plan",)),
-        )
+        self.assertFalse(hasattr(first, "select"))
+        self.assertFalse(hasattr(first, "granted_digest"))
 
 
 if __name__ == "__main__":
