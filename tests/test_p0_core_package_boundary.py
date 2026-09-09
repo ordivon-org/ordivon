@@ -52,6 +52,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(observed["interactionContext"])
 
+    def test_retired_cli_capabilities_surface_is_absent(self) -> None:
+        from ordivon_harness.cli import build_parser
+        help_text = build_parser().format_help()
+        self.assertNotIn("capabilities", help_text)
+        import ordivon_harness.independent_cli as independent_cli
+        self.assertFalse(hasattr(independent_cli, "capabilities"))
+
     def test_retired_telemetry_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "

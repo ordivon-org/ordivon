@@ -22,41 +22,8 @@ from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
 
 
-def capabilities() -> dict[str, JsonValue]:
-    """Describe only the exact execution profiles supported by this CLI."""
-
-    return {
-        "ok": True,
-        "schemaVersion": 1,
-        "kind": "ordivon.harness-cli-capabilities",
-        "defaultAuthority": "independent-harness-run",
-        "executionProfiles": [
-            {
-                "profileId": "deepseek-no-tool-v1",
-                "provider": "deepseek",
-                "adapterId": DeepSeekTurnAdapter.adapter_id,
-                "toolCatalogDigest": NO_TOOL_AGENT_SURFACE_DIGEST,
-                "toolGrantDigest": NO_TOOL_AGENT_GRANT_DIGEST,
-                "runtimeRequired": False,
-                "commands": [
-                    "run",
-                    "resume",
-                    "recover",
-                    "status",
-                    "inspect",
-                    "explain",
-                ],
-            }
-        ],
-        "toolBearingCliExecution": False,
-        "toolBearingApi": "ordivon_harness.api",
-    }
-
-
 def dispatch(args, *, clock_ms) -> dict[str, object]:
     command = args.command
-    if command == "capabilities":
-        return dict(capabilities())
     root = _state_root(args)
     if command == "doctor":
         with SQLiteHarnessStore(root) as store:
@@ -375,4 +342,4 @@ def _recover(
     }
 
 
-__all__ = ["capabilities", "dispatch"]
+__all__ = ["dispatch"]

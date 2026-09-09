@@ -195,12 +195,10 @@ uv build --wheel --out-dir dist
 
 The owner environment binds the exact development lint dependency separately from Harness runtime semantics; it does not reintroduce Host as a Harness dependency. `scripts/owner-environment cold-start` proves the default suite from an empty temporary venv.
 
-Initialize an independent state root and inspect available capabilities:
+Initialize an independent state root:
 
 ```bash
 ordivon-harness --state-root /var/lib/ordivon/harness store-init
-ordivon-harness capabilities
-
 ```
 
 A caller then supplies an exact Run Contract:
@@ -214,7 +212,7 @@ ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` reports the exact generated package projection: installed built-in and specialized surfaces plus their source-owned digests and requirements. It does not search, rank, grant, or establish owner currentness. `explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live.
+`explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live. Executable CLI commands are defined by the parser/`--help`; exact Run action authority remains on the Contract and request-bound Agent turn rather than a separate package capability projection.
 
 The CLI does not invent the Objective, Context, Tool grant, Provider, budget, or completion authority. See [`docs/QUICKSTART.md`](docs/QUICKSTART.md) for Contract construction, Python examples, cognition profiles, Tool-bearing Runtime clients, and structured completion.
 

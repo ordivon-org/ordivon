@@ -116,7 +116,6 @@ FORBIDDEN_MEMBERS = {
     "ordivon_harness/ordivon/run_store.py",
 }
 CLI_COMMANDS = (
-    "capabilities",
     "doctor",
     "status",
     "inspect",
@@ -233,16 +232,9 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         for command in CLI_COMMANDS:
             if command not in help_text:
                 fail(f"CLI lacks {command}")
-        for removed in ("host", "telemetry", "cutover-status", "cutover-activate", "--harness-state-root"):
+        for removed in ("host", "telemetry", "capabilities", "cutover-status", "cutover-activate", "--harness-state-root"):
             if removed in help_text:
                 fail(f"CLI still advertises removed surface: {removed}")
-        caps = json.loads(checked([str(cli), "capabilities"]).stdout)
-        if caps.get("defaultAuthority") != "independent-harness-run":
-            fail("capabilities default authority differs")
-        if "executionMandate" in caps:
-            fail("capabilities resurrect retired execution Mandate metadata")
-        if "hostCompatibilityCommand" in caps:
-            fail("capabilities still advertise Host compatibility")
         return {
             "installedVersion": version,
             "hostFreeHarnessVerified": True,

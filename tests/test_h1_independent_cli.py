@@ -12,10 +12,6 @@ from unittest.mock import patch
 from ordivon_harness.cli import main as cli_main
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_agent_bridge import (
-    NO_TOOL_AGENT_GRANT_DIGEST,
-    NO_TOOL_AGENT_SURFACE_DIGEST,
-)
 from ordivon_harness.ordivon.sqlite_runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
@@ -36,29 +32,6 @@ class IndependentCliTests(unittest.TestCase):
             code = cli_main(argv)
         value = None if not stdout.getvalue() else json.loads(stdout.getvalue())
         return code, value, stderr.getvalue()
-
-    def test_capabilities_describe_only_independent_authority(self) -> None:
-        code, value, error = self.invoke("capabilities")
-        self.assertEqual(code, 0, error)
-        assert value is not None
-        self.assertEqual(value["defaultAuthority"], "independent-harness-run")
-        self.assertNotIn("hostCompatibilityCommand", value)
-        self.assertFalse(value["toolBearingCliExecution"])
-        self.assertNotIn("executionMandate", value)
-        profile = value["executionProfiles"][0]
-        self.assertEqual(profile["profileId"], "deepseek-no-tool-v1")
-        self.assertFalse(profile["runtimeRequired"])
-        self.assertNotIn("telemetry", profile["commands"])
-        self.assertNotIn("effectiveCapabilityCatalog", value)
-        self.assertNotIn("effectiveCapabilityCatalogDigest", value)
-        self.assertEqual(
-            value["executionProfiles"][0]["toolCatalogDigest"],
-            NO_TOOL_AGENT_SURFACE_DIGEST,
-        )
-        self.assertEqual(
-            value["executionProfiles"][0]["toolGrantDigest"],
-            NO_TOOL_AGENT_GRANT_DIGEST,
-        )
 
     def test_independent_run_pause_resume_status_and_inspect_are_first_class(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
