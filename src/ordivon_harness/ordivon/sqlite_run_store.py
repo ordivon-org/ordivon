@@ -50,7 +50,6 @@ from ..store import (
 )
 from .continuity_records import (
     HarnessDispatchFenceV2,
-    HarnessProviderCallRecordV2,
     HarnessProviderCallRecordV3,
     HarnessProviderCallRecordV4,
 )
@@ -62,6 +61,7 @@ from .model import (
 )
 from .run_store_port import (
     HarnessDispatchFenceView,
+    HarnessProviderCallRecordView,
     HarnessProviderCallClaimHeld,
     HarnessProviderCallRecoveryRequired,
     HarnessProviderCallRequestMismatch,
@@ -3095,14 +3095,12 @@ class SQLiteHarnessRunContinuityStore:
         if not isinstance(raw_record, dict):
             raise ValueError("Harness Provider Call record object is invalid")
         record_version = raw_record.get("schemaVersion")
-        if record_version == 2:
-            record = HarnessProviderCallRecordV2.from_dict(raw_record)
-        elif record_version == 3:
+        if record_version == 3:
             record = HarnessProviderCallRecordV3.from_dict(raw_record)
         elif record_version == 4:
             record = HarnessProviderCallRecordV4.from_dict(raw_record)
         else:
-            raise ValueError("independent Harness Store requires Provider Call v2, v3, or v4")
+            raise ValueError("independent Harness Store requires Provider Call v3 or v4")
         self._require_provider_record(record)
         if data.get("providerCallRecordDigest") != record.digest:
             raise ValueError("Harness Provider Call record digest differs")
@@ -3124,7 +3122,7 @@ class SQLiteHarnessRunContinuityStore:
         retained_request_digest = getattr(record, "request_object_digest", None)
         if retained_request_digest is None:
             if request_object_digest is not None:
-                raise ValueError("Provider Call v2 unexpectedly references an exact request object")
+                raise ValueError("Provider Call record without request-object binding unexpectedly references one")
         else:
             if request_object_digest != retained_request_digest:
                 raise ValueError("Provider Call exact request event reference differs")
@@ -3339,7 +3337,7 @@ class SQLiteHarnessRunContinuityStore:
                 "recordedAtMs": recorded_at_ms,
             }
         )[7:31]
-        # New writes use one current schema. V2/V3 remain read-only historical codecs.
+        # New writes use one current schema. V3 remains a read-only historical codec.
         record_kwargs = dict(
             record_id=f"harness-provider-call-record:{record_token}",
             provider_call_id=provider_call_id,
@@ -3412,11 +3410,7 @@ class SQLiteHarnessRunContinuityStore:
 
     def _store_provider_call(
         self,
-        record: (
-            HarnessProviderCallRecordV2
-            | HarnessProviderCallRecordV3
-            | HarnessProviderCallRecordV4
-        ),
+        record: HarnessProviderCallRecordV3 | HarnessProviderCallRecordV4,
         *,
         state_object: StoredHarnessObject,
         request: AgentTurnRequest | None = None,
@@ -3431,7 +3425,7 @@ class SQLiteHarnessRunContinuityStore:
         request_digest = getattr(record, "request_object_digest", None)
         if request_digest is None:
             if request is not None or request_object is not None:
-                raise ValueError("Provider Call v2 cannot carry an exact request object")
+                raise ValueError("Provider Call record without request-object binding cannot carry one")
         else:
             if request is None or request_object is None:
                 raise ValueError("Provider Call v3 exact request object is incomplete")
@@ -3595,7 +3589,7 @@ class SQLiteHarnessRunContinuityStore:
                 "Provider Call identity was reused with different immutable input"
             )
 
-    def _require_provider_record(self, record: HarnessProviderCallRecordV2) -> None:
+    def _require_provider_record(self, record: HarnessProviderCallRecordView) -> None:
         if (
             record.harness_run_id != self.harness_run_id
             or record.binding_digest != self.binding.digest

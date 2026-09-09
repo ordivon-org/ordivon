@@ -34,7 +34,6 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     'HarnessProviderCallClaimHeld': ('.run_store_port', 'HarnessProviderCallClaimHeld'),
     'HarnessProviderCallRecoveryRequired': ('.run_store_port', 'HarnessProviderCallRecoveryRequired'),
     'HarnessProviderCallRequestMismatch': ('.run_store_port', 'HarnessProviderCallRequestMismatch'),
-    'HarnessProviderCallRecordV2': ('.continuity_records', 'HarnessProviderCallRecordV2'),
     'HarnessProviderCallSourceRef': ('.run_store_port', 'HarnessProviderCallSourceRef'),
     'HarnessRunContinuityStore': ('.run_store_port', 'HarnessRunContinuityStore'),
     'HarnessRunEvent': ('.events', 'HarnessRunEvent'),

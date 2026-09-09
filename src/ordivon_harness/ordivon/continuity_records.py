@@ -46,12 +46,12 @@ def _integer(value: int, label: str, *, minimum: int = 0) -> None:
 
 
 @dataclass(frozen=True, slots=True)
-class HarnessProviderCallRecordV2:
-    """Caller-neutral durable Provider Call record for the independent Store.
+class _HarnessProviderCallRecordBase:
+    """Private shared mechanics for retained Provider Call v3/v4 codecs.
 
-    Version 1 is a historical codec. Version 2 binds
-    the record to one Harness Run Store binding digest and contains no Host Task
-    identity or Host Journal revision.
+    There is no supported v2 codec or writer. The private base exists only to
+    avoid duplicating the common field set and validation required by the
+    historical v3 reader and current v4 writer.
     """
 
     record_id: str
@@ -80,7 +80,7 @@ class HarnessProviderCallRecordV2:
     expires_at_ms: int
     recorded_at_ms: int
 
-    def __post_init__(self) -> None:
+    def _validate_common(self) -> None:
         _text(
             self.record_id,
             "Provider Call Record identity",
@@ -122,14 +122,6 @@ class HarnessProviderCallRecordV2:
         _integer(self.recorded_at_ms, "Provider Call record time")
         if self.expires_at_ms <= self.issued_at_ms:
             raise HarnessProtocolError("Provider Call expiry must follow issue time")
-        result_refs = (self.result_digest, self.result_object_digest)
-        if self.status is HarnessProviderCallStatus.COMPLETED:
-            if any(value is None for value in result_refs):
-                raise HarnessProtocolError(
-                    "completed Provider Call requires both result references"
-                )
-        elif any(value is not None for value in result_refs):
-            raise HarnessProtocolError("non-completed Provider Call cannot carry result references")
         failure_refs = (self.failure_digest, self.failure_object_digest)
         if self.status in {
             HarnessProviderCallStatus.FAILED,
@@ -151,9 +143,8 @@ class HarnessProviderCallRecordV2:
     def digest(self) -> str:
         return canonical_digest(self.to_dict())
 
-    def to_dict(self) -> dict[str, JsonValue]:
+    def _common_dict(self) -> dict[str, JsonValue]:
         return {
-            "schemaVersion": 2,
             "kind": "ordivon.harness-provider-call-record",
             "recordId": self.record_id,
             "providerCallId": self.provider_call_id,
@@ -182,330 +173,143 @@ class HarnessProviderCallRecordV2:
             "recordedAtMs": self.recorded_at_ms,
         }
 
-    @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> HarnessProviderCallRecordV2:
-        expected = {
-            "schemaVersion",
-            "kind",
-            "recordId",
-            "providerCallId",
-            "harnessRunId",
-            "bindingDigest",
-            "sourceKind",
-            "sourceDigest",
-            "sourceObjectDigest",
-            "stateObjectDigest",
-            "turnId",
-            "turnSequence",
-            "requestDigest",
-            "providerRequestDigest",
-            "adapterId",
-            "requestedModelId",
-            "holderId",
-            "claimGeneration",
-            "status",
-            "resultDigest",
-            "resultObjectDigest",
-            "failureDigest",
-            "failureObjectDigest",
-            "previousRecordDigest",
-            "issuedAtMs",
-            "expiresAtMs",
-            "recordedAtMs",
-        }
-        _exact(value, expected, "HarnessProviderCallRecordV2")
-        if value["schemaVersion"] != 2 or value["kind"] != "ordivon.harness-provider-call-record":
-            raise HarnessProtocolError("HarnessProviderCallRecordV2 version or kind is invalid")
-        try:
-            source_kind = HarnessProviderCallSource(value["sourceKind"])
-            status = HarnessProviderCallStatus(value["status"])
-        except (TypeError, ValueError) as error:
-            raise HarnessProtocolError(
-                "HarnessProviderCallRecordV2 enum field is invalid"
-            ) from error
-        return cls(
-            record_id=value["recordId"],
-            provider_call_id=value["providerCallId"],
-            harness_run_id=value["harnessRunId"],
-            binding_digest=value["bindingDigest"],
-            source_kind=source_kind,
-            source_digest=value["sourceDigest"],
-            source_object_digest=value["sourceObjectDigest"],
-            state_object_digest=value["stateObjectDigest"],
-            turn_id=value["turnId"],
-            turn_sequence=value["turnSequence"],
-            request_digest=value["requestDigest"],
-            provider_request_digest=value["providerRequestDigest"],
-            adapter_id=value["adapterId"],
-            requested_model_id=value["requestedModelId"],
-            holder_id=value["holderId"],
-            claim_generation=value["claimGeneration"],
-            status=status,
-            result_digest=value["resultDigest"],
-            result_object_digest=value["resultObjectDigest"],
-            failure_digest=value["failureDigest"],
-            failure_object_digest=value["failureObjectDigest"],
-            previous_record_digest=value["previousRecordDigest"],
-            issued_at_ms=value["issuedAtMs"],
-            expires_at_ms=value["expiresAtMs"],
-            recorded_at_ms=value["recordedAtMs"],
-        )
+
+def _provider_record_common_kwargs(
+    value: dict[str, Any], *, label: str
+) -> dict[str, Any]:
+    try:
+        source_kind = HarnessProviderCallSource(value["sourceKind"])
+        status = HarnessProviderCallStatus(value["status"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise HarnessProtocolError(f"{label} enum field is invalid") from error
+    return {
+        "record_id": value["recordId"],
+        "provider_call_id": value["providerCallId"],
+        "harness_run_id": value["harnessRunId"],
+        "binding_digest": value["bindingDigest"],
+        "source_kind": source_kind,
+        "source_digest": value["sourceDigest"],
+        "source_object_digest": value["sourceObjectDigest"],
+        "state_object_digest": value["stateObjectDigest"],
+        "turn_id": value["turnId"],
+        "turn_sequence": value["turnSequence"],
+        "request_digest": value["requestDigest"],
+        "provider_request_digest": value["providerRequestDigest"],
+        "adapter_id": value["adapterId"],
+        "requested_model_id": value["requestedModelId"],
+        "holder_id": value["holderId"],
+        "claim_generation": value["claimGeneration"],
+        "status": status,
+        "result_digest": value["resultDigest"],
+        "result_object_digest": value["resultObjectDigest"],
+        "failure_digest": value["failureDigest"],
+        "failure_object_digest": value["failureObjectDigest"],
+        "previous_record_digest": value["previousRecordDigest"],
+        "issued_at_ms": value["issuedAtMs"],
+        "expires_at_ms": value["expiresAtMs"],
+        "recorded_at_ms": value["recordedAtMs"],
+    }
+
+
+_PROVIDER_RECORD_FIELDS_WITH_REQUEST_OBJECT = {
+    "schemaVersion", "kind", "recordId", "providerCallId",
+    "harnessRunId", "bindingDigest", "sourceKind", "sourceDigest",
+    "sourceObjectDigest", "stateObjectDigest", "turnId", "turnSequence",
+    "requestDigest", "requestObjectDigest", "providerRequestDigest",
+    "adapterId", "requestedModelId", "holderId", "claimGeneration",
+    "status", "resultDigest", "resultObjectDigest", "failureDigest",
+    "failureObjectDigest", "previousRecordDigest", "issuedAtMs",
+    "expiresAtMs", "recordedAtMs",
+}
 
 
 @dataclass(frozen=True, slots=True)
-class HarnessProviderCallRecordV3(HarnessProviderCallRecordV2):
-    """Provider Call v3 binds the exact Agent Turn request object.
-
-    v2 remains a historical/current-compatible codec for records created before
-    request bytes became independent execution evidence. v3 does not change
-    dispatch authority; it only makes exact Provider input reconstructable
-    without relying on append-only Run messages.
-    """
+class HarnessProviderCallRecordV3(_HarnessProviderCallRecordBase):
+    """Read-only historical Provider Call v3 with exact request-object binding."""
 
     request_object_digest: str
 
     def __post_init__(self) -> None:
-        # slots=True dataclasses replace the class object; explicit base dispatch
-        # avoids zero-argument super() retaining the pre-replacement __class__.
-        HarnessProviderCallRecordV2.__post_init__(self)
+        self._validate_common()
         _digest(self.request_object_digest, "Agent Turn request object digest")
+        result_refs = (self.result_digest, self.result_object_digest)
+        if self.status is HarnessProviderCallStatus.COMPLETED:
+            if any(value is None for value in result_refs):
+                raise HarnessProtocolError(
+                    "completed Provider Call requires both result references"
+                )
+        elif any(value is not None for value in result_refs):
+            raise HarnessProtocolError(
+                "non-completed Provider Call cannot carry result references"
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        value = HarnessProviderCallRecordV2.to_dict(self)
+        value = self._common_dict()
         value["schemaVersion"] = 3
         value["requestObjectDigest"] = self.request_object_digest
         return value
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessProviderCallRecordV3:
-        expected = {
-            "schemaVersion",
-            "kind",
-            "recordId",
-            "providerCallId",
-            "harnessRunId",
-            "bindingDigest",
-            "sourceKind",
-            "sourceDigest",
-            "sourceObjectDigest",
-            "stateObjectDigest",
-            "turnId",
-            "turnSequence",
-            "requestDigest",
-            "requestObjectDigest",
-            "providerRequestDigest",
-            "adapterId",
-            "requestedModelId",
-            "holderId",
-            "claimGeneration",
-            "status",
-            "resultDigest",
-            "resultObjectDigest",
-            "failureDigest",
-            "failureObjectDigest",
-            "previousRecordDigest",
-            "issuedAtMs",
-            "expiresAtMs",
-            "recordedAtMs",
-        }
-        _exact(value, expected, "HarnessProviderCallRecordV3")
-        if value["schemaVersion"] != 3 or value["kind"] != "ordivon.harness-provider-call-record":
-            raise HarnessProtocolError("HarnessProviderCallRecordV3 version or kind is invalid")
-        base = dict(value)
-        request_object_digest = base.pop("requestObjectDigest")
-        base["schemaVersion"] = 2
-        historical = HarnessProviderCallRecordV2.from_dict(base)
+        _exact(value, _PROVIDER_RECORD_FIELDS_WITH_REQUEST_OBJECT, "HarnessProviderCallRecordV3")
+        if (
+            value["schemaVersion"] != 3
+            or value["kind"] != "ordivon.harness-provider-call-record"
+        ):
+            raise HarnessProtocolError(
+                "HarnessProviderCallRecordV3 version or kind is invalid"
+            )
         return cls(
-            record_id=historical.record_id,
-            provider_call_id=historical.provider_call_id,
-            harness_run_id=historical.harness_run_id,
-            binding_digest=historical.binding_digest,
-            source_kind=historical.source_kind,
-            source_digest=historical.source_digest,
-            source_object_digest=historical.source_object_digest,
-            state_object_digest=historical.state_object_digest,
-            turn_id=historical.turn_id,
-            turn_sequence=historical.turn_sequence,
-            request_digest=historical.request_digest,
-            provider_request_digest=historical.provider_request_digest,
-            adapter_id=historical.adapter_id,
-            requested_model_id=historical.requested_model_id,
-            holder_id=historical.holder_id,
-            claim_generation=historical.claim_generation,
-            status=historical.status,
-            result_digest=historical.result_digest,
-            result_object_digest=historical.result_object_digest,
-            failure_digest=historical.failure_digest,
-            failure_object_digest=historical.failure_object_digest,
-            previous_record_digest=historical.previous_record_digest,
-            issued_at_ms=historical.issued_at_ms,
-            expires_at_ms=historical.expires_at_ms,
-            recorded_at_ms=historical.recorded_at_ms,
-            request_object_digest=request_object_digest,
+            **_provider_record_common_kwargs(value, label="HarnessProviderCallRecordV3"),
+            request_object_digest=value["requestObjectDigest"],
         )
 
 
 @dataclass(frozen=True, slots=True)
-class HarnessProviderCallRecordV4(HarnessProviderCallRecordV2):
-    """Provider Call record that may retain only the exact result digest.
-
-    v4 is used when the Provider physically completed but the Run privacy policy
-    does not authorize Harness to retain the exact AgentTurnResult content. The
-    completed status and exact semantic result digest remain durable, preserving
-    dispatch fencing after response loss without silently expanding content
-    authority. request_object_digest remains optional so v4 can represent the
-    privacy projection independently of the request-content generation.
-    """
+class HarnessProviderCallRecordV4(_HarnessProviderCallRecordBase):
+    """Current Provider Call record; exact result content may be privacy-redacted."""
 
     request_object_digest: str | None = None
 
     def __post_init__(self) -> None:
-        _text(
-            self.record_id,
-            "Provider Call Record identity",
-            prefix="harness-provider-call-record",
-        )
-        _text(
-            self.provider_call_id,
-            "Provider Call identity",
-            prefix="provider-call",
-        )
-        _text(self.harness_run_id, "Harness Run identity", prefix="harness-run")
-        _digest(self.binding_digest, "Harness Run Store binding digest")
-        if not isinstance(self.source_kind, HarnessProviderCallSource):
-            raise HarnessProtocolError("Provider Call source kind is invalid")
-        _digest(self.source_digest, "Provider Call source digest")
-        _digest(self.source_object_digest, "Provider Call source object digest")
-        _digest(self.state_object_digest, "Harness Run State object digest")
-        _text(self.turn_id, "Turn identity", prefix="turn")
-        _integer(self.turn_sequence, "Turn sequence", minimum=1)
-        _digest(self.request_digest, "Agent Turn request digest")
+        self._validate_common()
         if self.request_object_digest is not None:
             _digest(self.request_object_digest, "Agent Turn request object digest")
-        _digest(self.provider_request_digest, "Provider request digest")
-        _text(self.adapter_id, "Provider adapter identity")
-        _text(self.requested_model_id, "requested model identity")
-        _text(self.holder_id, "Provider Call holder identity")
-        _integer(self.claim_generation, "Provider Call claim generation", minimum=1)
-        if not isinstance(self.status, HarnessProviderCallStatus):
-            raise HarnessProtocolError("Provider Call status is invalid")
-        for value, label in (
-            (self.result_digest, "Agent Turn result digest"),
-            (self.result_object_digest, "Agent Turn result object digest"),
-            (self.failure_digest, "Provider Call failure digest"),
-            (self.failure_object_digest, "Provider Call failure object digest"),
-            (self.previous_record_digest, "previous Provider Call Record digest"),
-        ):
-            if value is not None:
-                _digest(value, label)
-        _integer(self.issued_at_ms, "Provider Call issue time")
-        _integer(self.expires_at_ms, "Provider Call expiry time")
-        _integer(self.recorded_at_ms, "Provider Call record time")
-        if self.expires_at_ms <= self.issued_at_ms:
-            raise HarnessProtocolError("Provider Call expiry must follow issue time")
         if self.status is HarnessProviderCallStatus.COMPLETED:
             if self.result_digest is None:
                 raise HarnessProtocolError(
                     "completed Provider Call requires an exact result digest"
                 )
         elif self.result_digest is not None or self.result_object_digest is not None:
-            raise HarnessProtocolError("non-completed Provider Call cannot carry result references")
-        failure_refs = (self.failure_digest, self.failure_object_digest)
-        if self.status in {
-            HarnessProviderCallStatus.FAILED,
-            HarnessProviderCallStatus.UNKNOWN,
-        }:
-            if any(value is None for value in failure_refs):
-                raise HarnessProtocolError(
-                    "failed or unknown Provider Call requires both failure references"
-                )
-        elif any(value is not None for value in failure_refs):
-            raise HarnessProtocolError("non-failed Provider Call cannot carry failure references")
-        initial_claim = (
-            self.status is HarnessProviderCallStatus.CLAIMED and self.claim_generation == 1
-        )
-        if not initial_claim and self.previous_record_digest is None:
-            raise HarnessProtocolError("Provider Call transition requires a previous record")
+            raise HarnessProtocolError(
+                "non-completed Provider Call cannot carry result references"
+            )
 
     def to_dict(self) -> dict[str, JsonValue]:
-        value = HarnessProviderCallRecordV2.to_dict(self)
+        value = self._common_dict()
         value["schemaVersion"] = 4
         value["requestObjectDigest"] = self.request_object_digest
         return value
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessProviderCallRecordV4:
-        expected = {
-            "schemaVersion",
-            "kind",
-            "recordId",
-            "providerCallId",
-            "harnessRunId",
-            "bindingDigest",
-            "sourceKind",
-            "sourceDigest",
-            "sourceObjectDigest",
-            "stateObjectDigest",
-            "turnId",
-            "turnSequence",
-            "requestDigest",
-            "requestObjectDigest",
-            "providerRequestDigest",
-            "adapterId",
-            "requestedModelId",
-            "holderId",
-            "claimGeneration",
-            "status",
-            "resultDigest",
-            "resultObjectDigest",
-            "failureDigest",
-            "failureObjectDigest",
-            "previousRecordDigest",
-            "issuedAtMs",
-            "expiresAtMs",
-            "recordedAtMs",
-        }
-        _exact(value, expected, "HarnessProviderCallRecordV4")
-        if value["schemaVersion"] != 4 or value["kind"] != "ordivon.harness-provider-call-record":
-            raise HarnessProtocolError("HarnessProviderCallRecordV4 version or kind is invalid")
+        _exact(value, _PROVIDER_RECORD_FIELDS_WITH_REQUEST_OBJECT, "HarnessProviderCallRecordV4")
+        if (
+            value["schemaVersion"] != 4
+            or value["kind"] != "ordivon.harness-provider-call-record"
+        ):
+            raise HarnessProtocolError(
+                "HarnessProviderCallRecordV4 version or kind is invalid"
+            )
         request_object_digest = value["requestObjectDigest"]
-        if request_object_digest is not None and not isinstance(request_object_digest, str):
+        if request_object_digest is not None and not isinstance(
+            request_object_digest, str
+        ):
             raise HarnessProtocolError(
                 "HarnessProviderCallRecordV4 requestObjectDigest must be a digest or null"
             )
-        try:
-            source_kind = HarnessProviderCallSource(value["sourceKind"])
-            status = HarnessProviderCallStatus(value["status"])
-        except (TypeError, ValueError) as error:
-            raise HarnessProtocolError(
-                "HarnessProviderCallRecordV4 enum field is invalid"
-            ) from error
         return cls(
-            record_id=value["recordId"],
-            provider_call_id=value["providerCallId"],
-            harness_run_id=value["harnessRunId"],
-            binding_digest=value["bindingDigest"],
-            source_kind=source_kind,
-            source_digest=value["sourceDigest"],
-            source_object_digest=value["sourceObjectDigest"],
-            state_object_digest=value["stateObjectDigest"],
-            turn_id=value["turnId"],
-            turn_sequence=value["turnSequence"],
-            request_digest=value["requestDigest"],
-            provider_request_digest=value["providerRequestDigest"],
-            adapter_id=value["adapterId"],
-            requested_model_id=value["requestedModelId"],
-            holder_id=value["holderId"],
-            claim_generation=value["claimGeneration"],
-            status=status,
-            result_digest=value["resultDigest"],
-            result_object_digest=value["resultObjectDigest"],
-            failure_digest=value["failureDigest"],
-            failure_object_digest=value["failureObjectDigest"],
-            previous_record_digest=value["previousRecordDigest"],
-            issued_at_ms=value["issuedAtMs"],
-            expires_at_ms=value["expiresAtMs"],
-            recorded_at_ms=value["recordedAtMs"],
+            **_provider_record_common_kwargs(value, label="HarnessProviderCallRecordV4"),
             request_object_digest=request_object_digest,
         )
 

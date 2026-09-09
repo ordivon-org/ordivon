@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import unittest
+
+import ordivon_harness.ordivon as ordivon_internal
+import ordivon_harness.ordivon.continuity_records as continuity_records
 
 from ordivon_harness.ordivon.continuity_records import (
     HarnessDispatchFenceV2,
-    HarnessProviderCallRecordV2,
+    HarnessProviderCallRecordV3,
     HarnessProviderCallRecordV4,
 )
 from ordivon_harness.ordivon.run_store_port import (
@@ -68,17 +73,17 @@ def provider_v1() -> HarnessProviderCallRecord:
     )
 
 
-def provider_v2() -> HarnessProviderCallRecordV2:
-    return HarnessProviderCallRecordV2(
-        record_id="harness-provider-call-record:p0-v2-001",
-        provider_call_id="provider-call:p0-v2-001",
+def provider_v3() -> HarnessProviderCallRecordV3:
+    return HarnessProviderCallRecordV3(
+        record_id="harness-provider-call-record:p0-v3-001",
+        provider_call_id="provider-call:p0-v3-001",
         harness_run_id=binding().harness_run_id,
         binding_digest=binding().digest,
         source_kind=HarnessProviderCallSource.ASSIGNMENT,
         source_digest=DIGEST_B,
         source_object_digest=DIGEST_C,
         state_object_digest=DIGEST_D,
-        turn_id="turn:p0-v2-001",
+        turn_id="turn:p0-v3-001",
         turn_sequence=1,
         request_digest=DIGEST_A,
         provider_request_digest=DIGEST_B,
@@ -95,24 +100,44 @@ def provider_v2() -> HarnessProviderCallRecordV2:
         issued_at_ms=1_000,
         expires_at_ms=2_000,
         recorded_at_ms=1_000,
+        request_object_digest=DIGEST_E,
     )
 
 
-class ContinuityRecordV2Tests(unittest.TestCase):
+class ContinuityRecordTests(unittest.TestCase):
     def test_binding_digest_is_deterministic(self) -> None:
         value = binding()
         self.assertEqual(value.digest, binding().digest)
         self.assertEqual(value.to_dict()["kind"], "ordivon.harness-run-store-binding")
 
-    def test_provider_v2_round_trip_has_no_host_task_fields(self) -> None:
-        value = provider_v2()
+    def test_provider_v2_codec_is_retired_from_current_surfaces(self) -> None:
+        self.assertFalse(hasattr(continuity_records, "HarnessProviderCallRecordV2"))
+        self.assertNotIn("HarnessProviderCallRecordV2", ordivon_internal.__all__)
+
+    def test_frozen_s0_provider_v3_remains_byte_semantically_readable(self) -> None:
+        fixture = (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "provider-call-v3-s0-frozen.json"
+        )
+        payload = json.loads(fixture.read_text(encoding="utf-8"))
+        value = HarnessProviderCallRecordV3.from_dict(payload)
+        self.assertEqual(value.to_dict(), payload)
+        self.assertEqual(
+            value.digest,
+            "sha256:4220370980de94fcf03a4f91065a3f619f43e82bfe401c027a26d5f2a095931b",
+        )
+        self.assertEqual(value.status, HarnessProviderCallStatus.DISPATCHING)
+
+    def test_provider_v3_round_trip_has_no_host_task_fields(self) -> None:
+        value = provider_v3()
         encoded = value.to_dict()
-        self.assertEqual(encoded["schemaVersion"], 2)
+        self.assertEqual(encoded["schemaVersion"], 3)
         self.assertNotIn("taskId", encoded)
         self.assertNotIn("taskRevision", encoded)
         self.assertEqual(encoded["bindingDigest"], binding().digest)
-        self.assertEqual(HarnessProviderCallRecordV2.from_dict(encoded), value)
-        self.assertEqual(HarnessProviderCallRecordV2.from_dict(encoded).digest, value.digest)
+        self.assertEqual(HarnessProviderCallRecordV3.from_dict(encoded), value)
+        self.assertEqual(HarnessProviderCallRecordV3.from_dict(encoded).digest, value.digest)
 
     def test_provider_v4_round_trip_allows_digest_only_completed_result(self) -> None:
         value = HarnessProviderCallRecordV4(
@@ -149,13 +174,12 @@ class ContinuityRecordV2Tests(unittest.TestCase):
         self.assertIsNone(encoded["resultObjectDigest"])
         self.assertIsNone(encoded["requestObjectDigest"])
         self.assertEqual(HarnessProviderCallRecordV4.from_dict(encoded), value)
+        strict_v3 = provider_v3().to_dict()
+        strict_v3["status"] = HarnessProviderCallStatus.COMPLETED.value
+        strict_v3["previousRecordDigest"] = DIGEST_A
+        strict_v3["resultDigest"] = DIGEST_E
         with self.assertRaisesRegex(ValueError, "both result references"):
-            HarnessProviderCallRecordV2(
-                **{
-                    field: getattr(value, field)
-                    for field in HarnessProviderCallRecordV2.__dataclass_fields__
-                }
-            )
+            HarnessProviderCallRecordV3.from_dict(strict_v3)
 
     def test_provider_v1_codec_remains_exact(self) -> None:
         value = provider_v1()
@@ -165,9 +189,9 @@ class ContinuityRecordV2Tests(unittest.TestCase):
         self.assertEqual(HarnessProviderCallRecord.from_dict(encoded), value)
         self.assertEqual(HarnessProviderCallRecord.from_dict(encoded).digest, value.digest)
 
-    def test_both_provider_generations_satisfy_execution_view(self) -> None:
+    def test_retained_provider_generations_satisfy_execution_view(self) -> None:
         self.assertIsInstance(provider_v1(), HarnessProviderCallRecordView)
-        self.assertIsInstance(provider_v2(), HarnessProviderCallRecordView)
+        self.assertIsInstance(provider_v3(), HarnessProviderCallRecordView)
 
     def test_fence_v2_round_trip_uses_run_revision(self) -> None:
         value = HarnessDispatchFenceV2(
@@ -215,11 +239,11 @@ class ContinuityRecordV2Tests(unittest.TestCase):
         self.assertEqual(HarnessDispatchFence.from_dict(encoded), value)
         self.assertIsInstance(value, HarnessDispatchFenceView)
 
-    def test_v2_decoders_reject_host_field_injection(self) -> None:
-        provider = provider_v2().to_dict()
+    def test_v3_decoder_rejects_host_field_injection(self) -> None:
+        provider = provider_v3().to_dict()
         provider["taskId"] = "task:injected"
         with self.assertRaisesRegex(ValueError, "fields differ"):
-            HarnessProviderCallRecordV2.from_dict(provider)
+            HarnessProviderCallRecordV3.from_dict(provider)
 
         fence = HarnessDispatchFenceV2(
             fence_id="harness-dispatch-fence:p0-v2-002",
