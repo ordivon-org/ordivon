@@ -20,7 +20,6 @@ class HarnessRecoveryConsequence(StrEnum):
     OBSERVATION_ONLY = "observation-only"
     WORKSPACE_CHANGE_POSSIBLE = "workspace-change-possible"
     PROCESS_OR_EXTERNAL_EFFECT_POSSIBLE = "process-or-external-effect-possible"
-    UNKNOWN = "unknown"
 
 
 class HarnessToolStepStatus(StrEnum):

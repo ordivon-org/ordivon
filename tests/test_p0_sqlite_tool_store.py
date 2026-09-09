@@ -79,6 +79,19 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
         )
         return store, continuity, intent
 
+    def test_unknown_recovery_consequence_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            clock = MutableClock()
+            store, _continuity, intent = self.prepare(root, clock)
+            encoded = intent.to_dict()
+            encoded["recoveryConsequence"] = "unknown"
+            with self.assertRaisesRegex(
+                HarnessProtocolError, "HarnessToolStepIntent consequence is invalid"
+            ):
+                HarnessToolStepIntent.from_dict(encoded)
+            store.close()
+
     @staticmethod
     def observation(status: str = "observed") -> dict[str, object]:
         return {
