@@ -136,9 +136,8 @@ The current product includes:
 - request-bound `AgentTurnRequest.tools` and Harness-native capabilities, so installed mechanisms do not silently become current action authority;
 - advanced opt-in bounded ToolProgram composition: the Agent may author one linear program over only the exact Tools admitted on that turn, while every inner step remains one normal physical Tool Call with existing budget, effect evidence, recovery and UNKNOWN semantics; intermediate Tool content is mechanically consumed and only one compact program result returns to the model;
 - a generated `effective_capability_catalog()` that separates **installed**, **Run-admitted**, and **turn-admitted** capability truth instead of making package installation an authority grant;
-- bounded task-conditioned capability discovery over already-published descriptors, with progressive `candidate -> exact inspection` disclosure. Discovery is read-only navigation: a candidate does not prove currentness, grant authority, or expand a Tool surface;
-- a current-affordance projection that intersects discovered candidates with caller/owner-supplied `AVAILABLE / BLOCKED / UNKNOWN` standing and already-admitted actions. Missing standing remains `UNKNOWN`, and the existing turn Tool projector still permits only subtraction from exact admitted Tools;
-- a compact capability-aware model projection that carries only identity/actionability (`capabilityId`, owner, action, standing, admission and `canInvokeNow`) by default, while exact descriptor/evidence/reason bytes remain on-demand inspection material. A preregistered currentness-dependent fresh-Agent ablation earned this split: retrieval-only did not resolve semantic-twin ambiguity, while standing + existing admission materially improved current-carrier selection in the bounded experiment;
+- direct caller/owner-supplied `InteractionAffordance` facts (`AVAILABLE / BLOCKED / UNKNOWN`) that can only subtract from exact already-admitted Tools; Harness does not discover or rank owner standing;
+- historical currentness-pressure experiments remain evidence that current standing can matter to Agent action choice; the generic lexical descriptor/candidate layer is retired, while the smaller direct InteractionAffordance path preserves caller-supplied standing plus admitted-Tool subtraction;
 - `HarnessAgentRun` as the supported Python handle for normal state-root → Run composition and resume, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
 - `observation_tool_surface` as the application-local exact source-read composition; arbitrary non-default Tool surfaces no longer receive a generic Harness wrapper;
 - advanced `build_observation_tool_surface()` composition for observation-only `search_workspace + read_workspace`: callers bind exact readable path/digest authority and may additionally bind owner/authority/version/transport evidence. Exact immutable owner publications can be projected by one bound `subjectRef` only after complete-file digest verification; search projects object routing rather than treating matched lines as semantic authority, and Harness never mints owner truth;
@@ -203,13 +202,6 @@ Initialize an independent state root and inspect available capabilities:
 ordivon-harness --state-root /var/lib/ordivon/harness store-init
 ordivon-harness capabilities
 
-# Progressive disclosure: retrieve a bounded candidate set without printing the full catalog.
-ordivon-harness capabilities --query 'search workspace observation' \
-  --term search --term workspace --limit 4
-
-# Inspect one exact descriptor only after selection. This still grants no Run/Tool authority.
-ordivon-harness capabilities --inspect \
-  harness.execution.runtime-search.v1.tool.search_workspace
 ```
 
 A caller then supplies an exact Run Contract:
@@ -224,13 +216,13 @@ ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` with no discovery arguments preserves the generated package projection: it reports installed built-in and specialized surfaces plus their exact source-owned digests and requirements, but it does not grant them to a Run. `--query` returns a bounded candidate projection and omits the full catalog; explicit `--term` values act as candidate-admission constraints while intent tokens contribute additional matching. `--inspect` expands one exact source-derived descriptor. Neither operation proves owner currentness or execution admission. `explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live.
+`capabilities` reports the exact generated package projection: installed built-in and specialized surfaces plus their source-owned digests and requirements. It does not search, rank, grant, or establish owner currentness. `explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live.
 
 The CLI does not invent the Objective, Context, Tool grant, Provider, budget, or completion authority. See [`docs/QUICKSTART.md`](docs/QUICKSTART.md) for Contract construction, Python examples, cognition profiles, Tool-bearing Runtime clients, and structured completion.
 
 ## Public API
 
-Use `ordivon_harness.api` for normal applications. The recommended execution handle is `HarnessAgentRun`: the caller supplies the exact Contract, Contract-bound Adapter factory, and any Runtime execution authority; Harness mechanically reconstructs the durable composition on resume. Advanced installed-capability projection lives in `ordivon_harness.capability_catalog`; experimental task-conditioned candidate discovery, exact inspection and current-affordance compilation live in `ordivon_harness.capability_discovery`; exact cross-Run knowledge/procedure references and seed compilation live in `ordivon_harness.knowledge_topology`; bounded programmatic Tool composition/recovery lives in `ordivon_harness.tool_program*`; and caller-bound observation composition lives in `ordivon_harness.observation_tool_surface`; there is no generic non-default Tool-surface wrapper. None is promoted into the stable package-root facade yet. These projections/admission helpers do not grant authority or own external knowledge repositories/effects.
+Use `ordivon_harness.api` for normal applications. The recommended execution handle is `HarnessAgentRun`: the caller supplies the exact Contract, Contract-bound Adapter factory, and any Runtime execution authority; Harness mechanically reconstructs the durable composition on resume. Advanced installed-capability projection lives in `ordivon_harness.capability_catalog`; the former generic task-conditioned capability-discovery layer is retired, while caller/owner current affordances are supplied directly through `ordivon_harness.interaction_context`; exact cross-Run knowledge/procedure references and seed compilation live in `ordivon_harness.knowledge_topology`; bounded programmatic Tool composition/recovery lives in `ordivon_harness.tool_program*`; and caller-bound observation composition lives in `ordivon_harness.observation_tool_surface`; there is no generic non-default Tool-surface wrapper. None is promoted into the stable package-root facade yet. These projections/admission helpers do not grant authority or own external knowledge repositories/effects.
 
 For broader delegated execution, the current path is:
 

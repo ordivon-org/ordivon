@@ -11,12 +11,6 @@ from .capability_catalog import (
     effective_capability_catalog,
     effective_capability_catalog_digest,
 )
-from .capability_discovery import (
-    CapabilityDiscoveryQuery,
-    descriptors_from_effective_catalog,
-    discover_capabilities,
-    inspect_capability_id,
-)
 from .core_contracts import HarnessRunContract
 from .independent_result import IndependentRunRecorder, StoredIndependentRunResult
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
@@ -34,49 +28,10 @@ from .telemetry import build_harness_telemetry_projection
 from .workbench import build_durable_workbench_projection
 
 
-def capabilities(
-    *,
-    query: str | None = None,
-    terms: tuple[str, ...] = (),
-    owner_hints: tuple[str, ...] = (),
-    limit: int = 8,
-    inspect_id: str | None = None,
-) -> dict[str, JsonValue]:
-    """Describe, search, or inspect capability projections without granting authority."""
+def capabilities() -> dict[str, JsonValue]:
+    """Describe the exact source-derived installed capability projection."""
 
     catalog_digest = effective_capability_catalog_digest()
-    if inspect_id is not None:
-        if query is not None or terms or owner_hints:
-            raise ValueError("capability --inspect cannot be combined with discovery inputs")
-        descriptors = descriptors_from_effective_catalog()
-        return {
-            "ok": True,
-            "schemaVersion": 1,
-            "kind": "ordivon.harness-cli-capability-inspection",
-            "effectiveCapabilityCatalogDigest": catalog_digest,
-            "inspection": inspect_capability_id(descriptors, inspect_id),
-        }
-    if query is not None:
-        descriptors = descriptors_from_effective_catalog()
-        discovered = discover_capabilities(
-            descriptors,
-            CapabilityDiscoveryQuery(
-                query,
-                terms=terms,
-                owner_hints=owner_hints,
-                max_candidates=limit,
-            ),
-        )
-        return {
-            "ok": True,
-            "schemaVersion": 1,
-            "kind": "ordivon.harness-cli-capability-discovery",
-            "effectiveCapabilityCatalogDigest": catalog_digest,
-            "descriptorCount": len(descriptors),
-            "discovery": discovered.to_dict(),
-        }
-    if terms or owner_hints or limit != 8:
-        raise ValueError("capability discovery options require --query")
     return {
         "ok": True,
         "schemaVersion": 1,
@@ -119,15 +74,7 @@ def capabilities(
 def dispatch(args, *, clock_ms) -> dict[str, object]:
     command = args.command
     if command == "capabilities":
-        return dict(
-            capabilities(
-                query=args.query,
-                terms=tuple(args.term),
-                owner_hints=tuple(args.owner),
-                limit=args.limit,
-                inspect_id=args.inspect_capability_id,
-            )
-        )
+        return dict(capabilities())
     root = _state_root(args)
     if command == "doctor":
         with SQLiteHarnessStore(root) as store:

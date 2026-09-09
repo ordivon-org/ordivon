@@ -20,13 +20,6 @@ from typing import Any
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
 
-from .capability_discovery import (
-    CapabilityAffordanceSet,
-    CapabilityCandidateSet,
-    CapabilityDescriptor,
-    CapabilityStanding,
-    compile_capability_affordances,
-)
 from .ordivon.model import AgentToolDefinition
 from .ordivon.turn_projection import (
     project_turn_tool_working_set,
@@ -136,7 +129,6 @@ class InteractionContextInput:
     intent: str
     sources: tuple[InteractionSourceRef, ...]
     affordances: tuple[InteractionAffordance, ...]
-    capability_affordances: CapabilityAffordanceSet | None = None
     action_slice: InteractionActionSlice | None = None
     blockers: tuple[str, ...] = ()
     unknowns: tuple[str, ...] = ()
@@ -152,10 +144,6 @@ class InteractionContextInput:
         names = [item.tool_name for item in self.affordances]
         if len(names) != len(set(names)):
             raise ValueError("interaction context affordance Tool names must be unique")
-        if self.capability_affordances is not None and self.affordances:
-            raise ValueError(
-                "capability interaction context must not duplicate legacy affordances"
-            )
         _texts(self.blockers, "interaction blocker")
         _texts(self.unknowns, "interaction unknown")
 
@@ -205,7 +193,6 @@ def compile_interaction_context(
     _text(logical_generation, "interaction logical generation", max_bytes=500)
 
     admitted_by_name = {tool.name: tool for tool in admitted_tools}
-    admitted_names = tuple(tool.name for tool in admitted_tools)
     referenced = {item.tool_name for item in context.affordances}
     missing = sorted(referenced - set(admitted_by_name))
     if missing:
@@ -214,19 +201,12 @@ def compile_interaction_context(
             f"{missing}"
         )
 
-    if context.capability_affordances is not None:
-        if context.capability_affordances.admitted_action_names != admitted_names:
-            raise ValueError(
-                "capability affordances differ from the exact admitted Tool surface"
-            )
-        selected_names = context.capability_affordances.selected_action_names
-    else:
-        available = {
-            item.tool_name for item in context.affordances if item.standing == "AVAILABLE"
-        }
-        selected_names = tuple(
-            tool.name for tool in admitted_tools if tool.name in available
-        )
+    available = {
+        item.tool_name for item in context.affordances if item.standing == "AVAILABLE"
+    }
+    selected_names = tuple(
+        tool.name for tool in admitted_tools if tool.name in available
+    )
     selected = select_turn_tool_working_set(admitted_tools, selected_names)
     if tuple(tool.name for tool in selected) != selected_names:
         raise RuntimeError("interaction Tool WorkingSet selection is not stable")
@@ -249,8 +229,6 @@ def compile_interaction_context(
     }
     if context.affordances:
         payload["affordances"] = [item.to_dict() for item in context.affordances]
-    if context.capability_affordances is not None:
-        payload["capabilityAffordances"] = context.capability_affordances.to_model_dict()
     if context.action_slice is not None:
         payload["action"] = context.action_slice.to_dict()
     if context.blockers:
@@ -285,51 +263,6 @@ def compile_interaction_context(
     )
 
 
-def compile_capability_interaction_context(
-    *,
-    intent: str,
-    sources: tuple[InteractionSourceRef, ...],
-    candidate_set: CapabilityCandidateSet,
-    descriptors: tuple[CapabilityDescriptor, ...],
-    standings: tuple[CapabilityStanding, ...],
-    admitted_tools: tuple[AgentToolDefinition, ...],
-    logical_ref: str,
-    logical_generation: str,
-    action_slice: InteractionActionSlice | None = None,
-    blockers: tuple[str, ...] = (),
-    unknowns: tuple[str, ...] = (),
-    raw_escape_available: bool = True,
-) -> InteractionContextMaterialization:
-    """Bridge discovered candidates into the existing subtractive First Interface.
-
-    Candidate discovery remains visible even when a candidate action is not admitted.
-    Only already-admitted Tool actions are copied into the legacy Tool-affordance
-    slice, so this helper cannot turn retrieval into execution authority.
-    """
-
-    admitted_names = tuple(tool.name for tool in admitted_tools)
-    capability_affordances = compile_capability_affordances(
-        candidate_set,
-        descriptors,
-        standings,
-        admitted_action_names=admitted_names,
-    )
-    return compile_interaction_context(
-        InteractionContextInput(
-            intent=intent,
-            sources=sources,
-            affordances=(),
-            capability_affordances=capability_affordances,
-            action_slice=action_slice,
-            blockers=blockers,
-            unknowns=unknowns,
-            raw_escape_available=raw_escape_available,
-        ),
-        admitted_tools,
-        logical_ref=logical_ref,
-        logical_generation=logical_generation,
-    )
-
 
 __all__ = [
     "InteractionActionSlice",
@@ -337,6 +270,5 @@ __all__ = [
     "InteractionContextInput",
     "InteractionContextMaterialization",
     "InteractionSourceRef",
-    "compile_capability_interaction_context",
     "compile_interaction_context",
 ]
