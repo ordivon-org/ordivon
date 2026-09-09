@@ -1,8 +1,10 @@
 """Host-independent Ordivon Harness public facade.
 
-This module is the supported import surface for caller-neutral Run contracts,
-independent Journal/CAS persistence, standalone execution and Runtime Tool
-bridging. Importing it never requires ``ordivon-host``.
+This module is a compatibility aggregation surface for caller-neutral cognitive Run
+contracts and application-level capability types. Concrete SQLite stores, historical
+provider record codecs, standalone runners, and Runtime bridge implementations are
+internal submodules rather than supported facade exports. Importing it never requires
+``ordivon-host``.
 """
 
 from .agent_tool_observation import HarnessArtifactReference, HarnessToolObservation
@@ -58,12 +60,6 @@ from .strategy_selection import (
     compile_harness_selected_attempt,
     derive_harness_mandate_consumption,
 )
-from .ordivon.continuity_records import (
-    HarnessDispatchFenceV2,
-    HarnessProviderCallRecordV2,
-    HarnessProviderCallRecordV3,
-    HarnessProviderCallRecordV4,
-)
 from .ordivon.deepseek import (
     DEFAULT_DEEPSEEK_BASE_URL,
     DEFAULT_DEEPSEEK_SECRET_PATH,
@@ -74,7 +70,6 @@ from .ordivon.deepseek import (
 from .ordivon.loop import (
     AgentLoopResult,
     CancellationToken,
-    OrdivonAgentLoop,
     RunBudget,
     RunStopCode,
 )
@@ -100,16 +95,13 @@ from .ordivon.sqlite_agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE,
     NO_TOOL_AGENT_SURFACE_DIGEST,
-    SQLiteHarnessAgentBridge,
 )
-from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
 from .ordivon.sqlite_runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT,
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
     SEARCH_WORKSPACE_DEFINITION,
-    SQLiteHarnessRuntimeBridge,
 )
 from .observation_tool_surface import (
     OBSERVATION_TOOL_DEFINITIONS,
@@ -140,12 +132,6 @@ from .sqlite_store import (
     HarnessRevisionConflict,
     HarnessStoreError,
     HarnessTerminalConflict,
-    SQLiteHarnessStore,
-)
-from .standalone import (
-    StandaloneHarnessExecution,
-    StandaloneHarnessRunner,
-    StandaloneToolBridge,
 )
 from .store import (
     HARNESS_STORE_EVENT_KINDS,
@@ -209,7 +195,6 @@ __all__ = [
     "HarnessArtifactReference",
     "HarnessBoundReference",
     "HarnessCorrelationContext",
-    "HarnessDispatchFenceV2",
     "HarnessEventAdmission",
     "HarnessEventWrite",
     "HarnessEventConflict",
@@ -234,9 +219,6 @@ __all__ = [
     "HarnessObservationToolGrant",
     "HarnessPrivacyPolicy",
     "HarnessProviderCallClaimHeld",
-    "HarnessProviderCallRecordV2",
-    "HarnessProviderCallRecordV3",
-    "HarnessProviderCallRecordV4",
     "HarnessProviderCallRecoveryRequired",
     "HarnessProviderCallRequestMismatch",
     "HarnessRevisionConflict",
@@ -268,17 +250,9 @@ __all__ = [
     "OperationalClaimEvidenceRole",
     "OperationalClaimRef",
     "OperationalClaimStandingView",
-    "OrdivonAgentLoop",
     "RunBudget",
     "RunStopCode",
-    "SQLiteHarnessAgentBridge",
-    "SQLiteHarnessRunContinuityStore",
-    "SQLiteHarnessRuntimeBridge",
-    "SQLiteHarnessStore",
     "ScriptedTurnAdapter",
-    "StandaloneHarnessExecution",
-    "StandaloneHarnessRunner",
-    "StandaloneToolBridge",
     "StoredHarnessObject",
     "StoredIndependentRunResult",
     "admit_harness_agent_strategy",

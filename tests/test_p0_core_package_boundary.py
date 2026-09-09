@@ -28,11 +28,15 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
             "import ordivon_harness.core as core; "
             "core_loaded=any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules); "
             "print(json.dumps({'rootLoadedHost':root_loaded,'coreLoadedHost':core_loaded,"
-            "'hasStandalone':'StandaloneHarnessRunner' in core.__all__}))"
+            "'hasStandalone':'StandaloneHarnessRunner' in core.__all__,"
+            "'hasSqliteStore':'SQLiteHarnessStore' in core.__all__,"
+            "'hasProviderCodec':'HarnessProviderCallRecordV4' in core.__all__}))"
         )
         self.assertFalse(observed["rootLoadedHost"])
         self.assertFalse(observed["coreLoadedHost"])
-        self.assertTrue(observed["hasStandalone"])
+        self.assertFalse(observed["hasStandalone"])
+        self.assertFalse(observed["hasSqliteStore"])
+        self.assertFalse(observed["hasProviderCodec"])
 
     def test_package_root_has_no_host_compatibility_exports(self) -> None:
         observed = self.run_probe(
