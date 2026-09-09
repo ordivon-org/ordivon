@@ -3324,11 +3324,7 @@ class SQLiteHarnessRunContinuityStore:
         issued_at_ms: int,
         expires_at_ms: int,
         recorded_at_ms: int,
-    ) -> (
-        HarnessProviderCallRecordV2
-        | HarnessProviderCallRecordV3
-        | HarnessProviderCallRecordV4
-    ):
+    ) -> HarnessProviderCallRecordV4:
         record_token = canonical_digest(
             {
                 "providerCallId": provider_call_id,
@@ -3343,13 +3339,7 @@ class SQLiteHarnessRunContinuityStore:
                 "recordedAtMs": recorded_at_ms,
             }
         )[7:31]
-        record_type = (
-            HarnessProviderCallRecordV4
-            if result_digest is not None and result_object_digest is None
-            else HarnessProviderCallRecordV3
-            if request_object_digest is not None
-            else HarnessProviderCallRecordV2
-        )
+        # New writes use one current schema. V2/V3 remain read-only historical codecs.
         record_kwargs = dict(
             record_id=f"harness-provider-call-record:{record_token}",
             provider_call_id=provider_call_id,
@@ -3376,10 +3366,9 @@ class SQLiteHarnessRunContinuityStore:
             issued_at_ms=issued_at_ms,
             expires_at_ms=expires_at_ms,
             recorded_at_ms=recorded_at_ms,
+            request_object_digest=request_object_digest,
         )
-        if request_object_digest is not None:
-            record_kwargs["request_object_digest"] = request_object_digest
-        return record_type(**record_kwargs)
+        return HarnessProviderCallRecordV4(**record_kwargs)
 
     def _transition_provider_call(
         self,
@@ -3392,11 +3381,7 @@ class SQLiteHarnessRunContinuityStore:
         result_object_digest: str | None = None,
         failure_digest: str | None = None,
         failure_object_digest: str | None = None,
-    ) -> (
-        HarnessProviderCallRecordV2
-        | HarnessProviderCallRecordV3
-        | HarnessProviderCallRecordV4
-    ):
+    ) -> HarnessProviderCallRecordV4:
         return self._provider_call_record(
             provider_call_id=previous.provider_call_id,
             source=HarnessProviderCallSourceRef(

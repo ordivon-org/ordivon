@@ -13,7 +13,6 @@ from ordivon_harness.core_contracts import (
     HarnessRunContract,
 )
 from ordivon_harness.ordivon.continuity_records import (
-    HarnessProviderCallRecordV2,
     HarnessProviderCallRecordV4,
 )
 from ordivon_harness.ordivon.model import AgentRunConclusion, AgentTurnResult
@@ -171,7 +170,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             clock = MutableClock()
             store, provider = self.prepare(root, clock)
             claimed = self.claim(provider)
-            self.assertIsInstance(claimed.record, HarnessProviderCallRecordV2)
+            self.assertIsInstance(claimed.record, HarnessProviderCallRecordV4)
             self.assertEqual(claimed.record.status, HarnessProviderCallStatus.CLAIMED)
             self.assertEqual(self.claim(provider), claimed)
 

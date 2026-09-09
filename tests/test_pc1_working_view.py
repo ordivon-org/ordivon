@@ -418,7 +418,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                     all(event.data.get("requestObjectDigest") is None for event in provider_events)
                 )
 
-    def test_product_provider_call_v3_retains_exact_agent_request(self) -> None:
+    def test_current_provider_call_v4_retains_exact_agent_request(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "state"
             clock = FixedClock()
@@ -448,7 +448,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 )
                 self.assertTrue(result.candidate_completed)
                 retained = continuity.load_current_provider_call()
-                self.assertEqual(retained.record.to_dict()["schemaVersion"], 3)
+                self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
                 self.assertIsNotNone(retained.request)
                 self.assertIsNotNone(retained.request_object)
                 assert retained.request is not None
