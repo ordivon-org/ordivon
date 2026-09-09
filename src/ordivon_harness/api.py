@@ -1,7 +1,8 @@
 """Recommended Host-free public facade for Agent applications.
 
-This surface exposes one bounded cognitive Run, caller-neutral durable Run
-state, Runtime bridging, completion evidence, and domain-owned Tool loops. It
+This surface exposes application-level cognitive Run contracts, Provider/model
+adaptation, completion evidence, and domain-owned Tool loops. Concrete SQLite stores,
+standalone runners, and Runtime bridge implementations are internal migration surfaces. It
 does not import Ordivon Host or make Host Task authority a prerequisite for a
 Harness Run.
 
@@ -47,16 +48,9 @@ from .core import (
     IndependentHarnessRunReceipt,
     DELIBERATE_THEN_ACT_LOOP_DRIVER,
     SEQUENTIAL_LOOP_DRIVER,
-    OrdivonAgentLoop,
     RunBudget,
     RunStopCode,
     STRUCTURED_COMPLETION_MODE,
-    SQLiteHarnessRunContinuityStore,
-    SQLiteHarnessRuntimeBridge,
-    SQLiteHarnessStore,
-    StandaloneHarnessExecution,
-    StandaloneHarnessRunner,
-    StandaloneToolBridge,
     admit_harness_agent_strategy,
     build_harness_strategy_selection_context,
     compile_harness_attempt,
@@ -143,16 +137,9 @@ __all__ = [
     "IndependentHarnessRunReceipt",
     "DELIBERATE_THEN_ACT_LOOP_DRIVER",
     "SEQUENTIAL_LOOP_DRIVER",
-    "OrdivonAgentLoop",
     "RunBudget",
     "RunStopCode",
     "STRUCTURED_COMPLETION_MODE",
-    "SQLiteHarnessRunContinuityStore",
-    "SQLiteHarnessRuntimeBridge",
-    "SQLiteHarnessStore",
-    "StandaloneHarnessExecution",
-    "StandaloneHarnessRunner",
-    "StandaloneToolBridge",
     "admit_harness_agent_strategy",
     "build_harness_strategy_selection_context",
     "compile_harness_attempt",
