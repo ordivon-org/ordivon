@@ -55,8 +55,6 @@ class HarnessEventWrite:
 HARNESS_STORE_EVENT_KINDS = frozenset(
     {
         "harness.run-created",
-        "harness.run-started",
-        "harness.run-resumed",
         "harness.snapshot-recorded",
         "harness.working-set-recorded",
         "harness.provider-call-claimed",

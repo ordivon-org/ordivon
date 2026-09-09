@@ -81,7 +81,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                     store.append_event(
                         event_id="event:p0-store:started",
                         harness_run_id=contract.harness_run_id,
-                        event_kind="harness.run-started",
+                        event_kind="harness.snapshot-recorded",
                         data={"phase": "started"},
                         expected_revision=1,
                         recorded_at_ms=1_002,
@@ -95,7 +95,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                     store.append_event(
                         event_id="event:p0-store:started",
                         harness_run_id=contract.harness_run_id,
-                        event_kind="harness.run-started",
+                        event_kind="harness.snapshot-recorded",
                         data={"phase": "started"},
                         expected_revision=1,
                         recorded_at_ms=1_002,
@@ -140,7 +140,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                     [event.event_kind for event in events],
                     [
                         "harness.run-created",
-                        "harness.run-started",
+                        "harness.snapshot-recorded",
                         "harness.run-completed",
                     ],
                 )
@@ -172,7 +172,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 events = (
                     HarnessEventWrite(
                         event_id="event:p0-batch:started",
-                        event_kind="harness.run-started",
+                        event_kind="harness.snapshot-recorded",
                         data={"phase": "started"},
                         recorded_at_ms=1_002,
                     ),
@@ -274,6 +274,36 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 )
                 self.assertTrue(store.release_run_lease(lease))
 
+    def test_dead_generic_lifecycle_event_kinds_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with SQLiteHarnessStore.initialize(directory) as store:
+                contract = run_contract(
+                    run_id="harness-run:p0-dead-lifecycle",
+                    caller_ref="trial:p0-dead-lifecycle",
+                )
+                store.create_run(contract)
+                lease = store.acquire_run_lease(
+                    contract.harness_run_id,
+                    owner_id="worker:p0-dead-lifecycle",
+                    ttl_ms=100,
+                    now_ms=1_001,
+                )
+                for event_kind in ("harness.run-started", "harness.run-resumed"):
+                    with self.subTest(event_kind=event_kind):
+                        with self.assertRaisesRegex(ValueError, "unsupported Harness store event kind"):
+                            store.append_event(
+                                event_id=f"event:p0-dead-lifecycle:{event_kind.rsplit('-', 1)[-1]}",
+                                harness_run_id=contract.harness_run_id,
+                                event_kind=event_kind,
+                                data={"legacy": True},
+                                expected_revision=1,
+                                recorded_at_ms=1_002,
+                                lease=lease,
+                                lease_checked_at_ms=1_002,
+                            )
+                self.assertEqual(store.load_run(contract.harness_run_id).revision, 1)
+                self.assertTrue(store.release_run_lease(lease))
+
     def test_event_identity_conflict_and_revision_fencing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with SQLiteHarnessStore.initialize(directory) as store:
@@ -288,7 +318,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 store.append_event(
                     event_id="event:p0-store:one",
                     harness_run_id=contract.harness_run_id,
-                    event_kind="harness.run-started",
+                    event_kind="harness.snapshot-recorded",
                     data={"value": 1},
                     expected_revision=1,
                     recorded_at_ms=1_002,
@@ -299,7 +329,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                     store.append_event(
                         event_id="event:p0-store:one",
                         harness_run_id=contract.harness_run_id,
-                        event_kind="harness.run-started",
+                        event_kind="harness.snapshot-recorded",
                         data={"value": 2},
                         expected_revision=1,
                         recorded_at_ms=1_002,
@@ -343,7 +373,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 store.append_event(
                     event_id="event:p0-stale-lease-advance",
                     harness_run_id=contract.harness_run_id,
-                    event_kind="harness.run-started",
+                    event_kind="harness.snapshot-recorded",
                     data={"source": "test"},
                     expected_revision=1,
                     recorded_at_ms=1_002,

@@ -31,10 +31,10 @@ class HarnessStoreOperationsTests(unittest.TestCase):
                 now_ms=1_001,
             )
             store.append_event(
-                event_id="event:p0-backup:started",
+                event_id="event:p0-backup:snapshot",
                 harness_run_id=contract.harness_run_id,
-                event_kind="harness.run-started",
-                data={"phase": "started"},
+                event_kind="harness.snapshot-recorded",
+                data={"phase": "snapshot"},
                 expected_revision=1,
                 recorded_at_ms=1_002,
                 lease=lease,
