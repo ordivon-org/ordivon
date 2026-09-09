@@ -12,7 +12,6 @@ class ToolBridgeErrorKind(StrEnum):
     AUTHORITY_DENIED = "authority_denied"
     PROTOCOL_INVALID = "protocol_invalid"
     CONTROL_STOPPED = "control_stopped"
-    INTERNAL = "internal"
 
 
 class ToolBridgeError(RuntimeError):
@@ -20,7 +19,7 @@ class ToolBridgeError(RuntimeError):
         self,
         message: str,
         *,
-        kind: ToolBridgeErrorKind = ToolBridgeErrorKind.INTERNAL,
+        kind: ToolBridgeErrorKind,
     ) -> None:
         super().__init__(message)
         self.kind = kind

@@ -72,6 +72,11 @@ def run(adapter: ScriptedTurnAdapter, bridge: ConclusionGateBridge, run_budget: 
 
 
 class ConclusionCorrectionSeparationTests(unittest.TestCase):
+    def test_tool_bridge_error_requires_explicit_bounded_kind(self) -> None:
+        self.assertNotIn("internal", {kind.value for kind in ToolBridgeErrorKind})
+        with self.assertRaises(TypeError):
+            ToolBridgeError("unclassified Tool bridge failure")
+
     def test_conclusion_correction_does_not_consume_tool_budget(self) -> None:
         bridge = ConclusionGateBridge({"bad"})
         adapter = ScriptedTurnAdapter((turn("bad", "bad"), turn("good", "good")))

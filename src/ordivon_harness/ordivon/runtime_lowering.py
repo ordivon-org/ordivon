@@ -53,7 +53,9 @@ def lower_runtime_tool(
             try:
                 allowed_path = tool_grant.allows_path(call.name, relative_path)
             except ValueError as error:
-                raise ToolBridgeError(str(error)) from error
+                raise ToolBridgeError(
+                    str(error), kind=ToolBridgeErrorKind.PROTOCOL_INVALID
+                ) from error
             if not allowed_path:
                 raise ToolBridgeError(
                     f"read_workspace path is outside the Tool Grant: {relative_path}",
@@ -91,7 +93,9 @@ def lower_runtime_tool(
             try:
                 allowed_path = tool_grant.allows_path(call.name, relative_path)
             except ValueError as error:
-                raise ToolBridgeError(str(error)) from error
+                raise ToolBridgeError(
+                    str(error), kind=ToolBridgeErrorKind.PROTOCOL_INVALID
+                ) from error
             if not allowed_path:
                 raise ToolBridgeError(
                     (
@@ -213,32 +217,40 @@ def lower_runtime_tool(
             ) from error
         client_request_id = request.get("clientRequestId")
         if not isinstance(client_request_id, str):
-            raise ToolBridgeError("Runtime request omitted clientRequestId")
+            raise ToolBridgeError(
+                "Runtime request omitted clientRequestId",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
         return "workspace.exec", request, client_request_id
     if call.name == "mutate_workspace":
         _only(arguments, {"mutations"}, call.name)
         mutations = arguments.get("mutations")
         if not isinstance(mutations, list) or not mutations:
             raise ToolBridgeError(
-                "mutate_workspace mutations must be a non-empty list"
+                "mutate_workspace mutations must be a non-empty list",
+                kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
             )
         if tool_grant is not None:
             for mutation in mutations:
                 if not isinstance(mutation, dict):
                     raise ToolBridgeError(
-                        "mutate_workspace mutations must be objects"
+                        "mutate_workspace mutations must be objects",
+                        kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
                     )
                 relative_path = mutation.get("relativePath")
                 if not isinstance(relative_path, str):
                     raise ToolBridgeError(
-                        "mutate_workspace mutation omitted relativePath"
+                        "mutate_workspace mutation omitted relativePath",
+                        kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
                     )
                 try:
                     allowed_path = tool_grant.allows_path(
                         call.name, relative_path
                     )
                 except ValueError as error:
-                    raise ToolBridgeError(str(error)) from error
+                    raise ToolBridgeError(
+                    str(error), kind=ToolBridgeErrorKind.PROTOCOL_INVALID
+                ) from error
                 if not allowed_path:
                     raise ToolBridgeError(
                         f"mutate_workspace path is outside the Tool Grant: {relative_path}",
@@ -364,7 +376,10 @@ def lower_runtime_tool(
             ) from error
         client_request_id = request.get("clientRequestId")
         if not isinstance(client_request_id, str):
-            raise ToolBridgeError("Runtime request omitted clientRequestId")
+            raise ToolBridgeError(
+                "Runtime request omitted clientRequestId",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
         return "workspace.exec", request, client_request_id
     if call.name == "run_in_workspace":
         if tool_grant is not None and not tool_grant.allow_opaque_exec:
@@ -433,7 +448,10 @@ def lower_runtime_tool(
             ) from error
         client_request_id = request.get("clientRequestId")
         if not isinstance(client_request_id, str):
-            raise ToolBridgeError("Runtime request omitted clientRequestId")
+            raise ToolBridgeError(
+                "Runtime request omitted clientRequestId",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
         return "workspace.exec", request, client_request_id
     if call.name == "observe_job":
         _only(
