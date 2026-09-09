@@ -33,10 +33,8 @@ from .standalone import (
     StandaloneToolBridge,
 )
 from .store import HarnessRunStatus
-from .working_view import HarnessWorkingViewSource
 from .ordivon.loop import CancellationToken, RunBudget
 
-HarnessCognitionSource = HarnessWorkingViewSource
 
 
 HarnessAgentAdapterFactory: TypeAlias = Callable[[HarnessRunContract], AgentTurnAdapter]
@@ -512,5 +510,4 @@ __all__ = [
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
-    "HarnessCognitionSource",
 ]

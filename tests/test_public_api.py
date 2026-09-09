@@ -21,7 +21,7 @@ EXPECTED_API = {
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
-    "HarnessCognitionSource",
+    "HarnessWorkingViewSource",
     "AgentTurnRequest",
     "AgentTurnResult",
     "DeepSeekSettings",
@@ -64,6 +64,7 @@ class PublicApiTests(unittest.TestCase):
         self.assertEqual(set(api.__all__), EXPECTED_API)
         for name in EXPECTED_API:
             self.assertIsNotNone(getattr(api, name))
+        self.assertFalse(hasattr(api, "HarnessCognitionSource"))
 
         probe = subprocess.run(
             [

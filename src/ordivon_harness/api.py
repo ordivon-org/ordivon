@@ -49,8 +49,8 @@ from .agent_run import (
     HarnessCognitionProfile,
     HarnessCognitionSeed,
     HarnessCognitionSeedSource,
-    HarnessCognitionSource,
 )
+from .working_view import HarnessWorkingViewSource
 from .domain_tools import (
     AgentToolDefinition,
     DomainToolBridge,
@@ -70,7 +70,7 @@ __all__ = [
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
-    "HarnessCognitionSource",
+    "HarnessWorkingViewSource",
     "AgentTurnRequest",
     "AgentTurnResult",
     "DeepSeekSettings",

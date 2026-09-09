@@ -21,7 +21,7 @@ from ordivon_harness.api import (
     HarnessPrivacyPolicy,
     HarnessRunContract,
     HarnessRuntimeReference,
-    HarnessCognitionSource,
+    HarnessWorkingViewSource,
 )
 from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
@@ -230,7 +230,7 @@ class R3SupportedAgentRunTests(unittest.TestCase):
                 sources=(
                     HarnessCognitionSeedSource(
                         slot="task",
-                        source=HarnessCognitionSource(
+                        source=HarnessWorkingViewSource(
                             logical_ref="source://r3/task",
                             logical_generation="g1",
                             messages=({"role": "user", "content": "durable task"},),

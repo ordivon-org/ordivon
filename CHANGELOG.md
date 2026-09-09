@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-consumer `HarnessCognitionSource` compatibility alias and exposed canonical `HarnessWorkingViewSource` on the recommended API instead. No cognition data model, WorkingSet persistence or seed behavior changed.
+
 - retired the standalone generic `errors.py` / `HarnessLifecycleError` layer. No production code catches the generic base and authoritative Harness storage contains no error-class objects; concrete Provider-call and superseded/currentness failures remain typed at the Run Store port and still inherit `RuntimeError`. Fresh wheels reject resurrection of the deleted module.
 
 - migrated current structured-result local validation from the Harness-owned `local-json-schema-draft-2020-12-profile-v1` authoring token to the standard JSON Schema Draft 2020-12 `$schema` dialect URI. Ninety authoritative retained Contracts that bind the legacy token remain exactly readable and keep their historical bounded-profile validation; policy-absent historical Contracts remain locally unverified. Current authoring uses ordinary Draft 2020-12 validation, while Provider schema compatibility remains Adapter/provider-specific rather than a generic Harness conformance ontology.

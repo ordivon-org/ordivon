@@ -76,7 +76,7 @@ class HarnessCognitionSeedSource:
     def __post_init__(self) -> None:
         if not isinstance(self.source, HarnessWorkingViewSource):
             raise ValueError(
-                "Harness cognition seed source must be a HarnessCognitionSource-compatible value"
+                "Harness cognition seed source must be a HarnessWorkingViewSource value"
             )
         if (
             not isinstance(self.slot, str)

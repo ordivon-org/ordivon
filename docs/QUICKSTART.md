@@ -129,7 +129,7 @@ execution = run.resume(
 
 The Adapter factory is caller policy, not Harness policy. Static composition is admitted before durable Run creation: unsupported Tool/cognition/Runtime-binding combinations fail before the factory when the Adapter is irrelevant, and Adapter/model/structured-completion mismatches fail after the factory returns but before `harness.run-created`. This preflight does not probe Provider or Runtime liveness.
 
-For Agent-owned durable cognition, the same surface accepts `HarnessCognitionProfile` plus an exact caller-authored `HarnessCognitionSeed`. Build seed sources with `HarnessCognitionSource`/`HarnessCognitionSeedSource`; Harness does not discover, rank or summarize them.
+For Agent-owned durable cognition, the same surface accepts `HarnessCognitionProfile` plus an exact caller-authored `HarnessCognitionSeed`. Build seed sources with `HarnessWorkingViewSource`/`HarnessCognitionSeedSource`; Harness does not discover, rank or summarize them.
 
 For already-selected cross-Run knowledge/procedure sources, the external application/Host/domain owns repository identity, discovery/ranking, semantic evaluation, canonical promotion, and any digest/currentness fence. After verifying one exact `HarnessWorkingViewSource`, it supplies that source directly as a `HarnessCognitionSeedSource`. Harness performs the normal Run privacy and WorkingSet admission only; there is no Harness reusable-reference/resolver/topology subsystem, and external procedure classification grants no Tool authority.
 

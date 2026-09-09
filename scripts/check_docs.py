@@ -47,7 +47,7 @@ STABLE_API = {
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
-    "HarnessCognitionSource",
+    "HarnessWorkingViewSource",
     "AgentTurnAdapter",
     "AgentTurnRequest",
     "AgentTurnResult",
