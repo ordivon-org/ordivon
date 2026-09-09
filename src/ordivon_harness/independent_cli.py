@@ -50,14 +50,6 @@ def capabilities() -> dict[str, JsonValue]:
         ],
         "toolBearingCliExecution": False,
         "toolBearingApi": "ordivon_harness.api",
-        "executionMandate": {
-            "supported": True,
-            "authority": "caller-delegated",
-            "compilesTo": "HarnessRunContract",
-            "builtInStrategyPolicy": False,
-            "durableMandateStore": False,
-            "aggregateEconomicEnvelope": ["maxTotalTokens", "maxWallTimeMs"],
-        },
     }
 
 
