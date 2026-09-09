@@ -10,16 +10,27 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from pathlib import Path
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
 from .agent_tool_observation import HarnessToolObservation
+from .core_contracts import HarnessRunContract
+from .execution_binding import HarnessExecutionBinding
+from .ordivon.loop import RunBudget
 from .ordivon.model import AgentToolDefinition
 from .ordivon.sqlite_runtime_bridge import (
     SEARCH_WORKSPACE_DEFINITION,
     SQLiteHarnessRuntimeBridge,
 )
-from .run_tool_surface import HarnessAgentRunToolSurface
+from .ordivon.run_store_port import HarnessRunContinuityStore
+from .provider_use_policy import (
+    HarnessProviderUsePolicy,
+    HarnessProviderUsePolicyError,
+    validate_provider_use_policy,
+)
+from .runtime_port import HarnessRuntimeClient
+from .standalone import HarnessCognitionProfile, StandaloneToolBridge
 
 
 def _safe_path(value: str, label: str) -> str:
@@ -593,30 +604,196 @@ class _CompactObservationRuntimeBridge(SQLiteHarnessRuntimeBridge):
         return result
 
 
-def build_observation_tool_surface(
-    grant: HarnessObservationToolGrant,
-) -> HarnessAgentRunToolSurface:
-    """Return one exact application-local search+read surface bound to ``grant``."""
+def _validate_observation_runtime_binding(
+    contract: HarnessRunContract,
+    execution_binding: HarnessExecutionBinding,
+) -> None:
+    from .agent_run import HarnessAgentRunCompositionError
 
-    def bridge_factory(contract, continuity, execution_binding, runtime, provider_source):
-        return _CompactObservationRuntimeBridge(
-            contract,
-            continuity,
-            execution_binding,
-            runtime,
-            provider_source=provider_source,
-            tool_definitions=OBSERVATION_TOOL_DEFINITIONS,
-            tool_surface_digest=OBSERVATION_TOOL_SURFACE_DIGEST,
-            tool_grant_digest=grant.digest,
-            tool_grant=grant,
+    token = contract.digest[7:31]
+    if (
+        execution_binding.harness_run_id != contract.harness_run_id
+        or execution_binding.assignment_id != f"assignment:external:{token}"
+        or execution_binding.assignment_generation != 1
+        or execution_binding.assignment_digest != contract.digest
+    ):
+        raise HarnessAgentRunCompositionError(
+            "Harness Execution Binding differs from the independent Run binding"
+        )
+    if execution_binding.tool_catalog_digest != contract.tool_catalog_digest:
+        raise HarnessAgentRunCompositionError(
+            "Harness Execution Binding Tool catalog differs"
+        )
+    if execution_binding.tool_grant_digest != contract.tool_grant_digest:
+        raise HarnessAgentRunCompositionError(
+            "Harness Execution Binding Tool Grant differs"
+        )
+    if execution_binding.deadline_ms != contract.deadline_ms:
+        raise HarnessAgentRunCompositionError(
+            "Harness Execution Binding deadline differs"
+        )
+    if not execution_binding.runtime_references:
+        raise HarnessAgentRunCompositionError(
+            "observation Runtime execution requires foreign references"
+        )
+    if any(
+        reference.namespace != "ordivon.harness"
+        for reference in execution_binding.runtime_references
+    ):
+        raise HarnessAgentRunCompositionError(
+            "observation Runtime execution may reference only ordivon.harness authority"
         )
 
-    return HarnessAgentRunToolSurface(
-        surface_id=f"harness.execution.observation-read.v1:{grant.digest[7:23]}",
-        tool_catalog_digest=OBSERVATION_TOOL_SURFACE_DIGEST,
-        tool_grant_digest=grant.digest,
-        bridge_factory=bridge_factory,
-    )
+
+@dataclass(frozen=True, slots=True)
+class _ObservationRunSurface:
+    """Application-local constructor for the one observation surface.
+
+    This is deliberately private: Harness no longer maintains a generic wrapper
+    abstraction for arbitrary non-default Tool surfaces. New surfaces must compose
+    the owner path directly instead of extending a Harness-owned plugin layer.
+    """
+
+    grant: HarnessObservationToolGrant
+
+    @property
+    def surface_id(self) -> str:
+        return f"harness.execution.observation-read.v1:{self.grant.digest[7:23]}"
+
+    def _run_type(self):
+        from .agent_run import HarnessAgentRun, HarnessAgentRunCompositionError
+
+        surface = self
+
+        class ObservationAgentRun(HarnessAgentRun):
+            @staticmethod
+            def _validate_structure(
+                contract: HarnessRunContract,
+                *,
+                cognition_profile: HarnessCognitionProfile | None,
+                execution_binding: HarnessExecutionBinding | None,
+                runtime: HarnessRuntimeClient | None,
+                provider_use_policy: HarnessProviderUsePolicy | None,
+            ) -> None:
+                RunBudget.from_contract_dict(contract.budget)
+                try:
+                    validate_provider_use_policy(contract, provider_use_policy)
+                except HarnessProviderUsePolicyError as error:
+                    raise HarnessAgentRunCompositionError(str(error)) from error
+                if cognition_profile is not None:
+                    if not contract.privacy.allow_model_content:
+                        raise HarnessAgentRunCompositionError(
+                            "Harness cognition requires Contract permission to retain model content"
+                        )
+                    if (
+                        cognition_profile.working_set_history
+                        and not contract.privacy.allow_tool_content
+                    ):
+                        raise HarnessAgentRunCompositionError(
+                            "Harness cognition history requires Tool-content authority"
+                        )
+                if (
+                    contract.tool_catalog_digest != OBSERVATION_TOOL_SURFACE_DIGEST
+                    or contract.tool_grant_digest != surface.grant.digest
+                ):
+                    raise HarnessAgentRunCompositionError(
+                        "observation Tool surface differs from its Contract"
+                    )
+                if execution_binding is None or runtime is None:
+                    raise HarnessAgentRunCompositionError(
+                        "observation Runtime Tool surface requires exact execution binding and Runtime client"
+                    )
+                _validate_observation_runtime_binding(contract, execution_binding)
+
+            def _bridge(
+                self,
+                continuity: HarnessRunContinuityStore,
+                *,
+                provider_source=None,
+            ) -> StandaloneToolBridge:
+                assert self.execution_binding is not None
+                assert self.runtime is not None
+                return _CompactObservationRuntimeBridge(
+                    self.contract,
+                    continuity,
+                    self.execution_binding,
+                    self.runtime,
+                    provider_source=provider_source,
+                    tool_definitions=OBSERVATION_TOOL_DEFINITIONS,
+                    tool_surface_digest=OBSERVATION_TOOL_SURFACE_DIGEST,
+                    tool_grant_digest=surface.grant.digest,
+                    tool_grant=surface.grant,
+                )
+
+            def explain(self):
+                value = super().explain()
+                run_projection = value["run"]
+                assert isinstance(run_projection, dict)
+                tool_projection = run_projection["toolSurface"]
+                assert isinstance(tool_projection, dict)
+                tool_projection["explicitRunToolSurfaceId"] = surface.surface_id
+                tool_projection["supportedByHarnessAgentRun"] = True
+                return value
+
+        return ObservationAgentRun
+
+    def create(
+        self,
+        state_root: str | Path,
+        contract: HarnessRunContract,
+        adapter_factory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        provider_use_policy: HarnessProviderUsePolicy | None = None,
+        clock_ms=None,
+        monotonic_ms=None,
+    ):
+        return self._run_type().create(
+            state_root,
+            contract,
+            adapter_factory,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            provider_use_policy=provider_use_policy,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
+        )
+
+    def open(
+        self,
+        state_root: str | Path,
+        harness_run_id: str,
+        adapter_factory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        provider_use_policy: HarnessProviderUsePolicy | None = None,
+        clock_ms=None,
+        monotonic_ms=None,
+    ):
+        return self._run_type().open(
+            state_root,
+            harness_run_id,
+            adapter_factory,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            provider_use_policy=provider_use_policy,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
+        )
+
+
+def build_observation_tool_surface(
+    grant: HarnessObservationToolGrant,
+):
+    """Return the exact application-local observation surface bound to ``grant``."""
+
+    return _ObservationRunSurface(grant)
 
 
 __all__ = [

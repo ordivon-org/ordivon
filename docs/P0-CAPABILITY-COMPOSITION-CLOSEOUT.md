@@ -26,7 +26,7 @@ exact turn-admitted action surface
 
 `HarnessAgentRun.explain()` projects validated process-local composition while leaving Provider/Runtime liveness as `not-probed`. Durable CLI `inspect` now carries a read-only workbench projection, and `explain HARNESS_RUN_ID` exposes that projection directly. Fresh durable inspection never guesses process-local Adapter/Runtime availability and adds no new database or event owner.
 
-`ordivon_harness.run_tool_surface.HarnessAgentRunToolSurface` is the minimum accepted seam for a non-default Runtime-backed surface. It is application-local, exact-digest-bound, requires explicit Runtime/ExecutionBinding inputs, reuses existing Run continuity/Runner, and cannot alter an already-admitted Run. Normal `HarnessAgentRun` still fails closed for an unknown Tool surface instead of searching a registry or guessing a bridge.
+`ordivon_harness.observation_tool_surface` now owns the only accepted specialized Runtime-backed surface directly. It remains application-local, exact-digest-bound, requires explicit Runtime/ExecutionBinding inputs, reuses existing Run continuity/Runner, and cannot alter an already-admitted Run. The generic `HarnessAgentRunToolSurface` wrapper was retired instead of becoming a plugin abstraction. Normal `HarnessAgentRun` still fails closed for an unknown Tool surface instead of searching a registry or guessing a bridge.
 
 ## P0-5 retain / shrink / delete
 
