@@ -109,6 +109,7 @@ REQUIRED_MEMBERS = {
 }
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/core.py",
+    "ordivon_harness/projected_no_tool.py",
     "ordivon_harness/observation_export.py",
     "ordivon_harness/subprocess_lifecycle.py",
     "ordivon_harness/tool_semantics.py",

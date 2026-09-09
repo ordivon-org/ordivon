@@ -3,10 +3,6 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
-import json
-import os
-import subprocess
-import sys
 import tempfile
 import threading
 import unittest
@@ -16,7 +12,6 @@ from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.projected_no_tool import WorkingViewNoToolTurnRunner
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.store import HarnessEventAdmission
 from ordivon_harness.working_view import (
@@ -43,66 +38,6 @@ def _private_content_contract(suffix: str):
             allow_tool_content=False,
         ),
     )
-
-
-def _crash_after_projected_provider_completion(root_text: str) -> None:
-    root = Path(root_text)
-    clock = FixedClock()
-    run_contract = _private_content_contract("pc11-projected-crash")
-    with SQLiteHarnessStore.initialize(root) as store:
-        store.create_run(run_contract)
-        continuity = SQLiteHarnessRunContinuityStore(
-            store, run_contract, clock_ms=clock
-        )
-        source = HarnessWorkingViewSource(
-            logical_ref="source://pc11/current",
-            logical_generation="git:pc11-a",
-            messages=(
-                {"role": "system", "content": "Use the selected source."},
-                {"role": "user", "content": "TOKEN=ALPHA"},
-            ),
-        )
-        stored = continuity.store_working_view_source(source)
-        initial = HarnessWorkingSetSpec.initial(
-            "working-attempt:crash-1",
-            pins=(
-                HarnessWorkingSetPin(
-                    slot="primary",
-                    logical_ref=source.logical_ref,
-                    logical_generation=source.logical_generation,
-                    resolved_digest=stored.digest,
-                ),
-            ),
-        )
-        continuity.record_working_set(initial)
-        committed = initial.commit("selected source is enough for this attempt")
-        adapter = ScriptedTurnAdapter((completed_result("pc11-projected-crash"),))
-        runner = WorkingViewNoToolTurnRunner(
-            store,
-            run_contract,
-            continuity,
-            adapter,
-            budget=budget(),
-            clock_ms=clock,
-            monotonic_ms=clock,
-        )
-        execution = runner.run(committed)
-        retained = continuity.load_current_provider_call()
-        handoff = {
-            "workingSetDigest": committed.digest,
-            "workingViewDigest": execution.working_view.digest,
-            "requestDispatchDigest": execution.request.dispatch_digest,
-            "requestObjectDigest": retained.request_object.digest,
-            "physicalProviderCalls": len(adapter.requests),
-            "runStateMessages": len(retained.state.messages),
-            "requestMessages": len(execution.request.messages),
-        }
-        path = root.parent / "pc11-handoff.json"
-        with path.open("w") as stream:
-            json.dump(handoff, stream, sort_keys=True)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os._exit(37)
 
 
 class WorkingViewPrototypeTests(unittest.TestCase):
@@ -486,184 +421,6 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 self.assertEqual(
                     recovered.request.dispatch_digest, retained.record.request_digest
                 )
-
-
-    def test_projected_no_tool_turn_separates_run_state_from_model_view(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = _private_content_contract("pc11-projected")
-            with SQLiteHarnessStore.initialize(root) as store:
-                store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
-                    store, run_contract, clock_ms=clock
-                )
-                source, stored = self.source(
-                    continuity,
-                    ref="source://pc11/current",
-                    generation="git:pc11",
-                    content="TOKEN=ALPHA",
-                )
-                initial = HarnessWorkingSetSpec.initial(
-                    "working-attempt:projected-1",
-                    pins=(
-                        HarnessWorkingSetPin(
-                            slot="primary",
-                            logical_ref=source.logical_ref,
-                            logical_generation=source.logical_generation,
-                            resolved_digest=stored.digest,
-                        ),
-                    ),
-                )
-                continuity.record_working_set(initial)
-                committed = initial.commit("one exact source is sufficient")
-                adapter = ScriptedTurnAdapter((completed_result("pc11-projected"),))
-                execution = WorkingViewNoToolTurnRunner(
-                    store,
-                    run_contract,
-                    continuity,
-                    adapter,
-                    budget=budget(),
-                    clock_ms=clock,
-                    monotonic_ms=clock,
-                ).run(committed)
-                retained = continuity.load_current_provider_call()
-                self.assertFalse(execution.replayed_provider_result)
-                self.assertEqual(len(adapter.requests), 1)
-                self.assertEqual(retained.state.messages, ())
-                self.assertNotEqual(execution.working_view.messages, ())
-                self.assertEqual(execution.request.messages, execution.working_view.messages)
-                self.assertIsNotNone(retained.request)
-                assert retained.request is not None
-                self.assertEqual(retained.request.messages, execution.working_view.messages)
-                self.assertEqual(
-                    retained.request.dispatch_digest, execution.request.dispatch_digest
-                )
-                self.assertEqual(continuity.doctor()["workingSets"], 2)
-
-    def test_projected_replan_uses_new_monotonic_provider_turn_identity(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = _private_content_contract("pc11-projected-replan")
-            with SQLiteHarnessStore.initialize(root) as store:
-                store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
-                    store, run_contract, clock_ms=clock
-                )
-                source_a, stored_a = self.source(
-                    continuity, ref="source://replan/current", generation="g:a", content="A"
-                )
-                source_b, stored_b = self.source(
-                    continuity, ref="source://replan/current", generation="g:b", content="B"
-                )
-                initial = HarnessWorkingSetSpec.initial(
-                    "working-attempt:replan-1",
-                    pins=(
-                        HarnessWorkingSetPin(
-                            slot="primary",
-                            logical_ref=source_a.logical_ref,
-                            logical_generation=source_a.logical_generation,
-                            resolved_digest=stored_a.digest,
-                        ),
-                    ),
-                )
-                continuity.record_working_set(initial)
-                committed_a = initial.commit("attempt one evidence")
-                first_adapter = ScriptedTurnAdapter((completed_result("pc11-replan-a"),))
-                first = WorkingViewNoToolTurnRunner(
-                    store, run_contract, continuity, first_adapter,
-                    budget=budget(), clock_ms=clock, monotonic_ms=clock,
-                ).run(committed_a)
-                first_record = continuity.load_current_provider_call().record
-                self.assertEqual(first.request.sequence, 1)
-
-                replanned = committed_a.replan("working-attempt:replan-2")
-                continuity.record_working_set(replanned)
-                selected_b = replanned.replace_pin(
-                    HarnessWorkingSetPin(
-                        slot="primary",
-                        logical_ref=source_b.logical_ref,
-                        logical_generation=source_b.logical_generation,
-                        resolved_digest=stored_b.digest,
-                    )
-                )
-                continuity.record_working_set(selected_b)
-                committed_b = selected_b.commit("attempt two refreshed evidence")
-                second_adapter = ScriptedTurnAdapter((completed_result("pc11-replan-b"),))
-                second = WorkingViewNoToolTurnRunner(
-                    store, run_contract, continuity, second_adapter,
-                    budget=budget(), clock_ms=clock, monotonic_ms=clock,
-                ).run(committed_b)
-                second_record = continuity.load_current_provider_call().record
-                self.assertEqual(second.request.sequence, 2)
-                self.assertNotEqual(
-                    first_record.provider_call_id, second_record.provider_call_id
-                )
-                self.assertNotEqual(first.request.dispatch_digest, second.request.dispatch_digest)
-                self.assertEqual(first.working_view.messages[0]["content"], "A")
-                self.assertEqual(second.working_view.messages[0]["content"], "B")
-                self.assertEqual(len(first_adapter.requests), 1)
-                self.assertEqual(len(second_adapter.requests), 1)
-
-    def test_projected_provider_result_replays_after_hard_process_exit(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            root = base / "state"
-            code = (
-                "from tests.test_pc1_working_view import "
-                "_crash_after_projected_provider_completion as f; "
-                f"f({str(root)!r})"
-            )
-            child = subprocess.run(
-                [sys.executable, "-c", code],
-                cwd=Path.cwd(),
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            self.assertEqual(child.returncode, 37, (child.stdout, child.stderr))
-            handoff = json.loads((base / "pc11-handoff.json").read_text())
-            self.assertEqual(handoff["physicalProviderCalls"], 1)
-            self.assertEqual(handoff["runStateMessages"], 0)
-            self.assertGreater(handoff["requestMessages"], 0)
-
-            clock = FixedClock()
-            run_contract = _private_content_contract("pc11-projected-crash")
-            with SQLiteHarnessStore(root) as store:
-                continuity = SQLiteHarnessRunContinuityStore.open(
-                    store, run_contract.harness_run_id, clock_ms=clock
-                )
-                committed = continuity.load_current_working_set()
-                replay_adapter = ScriptedTurnAdapter(
-                    (completed_result("should-not-physically-run"),)
-                )
-                execution = WorkingViewNoToolTurnRunner(
-                    store,
-                    run_contract,
-                    continuity,
-                    replay_adapter,
-                    budget=budget(),
-                    clock_ms=clock,
-                    monotonic_ms=clock,
-                ).run(committed)
-                self.assertTrue(execution.replayed_provider_result)
-                self.assertEqual(replay_adapter.requests, [])
-                self.assertEqual(
-                    execution.working_view.digest, handoff["workingViewDigest"]
-                )
-                self.assertEqual(
-                    execution.request.dispatch_digest,
-                    handoff["requestDispatchDigest"],
-                )
-                retained = continuity.load_current_provider_call()
-                self.assertEqual(retained.state.messages, ())
-                self.assertIsNotNone(retained.request_object)
-                assert retained.request_object is not None
-                self.assertEqual(
-                    retained.request_object.digest, handoff["requestObjectDigest"]
-                )
-                self.assertTrue(continuity.doctor()["healthy"])
 
 
 if __name__ == "__main__":
