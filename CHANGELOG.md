@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the already-broken, zero-consumer H5 live replacement worker while retaining the frozen fixture, support validators, immutable receipt evidence, and receipt checker as historical verification assets.
+
 - retired the zero-consumer package-root mirror of `ordivon_harness.api`; `ordivon_harness` now exposes only `package_version`, while explicit `ordivon_harness.api` and owner-submodule imports remain supported.
 
 - retired six zero-consumer secondary Agent/control re-exports from `ordivon_harness.domain_tools`; the underlying canonical types and DomainTool runtime behavior are unchanged.

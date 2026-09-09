@@ -47,6 +47,11 @@ def allocate_units(total: int, weights: list[int]) -> list[int]:
 
 
 class HarnessReplacementH5FixtureTests(unittest.TestCase):
+    def test_retired_live_worker_does_not_return(self) -> None:
+        self.assertFalse((REPO / "scripts/harness_replacement_h5_worker.py").exists())
+        self.assertTrue(SUPPORT_PATH.exists())
+        self.assertTrue((REPO / "scripts/check_harness_replacement_h5_receipt.py").exists())
+
     def test_frozen_fixture_fails_before_repair(self) -> None:
         result = support.run_acceptance(FIXTURE)
         self.assertFalse(result["passed"])

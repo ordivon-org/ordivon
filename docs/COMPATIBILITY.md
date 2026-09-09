@@ -35,6 +35,8 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
+The broken historical H5 live replacement worker `scripts/harness_replacement_h5_worker.py` is retired. It had no current consumer and already failed import because its former Codex/Hermes driver exports no longer exist. The frozen H5 fixture, support validators, committed receipt, and receipt checker remain as historical failure/verification assets; historical evidence bytes are unchanged.
+
 The specialized `ordivon_harness.domain_tools` module no longer secondarily re-exports `AgentLoopResult`, `AgentRunConclusion`, `AgentToolCall`, `AgentTurnAdapter`, `CancellationToken`, or `RunStopCode`. Estate-wide current-code analysis found no consumer of those secondary names; callers use the canonical Agent/control owners instead. DomainTool-specific contracts and `RunBudget` remain available.
 
 `HarnessToolObservation` is the canonical durable Tool Observation type. The temporary supported-API `ToolObservation` compatibility alias is retired after Ordivon Security commit `5e3142b` migrated all five dynamic consumers to `HarnessToolObservation` and an estate-wide current-code census found no remaining short-name consumer. The internal core alias and secondary `ordivon_harness.ordivon` aggregation export remain retired. Durable `ordivon.tool-observation` schema, digests, Runtime/Artifact references, reconciliation semantics and stored bytes are unchanged.
