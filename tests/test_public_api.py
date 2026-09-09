@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import importlib.util
 import subprocess
 import sys
 import tomllib
@@ -140,13 +141,11 @@ class PublicApiTests(unittest.TestCase):
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST.startswith("sha256:"))
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST.startswith("sha256:"))
 
-    def test_host_integration_is_an_explicit_host_free_adapter_module(self) -> None:
-        from ordivon_harness.host_external_adapter import (
-            OrdivonHarnessExternalExecutorAdapter,
-        )
-
+    def test_retired_host_external_adapter_is_not_a_package_surface(self) -> None:
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
-        self.assertTrue(callable(OrdivonHarnessExternalExecutorAdapter))
+        self.assertIsNone(
+            importlib.util.find_spec("ordivon_harness.host_external_adapter")
+        )
 
     def test_source_checkout_version_matches_project_metadata(self) -> None:
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]

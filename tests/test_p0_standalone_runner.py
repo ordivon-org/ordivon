@@ -474,6 +474,40 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 self.assertEqual(recovered.digest, assessment.digest)
                 self.assertTrue(reopened_store.doctor(full=True)["healthy"])
 
+    def test_unresolved_recovery_is_not_safe_to_abandon_and_preserves_status(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            clock = FixedClock()
+            run_contract, store, continuity = self.initialize(
+                root, "recovery-unknown", clock
+            )
+            recorder = IndependentRunRecorder(
+                store,
+                run_contract,
+                continuity.binding,
+                clock_ms=clock,
+            )
+            assessment = recorder.record_recovery_assessment(
+                trigger="host_restart",
+                grant_effect_class="unknown",
+                catalog_status="matched",
+                workspace_status="unknown",
+                workspace_evidence={"providerState": "unknown"},
+                unresolved_unknowns=("provider outcome remains unknown",),
+            )
+            self.assertFalse(assessment.safe_to_abandon)
+            self.assertEqual(
+                store.load_run(run_contract.harness_run_id).status,
+                HarnessRunStatus.CREATED,
+            )
+            loaded = recorder.load_latest_recovery_assessment()
+            self.assertEqual(loaded.digest, assessment.digest)
+            self.assertEqual(
+                loaded.unresolved_unknowns,
+                ("provider outcome remains unknown",),
+            )
+            store.close()
+
     def test_new_terminal_modules_do_not_import_host(self) -> None:
         root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
         for relative in ("independent_result.py", "standalone.py", "ordivon/events.py"):

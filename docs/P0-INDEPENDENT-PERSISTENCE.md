@@ -262,17 +262,17 @@ The base wheel now depends only on the exact Protocol revision. `ordivon_harness
 
 The historical Host-backed API remains available through the exact `host` extra and is installed by the repository development group for the complete regression suite. Package-root compatibility exports resolve lazily so importing the package itself does not silently pull Host.
 
-## Host foreign-Run integration
+## Historical Host foreign-Run integration (retired)
 
-`OrdivonHarnessExternalExecutorAdapter` is duck-typed against the Host external-executor protocol so the base Harness package remains Host-free. The Adapter resolves an immutable Contract from the Host request, admits or reopens exactly one independent Run, returns Harness-native revision and evidence as an external observation, and projects the independent CompletionProposal without sharing either database.
+`OrdivonHarnessExternalExecutorAdapter` existed during the P0 migration as a duck-typed Host-free bridge. This section records that historical cut only. The current package no longer ships the adapter because no tracked production-code, CLI, service, or deployment consumer remained; higher-level orchestration uses the caller-neutral Harness API/CLI instead.
 
 The local P0 roundtrip injects delivery loss after Harness completion but before Host binding. Host retains only its immutable request; retry calls the Adapter again, finds the same terminal Harness Run, records one foreign binding, and collects the proposal. The receipt proves one physical Harness execution, two Adapter start calls, independently healthy Host and Harness histories, Host Task state `ready`, and Harness Run state `completed`.
 
 ## Cutover control
 
-The cutover journal lives under the Host state root because the legacy writer always knows that root and must be unable to bypass the selected mode. It is operational deployment authority, not Task or Harness Run authority. Inventories and receipts are immutable private files; receipts form a contiguous previous-digest chain. The independent adapter continues to write only the Harness Journal/CAS, while legacy reads remain available from Host history.
+The cutover journal lives under the Host state root because the legacy writer always knows that root and must be unable to bypass the selected mode. It is operational deployment authority, not Task or Harness Run authority. Inventories and receipts are immutable private files; receipts form a contiguous previous-digest chain. At that historical cut, the independent adapter wrote only the Harness Journal/CAS, while legacy reads remained available from Host history.
 
-Activation does not migrate or rewrite historical bytes. It disables only legacy Host-backed write commands. Independent work may enter directly through the primary Harness CLI/Python API or through the Host external-executor boundary; both write only the Harness Journal/CAS. A rollback receipt can restore legacy selection only while no independent Run or Host external request has been created since activation.
+Activation does not migrate or rewrite historical bytes. It disables only legacy Host-backed write commands. At that historical cut, independent work could enter through either the primary Harness CLI/Python API or the Host external-executor boundary; both wrote only the Harness Journal/CAS. A rollback receipt can restore legacy selection only while no independent Run or Host external request has been created since activation.
 
 ## Next migration slice
 

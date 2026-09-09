@@ -227,4 +227,4 @@ Recovery is evidence-driven. A dispatched Provider or Tool operation with an amb
 
 ## Python API
 
-Use `ordivon_harness.api` for normal applications and `ordivon_harness.core` for advanced persistence/continuity composition. `ordivon_harness.host_external_adapter` is an explicit, Host-free integration helper when a higher-level Host wants to call an independent Harness Run.
+Use `ordivon_harness.api` for normal applications and `ordivon_harness.core` for advanced persistence/continuity composition. Higher-level orchestrators should call these caller-neutral surfaces directly; the current package does not ship a Host-specific external adapter.

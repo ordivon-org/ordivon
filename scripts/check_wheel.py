@@ -101,7 +101,6 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/independent_cli.py",
     "ordivon_harness/independent_result.py",
     "ordivon_harness/knowledge_topology.py",
-    "ordivon_harness/host_external_adapter.py",
     "ordivon_harness/sqlite_store.py",
     "ordivon_harness/standalone.py",
     "ordivon_harness/store.py",
@@ -117,6 +116,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/host_external_adapter.py",
     "ordivon_harness/host.py",
     "ordivon_harness/host_api.py",
     "ordivon_harness/runner.py",

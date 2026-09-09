@@ -346,7 +346,7 @@ Harness can conclude that an Agent Run produced a candidate-completed result and
 
 ## Integration boundary
 
-`host_external_adapter.py` is intentionally duck-typed and Host-free. It maps a foreign execution request to an independent Harness Run and maps durable observations/completion proposal back out. It does not import Host, use Host storage, or transfer Run authority.
+Higher-level orchestrators integrate through the caller-neutral Harness Python API or CLI. The package no longer ships a Host-specific external-executor adapter; orchestration lifecycle remains outside Harness while Harness retains its own execution, snapshot, Provider, Tool, trace, and terminal evidence.
 
 ## Removed pre-H3 architecture
 

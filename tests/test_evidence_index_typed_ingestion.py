@@ -214,6 +214,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 "src/ordivon_harness/ordivon/run_recovery.py",
                 "src/ordivon_harness/ordivon/runtime_lowering.py",
                 "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "src/ordivon_harness/protocol.py",
+                "src/ordivon_harness/store.py",
             ],
         )
 
