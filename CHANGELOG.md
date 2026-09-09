@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the experimental `ordivon_harness.interaction_context` ontology/compiler and the current `first_interface_finance_workstation_composition` naming. The only live composition now executes direct Finance observe → read-only Workstation egress observe → Finance observe recovery based on owner-native results, with no generic affordance/materialization layer and no environment-mutation Tool surface. Historical First-Interface receipts remain immutable evidence.
+
 - retired the zero-current-product-consumer advanced `deliberation.py` H1/H2 composition layer and its self-protecting acceptance/test apparatus. Current Security already owns this sequencing directly as a no-Tool `AgentTurnRequest` followed by `DomainToolLoopRunner`, so Harness no longer maintains a parallel aggregate budget/deadline/cancellation lifecycle. Historical H1/H2 evidence and the legacy `deliberation_phase_completed` reader remain; the current DomainTool authority/effect boundary is unchanged.
 
 - narrowed `DomainToolCatalog` to immutable domain Tool identity/definitions: the zero-external-consumer `select()` and `granted_digest()` helper methods are now internal implementation details of `DomainToolLoopRunner`. The real Security `DomainToolCatalog`/`DomainToolLoopPlan`/`DomainToolLoopRunner` contract, per-Run `allowed_tools` authority fence, trace `toolCatalogDigest`, and `execution_identity()` bytes remain unchanged.

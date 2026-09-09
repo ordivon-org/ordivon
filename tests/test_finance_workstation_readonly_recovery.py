@@ -9,9 +9,9 @@ from pathlib import Path
 SCRIPT = (
     Path(__file__).resolve().parents[1]
     / "scripts"
-    / "first_interface_finance_workstation_composition.py"
+    / "finance_workstation_readonly_recovery.py"
 )
-spec = importlib.util.spec_from_file_location("first_interface_finance_workstation_composition", SCRIPT)
+spec = importlib.util.spec_from_file_location("finance_workstation_readonly_recovery", SCRIPT)
 assert spec is not None and spec.loader is not None
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
@@ -135,7 +135,7 @@ class ArtifactRuntime:
 
 
 def run(fake):
-    return module.run_finance_workstation_composition(
+    return module.run_finance_workstation_readonly_recovery(
         fake,
         finance_workspace_id="finance-ws",
         workstation_workspace_id="workstation-ws",
@@ -224,7 +224,6 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
     def test_healthy_path_exposes_only_finance_and_never_observes_or_mutates_workstation(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(
                     True,
                     "finance.observe",
@@ -237,16 +236,14 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         self.assertEqual(receipt["status"], "completed")
         self.assertEqual(
             [row[1]["execution"]["args"][3] for row in fake.calls],
-            ["finance.context.compile", "finance.observe"],
+            ["finance.observe"],
         )
-        self.assertEqual(receipt["interactionStages"][0]["selectedTools"], ["finance_observe"])
-        self.assertFalse(receipt["invariants"]["environmentMutationAuthorityGranted"])
-        self.assertFalse(receipt["invariants"]["toolAuthorityExpanded"])
+        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
+        self.assertFalse(receipt["invariants"]["externalFinancialWriteAttempted"])
 
     def test_finance_observation_rejects_mislabeled_owner_envelope(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(
                     True,
                     "finance.decide",
@@ -261,7 +258,6 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
     def test_finance_observation_rejects_financial_write_effect_claim(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(
                     True,
                     "finance.observe",
@@ -291,9 +287,7 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
                 if request_id in self.completed_by_request:
                     return dict(self.completed_by_request[request_id])
                 operation = arguments["execution"]["args"][3]
-                if operation == "finance.context.compile":
-                    envelope = owner(True, operation, result={"stateVersion": "v1"})
-                elif operation == "finance.observe":
+                if operation == "finance.observe":
                     envelope = owner(
                         True,
                         operation,
@@ -321,16 +315,14 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
             run(runtime)
         replayed = run(runtime)
         self.assertEqual(replayed["status"], "completed")
-        self.assertEqual(runtime.physical_dispatches, 2)
-        self.assertEqual(len(runtime.calls), 4)
+        self.assertEqual(runtime.physical_dispatches, 1)
+        self.assertEqual(len(runtime.calls), 2)
         request_ids = [arguments["clientRequestId"] for _, arguments in runtime.calls]
-        self.assertEqual(request_ids[0], request_ids[2])
-        self.assertEqual(request_ids[1], request_ids[3])
+        self.assertEqual(request_ids[0], request_ids[1])
 
     def test_egress_failure_recovers_read_only_then_retries_finance(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
                 owner(
                     True,
@@ -355,19 +347,17 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         self.assertEqual(
             [row[1]["execution"]["args"][3] for row in fake.calls],
             [
-                "finance.context.compile",
                 "finance.observe",
                 "workstation.egress.observe",
                 "finance.observe",
             ],
         )
-        self.assertEqual(
-            [stage["selectedTools"] for stage in receipt["interactionStages"]],
-            [["finance_observe"], ["workstation_egress_observe"], ["finance_observe"]],
+        self.assertNotIn(
+            "workstation.egress.pool.ensure",
+            [row[1]["execution"]["args"][3] for row in fake.calls],
         )
-        for stage in receipt["interactionStages"]:
-            self.assertNotIn("workstation_egress_pool_ensure", stage["selectedTools"])
-            self.assertFalse(stage["toolWorkingSet"]["canExpandAuthority"])
+        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
+        self.assertFalse(receipt["invariants"]["externalFinancialWriteAttempted"])
 
 
     def test_captured_egress_failure_replays_read_only_recovery_without_refiring_failure(self):
@@ -396,7 +386,7 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
             "finance.observe",
             error={"code": "EGRESS_NOT_CURRENT"},
         )
-        receipt = module.run_finance_workstation_composition(
+        receipt = module.run_finance_workstation_readonly_recovery(
             fake,
             finance_workspace_id="finance-ws",
             workstation_workspace_id="workstation-ws",
@@ -411,18 +401,13 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
             [row[1]["execution"]["args"][3] for row in fake.calls],
             ["workstation.egress.observe", "finance.observe"],
         )
-        self.assertEqual(
-            [stage["selectedTools"] for stage in receipt["interactionStages"]],
-            [["workstation_egress_observe"], ["finance_observe"]],
-        )
         self.assertEqual(receipt["ownerCalls"][0]["runtimeJobId"], "job-captured-finance-failure")
         self.assertEqual(receipt["ownerCalls"][0]["ownerErrorCode"], "EGRESS_NOT_CURRENT")
-        self.assertFalse(receipt["invariants"]["environmentMutationAuthorityGranted"])
+        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
 
     def test_recurrent_egress_staleness_recompiles_next_read_only_stage(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
                 owner(
                     True,
@@ -442,30 +427,20 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         self.assertEqual(
             [row[1]["execution"]["args"][3] for row in fake.calls],
             [
-                "finance.context.compile",
                 "finance.observe",
                 "workstation.egress.observe",
                 "finance.observe",
             ],
         )
         self.assertEqual(
-            receipt["interactionStages"][-1]["selectedTools"],
-            ["workstation_egress_observe"],
-        )
-        self.assertNotIn(
-            "workstation_egress_pool_ensure",
-            receipt["interactionStages"][-1]["selectedTools"],
-        )
-        self.assertEqual(
             receipt["ownerCalls"][-1]["ownerErrorCode"], "EGRESS_NOT_CURRENT"
         )
-        self.assertFalse(receipt["invariants"]["environmentMutationAuthorityGranted"])
-        self.assertFalse(receipt["invariants"]["toolAuthorityExpanded"])
+        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
+        self.assertFalse(receipt["invariants"]["externalFinancialWriteAttempted"])
 
     def test_unavailable_egress_stops_without_environment_mutation(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
                 owner(
                     True,
@@ -481,14 +456,12 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         )
         receipt = run(fake)
         self.assertEqual(receipt["status"], "blocked_environment")
-        self.assertEqual(len(fake.calls), 3)
-        self.assertEqual(receipt["interactionStages"][-1]["selectedTools"], [])
-        self.assertFalse(receipt["invariants"]["environmentMutationAuthorityGranted"])
+        self.assertEqual(len(fake.calls), 2)
+        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
 
     def test_workstation_read_only_contract_is_enforced(self):
         fake = FakeRuntime(
             [
-                owner(True, "finance.context.compile", result={"stateVersion": "v1"}),
                 owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
                 owner(
                     True,

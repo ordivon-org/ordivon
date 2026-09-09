@@ -102,16 +102,16 @@ class FakeComposition:
         self.status = status
         self.domain_calls = []
 
-    def run_finance_workstation_composition(self, client, **kwargs):
+    def run_finance_workstation_readonly_recovery(self, client, **kwargs):
         return {
             "schemaVersion": 1,
-            "kind": "ordivon.first-interface.finance-workstation-composition-receipt",
+            "kind": "ordivon.finance-workstation-readonly-recovery-receipt",
             "status": self.status,
             "ownerCalls": [],
-            "interactionStages": [],
             "invariants": {
-                "environmentMutationAuthorityGranted": False,
-                "toolAuthorityExpanded": False,
+                "environmentMutationAttempted": False,
+                "externalFinancialWriteAttempted": False,
+                "runtimeSemanticCompletionClaimed": False,
             },
         }
 

@@ -279,7 +279,7 @@ def run_finance_current_state_application(
     consumer_episode_ref: str,
     consumer_class: str,
 ) -> dict[str, Any]:
-    composition_receipt = composition.run_finance_workstation_composition(
+    composition_receipt = composition.run_finance_workstation_readonly_recovery(
         client,
         finance_workspace_id=finance_workspace_id,
         workstation_workspace_id=workstation_workspace_id,
@@ -368,7 +368,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--composition-script",
-        default=str(Path(__file__).with_name("first_interface_finance_workstation_composition.py")),
+        default=str(Path(__file__).with_name("finance_workstation_readonly_recovery.py")),
     )
     args = parser.parse_args()
 

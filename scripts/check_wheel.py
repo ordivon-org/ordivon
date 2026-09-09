@@ -84,6 +84,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/interaction_context.py",
     "ordivon_harness/loop_driver.py",
     "ordivon_harness/deliberation.py",
     "ordivon_harness/mandate.py",
