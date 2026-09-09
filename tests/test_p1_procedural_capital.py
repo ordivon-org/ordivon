@@ -12,7 +12,6 @@ from ordivon_harness.knowledge_topology import (
     HarnessReusableCognitionReference,
     HarnessReusableCognitionSelection,
     compile_reusable_cognition_seed,
-    effective_knowledge_topology,
 )
 from ordivon_harness.ordivon.model import AgentRunConclusion
 from ordivon_harness.working_view import HarnessWorkingViewSource
@@ -166,13 +165,6 @@ class ProceduralCapitalP1Tests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "requires independent procedure evidence"):
             external_promote(run_contract, conclusion)
-
-    def test_topology_assigns_candidate_evaluation_and_promotion_outside_harness(self) -> None:
-        topology = effective_knowledge_topology()
-        by_id = {layer["layerId"]: layer for layer in topology["layers"]}
-        procedure = by_id["procedural-capital"]
-        self.assertEqual(procedure["owner"], "external-procedure-owner-and-evaluator")
-        self.assertFalse(procedure["harnessSemanticEvaluation"])
 
 
 if __name__ == "__main__":

@@ -180,105 +180,11 @@ def compile_reusable_cognition_seed(
     return HarnessCognitionSeed(attempt_id=attempt_id, sources=sources, basis=basis)
 
 
-def effective_knowledge_topology() -> dict[str, JsonValue]:
-    """Project the current knowledge/cognition topology without adding authority."""
-
-    value: dict[str, JsonValue] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.harness-knowledge-topology",
-        "truthRole": "derived-knowledge-topology-projection",
-        "laws": [
-            "canonical history does not imply current cognition",
-            "storage persistence does not imply cognition persistence",
-            "reusable source presence does not imply selection",
-            "procedure classification does not imply correctness or Tool authority",
-            "external semantic promotion does not imply Run admission",
-        ],
-        "layers": [
-            {
-                "layerId": "canonical-history",
-                "owner": "harness-journal-cas",
-                "scope": "run",
-                "role": "exact recovery/evidence chronology",
-                "modelVisible": "not-implied",
-            },
-            {
-                "layerId": "episodic-recall",
-                "owner": "harness-run-continuity",
-                "scope": "same-run-committed-working-set-identities",
-                "role": "bounded exact historical cognition identity recall",
-                "semanticSearch": False,
-            },
-            {
-                "layerId": "reusable-external-source",
-                "owner": "application-host-domain",
-                "scope": "cross-run-or-project",
-                "role": "exact knowledge/procedure source available for explicit selection",
-                "automaticInjection": False,
-            },
-            {
-                "layerId": "durable-current-cognition",
-                "owner": "agent-selected-working-set",
-                "scope": "run",
-                "role": "exact selected sources projected to the model",
-                "selectionRequired": True,
-            },
-            {
-                "layerId": "interaction-cognition",
-                "owner": "caller-ingress-authority",
-                "scope": "current-interaction",
-                "role": "exact caller replies until interaction boundary",
-                "durablePromotion": "explicit-agent-action-only",
-            },
-            {
-                "layerId": "attempt-cognition",
-                "owner": "provider-tool-continuity",
-                "scope": "current-attempt",
-                "role": "Provider-authored Tool exchange and transient attempt state",
-                "successorRetention": False,
-            },
-            {
-                "layerId": "procedural-capital",
-                "owner": "external-procedure-owner-and-evaluator",
-                "scope": "cross-run-or-project",
-                "role": "procedure-role reusable source after external promotion",
-                "harnessSemanticEvaluation": False,
-            },
-        ],
-        "proceduralCapitalLoop": {
-            "candidate": {
-                "mechanism": "caller-bound structured completion / CompletionProposal",
-                "authority": "bounded-run-candidate-only",
-                "automaticPromotion": False,
-            },
-            "evaluation": {
-                "owner": "external-domain-evaluator",
-                "harnessSemanticDecision": False,
-            },
-            "promotion": {
-                "owner": "external-reusable-source-owner",
-                "canonicalRepresentation": "HarnessWorkingViewSource + exact reusable reference",
-            },
-            "futureAdmission": {
-                "mechanism": "explicit reusable reference selection -> HarnessCognitionSeed",
-                "automaticInjection": False,
-            },
-        },
-    }
-    validate_json_value(value)
-    return value
-
-
-def effective_knowledge_topology_digest() -> str:
-    return canonical_digest(effective_knowledge_topology())
-
 
 __all__ = [
     "HarnessReusableCognitionReference",
     "HarnessReusableCognitionSelection",
     "ReusableCognitionSourceResolver",
     "compile_reusable_cognition_seed",
-    "effective_knowledge_topology",
-    "effective_knowledge_topology_digest",
     "resolve_reusable_cognition_source",
 ]

@@ -50,7 +50,7 @@ Advanced `ordivon_harness.knowledge_topology` adds:
 - `ReusableCognitionSourceResolver`: application/Host/domain-owned resolution interface;
 - `resolve_reusable_cognition_source()`: verifies exact logical identity/generation/digest;
 - `compile_reusable_cognition_seed()`: pure explicit reference-to-existing-`HarnessCognitionSeed` compilation;
-- `effective_knowledge_topology()`: read-only ownership/topology projection included in the P0 generated capability catalog.
+- Historical `effective_knowledge_topology()` was a read-only ownership/topology projection used by the now-retired aggregate capability catalog; it is retired with that consumer. Current code retains only exact external reference resolution and seed compilation.
 
 The seam owns no repository, search, ranking, evaluation or promotion policy and touches no Harness Store during resolution. After compilation, the existing cognition path performs normal privacy validation, CAS materialization and WorkingSet selection.
 

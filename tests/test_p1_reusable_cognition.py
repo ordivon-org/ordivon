@@ -11,7 +11,6 @@ from ordivon_harness.knowledge_topology import (
     HarnessReusableCognitionReference,
     HarnessReusableCognitionSelection,
     compile_reusable_cognition_seed,
-    effective_knowledge_topology,
     resolve_reusable_cognition_source,
 )
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
@@ -65,17 +64,14 @@ def procedure_reference() -> HarnessReusableCognitionReference:
 
 
 class ReusableCognitionP1Tests(unittest.TestCase):
-    def test_reference_round_trip_and_topology_do_not_claim_memory_authority(self) -> None:
+    def test_reference_round_trip_retains_only_exact_external_identity(self) -> None:
         reference = procedure_reference()
         self.assertEqual(
             HarnessReusableCognitionReference.from_dict(reference.to_dict()), reference
         )
-        topology = effective_knowledge_topology()
-        self.assertEqual(topology["truthRole"], "derived-knowledge-topology-projection")
-        by_id = {layer["layerId"]: layer for layer in topology["layers"]}
-        self.assertFalse(by_id["reusable-external-source"]["automaticInjection"])
-        self.assertTrue(by_id["durable-current-cognition"]["selectionRequired"])
-        self.assertFalse(by_id["procedural-capital"]["harnessSemanticEvaluation"])
+        encoded = reference.to_dict()
+        self.assertEqual(encoded["role"], "procedure")
+        self.assertEqual(encoded["sourceDigest"], procedure_source().digest)
 
     def test_resolver_must_return_exact_logical_identity_and_source_digest(self) -> None:
         source = procedure_source()
