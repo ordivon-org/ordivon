@@ -239,6 +239,8 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         caps = json.loads(checked([str(cli), "capabilities"]).stdout)
         if caps.get("defaultAuthority") != "independent-harness-run":
             fail("capabilities default authority differs")
+        if "executionMandate" in caps:
+            fail("capabilities resurrect retired execution Mandate metadata")
         if "hostCompatibilityCommand" in caps:
             fail("capabilities still advertise Host compatibility")
         return {

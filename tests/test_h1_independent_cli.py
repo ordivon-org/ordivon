@@ -44,6 +44,7 @@ class IndependentCliTests(unittest.TestCase):
         self.assertEqual(value["defaultAuthority"], "independent-harness-run")
         self.assertNotIn("hostCompatibilityCommand", value)
         self.assertFalse(value["toolBearingCliExecution"])
+        self.assertNotIn("executionMandate", value)
         profile = value["executionProfiles"][0]
         self.assertEqual(profile["profileId"], "deepseek-no-tool-v1")
         self.assertFalse(profile["runtimeRequired"])
