@@ -150,7 +150,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertFalse(current)
         self.assertIn(
-            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
+            "src/ordivon_harness/ordivon/atlas_first_look_runtime_bridge.py",
             invalidating,
         )
         current, invalidating = check_evidence._verified_revision_is_current(
@@ -158,7 +158,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertFalse(current)
         self.assertIn(
-            "src/ordivon_harness/ordivon/finance_research_runtime_bridge.py",
+            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
             invalidating,
         )
         current, invalidating = check_evidence._verified_revision_is_current(
