@@ -6,16 +6,15 @@ from __future__ import annotations
 import json
 
 from anc_canonical import canonical_digest
-from ordivon_harness.ordivon import (
+from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget
+from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
     AgentToolCall,
     AgentToolDefinition,
     AgentTurnResult,
-    OrdivonAgentLoop,
-    RunBudget,
     ScriptedTurnAdapter,
-    ToolObservation,
 )
+from ordivon_harness.ordivon.tool_bridge import ToolObservation
 
 
 class Clock:

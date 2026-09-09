@@ -15,7 +15,7 @@ from ordivon_harness.domain_tools import (
     RunStopCode,
     ToolObservation,
 )
-from ordivon_harness.ordivon import AgentTurnResult, ScriptedTurnAdapter
+from ordivon_harness.ordivon.model import AgentTurnResult, ScriptedTurnAdapter
 
 
 class _SecurityPlanBridge:

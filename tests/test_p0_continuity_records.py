@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import unittest
 
-import ordivon_harness.ordivon as ordivon_internal
+import ordivon_harness.ordivon as ordivon_package
 import ordivon_harness.ordivon.continuity_records as continuity_records
 
 from ordivon_harness.ordivon.continuity_records import (
@@ -112,8 +112,9 @@ class ContinuityRecordTests(unittest.TestCase):
 
     def test_compatibility_facades_are_retired_from_current_surfaces(self) -> None:
         self.assertFalse(hasattr(continuity_records, "HarnessProviderCallRecordV2"))
-        self.assertNotIn("HarnessProviderCallRecordV2", ordivon_internal.__all__)
-        self.assertNotIn("HarnessDispatchFenceV2", ordivon_internal.__all__)
+        self.assertEqual(ordivon_package.__all__, [])
+        self.assertFalse(hasattr(ordivon_package, "HarnessProviderCallRecordV2"))
+        self.assertFalse(hasattr(ordivon_package, "HarnessDispatchFenceV2"))
 
     def test_frozen_s0_provider_v3_remains_byte_semantically_readable(self) -> None:
         fixture = (

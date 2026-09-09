@@ -59,6 +59,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         import ordivon_harness.independent_cli as independent_cli
         self.assertFalse(hasattr(independent_cli, "capabilities"))
 
+    def test_internal_ordivon_package_has_no_lazy_aggregation_facade(self) -> None:
+        import ordivon_harness.ordivon as implementation_package
+
+        self.assertEqual(implementation_package.__all__, [])
+        self.assertNotIn("_EXPORTS", implementation_package.__dict__)
+        self.assertNotIn("__getattr__", implementation_package.__dict__)
+
     def test_retired_standalone_tool_bridge_protocol_is_absent(self) -> None:
         from ordivon_harness import standalone
 

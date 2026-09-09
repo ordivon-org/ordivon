@@ -11,7 +11,7 @@ from ordivon_harness.protocol import (
     HarnessProviderCallSource,
     HarnessProviderCallStatus,
 )
-from ordivon_harness.ordivon import (
+from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
     AgentToolCall,
     AgentToolDefinition,
