@@ -149,8 +149,8 @@ from ordivon_harness.api import (
 completion_contract = {
     "mode": "structured-result-v1",
     "resultKind": "my-domain-result",
-    "conformancePolicy": "local-json-schema-draft-2020-12-profile-v1",
     "resultSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "additionalProperties": False,
         "properties": {"choice": {"type": "string", "enum": ["a", "b"]}},
@@ -165,7 +165,7 @@ adapter = DeepSeekTurnAdapter(
 value = decode_structured_completion_result(contract, execution.loop_result.conclusion)
 ```
 
-`conformancePolicy` is opt-in. When it is omitted, historical/current `structured-result-v1` behavior remains provider-constrained but **not locally schema-verified**. The current local profile uses Draft 2020-12 validation semantics and deliberately accepts only the bounded structural keywords currently contracted by Harness (`type`, `properties`, boolean `additionalProperties`, `required`, `items`, `enum`, string/item length bounds, numeric bounds, and array item-count bounds over object/array/string/integer/boolean types). Unsupported keywords or types fail at Contract admission rather than being silently ignored. With the policy bound, a Provider result that violates the schema is retained as Provider observation but is rejected before candidate completion through the existing model-correctable conclusion path. Structural conformance still does **not** establish semantic correctness, evidence sufficiency, or caller/domain admission.
+Current authoring opts into local structural validation with the standard JSON Schema Draft 2020-12 `$schema` URI. Historical `structured-result-v1` Contracts that have neither `$schema` nor the retained legacy `conformancePolicy` remain provider-constrained but **not locally schema-verified**, preserving their exact behavior. The old `local-json-schema-draft-2020-12-profile-v1` token remains reader compatibility only for already-persisted Contracts; new examples do not mint it. Local Draft 2020-12 validation rejects structurally invalid Provider results before candidate completion through the existing model-correctable conclusion path. Provider-specific schema compatibility is an Adapter/provider concern rather than a Harness conformance ontology; the DeepSeek Adapter removes the local `$schema` annotation before embedding the caller schema into its function-tool parameters. Structural conformance still does **not** establish semantic correctness, evidence sufficiency, or caller/domain admission.
 
 A candidate-completed Run may still carry explicit unresolved unknowns in
 `unresolved_unknowns`; that means the bounded Run produced its candidate while

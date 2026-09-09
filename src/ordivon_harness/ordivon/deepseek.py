@@ -1063,6 +1063,9 @@ class DeepSeekTurnAdapter:
         self._structured_result_schema = structured_completion_result_schema(
             self._completion_contract
         )
+        if self._structured_result_schema is not None:
+            self._structured_result_schema = dict(self._structured_result_schema)
+            self._structured_result_schema.pop("$schema", None)
         self.structured_completion_contract_digest = (
             structured_completion_contract_digest(self._completion_contract)
         )

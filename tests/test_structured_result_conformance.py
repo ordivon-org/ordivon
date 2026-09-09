@@ -24,7 +24,8 @@ from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityS
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.structured_result_conformance import (
-    LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
+    JSON_SCHEMA_DRAFT_2020_12_URI,
+    LEGACY_LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
     validate_structured_result_instance,
 )
 
@@ -32,7 +33,8 @@ from tests.test_p0_sqlite_agent_loop import FixedClock, contract as base_contrac
 from tests.test_p1_procedural_capital import PROCEDURE_RESULT_SCHEMA
 
 
-POLICY = LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1
+DIALECT = JSON_SCHEMA_DRAFT_2020_12_URI
+LEGACY_POLICY = LEGACY_LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1
 
 CHOICE_SCHEMA = {
     "type": "object",
@@ -45,14 +47,22 @@ CHOICE_SCHEMA = {
 }
 
 
-def completion(schema=CHOICE_SCHEMA, *, policy: str | None = POLICY):
+def completion(
+    schema=CHOICE_SCHEMA,
+    *,
+    dialect: str | None = DIALECT,
+    legacy_policy: str | None = None,
+):
+    result_schema = dict(schema)
+    if dialect is not None:
+        result_schema = {"$schema": dialect, **result_schema}
     value = {
         "mode": "structured-result-v1",
         "resultKind": "conformance-test",
-        "resultSchema": schema,
+        "resultSchema": result_schema,
     }
-    if policy is not None:
-        value["conformancePolicy"] = policy
+    if legacy_policy is not None:
+        value["conformancePolicy"] = legacy_policy
     return value
 
 
@@ -99,40 +109,77 @@ class CountingDomainGateBridge(SQLiteHarnessAgentBridge):
 
 class StructuredResultConformanceTests(unittest.TestCase):
     def test_legacy_policy_absent_remains_unverified_and_decode_compatible(self) -> None:
-        legacy = completion(policy=None)
+        legacy = completion(dialect=None)
         run_contract = contract("legacy", legacy)
         invalid = {"choice": "observe", "rationale": ""}
         conclusion = turn("legacy", legacy, invalid).conclusion
         assert conclusion is not None
         self.assertEqual(decode_structured_completion_result(run_contract, conclusion), invalid)
 
-    def test_policy_rejects_unknown_profile_and_unsupported_schema_features(self) -> None:
-        with self.assertRaisesRegex(ValueError, "unsupported structured completion conformancePolicy"):
-            contract("unknown-policy", completion(policy="other-profile"))
-        with self.assertRaisesRegex(ValueError, "unsupported schema keywords"):
+    def test_standard_dialect_and_legacy_profile_keep_distinct_semantics(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported structured completion JSON Schema dialect"):
             contract(
-                "ref",
+                "unknown-dialect",
+                completion(dialect="https://example.invalid/json-schema/draft"),
+            )
+
+        reusable_schema = {
+            "$defs": {"choice": {"type": "string", "enum": ["observe"]}},
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"choice": {"$ref": "#/$defs/choice"}},
+            "required": ["choice"],
+        }
+        current = completion(reusable_schema)
+        current_contract = contract("standard-ref", current)
+        current_conclusion = turn("standard-ref", current, {"choice": "observe"}).conclusion
+        assert current_conclusion is not None
+        self.assertEqual(
+            decode_structured_completion_result(current_contract, current_conclusion),
+            {"choice": "observe"},
+        )
+
+        with self.assertRaisesRegex(ValueError, "legacy structured completion conformance profile rejects unsupported schema keywords"):
+            contract(
+                "legacy-ref",
                 completion(
-                    {
-                        "type": "object",
-                        "properties": {"choice": {"$ref": "#/$defs/choice"}},
-                    }
+                    reusable_schema,
+                    dialect=None,
+                    legacy_policy=LEGACY_POLICY,
                 ),
             )
+
         with self.assertRaisesRegex(ValueError, "additionalProperties.*must be boolean"):
             contract(
-                "additional-schema",
+                "legacy-additional-schema",
                 completion(
                     {
                         "type": "object",
                         "additionalProperties": {"type": "string"},
-                    }
+                    },
+                    dialect=None,
+                    legacy_policy=LEGACY_POLICY,
                 ),
             )
+
+        legacy = completion(dialect=None, legacy_policy=LEGACY_POLICY)
+        legacy_contract = contract("legacy-reader", legacy)
+        invalid_legacy = turn(
+            "legacy-reader",
+            legacy,
+            {"choice": "observe", "rationale": ""},
+        ).conclusion
+        assert invalid_legacy is not None
+        with self.assertRaisesRegex(ValueError, "non-empty|too short"):
+            decode_structured_completion_result(legacy_contract, invalid_legacy)
+
         with self.assertRaisesRegex(ValueError, "requires structured-result-v1"):
             replace(
                 base_contract("policy-on-record"),
-                completion_contract={"mode": "record", "conformancePolicy": POLICY},
+                completion_contract={
+                    "mode": "record",
+                    "conformancePolicy": LEGACY_POLICY,
+                },
             )
 
     def test_policy_decode_rejects_f1_style_nested_objects_and_length_overflow(self) -> None:

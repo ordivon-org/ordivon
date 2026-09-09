@@ -221,6 +221,70 @@ class DeepSeekMixedTurnTests(unittest.TestCase):
         self.assertTrue(result.conclusion.summary.startswith("Structured result sha256:"))
         self.assertEqual(len(transport.requests), 2)
 
+    def test_standard_schema_dialect_is_local_annotation_not_provider_parameter(self) -> None:
+        from ordivon_harness.api import AgentTurnRequest
+        from ordivon_harness.structured_result_conformance import (
+            JSON_SCHEMA_DRAFT_2020_12_URI,
+        )
+
+        completion = {
+            "mode": "structured-result-v1",
+            "resultKind": "standard-dialect-provider-boundary",
+            "resultSchema": {
+                "$schema": JSON_SCHEMA_DRAFT_2020_12_URI,
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"answer": {"type": "string"}},
+                "required": ["answer"],
+            },
+        }
+        transport = SequenceTransport(
+            [
+                response(
+                    (
+                        "call:standard-dialect",
+                        "submit_run_conclusion",
+                        {
+                            "status": "candidate_completed",
+                            "result": {"answer": "ok"},
+                            "artifact_refs": [],
+                            "evidence_refs": [],
+                            "unresolved_unknowns": [],
+                        },
+                    )
+                )
+            ]
+        )
+        adapter = DeepSeekTurnAdapter(
+            DeepSeekSettings(api_key="k" * 40, max_output_tokens=512),
+            transport=transport,
+            completion_contract=completion,
+        )
+        result = adapter.invoke(
+            AgentTurnRequest(
+                harness_run_id="harness-run:standard-dialect-provider-boundary",
+                turn_id="turn:standard-dialect-provider-boundary:1",
+                sequence=1,
+                assignment_id="assignment:standard-dialect-provider-boundary",
+                context_digest="sha256:" + "d" * 64,
+                tool_catalog_digest="sha256:" + "e" * 64,
+                messages=({"role": "user", "content": "return the structured result"},),
+                tools=(),
+                remaining_budget={"modelCalls": 1, "toolCalls": 0, "totalTokens": 4096},
+            )
+        )
+        self.assertIsNotNone(result.conclusion)
+        request = transport.requests[0]
+        conclusion_tool = next(
+            tool
+            for tool in request["tools"]
+            if tool["function"]["name"] == "submit_run_conclusion"
+        )
+        provider_result_schema = conclusion_tool["function"]["parameters"]["properties"]["result"]
+        self.assertNotIn("$schema", provider_result_schema)
+        self.assertEqual(provider_result_schema["type"], "object")
+        self.assertEqual(provider_result_schema["required"], ["answer"])
+
 
 if __name__ == "__main__":
     unittest.main()

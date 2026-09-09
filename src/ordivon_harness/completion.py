@@ -14,7 +14,7 @@ from anc_canonical import (
 from .core_contracts import STRUCTURED_COMPLETION_MODE, HarnessRunContract
 from .ordivon.model import AgentRunConclusion
 from .structured_result_conformance import (
-    structured_result_conformance_policy,
+    structured_result_validation_dialect,
     validate_structured_result_instance,
 )
 
@@ -97,7 +97,7 @@ def structured_completion_conclusion_validator(
     """Return the Contract-bound local structural validator when one is admitted."""
     if structured_completion_result_schema(completion_contract) is None:
         return None
-    if structured_result_conformance_policy(completion_contract) is None:
+    if structured_result_validation_dialect(completion_contract) is None:
         return None
 
     def validate(conclusion: AgentRunConclusion) -> None:
@@ -110,7 +110,7 @@ def structured_completion_conclusion_validator(
 def decode_structured_completion_result(
     contract: HarnessRunContract, conclusion: AgentRunConclusion
 ) -> JsonValue:
-    """Decode the result; structural conformance is local only under an explicit policy."""
+    """Decode the result; local validation follows an explicit JSON Schema dialect or legacy contract."""
     if structured_completion_result_schema(contract.completion_contract) is None:
         raise ValueError("Harness Run Contract is not structured-result-v1")
     value = _structured_result_value(conclusion)

@@ -13,7 +13,7 @@ from anc_canonical import (
     validate_json_value,
 )
 
-from .structured_result_conformance import validate_structured_result_schema_policy
+from .structured_result_conformance import validate_structured_result_schema
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _TRACEPARENT_RE = re.compile(r"^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$")
@@ -248,7 +248,7 @@ class HarnessRunContract:
                 raise ValueError(
                     "structured completion resultSchema exceeds 65536 canonical bytes"
                 )
-            validate_structured_result_schema_policy(self.completion_contract)
+            validate_structured_result_schema(self.completion_contract)
         elif "conformancePolicy" in self.completion_contract:
             raise ValueError(
                 "structured completion conformancePolicy requires structured-result-v1"

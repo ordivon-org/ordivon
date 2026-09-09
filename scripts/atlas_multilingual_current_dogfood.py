@@ -23,10 +23,7 @@ from ordivon_harness.api import (
     structured_completion_contract_digest,
 )
 from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
-from ordivon_harness.structured_result_conformance import (
-    LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
-    validate_structured_result_schema_policy,
-)
+from ordivon_harness.structured_result_conformance import JSON_SCHEMA_DRAFT_2020_12_URI
 
 APPLICATION = Path(__file__).resolve().parent / "atlas_research_start_application.py"
 spec = importlib.util.spec_from_file_location("atlas_research_start_application_live", APPLICATION)
@@ -39,8 +36,8 @@ spec.loader.exec_module(atlas_app)
 QUERY_COMPLETION: dict[str, JsonValue] = {
     "mode": "structured-result-v1",
     "resultKind": "atlas-retrieval-query-authorship",
-    "conformancePolicy": LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
     "resultSchema": {
+        "$schema": JSON_SCHEMA_DRAFT_2020_12_URI,
         "type": "object",
         "additionalProperties": False,
         "properties": {
@@ -59,8 +56,8 @@ QUERY_COMPLETION: dict[str, JsonValue] = {
 CANDIDATE_SELECTION_COMPLETION: dict[str, JsonValue] = {
     "mode": "structured-result-v1",
     "resultKind": "atlas-bounded-candidate-selection",
-    "conformancePolicy": LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
     "resultSchema": {
+        "$schema": JSON_SCHEMA_DRAFT_2020_12_URI,
         "type": "object",
         "additionalProperties": False,
         "properties": {
@@ -74,8 +71,8 @@ CANDIDATE_SELECTION_COMPLETION: dict[str, JsonValue] = {
 ADJUDICATION_COMPLETION: dict[str, JsonValue] = {
     "mode": "structured-result-v1",
     "resultKind": "atlas-prior-work-adjudication",
-    "conformancePolicy": LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1,
     "resultSchema": {
+        "$schema": JSON_SCHEMA_DRAFT_2020_12_URI,
         "type": "object",
         "additionalProperties": False,
         "properties": {
@@ -107,7 +104,6 @@ def _structured_turn(
     messages: tuple[dict[str, JsonValue], ...],
     completion: dict[str, JsonValue],
 ) -> tuple[dict[str, JsonValue], dict[str, JsonValue]]:
-    validate_structured_result_schema_policy(completion)
     created_at_ms = time.time_ns() // 1_000_000
     context_digest = canonical_digest(context)
     contract = HarnessRunContract(
