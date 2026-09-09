@@ -81,17 +81,15 @@ class HarnessRuntimeReference:
 
 @dataclass(frozen=True, slots=True)
 class HarnessExecutionBinding:
-    """Caller-neutral immutable Runtime execution authority for one Harness Run."""
+    """Minimal caller-supplied Runtime target binding for one Harness Run.
+
+    Contract/continuity facts stay owned by their canonical sources. This binding
+    carries only the Run identity needed to prevent cross-Run reuse plus the exact
+    Runtime Workspace and foreign references actually sent to Runtime.
+    """
 
     harness_run_id: str
     workspace_ref: str
-    assignment_id: str
-    assignment_generation: int
-    assignment_digest: str
-    runtime_binding_digest: str
-    tool_catalog_digest: str
-    tool_grant_digest: str | None
-    deadline_ms: int | None
     runtime_references: tuple[HarnessRuntimeReference, ...]
 
     def __post_init__(self) -> None:
@@ -99,20 +97,6 @@ class HarnessExecutionBinding:
         if not self.harness_run_id.startswith("harness-run:"):
             raise ValueError("Harness Run identity must start with harness-run:")
         _text(self.workspace_ref, "Runtime Workspace reference")
-        _text(self.assignment_id, "Execution binding identity")
-        if not self.assignment_id.startswith("assignment:"):
-            raise ValueError("Execution binding identity must start with assignment:")
-        if type(self.assignment_generation) is not int or self.assignment_generation < 1:
-            raise ValueError("Execution binding generation must be positive")
-        _digest(self.assignment_digest, "Execution binding digest")
-        _digest(self.runtime_binding_digest, "Harness Runtime binding digest")
-        _digest(self.tool_catalog_digest, "Tool catalog digest")
-        if self.tool_grant_digest is not None:
-            _digest(self.tool_grant_digest, "Tool Grant digest")
-        if self.deadline_ms is not None and (
-            type(self.deadline_ms) is not int or self.deadline_ms < 0
-        ):
-            raise ValueError("Execution deadline must be a non-negative integer or null")
         keys = [reference.sort_key for reference in self.runtime_references]
         if keys != sorted(keys) or len(keys) != len(set(keys)):
             raise ValueError("Runtime references must be uniquely sorted")
@@ -123,17 +107,10 @@ class HarnessExecutionBinding:
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "kind": "ordivon.harness-execution-binding",
             "harnessRunId": self.harness_run_id,
             "workspaceRef": self.workspace_ref,
-            "assignmentId": self.assignment_id,
-            "assignmentGeneration": self.assignment_generation,
-            "assignmentDigest": self.assignment_digest,
-            "runtimeBindingDigest": self.runtime_binding_digest,
-            "toolCatalogDigest": self.tool_catalog_digest,
-            "toolGrantDigest": self.tool_grant_digest,
-            "deadlineMs": self.deadline_ms,
             "runtimeReferences": [reference.to_dict() for reference in self.runtime_references],
         }
 
@@ -144,42 +121,16 @@ class HarnessExecutionBinding:
             "kind",
             "harnessRunId",
             "workspaceRef",
-            "assignmentId",
-            "assignmentGeneration",
-            "assignmentDigest",
-            "runtimeBindingDigest",
-            "toolCatalogDigest",
-            "toolGrantDigest",
-            "deadlineMs",
             "runtimeReferences",
         }
         if set(value) != expected:
             raise ValueError(
                 f"HarnessExecutionBinding fields differ: {sorted(set(value) ^ expected)}"
             )
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.harness-execution-binding":
+        if value["schemaVersion"] != 2 or value["kind"] != "ordivon.harness-execution-binding":
             raise ValueError("HarnessExecutionBinding version or kind is invalid")
-        string_fields = (
-            "harnessRunId",
-            "workspaceRef",
-            "assignmentId",
-            "assignmentDigest",
-            "runtimeBindingDigest",
-            "toolCatalogDigest",
-        )
-        if any(not isinstance(value[field], str) for field in string_fields):
+        if not isinstance(value["harnessRunId"], str) or not isinstance(value["workspaceRef"], str):
             raise ValueError("HarnessExecutionBinding identity fields must be strings")
-        if type(value["assignmentGeneration"]) is not int:
-            raise ValueError("HarnessExecutionBinding generation must be an integer")
-        for field in ("toolGrantDigest", "deadlineMs"):
-            if (
-                value[field] is not None
-                and field == "toolGrantDigest"
-                and not isinstance(value[field], str)
-            ):
-                raise ValueError("HarnessExecutionBinding Tool Grant digest is invalid")
-            if value[field] is not None and field == "deadlineMs" and type(value[field]) is not int:
-                raise ValueError("HarnessExecutionBinding deadline is invalid")
         references = value["runtimeReferences"]
         if not isinstance(references, list) or any(
             not isinstance(item, dict) for item in references
@@ -188,13 +139,6 @@ class HarnessExecutionBinding:
         return cls(
             harness_run_id=value["harnessRunId"],
             workspace_ref=value["workspaceRef"],
-            assignment_id=value["assignmentId"],
-            assignment_generation=value["assignmentGeneration"],
-            assignment_digest=value["assignmentDigest"],
-            runtime_binding_digest=value["runtimeBindingDigest"],
-            tool_catalog_digest=value["toolCatalogDigest"],
-            tool_grant_digest=value["toolGrantDigest"],
-            deadline_ms=value["deadlineMs"],
             runtime_references=tuple(
                 HarnessRuntimeReference.from_dict(item) for item in references
             ),
@@ -204,32 +148,27 @@ class HarnessExecutionBinding:
         _text(step_id, "Harness Runtime step identity", max_bytes=200)
         digest = canonical_digest(
             {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "kind": "ordivon.harness-runtime-request-identity",
-                "assignmentId": self.assignment_id,
-                "assignmentGeneration": self.assignment_generation,
-                "assignmentDigest": self.assignment_digest,
-                "harnessRunId": self.harness_run_id,
-                "harnessRunBindingDigest": self.runtime_binding_digest,
+                "executionBindingDigest": self.digest,
                 "stepId": step_id,
             }
         )
-        return f"request:harness:g{self.assignment_generation}:{digest[7:39]}"
+        return f"request:harness:{digest[7:39]}"
 
     def patch_request_id(self, step_id: str, tool_call_digest: str) -> str:
         _text(step_id, "Harness Runtime step identity", max_bytes=200)
         _digest(tool_call_digest, "Tool Call digest")
         token = canonical_digest(
             {
-                "assignmentId": self.assignment_id,
-                "assignmentGeneration": self.assignment_generation,
-                "assignmentDigest": self.assignment_digest,
-                "harnessRunId": self.harness_run_id,
+                "schemaVersion": 2,
+                "kind": "ordivon.harness-runtime-patch-request-identity",
+                "executionBindingDigest": self.digest,
                 "stepId": step_id,
                 "toolCallDigest": tool_call_digest,
             }
         )[7:39]
-        return f"request:harness-patch:g{self.assignment_generation}:{token}"
+        return f"request:harness-patch:{token}"
 
 
 def build_harness_workspace_exec_request_from_binding(

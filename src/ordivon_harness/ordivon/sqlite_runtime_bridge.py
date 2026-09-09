@@ -181,35 +181,32 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             expected_tool_catalog_digest=self._tool_surface_digest,
             expected_tool_grant_digest=self._tool_grant_digest,
         )
-        binding = run_store.binding
-        if (
-            execution_binding.harness_run_id != contract.harness_run_id
-            or execution_binding.assignment_id != binding.assignment_id
-            or execution_binding.assignment_generation != binding.assignment_generation
-            or execution_binding.assignment_digest != binding.assignment_digest
-        ):
+        if execution_binding.harness_run_id != contract.harness_run_id:
             raise ValueError("Harness Execution Binding differs from the independent Run binding")
-        if (
-            execution_binding.tool_catalog_digest != self._tool_surface_digest
-            or execution_binding.tool_catalog_digest != contract.tool_catalog_digest
-        ):
-            raise ValueError("Harness Execution Binding Tool catalog differs")
-        if (
-            execution_binding.tool_grant_digest != self._tool_grant_digest
-            or contract.tool_grant_digest != self._tool_grant_digest
-        ):
-            raise ValueError("Harness Execution Binding Tool Grant differs")
-        if execution_binding.deadline_ms != contract.deadline_ms:
-            raise ValueError("Harness Execution Binding deadline differs")
-        if not execution_binding.runtime_references:
+        if contract.tool_catalog_digest != self._tool_surface_digest:
+            raise ValueError("Harness Run Contract Tool catalog differs")
+        if contract.tool_grant_digest != self._tool_grant_digest:
+            raise ValueError("Harness Run Contract Tool Grant differs")
+        references = execution_binding.runtime_references
+        if not references:
             raise ValueError("independent Runtime execution requires foreign references")
-        if any(
-            reference.namespace != "ordivon.harness"
-            for reference in execution_binding.runtime_references
-        ):
+        if any(reference.namespace != "ordivon.harness" for reference in references):
             raise ValueError(
                 "independent Runtime execution may reference only ordivon.harness authority"
             )
+        run_refs = [reference for reference in references if reference.reference_type == "harness_run"]
+        if len(run_refs) != 1 or run_refs[0].reference_id != contract.harness_run_id:
+            raise ValueError("Harness Execution Binding Run reference differs")
+        contract_refs = [
+            reference for reference in references if reference.reference_type == "run_contract"
+        ]
+        if len(contract_refs) != 1 or contract_refs[0].digest != contract.digest:
+            raise ValueError("Harness Execution Binding Contract reference differs")
+        grant_refs = [
+            reference for reference in references if reference.reference_type == "tool_grant"
+        ]
+        if len(grant_refs) != 1 or grant_refs[0].digest != self._tool_grant_digest:
+            raise ValueError("Harness Execution Binding Tool Grant reference differs")
         self.execution_binding = execution_binding
         self.runtime = runtime
         self._seen_tool_call_ids: set[str] = set()
@@ -218,10 +215,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         return self._tool_definitions
 
     def validate_runtime_catalog(self) -> None:
-        if (
-            self.contract.tool_catalog_digest != self._tool_surface_digest
-            or self.execution_binding.tool_catalog_digest != self._tool_surface_digest
-        ):
+        if self.contract.tool_catalog_digest != self._tool_surface_digest:
             raise ToolBridgeError(
                 "independent Runtime Tool catalog drifted",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,

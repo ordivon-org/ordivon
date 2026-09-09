@@ -158,17 +158,9 @@ class FakeRuntime:
 
 
 def execution_binding(value: HarnessRunContract) -> HarnessExecutionBinding:
-    token = value.digest[7:31]
     return HarnessExecutionBinding(
         harness_run_id=value.harness_run_id,
         workspace_ref="workspace:r3-explicit",
-        assignment_id=f"assignment:external:{token}",
-        assignment_generation=1,
-        assignment_digest=value.digest,
-        runtime_binding_digest=digest("runtime-binding"),
-        tool_catalog_digest=value.tool_catalog_digest,
-        tool_grant_digest=value.tool_grant_digest,
-        deadline_ms=value.deadline_ms,
         runtime_references=(
             HarnessRuntimeReference(
                 namespace="ordivon.harness",
@@ -176,6 +168,20 @@ def execution_binding(value: HarnessRunContract) -> HarnessExecutionBinding:
                 reference_id=value.harness_run_id,
                 generation="1",
                 digest=value.digest,
+            ),
+            HarnessRuntimeReference(
+                namespace="ordivon.harness",
+                reference_type="run_contract",
+                reference_id=f"harness-run-contract:{value.digest[7:31]}",
+                generation="1",
+                digest=value.digest,
+            ),
+            HarnessRuntimeReference(
+                namespace="ordivon.harness",
+                reference_type="tool_grant",
+                reference_id=f"tool-grant:{value.tool_grant_digest[7:31]}",
+                generation="1",
+                digest=value.tool_grant_digest,
             ),
         ),
     )
@@ -416,15 +422,8 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             value = contract("binding-preflight", tools=True)
             binding = execution_binding(value)
             invalid = HarnessExecutionBinding(
-                harness_run_id=binding.harness_run_id,
+                harness_run_id="harness-run:wrong-binding",
                 workspace_ref=binding.workspace_ref,
-                assignment_id=binding.assignment_id,
-                assignment_generation=2,
-                assignment_digest=binding.assignment_digest,
-                runtime_binding_digest=binding.runtime_binding_digest,
-                tool_catalog_digest=binding.tool_catalog_digest,
-                tool_grant_digest=binding.tool_grant_digest,
-                deadline_ms=binding.deadline_ms,
                 runtime_references=binding.runtime_references,
             )
             calls = 0
@@ -436,6 +435,46 @@ class R3SupportedAgentRunTests(unittest.TestCase):
 
             with self.assertRaisesRegex(
                 HarnessAgentRunCompositionError, "differs from the independent Run binding"
+            ):
+                HarnessAgentRun.create(
+                    root,
+                    value,
+                    provider_factory,
+                    execution_binding=invalid,
+                    runtime=FakeRuntime(),
+                )
+            self.assertEqual(calls, 0)
+            self.assertFalse(root.exists())
+
+    def test_runtime_contract_reference_mismatch_fails_before_provider_factory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            value = contract("binding-contract-ref-preflight", tools=True)
+            binding = execution_binding(value)
+            refs = tuple(
+                HarnessRuntimeReference(
+                    namespace=reference.namespace,
+                    reference_type=reference.reference_type,
+                    reference_id=reference.reference_id,
+                    generation=reference.generation,
+                    digest=(digest("wrong-contract-ref") if reference.reference_type == "run_contract" else reference.digest),
+                )
+                for reference in binding.runtime_references
+            )
+            invalid = HarnessExecutionBinding(
+                harness_run_id=binding.harness_run_id,
+                workspace_ref=binding.workspace_ref,
+                runtime_references=refs,
+            )
+            calls = 0
+
+            def provider_factory(_contract):
+                nonlocal calls
+                calls += 1
+                raise AssertionError("Provider factory must not run")
+
+            with self.assertRaisesRegex(
+                HarnessAgentRunCompositionError, "Contract reference differs"
             ):
                 HarnessAgentRun.create(
                     root,

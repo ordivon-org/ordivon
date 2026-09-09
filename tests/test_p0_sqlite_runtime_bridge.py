@@ -226,18 +226,6 @@ def execution_binding(
     return HarnessExecutionBinding(
         harness_run_id=run_contract.harness_run_id,
         workspace_ref=f"workspace:{run_contract.harness_run_id.removeprefix('harness-run:')}",
-        assignment_id=binding.assignment_id,
-        assignment_generation=binding.assignment_generation,
-        assignment_digest=binding.assignment_digest,
-        runtime_binding_digest=canonical_digest(
-            {
-                "harnessRunId": run_contract.harness_run_id,
-                "workspaceRef": "workspace:p0-independent-runtime",
-            }
-        ),
-        tool_catalog_digest=run_contract.tool_catalog_digest,
-        tool_grant_digest=run_contract.tool_grant_digest,
-        deadline_ms=run_contract.deadline_ms,
         runtime_references=references,
     )
 

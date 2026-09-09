@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, TypeAlias
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, validate_json_value
 
 from .completion import structured_completion_contract_digest
 from .core_contracts import HarnessRunContract
@@ -217,9 +217,7 @@ class HarnessAgentRun:
             binding = {
                 "supplied": True,
                 "proofRole": "process-local-and-contract-checked",
-                "bindingDigest": canonical_digest(self.execution_binding.to_dict()),
-                "toolCatalogDigest": self.execution_binding.tool_catalog_digest,
-                "toolGrantDigest": self.execution_binding.tool_grant_digest,
+                "bindingDigest": self.execution_binding.digest,
                 "runtimeReferenceCount": len(self.execution_binding.runtime_references),
             }
 
@@ -459,45 +457,41 @@ class HarnessAgentRun:
         contract: HarnessRunContract,
         execution_binding: HarnessExecutionBinding,
     ) -> None:
-        token = contract.digest[7:31]
-        if (
-            execution_binding.harness_run_id != contract.harness_run_id
-            or execution_binding.assignment_id != f"assignment:external:{token}"
-            or execution_binding.assignment_generation != 1
-            or execution_binding.assignment_digest != contract.digest
-        ):
+        if execution_binding.harness_run_id != contract.harness_run_id:
             raise HarnessAgentRunCompositionError(
                 "Harness Execution Binding differs from the independent Run binding"
             )
-        if (
-            execution_binding.tool_catalog_digest
-            != INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
-            or execution_binding.tool_catalog_digest != contract.tool_catalog_digest
-        ):
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding Tool catalog differs"
-            )
-        if (
-            execution_binding.tool_grant_digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-            or contract.tool_grant_digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-        ):
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding Tool Grant differs"
-            )
-        if execution_binding.deadline_ms != contract.deadline_ms:
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding deadline differs"
-            )
-        if not execution_binding.runtime_references:
+        references = execution_binding.runtime_references
+        if not references:
             raise HarnessAgentRunCompositionError(
                 "independent Runtime execution requires foreign references"
             )
-        if any(
-            reference.namespace != "ordivon.harness"
-            for reference in execution_binding.runtime_references
-        ):
+        if any(reference.namespace != "ordivon.harness" for reference in references):
             raise HarnessAgentRunCompositionError(
                 "independent Runtime execution may reference only ordivon.harness authority"
+            )
+        run_refs = [reference for reference in references if reference.reference_type == "harness_run"]
+        if len(run_refs) != 1 or run_refs[0].reference_id != contract.harness_run_id:
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Run reference differs"
+            )
+        contract_refs = [
+            reference for reference in references if reference.reference_type == "run_contract"
+        ]
+        if len(contract_refs) != 1 or contract_refs[0].digest != contract.digest:
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Contract reference differs"
+            )
+        grant_refs = [
+            reference for reference in references if reference.reference_type == "tool_grant"
+        ]
+        if (
+            len(grant_refs) != 1
+            or grant_refs[0].digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+            or contract.tool_grant_digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+        ):
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Tool Grant reference differs"
             )
 
 

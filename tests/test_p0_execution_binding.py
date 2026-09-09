@@ -24,13 +24,6 @@ def binding() -> HarnessExecutionBinding:
     return HarnessExecutionBinding(
         harness_run_id="harness-run:p0-execution-binding-001",
         workspace_ref="workspace:p0-execution-binding-001",
-        assignment_id="assignment:external:p0-execution-binding-001",
-        assignment_generation=1,
-        assignment_digest=DIGEST_A,
-        runtime_binding_digest=DIGEST_B,
-        tool_catalog_digest=DIGEST_C,
-        tool_grant_digest=DIGEST_D,
-        deadline_ms=20_000,
         runtime_references=(
             HarnessRuntimeReference(
                 namespace="ordivon.harness",
