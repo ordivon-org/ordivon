@@ -152,7 +152,7 @@ caller / domain / workflow / resource allocator
 
 Higher-level multi-Run planning, aggregate resource envelopes, profile discovery, Strategy rationale, prior-attempt accounting, successor selection, and retry policy are outside Harness. The former `HarnessExecutionMandate`, `HarnessExecutionProfile`, `HarnessExecutionStrategy`, `HarnessMandateConsumption`, `CompiledHarnessAttempt`, and `compile_harness_attempt()` layer is retired rather than preserved as a second orchestration/resource-allocation ontology.
 
-Harness now executes one current Agent-loop scheduling kernel. The experimental LoopDriver/morphology identity layer is retired because current authoritative state contains no bound LoopDriver records and no independent consumer selects an alternate mode. Explicit deliberate-then-tool behavior remains available through the separate `deliberation.py` composition rather than a second scheduling policy inside the core loop.
+Harness now executes one current Agent-loop scheduling kernel. The experimental LoopDriver/morphology identity layer is retired because current authoritative state contains no bound LoopDriver records and no independent consumer selects an alternate mode. Explicit deliberate-then-tool behavior is caller/domain composition: perform a no-Tool Agent turn under owner authority, retain whatever cognition evidence that owner chooses, then enter `DomainToolLoopRunner` with the exact Tool grant. Harness does not own a generic two-phase lifecycle or strategy policy.
 
 ## Self-change evidence and promotion authority
 

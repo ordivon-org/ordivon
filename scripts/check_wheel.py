@@ -85,6 +85,7 @@ REQUIRED_MEMBERS = {
 }
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/loop_driver.py",
+    "ordivon_harness/deliberation.py",
     "ordivon_harness/mandate.py",
     "ordivon_harness/strategy_selection.py",
     "ordivon_harness/claim_standing.py",

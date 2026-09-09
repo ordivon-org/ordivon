@@ -56,7 +56,7 @@ ordivon-harness capabilities
 
 Create one caller-authored `HarnessRunContract` JSON. Harness begins at that exact authority boundary; cross-Run planning, resource allocation, successor selection and retry policy are external.
 
-Harness uses one current sequential Agent-loop scheduling kernel. Workloads that need an explicit deliberation phase should compose the existing `deliberation.py` boundary rather than selecting an alternate LoopDriver/morphology.
+Harness uses one current sequential Agent-loop scheduling kernel. Workloads that need an explicit deliberation phase compose a caller/domain-owned no-Tool `AgentTurnRequest` and then pass the resulting cognition evidence into the retained `DomainToolLoopRunner`; Harness no longer owns a generic two-phase deliberation lifecycle helper.
 
 Create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Objective, Context, caller identity, Tool grant, budget or completion authority. The recommended API is closed over the values required for basic Contract authoring:
 
