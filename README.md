@@ -142,7 +142,7 @@ The current product includes:
 - `observation_tool_surface` as the application-local exact source-read composition; arbitrary non-default Tool surfaces no longer receive a generic Harness wrapper;
 - advanced `build_observation_tool_surface()` composition for observation-only `search_workspace + read_workspace`: callers bind exact readable path/digest authority and may additionally bind owner/authority/version/transport evidence. Exact immutable owner publications can be projected by one bound `subjectRef` only after complete-file digest verification; search projects object routing rather than treating matched lines as semantic authority, and Harness never mints owner truth;
 - durable `inspect` is the single exact Journal/CAS read view; CLI `explain` returns that same view plus explicit proof boundaries instead of maintaining a second workbench read model;
-- one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration does not get a second Harness envelope;
+- one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration and experimental loop-morphology selection do not get parallel Harness control planes;
 - caller-defined structured completion shapes, with optional Contract-bound local structural conformance verification while semantic/evidence admission remains outside Harness;
 - explicit non-support for a generic opaque Provider-continuation primitive in the contracted current core; Provider-local continuation remains integration-local unless new direct pressure earns a bounded surface;
 - conservative UNKNOWN handling: ambiguous Provider or Tool delivery is reconciled from durable evidence rather than blindly repeated.

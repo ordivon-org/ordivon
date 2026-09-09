@@ -32,7 +32,6 @@ EXPECTED_API = {
     "HarnessBoundReference",
     "HarnessCorrelationContext",
     "HarnessExecutionBinding",
-    "HarnessLoopDriverRef",
     "AgentToolDefinition",
     "DomainToolBridge",
     "DomainToolCatalog",
@@ -57,8 +56,6 @@ EXPECTED_API = {
     "NO_TOOL_AGENT_SURFACE_DIGEST",
     "IndependentCompletionProposal",
     "IndependentHarnessRunReceipt",
-    "DELIBERATE_THEN_ACT_LOOP_DRIVER",
-    "SEQUENTIAL_LOOP_DRIVER",
     "RunBudget",
     "RunStopCode",
     "STRUCTURED_COMPLETION_MODE",
@@ -87,6 +84,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
+    "ordivon_harness/loop_driver.py",
     "ordivon_harness/mandate.py",
     "ordivon_harness/strategy_selection.py",
     "ordivon_harness/claim_standing.py",

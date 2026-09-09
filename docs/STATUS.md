@@ -80,6 +80,8 @@ This page states current maturity. It does not replay the research sequence that
 
 ### Exact Run authority
 
+The experimental LoopDriver/morphology selection layer is retired. Current cross-repository DomainToolLoopRunner consumers all use the ordinary sequential loop, while explicit deliberation remains a separate composition rather than a core scheduling mode.
+
 The current product begins at one exact caller-authored `HarnessRunContract`. The former Mandate/Profile/Strategy/Consumption/CompiledAttempt layer is retired along with the generic Strategy-selection subsystem. Cross-Run evidence aggregation, aggregate resource allocation, profile discovery, successor selection and retry policy remain caller/domain/workflow or mature-orchestrator responsibilities.
 
 ## Retained laws from research

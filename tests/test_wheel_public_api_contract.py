@@ -8,6 +8,11 @@ from ordivon_harness import api
 from tests.test_public_api import EXPECTED_API as PUBLIC_TEST_API
 
 ROOT = Path(__file__).resolve().parents[1]
+RETIRED_LOOP_DRIVER_EXPORTS = {
+    "HarnessLoopDriverRef",
+    "DELIBERATE_THEN_ACT_LOOP_DRIVER",
+    "SEQUENTIAL_LOOP_DRIVER",
+}
 RETIRED_MANDATE_EXPORTS = {
     "CompiledHarnessAttempt",
     "HarnessExecutionMandate",
@@ -53,6 +58,16 @@ class WheelPublicApiContractTests(unittest.TestCase):
         self.assertEqual(source, set(PUBLIC_TEST_API))
         self.assertEqual(source, docs)
         self.assertEqual(source, wheel)
+
+    def test_retired_loop_driver_exports_do_not_resurrect(self) -> None:
+        projections = (
+            set(api.__all__),
+            set(PUBLIC_TEST_API),
+            _literal_set(ROOT / "scripts" / "check_docs.py", "STABLE_API"),
+            _literal_set(ROOT / "scripts" / "check_wheel.py", "EXPECTED_API"),
+        )
+        for projection in projections:
+            self.assertTrue(RETIRED_LOOP_DRIVER_EXPORTS.isdisjoint(projection))
 
     def test_retired_mandate_exports_do_not_resurrect(self) -> None:
         projections = (

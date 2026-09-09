@@ -1,5 +1,8 @@
 # E0–E7 — Agent Morphology Engineering
 
+> **Current supersession:** the experimental LoopDriver/morphology selection layer described below is now retired from current product code. No current authoritative state or independent external caller uses it; explicit deliberation is composed separately. The material below is retained as historical evidence only.
+
+
 Status: engineering candidate. Research AM0–AM8 remains the evidence basis; this document defines the retained product boundary.
 
 ## E0 — Responsibility boundary

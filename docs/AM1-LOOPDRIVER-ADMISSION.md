@@ -1,5 +1,8 @@
 # AM1 — LoopDriver Admission-Time Plasticity
 
+> **Current supersession:** the experimental LoopDriver/morphology selection layer described below is now retired from current product code. No current authoritative state or independent external caller uses it; explicit deliberation is composed separately. The material below is retained as historical evidence only.
+
+
 > **Historical note:** this document records the experiment at its original cut. The current product has since retired the Mandate/Profile/CompiledAttempt layer; the surviving result is direct exact system-manifest binding through `HarnessRunContract` and `HarnessLoopDriverIdentity.from_contract_manifest()`.
 
 

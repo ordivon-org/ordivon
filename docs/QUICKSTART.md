@@ -56,7 +56,7 @@ ordivon-harness capabilities
 
 Create one caller-authored `HarnessRunContract` JSON. Harness begins at that exact authority boundary; cross-Run planning, resource allocation, successor selection and retry policy are external.
 
-For bounded built-in cognition scheduling, an external system manifest may declare a typed `HarnessLoopDriverRef`. Bind the complete manifest digest into `HarnessRunContract.system_manifest_ref`, then use `HarnessLoopDriverIdentity.from_contract_manifest()` when constructing the in-process Runner. The stable facade publishes `SEQUENTIAL_LOOP_DRIVER` and `DELIBERATE_THEN_ACT_LOOP_DRIVER`; these identities do not load arbitrary code, expand Tool authority, or enable live HMR.
+Harness uses one current sequential Agent-loop scheduling kernel. Workloads that need an explicit deliberation phase should compose the existing `deliberation.py` boundary rather than selecting an alternate LoopDriver/morphology.
 
 Create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Objective, Context, caller identity, Tool grant, budget or completion authority. The recommended API is closed over the values required for basic Contract authoring:
 

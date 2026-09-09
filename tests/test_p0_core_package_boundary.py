@@ -45,6 +45,13 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(observed["atlasBridgeSpec"])
 
+    def test_retired_loop_driver_module_is_absent(self) -> None:
+        observed = self.run_probe(
+            "import importlib.util,json; "
+            "print(json.dumps({'loopDriver':importlib.util.find_spec('ordivon_harness.loop_driver') is not None}))"
+        )
+        self.assertFalse(observed["loopDriver"])
+
     def test_retired_mandate_module_is_absent(self) -> None:
         observed = self.run_probe(
             "import importlib.util,json; "

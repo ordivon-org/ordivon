@@ -24,12 +24,6 @@ from .core_contracts import (
 )
 from .execution_binding import HarnessExecutionBinding, HarnessRuntimeReference
 from .independent_result import IndependentCompletionProposal, IndependentHarnessRunReceipt
-from .loop_driver import (
-    DELIBERATE_THEN_ACT_LOOP_DRIVER,
-    SEQUENTIAL_LOOP_DRIVER,
-    HarnessLoopDriverRef,
-)
-
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from .ordivon.loop import RunBudget, RunStopCode
 from .ordivon.model import AgentTurnAdapter, AgentTurnRequest, AgentTurnResult
@@ -89,7 +83,6 @@ __all__ = [
     "HarnessBoundReference",
     "HarnessCorrelationContext",
     "HarnessExecutionBinding",
-    "HarnessLoopDriverRef",
     "AgentToolDefinition",
     "DomainToolBridge",
     "DomainToolCatalog",
@@ -111,8 +104,6 @@ __all__ = [
     "NO_TOOL_AGENT_SURFACE_DIGEST",
     "IndependentCompletionProposal",
     "IndependentHarnessRunReceipt",
-    "DELIBERATE_THEN_ACT_LOOP_DRIVER",
-    "SEQUENTIAL_LOOP_DRIVER",
     "RunBudget",
     "RunStopCode",
     "STRUCTURED_COMPLETION_MODE",
