@@ -309,17 +309,9 @@ class DistributionTests(unittest.TestCase):
 
     def test_natural_episode_revalidates_provider_outcome_instead_of_trusting_caller_fields(self) -> None:
         plan = _plan("x", "publish_text")
-        forged = {
-            "kind": "ordivon.media.distribution-outcome-evidence",
-            "carrierId": plan["carrierId"],
-            "effect": plan["effect"],
-            "deliveryKey": plan["deliveryKey"],
-            "artifactDigest": plan["artifactDigest"],
-            "acceptedCarrierEffect": True,
-            "observedAtMs": 2000,
-            "evidenceDigest": "not-a-digest",
-        }
-        with self.assertRaisesRegex(ValueError, "provider receipt missing fields|canonical verified provider outcome"):
+        forged = dict(_outcome(plan))
+        forged["evidenceDigest"] = "not-a-digest"
+        with self.assertRaisesRegex(ValueError, "canonical verified provider outcome"):
             bind_natural_episode(
                 plan=plan, outcome=forged, goal_relevance="real release",
                 initiated_for="release-announcement", user_authorized_at_ms=1000,
