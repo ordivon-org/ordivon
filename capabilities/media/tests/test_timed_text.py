@@ -2,14 +2,29 @@ from __future__ import annotations
 
 import unittest
 
-from ordivon_studio.timed_text import export_srt, export_webvtt
+from ordivon_studio.timed_text import export_srt, export_webvtt, validate_timed_text_delivery
 
 
 DOCUMENT = {
+    "language": "en",
     "timeBase": {"ticksPerSecond": 1000},
     "cues": [
-        {"id": "cue-1", "startTick": 0, "endTick": 1250, "text": "First"},
-        {"id": "cue-2", "startTick": 1500, "endTick": 3000, "text": "Second"},
+        {
+            "id": "cue-1",
+            "startTick": 0,
+            "endTick": 1250,
+            "text": "First",
+            "status": "locked",
+            "kind": "dialogue",
+        },
+        {
+            "id": "cue-2",
+            "startTick": 1500,
+            "endTick": 3000,
+            "text": "Second",
+            "status": "locked",
+            "kind": "caption",
+        },
     ],
 }
 
@@ -30,6 +45,32 @@ class TimedTextTests(unittest.TestCase):
         document = {"timeBase": {"ticksPerSecond": 1000}, "cues": [DOCUMENT["cues"][0], DOCUMENT["cues"][0]]}
         with self.assertRaises(ValueError):
             export_webvtt(document)
+
+    def test_delivery_validation_binds_locked_cues_to_media_duration(self) -> None:
+        result = validate_timed_text_delivery(DOCUMENT, media_duration_seconds="3.000")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["lastCueEndTick"], 3000)
+        self.assertEqual(result["mediaDurationTicks"], "3000")
+        self.assertEqual(result["semanticCaptionCoverage"], "not-evaluated")
+
+    def test_delivery_validation_rejects_overrun_and_provisional_cue(self) -> None:
+        document = {
+            **DOCUMENT,
+            "cues": [
+                DOCUMENT["cues"][0],
+                {**DOCUMENT["cues"][1], "endTick": 3200, "status": "provisional"},
+            ],
+        }
+        result = validate_timed_text_delivery(document, media_duration_seconds="3.000")
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("after media duration" in error for error in result["errors"]))
+        self.assertTrue(any("not locked" in error for error in result["errors"]))
+
+    def test_delivery_validation_rejects_non_delivery_kind(self) -> None:
+        document = {**DOCUMENT, "cues": [{**DOCUMENT["cues"][0], "kind": "chapter"}]}
+        result = validate_timed_text_delivery(document, media_duration_seconds="3")
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("allowed delivery kinds" in error for error in result["errors"]))
 
 
 if __name__ == "__main__":

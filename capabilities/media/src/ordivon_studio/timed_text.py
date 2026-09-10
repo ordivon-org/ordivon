@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Any, Iterable
 
 
@@ -48,6 +49,60 @@ def _validated_cues(document: dict[str, Any]) -> tuple[int, list[Cue]]:
         previous_start = start
         cues.append(Cue(cue_id, start, end, text))
     return ticks_per_second, cues
+
+
+def validate_timed_text_delivery(
+    document: dict[str, Any],
+    *,
+    media_duration_seconds: str,
+    require_locked: bool = True,
+    require_nonempty_text: bool = True,
+    allowed_kinds: tuple[str, ...] = ("dialogue", "caption"),
+) -> dict[str, object]:
+    """Mechanically validate one TimedText source against an exact media duration.
+
+    This does not claim WCAG semantic completeness. It proves only structural and
+    temporal delivery facts that software can establish without inventing audience or
+    content meaning.
+    """
+    ticks_per_second, cues = _validated_cues(document)
+    try:
+        duration = Fraction(media_duration_seconds)
+    except (ValueError, ZeroDivisionError) as error:
+        raise ValueError(f"invalid media duration: {media_duration_seconds!r}") from error
+    if duration < 0:
+        raise ValueError("media duration must be non-negative")
+    media_duration_ticks = duration * ticks_per_second
+
+    errors: list[str] = []
+    raw_cues = document.get("cues", [])
+    for cue, raw in zip(cues, raw_cues, strict=True):
+        if cue.end_tick > media_duration_ticks:
+            errors.append(
+                f"cue {cue.cue_id} ends at tick {cue.end_tick} after media duration {media_duration_ticks}"
+            )
+        if require_nonempty_text and not cue.text.strip():
+            errors.append(f"cue {cue.cue_id} has empty delivery text")
+        if require_locked and raw.get("status") != "locked":
+            errors.append(f"cue {cue.cue_id} is not locked for delivery")
+        kind = raw.get("kind")
+        if allowed_kinds and kind not in allowed_kinds:
+            errors.append(
+                f"cue {cue.cue_id} kind {kind!r} is not in allowed delivery kinds {allowed_kinds!r}"
+            )
+
+    return {
+        "ok": not errors,
+        "language": document.get("language"),
+        "ticksPerSecond": ticks_per_second,
+        "cueCount": len(cues),
+        "firstCueStartTick": cues[0].start_tick if cues else None,
+        "lastCueEndTick": cues[-1].end_tick if cues else None,
+        "mediaDurationTicks": str(media_duration_ticks),
+        "mechanicalCoverage": "evaluated",
+        "semanticCaptionCoverage": "not-evaluated",
+        "errors": errors,
+    }
 
 
 def _milliseconds(tick: int, ticks_per_second: int) -> int:

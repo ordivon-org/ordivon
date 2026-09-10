@@ -13,10 +13,10 @@ from .assets import (
     r2_object_key,
 )
 from .production_context import build_production_context
-from .qc import validate_video_probe
+from .qc import measure_loudness, validate_loudness, validate_video_probe
 from .r2 import replicate_r2_blob, restore_r2_blob
 from .review import build_video_review_packet
-from .timed_text import export_srt, export_webvtt
+from .timed_text import export_srt, export_webvtt, validate_timed_text_delivery
 from .video import normalize_h264_bt709
 from .ecology import (
     collection_feed_item,
@@ -111,7 +111,34 @@ def _command_qc_video(args: argparse.Namespace) -> int:
         color_space=args.color_space,
         color_range=args.color_range,
         expect_audio=args.expect_audio,
+        audio_stream_count=args.audio_stream_count,
+        audio_codec=args.audio_codec,
+        audio_sample_rate=args.audio_sample_rate,
+        audio_channels=args.audio_channels,
+        audio_channel_layout=args.audio_channel_layout,
+        audio_stream_index=args.audio_stream_index,
     )
+    loudness = None
+    loudness_requested = args.loudness_target_lufs is not None or args.max_true_peak_dbtp is not None
+    if loudness_requested:
+        streams = probe.get("streams", [])
+        has_audio = isinstance(streams, list) and any(
+            isinstance(stream, dict) and stream.get("codec_type") == "audio" for stream in streams
+        )
+        if not args.expect_audio:
+            errors.append("loudness expectations require --expect-audio")
+        elif not has_audio:
+            errors.append("loudness measurement requires an audio stream")
+        else:
+            loudness = measure_loudness(path, args.ffmpeg)
+            errors.extend(
+                validate_loudness(
+                    loudness,
+                    target_lufs=args.loudness_target_lufs,
+                    tolerance_lu=args.loudness_tolerance_lu,
+                    max_true_peak_dbtp=args.max_true_peak_dbtp,
+                )
+            )
     _write_json(
         {
             "ok": not errors,
@@ -125,7 +152,17 @@ def _command_qc_video(args: argparse.Namespace) -> int:
                 "colorSpace": args.color_space,
                 "colorRange": args.color_range,
                 "expectAudio": args.expect_audio,
+                "audioStreamCount": args.audio_stream_count,
+                "audioStreamIndex": args.audio_stream_index,
+                "audioCodec": args.audio_codec,
+                "audioSampleRate": args.audio_sample_rate,
+                "audioChannels": args.audio_channels,
+                "audioChannelLayout": args.audio_channel_layout,
+                "loudnessTargetLufs": args.loudness_target_lufs,
+                "loudnessToleranceLu": args.loudness_tolerance_lu if loudness_requested else None,
+                "maxTruePeakDbtp": args.max_true_peak_dbtp,
             },
+            "loudness": loudness,
             "errors": errors,
         }
     )
@@ -182,6 +219,34 @@ def _command_timed_text(args: argparse.Namespace) -> int:
     else:
         sys.stdout.write(rendered)
     return 0
+
+
+def _command_qc_timed_text(args: argparse.Namespace) -> int:
+    source_path = Path(args.input)
+    media_path = Path(args.media)
+    document = json.loads(source_path.read_text(encoding="utf-8"))
+    probe = probe_media(media_path, args.ffprobe)
+    format_data = probe.get("format")
+    if not isinstance(format_data, dict) or not isinstance(format_data.get("duration"), str):
+        raise ValueError("ffprobe result does not contain an exact format.duration string")
+    result = validate_timed_text_delivery(
+        document,
+        media_duration_seconds=format_data["duration"],
+        require_locked=not args.allow_provisional,
+    )
+    _write_json(
+        {
+            "ok": result["ok"],
+            "timedTextBlob": hash_file(source_path).as_dict(),
+            "mediaBlob": hash_file(media_path).as_dict(),
+            "delivery": result,
+            "truthBoundary": (
+                "Mechanical cue/timing delivery was evaluated. Semantic caption completeness, "
+                "audio-description need, audience comprehension, and WCAG outcome remain not evaluated."
+            ),
+        }
+    )
+    return 0 if result["ok"] else 1
 
 
 def _parse_source_repositories(values: list[str]) -> dict[str, Path]:
@@ -494,7 +559,17 @@ def build_parser() -> argparse.ArgumentParser:
     audio_group = qc_parser.add_mutually_exclusive_group(required=True)
     audio_group.add_argument("--expect-audio", action="store_true")
     audio_group.add_argument("--no-audio", action="store_false", dest="expect_audio")
+    qc_parser.add_argument("--audio-stream-count", type=int)
+    qc_parser.add_argument("--audio-stream-index", type=int, default=0)
+    qc_parser.add_argument("--audio-codec")
+    qc_parser.add_argument("--audio-sample-rate", type=int)
+    qc_parser.add_argument("--audio-channels", type=int)
+    qc_parser.add_argument("--audio-channel-layout")
+    qc_parser.add_argument("--loudness-target-lufs", type=float)
+    qc_parser.add_argument("--loudness-tolerance-lu", type=float, default=1.0)
+    qc_parser.add_argument("--max-true-peak-dbtp", type=float)
     qc_parser.add_argument("--ffprobe", default="/usr/bin/ffprobe")
+    qc_parser.add_argument("--ffmpeg", default="/usr/bin/ffmpeg")
     qc_parser.set_defaults(handler=_command_qc_video)
 
     review_parser = commands.add_parser("review-video", help="build disposable technical and keyframe evidence for one rendered Production video")
@@ -519,6 +594,15 @@ def build_parser() -> argparse.ArgumentParser:
     timed_parser.add_argument("--format", choices=["vtt", "srt"], required=True)
     timed_parser.add_argument("--output")
     timed_parser.set_defaults(handler=_command_timed_text)
+
+    timed_qc_parser = commands.add_parser(
+        "qc-timed-text", help="verify mechanical TimedText delivery against one exact media file"
+    )
+    timed_qc_parser.add_argument("input")
+    timed_qc_parser.add_argument("--media", required=True)
+    timed_qc_parser.add_argument("--allow-provisional", action="store_true")
+    timed_qc_parser.add_argument("--ffprobe", default="/usr/bin/ffprobe")
+    timed_qc_parser.set_defaults(handler=_command_qc_timed_text)
 
     production_context_parser = commands.add_parser(
         "production-context",
