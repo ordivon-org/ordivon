@@ -281,6 +281,51 @@ class DistributionTests(unittest.TestCase):
                 initiated_for="release-announcement", user_authorized_at_ms=1000,
             )
 
+    def test_stale_outcome_cannot_satisfy_new_occurrence_identity_dimensions(self) -> None:
+        old = _plan("x", "publish_text", index=1)
+        old_outcome = _outcome(old)
+        variants = [
+            _plan("x", "publish_text", index=2),
+            plan_delivery(
+                carrier_id="x", effect="publish_text",
+                granted_authorities=_authorities("x", "publish_text"),
+                explicit_user_authority=True, execution_mode="api",
+                account_identity="account:x:opaque", artifact_digest=OTHER_DIGEST,
+                intent_id=str(old["intentId"]),
+            ),
+            _plan("x", "delete", index=1),
+            plan_delivery(
+                carrier_id="x", effect="publish_text",
+                granted_authorities=_authorities("x", "publish_text"),
+                explicit_user_authority=True, execution_mode="api",
+                account_identity="account:x:other", artifact_digest=DIGEST,
+                intent_id=str(old["intentId"]),
+            ),
+        ]
+        for current in variants:
+            with self.assertRaisesRegex(ValueError, "plan and outcome (deliveryKey|effect) differ"):
+                bind_natural_episode(
+                    plan=current, outcome=old_outcome, goal_relevance="new desired occurrence",
+                    initiated_for="release-announcement", user_authorized_at_ms=1000,
+                )
+
+    def test_later_delete_does_not_erase_historical_publication_occurrence(self) -> None:
+        published = _plan("x", "publish_text", index=1)
+        published_episode = bind_natural_episode(
+            plan=published, outcome=_outcome(published), goal_relevance="real release",
+            initiated_for="release-announcement", user_authorized_at_ms=1000,
+        )
+        deletion = _plan("x", "delete", index=2)
+        deleted_episode = bind_natural_episode(
+            plan=deletion, outcome=_outcome(deletion, state="deleted", observed_at_ms=3000),
+            goal_relevance="real correction", initiated_for="real-correction",
+            user_authorized_at_ms=2000,
+        )
+        self.assertEqual(published_episode["effect"], "publish_text")
+        self.assertEqual(deleted_episode["effect"], "delete")
+        self.assertNotEqual(published_episode["deliveryKey"], deleted_episode["deliveryKey"])
+        self.assertNotEqual(published_episode["episodeDigest"], deleted_episode["episodeDigest"])
+
     def test_natural_episode_rejects_artifact_or_occurrence_mismatch(self) -> None:
         plan = _plan("x", "publish_text")
         wrong_artifact = _outcome(plan, artifact_digest=OTHER_DIGEST)

@@ -49,6 +49,12 @@ Distribution does not own a generic retry-state machine before a real dispatch c
 
 Every public/destructive plan must bind an exact occurrence before dispatch: opaque account identity + exact artifact digest + effect + intent ID. The resulting `delivery_key` is carried into provider observations and natural-episode evidence. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency. A provider outcome with a different delivery key or artifact digest cannot be reused to satisfy the plan.
 
+### Supersession and current desired state
+
+A Distribution plan is an immutable effect occurrence, not a mutable desired-spec object. Changing the intended occurrence requires a new exact identity coordinate (for example a new `intentId`, artifact, effect, or account), which changes the `delivery_key`; an outcome from the old occurrence therefore cannot satisfy the new plan. A later correction/delete/withdrawal is a new exact occurrence and does not erase the historical fact that an earlier provider effect occurred.
+
+Distribution deliberately does not define its own `desiredRevision`, `generation`, or `observedGeneration` field. Those mechanisms are appropriate at an owner that actually maintains mutable desired state (analogous to conditional-update/resource-generation patterns); that owner must fence stale state before selecting the exact Distribution plan. The local `delivery_key` remains occurrence identity only and must not be promoted into a provider precondition, provider idempotency token, or global currentness authority.
+
 ## Acceptance
 
 The narrow carrier acceptance boundary requires:
