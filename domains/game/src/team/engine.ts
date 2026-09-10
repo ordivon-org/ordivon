@@ -119,7 +119,6 @@ export class TeamHost {
   readonly game: GameStore;
   readonly team: TeamStore;
   readonly execution: TeamExecutionStore;
-  readonly contract: { contracts: TeamExecutionStore["authority"]["contracts"] };
   readonly policyMode: AuthorityPolicyMode;
   readonly ownerId: string;
   readonly tokenBudget: number;
@@ -134,7 +133,6 @@ export class TeamHost {
     this.game = game;
     this.team = new TeamStore(game);
     this.execution = new TeamExecutionStore(this.team);
-    this.contract = { contracts: this.execution.authority.contracts };
     this.providers = providers;
     this.policyMode = options.policyMode ?? "autonomous";
     this.ownerId = options.ownerId ?? `team-host:${process.pid}`;

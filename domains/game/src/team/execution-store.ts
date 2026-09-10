@@ -1,15 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "../digest.ts";
-import { protocolDigest, type ProtocolJson } from "../host-contract/canonical.ts";
 import type { GameStore } from "../storage.ts";
-import { EmbeddedHostAuthority } from "../host-contract/embedded-authority.ts";
-import type {
-  DispatchEnvelope,
-  ObservationEnvelope,
-  TaskDescriptor,
-  VerificationReceipt,
-} from "../host-contract/model.ts";
+import { EmbeddedTeamCommitmentBridge } from "./commitment-bridge.ts";
 import type {
   ActionProposal,
   TeamContextReference,
@@ -19,7 +12,7 @@ import type {
   TeamRound,
   TeamTickPlan,
 } from "./model.ts";
-import { TeamStore, TeamStoreError, coordinatorTaskId } from "./store.ts";
+import { TeamStore, TeamStoreError } from "./store.ts";
 
 interface JsonRow { value_json: string }
 
@@ -63,41 +56,17 @@ function proposalSemanticJson(proposal: ActionProposal): string {
   return canonicalJson(semantic);
 }
 
-function protocolSafe(value: unknown): ProtocolJson {
-  if (value === null || typeof value === "boolean" || typeof value === "string") return value;
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) throw new TypeError("non-finite Team value cannot enter Protocol");
-    return Number.isSafeInteger(value) ? value : value.toString();
-  }
-  if (Array.isArray(value)) return value.map(protocolSafe);
-  if (typeof value === "object") return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .filter(([, item]) => item !== undefined)
-      .map(([key, item]) => [key, protocolSafe(item)]),
-  );
-  throw new TypeError(`unsupported Team value: ${typeof value}`);
-}
-
-function authorityTaskId(roundId: string): string {
-  return `task:team-round:${roundId.slice("team-round:".length)}`;
-}
-function wireEffectId(effectId: string): string {
-  return effectId.startsWith("effect:") ? effectId : `effect:${effectId}`;
-}
-function wireDispatchId(dispatchId: string): string {
-  return dispatchId.startsWith("dispatch:") ? dispatchId : `dispatch:${dispatchId}`;
-}
 
 export class TeamExecutionStore {
   readonly db: DatabaseSync;
   readonly team: TeamStore;
-  readonly authority: EmbeddedHostAuthority;
+  readonly authority: EmbeddedTeamCommitmentBridge;
   private readonly pendingEffects = new Map<string, TeamEffect>();
 
   constructor(team: TeamStore) {
     this.team = team;
     this.db = team.db;
-    this.authority = new EmbeddedHostAuthority(team.game);
+    this.authority = new EmbeddedTeamCommitmentBridge(team);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS team_rounds (
         round_id TEXT PRIMARY KEY,
@@ -239,8 +208,7 @@ export class TeamExecutionStore {
     if (round.status !== "completed") {
       throw new TeamStoreError("team_conflict", "only a completed Team Round can reconcile authority");
     }
-    const taskId = authorityTaskId(round.roundId);
-    const projection = this.authority.projection(round.runId, taskId);
+    const projection = this.authority.projection(round.runId, round.roundId);
     if (projection.state === "completed") return;
     if (projection.state === "failed" || projection.state === "cancelled") {
       throw new TeamStoreError("team_corrupt", `completed Team Round has terminal Authority state ${projection.state}`);
@@ -350,52 +318,24 @@ export class TeamExecutionStore {
     if (pending) return pending;
     const round = this.allRounds().find((candidate) => candidate.effectId === effectId);
     if (!round) throw new Error(`unknown Team Effect: ${effectId}`);
-    const artifact = this.authority.relatedObjects(round.runId, authorityTaskId(round.roundId)).find((item) => item.kind === "ordivon.game.team-tick-effect");
-    if (!artifact || typeof artifact.content !== "object" || artifact.content === null || Array.isArray(artifact.content)) throw new Error(`Team Effect Artifact is missing: ${effectId}`);
-    const { schemaVersion: _schemaVersion, kind: _kind, ...effect } = artifact.content;
-    const projection = this.authority.projection(round.runId, authorityTaskId(round.roundId));
-    const status = projection.state === "failed" ? "rejected" : projection.state === "ready" ? "prepared" : projection.state === "reconciling" ? "dispatched" : "succeeded";
-    const domainEffectId = round.effectId;
-    if (!domainEffectId) throw new Error(`Team Round omitted Effect identity: ${round.roundId}`);
-    return { ...(effect as unknown as TeamEffect), effectId: domainEffectId, status, updatedAt: round.updatedAt };
+    return this.authority.relatedEffect(round);
   }
   saveEffect(effect: TeamEffect, _eventType: string): TeamEffect {
     return { ...this.getEffect(effect.effectId), status: effect.status, updatedAt: effect.updatedAt };
   }
 
   putDispatch(dispatch: TeamDispatch): TeamDispatch {
-    const round = this.getRound(dispatch.roundId);
     const plan = this.getTickPlan(dispatch.tickPlanId);
     const effect = this.pendingEffects.get(dispatch.effectId);
     if (!effect) throw new Error(`Team Effect must be prepared before Dispatch: ${dispatch.effectId}`);
-    const taskId = authorityTaskId(round.roundId);
-    const descriptor: TaskDescriptor = {
-      schemaVersion: 1, kind: "ordivon.host-task-descriptor", taskId,
-      goalId: this.team.getGoal(dispatch.runId).goalId,
-      workloadId: "ordivon.game.team-tick.v1",
-      assigneeRef: `coordinator:${coordinatorTaskId(dispatch.runId)}`,
-      providerPolicyRef: null, domainRef: `game-run:${dispatch.runId}`,
-      configurationDigests: [protocolDigest(protocolSafe(plan))],
-    };
-    this.authority.ensureTask(dispatch.runId, descriptor);
-    const request = { schemaVersion: 1, kind: "ordivon.game.team-tick-request", runId: dispatch.runId, roundId: dispatch.roundId, tickPlan: protocolSafe(plan) } satisfies ProtocolJson;
-    const wireEffect = { schemaVersion: 1, kind: "ordivon.game.team-tick-effect", ...protocolSafe(effect) as Record<string, ProtocolJson>, effectId: wireEffectId(effect.effectId) } satisfies ProtocolJson;
-    const envelope: DispatchEnvelope = {
-      schemaVersion: 1, kind: "ordivon.dispatch-envelope",
-      dispatchId: wireDispatchId(dispatch.dispatchId), effectId: wireEffectId(effect.effectId),
-      executorId: "executor:game-world-v1", requestDigest: protocolDigest(request),
-      idempotencyKey: dispatch.commandId,
-      requiredStateRefs: [{ ref: `game-world:${dispatch.runId}`, digest: effect.requiredWorldDigest.startsWith("sha256:") ? effect.requiredWorldDigest as `sha256:${string}` : `sha256:${effect.requiredWorldDigest}` }],
-      expectedObservationKind: "ordivon.game.team-tick-observation.v1",
-    };
-    this.authority.prepare(dispatch.runId, taskId, wireEffect, request as Record<string, ProtocolJson>, envelope);
+    this.authority.prepare(dispatch, effect, plan);
     this.pendingEffects.delete(effect.effectId);
     return dispatch;
   }
   getDispatch(dispatchId: string): TeamDispatch {
     const round = this.allRounds().find((candidate) => candidate.dispatchId === dispatchId);
     if (!round || !round.effectId || !round.tickPlanId) throw new Error(`unknown Team Dispatch: ${dispatchId}`);
-    const projection = this.authority.projection(round.runId, authorityTaskId(round.roundId));
+    const projection = this.authority.projection(round.runId, round.roundId);
     const observation = this.findObservationForRound(round.roundId);
     return {
       dispatchId, effectId: round.effectId, roundId: round.roundId, runId: round.runId,
@@ -412,29 +352,10 @@ export class TeamExecutionStore {
   }
 
   findObservationForRound(roundId: string): TeamObservation | null {
-    const round = this.getRound(roundId);
-    if (!round.dispatchId) return null;
-    let envelope: ObservationEnvelope;
-    try { envelope = this.authority.observation(round.runId, authorityTaskId(roundId)); }
-    catch { return null; }
-    const evidence = envelope.evidenceRefs[0];
-    if (!evidence) return null;
-    const artifact = this.team.host.getProtocolArtifact<ProtocolJson>(evidence.digest);
-    if (typeof artifact.content !== "object" || artifact.content === null || Array.isArray(artifact.content)) return null;
-    const { schemaVersion: _schemaVersion, kind: _kind, ...value } = artifact.content;
-    return value as unknown as TeamObservation;
+    return this.authority.findObservation(this.getRound(roundId));
   }
   putObservation(observation: TeamObservation): TeamObservation {
-    const payload = { schemaVersion: 1, kind: "ordivon.game.team-tick-observation.v1", ...protocolSafe(observation) as Record<string, ProtocolJson> } satisfies ProtocolJson;
-    const artifact = this.team.host.putProtocolArtifact("ordivon.game.team-tick-observation.v1", payload);
-    const envelope: ObservationEnvelope = {
-      schemaVersion: 1, kind: "ordivon.observation-envelope",
-      dispatchId: wireDispatchId(observation.dispatchId), executorId: "executor:game-world-v1",
-      status: observation.verificationSuccess ? "succeeded" : "rejected",
-      payloadDigest: protocolDigest(payload),
-      evidenceRefs: [{ ref: observation.worldEventId, kind: "game-world-event", digest: artifact.digest as `sha256:${string}` }],
-    };
-    this.authority.recordObservation(observation.runId, authorityTaskId(observation.roundId), envelope);
+    this.authority.recordObservation(observation);
     return observation;
   }
 
@@ -502,53 +423,9 @@ export class TeamExecutionStore {
   }
 
   private completeAuthority(round: TeamRound): void {
-    const taskId = authorityTaskId(round.roundId);
-    const observation = this.findObservationForRound(round.roundId);
-    if (!observation) throw new Error(`Team Round has no authority Observation: ${round.roundId}`);
-    const envelope = this.authority.observation(round.runId, taskId);
-    const proposals = this.listProposals(round.roundId);
-    const verified = new Set(observation.verifiedIntentCommandIds);
-    const receipt: VerificationReceipt = {
-      schemaVersion: 1, kind: "ordivon.verification-receipt", dispatchId: envelope.dispatchId,
-      method: "game-team-tick.v1", accepted: observation.verificationSuccess,
-      observationDigest: protocolDigest(envelope),
-      resultItems: proposals.map((proposal) => ({
-        subjectRef: proposal.actorTaskId,
-        decisionDigest: protocolDigest(protocolSafe(proposal)),
-        status: verified.has(proposal.command.commandId) ? "succeeded" : "rejected",
-        reason: verified.has(proposal.command.commandId) ? null : proposal.rejectionReason ?? "not_executed",
-        evidenceDigest: envelope.payloadDigest,
-      })),
-    };
-    const verifiedProjection = this.authority.recordVerification(round.runId, taskId, receipt);
-    this.authority.complete(round.runId, taskId, {
-      schemaVersion: 1, kind: "ordivon.task-outcome", taskId,
-      goalId: this.team.getGoal(round.runId).goalId,
-      status: observation.verificationSuccess ? "completed" : "failed",
-      verificationDigest: verifiedProjection.verificationDigest!, artifactRefs: [],
-    });
+    this.authority.complete(round, this.listProposals(round.roundId));
   }
   private rejectAuthority(dispatch: TeamDispatch, reason: string): void {
-    const taskId = authorityTaskId(dispatch.roundId);
-    const projection = this.authority.projection(dispatch.runId, taskId);
-    if (projection.state !== "reconciling") return;
-    const payload = { schemaVersion: 1, kind: "ordivon.game.team-tick-rejection", reason } satisfies ProtocolJson;
-    const observation: ObservationEnvelope = {
-      schemaVersion: 1, kind: "ordivon.observation-envelope",
-      dispatchId: wireDispatchId(dispatch.dispatchId), executorId: "executor:game-world-v1",
-      status: "rejected", payloadDigest: protocolDigest(payload), evidenceRefs: [],
-    };
-    this.authority.recordObservation(dispatch.runId, taskId, observation);
-    const receipt: VerificationReceipt = {
-      schemaVersion: 1, kind: "ordivon.verification-receipt",
-      dispatchId: observation.dispatchId, method: "game-team-tick.v1", accepted: false,
-      observationDigest: protocolDigest(observation), resultItems: [],
-    };
-    const verified = this.authority.recordVerification(dispatch.runId, taskId, receipt);
-    this.authority.complete(dispatch.runId, taskId, {
-      schemaVersion: 1, kind: "ordivon.task-outcome", taskId,
-      goalId: this.team.getGoal(dispatch.runId).goalId, status: "failed",
-      verificationDigest: verified.verificationDigest!, artifactRefs: [],
-    });
+    this.authority.reject(dispatch, reason);
   }
 }

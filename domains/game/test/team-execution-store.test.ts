@@ -148,8 +148,8 @@ test("a stale completed writer cannot complete Authority after another Round hea
     }
     assert.ok(round);
     assert.equal(round.status, "observed");
-    const taskId = `task:team-round:${round.roundId.slice("team-round:".length)}`;
-    assert.equal(host.execution.authority.projection(runId, taskId).state, "verifying");
+    const commitmentRoundId = round.roundId;
+    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
     const blocked = host.execution.saveRound(
       round,
       { ...round, status: "blocked", blocker: "audit-winner", updatedAt: "2026-08-01T00:00:07.000Z" },
@@ -164,7 +164,7 @@ test("a stale completed writer cannot complete Authority after another Round hea
       ),
       (error: unknown) => error instanceof TeamStoreError && error.code === "team_conflict" && /superseded/.test(error.message),
     );
-    assert.equal(host.execution.authority.projection(runId, taskId).state, "verifying");
+    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
   } finally {
     game.close();
   }
@@ -202,11 +202,11 @@ test("a retained completed Round reconciles missing Authority completion", async
         completed.updatedAt,
       );
     });
-    const taskId = `task:team-round:${round.roundId.slice("team-round:".length)}`;
-    assert.equal(host.execution.authority.projection(runId, taskId).state, "verifying");
+    const commitmentRoundId = round.roundId;
+    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
     const receipt = await host.step(runId);
     assert.ok(["initialized", "stable"].includes(receipt.status));
-    assert.equal(host.execution.authority.projection(runId, taskId).state, "completed");
+    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "completed");
     host.execution.verify(runId);
   } finally {
     game.close();

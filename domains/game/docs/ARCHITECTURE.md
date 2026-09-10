@@ -255,3 +255,13 @@ Primitive World mutation, raw Team stepping, single-Agent control, and debug com
 ## Repository constraints
 
 New permanent structure must own a responsibility that the current modules cannot safely own locally. A second materially different world is required before Station Zero mechanisms are generalized into a reusable Game platform.
+
+## R5 domain-kernel migration note
+
+The `Embedded Host authority` section above describes the retained Station Zero compatibility implementation at the R5 source cut; it is no longer the target ownership model for generic Host lifecycle semantics.
+
+R5 introduces `src/team/commitment-bridge.ts` as the Game-consumer seam. Team execution speaks in Team `Round`/`Effect`/`Dispatch`/`Observation` identities; generic Host wire objects are quarantined behind the bridge. The current embedded implementation remains only until a source-current external Host substitution preserves the same response-loss, verification, recovery, and replay judgments.
+
+Do not generalize the embedded Host implementation into Game infrastructure. New Game/domain code must not import Host wire types merely to participate in Team execution. Remaining direct `HostStore` consumers are migration debt, not evidence that Game owns a generic journal platform.
+
+See [`GAME_E2E_R5_RECOMPOSITION.md`](GAME_E2E_R5_RECOMPOSITION.md), [`GAME_E2E_R5_SUBTRACTION_MAP.md`](GAME_E2E_R5_SUBTRACTION_MAP.md), and [`GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md`](GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md).
