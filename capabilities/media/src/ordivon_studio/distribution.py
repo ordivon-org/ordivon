@@ -535,7 +535,6 @@ def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
         "artifactDigest": artifact_digest,
         "acceptedCarrierEffect": accepted_effect,
         "acceptedPublication": accepted_publication,
-        "deliveryTerminal": state in {"published", "rejected", "withdrawn", "deleted"},
         "semanticCompletionEvaluated": False,
         "truthRole": DISTRIBUTION_TRUTH_ROLE,
         "truthBoundary": (

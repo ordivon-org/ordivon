@@ -209,7 +209,6 @@ class DistributionTests(unittest.TestCase):
         evidence = _outcome(plan, state="processing")
         self.assertFalse(evidence["acceptedCarrierEffect"])
         self.assertFalse(evidence["acceptedPublication"])
-        self.assertFalse(evidence["deliveryTerminal"])
 
     def test_http_or_process_success_cannot_substitute_for_provider_readback(self) -> None:
         plan = _plan("x", "publish_text")
@@ -231,6 +230,23 @@ class DistributionTests(unittest.TestCase):
         }
         evidence = verify_provider_outcome(receipt)
         self.assertFalse(evidence["acceptedCarrierEffect"])
+
+    def test_outcome_evidence_does_not_claim_generic_delivery_terminality(self) -> None:
+        plan = _plan("x", "publish_text")
+        weak = verify_provider_outcome(
+            {
+                "carrierId": "x",
+                "effect": plan["effect"],
+                "deliveryKey": plan["deliveryKey"],
+                "providerState": "published",
+                "providerObjectId": None,
+                "statusSource": "provider-native-readback",
+                "observedAtMs": 100,
+                "artifactDigest": DIGEST,
+            }
+        )
+        self.assertFalse(weak["acceptedCarrierEffect"])
+        self.assertNotIn("deliveryTerminal", weak)
 
     def test_provider_native_published_identity_is_carrier_acceptance_only(self) -> None:
         plan = _plan("x", "publish_text")
