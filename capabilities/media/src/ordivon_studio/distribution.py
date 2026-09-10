@@ -6,7 +6,6 @@ import json
 from typing import Final
 
 
-DISTRIBUTION_TRUTH_ROLE: Final = "provider-native-distribution-evidence-not-goal-truth"
 PLAN_TRUTH_ROLE: Final = "distribution-plan-not-external-effect"
 PROFILE_TRUTH_ROLE: Final = "point-in-time-carrier-capability-profile-not-provider-contract"
 
@@ -21,21 +20,6 @@ PUBLIC_EFFECTS: Final = frozenset(
         "delete",
     }
 )
-READ_EFFECTS: Final = frozenset({"read_back", "status", "metrics", "feedback"})
-
-PROVIDER_STATES: Final = frozenset(
-    {
-        "prepared",
-        "submitted",
-        "processing",
-        "published",
-        "rejected",
-        "withdrawn",
-        "deleted",
-        "unknown",
-    }
-)
-
 ACTIONABILITY: Final = frozenset(
     {
         "ready",
@@ -63,12 +47,6 @@ def _sha256(value: object, field: str) -> str:
     if not text.startswith("sha256:") or len(text) != 71:
         raise ValueError(f"{field} must be one sha256 digest")
     return text
-
-
-def _nonnegative_int(value: object, field: str) -> int:
-    if type(value) is not int or value < 0:
-        raise ValueError(f"{field} must be a non-negative integer")
-    return int(value)
 
 
 def _profile(
@@ -480,72 +458,6 @@ def plan_delivery(
 
 
 
-def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
-    """Promote only provider-native read-back to accepted publication evidence."""
-
-    required = {
-        "carrierId",
-        "effect",
-        "deliveryKey",
-        "providerState",
-        "providerObjectId",
-        "statusSource",
-        "observedAtMs",
-        "artifactDigest",
-    }
-    missing_fields = sorted(required - set(receipt))
-    if missing_fields:
-        raise ValueError(f"provider receipt missing fields: {', '.join(missing_fields)}")
-    profile = carrier_profile(_nonempty(receipt.get("carrierId"), "carrierId"))
-    effect_name = _nonempty(receipt.get("effect"), "effect")
-    if effect_name not in profile["effects"]:
-        raise ValueError(f"carrier {profile['carrierId']} does not expose effect {effect_name}")
-    exact_delivery_key = _nonempty(receipt.get("deliveryKey"), "deliveryKey")
-    state = _nonempty(receipt.get("providerState"), "providerState").lower()
-    if state not in PROVIDER_STATES:
-        raise ValueError(f"unsupported provider state: {state}")
-    object_id_raw = receipt.get("providerObjectId")
-    object_id = object_id_raw.strip() if isinstance(object_id_raw, str) else None
-    if object_id == "":
-        object_id = None
-    status_source = _nonempty(receipt.get("statusSource"), "statusSource")
-    observed_at_ms = _nonnegative_int(receipt.get("observedAtMs"), "observedAtMs")
-    artifact_digest = _sha256(receipt.get("artifactDigest"), "artifactDigest")
-
-    provider_native = object_id is not None and status_source == "provider-native-readback"
-    if effect_name in {"publish_text", "publish_image", "publish_video", "publish_article", "correct"}:
-        accepted_effect = provider_native and state == "published"
-    elif effect_name == "delete":
-        accepted_effect = provider_native and state == "deleted"
-    elif effect_name == "withdraw":
-        accepted_effect = provider_native and state == "withdrawn"
-    else:
-        accepted_effect = False
-    accepted_publication = accepted_effect and effect_name.startswith("publish_")
-    result: dict[str, object] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.media.distribution-outcome-evidence",
-        "carrierId": profile["carrierId"],
-        "effect": effect_name,
-        "deliveryKey": exact_delivery_key,
-        "providerState": state,
-        "providerObjectId": object_id,
-        "statusSource": status_source,
-        "observedAtMs": observed_at_ms,
-        "artifactDigest": artifact_digest,
-        "acceptedCarrierEffect": accepted_effect,
-        "acceptedPublication": accepted_publication,
-        "semanticCompletionEvaluated": False,
-        "truthRole": DISTRIBUTION_TRUTH_ROLE,
-        "truthBoundary": (
-            "Provider-native publication standing is evidence about the carrier object only. "
-            "It does not prove audience reception, goal consequence, truth of the content, or cross-carrier D2/D3 maturity."
-        ),
-    }
-    result["evidenceDigest"] = _digest(result)
-    return result
-
-
 def correction_disposition(*, carrier_id: str, requested_effect: str) -> dict[str, object]:
     profile = carrier_profile(carrier_id)
     effect = _nonempty(requested_effect, "requestedEffect")
@@ -561,103 +473,3 @@ def correction_disposition(*, carrier_id: str, requested_effect: str) -> dict[st
         "externalEffectPerformed": False,
         "truthRole": "correction-capability-plan-not-provider-effect",
     }
-
-
-def bind_natural_episode(
-    *,
-    plan: Mapping[str, object],
-    outcome: Mapping[str, object],
-    goal_relevance: str,
-    initiated_for: str,
-    user_authorized_at_ms: int,
-    recovery_evidence_ref: str | None = None,
-) -> dict[str, object]:
-    """Bind real work to maturity evidence without allowing synthetic publication-as-test."""
-
-    if plan.get("kind") != "ordivon.media.distribution-plan":
-        raise ValueError("plan is not a Distribution plan")
-    if outcome.get("kind") != "ordivon.media.distribution-outcome-evidence":
-        raise ValueError("outcome is not Distribution outcome evidence")
-
-    granted = plan.get("grantedAuthorities")
-    interactions = plan.get("satisfiedInteractions")
-    explicit_user_authority = plan.get("explicitUserAuthority")
-    if not isinstance(granted, list) or not isinstance(interactions, list) or type(explicit_user_authority) is not bool:
-        raise ValueError("plan is not a canonical Distribution plan")
-    canonical_plan = plan_delivery(
-        carrier_id=_nonempty(plan.get("carrierId"), "plan.carrierId"),
-        effect=_nonempty(plan.get("effect"), "plan.effect"),
-        granted_authorities=granted,
-        satisfied_interactions=interactions,
-        explicit_user_authority=explicit_user_authority,
-        execution_mode=plan.get("executionMode") if isinstance(plan.get("executionMode"), str) else None,
-        account_identity=plan.get("accountIdentity") if isinstance(plan.get("accountIdentity"), str) else None,
-        artifact_digest=plan.get("artifactDigest") if isinstance(plan.get("artifactDigest"), str) else None,
-        intent_id=plan.get("intentId") if isinstance(plan.get("intentId"), str) else None,
-    )
-    if dict(plan) != canonical_plan:
-        raise ValueError("plan is not a canonical Distribution plan")
-
-    canonical_outcome = verify_provider_outcome(outcome)
-    if dict(outcome) != canonical_outcome:
-        raise ValueError("outcome is not a canonical verified provider outcome")
-    plan = canonical_plan
-    outcome = canonical_outcome
-
-    if plan.get("carrierId") != outcome.get("carrierId"):
-        raise ValueError("plan and outcome carrier differ")
-    if plan.get("effect") != outcome.get("effect"):
-        raise ValueError("plan and outcome effect differ")
-    if plan.get("actionability") != "ready":
-        raise ValueError("natural external episode requires a ready Distribution plan")
-    if plan.get("missingAuthorities") or plan.get("missingInteractions"):
-        raise ValueError("natural external episode cannot retain unresolved authority or interaction gates")
-    plan_delivery_key = _nonempty(plan.get("deliveryKey"), "plan.deliveryKey")
-    outcome_delivery_key = _nonempty(outcome.get("deliveryKey"), "outcome.deliveryKey")
-    if plan_delivery_key != outcome_delivery_key:
-        raise ValueError("plan and outcome deliveryKey differ")
-    plan_artifact = _sha256(plan.get("artifactDigest"), "plan.artifactDigest")
-    outcome_artifact = _sha256(outcome.get("artifactDigest"), "outcome.artifactDigest")
-    if plan_artifact != outcome_artifact:
-        raise ValueError("plan and outcome artifactDigest differ")
-    purpose = _nonempty(initiated_for, "initiatedFor").lower().replace("_", "-")
-    forbidden = {
-        "architecture-test",
-        "maturity-test",
-        "distribution-e2e-test",
-        "generate-evidence",
-        "synthetic-publication",
-    }
-    if purpose in forbidden:
-        raise ValueError("synthetic publication cannot be bound as a natural Distribution episode")
-    if not bool(plan.get("publicEffect")):
-        raise ValueError("natural external episode requires a public external effect")
-    if not bool(plan.get("explicitUserAuthority")):
-        raise ValueError("natural external episode lacks explicit user authority")
-    if not bool(outcome.get("acceptedCarrierEffect")):
-        raise ValueError("natural external episode lacks provider-native accepted carrier effect")
-    observed_at = _nonnegative_int(outcome.get("observedAtMs"), "outcome.observedAtMs")
-    authorized_at = _nonnegative_int(user_authorized_at_ms, "userAuthorizedAtMs")
-    if authorized_at > observed_at:
-        raise ValueError("user authority cannot postdate provider outcome observation")
-    episode: dict[str, object] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.media.distribution-natural-episode",
-        "carrierId": plan["carrierId"],
-        "effect": plan["effect"],
-        "deliveryKey": plan_delivery_key,
-        "artifactDigest": plan_artifact,
-        "planDigest": _nonempty(plan.get("planDigest"), "planDigest"),
-        "outcomeEvidenceDigest": _nonempty(outcome.get("evidenceDigest"), "outcomeEvidenceDigest"),
-        "goalRelevance": _nonempty(goal_relevance, "goalRelevance"),
-        "initiatedFor": purpose,
-        "userAuthorizedAtMs": authorized_at,
-        "providerObservedAtMs": observed_at,
-        "recoveryEvidenceRef": (
-            _nonempty(recovery_evidence_ref, "recoveryEvidenceRef") if recovery_evidence_ref is not None else None
-        ),
-        "syntheticForMaturity": False,
-        "truthRole": "goal-relative-natural-distribution-episode-evidence",
-    }
-    episode["episodeDigest"] = _digest(episode)
-    return episode

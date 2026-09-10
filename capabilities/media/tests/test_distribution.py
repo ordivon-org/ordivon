@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import unittest
 
+import ordivon_studio.distribution as distribution_module
+
 from ordivon_studio.distribution import (
     CURRENT_CARRIER_PROFILES,
-    bind_natural_episode,
     carrier_profile,
     correction_disposition,
     delivery_key,
     plan_delivery,
-    verify_provider_outcome,
 )
 
 
@@ -52,30 +52,6 @@ def _plan(
     return plan_delivery(**kwargs)
 
 
-def _outcome(
-    plan: dict[str, object],
-    *,
-    state: str | None = None,
-    observed_at_ms: int = 2000,
-    artifact_digest: str | None = None,
-    status_source: str = "provider-native-readback",
-) -> dict[str, object]:
-    effect = str(plan["effect"])
-    if state is None:
-        state = "deleted" if effect == "delete" else "withdrawn" if effect == "withdraw" else "published"
-    return verify_provider_outcome(
-        {
-            "carrierId": plan["carrierId"],
-            "effect": effect,
-            "deliveryKey": plan["deliveryKey"],
-            "providerState": state,
-            "providerObjectId": f"{plan['carrierId']}:123",
-            "statusSource": status_source,
-            "observedAtMs": observed_at_ms,
-            "artifactDigest": artifact_digest or str(plan["artifactDigest"]),
-        }
-    )
-
 
 
 class DistributionTests(unittest.TestCase):
@@ -87,6 +63,10 @@ class DistributionTests(unittest.TestCase):
             self.assertIn("not-provider-contract", profile["truthRole"])
             self.assertIn("effectAuthorityRequirements", profile)
             self.assertTrue(str(profile["profileDigest"]).startswith("sha256:"))
+
+    def test_distribution_core_does_not_self_attest_provider_observations(self) -> None:
+        self.assertFalse(hasattr(distribution_module, "verify_provider_outcome"))
+        self.assertFalse(hasattr(distribution_module, "bind_natural_episode"))
 
     def test_unknown_carrier_fails_closed(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown carrier"):
@@ -186,64 +166,6 @@ class DistributionTests(unittest.TestCase):
                 intent_id="intent:xhs:1",
             )
 
-    def test_processing_is_not_publication_acceptance(self) -> None:
-        plan = _plan("douyin", "publish_video")
-        evidence = _outcome(plan, state="processing")
-        self.assertFalse(evidence["acceptedCarrierEffect"])
-        self.assertFalse(evidence["acceptedPublication"])
-
-    def test_http_or_process_success_cannot_substitute_for_provider_readback(self) -> None:
-        plan = _plan("x", "publish_text")
-        evidence = _outcome(plan, status_source="runtime-process-success")
-        self.assertFalse(evidence["acceptedCarrierEffect"])
-        self.assertFalse(evidence["acceptedPublication"])
-
-    def test_published_without_provider_identity_is_not_accepted(self) -> None:
-        plan = _plan("x", "publish_text")
-        receipt = {
-            "carrierId": "x",
-            "effect": plan["effect"],
-            "deliveryKey": plan["deliveryKey"],
-            "providerState": "published",
-            "providerObjectId": None,
-            "statusSource": "provider-native-readback",
-            "observedAtMs": 100,
-            "artifactDigest": DIGEST,
-        }
-        evidence = verify_provider_outcome(receipt)
-        self.assertFalse(evidence["acceptedCarrierEffect"])
-
-    def test_outcome_evidence_does_not_claim_generic_delivery_terminality(self) -> None:
-        plan = _plan("x", "publish_text")
-        weak = verify_provider_outcome(
-            {
-                "carrierId": "x",
-                "effect": plan["effect"],
-                "deliveryKey": plan["deliveryKey"],
-                "providerState": "published",
-                "providerObjectId": None,
-                "statusSource": "provider-native-readback",
-                "observedAtMs": 100,
-                "artifactDigest": DIGEST,
-            }
-        )
-        self.assertFalse(weak["acceptedCarrierEffect"])
-        self.assertNotIn("deliveryTerminal", weak)
-
-    def test_provider_native_published_identity_is_carrier_acceptance_only(self) -> None:
-        plan = _plan("x", "publish_text")
-        evidence = _outcome(plan)
-        self.assertTrue(evidence["acceptedCarrierEffect"])
-        self.assertTrue(evidence["acceptedPublication"])
-        self.assertFalse(evidence["semanticCompletionEvaluated"])
-        self.assertIn("does not prove audience reception", evidence["truthBoundary"])
-
-    def test_delete_can_be_verified_as_carrier_effect_without_becoming_publication(self) -> None:
-        plan = _plan("x", "delete")
-        evidence = _outcome(plan, state="deleted")
-        self.assertTrue(evidence["acceptedCarrierEffect"])
-        self.assertFalse(evidence["acceptedPublication"])
-
     def test_delivery_key_binds_intent_not_only_artifact(self) -> None:
         first = delivery_key(
             carrier_id="x", account_identity="account:opaque-a", artifact_digest=DIGEST,
@@ -255,35 +177,8 @@ class DistributionTests(unittest.TestCase):
         )
         self.assertNotEqual(first, second)
 
-    def test_correction_is_capability_specific_and_preserves_provider_constraints(self) -> None:
-        x_delete = correction_disposition(carrier_id="x", requested_effect="delete")
-        self.assertTrue(x_delete["supportedByCurrentProfile"])
-        self.assertIn("delete-any-version-deletes-entire-edit-chain", x_delete["constraintsToReobserve"])
-        x_edit = correction_disposition(carrier_id="x", requested_effect="correct")
-        self.assertIn("correct-within-30-minutes-of-original-post", x_edit["constraintsToReobserve"])
-        self.assertIn("correct-maximum-5-edits", x_edit["constraintsToReobserve"])
-        self.assertFalse(correction_disposition(carrier_id="tiktok", requested_effect="delete")["supportedByCurrentProfile"])
-
-    def test_natural_episode_rejects_maturity_test_publication(self) -> None:
-        plan = _plan("x", "publish_text")
-        with self.assertRaisesRegex(ValueError, "synthetic publication"):
-            bind_natural_episode(
-                plan=plan, outcome=_outcome(plan), goal_relevance="test architecture",
-                initiated_for="maturity-test", user_authorized_at_ms=1000,
-            )
-
-    def test_natural_episode_rejects_blocked_plan_even_with_fake_published_fixture(self) -> None:
-        plan = _plan("x", "publish_text", authorities=set())
-        self.assertEqual(plan["actionability"], "provider_access_required")
-        with self.assertRaisesRegex(ValueError, "ready Distribution plan"):
-            bind_natural_episode(
-                plan=plan, outcome=_outcome(plan), goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-
-    def test_stale_outcome_cannot_satisfy_new_occurrence_identity_dimensions(self) -> None:
+    def test_new_occurrence_identity_changes_for_intent_artifact_effect_or_account(self) -> None:
         old = _plan("x", "publish_text", index=1)
-        old_outcome = _outcome(old)
         variants = [
             _plan("x", "publish_text", index=2),
             plan_delivery(
@@ -303,84 +198,23 @@ class DistributionTests(unittest.TestCase):
             ),
         ]
         for current in variants:
-            with self.assertRaisesRegex(ValueError, "plan and outcome (deliveryKey|effect) differ"):
-                bind_natural_episode(
-                    plan=current, outcome=old_outcome, goal_relevance="new desired occurrence",
-                    initiated_for="release-announcement", user_authorized_at_ms=1000,
-                )
+            self.assertNotEqual(current["deliveryKey"], old["deliveryKey"])
 
-    def test_later_delete_does_not_erase_historical_publication_occurrence(self) -> None:
-        published = _plan("x", "publish_text", index=1)
-        published_episode = bind_natural_episode(
-            plan=published, outcome=_outcome(published), goal_relevance="real release",
-            initiated_for="release-announcement", user_authorized_at_ms=1000,
-        )
-        deletion = _plan("x", "delete", index=2)
-        deleted_episode = bind_natural_episode(
-            plan=deletion, outcome=_outcome(deletion, state="deleted", observed_at_ms=3000),
-            goal_relevance="real correction", initiated_for="real-correction",
-            user_authorized_at_ms=2000,
-        )
-        self.assertEqual(published_episode["effect"], "publish_text")
-        self.assertEqual(deleted_episode["effect"], "delete")
-        self.assertNotEqual(published_episode["deliveryKey"], deleted_episode["deliveryKey"])
-        self.assertNotEqual(published_episode["episodeDigest"], deleted_episode["episodeDigest"])
+    def test_provider_acceptance_requirements_are_profile_requirements_not_local_proof(self) -> None:
+        profile = carrier_profile("x")
+        self.assertIn("provider-object-identity", profile["acceptanceEvidence"])
+        self.assertIn("provider-native-readback", profile["acceptanceEvidence"])
+        self.assertFalse(hasattr(distribution_module, "verify_provider_outcome"))
+        self.assertFalse(hasattr(distribution_module, "bind_natural_episode"))
 
-    def test_natural_episode_rejects_artifact_or_occurrence_mismatch(self) -> None:
-        plan = _plan("x", "publish_text")
-        wrong_artifact = _outcome(plan, artifact_digest=OTHER_DIGEST)
-        with self.assertRaisesRegex(ValueError, "artifactDigest differ"):
-            bind_natural_episode(
-                plan=plan, outcome=wrong_artifact, goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-        other = _plan("x", "publish_text", index=2)
-        wrong_occurrence = _outcome(other)
-        with self.assertRaisesRegex(ValueError, "deliveryKey differ"):
-            bind_natural_episode(
-                plan=plan, outcome=wrong_occurrence, goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-
-    def test_natural_episode_revalidates_plan_instead_of_trusting_caller_digest(self) -> None:
-        plan = _plan("x", "publish_text")
-        forged = dict(plan)
-        forged["planDigest"] = "not-a-digest"
-        with self.assertRaisesRegex(ValueError, "canonical Distribution plan"):
-            bind_natural_episode(
-                plan=forged, outcome=_outcome(plan), goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-
-    def test_natural_episode_revalidates_provider_outcome_instead_of_trusting_caller_fields(self) -> None:
-        plan = _plan("x", "publish_text")
-        forged = dict(_outcome(plan))
-        forged["evidenceDigest"] = "not-a-digest"
-        with self.assertRaisesRegex(ValueError, "canonical verified provider outcome"):
-            bind_natural_episode(
-                plan=plan, outcome=forged, goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-
-    def test_natural_episode_requires_provider_native_accepted_effect(self) -> None:
-        plan = _plan("x", "publish_text")
-        weak = _outcome(plan, state="submitted")
-        with self.assertRaisesRegex(ValueError, "accepted carrier effect"):
-            bind_natural_episode(
-                plan=plan, outcome=weak, goal_relevance="real release",
-                initiated_for="release-announcement", user_authorized_at_ms=1000,
-            )
-
-    def test_natural_episode_binds_exact_ready_authorized_occurrence(self) -> None:
-        plan = _plan("x", "publish_text")
-        episode = bind_natural_episode(
-            plan=plan, outcome=_outcome(plan), goal_relevance="announce a real accepted release",
-            initiated_for="release-announcement", user_authorized_at_ms=1000,
-        )
-        self.assertEqual(episode["deliveryKey"], plan["deliveryKey"])
-        self.assertEqual(episode["artifactDigest"], DIGEST)
-        self.assertFalse(episode["syntheticForMaturity"])
-
+    def test_correction_is_capability_specific_and_preserves_provider_constraints(self) -> None:
+        x_delete = correction_disposition(carrier_id="x", requested_effect="delete")
+        self.assertTrue(x_delete["supportedByCurrentProfile"])
+        self.assertIn("delete-any-version-deletes-entire-edit-chain", x_delete["constraintsToReobserve"])
+        x_edit = correction_disposition(carrier_id="x", requested_effect="correct")
+        self.assertIn("correct-within-30-minutes-of-original-post", x_edit["constraintsToReobserve"])
+        self.assertIn("correct-maximum-5-edits", x_edit["constraintsToReobserve"])
+        self.assertFalse(correction_disposition(carrier_id="tiktok", requested_effect="delete")["supportedByCurrentProfile"])
 
 if __name__ == "__main__":
     unittest.main()

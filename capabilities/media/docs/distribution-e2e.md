@@ -45,9 +45,9 @@ When an external provider requires human UI completion, Distribution returns a b
 
 ## Ambiguous outcomes
 
-Distribution does not own a generic retry-state machine before a real dispatch consumer earns one. Blind resend after an ambiguous external write is forbidden by contract: a dispatcher may retry only when its provider/effect-specific semantics prove the same logical effect is idempotent, or when provider-native reconciliation proves that the original effect was never applied. A transport/runtime success, a free-form `published` label, or the local `delivery_key` alone never grants resend or acceptance authority. Carrier-effect acceptance is owned exclusively by the provider-native verification boundary below. Outcome evidence deliberately does not publish a generic `deliveryTerminal` decision: provider state is an observation, while terminality/requery/replay is provider/effect-relative dispatcher policy.
+Distribution does not own a generic retry-state machine before a real dispatch consumer earns one. Blind resend after an ambiguous external write is forbidden by contract: a dispatcher may retry only when its provider/effect-specific semantics prove the same logical effect is idempotent, or when provider-native reconciliation proves that the original effect was never applied. A transport/runtime success, a free-form `published` label, or the local `delivery_key` alone never grants resend or acceptance authority. Provider-state reconciliation and acceptance are owned by the actual provider adapter/transport boundary; this carrier-neutral module does not self-attest them from caller-authored mappings.
 
-Every public/destructive plan must bind an exact occurrence before dispatch: opaque account identity + exact artifact digest + effect + intent ID. The resulting `delivery_key` is carried into provider observations and natural-episode evidence. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency. A provider outcome with a different delivery key or artifact digest cannot be reused to satisfy the plan.
+Every public/destructive plan must bind an exact occurrence before dispatch: opaque account identity + exact artifact digest + effect + intent ID. The resulting `delivery_key` is carried into provider adapter requests/read-back evidence. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency, as a provider precondition, or as proof that a response came from the provider.
 
 ### Supersession and current desired state
 
@@ -55,34 +55,17 @@ A Distribution plan is an immutable effect occurrence, not a mutable desired-spe
 
 Distribution deliberately does not define its own `desiredRevision`, `generation`, or `observedGeneration` field. Those mechanisms are appropriate at an owner that actually maintains mutable desired state (analogous to conditional-update/resource-generation patterns); that owner must fence stale state before selecting the exact Distribution plan. The local `delivery_key` remains occurrence identity only and must not be promoted into a provider precondition, provider idempotency token, or global currentness authority.
 
-## Acceptance
+## Observation authority and acceptance
 
-The narrow carrier acceptance boundary requires:
+`acceptanceEvidence` in a carrier profile is a **requirement inventory**, not evidence that the requirement has been satisfied. Distribution core deliberately exposes no pure `verify_provider_outcome()` or `bind_natural_episode()` helper: ordinary Python mappings, object IDs and labels such as `provider-native-readback` cannot prove their own external origin.
 
-- exact carrier profile identity/currentness;
-- exact effect + delivery key + artifact digest;
-- provider object identity;
-- provider-native read-back as the status source;
-- an effect-compatible terminal provider state.
+A real carrier adapter must establish observation authority using the strongest provider-native mechanism actually available: for example an authenticated API request/response bound to the expected account/object/effect, or a provider webhook/event whose signature/MAC is verified at the receive boundary. If the provider supplies an end-to-end message signature, the adapter may use the applicable signature standard and policy rather than inventing an Ordivon signature format. The resulting exact evidence should cross the existing Artifact E2E provenance/attestation boundary before it contributes to D2/D3 adjudication.
 
-For publication/correction, `published` can be an accepted carrier effect. For delete/withdraw, only provider-native `deleted`/`withdrawn` standing can accept that destructive effect. `acceptedPublication` remains narrower than `acceptedCarrierEffect`: deleting an object is a verified carrier consequence but never a publication.
+Authenticity, point-in-time state and completeness are separate properties. A valid webhook signature can show who sent one payload without proving that no deliveries were missed or that it is the latest object state. A successful authenticated GET can establish an exact object snapshot without proving collection completeness. Negative/collection claims require the provider's own pagination, cursor/sequence, list+watch, snapshot token or equivalent continuity semantics where available. Distribution must not normalize those provider-specific guarantees into a generic `complete=true` flag until a real cross-carrier consumer earns such a law.
 
-Even then, the evidence proves only carrier effect standing. It does not prove content truth, audience reception, impact, goal completion or Distribution maturity.
+## Natural-event evidence
 
-## Natural-event rule
-
-Distribution maturity must not be obtained by publishing something useless solely to create test evidence. A maturity episode can be bound only when:
-
-- the public/destructive effect served a real independent goal (for example, a genuine release announcement or a real correction/withdrawal);
-- the plan was `ready`, with no unresolved provider authority or per-effect interaction gate;
-- the exact effect had explicit user authority;
-- plan and provider evidence match on carrier, effect, delivery key and artifact digest;
-- provider-native accepted carrier effect was observed;
-- the episode is not tagged as an architecture/maturity/evidence-generating test.
-
-A natural-episode object is still only domain evidence construction, not maturity authority. Before any D2/D3 aggregation, the exact episode evidence must cross the existing Artifact E2E attestation/trust boundary (in-toto/SLSA VSA and the configured authenticity policy). Distribution does not maintain a second local evidence-authenticity scheme.
-
-This keeps the earlier GitHub D2 positive control while allowing future non-GitHub events to accumulate real cross-carrier evidence.
+A useful real public effect remains the right source of maturity evidence, but this module does not manufacture a natural-episode evidence object from local mappings. The provider adapter must first establish authentic provider observation for the exact occurrence; Artifact E2E then binds provenance/attestation; an assurance/adjudication layer may decide whether that evidence contributes to D2/D3. Publishing something solely to manufacture maturity evidence remains prohibited.
 
 ## Current carrier observations — 2026-09-10
 
@@ -103,9 +86,9 @@ These are dated observations and must be re-observed before a live effect. The c
 
 **D1 Complete One-shot Delivery substrate** is supported only when one carrier can be planned end-to-end with exact artifact identity, explicit authority, dispatch adapter, provider-state reconciliation, read-back and correction/withdrawal semantics. Local profile/state-machine tests alone are construction evidence, not a real delivery.
 
-**D2 Verified Outcome** requires provider-native acceptance of a naturally useful real external effect, exact attested evidence, and an independent graduation judgment. Existing GitHub evidence remains bounded to GitHub. Generic/cross-carrier D2 needs at least one real non-GitHub episode; caller-authored mappings are not maturity evidence.
+**D2 Verified Outcome** requires provider-adapter-established observation authority for a naturally useful real external effect, exact Artifact-E2E-attested evidence, and an independent graduation judgment. Existing GitHub evidence remains bounded to GitHub. Generic/cross-carrier D2 needs at least one real non-GitHub episode; caller-authored mappings or self-declared source labels are not maturity evidence.
 
-**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts **plus effect variation and real recovery/correction/withdrawal evidence**, with bounded currentness, authority handling and Human Mechanical Actions. Repetition alone is insufficient; three local fixtures do not count. Distribution deliberately does not expose a generic local `maturity_observation()` aggregator: D3 evidence must be assembled from Artifact-E2E-verified attestations and adjudicated under the assurance policy rather than inferred from unauthenticated Python mappings.
+**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts **plus effect variation and real recovery/correction/withdrawal evidence**, with bounded currentness, authority handling and Human Mechanical Actions. Repetition alone is insufficient. Distribution exposes neither a local outcome-verification shortcut nor a generic maturity aggregator; D3 evidence must be assembled from provider-authoritative observations plus Artifact-E2E-verified attestations and adjudicated under the assurance policy.
 
 **DEFAULT** is a separate adjudication: sufficient D3 evidence must show that Distribution can normally be selected without treating the path as an experiment. No local Distribution helper can set or imply DEFAULT.
 
