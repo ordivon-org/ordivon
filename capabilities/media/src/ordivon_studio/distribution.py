@@ -130,7 +130,7 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
         native_write_standing="available-if-authorized-and-current-api-access",
         execution_modes=("api",),
         effects=("publish_text", "publish_image", "publish_video", "correct", "delete", "read_back", "status", "metrics"),
-        authority_requirements=("x-developer-app", "x-user-oauth", "x-current-api-access"),
+        authority_requirements=("x-developer-app", "x-user-oauth", "x-current-api-access", "x-tweet.read-scope", "x-tweet.write-scope"),
         acceptance=("provider-object-identity", "provider-native-readback"),
         correction=("correct", "delete"),
         correction_constraints=(
@@ -177,17 +177,18 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
         "Douyin",
         native_write_standing="available-after-permission-review-and-user-authorization",
         execution_modes=("open-platform-api", "mobile-open-sdk"),
-        effects=("publish_video", "read_back", "status"),
+        effects=("publish_image", "publish_video", "read_back", "status"),
         authority_requirements=(
             "douyin-developer-app",
-            "douyin-video.create.bind-permission",
+            "douyin-video.create-permission",
+            "douyin-video.list-or-video.data-permission",
             "douyin-user-authorization",
         ),
         acceptance=("provider-video-id", "provider-native-review-or-status-readback"),
         correction=(),
         source_urls=(
-            "https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/video-management/douyin/create-video",
-            "https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/video-management/douyin/upload-video",
+            "https://open.douyin.com/platform/resource/docs/openapi/video-management/douyin/create/create-video",
+            "https://open.douyin.com/platform/resource/docs/openapi/video-management/douyin/create/upload/",
         ),
         interaction_requirements=("douyin-user-perceivable-per-post-action",),
         notes=("Submission may enter provider review and initially be visible only to the author; submitted is not published.",),
@@ -202,6 +203,7 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
             "bilibili-identity-qualification",
             "bilibili-developer-application",
             "bilibili-content-distribution-capability",
+            "bilibili-data-return-capability",
             "bilibili-account-authorization",
         ),
         acceptance=("provider-manuscript-identity", "provider-native-status-readback"),
@@ -239,8 +241,8 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
         acceptance=("human-observed-provider-object-identity", "provider-native-readback"),
         correction=(),
         source_urls=(
-            "https://miniapp.xiaohongshu.com/doc/DC214154",
-            "https://miniapp.xiaohongshu.com/doc/DC214155",
+            "https://openaccount.xiaohongshu.com/docs/scope",
+            "https://openaccount.xiaohongshu.com/docs/api-reference",
         ),
         notes=("The observed write_notes scope is planned/restricted rather than a generally available write surface; no API-write adapter may be inferred from this profile.",),
     ),
@@ -250,7 +252,7 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
         native_write_standing="available-if-authorized-with-public-project-audit-constraints",
         execution_modes=("data-api",),
         effects=("publish_video", "delete", "read_back", "status", "metrics", "feedback"),
-        authority_requirements=("youtube-api-project", "youtube-user-oauth", "youtube-public-upload-project-audit"),
+        authority_requirements=("youtube-api-project", "youtube-user-oauth", "youtube.upload-scope", "youtube-read-scope", "youtube-delete-scope", "youtube-public-upload-project-audit"),
         acceptance=("provider-video-id", "provider-native-processing-and-visibility-readback"),
         correction=("delete",),
         source_urls=(
@@ -262,12 +264,83 @@ CURRENT_CARRIER_PROFILES: Final[dict[str, dict[str, object]]] = {
 }
 
 
+# Per-effect minimal authority sets. ``authorityRequirements`` remains a conservative carrier-level
+# inventory/superset; planning uses this table so a read-only reconciliation does not request a
+# write scope merely because the same carrier can also publish.
+_EFFECT_AUTHORITY_REQUIREMENTS: Final[dict[str, dict[str, tuple[str, ...]]]] = {
+    "github": {
+        "publish_article": ("github-account-authority", "github-write-credential"),
+        "correct": ("github-account-authority", "github-write-credential"),
+        "delete": ("github-account-authority", "github-write-credential"),
+        "read_back": ("github-account-authority",), "status": ("github-account-authority",),
+        "metrics": ("github-account-authority",), "feedback": ("github-account-authority",),
+    },
+    "x": {
+        "publish_text": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.write-scope"),
+        "publish_image": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.write-scope"),
+        "publish_video": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.write-scope"),
+        "correct": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.write-scope"),
+        "delete": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.write-scope"),
+        "read_back": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.read-scope"),
+        "status": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.read-scope"),
+        "metrics": ("x-developer-app", "x-current-api-access", "x-user-oauth", "x-tweet.read-scope"),
+    },
+    "tiktok": {
+        "publish_image": ("tiktok-registered-app", "tiktok-content-posting-api-product", "tiktok-video.publish-scope", "tiktok-user-authorization", "tiktok-public-client-audit"),
+        "publish_video": ("tiktok-registered-app", "tiktok-content-posting-api-product", "tiktok-video.publish-scope", "tiktok-user-authorization", "tiktok-public-client-audit"),
+        "read_back": ("tiktok-registered-app", "tiktok-content-posting-api-product", "tiktok-video.publish-scope", "tiktok-user-authorization"),
+        "status": ("tiktok-registered-app", "tiktok-content-posting-api-product", "tiktok-video.publish-scope", "tiktok-user-authorization"),
+    },
+    "douyin": {
+        "publish_image": ("douyin-developer-app", "douyin-video.create-permission", "douyin-user-authorization"),
+        "publish_video": ("douyin-developer-app", "douyin-video.create-permission", "douyin-user-authorization"),
+        "read_back": ("douyin-developer-app", "douyin-video.list-or-video.data-permission", "douyin-user-authorization"),
+        "status": ("douyin-developer-app", "douyin-video.list-or-video.data-permission", "douyin-user-authorization"),
+    },
+    "bilibili": {
+        "publish_video": ("bilibili-identity-qualification", "bilibili-developer-application", "bilibili-content-distribution-capability", "bilibili-account-authorization"),
+        "publish_article": ("bilibili-identity-qualification", "bilibili-developer-application", "bilibili-content-distribution-capability", "bilibili-account-authorization"),
+        "read_back": ("bilibili-developer-application", "bilibili-data-return-capability", "bilibili-account-authorization"),
+        "status": ("bilibili-developer-application", "bilibili-data-return-capability", "bilibili-account-authorization"),
+        "metrics": ("bilibili-developer-application", "bilibili-data-return-capability", "bilibili-account-authorization"),
+        "feedback": ("bilibili-developer-application", "bilibili-data-return-capability", "bilibili-account-authorization"),
+    },
+    "reddit": {
+        "publish_text": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval", "reddit-user-action-permission"),
+        "publish_image": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval", "reddit-user-action-permission"),
+        "publish_video": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval", "reddit-user-action-permission"),
+        "delete": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval"),
+        "read_back": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval"),
+        "status": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval"),
+        "feedback": ("reddit-approved-developer-access", "reddit-application-or-devvit-approval"),
+    },
+    "xiaohongshu": {
+        "publish_text": ("xiaohongshu-user-session",), "publish_image": ("xiaohongshu-user-session",),
+        "publish_video": ("xiaohongshu-user-session",), "read_back": ("xiaohongshu-user-session",),
+    },
+    "youtube": {
+        "publish_video": ("youtube-api-project", "youtube-user-oauth", "youtube.upload-scope", "youtube-public-upload-project-audit"),
+        "delete": ("youtube-api-project", "youtube-user-oauth", "youtube-delete-scope"),
+        "read_back": ("youtube-api-project", "youtube-user-oauth", "youtube-read-scope"),
+        "status": ("youtube-api-project", "youtube-user-oauth", "youtube-read-scope"),
+        "metrics": ("youtube-api-project", "youtube-user-oauth", "youtube-read-scope"),
+        "feedback": ("youtube-api-project", "youtube-user-oauth", "youtube-read-scope"),
+    },
+}
+
+
 def carrier_profile(carrier_id: str) -> dict[str, object]:
     key = _nonempty(carrier_id, "carrierId").lower()
     profile = CURRENT_CARRIER_PROFILES.get(key)
     if profile is None:
         raise ValueError(f"unknown carrier: {key}")
-    return json.loads(json.dumps(profile))
+    result = json.loads(json.dumps(profile))
+    result["effectAuthorityRequirements"] = {
+        effect: list(requirements) for effect, requirements in _EFFECT_AUTHORITY_REQUIREMENTS.get(key, {}).items()
+    }
+    result.pop("profileDigest", None)
+    result["profileDigest"] = _digest(result)
+    return result
 
 
 def delivery_key(
@@ -302,15 +375,46 @@ def plan_delivery(
     satisfied_interactions: Iterable[str] = (),
     explicit_user_authority: bool = False,
     execution_mode: str | None = None,
+    account_identity: str | None = None,
+    artifact_digest: str | None = None,
+    intent_id: str | None = None,
 ) -> dict[str, object]:
     """Plan one effect without performing it or collapsing reusable auth into per-effect consent."""
 
     profile = carrier_profile(carrier_id)
     effect_name = _nonempty(effect, "effect")
+    is_public_effect = effect_name in PUBLIC_EFFECTS
+    exact_identity_values = (account_identity, artifact_digest, intent_id)
+    if is_public_effect and any(value is None for value in exact_identity_values):
+        raise ValueError("public effect requires exact account_identity, artifact_digest, and intent_id")
+    if any(value is not None for value in exact_identity_values) and any(
+        value is None for value in exact_identity_values
+    ):
+        raise ValueError("delivery identity must provide account_identity, artifact_digest, and intent_id together")
+    normalized_account = _nonempty(account_identity, "accountIdentity") if account_identity is not None else None
+    normalized_artifact = _sha256(artifact_digest, "artifactDigest") if artifact_digest is not None else None
+    normalized_intent = _nonempty(intent_id, "intentId") if intent_id is not None else None
+    exact_delivery_key = (
+        delivery_key(
+            carrier_id=str(profile["carrierId"]),
+            account_identity=normalized_account,
+            artifact_digest=normalized_artifact,
+            effect=effect_name,
+            intent_id=normalized_intent,
+        )
+        if normalized_account is not None and normalized_artifact is not None and normalized_intent is not None
+        else None
+    )
     authorities = sorted({_nonempty(item, "grantedAuthority") for item in granted_authorities})
     interactions = sorted({_nonempty(item, "satisfiedInteraction") for item in satisfied_interactions})
-    missing = sorted(set(profile["authorityRequirements"]) - set(authorities))
-    missing_interactions = sorted(set(profile["interactionRequirements"]) - set(interactions))
+    effect_authorities = profile.get("effectAuthorityRequirements", {})
+    if isinstance(effect_authorities, Mapping) and effect_name in effect_authorities:
+        required_authorities = set(effect_authorities[effect_name])
+    else:
+        required_authorities = set(profile["authorityRequirements"])
+    missing = sorted(required_authorities - set(authorities))
+    required_interactions = set(profile["interactionRequirements"]) if is_public_effect else set()
+    missing_interactions = sorted(required_interactions - set(interactions))
     modes = list(profile["executionModes"])
     selected_mode = execution_mode or (modes[0] if len(modes) == 1 else None)
     if selected_mode is not None and selected_mode not in modes:
@@ -333,7 +437,7 @@ def plan_delivery(
         actionability = "user_action_required"
         reasons.append("missing-per-effect-provider-interaction")
         user_operations.extend(missing_interactions)
-    elif effect_name in PUBLIC_EFFECTS and not explicit_user_authority:
+    elif is_public_effect and not explicit_user_authority:
         actionability = "user_action_required"
         reasons.append("public-effect-requires-explicit-user-authority")
         user_operations.append("authorize-this-exact-public-effect")
@@ -354,8 +458,13 @@ def plan_delivery(
         "carrierProfileDigest": profile["profileDigest"],
         "effect": effect_name,
         "executionMode": selected_mode,
-        "publicEffect": effect_name in PUBLIC_EFFECTS,
+        "publicEffect": is_public_effect,
+        "accountIdentity": normalized_account,
+        "artifactDigest": normalized_artifact,
+        "intentId": normalized_intent,
+        "deliveryKey": exact_delivery_key,
         "grantedAuthorities": authorities,
+        "requiredAuthorities": sorted(required_authorities),
         "missingAuthorities": missing,
         "satisfiedInteractions": interactions,
         "missingInteractions": missing_interactions,
@@ -406,6 +515,8 @@ def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
 
     required = {
         "carrierId",
+        "effect",
+        "deliveryKey",
         "providerState",
         "providerObjectId",
         "statusSource",
@@ -416,6 +527,10 @@ def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
     if missing_fields:
         raise ValueError(f"provider receipt missing fields: {', '.join(missing_fields)}")
     profile = carrier_profile(_nonempty(receipt.get("carrierId"), "carrierId"))
+    effect_name = _nonempty(receipt.get("effect"), "effect")
+    if effect_name not in profile["effects"]:
+        raise ValueError(f"carrier {profile['carrierId']} does not expose effect {effect_name}")
+    exact_delivery_key = _nonempty(receipt.get("deliveryKey"), "deliveryKey")
     state = _nonempty(receipt.get("providerState"), "providerState").lower()
     if state not in PROVIDER_STATES:
         raise ValueError(f"unsupported provider state: {state}")
@@ -427,19 +542,29 @@ def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
     observed_at_ms = _nonnegative_int(receipt.get("observedAtMs"), "observedAtMs")
     artifact_digest = _sha256(receipt.get("artifactDigest"), "artifactDigest")
 
-    accepted = state == "published" and object_id is not None and status_source == "provider-native-readback"
-    if state in {"published", "withdrawn", "deleted"} and object_id is None:
-        accepted = False
+    provider_native = object_id is not None and status_source == "provider-native-readback"
+    if effect_name in {"publish_text", "publish_image", "publish_video", "publish_article", "correct"}:
+        accepted_effect = provider_native and state == "published"
+    elif effect_name == "delete":
+        accepted_effect = provider_native and state == "deleted"
+    elif effect_name == "withdraw":
+        accepted_effect = provider_native and state == "withdrawn"
+    else:
+        accepted_effect = False
+    accepted_publication = accepted_effect and effect_name.startswith("publish_")
     result: dict[str, object] = {
         "schemaVersion": 1,
         "kind": "ordivon.media.distribution-outcome-evidence",
         "carrierId": profile["carrierId"],
+        "effect": effect_name,
+        "deliveryKey": exact_delivery_key,
         "providerState": state,
         "providerObjectId": object_id,
         "statusSource": status_source,
         "observedAtMs": observed_at_ms,
         "artifactDigest": artifact_digest,
-        "acceptedPublication": accepted,
+        "acceptedCarrierEffect": accepted_effect,
+        "acceptedPublication": accepted_publication,
         "deliveryTerminal": state in {"published", "rejected", "withdrawn", "deleted"},
         "semanticCompletionEvaluated": False,
         "truthRole": DISTRIBUTION_TRUTH_ROLE,
@@ -476,6 +601,7 @@ def bind_natural_episode(
     goal_relevance: str,
     initiated_for: str,
     user_authorized_at_ms: int,
+    recovery_evidence_ref: str | None = None,
 ) -> dict[str, object]:
     """Bind real work to maturity evidence without allowing synthetic publication-as-test."""
 
@@ -485,6 +611,20 @@ def bind_natural_episode(
         raise ValueError("outcome is not Distribution outcome evidence")
     if plan.get("carrierId") != outcome.get("carrierId"):
         raise ValueError("plan and outcome carrier differ")
+    if plan.get("effect") != outcome.get("effect"):
+        raise ValueError("plan and outcome effect differ")
+    if plan.get("actionability") != "ready":
+        raise ValueError("natural external episode requires a ready Distribution plan")
+    if plan.get("missingAuthorities") or plan.get("missingInteractions"):
+        raise ValueError("natural external episode cannot retain unresolved authority or interaction gates")
+    plan_delivery_key = _nonempty(plan.get("deliveryKey"), "plan.deliveryKey")
+    outcome_delivery_key = _nonempty(outcome.get("deliveryKey"), "outcome.deliveryKey")
+    if plan_delivery_key != outcome_delivery_key:
+        raise ValueError("plan and outcome deliveryKey differ")
+    plan_artifact = _sha256(plan.get("artifactDigest"), "plan.artifactDigest")
+    outcome_artifact = _sha256(outcome.get("artifactDigest"), "outcome.artifactDigest")
+    if plan_artifact != outcome_artifact:
+        raise ValueError("plan and outcome artifactDigest differ")
     purpose = _nonempty(initiated_for, "initiatedFor").lower().replace("_", "-")
     forbidden = {
         "architecture-test",
@@ -499,8 +639,8 @@ def bind_natural_episode(
         raise ValueError("natural external episode requires a public external effect")
     if not bool(plan.get("explicitUserAuthority")):
         raise ValueError("natural external episode lacks explicit user authority")
-    if not bool(outcome.get("acceptedPublication")):
-        raise ValueError("natural external episode lacks provider-native accepted publication")
+    if not bool(outcome.get("acceptedCarrierEffect")):
+        raise ValueError("natural external episode lacks provider-native accepted carrier effect")
     observed_at = _nonnegative_int(outcome.get("observedAtMs"), "outcome.observedAtMs")
     authorized_at = _nonnegative_int(user_authorized_at_ms, "userAuthorizedAtMs")
     if authorized_at > observed_at:
@@ -509,12 +649,18 @@ def bind_natural_episode(
         "schemaVersion": 1,
         "kind": "ordivon.media.distribution-natural-episode",
         "carrierId": plan["carrierId"],
+        "effect": plan["effect"],
+        "deliveryKey": plan_delivery_key,
+        "artifactDigest": plan_artifact,
         "planDigest": _nonempty(plan.get("planDigest"), "planDigest"),
         "outcomeEvidenceDigest": _nonempty(outcome.get("evidenceDigest"), "outcomeEvidenceDigest"),
         "goalRelevance": _nonempty(goal_relevance, "goalRelevance"),
         "initiatedFor": purpose,
         "userAuthorizedAtMs": authorized_at,
         "providerObservedAtMs": observed_at,
+        "recoveryEvidenceRef": (
+            _nonempty(recovery_evidence_ref, "recoveryEvidenceRef") if recovery_evidence_ref is not None else None
+        ),
         "syntheticForMaturity": False,
         "truthRole": "goal-relative-natural-distribution-episode-evidence",
     }
@@ -527,7 +673,10 @@ def maturity_observation(episodes: Iterable[Mapping[str, object]]) -> dict[str, 
 
     rows = [dict(item) for item in episodes]
     digests: set[str] = set()
+    delivery_keys: set[str] = set()
     carriers: set[str] = set()
+    effects: set[str] = set()
+    recovery_evidence_count = 0
     for row in rows:
         if row.get("kind") != "ordivon.media.distribution-natural-episode":
             raise ValueError("maturity observation accepts only natural Distribution episodes")
@@ -535,7 +684,15 @@ def maturity_observation(episodes: Iterable[Mapping[str, object]]) -> dict[str, 
         if digest in digests:
             raise ValueError("duplicate natural episode identity")
         digests.add(digest)
+        delivery = _nonempty(row.get("deliveryKey"), "deliveryKey")
+        if delivery in delivery_keys:
+            raise ValueError("duplicate delivery occurrence cannot contribute twice to maturity")
+        delivery_keys.add(delivery)
         carriers.add(_nonempty(row.get("carrierId"), "carrierId"))
+        effect = _nonempty(row.get("effect"), "effect")
+        effects.add(effect)
+        if effect in {"correct", "withdraw", "delete"} or row.get("recoveryEvidenceRef") is not None:
+            recovery_evidence_count += 1
         if bool(row.get("syntheticForMaturity")):
             raise ValueError("synthetic episode cannot contribute to maturity")
 
@@ -545,14 +702,21 @@ def maturity_observation(episodes: Iterable[Mapping[str, object]]) -> dict[str, 
         standing = "single-carrier-evidence-only"
     elif len(rows) < 3:
         standing = "cross-carrier-d2-candidate-not-d3"
+    elif len(effects) < 2:
+        standing = "cross-carrier-repetition-observed-effect-variation-missing"
+    elif recovery_evidence_count == 0:
+        standing = "cross-carrier-repetition-observed-recovery-evidence-missing"
     else:
-        standing = "cross-carrier-repetition-observed-d3-still-requires-independent-adjudication"
+        standing = "persistent-capability-candidate-independent-adjudication-required"
     return {
         "schemaVersion": 1,
         "kind": "ordivon.media.distribution-maturity-observation",
         "episodeCount": len(rows),
         "carrierCount": len(carriers),
         "carriers": sorted(carriers),
+        "effectCount": len(effects),
+        "effects": sorted(effects),
+        "recoveryEvidenceCount": recovery_evidence_count,
         "standing": standing,
         "defaultClaimed": False,
         "truthRole": "bounded-episode-summary-not-graduation-verdict",

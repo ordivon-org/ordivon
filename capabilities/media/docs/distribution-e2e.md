@@ -39,33 +39,39 @@ Every public or destructive effect is gated independently across three classes:
 
 A reusable OAuth token therefore does not imply permission to publish arbitrary future content. TikTok creator-info/metadata/explicit consent, Douyin per-post perceptibility and Reddit explicit manual user action are represented as per-effect interactions rather than reusable grants.
 
+Provider/account authority is also **effect-specific**. Read-back/status paths request the smallest observed read authority rather than inheriting publication scopes merely because the same carrier supports writes. For example, X read-back uses a read scope rather than `tweet.write`, YouTube read-back does not request `youtube.upload`, and Douyin read-back uses video list/data permission instead of `video.create`. Carrier-level authority lists remain conservative inventory views, not the planner's minimum request set.
+
 When an external provider requires human UI completion, Distribution returns a bounded `user_action_required` handoff instead of impersonating automation.
 
 ## Ambiguous outcomes
 
 Blind resend is forbidden. If the provider state is `submitted`, `processing` or `unknown`, the next action is provider-native read-back/reconciliation. `published` is terminal for the attempted publication and must not be resent. Rejected/withdrawn/deleted objects require a **new explicit intent** before another external write.
 
-The local `delivery_key` binds carrier + opaque account identity + artifact digest + effect + intent ID. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency.
+Every public/destructive plan must bind an exact occurrence before dispatch: opaque account identity + exact artifact digest + effect + intent ID. The resulting `delivery_key` is carried into provider observations and natural-episode evidence. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency. A provider outcome with a different delivery key or artifact digest cannot be reused to satisfy the plan.
 
 ## Acceptance
 
 The narrow carrier acceptance boundary requires:
 
 - exact carrier profile identity/currentness;
-- exact artifact digest;
+- exact effect + delivery key + artifact digest;
 - provider object identity;
 - provider-native read-back as the status source;
-- provider state `published`.
+- an effect-compatible terminal provider state.
 
-Even then, the evidence proves only carrier publication standing. It does not prove content truth, audience reception, impact, goal completion or Distribution maturity.
+For publication/correction, `published` can be an accepted carrier effect. For delete/withdraw, only provider-native `deleted`/`withdrawn` standing can accept that destructive effect. `acceptedPublication` remains narrower than `acceptedCarrierEffect`: deleting an object is a verified carrier consequence but never a publication.
+
+Even then, the evidence proves only carrier effect standing. It does not prove content truth, audience reception, impact, goal completion or Distribution maturity.
 
 ## Natural-event rule
 
 Distribution maturity must not be obtained by publishing something useless solely to create test evidence. A maturity episode can be bound only when:
 
-- the public effect served a real independent goal (for example, a genuine release announcement or an authorized paper/publication event);
+- the public/destructive effect served a real independent goal (for example, a genuine release announcement or a real correction/withdrawal);
+- the plan was `ready`, with no unresolved provider authority or per-effect interaction gate;
 - the exact effect had explicit user authority;
-- provider-native publication acceptance was observed;
+- plan and provider evidence match on carrier, effect, delivery key and artifact digest;
+- provider-native accepted carrier effect was observed;
 - the episode is not tagged as an architecture/maturity/evidence-generating test.
 
 This keeps the earlier GitHub D2 positive control while allowing future non-GitHub events to accumulate real cross-carrier evidence.
@@ -77,9 +83,9 @@ These are dated observations and must be re-observed before a live effect. The c
 | Carrier | Current write standing used by Distribution | Critical authority/acceptance boundary |
 | --- | --- | --- |
 | GitHub | available if authorized | existing bounded positive control; provider object/read-back |
-| X | API available if authorized and current API access exists | developer app + user OAuth + current API access; provider-native read-back; edit only when provider edit controls allow it (30-minute window, up to 5 edits, new ID per edit) |
+| X | API available if authorized and current API access exists | effect-specific OAuth scopes (`tweet.write` for writes, read scope for read-back) + provider-native read-back; edit only when provider edit controls allow it (30-minute window, up to 5 edits, new ID per edit) |
 | TikTok | Content Posting API after product/scope/user auth; public path also requires client audit | creator/user-visible consent + publish/status ID; submitted/private-restricted is not public acceptance |
-| Douyin | Open Platform after permission review + user authorization | each publish-on-behalf action must remain user-perceivable; provider review/status is distinct from publication |
+| Douyin | Open Platform video/image creation after permission review + user authorization | `video.create` for create, list/data permission for read-back; each publish-on-behalf action remains user-perceivable; provider review/status is distinct from publication |
 | Bilibili | Open Platform after identity/application/content-distribution qualification | manuscript/provider identity + status/data return |
 | Reddit | approval-constrained | current Responsible Builder / app or Devvit approval + user action permission; do not assume legacy unrestricted API access |
 | Xiaohongshu | no generally available note-write API observed | `write_notes` is planned/restricted; use bounded human handoff rather than inventing API authority |
@@ -91,7 +97,7 @@ These are dated observations and must be re-observed before a live effect. The c
 
 **D2 Verified Outcome** requires provider-native acceptance of a naturally useful real external effect. Existing GitHub evidence remains bounded to GitHub. Generic/cross-carrier D2 needs at least one real non-GitHub episode and an independent graduation judgment.
 
-**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts with bounded recovery, currentness, authority handling and Human Mechanical Actions. Three local fixtures do not count.
+**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts **plus effect variation and real recovery/correction/withdrawal evidence**, with bounded currentness, authority handling and Human Mechanical Actions. Repetition alone is insufficient; three local fixtures do not count. `maturity_observation()` reports missing effect variation or recovery evidence explicitly and can only produce a persistent-capability **candidate** requiring independent adjudication.
 
 **DEFAULT** is a separate adjudication: sufficient D3 evidence must show that Distribution can normally be selected without treating the path as an experiment. `maturity_observation()` deliberately never sets `defaultClaimed=true`.
 
