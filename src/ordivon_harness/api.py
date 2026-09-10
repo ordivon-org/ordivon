@@ -17,7 +17,6 @@ from .completion import (
 )
 from .core_contracts import (
     HarnessBoundReference,
-    HarnessCorrelationContext,
     HarnessPrivacyPolicy,
     HarnessRunContract,
     STRUCTURED_COMPLETION_MODE,
@@ -77,7 +76,6 @@ __all__ = [
     "DeepSeekSettings",
     "DeepSeekTurnAdapter",
     "HarnessBoundReference",
-    "HarnessCorrelationContext",
     "HarnessExecutionBinding",
     "AgentToolDefinition",
     "DomainToolBridge",

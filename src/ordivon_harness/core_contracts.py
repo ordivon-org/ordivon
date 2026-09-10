@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from types import MappingProxyType
 from typing import Any
 
@@ -100,50 +100,33 @@ class HarnessBoundReference:
         return cls(ref=value["ref"], kind=value["kind"], digest=value["digest"])
 
 
-@dataclass(frozen=True, slots=True)
-class HarnessCorrelationContext:
-    """Transport correlation only; never authority or idempotency identity."""
+def _validate_legacy_correlation(value: dict[str, Any]) -> dict[str, JsonValue]:
+    """Validate schema-v1 transport correlation for exact historical replay only."""
 
-    traceparent: str | None = None
-    tracestate: str | None = None
-    links: tuple[HarnessBoundReference, ...] = ()
-
-    def __post_init__(self) -> None:
-        if self.traceparent is not None:
-            if _TRACEPARENT_RE.fullmatch(self.traceparent) is None:
-                raise ValueError("Harness traceparent is not W3C Trace Context format")
-            if self.traceparent[3:35] == "0" * 32 or self.traceparent[36:52] == "0" * 16:
-                raise ValueError("Harness traceparent cannot use zero Trace or Span identity")
-        if self.tracestate is not None:
-            _text(self.tracestate, "Harness tracestate", max_bytes=512)
-        refs = [item.ref for item in self.links]
-        if len(refs) != len(set(refs)):
-            raise ValueError("Harness correlation links must have unique refs")
-
-    def to_dict(self) -> dict[str, JsonValue]:
-        return {
-            "traceparent": self.traceparent,
-            "tracestate": self.tracestate,
-            "links": [item.to_dict() for item in self.links],
-        }
-
-    @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> HarnessCorrelationContext:
-        _exact(value, {"traceparent", "tracestate", "links"}, "HarnessCorrelationContext")
-        traceparent = value["traceparent"]
-        tracestate = value["tracestate"]
-        links = value["links"]
-        if traceparent is not None and not isinstance(traceparent, str):
-            raise ValueError("Harness traceparent must be a string or null")
-        if tracestate is not None and not isinstance(tracestate, str):
-            raise ValueError("Harness tracestate must be a string or null")
-        if not isinstance(links, list) or any(not isinstance(item, dict) for item in links):
-            raise ValueError("Harness correlation links must be objects")
-        return cls(
-            traceparent=traceparent,
-            tracestate=tracestate,
-            links=tuple(HarnessBoundReference.from_dict(item) for item in links),
-        )
+    _exact(value, {"traceparent", "tracestate", "links"}, "legacy Run correlation")
+    traceparent = value["traceparent"]
+    tracestate = value["tracestate"]
+    links = value["links"]
+    if traceparent is not None:
+        if not isinstance(traceparent, str) or _TRACEPARENT_RE.fullmatch(traceparent) is None:
+            raise ValueError("legacy Harness traceparent is not W3C Trace Context format")
+        if traceparent[3:35] == "0" * 32 or traceparent[36:52] == "0" * 16:
+            raise ValueError("legacy Harness traceparent cannot use zero Trace or Span identity")
+    if tracestate is not None:
+        if not isinstance(tracestate, str):
+            raise ValueError("legacy Harness tracestate must be a string or null")
+        _text(tracestate, "legacy Harness tracestate", max_bytes=512)
+    if not isinstance(links, list) or any(not isinstance(item, dict) for item in links):
+        raise ValueError("legacy Harness correlation links must be objects")
+    decoded_links = tuple(HarnessBoundReference.from_dict(item) for item in links)
+    refs = [item.ref for item in decoded_links]
+    if len(refs) != len(set(refs)):
+        raise ValueError("legacy Harness correlation links must have unique refs")
+    return {
+        "traceparent": traceparent,
+        "tracestate": tracestate,
+        "links": [item.to_dict() for item in decoded_links],
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -213,9 +196,10 @@ class HarnessRunContract:
     created_at_ms: int
     source_refs: tuple[HarnessBoundReference, ...] = ()
     prior_artifact_refs: tuple[HarnessBoundReference, ...] = ()
-    correlation: HarnessCorrelationContext = HarnessCorrelationContext()
     privacy: HarnessPrivacyPolicy = HarnessPrivacyPolicy()
     deadline_ms: int | None = None
+    _schema_version: int = dataclass_field(default=2, repr=False)
+    _legacy_correlation: Mapping[str, JsonValue] | None = dataclass_field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         _identity(self.harness_run_id, "harness-run", "Harness Run")
@@ -261,6 +245,18 @@ class HarnessRunContract:
             "completion_contract",
             _freeze_json(completion_snapshot),
         )
+        if self._schema_version not in {1, 2}:
+            raise ValueError("Harness Run Contract schema version is unsupported")
+        if self._schema_version == 1:
+            if self._legacy_correlation is None:
+                raise ValueError("schema-v1 Harness Run Contract requires legacy correlation")
+            correlation_snapshot = _thaw_json(self._legacy_correlation)
+            if not isinstance(correlation_snapshot, dict):
+                raise ValueError("schema-v1 Harness Run correlation must be an object")
+            validated = _validate_legacy_correlation(correlation_snapshot)
+            object.__setattr__(self, "_legacy_correlation", _freeze_json(validated))
+        elif self._legacy_correlation is not None:
+            raise ValueError("schema-v2 Harness Run Contract must not contain correlation")
         if self.created_at_ms < 0:
             raise ValueError("Harness Run creation time must be non-negative")
         if self.deadline_ms is not None:
@@ -278,8 +274,8 @@ class HarnessRunContract:
         return canonical_digest(self.to_dict())
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
-            "schemaVersion": 1,
+        value: dict[str, JsonValue] = {
+            "schemaVersion": self._schema_version,
             "kind": "ordivon.harness-run-contract",
             "harnessRunId": self.harness_run_id,
             "harnessImplementationId": self.harness_implementation_id,
@@ -298,13 +294,20 @@ class HarnessRunContract:
             "createdAtMs": self.created_at_ms,
             "sourceRefs": [item.to_dict() for item in self.source_refs],
             "priorArtifactRefs": [item.to_dict() for item in self.prior_artifact_refs],
-            "correlation": self.correlation.to_dict(),
             "privacy": self.privacy.to_dict(),
             "deadlineMs": self.deadline_ms,
         }
+        if self._schema_version == 1:
+            correlation = _thaw_json(self._legacy_correlation)
+            assert isinstance(correlation, dict)
+            value["correlation"] = correlation
+        return value
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessRunContract:
+        schema_version = value.get("schemaVersion")
+        if schema_version not in {1, 2} or value.get("kind") != "ordivon.harness-run-contract":
+            raise ValueError("HarnessRunContract version or kind is invalid")
         expected = {
             "schemaVersion",
             "kind",
@@ -325,13 +328,12 @@ class HarnessRunContract:
             "createdAtMs",
             "sourceRefs",
             "priorArtifactRefs",
-            "correlation",
             "privacy",
             "deadlineMs",
         }
+        if schema_version == 1:
+            expected.add("correlation")
         _exact(value, expected, "HarnessRunContract")
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.harness-run-contract":
-            raise ValueError("HarnessRunContract version or kind is invalid")
         string_fields = (
             "harnessRunId",
             "harnessImplementationId",
@@ -345,14 +347,15 @@ class HarnessRunContract:
         )
         if any(not isinstance(value[field], str) for field in string_fields):
             raise ValueError("HarnessRunContract text and identity fields must be strings")
-        object_fields = (
+        object_fields = [
             "objectiveRef",
             "budget",
             "completionContract",
             "systemManifestRef",
-            "correlation",
             "privacy",
-        )
+        ]
+        if schema_version == 1:
+            object_fields.append("correlation")
         if any(not isinstance(value[field], dict) for field in object_fields):
             raise ValueError("HarnessRunContract structured fields must be objects")
         for field in ("contextRefs", "sourceRefs", "priorArtifactRefs"):
@@ -393,7 +396,10 @@ class HarnessRunContract:
             prior_artifact_refs=tuple(
                 HarnessBoundReference.from_dict(item) for item in value["priorArtifactRefs"]
             ),
-            correlation=HarnessCorrelationContext.from_dict(value["correlation"]),
             privacy=HarnessPrivacyPolicy.from_dict(value["privacy"]),
             deadline_ms=deadline_ms,
+            _schema_version=schema_version,
+            _legacy_correlation=(
+                dict(value["correlation"]) if schema_version == 1 else None
+            ),
         )

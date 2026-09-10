@@ -27,7 +27,6 @@ EXPECTED_API = {
     "DeepSeekSettings",
     "DeepSeekTurnAdapter",
     "HarnessBoundReference",
-    "HarnessCorrelationContext",
     "HarnessExecutionBinding",
     "AgentToolDefinition",
     "DomainToolBridge",
@@ -91,7 +90,6 @@ class PublicApiTests(unittest.TestCase):
             "objective",
             "sha256:" + "a" * 64,
         )
-        correlation = api.HarnessCorrelationContext()
         runtime_reference = {
             "namespace": "ordivon.harness",
             "type": "run",
@@ -106,11 +104,14 @@ class PublicApiTests(unittest.TestCase):
         )
         rejected = api.HarnessRuntimeToolRejected("workspace.exec", detail)
         self.assertEqual(reference.kind, "objective")
-        self.assertIsNone(correlation.traceparent)
         self.assertEqual(runtime_reference["namespace"], "ordivon.harness")
         self.assertTrue(rejected.detail.retryable)
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST.startswith("sha256:"))
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST.startswith("sha256:"))
+
+    def test_transport_correlation_wrapper_is_retired(self) -> None:
+        self.assertFalse(hasattr(api, "HarnessCorrelationContext"))
+        self.assertFalse(hasattr(ordivon_harness, "HarnessCorrelationContext"))
 
     def test_runtime_reference_wrapper_is_retired(self) -> None:
         self.assertFalse(hasattr(api, "HarnessRuntimeReference"))

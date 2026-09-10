@@ -35,6 +35,8 @@ Python support is `>=3.12,<3.13`. Runtime integration is structural through the 
 
 ## Public API
 
+Current `HarnessRunContract` authoring is schema v2 and no longer embeds transport-only `correlation` in execution authority or its digest. Schema-v1 Contracts remain exactly readable and re-encode their historical `traceparent`/`tracestate`/link bytes for digest verification, but `HarnessCorrelationContext` is no longer a public/current authoring type. W3C Trace Context belongs to the caller/transport/observability boundary rather than the Harness Run authority waist.
+
 The duplicate public `HarnessRuntimeReference` value object is retired. `HarnessExecutionBinding.runtime_references` now accepts and freezes Runtime-native `ForeignReference` wire mappings directly, preserving the exact `foreignReferences` JSON shape and Harness Run/Contract/Tool Grant preflight. Runtime remains the schema owner; no persisted Harness execution-binding reader format changed.
 
 The broken historical H5 live replacement worker `scripts/harness_replacement_h5_worker.py` is retired. It had no current consumer and already failed import because its former Codex/Hermes driver exports no longer exist. The frozen H5 fixture, support validators, committed receipt, and receipt checker remain as historical failure/verification assets; historical evidence bytes are unchanged.

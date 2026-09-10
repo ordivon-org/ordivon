@@ -54,7 +54,6 @@ STABLE_API = {
     "DeepSeekSettings",
     "DeepSeekTurnAdapter",
     "HarnessBoundReference",
-    "HarnessCorrelationContext",
     "HarnessExecutionBinding",
     "AgentToolDefinition",
     "DomainToolBridge",

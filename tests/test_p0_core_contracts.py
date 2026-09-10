@@ -4,10 +4,11 @@ from dataclasses import replace
 from pathlib import Path
 import unittest
 
+from anc_canonical import canonical_digest
+
 from ordivon_harness.api import RunBudget
 from ordivon_harness.core_contracts import (
     HarnessBoundReference,
-    HarnessCorrelationContext,
     HarnessPrivacyPolicy,
     HarnessRunContract,
 )
@@ -38,9 +39,6 @@ def contract() -> HarnessRunContract:
         ),
         created_at_ms=10_000,
         source_refs=(HarnessBoundReference("source:repository", "git", DIGEST_B),),
-        correlation=HarnessCorrelationContext(
-            traceparent="00-11111111111111111111111111111111-2222222222222222-01"
-        ),
         privacy=HarnessPrivacyPolicy(),
         deadline_ms=20_000,
     )
@@ -168,11 +166,33 @@ class HarnessCoreContractTests(unittest.TestCase):
                 allow_model_content=True,
             )
 
-    def test_trace_context_rejects_zero_identity(self) -> None:
+    def test_current_contract_v2_excludes_transport_correlation(self) -> None:
+        value = contract().to_dict()
+        self.assertEqual(value["schemaVersion"], 2)
+        self.assertNotIn("correlation", value)
+
+    def test_legacy_v1_correlation_round_trips_without_digest_drift(self) -> None:
+        raw = contract().to_dict()
+        raw["schemaVersion"] = 1
+        raw["correlation"] = {
+            "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
+            "tracestate": "vendor=value",
+            "links": [],
+        }
+        decoded = HarnessRunContract.from_dict(raw)
+        self.assertEqual(decoded.to_dict(), raw)
+        self.assertEqual(decoded.digest, canonical_digest(raw))
+
+    def test_legacy_v1_trace_context_rejects_zero_identity(self) -> None:
+        raw = contract().to_dict()
+        raw["schemaVersion"] = 1
+        raw["correlation"] = {
+            "traceparent": "00-00000000000000000000000000000000-2222222222222222-01",
+            "tracestate": None,
+            "links": [],
+        }
         with self.assertRaisesRegex(ValueError, "zero"):
-            HarnessCorrelationContext(
-                traceparent="00-00000000000000000000000000000000-2222222222222222-01"
-            )
+            HarnessRunContract.from_dict(raw)
 
     def test_new_core_modules_do_not_import_host(self) -> None:
         root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
