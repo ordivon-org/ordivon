@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m6-subtraction-evidence",
+  "recordedAt": "2026-09-10",
+  "parentGameRevision": "47e7f6c888647e7e366c48803da527b5ed98e553",
+  "workstation": {
+    "sourceCurrentBase": "10c4d7470bb37a73e4a7de09f3fb9c1935425502",
+    "validatedCandidateRevision": "d4ae6db8b89a00d7fc3cfe823456001b4f3a86a8",
+    "candidateBranch": "integration/game-r5-professional-binding",
+    "ownerAcceptance": {
+      "pythonTests": {
+        "pass": 1070,
+        "total": 1070
+      },
+      "agentAutomationTests": {
+        "pass": 96,
+        "total": 96
+      },
+      "nodeSemanticTests": {
+        "pass": 13,
+        "total": 13
+      }
+    },
+    "godotBinding": {
+      "equipmentId": "professional:godot:godot",
+      "provider": "workstation.professional-software",
+      "executionTarget": "local_linux",
+      "executable": "/usr/bin/godot",
+      "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+      "version": "4.7.1.stable.arch_linux.a13da4feb",
+      "gameplayAuthorityGranted": false
+    }
+  },
+  "subtraction": {
+    "beforeM6GenericishLoc": 2123,
+    "afterM6ResidualLoc": 552,
+    "removedLoc": 1571,
+    "reductionPercentApprox": 74.0,
+    "r4EmbeddedBaselineLoc": 1728,
+    "reductionFromR4PercentApprox": 68.1,
+    "deletedCurrentSources": [
+      "src/host-contract/canonical.ts",
+      "src/host-contract/embedded-authority.ts",
+      "src/host-contract/game-world-executor.ts",
+      "src/host-contract/journal.ts",
+      "src/host-contract/model.ts",
+      "src/host-contract/store.ts",
+      "src/host-contract/validate.ts"
+    ],
+    "residualImplementation": [
+      "src/integration/local-evidence-journal.ts",
+      "src/integration/game-evidence.ts",
+      "src/team/commitment-view.ts"
+    ],
+    "derivedFrom": [
+      "TeamRound",
+      "TeamTickPlan",
+      "authoritative Game commandReceipt",
+      "authoritative Game World Event"
+    ],
+    "localAtomicEvidenceCarrierRetained": true,
+    "fullExternalSubstitution": "NOT_ADMITTED"
+  },
+  "verification": {
+    "derivedBeforePhysicalDelete": {
+      "fullRepository": {
+        "pass": 399,
+        "total": 399,
+        "jobId": "job-01a08ae3-04d1-7312-b303-92d4cc97f08d"
+      }
+    },
+    "afterPhysicalDelete": {
+      "typecheck": "PASS",
+      "targeted": {
+        "pass": 45,
+        "total": 45,
+        "jobId": "job-01a08ae6-8c9d-7a63-a476-203984df2d45"
+      },
+      "fullRepository": {
+        "pass": 386,
+        "total": 386,
+        "jobId": "job-01a08af0-2c00-7f22-a5d7-defa1a43b63e"
+      }
+    },
+    "veilwildDynamicReplay": {
+      "evaluationCondition": "fresh copied project without .godot cache; then explicit import",
+      "coldStrict": {
+        "jobId": "job-01a08af2-6c92-77a3-a796-8f3ace280e13",
+        "processExitCode": 0,
+        "oracleStanding": "EXPECTED_FAIL_DETECTED",
+        "witness": "VEILWILD_A17_STRICT_GATE_VALID loaded=8 missing=2",
+        "notableFailures": [
+          "missing imported GLB carriers",
+          "cold script class scan parse error"
+        ]
+      },
+      "import": {
+        "jobId": "job-01a08af2-94f9-7c91-8164-4ef04a410af9",
+        "standing": "PASS"
+      },
+      "legacyNegativeStrictAfterImport": {
+        "jobId": "job-01a08af2-c366-7a61-85f4-b1c4caf3b8f3",
+        "processExitCode": 4,
+        "standing": "EXPECTED_LEGACY_NEGATIVE_GATE_REJECTION",
+        "reason": "strict_health_test.gd requires an incomplete integration candidate and is not the R4 final acceptance oracle"
+      },
+      "finalStrictAfterImport": {
+        "jobId": "job-01a08af3-4d49-76d1-8b1a-b12b4b519caf",
+        "processExitCode": 0,
+        "standing": "PASS",
+        "loadedModules": 10,
+        "worldQualifierOwner": "A14/F14",
+        "behaviorStateId": "veilwild.behavior.unaware.r1",
+        "clipName": "VW_MOTION_IDLE",
+        "transitionSerial": 1,
+        "navigationMapIteration": {
+          "player": 2,
+          "creature": 2
+        }
+      }
+    },
+    "freezeVerification": {
+      "jsonAndDiffCheck": {
+        "standing": "PASS",
+        "jobId": "job-01a08af7-9acf-7a83-9b20-df96a5b4ac5b"
+      },
+      "targeted": {
+        "pass": 45,
+        "total": 45,
+        "jobId": "job-01a08af7-b81f-7a90-b7a5-3892696fff01"
+      },
+      "fullRepository": {
+        "pass": 386,
+        "total": 386,
+        "jobId": "job-01a08af8-2d00-7d33-8108-6f1872a70d06"
+      }
+    }
+  },
+  "standing": {
+    "m6": "READY_FOR_INDEPENDENT_DESTROYER",
+    "gameR5MainPromotion": "NOT_YET_PROMOTED",
+    "veilwildCandidateNomination": "NOT_YET_NOMINATED",
+    "veilwildDistributionRights": "INCONCLUSIVE",
+    "veilwildHuman": "UNKNOWN",
+    "stationZeroFreshPlayerHuman": "UNKNOWN",
+    "workstationProductionPromotion": "NOT_YET_PROMOTED"
+  },
+  "doNotInherit": [
+    "Process exit zero is not sufficient Veilwild oracle evidence.",
+    "The legacy strict_health_test.gd negative gate is not the R4 final acceptance oracle.",
+    "Technical PASS does not nominate a Veilwild candidate.",
+    "Technical PASS does not upgrade distribution rights or Human standing.",
+    "The retained local evidence journal is implementation durability, not a second Host/domain authority.",
+    "External Host substitution remains unproven for the same-transaction evidence invariant."
+  ]
+}

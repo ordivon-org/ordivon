@@ -157,3 +157,30 @@ A generic Game-local module earns deletion only when all are true:
 ```
 
 Until then the disposition is MOVE/SPLIT/QUARANTINE, not DELETE.
+
+
+## 7. M6 current subtraction verdict
+
+M6 supersedes the first-pass disposition for `src/host-contract/*`. The generic embedded Host workload/lifecycle implementation has now been physically removed from the current candidate after a derived-state experiment preserved the relevant Game judgments.
+
+Current disposition:
+
+```text
+DELETE completed:
+  host task/workload object model
+  embedded Host authority state machine
+  Host effect/dispatch/observation/verification duplication
+  GameWorldExecutor compatibility executor
+  Host protocol validation/store layer
+
+KEEP as bounded implementation residual:
+  LocalEvidenceJournal
+  GameEvidencePort adapter
+  DerivedTeamCommitmentView
+```
+
+The residual local journal is not a Host replacement and is not semantic authority. It remains because current Station Zero durability requires Game projection updates and retained local evidence to commit in one SQLite transaction. Full external substitution remains `NOT_ADMITTED` until another owner can preserve that invariant or a proven outbox/receiver topology replaces it without action or judgment loss.
+
+Measured current generic-ish LOC is 552 versus 2,123 immediately before true subtraction (~74% reduction). The M6 full post-delete repository check is 386/386 PASS and the post-delete targeted boundary/recovery suite is 45/45 PASS. Veilwild final strict dynamic replay also passes after explicit import, while the cold no-cache failure remains detectable.
+
+This satisfies deletion rules 2–7 for the retired duplicate lifecycle. Rule 1 is intentionally split: no external owner replaces the local atomic evidence carrier, so that carrier was **not** deleted. The duplicate Host lifecycle did not require such an external replacement because M6 proved it was derivable from existing Game-owned authoritative facts rather than an independent owner.

@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "../digest.ts";
 import type { GameStore } from "../storage.ts";
-import { EmbeddedTeamCommitmentBridge } from "./commitment-bridge.ts";
+import { DerivedTeamCommitmentView } from "./commitment-view.ts";
 import type {
   ActionProposal,
   TeamContextReference,
@@ -60,13 +60,13 @@ function proposalSemanticJson(proposal: ActionProposal): string {
 export class TeamExecutionStore {
   readonly db: DatabaseSync;
   readonly team: TeamStore;
-  readonly authority: EmbeddedTeamCommitmentBridge;
+  readonly commitment: DerivedTeamCommitmentView;
   private readonly pendingEffects = new Map<string, TeamEffect>();
 
   constructor(team: TeamStore) {
     this.team = team;
     this.db = team.db;
-    this.authority = new EmbeddedTeamCommitmentBridge(team);
+    this.commitment = new DerivedTeamCommitmentView(team);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS team_rounds (
         round_id TEXT PRIMARY KEY,
@@ -208,12 +208,10 @@ export class TeamExecutionStore {
     if (round.status !== "completed") {
       throw new TeamStoreError("team_conflict", "only a completed Team Round can reconcile authority");
     }
-    const projection = this.authority.projection(round.runId, round.roundId);
-    if (projection.state === "completed") return;
-    if (projection.state === "failed" || projection.state === "cancelled") {
-      throw new TeamStoreError("team_corrupt", `completed Team Round has terminal Authority state ${projection.state}`);
+    const projection = this.commitment.projection(round.runId, round.roundId);
+    if (projection.state !== "completed") {
+      throw new TeamStoreError("team_corrupt", `completed Team Round is not supported by authoritative Game evidence: ${projection.state}`);
     }
-    this.completeAuthority(round);
   }
 
   putContext(reference: TeamContextReference): TeamContextReference {
@@ -318,7 +316,7 @@ export class TeamExecutionStore {
     if (pending) return pending;
     const round = this.allRounds().find((candidate) => candidate.effectId === effectId);
     if (!round) throw new Error(`unknown Team Effect: ${effectId}`);
-    return this.authority.relatedEffect(round);
+    return this.commitment.relatedEffect(round);
   }
   saveEffect(effect: TeamEffect, _eventType: string): TeamEffect {
     return { ...this.getEffect(effect.effectId), status: effect.status, updatedAt: effect.updatedAt };
@@ -328,14 +326,14 @@ export class TeamExecutionStore {
     const plan = this.getTickPlan(dispatch.tickPlanId);
     const effect = this.pendingEffects.get(dispatch.effectId);
     if (!effect) throw new Error(`Team Effect must be prepared before Dispatch: ${dispatch.effectId}`);
-    this.authority.prepare(dispatch, effect, plan);
+    this.commitment.prepare(dispatch, effect, plan);
     this.pendingEffects.delete(effect.effectId);
     return dispatch;
   }
   getDispatch(dispatchId: string): TeamDispatch {
     const round = this.allRounds().find((candidate) => candidate.dispatchId === dispatchId);
     if (!round || !round.effectId || !round.tickPlanId) throw new Error(`unknown Team Dispatch: ${dispatchId}`);
-    const projection = this.authority.projection(round.runId, round.roundId);
+    const projection = this.commitment.projection(round.runId, round.roundId);
     const observation = this.findObservationForRound(round.roundId);
     return {
       dispatchId, effectId: round.effectId, roundId: round.roundId, runId: round.runId,
@@ -347,15 +345,15 @@ export class TeamExecutionStore {
     };
   }
   saveDispatch(dispatch: TeamDispatch, _eventType: string): TeamDispatch {
-    if (dispatch.status === "rejected") this.rejectAuthority(dispatch, dispatch.error ?? "dispatch_rejected");
+    if (dispatch.status === "rejected") this.rejectCommitment(dispatch, dispatch.error ?? "dispatch_rejected");
     return { ...this.getDispatch(dispatch.dispatchId), ...dispatch };
   }
 
   findObservationForRound(roundId: string): TeamObservation | null {
-    return this.authority.findObservation(this.getRound(roundId));
+    return this.commitment.findObservation(this.getRound(roundId));
   }
   putObservation(observation: TeamObservation): TeamObservation {
-    this.authority.recordObservation(observation);
+    this.commitment.recordObservation(observation);
     return observation;
   }
 
@@ -378,7 +376,7 @@ export class TeamExecutionStore {
   }
 
   verify(runId: string): void {
-    this.authority.verify(runId);
+    this.commitment.verify(runId);
     const rounds = new Map(this.listRounds(runId).map((round) => [round.roundId, round]));
     for (const round of rounds.values()) {
       if (["planned", "dispatched", "observed", "completed"].includes(round.status) && !round.tickPlanId) {
@@ -422,10 +420,7 @@ export class TeamExecutionStore {
     }
   }
 
-  private completeAuthority(round: TeamRound): void {
-    this.authority.complete(round, this.listProposals(round.roundId));
-  }
-  private rejectAuthority(dispatch: TeamDispatch, reason: string): void {
-    this.authority.reject(dispatch, reason);
+  private rejectCommitment(dispatch: TeamDispatch, reason: string): void {
+    this.commitment.reject(dispatch, reason);
   }
 }

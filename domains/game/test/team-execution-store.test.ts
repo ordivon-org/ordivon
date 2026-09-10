@@ -134,7 +134,7 @@ test("Team Execution verification rejects terminal events that differ from retai
 });
 
 
-test("a stale completed writer cannot complete Authority after another Round head wins", async () => {
+test("a stale completed writer cannot override a blocked Round head", async () => {
   const game = new GameStore(":memory:");
   const runId = "run:team-execution-authority-race";
   try {
@@ -149,7 +149,7 @@ test("a stale completed writer cannot complete Authority after another Round hea
     assert.ok(round);
     assert.equal(round.status, "observed");
     const commitmentRoundId = round.roundId;
-    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
+    assert.equal(host.execution.commitment.projection(runId, commitmentRoundId).state, "verifying");
     const blocked = host.execution.saveRound(
       round,
       { ...round, status: "blocked", blocker: "audit-winner", updatedAt: "2026-08-01T00:00:07.000Z" },
@@ -164,13 +164,13 @@ test("a stale completed writer cannot complete Authority after another Round hea
       ),
       (error: unknown) => error instanceof TeamStoreError && error.code === "team_conflict" && /superseded/.test(error.message),
     );
-    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
+    assert.equal(host.execution.commitment.projection(runId, commitmentRoundId).state, "failed");
   } finally {
     game.close();
   }
 });
 
-test("a retained completed Round reconciles missing Authority completion", async () => {
+test("a retained completed Round needs no duplicate authority completion", async () => {
   const game = new GameStore(":memory:");
   const runId = "run:team-execution-authority-recovery";
   try {
@@ -203,10 +203,10 @@ test("a retained completed Round reconciles missing Authority completion", async
       );
     });
     const commitmentRoundId = round.roundId;
-    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "verifying");
+    assert.equal(host.execution.commitment.projection(runId, commitmentRoundId).state, "completed");
     const receipt = await host.step(runId);
     assert.ok(["initialized", "stable"].includes(receipt.status));
-    assert.equal(host.execution.authority.projection(runId, commitmentRoundId).state, "completed");
+    assert.equal(host.execution.commitment.projection(runId, commitmentRoundId).state, "completed");
     host.execution.verify(runId);
   } finally {
     game.close();

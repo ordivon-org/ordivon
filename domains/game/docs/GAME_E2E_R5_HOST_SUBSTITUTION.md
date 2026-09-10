@@ -126,7 +126,7 @@ An outbox changes the historical persistence topology. It must first be falsifie
 - exact historical Run replay;
 - comparison metrics that currently derive from retained event types.
 
-Until those cases prove no judgment loss, `LegacyEmbeddedHostEvidenceAdapter` remains the compatibility implementation.
+This was the M3b pre-M6 standing. M6 later removed the duplicate embedded Host lifecycle after proving its execution facts were derivable from existing Game-owned state; the same-transaction local evidence carrier remains because its atomicity substitution is still unproven.
 
 ## 6. Human / rights boundary
 
@@ -184,3 +184,29 @@ test/game-e2e-r5-host-outbox-shadow.test.ts
 This result only supports the **shape** of a future decoupling. It does not prove that the current external Host can serve as the receiver, because its present public surface still lacks the exact domain-event admission/observation contract required for this experiment.
 
 The next M3c step, if admitted, is to define a receiver contract from current Host capabilities rather than from the legacy Game journal schema. No historical Host object is to be mirrored merely for compatibility convenience.
+
+
+## 9. M6 supersession — lifecycle deleted, atomic evidence carrier retained
+
+M6 found a narrower subtraction path than the original M3b hypothesis. External Host event admission is still insufficient to replace Station Zero's same-transaction local evidence carrier, so `FULL_EXTERNAL_SUBSTITUTION = NOT_ADMITTED` remains true. However, that limitation did **not** justify retaining a second Host task/effect/dispatch/observation/verification state machine.
+
+The duplicate lifecycle has been deleted. Team execution commitment is now a derived projection of exact retained Game facts:
+
+```text
+TeamRound + TeamTickPlan + Game commandReceipt / World Event
+  → DerivedTeamCommitmentView
+```
+
+The remaining local persistence boundary is:
+
+```text
+GameEvidencePort
+  → LocalEvidenceJournal
+  → historical host_artifacts / host_journal SQLite tables
+```
+
+The table names and record digest vocabulary are retained only for historical data compatibility. The local carrier does not choose tasks, own effects, create Game standing, or upgrade Human/rights/product claims.
+
+M6 post-delete verification: 386/386 full repository tests PASS, 45/45 targeted R5 boundary/recovery tests PASS, and Veilwild R4 final strict health PASS after explicit Godot import. The no-cache cold failure also remains observable.
+
+Future M3c work is therefore narrowed to **externalizing or replacing the local atomic evidence carrier**, not rebuilding the retired Host workload ontology.

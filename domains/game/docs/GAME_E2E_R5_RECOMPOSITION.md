@@ -449,3 +449,104 @@ Product decision: HOLD_FOR_HUMAN_EVIDENCE
 ```
 
 R5 has therefore reached a real Human boundary. Further C1/C2 promotion for this study requires actual fresh-player observations; additional Agent simulation, browser automation or telemetry cannot substitute for those sessions.
+
+
+## 18. R5 migration milestone M6 — real Embedded Host subtraction
+
+M6 independently attacked the R5 subtraction claim instead of inheriting M1–M5 standing. The first destroyer census found that M5 had improved coupling but not code volume: the historical `src/host-contract` surface remained 1,728 LOC and the new Game adapters added 395 LOC, for 2,123 generic-ish LOC. Therefore M6 initially classified the claimed infrastructure reduction as **FAIL**.
+
+The destroyer then tested whether the embedded Host task/effect/dispatch/observation/verification lifecycle contributed judgment that was not already carried by Game-owned state. `TeamEffect`, `TeamDispatch`, and `TeamObservation` were shown to be reconstructible from the exact retained `TeamRound`, `TeamTickPlan`, and authoritative Game `commandReceipt` / World Event. A derived commitment experiment preserved response-loss recovery, stale-writer rejection, authority-grant semantics, Replay, world drift and complete Game behavior.
+
+The production path was therefore reduced to:
+
+```text
+TeamRound + TeamTickPlan + authoritative Game commandReceipt / World Event
+  → DerivedTeamCommitmentView
+```
+
+The current source deletes the generic embedded Host lifecycle implementation:
+
+```text
+src/host-contract/canonical.ts
+src/host-contract/embedded-authority.ts
+src/host-contract/game-world-executor.ts
+src/host-contract/model.ts
+src/host-contract/store.ts
+src/host-contract/validate.ts
+src/host-contract/journal.ts
+```
+
+The only retained compatibility-shaped substrate is the same-SQLite-transaction evidence/artifact carrier, now named explicitly as implementation rather than authority:
+
+```text
+src/integration/local-evidence-journal.ts
+src/integration/game-evidence.ts
+src/team/commitment-view.ts
+```
+
+Historical SQLite table names and the journal record-digest vocabulary remain unchanged to preserve existing retained evidence identity. They do not grant Host task/workload authority.
+
+Measured generic-ish surface:
+
+```text
+M5 before true subtraction     2,123 LOC
+M6 residual                       552 LOC
+reduction                       1,571 LOC  (~74%)
+
+R4 embedded baseline            1,728 LOC
+M6 residual                       552 LOC
+reduction vs R4                1,176 LOC  (~68%)
+```
+
+Verification after physical deletion:
+
+```text
+pnpm check                       386/386 PASS
+R5 targeted boundary/recovery     45/45 PASS
+TypeScript typecheck                    PASS
+```
+
+The test-count reduction from 399 to 386 is intentional: the removed tests exercised the retired duplicate Host lifecycle itself. Existing Game, Team, Replay, response-loss and player-study judgments remain green.
+
+### Veilwild dynamic replay after subtraction
+
+M6 replayed Veilwild in a fresh project copy with no `.godot` import cache using the Workstation-bound Godot 4.7.1 executable.
+
+The cold run reproduced the historical readiness falsifier even though the process itself exited zero:
+
+```text
+missing imported GLB carriers
+SCRIPT ERROR during cold class scan
+VEILWILD_A17_STRICT_GATE_VALID loaded=8 missing=2
+```
+
+After exact `godot --headless --import`, the old `strict_health_test.gd` exits 4 because that oracle is an earlier **negative gate that requires an incomplete candidate**. It is not the final R4 acceptance oracle and must not be used to reject the completed R4 composition.
+
+The R4 owner oracle is `integration/final_strict_health_test.gd`; after import it passed:
+
+```text
+VEILWILD_A17_FINAL_STRICT_HEALTH_PASS
+loaded=10
+owner=A14/F14
+animation=veilwild.behavior.unaware.r1/VW_MOTION_IDLE
+serial=1
+nav_player_iter=2
+nav_creature_iter=2
+```
+
+Thus the cold-failure → import → final-strict-PASS lifecycle remains observable after the M6 subtraction. Import state remains part of the evaluation condition; a process exit code alone is not sufficient evidence.
+
+### M6 boundaries
+
+M6 does **not** upgrade:
+
+```text
+Veilwild candidate nomination       NOT_YET_NOMINATED
+Veilwild distribution rights        INCONCLUSIVE
+Veilwild Human standing             UNKNOWN
+Station Zero fresh-player Human     UNKNOWN
+full external evidence substitution NOT_ADMITTED
+Game R5 promotion to main           NOT_YET_PROMOTED
+```
+
+The M6 machine-readable evidence packet is `evidence/acceptance/game-e2e-r5-m6-subtraction.json`. M6 remains a candidate until a fresh independent workspace replays the frozen revision and attempts to falsify these boundaries.

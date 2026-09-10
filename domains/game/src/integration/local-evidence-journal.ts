@@ -2,14 +2,9 @@ import type { DatabaseSync } from "node:sqlite";
 import { gunzipSync, gzipSync } from "node:zlib";
 
 import { canonicalJson, sha256 } from "../digest.ts";
-import {
-  protocolCanonicalJson,
-  protocolDigest,
-  validateProtocolJson,
-} from "../host-contract/canonical.ts";
 
 
-export interface HostArtifact<T = unknown> {
+export interface LocalEvidenceArtifact<T = unknown> {
   digest: string;
   kind: string;
   content: T;
@@ -17,7 +12,7 @@ export interface HostArtifact<T = unknown> {
   createdAt: string;
 }
 
-export interface HostJournalEvent<T = unknown> {
+export interface LocalEvidenceEvent<T = unknown> {
   runId: string;
   sequence: number;
   eventId: string;
@@ -58,21 +53,21 @@ function encodeStoredJson(json: string, threshold: number): string {
 function decodeStoredJson(text: string, label: string): string {
   if (!text.startsWith(COMPRESSED_JSON_PREFIX)) return text;
   try { return gunzipSync(Buffer.from(text.slice(COMPRESSED_JSON_PREFIX.length), "base64")).toString("utf8"); }
-  catch (error) { throw new HostStoreError("host_corrupt", `${label} compressed JSON is invalid`, { cause: error }); }
+  catch (error) { throw new LocalEvidenceError("host_corrupt", `${label} compressed JSON is invalid`, { cause: error }); }
 }
 
-interface HostTransactionState {
+interface LocalEvidenceTransactionState {
   runId: string;
   depth: number;
 }
 
-const transactionStates = new WeakMap<DatabaseSync, HostTransactionState>();
+const transactionStates = new WeakMap<DatabaseSync, LocalEvidenceTransactionState>();
 
-export class HostStoreError extends Error {
+export class LocalEvidenceError extends Error {
   readonly code: "host_corrupt" | "host_constraint";
-  constructor(code: HostStoreError["code"], message: string, options?: ErrorOptions) {
+  constructor(code: LocalEvidenceError["code"], message: string, options?: ErrorOptions) {
     super(message, options);
-    this.name = "HostStoreError";
+    this.name = "LocalEvidenceError";
     this.code = code;
   }
 }
@@ -91,10 +86,10 @@ function recordDigest(row: Omit<JournalRow, "record_digest" | "created_at">): st
 
 function parse<T>(text: string, label: string): T {
   try { return JSON.parse(text) as T; }
-  catch (error) { throw new HostStoreError("host_corrupt", `${label} is invalid JSON`, { cause: error }); }
+  catch (error) { throw new LocalEvidenceError("host_corrupt", `${label} is invalid JSON`, { cause: error }); }
 }
 
-export class HostStore {
+export class LocalEvidenceJournal {
   readonly db: DatabaseSync;
 
   constructor(db: DatabaseSync) {
@@ -123,15 +118,15 @@ export class HostStore {
     `);
   }
 
-  putArtifact<T>(kind: string, content: T): HostArtifact<T> {
+  putArtifact<T>(kind: string, content: T): LocalEvidenceArtifact<T> {
     if (!kind || kind !== kind.trim()) throw new TypeError("artifact kind must be non-empty and trimmed");
     const contentJson = canonicalJson(content);
     const storedJson = encodeStoredJson(contentJson, 4_096);
     const digest = sha256({ kind, content });
     const existing = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
     if (existing) {
-      if (existing.kind !== kind || decodeStoredJson(existing.content_json, "Host Artifact") !== contentJson) {
-        throw new HostStoreError("host_corrupt", "artifact digest is bound to different content");
+      if (existing.kind !== kind || decodeStoredJson(existing.content_json, "Local Evidence Artifact") !== contentJson) {
+        throw new LocalEvidenceError("host_corrupt", "artifact digest is bound to different content");
       }
       return { digest, kind, content, byteLength: Number(existing.byte_length), createdAt: existing.created_at };
     }
@@ -140,57 +135,24 @@ export class HostStore {
     this.db.prepare("INSERT OR IGNORE INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
       .run(digest, kind, storedJson, byteLength, createdAt);
     const retained = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
-    if (!retained || retained.kind !== kind || decodeStoredJson(retained.content_json, "Host Artifact") !== contentJson) {
-      throw new HostStoreError("host_corrupt", "artifact digest is bound to different content");
+    if (!retained || retained.kind !== kind || decodeStoredJson(retained.content_json, "Local Evidence Artifact") !== contentJson) {
+      throw new LocalEvidenceError("host_corrupt", "artifact digest is bound to different content");
     }
     return { digest, kind, content, byteLength: Number(retained.byte_length), createdAt: retained.created_at };
   }
 
-  getArtifact<T>(digest: string): HostArtifact<T> {
+  getArtifact<T>(digest: string): LocalEvidenceArtifact<T> {
     const row = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
-    if (!row) throw new Error(`unknown Host Artifact: ${digest}`);
-    const content = parse<T>(decodeStoredJson(row.content_json, "Host Artifact"), "Host Artifact");
+    if (!row) throw new Error(`unknown Local Evidence Artifact: ${digest}`);
+    const content = parse<T>(decodeStoredJson(row.content_json, "Local Evidence Artifact"), "Local Evidence Artifact");
     if (sha256({ kind: row.kind, content }) !== row.digest) {
-      throw new HostStoreError("host_corrupt", "Host Artifact digest mismatch");
+      throw new LocalEvidenceError("host_corrupt", "Local Evidence Artifact digest mismatch");
     }
     return { digest: row.digest, kind: row.kind, content, byteLength: Number(row.byte_length), createdAt: row.created_at };
   }
 
-  putProtocolArtifact<T>(kind: string, content: T, createdAt = new Date().toISOString()): HostArtifact<T> {
-    if (!kind || kind !== kind.trim()) throw new TypeError("artifact kind must be non-empty and trimmed");
-    validateProtocolJson(content);
-    const contentJson = protocolCanonicalJson(content);
-    const storedJson = encodeStoredJson(contentJson, 4_096);
-    const digest = protocolDigest(content);
-    const existing = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
-    if (existing) {
-      if (existing.kind !== kind || decodeStoredJson(existing.content_json, "Protocol Artifact") !== contentJson) {
-        throw new HostStoreError("host_corrupt", "Protocol Artifact digest is bound to different content or kind");
-      }
-      return { digest, kind, content, byteLength: Number(existing.byte_length), createdAt: existing.created_at };
-    }
-    const byteLength = Buffer.byteLength(contentJson);
-    this.db.prepare("INSERT OR IGNORE INTO host_artifacts (digest, kind, content_json, byte_length, created_at) VALUES (?, ?, ?, ?, ?)")
-      .run(digest, kind, storedJson, byteLength, createdAt);
-    const retained = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
-    if (!retained || retained.kind !== kind || decodeStoredJson(retained.content_json, "Protocol Artifact") !== contentJson) {
-      throw new HostStoreError("host_corrupt", "Protocol Artifact digest is bound to different content or kind");
-    }
-    return { digest, kind, content, byteLength: Number(retained.byte_length), createdAt: retained.created_at };
-  }
 
-  getProtocolArtifact<T>(digest: string): HostArtifact<T> {
-    const row = this.db.prepare("SELECT * FROM host_artifacts WHERE digest = ?").get(digest) as ArtifactRow | undefined;
-    if (!row) throw new Error(`unknown Protocol Artifact: ${digest}`);
-    const content = parse<T>(decodeStoredJson(row.content_json, "Protocol Artifact"), "Protocol Artifact");
-    validateProtocolJson(content);
-    if (protocolDigest(content) !== row.digest) {
-      throw new HostStoreError("host_corrupt", "Protocol Artifact digest mismatch");
-    }
-    return { digest: row.digest, kind: row.kind, content, byteLength: Number(row.byte_length), createdAt: row.created_at };
-  }
-
-  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): HostJournalEvent {
+  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): LocalEvidenceEvent {
     return this.withTransaction(runId, () => this.appendEventInTransaction(
       runId, eventType, eventId, payload, new Date().toISOString(),
     ));
@@ -199,7 +161,7 @@ export class HostStore {
   withTransaction<T>(runId: string, operation: () => T): T {
     const active = transactionStates.get(this.db);
     if (active) {
-      if (active.runId !== runId) throw new Error("Host transaction cannot span different Runs");
+      if (active.runId !== runId) throw new Error("Local evidence transaction cannot span different Runs");
       active.depth += 1;
       try { return operation(); }
       finally { active.depth -= 1; }
@@ -226,14 +188,14 @@ export class HostStore {
     eventId: string,
     payload: unknown,
     createdAt: string,
-  ): HostJournalEvent {
+  ): LocalEvidenceEvent {
     const payloadJson = canonicalJson(payload);
     const storedPayloadJson = eventType.startsWith("host-contract.") ? payloadJson : encodeStoredJson(payloadJson, 256);
     const existing = this.db.prepare("SELECT * FROM host_journal WHERE run_id = ? AND event_id = ?")
       .get(runId, eventId) as JournalRow | undefined;
     if (existing) {
-      if (existing.event_type !== eventType || decodeStoredJson(existing.payload_json, "Host Journal payload") !== payloadJson) {
-        throw new HostStoreError("host_constraint", "Host Event identity is bound to different content");
+      if (existing.event_type !== eventType || decodeStoredJson(existing.payload_json, "Local Evidence Journal payload") !== payloadJson) {
+        throw new LocalEvidenceError("host_constraint", "Local Evidence Event identity is bound to different content");
       }
       return this.fromJournalRow(existing);
     }
@@ -258,18 +220,18 @@ export class HostStore {
     };
   }
 
-  getJournalEvent(runId: string, eventId: string): HostJournalEvent | null {
+  getJournalEvent(runId: string, eventId: string): LocalEvidenceEvent | null {
     const row = this.db.prepare(
       "SELECT * FROM host_journal WHERE run_id = ? AND event_id = ?",
     ).get(runId, eventId) as JournalRow | undefined;
     if (!row) return null;
     if (recordDigest(row) !== row.record_digest) {
-      throw new HostStoreError("host_corrupt", "Host Journal record digest mismatch");
+      throw new LocalEvidenceError("host_corrupt", "Local Evidence Journal record digest mismatch");
     }
     return this.fromJournalRow(row);
   }
 
-  listJournal(runId: string): HostJournalEvent[] {
+  listJournal(runId: string): LocalEvidenceEvent[] {
     const rows = this.db.prepare("SELECT * FROM host_journal WHERE run_id = ? ORDER BY sequence")
       .all(runId) as unknown as JournalRow[];
     return rows.map((row) => this.fromJournalRow(row));
@@ -289,26 +251,26 @@ export class HostStore {
     for (let index = 0; index < rows.length; index += 1) {
       const row = rows[index];
       if (!row || Number(row.sequence) !== index) {
-        throw new HostStoreError("host_corrupt", "Host Journal sequence is discontinuous");
+        throw new LocalEvidenceError("host_corrupt", "Local Evidence Journal sequence is discontinuous");
       }
       if (row.previous_digest !== previous) {
-        throw new HostStoreError("host_corrupt", "Host Journal previous digest mismatch");
+        throw new LocalEvidenceError("host_corrupt", "Local Evidence Journal previous digest mismatch");
       }
       const actual = recordDigest(row);
       if (actual !== row.record_digest) {
-        throw new HostStoreError("host_corrupt", "Host Journal record digest mismatch");
+        throw new LocalEvidenceError("host_corrupt", "Local Evidence Journal record digest mismatch");
       }
       previous = actual;
     }
   }
 
-  private fromJournalRow(row: JournalRow): HostJournalEvent {
+  private fromJournalRow(row: JournalRow): LocalEvidenceEvent {
     return {
       runId: row.run_id,
       sequence: Number(row.sequence),
       eventId: row.event_id,
       eventType: row.event_type,
-      payload: parse(decodeStoredJson(row.payload_json, "Host Journal payload"), "Host Journal payload"),
+      payload: parse(decodeStoredJson(row.payload_json, "Local Evidence Journal payload"), "Local Evidence Journal payload"),
       previousDigest: row.previous_digest,
       recordDigest: row.record_digest,
       createdAt: row.created_at,

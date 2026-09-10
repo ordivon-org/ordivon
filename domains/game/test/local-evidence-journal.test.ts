@@ -4,61 +4,44 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { HostStore, HostStoreError } from "../src/host-contract/journal.ts";
+import { LocalEvidenceJournal, LocalEvidenceError } from "../src/integration/local-evidence-journal.ts";
 import { GameStore } from "../src/storage.ts";
 
-function withStores(run: (game: GameStore, host: HostStore) => void): void {
-  const directory = mkdtempSync(join(tmpdir(), "ordivon-game-host-store-"));
+function withStores(run: (game: GameStore, host: LocalEvidenceJournal) => void): void {
+  const directory = mkdtempSync(join(tmpdir(), "ordivon-game-local-evidence-"));
   try {
     const game = new GameStore(join(directory, "world.sqlite3"));
-    try { run(game, new HostStore(game.db)); } finally { game.close(); }
+    try { run(game, new LocalEvidenceJournal(game.db)); } finally { game.close(); }
   } finally { rmSync(directory, { recursive: true, force: true }); }
 }
 
-test("HostStore creates only Artifact and Journal authority tables", () => {
+test("LocalEvidenceJournal creates only Artifact and Journal authority tables", () => {
   withStores((game) => {
     const tables = (game.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'host_%' ORDER BY name").all() as unknown as Array<{ name: string }>).map((row) => row.name);
     assert.deepEqual(tables, ["host_artifacts", "host_journal"]);
   });
 });
 
-test("Host Artifacts are content addressed and detect mutation", () => {
+test("Local Evidence Artifacts are content addressed and detect mutation", () => {
   withStores((game, host) => {
     const first = host.putArtifact("agent-context", { revision: 0, allowed: ["repair:cooling"] });
     const duplicate = host.putArtifact("agent-context", { allowed: ["repair:cooling"], revision: 0 });
     assert.equal(duplicate.digest, first.digest);
     assert.deepEqual(host.getArtifact(first.digest).content, first.content);
     game.db.prepare("UPDATE host_artifacts SET content_json = ? WHERE digest = ?").run('{"revision":1}', first.digest);
-    assert.throws(() => host.getArtifact(first.digest), (error) => error instanceof HostStoreError && error.code === "host_corrupt");
+    assert.throws(() => host.getArtifact(first.digest), (error) => error instanceof LocalEvidenceError && error.code === "host_corrupt");
   });
 });
 
-test("Protocol Artifacts preserve exact kind and canonical digest", () => {
-  withStores((game, host) => {
-    const value = { schemaVersion: 1, kind: "ordivon.test-object", identity: "test:one" };
-    const first = host.putProtocolArtifact(value.kind, value);
-    assert.deepEqual(host.getProtocolArtifact(first.digest).content, value);
-    assert.throws(() => host.getProtocolArtifact("sha256:missing"), /unknown Protocol Artifact/);
-    const tampered = host.putProtocolArtifact("ordivon.test-object", { ...value, identity: "test:tampered" });
-    game.db.prepare("UPDATE host_artifacts SET content_json = ? WHERE digest = ?")
-      .run('{"identity":"test:changed","kind":"ordivon.test-object","schemaVersion":1}', tampered.digest);
-    assert.throws(
-      () => host.getProtocolArtifact(tampered.digest),
-      (error) => error instanceof HostStoreError && error.code === "host_corrupt",
-    );
-    game.db.prepare("UPDATE host_artifacts SET kind = ? WHERE digest = ?").run("different", first.digest);
-    assert.throws(() => host.putProtocolArtifact(value.kind, value), /different content or kind/);
-  });
-});
 
-test("Host Journal is idempotent and rejects conflicting identity or tampering", () => {
+test("Local Evidence Journal is idempotent and rejects conflicting identity or tampering", () => {
   withStores((game, host) => {
     const first = host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 1 });
     const duplicate = host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 1 });
     assert.equal(duplicate.recordDigest, first.recordDigest);
     assert.deepEqual(host.getJournalEvent(game.activeRunId, first.eventId), first);
     assert.equal(host.getJournalEvent(game.activeRunId, "host-event:missing"), null);
-    assert.throws(() => host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 2 }), (error) => error instanceof HostStoreError && error.code === "host_constraint");
+    assert.throws(() => host.appendEvent(game.activeRunId, "test_event", "host-event:test", { value: 2 }), (error) => error instanceof LocalEvidenceError && error.code === "host_constraint");
     host.appendEvent(game.activeRunId, "second", "host-event:second", { value: 2 });
     host.verifyJournal(game.activeRunId);
     game.db.prepare("UPDATE host_journal SET payload_json = ? WHERE event_id = ?").run('{"value":3}', "host-event:second");
@@ -69,9 +52,9 @@ test("Host Journal is idempotent and rejects conflicting identity or tampering",
   });
 });
 
-test("HostStore validates missing identities and transaction rollback", () => {
+test("LocalEvidenceJournal validates missing identities and transaction rollback", () => {
   withStores((game, host) => {
-    assert.throws(() => host.getArtifact("missing"), /unknown Host Artifact/);
+    assert.throws(() => host.getArtifact("missing"), /unknown Local Evidence Artifact/);
     assert.throws(() => host.putArtifact(" ", {}), /artifact kind/);
     assert.throws(() => host.appendEvent("run:missing", "test", "event", {}), /unknown run/);
     assert.throws(() => host.withTransaction(game.activeRunId, () => {
@@ -83,7 +66,7 @@ test("HostStore validates missing identities and transaction rollback", () => {
 });
 
 
-test("Host Journal point reads reject tampered records", () => {
+test("Local Evidence Journal point reads reject tampered records", () => {
   withStores((game, host) => {
     const event = host.appendEvent(
       game.activeRunId,
@@ -95,7 +78,7 @@ test("Host Journal point reads reject tampered records", () => {
       .run('{"value":2}', game.activeRunId, event.eventId);
     assert.throws(
       () => host.getJournalEvent(game.activeRunId, event.eventId),
-      (error: unknown) => error instanceof HostStoreError && error.code === "host_corrupt" && /record digest mismatch/.test(error.message),
+      (error: unknown) => error instanceof LocalEvidenceError && error.code === "host_corrupt" && /record digest mismatch/.test(error.message),
     );
   });
 });

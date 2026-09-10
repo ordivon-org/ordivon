@@ -206,8 +206,8 @@ test("a committed World Tick recovers without duplicate effects after interrupti
         assert.equal(sha256(reopened.loadState(runId)), TEAM_DIGEST, point);
         assert.equal(result.rounds.length, 18, point);
         assert.ok(result.rounds.every((round) => round.status === "completed"), point);
-        assert.equal(fresh.execution.authority.dispatchCount(runId), 18, point);
-        assert.equal(fresh.execution.authority.observationCount(runId), 18, point);
+        assert.equal(fresh.execution.commitment.dispatchCount(runId), 18, point);
+        assert.equal(fresh.execution.commitment.observationCount(runId), 18, point);
         fresh.team.verify(runId);
       } finally {
         reopened.close();

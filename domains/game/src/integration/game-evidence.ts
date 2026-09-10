@@ -1,27 +1,25 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import {
-  HostStore,
-  type HostArtifact,
-  type HostJournalEvent,
-} from "../host-contract/journal.ts";
+  LocalEvidenceJournal,
+  type LocalEvidenceArtifact,
+  type LocalEvidenceEvent,
+} from "./local-evidence-journal.ts";
 
 /**
  * Narrow Game-consumer durability port.
  *
  * This interface does not assign semantic authority to persistence. It exists so
- * Game/domain code can stop importing the legacy embedded HostStore directly.
+ * Game/domain code consumes a bounded local evidence port instead of treating persistence as domain authority.
  * The current adapter remains local only because Station Zero requires one
  * SQLite transaction to atomically bind Game projections and retained journal
  * evidence. A source-current external Host replacement must preserve that
  * invariant before this compatibility adapter can be deleted.
  */
 export interface GameEvidencePort {
-  putArtifact<T>(kind: string, content: T): HostArtifact<T>;
-  getArtifact<T>(digest: string): HostArtifact<T>;
-  putProtocolArtifact<T>(kind: string, content: T, createdAt?: string): HostArtifact<T>;
-  getProtocolArtifact<T>(digest: string): HostArtifact<T>;
-  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): HostJournalEvent;
+  putArtifact<T>(kind: string, content: T): LocalEvidenceArtifact<T>;
+  getArtifact<T>(digest: string): LocalEvidenceArtifact<T>;
+  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): LocalEvidenceEvent;
   withTransaction<T>(runId: string, operation: () => T): T;
   appendEventInTransaction(
     runId: string,
@@ -29,39 +27,30 @@ export interface GameEvidencePort {
     eventId: string,
     payload: unknown,
     createdAt: string,
-  ): HostJournalEvent;
-  getJournalEvent(runId: string, eventId: string): HostJournalEvent | null;
-  listJournal(runId: string): HostJournalEvent[];
+  ): LocalEvidenceEvent;
+  getJournalEvent(runId: string, eventId: string): LocalEvidenceEvent | null;
+  listJournal(runId: string): LocalEvidenceEvent[];
   listEventTypes(runId: string): string[];
   verifyJournal(runId: string): void;
 }
 
-export class LegacyEmbeddedHostEvidenceAdapter implements GameEvidencePort {
-  private readonly store: HostStore;
+export class LocalEvidenceAdapter implements GameEvidencePort {
+  private readonly store: LocalEvidenceJournal;
 
   constructor(db: DatabaseSync) {
-    this.store = new HostStore(db);
+    this.store = new LocalEvidenceJournal(db);
   }
 
-  putArtifact<T>(kind: string, content: T): HostArtifact<T> {
+  putArtifact<T>(kind: string, content: T): LocalEvidenceArtifact<T> {
     return this.store.putArtifact(kind, content);
   }
 
-  getArtifact<T>(digest: string): HostArtifact<T> {
+  getArtifact<T>(digest: string): LocalEvidenceArtifact<T> {
     return this.store.getArtifact<T>(digest);
   }
 
-  putProtocolArtifact<T>(kind: string, content: T, createdAt?: string): HostArtifact<T> {
-    return createdAt === undefined
-      ? this.store.putProtocolArtifact(kind, content)
-      : this.store.putProtocolArtifact(kind, content, createdAt);
-  }
 
-  getProtocolArtifact<T>(digest: string): HostArtifact<T> {
-    return this.store.getProtocolArtifact<T>(digest);
-  }
-
-  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): HostJournalEvent {
+  appendEvent(runId: string, eventType: string, eventId: string, payload: unknown): LocalEvidenceEvent {
     return this.store.appendEvent(runId, eventType, eventId, payload);
   }
 
@@ -75,15 +64,15 @@ export class LegacyEmbeddedHostEvidenceAdapter implements GameEvidencePort {
     eventId: string,
     payload: unknown,
     createdAt: string,
-  ): HostJournalEvent {
+  ): LocalEvidenceEvent {
     return this.store.appendEventInTransaction(runId, eventType, eventId, payload, createdAt);
   }
 
-  getJournalEvent(runId: string, eventId: string): HostJournalEvent | null {
+  getJournalEvent(runId: string, eventId: string): LocalEvidenceEvent | null {
     return this.store.getJournalEvent(runId, eventId);
   }
 
-  listJournal(runId: string): HostJournalEvent[] {
+  listJournal(runId: string): LocalEvidenceEvent[] {
     return this.store.listJournal(runId);
   }
 
@@ -97,5 +86,5 @@ export class LegacyEmbeddedHostEvidenceAdapter implements GameEvidencePort {
 }
 
 export function createGameEvidencePort(db: DatabaseSync): GameEvidencePort {
-  return new LegacyEmbeddedHostEvidenceAdapter(db);
+  return new LocalEvidenceAdapter(db);
 }

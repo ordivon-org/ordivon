@@ -72,7 +72,7 @@ export function loadReplayTeamData(
   const team = new TeamStore(store);
   const execution = new TeamExecutionStore(team);
   team.verify(runId);
-  execution.authority.verify(runId);
+  execution.commitment.verify(runId);
   const projection = team.projection(runId, false);
   const rounds = execution.listRounds(runId);
   const data: ReplayTeamData = {
@@ -87,7 +87,7 @@ export function loadReplayTeamData(
     authorityDecisions: projection.authorityDecisions,
     authorityGrants: projection.authorityGrants,
     messages: projection.messages,
-    contractTranscript: execution.authority.contractTranscript(runId),
+    contractTranscript: execution.commitment.contractTranscript(runId),
     hostJournal: team.evidence.listJournal(runId),
   };
 
