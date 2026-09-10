@@ -5,10 +5,7 @@ import unittest
 
 from anc_canonical import canonical_digest
 
-from ordivon_harness.execution_binding import (
-    HarnessExecutionBinding,
-    HarnessRuntimeReference,
-)
+from ordivon_harness.execution_binding import HarnessExecutionBinding
 from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.ordivon.runtime_lowering import lower_runtime_tool
 
@@ -24,24 +21,24 @@ def binding() -> HarnessExecutionBinding:
         harness_run_id="harness-run:p0-execution-binding-001",
         workspace_ref="workspace:p0-execution-binding-001",
         runtime_references=(
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="harness_run",
-                reference_id="harness-run:p0-execution-binding-001",
+                type="harness_run",
+                id="harness-run:p0-execution-binding-001",
                 generation="1",
                 digest=DIGEST_B,
             ),
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="run_contract",
-                reference_id="harness-run-contract:p0-execution-binding-001",
+                type="run_contract",
+                id="harness-run-contract:p0-execution-binding-001",
                 generation="1",
                 digest=DIGEST_A,
             ),
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="tool_grant",
-                reference_id="tool-grant:p0-execution-binding-001",
+                type="tool_grant",
+                id="tool-grant:p0-execution-binding-001",
                 generation="1",
                 digest=DIGEST_D,
             ),
@@ -167,6 +164,33 @@ class HarnessExecutionBindingTests(unittest.TestCase):
     def test_references_must_be_unique_and_sorted(self) -> None:
         value = binding().to_dict()
         value["runtimeReferences"] = list(reversed(value["runtimeReferences"]))
+        with self.assertRaisesRegex(ValueError, "uniquely sorted"):
+            HarnessExecutionBinding.from_dict(value)
+
+    def test_runtime_native_reference_digest_is_opaque_logical_id(self) -> None:
+        value = binding().to_dict()
+        value["runtimeReferences"][0]["digest"] = "runtime-owned-generation-token"
+        rebound = HarnessExecutionBinding.from_dict(value)
+        self.assertEqual(
+            rebound.to_dict()["runtimeReferences"][0]["digest"],
+            "runtime-owned-generation-token",
+        )
+
+    def test_runtime_native_reference_rejects_unknown_fields_and_control_characters(self) -> None:
+        value = binding().to_dict()
+        value["runtimeReferences"][0]["extra"] = "nope"
+        with self.assertRaisesRegex(ValueError, "fields differ"):
+            HarnessExecutionBinding.from_dict(value)
+
+        value = binding().to_dict()
+        value["runtimeReferences"][0]["id"] = "bad\nreference"
+        with self.assertRaisesRegex(ValueError, "control-free"):
+            HarnessExecutionBinding.from_dict(value)
+
+    def test_runtime_native_reference_rejects_duplicate_identity(self) -> None:
+        value = binding().to_dict()
+        duplicate = dict(value["runtimeReferences"][0])
+        value["runtimeReferences"].insert(1, duplicate)
         with self.assertRaisesRegex(ValueError, "uniquely sorted"):
             HarnessExecutionBinding.from_dict(value)
 

@@ -45,7 +45,6 @@ EXPECTED_API = {
     "HarnessRuntimeClient",
     "HarnessRuntimeClientError",
     "HarnessRuntimeErrorDetail",
-    "HarnessRuntimeReference",
     "HarnessRuntimeToolRejected",
     "INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST",
     "INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST",

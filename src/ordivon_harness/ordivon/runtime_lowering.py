@@ -82,7 +82,7 @@ def _build_workspace_exec_request(
             "timeoutMs": timeout_ms,
             "stdoutLimitBytes": stdout_limit_bytes,
             "stderrLimitBytes": stderr_limit_bytes,
-            "foreignReferences": [reference.to_dict() for reference in binding.runtime_references],
+            "foreignReferences": [dict(reference) for reference in binding.runtime_references],
         },
         "waitMs": wait_ms,
         "stdoutTailBytes": stdout_tail_bytes,

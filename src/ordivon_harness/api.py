@@ -22,7 +22,7 @@ from .core_contracts import (
     HarnessRunContract,
     STRUCTURED_COMPLETION_MODE,
 )
-from .execution_binding import HarnessExecutionBinding, HarnessRuntimeReference
+from .execution_binding import HarnessExecutionBinding
 from .independent_result import IndependentCompletionProposal, IndependentHarnessRunReceipt
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from .ordivon.loop import RunBudget, RunStopCode
@@ -92,7 +92,6 @@ __all__ = [
     "HarnessRuntimeClient",
     "HarnessRuntimeClientError",
     "HarnessRuntimeErrorDetail",
-    "HarnessRuntimeReference",
     "HarnessRuntimeToolRejected",
     "INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST",
     "INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST",

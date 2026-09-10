@@ -11,7 +11,6 @@ from anc_canonical import JsonValue, canonical_digest
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
 from ordivon_harness.execution_binding import (
     HarnessExecutionBinding,
-    HarnessRuntimeReference,
 )
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget, RunStopCode
 from ordivon_harness.ordivon.model import (
@@ -201,24 +200,24 @@ def execution_binding(
 ) -> HarnessExecutionBinding:
     binding = continuity.binding
     references = (
-        HarnessRuntimeReference(
+        dict(
             namespace="ordivon.harness",
-            reference_type="harness_run",
-            reference_id=run_contract.harness_run_id,
+            type="harness_run",
+            id=run_contract.harness_run_id,
             generation=str(binding.assignment_generation),
             digest=binding.digest,
         ),
-        HarnessRuntimeReference(
+        dict(
             namespace="ordivon.harness",
-            reference_type="run_contract",
-            reference_id=f"harness-run-contract:{run_contract.digest[7:31]}",
+            type="run_contract",
+            id=f"harness-run-contract:{run_contract.digest[7:31]}",
             generation="1",
             digest=run_contract.digest,
         ),
-        HarnessRuntimeReference(
+        dict(
             namespace="ordivon.harness",
-            reference_type="tool_grant",
-            reference_id=f"tool-grant:{run_contract.tool_grant_digest[7:31]}",
+            type="tool_grant",
+            id=f"tool-grant:{run_contract.tool_grant_digest[7:31]}",
             generation="1",
             digest=run_contract.tool_grant_digest,
         ),

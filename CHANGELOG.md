@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- retired the zero-external-consumer `HarnessRuntimeReference` wrapper; execution bindings now carry frozen Runtime-native `foreignReferences` mappings while preserving exact dispatch JSON and Harness preflight checks.
+
 - completed the thin Runtime-boundary ownership cleanup without changing Runtime semantics: concrete `workspace.exec` request construction now lives privately in `runtime_lowering`, while clientRequestId Job reconciliation lookup and Runtime rejection projection live privately in `sqlite_runtime_bridge`. `execution_binding.py` remains only the minimal Run/Workspace/reference identity plus deterministic request IDs introduced by the prior thinning; `runtime_port.py` remains only the caller Runtime Protocol and typed rejection boundary. Request bytes, request identity derivation, foreign references, rejection commit-state meaning, UNKNOWN/reconciliation and public API are unchanged.
 
 - retired the already-broken, zero-consumer H5 live replacement worker while retaining the frozen fixture, support validators, immutable receipt evidence, and receipt checker as historical verification assets.

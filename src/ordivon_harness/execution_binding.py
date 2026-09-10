@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 import re
+from types import MappingProxyType
 from typing import Any
+import unicodedata
 
 from anc_canonical import JsonValue, canonical_digest
 
@@ -23,60 +26,40 @@ def _digest(value: str, label: str) -> str:
     return value
 
 
-@dataclass(frozen=True, slots=True)
-class HarnessRuntimeReference:
-    namespace: str
-    reference_type: str
-    reference_id: str
-    generation: str | None = None
-    digest: str | None = None
+def _runtime_logical_id(value: object, label: str) -> str:
+    """Validate Runtime's current logical-id contract at the Harness boundary."""
 
-    def __post_init__(self) -> None:
-        _text(self.namespace, "Runtime reference namespace", max_bytes=120)
-        _text(self.reference_type, "Runtime reference type", max_bytes=120)
-        _text(self.reference_id, "Runtime reference identity")
-        if self.generation is not None:
-            _text(self.generation, "Runtime reference generation", max_bytes=120)
-        if self.digest is not None:
-            _digest(self.digest, "Runtime reference digest")
-
-    @property
-    def sort_key(self) -> tuple[str, str, str]:
-        return (self.namespace, self.reference_type, self.reference_id)
-
-    def to_dict(self) -> dict[str, JsonValue]:
-        value: dict[str, JsonValue] = {
-            "namespace": self.namespace,
-            "type": self.reference_type,
-            "id": self.reference_id,
-        }
-        if self.generation is not None:
-            value["generation"] = self.generation
-        if self.digest is not None:
-            value["digest"] = self.digest
-        return value
-
-    @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> HarnessRuntimeReference:
-        allowed = {"namespace", "type", "id", "generation", "digest"}
-        if not {"namespace", "type", "id"}.issubset(value) or set(value) - allowed:
-            raise ValueError("HarnessRuntimeReference fields differ")
-        for field in ("namespace", "type", "id"):
-            if not isinstance(value[field], str):
-                raise ValueError("HarnessRuntimeReference identity fields must be strings")
-        generation = value.get("generation")
-        digest = value.get("digest")
-        if generation is not None and not isinstance(generation, str):
-            raise ValueError("HarnessRuntimeReference generation must be a string")
-        if digest is not None and not isinstance(digest, str):
-            raise ValueError("HarnessRuntimeReference digest must be a string")
-        return cls(
-            namespace=value["namespace"],
-            reference_type=value["type"],
-            reference_id=value["id"],
-            generation=generation,
-            digest=digest,
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be a string")
+    if not 1 <= len(value) <= 256 or value != value.strip() or any(
+        unicodedata.category(character) == "Cc" for character in value
+    ):
+        raise ValueError(
+            f"{label} must contain 1..=256 Unicode characters, be trimmed, and be control-free"
         )
+    return value
+
+
+def _normalize_runtime_reference(
+    value: Mapping[str, Any],
+) -> Mapping[str, JsonValue]:
+    """Freeze one Runtime-native ForeignReference mapping without minting a Harness value type."""
+
+    allowed = {"namespace", "type", "id", "generation", "digest"}
+    if not isinstance(value, Mapping):
+        raise ValueError("Runtime foreign reference must be a mapping")
+    if not {"namespace", "type", "id"}.issubset(value) or set(value) - allowed:
+        raise ValueError("Runtime foreign reference fields differ")
+    normalized: dict[str, JsonValue] = {
+        "namespace": _runtime_logical_id(value["namespace"], "Runtime reference namespace"),
+        "type": _runtime_logical_id(value["type"], "Runtime reference type"),
+        "id": _runtime_logical_id(value["id"], "Runtime reference identity"),
+    }
+    for field in ("generation", "digest"):
+        item = value.get(field)
+        if item is not None:
+            normalized[field] = _runtime_logical_id(item, f"Runtime reference {field}")
+    return MappingProxyType(normalized)
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,16 +73,21 @@ class HarnessExecutionBinding:
 
     harness_run_id: str
     workspace_ref: str
-    runtime_references: tuple[HarnessRuntimeReference, ...]
+    runtime_references: tuple[Mapping[str, JsonValue], ...]
 
     def __post_init__(self) -> None:
         _text(self.harness_run_id, "Harness Run identity")
         if not self.harness_run_id.startswith("harness-run:"):
             raise ValueError("Harness Run identity must start with harness-run:")
         _text(self.workspace_ref, "Runtime Workspace reference")
-        keys = [reference.sort_key for reference in self.runtime_references]
+        references = tuple(_normalize_runtime_reference(reference) for reference in self.runtime_references)
+        keys = [
+            (reference["namespace"], reference["type"], reference["id"])
+            for reference in references
+        ]
         if keys != sorted(keys) or len(keys) != len(set(keys)):
             raise ValueError("Runtime references must be uniquely sorted")
+        object.__setattr__(self, "runtime_references", references)
 
     @property
     def digest(self) -> str:
@@ -111,7 +99,7 @@ class HarnessExecutionBinding:
             "kind": "ordivon.harness-execution-binding",
             "harnessRunId": self.harness_run_id,
             "workspaceRef": self.workspace_ref,
-            "runtimeReferences": [reference.to_dict() for reference in self.runtime_references],
+            "runtimeReferences": [dict(reference) for reference in self.runtime_references],
         }
 
     @classmethod
@@ -139,9 +127,7 @@ class HarnessExecutionBinding:
         return cls(
             harness_run_id=value["harnessRunId"],
             workspace_ref=value["workspaceRef"],
-            runtime_references=tuple(
-                HarnessRuntimeReference.from_dict(item) for item in references
-            ),
+            runtime_references=tuple(dict(item) for item in references),
         )
 
     def client_request_id(self, step_id: str) -> str:

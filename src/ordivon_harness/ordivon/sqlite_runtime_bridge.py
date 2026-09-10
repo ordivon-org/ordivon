@@ -255,22 +255,22 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         references = execution_binding.runtime_references
         if not references:
             raise ValueError("independent Runtime execution requires foreign references")
-        if any(reference.namespace != "ordivon.harness" for reference in references):
+        if any(reference["namespace"] != "ordivon.harness" for reference in references):
             raise ValueError(
                 "independent Runtime execution may reference only ordivon.harness authority"
             )
-        run_refs = [reference for reference in references if reference.reference_type == "harness_run"]
-        if len(run_refs) != 1 or run_refs[0].reference_id != contract.harness_run_id:
+        run_refs = [reference for reference in references if reference["type"] == "harness_run"]
+        if len(run_refs) != 1 or run_refs[0]["id"] != contract.harness_run_id:
             raise ValueError("Harness Execution Binding Run reference differs")
         contract_refs = [
-            reference for reference in references if reference.reference_type == "run_contract"
+            reference for reference in references if reference["type"] == "run_contract"
         ]
-        if len(contract_refs) != 1 or contract_refs[0].digest != contract.digest:
+        if len(contract_refs) != 1 or contract_refs[0].get("digest") != contract.digest:
             raise ValueError("Harness Execution Binding Contract reference differs")
         grant_refs = [
-            reference for reference in references if reference.reference_type == "tool_grant"
+            reference for reference in references if reference["type"] == "tool_grant"
         ]
-        if len(grant_refs) != 1 or grant_refs[0].digest != self._tool_grant_digest:
+        if len(grant_refs) != 1 or grant_refs[0].get("digest") != self._tool_grant_digest:
             raise ValueError("Harness Execution Binding Tool Grant reference differs")
         self.execution_binding = execution_binding
         self.runtime = runtime

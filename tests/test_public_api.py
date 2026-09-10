@@ -42,7 +42,6 @@ EXPECTED_API = {
     "HarnessRuntimeClient",
     "HarnessRuntimeClientError",
     "HarnessRuntimeErrorDetail",
-    "HarnessRuntimeReference",
     "HarnessRuntimeToolRejected",
     "INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST",
     "INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST",
@@ -93,12 +92,12 @@ class PublicApiTests(unittest.TestCase):
             "sha256:" + "a" * 64,
         )
         correlation = api.HarnessCorrelationContext()
-        runtime_reference = api.HarnessRuntimeReference(
-            "ordivon.harness",
-            "run",
-            "harness-run:public-api",
-            digest="sha256:" + "b" * 64,
-        )
+        runtime_reference = {
+            "namespace": "ordivon.harness",
+            "type": "run",
+            "id": "harness-run:public-api",
+            "digest": "sha256:" + "b" * 64,
+        }
         detail = api.HarnessRuntimeErrorDetail(
             code="CONCURRENCY_LIMIT",
             message="busy",
@@ -108,10 +107,14 @@ class PublicApiTests(unittest.TestCase):
         rejected = api.HarnessRuntimeToolRejected("workspace.exec", detail)
         self.assertEqual(reference.kind, "objective")
         self.assertIsNone(correlation.traceparent)
-        self.assertEqual(runtime_reference.namespace, "ordivon.harness")
+        self.assertEqual(runtime_reference["namespace"], "ordivon.harness")
         self.assertTrue(rejected.detail.retryable)
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST.startswith("sha256:"))
         self.assertTrue(api.INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST.startswith("sha256:"))
+
+    def test_runtime_reference_wrapper_is_retired(self) -> None:
+        self.assertFalse(hasattr(api, "HarnessRuntimeReference"))
+        self.assertFalse(hasattr(ordivon_harness, "HarnessRuntimeReference"))
 
     def test_retired_host_external_adapter_is_not_a_package_surface(self) -> None:
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))

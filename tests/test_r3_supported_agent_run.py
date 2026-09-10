@@ -20,7 +20,6 @@ from ordivon_harness.api import (
     HarnessExecutionBinding,
     HarnessPrivacyPolicy,
     HarnessRunContract,
-    HarnessRuntimeReference,
     HarnessWorkingViewSource,
 )
 from ordivon_harness.ordivon.model import (
@@ -162,24 +161,24 @@ def execution_binding(value: HarnessRunContract) -> HarnessExecutionBinding:
         harness_run_id=value.harness_run_id,
         workspace_ref="workspace:r3-explicit",
         runtime_references=(
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="harness_run",
-                reference_id=value.harness_run_id,
+                type="harness_run",
+                id=value.harness_run_id,
                 generation="1",
                 digest=value.digest,
             ),
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="run_contract",
-                reference_id=f"harness-run-contract:{value.digest[7:31]}",
+                type="run_contract",
+                id=f"harness-run-contract:{value.digest[7:31]}",
                 generation="1",
                 digest=value.digest,
             ),
-            HarnessRuntimeReference(
+            dict(
                 namespace="ordivon.harness",
-                reference_type="tool_grant",
-                reference_id=f"tool-grant:{value.tool_grant_digest[7:31]}",
+                type="tool_grant",
+                id=f"tool-grant:{value.tool_grant_digest[7:31]}",
                 generation="1",
                 digest=value.tool_grant_digest,
             ),
@@ -452,12 +451,12 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             value = contract("binding-contract-ref-preflight", tools=True)
             binding = execution_binding(value)
             refs = tuple(
-                HarnessRuntimeReference(
-                    namespace=reference.namespace,
-                    reference_type=reference.reference_type,
-                    reference_id=reference.reference_id,
-                    generation=reference.generation,
-                    digest=(digest("wrong-contract-ref") if reference.reference_type == "run_contract" else reference.digest),
+                dict(
+                    namespace=reference["namespace"],
+                    type=reference["type"],
+                    id=reference["id"],
+                    generation=reference.get("generation"),
+                    digest=(digest("wrong-contract-ref") if reference["type"] == "run_contract" else reference.get("digest")),
                 )
                 for reference in binding.runtime_references
             )
