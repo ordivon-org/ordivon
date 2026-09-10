@@ -126,6 +126,7 @@ A meaningful change should state:
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md` owns the product-discovery profile before G0: mature comparable references, teardown, bounded baseline reproduction, Human baseline validation, and controlled differentiation. Its R0–R4 labels are profile steps, not product stages.
+- `docs/GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911.md` owns the current concrete R0 reference corpus and first R1 teardown admission. It may select references to study, but not a product, G0 admission, Runtime Agent need, or transferable design law.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
 - `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` retains DS0 candidate/mechanism evidence; its old GameForm↔Agent coupling and search-priority semantics are historical after the decoupling correction.
 - `docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md` owns the first executable structural-falsifier results and their exact claim boundary: simulation may delete weak realizations but cannot prove human Player Value; broad forms are not killed by one failed micro-treatment.
