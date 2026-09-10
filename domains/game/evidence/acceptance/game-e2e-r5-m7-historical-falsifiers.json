@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m7-historical-falsifier-matrix",
+  "truthRole": "regression-capital-map-not-project-success-claim",
+  "recordedAt": "2026-09-10",
+  "falsifiers": [
+    {
+      "failureId": "VW-F01-SELECTED-RUNTIME-BYTE-DRIFT",
+      "historicalCondition": "Veilwild R4 selected runtime source/artifact bytes are frozen",
+      "currentDetector": "test/game-e2e-r5-veilwild-regression.test.ts exact selected-runtime byte identity",
+      "expectedStandingOnViolation": "FAIL",
+      "laterGreenRelation": "COEXISTS; later runtime success cannot rewrite historical selected-byte identity"
+    },
+    {
+      "failureId": "VW-F02-GODOT-SCENE-IDENTITY-LOSS",
+      "historicalCondition": "9 selected .tscn scenes / 71 nodes / every node has unique_id",
+      "currentDetector": "test/game-e2e-r5-veilwild-regression.test.ts scene identity falsifier",
+      "expectedStandingOnViolation": "FAIL",
+      "laterGreenRelation": "SUPERSEDE only with a new explicit candidate/evaluation condition"
+    },
+    {
+      "failureId": "VW-F03-TECHNICAL-STANDING-LAUNDERING",
+      "historicalCondition": "technical evidence exists while candidateId/buildId/buildArtifactId are null, rights INCONCLUSIVE, Human UNKNOWN",
+      "currentDetector": "test/game-e2e-r5-veilwild-regression.test.ts candidate/rights/Human boundary",
+      "expectedStandingOnViolation": "FAIL",
+      "laterGreenRelation": "MUST_NOT_COMPOSE without an explicit evidence edge"
+    },
+    {
+      "failureId": "VW-F04-TELEMETRY-AS-HUMAN-EVIDENCE",
+      "historicalCondition": "mechanical detection/observation telemetry exists without Human observation",
+      "currentDetector": "test/game-e2e-r5-veilwild-regression.test.ts telemetry-as-transport/Human UNKNOWN guards",
+      "expectedStandingOnViolation": "FAIL",
+      "laterGreenRelation": "MUST_NOT_COMPOSE"
+    },
+    {
+      "failureId": "VW-F05-COLD-IMPORT-READINESS",
+      "historicalCondition": "fresh copied project without .godot cache",
+      "currentDetector": "Veilwild R4 final strict replay under exact cold/import/post-import conditions",
+      "expectedStandingOnViolation": "EXPECTED_FAIL_DETECTED before import; PASS only after explicit import and final strict oracle",
+      "sourceEvidence": "evidence/acceptance/game-e2e-r5-m6-subtraction.json",
+      "laterGreenRelation": "COEXISTS; post-import PASS never erases cold-condition failure"
+    },
+    {
+      "failureId": "TEAM-F06-MISSING-AUTHORITATIVE-GAME-RECEIPT",
+      "historicalCondition": "Team Round reaches observed/completed state but authoritative Game command receipt disappears",
+      "currentDetector": "M7 executable destructive acceptance test over DerivedTeamCommitmentView.verify",
+      "expectedStandingOnViolation": "team_corrupt",
+      "laterGreenRelation": "MUST_NOT_COMPOSE"
+    },
+    {
+      "failureId": "TEAM-F07-TICKPLAN-IDENTITY-TAMPER",
+      "historicalCondition": "retained TeamTickPlan identity differs from the identity used by the authoritative Game command receipt",
+      "currentDetector": "M7 executable destructive acceptance test over derived commitment",
+      "expectedStandingOnViolation": "failed/team_corrupt",
+      "laterGreenRelation": "MUST_NOT_COMPOSE"
+    },
+    {
+      "failureId": "M7-F08-BRANCH-NAME-CURRENTNESS-LAUNDERING",
+      "historicalCondition": "main/candidate/workspace refs disagree",
+      "currentDetector": "M7 currentness artifact requires exact revisions and explicit classification",
+      "expectedStandingOnViolation": "HOLD/UNKNOWN, never CURRENT by ref name",
+      "laterGreenRelation": "SUPERSEDE only through explicit current-carrier freeze"
+    }
+  ]
+}
