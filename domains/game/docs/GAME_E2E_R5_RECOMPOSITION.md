@@ -365,3 +365,87 @@ Cross-owner live candidate resolution: AVAILABLE
 The literal Workstation `task test` is **not recorded as PASS** for this candidate: source-current `test_browserless_submit_clean_surface` imports `playwright` from the system Python environment where that dependency is absent. That environment/materialization issue is outside the two-file M4 change and remains separate from the bounded professional-software-binding standing.
 
 Production promotion is also separate. The Workstation candidate must be replayed against latest owner source and normal convergence rules before the interface becomes a production dependency.
+
+## 17. R5 migration milestone M5 — Research vNext Human/player evidence bridge
+
+M5 binds one concrete fresh-player question to the exact current Research vNext universal boundary rather than creating a Game research subsystem.
+
+Research vNext source re-entered for this packet:
+
+```text
+bab965e19dd5ad06bb2427c3b599d775af4b6f6f
+```
+
+The first prepared study is:
+
+```text
+station-zero-v3-gv7-fresh-player-r1
+```
+
+and maps only through:
+
+```text
+researchIntent
+  → decide whether current Station Zero v3 expression is understandable enough
+    to exercise the delegation/causal loop, or whether a smallest L2 repair is required
+
+targetOfInquiry
+  → exact Game source fc74ad32a7c03f7c745c1e5ce27985f983ccb6b2
+  → /v3
+  → fixed-genesis
+  → deterministic fixture cognition
+  → first two committed Turns
+  → fresh adult participant without implementation knowledge
+
+claimBoundary
+  → C1 usability/actionability + C2 understanding/mental model only
+  → excludes fun, market appeal, retention, population prevalence,
+    unrelated accessibility populations, Veilwild Human standing,
+    and Game E2E default-ready standing
+
+evaluationLogic
+  → moderated formative qualitative play
+  → pre-Commit prediction
+  → post-Aftermath causal reconstruction
+  → second-Order adaptation
+  → predeclared falsifiers and repair/retest/version-cut rules
+```
+
+The method profile is external rather than Game-owned: ISO 9241-210:2019, ISO 9241-11:2018, and current Games User Research guidance are cited as method constraints. The packet does not register a universal method profile.
+
+The protocol and machine-readable packet are stored under:
+
+```text
+research/player-studies/station-zero-v3-gv7-fresh-player-r1.json
+research/player-studies/STATION_ZERO_V3_GV7_R1_PROTOCOL.md
+research/player-studies/STATION_ZERO_V3_GV7_R1_SESSION_TEMPLATE.json
+```
+
+The session template is intentionally `blank-session-template-not-human-evidence`. Protocol and results are separate artifacts; the prepared plan is not rewritten into a result after collection.
+
+Current apparatus preflight on the exact Game source:
+
+```text
+Runtime Job: job-01a08a6a-6b75-7c42-915d-732011e0571c
+pnpm e2e:v3
+20 committed Turns
+worldRevision = 20
+browserErrors = []
+delayedPreview = true
+production asset requests observed 200
+```
+
+This proves only that the study surface is mechanically executable enough to expose to a participant. It cannot establish Human usability, understanding, experience, preference or product value.
+
+M5 regression standing:
+
+```text
+player-study boundary tests: 9/9 PASS
+Game full repository check: 399/399 PASS
+Human sessions observed: 0
+Human evidence standing: UNKNOWN
+Study apparatus standing: READY_FOR_HUMAN_CANARY
+Product decision: HOLD_FOR_HUMAN_EVIDENCE
+```
+
+R5 has therefore reached a real Human boundary. Further C1/C2 promotion for this study requires actual fresh-player observations; additional Agent simulation, browser automation or telemetry cannot substitute for those sessions.

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-player-session-observation-template",
+  "truthRole": "blank-session-template-not-human-evidence",
+  "studyId": "station-zero-v3-gv7-fresh-player-r1",
+  "studyPacketRevision": "PREPARED_NOT_RUN",
+  "exactCondition": {
+    "gameSourceRevision": "fc74ad32a7c03f7c745c1e5ce27985f983ccb6b2",
+    "surface": "/v3",
+    "scenarioCaseId": "fixed-genesis",
+    "providerCondition": "fixture/deterministic cognition",
+    "horizon": "first two committed Turns"
+  },
+  "sessionIdentity": {
+    "participantLabel": null,
+    "sessionLabel": null,
+    "observedAt": null,
+    "freshToImplementation": null,
+    "strategyGameExperience": "not-recorded"
+  },
+  "consent": {
+    "voluntaryParticipationConfirmed": null,
+    "mayStopAtAnyTimeConfirmed": null,
+    "audioVideoRecording": "NOT_USED"
+  },
+  "rawObservation": {
+    "t0FirstOrder": null,
+    "t0HesitationCorrections": null,
+    "t0DirectControlMisconception": "UNOBSERVED",
+    "t0ApparatusDefect": null,
+    "t1PreCommitPrediction": null,
+    "t2PostAftermathCausalReconstruction": null,
+    "t2CommanderIntentDistinguished": "UNOBSERVED",
+    "t2SpecialistActionDistinguished": "UNOBSERVED",
+    "t2EnemyContestDistinguished": "UNOBSERVED",
+    "t2EnvironmentalPressureDistinguished": "UNOBSERVED",
+    "t2ModeratorCorrectionRequired": "UNOBSERVED",
+    "t3SecondOrder": null,
+    "t3ExplanationOfChange": null,
+    "t3ActsOnPreviousConsequence": "UNOBSERVED",
+    "implementationTermsForcedByUi": null,
+    "severeMechanismBlockingDefect": "UNOBSERVED",
+    "severeDefectObservation": null,
+    "optionalExploratoryExperienceNote": null
+  },
+  "collectionStanding": "NOT_OBSERVED",
+  "humanClaimStanding": "UNKNOWN",
+  "authorityBoundary": "A copied and completed session artifact may carry raw Human observation only. It cannot itself mint study-level support, population inference, product standing, or Game E2E maturity."
+}
