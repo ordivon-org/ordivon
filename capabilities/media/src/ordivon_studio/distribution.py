@@ -479,36 +479,6 @@ def plan_delivery(
     return plan
 
 
-def retry_disposition(
-    *, provider_state: str, provider_object_id: str | None = None
-) -> dict[str, object]:
-    """Fail closed around ambiguous provider outcomes; never infer resend safety."""
-
-    state = _nonempty(provider_state, "providerState").lower()
-    if state not in PROVIDER_STATES:
-        raise ValueError(f"unsupported provider state: {state}")
-    object_id = provider_object_id.strip() if isinstance(provider_object_id, str) else None
-    if object_id == "":
-        object_id = None
-
-    if state == "prepared" and object_id is None:
-        disposition = "safe-only-before-dispatch"
-    elif state in {"submitted", "processing", "unknown"}:
-        disposition = "requery-provider-do-not-resend"
-    elif state == "published":
-        disposition = "accepted-do-not-resend"
-    else:
-        disposition = "new-explicit-intent-required-before-any-new-effect"
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.media.distribution-retry-disposition",
-        "providerState": state,
-        "providerObjectId": object_id,
-        "disposition": disposition,
-        "blindResendPermitted": False,
-        "truthRole": "retry-safety-decision-not-provider-state",
-    }
-
 
 def verify_provider_outcome(receipt: Mapping[str, object]) -> dict[str, object]:
     """Promote only provider-native read-back to accepted publication evidence."""

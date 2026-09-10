@@ -10,7 +10,6 @@ from ordivon_studio.distribution import (
     delivery_key,
     maturity_observation,
     plan_delivery,
-    retry_disposition,
     verify_provider_outcome,
 )
 
@@ -246,22 +245,6 @@ class DistributionTests(unittest.TestCase):
         evidence = _outcome(plan, state="deleted")
         self.assertTrue(evidence["acceptedCarrierEffect"])
         self.assertFalse(evidence["acceptedPublication"])
-
-    def test_ambiguous_and_processing_outcomes_forbid_blind_resend(self) -> None:
-        for state in ("submitted", "processing", "unknown"):
-            decision = retry_disposition(provider_state=state, provider_object_id="maybe-1")
-            self.assertEqual(decision["disposition"], "requery-provider-do-not-resend")
-            self.assertFalse(decision["blindResendPermitted"])
-
-    def test_only_predispatch_prepared_state_has_safe_retry_disposition(self) -> None:
-        decision = retry_disposition(provider_state="prepared")
-        self.assertEqual(decision["disposition"], "safe-only-before-dispatch")
-        self.assertFalse(decision["blindResendPermitted"])
-
-    def test_published_never_resends(self) -> None:
-        decision = retry_disposition(provider_state="published", provider_object_id="post-1")
-        self.assertEqual(decision["disposition"], "accepted-do-not-resend")
-        self.assertFalse(decision["blindResendPermitted"])
 
     def test_delivery_key_binds_intent_not_only_artifact(self) -> None:
         first = delivery_key(

@@ -45,7 +45,7 @@ When an external provider requires human UI completion, Distribution returns a b
 
 ## Ambiguous outcomes
 
-Blind resend is forbidden. If the provider state is `submitted`, `processing` or `unknown`, the next action is provider-native read-back/reconciliation. `published` is terminal for the attempted publication and must not be resent. Rejected/withdrawn/deleted objects require a **new explicit intent** before another external write.
+Distribution does not own a generic retry-state machine before a real dispatch consumer earns one. Blind resend after an ambiguous external write is forbidden by contract: a dispatcher may retry only when its provider/effect-specific semantics prove the same logical effect is idempotent, or when provider-native reconciliation proves that the original effect was never applied. A transport/runtime success, a free-form `published` label, or the local `delivery_key` alone never grants resend or acceptance authority. Carrier-effect acceptance is owned exclusively by the provider-native verification boundary below.
 
 Every public/destructive plan must bind an exact occurrence before dispatch: opaque account identity + exact artifact digest + effect + intent ID. The resulting `delivery_key` is carried into provider observations and natural-episode evidence. It is a reconciliation coordinate only; it is never treated as proof that the provider implements idempotency. A provider outcome with a different delivery key or artifact digest cannot be reused to satisfy the plan.
 
