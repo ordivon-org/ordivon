@@ -8,7 +8,6 @@ from anc_canonical import canonical_digest
 from ordivon_harness.execution_binding import (
     HarnessExecutionBinding,
     HarnessRuntimeReference,
-    build_harness_workspace_exec_request_from_binding,
 )
 from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.ordivon.runtime_lowering import lower_runtime_tool
@@ -67,24 +66,33 @@ class HarnessExecutionBindingTests(unittest.TestCase):
             value.client_request_id("turn-1-tool-2"),
         )
 
-    def test_independent_workspace_exec_request_has_only_harness_references(self) -> None:
-        request = build_harness_workspace_exec_request_from_binding(
-            binding(),
-            step_id="turn-1-tool-1",
-            executable="/usr/bin/python3",
-            args=("-c", "print('p0')"),
-            wait_ms=30_000,
+    def test_run_in_workspace_lowering_has_only_harness_references(self) -> None:
+        call = AgentToolCall(
+            tool_call_id="tool-call:p0-execution-binding-run",
+            name="run_in_workspace",
+            arguments={
+                "executable": "/usr/bin/python3",
+                "args": ["-c", "print('p0')"],
+                "waitMs": 30_000,
+            },
         )
+        operation, request, client_request_id = lower_runtime_tool(
+            call,
+            step_id="turn-1-tool-1",
+            execution_binding=binding(),
+            tool_grant=None,
+            known_job_ids=frozenset(),
+            known_artifacts=frozenset(),
+        )
+        self.assertEqual(operation, "workspace.exec")
+        self.assertEqual(client_request_id, request["clientRequestId"])
         self.assertEqual(request["execution"]["workspaceId"], binding().workspace_ref)
         references = request["execution"]["foreignReferences"]
         self.assertEqual(
             [item["type"] for item in references],
             ["harness_run", "run_contract", "tool_grant"],
         )
-        self.assertEqual(
-            {item["namespace"] for item in references},
-            {"ordivon.harness"},
-        )
+        self.assertEqual({item["namespace"] for item in references}, {"ordivon.harness"})
         rendered = str(request)
         self.assertNotIn("task:", rendered)
         self.assertNotIn("task_attempt", rendered)

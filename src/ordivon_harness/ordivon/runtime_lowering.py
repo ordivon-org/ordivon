@@ -5,10 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from anc_canonical import JsonValue, validate_json_value
-from ..execution_binding import (
-    HarnessExecutionBinding,
-    build_harness_workspace_exec_request_from_binding,
-)
+from ..execution_binding import HarnessExecutionBinding
 from .model import AgentToolCall
 from .tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
@@ -29,6 +26,70 @@ class RuntimeToolGrantView(Protocol):
     def allows_path(self, name: str, relative_path: str) -> bool: ...
 
     def execution_check(self, check_id: str) -> RuntimeExecutionCheckView: ...
+
+
+def _build_workspace_exec_request(
+    binding: HarnessExecutionBinding,
+    *,
+    step_id: str,
+    executable: str,
+    args: tuple[str, ...] = (),
+    cwd_relative: str = ".",
+    env: dict[str, str] | None = None,
+    timeout_ms: int = 30_000,
+    stdout_limit_bytes: int = 262_144,
+    stderr_limit_bytes: int = 262_144,
+    wait_ms: int = 0,
+    stdout_tail_bytes: int = 8_192,
+    stderr_tail_bytes: int = 8_192,
+) -> dict[str, JsonValue]:
+    if not isinstance(executable, str) or not executable or executable != executable.strip():
+        raise ValueError("Runtime executable must be non-empty and trimmed")
+    if len(executable.encode("utf-8")) > 300:
+        raise ValueError("Runtime executable exceeds 300 UTF-8 bytes")
+    if not executable.startswith("/"):
+        raise ValueError("Runtime executable must be absolute")
+    if not isinstance(cwd_relative, str) or not cwd_relative or cwd_relative != cwd_relative.strip():
+        raise ValueError("Runtime working directory must be non-empty and trimmed")
+    if len(cwd_relative.encode("utf-8")) > 300:
+        raise ValueError("Runtime working directory exceeds 300 UTF-8 bytes")
+    for argument in args:
+        if not isinstance(argument, str):
+            raise ValueError("Runtime arguments must be strings")
+    environment = {} if env is None else dict(env)
+    if any(
+        not isinstance(key, str) or not isinstance(item, str) or not key or key != key.strip()
+        for key, item in environment.items()
+    ):
+        raise ValueError("Runtime environment must contain trimmed string keys and values")
+    if timeout_ms < 0:
+        raise ValueError("Runtime timeout must be non-negative")
+    if stdout_limit_bytes < 0 or stderr_limit_bytes < 0:
+        raise ValueError("Runtime output limits must be non-negative")
+    if wait_ms < 0 or wait_ms > 30_000:
+        raise ValueError("Runtime wait must be between 0 and 30000 milliseconds")
+    if not 0 <= stdout_tail_bytes <= 65_536 or not 0 <= stderr_tail_bytes <= 65_536:
+        raise ValueError("Runtime tail limits must be between 0 and 65536 bytes")
+    request: dict[str, JsonValue] = {
+        "schemaVersion": 1,
+        "clientRequestId": binding.client_request_id(step_id),
+        "execution": {
+            "workspaceId": binding.workspace_ref,
+            "executable": executable,
+            "args": list(args),
+            "cwdRelative": cwd_relative,
+            "env": environment,
+            "timeoutMs": timeout_ms,
+            "stdoutLimitBytes": stdout_limit_bytes,
+            "stderrLimitBytes": stderr_limit_bytes,
+            "foreignReferences": [reference.to_dict() for reference in binding.runtime_references],
+        },
+        "waitMs": wait_ms,
+        "stdoutTailBytes": stdout_tail_bytes,
+        "stderrTailBytes": stderr_tail_bytes,
+    }
+    validate_json_value(request)
+    return request
 
 
 def lower_runtime_tool(
@@ -198,7 +259,7 @@ def lower_runtime_tool(
             stderr_limit_bytes = 16_384
 
         try:
-            request = build_harness_workspace_exec_request_from_binding(
+            request = _build_workspace_exec_request(
                 execution_binding,
                 step_id=step_id,
                 executable=executable,
@@ -351,7 +412,7 @@ def lower_runtime_tool(
                 kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
             ) from error
         try:
-            request = build_harness_workspace_exec_request_from_binding(
+            request = _build_workspace_exec_request(
                 execution_binding,
                 step_id=step_id,
                 executable=check.executable,
@@ -419,7 +480,7 @@ def lower_runtime_tool(
                 kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
             )
         try:
-            request = build_harness_workspace_exec_request_from_binding(
+            request = _build_workspace_exec_request(
                 execution_binding,
                 step_id=step_id,
                 executable=executable,

@@ -21,8 +21,6 @@ from ..runtime_port import (
     HarnessRuntimeClient,
     HarnessRuntimeClientError,
     HarnessRuntimeToolRejected,
-    find_runtime_jobs_by_client_request,
-    runtime_error_value,
 )
 from .control import ExecutionControl
 from .model import AgentToolCall, AgentToolDefinition
@@ -94,6 +92,73 @@ INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST = canonical_digest(INDEPENDENT_SEARCH_TOOL_
 _RUNTIME_DELIVERY_DISPOSITIONS = frozenset(
     {"in_progress", "committed", "reconciliation_required", "unknown"}
 )
+
+
+def _find_runtime_jobs_by_client_request(
+    runtime: HarnessRuntimeClient,
+    client_request_id: str,
+    *,
+    max_pages: int = 100,
+) -> list[dict[str, JsonValue]]:
+    if not client_request_id or client_request_id != client_request_id.strip():
+        raise ValueError("Runtime clientRequestId is required and trimmed")
+    if max_pages < 1:
+        raise ValueError("Runtime Job lookup page limit must be positive")
+    cursor: dict[str, JsonValue] | None = None
+    seen_cursors: set[str] = set()
+    matches: list[dict[str, JsonValue]] = []
+    for _ in range(max_pages):
+        arguments: dict[str, JsonValue] = {
+            "limit": 100,
+            "clientRequestId": client_request_id,
+        }
+        if cursor is not None:
+            arguments["cursor"] = cursor
+        page = runtime.call_tool("task.list", arguments)
+        validate_json_value(page)
+        jobs = page.get("jobs")
+        if not isinstance(jobs, list):
+            raise HarnessRuntimeClientError("task.list omitted jobs")
+        for item in jobs:
+            if not isinstance(item, dict):
+                raise HarnessRuntimeClientError("task.list returned a non-object Job")
+            job = dict(item)
+            if job.get("clientRequestId") != client_request_id:
+                raise HarnessRuntimeClientError(
+                    "filtered task.list returned another clientRequestId"
+                )
+            matches.append(job)
+        next_cursor = page.get("nextCursor")
+        if next_cursor is None:
+            return matches
+        if not isinstance(next_cursor, dict):
+            raise HarnessRuntimeClientError("task.list returned an invalid cursor")
+        typed: dict[str, JsonValue] = {}
+        for key, value in next_cursor.items():
+            if not isinstance(key, str) or not isinstance(value, (str, int)):
+                raise HarnessRuntimeClientError("task.list cursor fields are invalid")
+            typed[key] = value
+        digest = canonical_digest(typed)
+        if digest in seen_cursors:
+            raise HarnessRuntimeClientError("task.list repeated a pagination cursor")
+        seen_cursors.add(digest)
+        cursor = typed
+    raise HarnessRuntimeClientError("task.list pagination exceeded the Harness bound")
+
+
+def _runtime_error_value(error: BaseException) -> dict[str, JsonValue]:
+    if isinstance(error, HarnessRuntimeToolRejected):
+        return {
+            "type": type(error).__name__,
+            "operation": error.operation,
+            **error.detail.to_dict(),
+            "safeToCorrect": error.detail.commit_state in {"not_started", "not_committed"},
+        }
+    return {
+        "type": type(error).__name__,
+        "message": str(error)[:2_048],
+        "safeToCorrect": False,
+    }
 
 
 def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
@@ -602,7 +667,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     tool_name=call.name,
                     status="rejected",
                     structured_content={
-                        **runtime_error_value(error),
+                        **_runtime_error_value(error),
                         "clientRequestId": client_request_id,
                         "query": query,
                         "relativePath": relative_path,
@@ -814,7 +879,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         queries: tuple[str, ...] | None = None,
     ) -> HarnessToolObservation:
         try:
-            matches = find_runtime_jobs_by_client_request(
+            matches = _find_runtime_jobs_by_client_request(
                 self.runtime,
                 client_request_id,
             )

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import re
 from typing import Any
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_digest
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -169,61 +169,3 @@ class HarnessExecutionBinding:
             }
         )[7:39]
         return f"request:harness-patch:{token}"
-
-
-def build_harness_workspace_exec_request_from_binding(
-    binding: HarnessExecutionBinding,
-    *,
-    step_id: str,
-    executable: str,
-    args: tuple[str, ...] = (),
-    cwd_relative: str = ".",
-    env: dict[str, str] | None = None,
-    timeout_ms: int = 30_000,
-    stdout_limit_bytes: int = 262_144,
-    stderr_limit_bytes: int = 262_144,
-    wait_ms: int = 0,
-    stdout_tail_bytes: int = 8_192,
-    stderr_tail_bytes: int = 8_192,
-) -> dict[str, JsonValue]:
-    _text(executable, "Runtime executable")
-    if not executable.startswith("/"):
-        raise ValueError("Runtime executable must be absolute")
-    _text(cwd_relative, "Runtime working directory")
-    for argument in args:
-        if not isinstance(argument, str):
-            raise ValueError("Runtime arguments must be strings")
-    environment = {} if env is None else dict(env)
-    if any(
-        not isinstance(key, str) or not isinstance(item, str) or not key or key != key.strip()
-        for key, item in environment.items()
-    ):
-        raise ValueError("Runtime environment must contain trimmed string keys and values")
-    if timeout_ms < 0:
-        raise ValueError("Runtime timeout must be non-negative")
-    if stdout_limit_bytes < 0 or stderr_limit_bytes < 0:
-        raise ValueError("Runtime output limits must be non-negative")
-    if wait_ms < 0 or wait_ms > 30_000:
-        raise ValueError("Runtime wait must be between 0 and 30000 milliseconds")
-    if not 0 <= stdout_tail_bytes <= 65_536 or not 0 <= stderr_tail_bytes <= 65_536:
-        raise ValueError("Runtime tail limits must be between 0 and 65536 bytes")
-    request: dict[str, JsonValue] = {
-        "schemaVersion": 1,
-        "clientRequestId": binding.client_request_id(step_id),
-        "execution": {
-            "workspaceId": binding.workspace_ref,
-            "executable": executable,
-            "args": list(args),
-            "cwdRelative": cwd_relative,
-            "env": environment,
-            "timeoutMs": timeout_ms,
-            "stdoutLimitBytes": stdout_limit_bytes,
-            "stderrLimitBytes": stderr_limit_bytes,
-            "foreignReferences": [reference.to_dict() for reference in binding.runtime_references],
-        },
-        "waitMs": wait_ms,
-        "stdoutTailBytes": stdout_tail_bytes,
-        "stderrTailBytes": stderr_tail_bytes,
-    }
-    validate_json_value(request)
-    return request
