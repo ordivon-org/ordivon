@@ -59,7 +59,7 @@ DEFAULT_DEEPSEEK_SECRET_PATH = (
     Path.home() / ".config" / "ordivon" / "secrets" / "deepseek.json"
 )
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-SUPPORTED_DEEPSEEK_MODELS = ("deepseek-v4-flash", "deepseek-v4-pro")
+SUPPORTED_DEEPSEEK_MODELS = ("deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro")
 DEFAULT_DEEPSEEK_CREDENTIAL_SCOPE_ID = "deepseek:default"
 _CONCLUSION_TOOL_NAME = "submit_run_conclusion"
 _WORKING_SET_TRANSITION_TOOL_NAME = "propose_working_set_transition"
@@ -79,7 +79,7 @@ def _text(value: str, label: str, *, max_bytes: int = 2_048) -> str:
 class DeepSeekSettings:
     api_key: str = field(repr=False)
     base_url: str = DEFAULT_DEEPSEEK_BASE_URL
-    model: str = "deepseek-v4-flash"
+    model: str = "deepseek-flash"
     credential_scope_id: str = DEFAULT_DEEPSEEK_CREDENTIAL_SCOPE_ID
     timeout_seconds: float = 90.0
     max_response_bytes: int = 4_194_304
@@ -1144,7 +1144,13 @@ class DeepSeekTurnAdapter:
                 return result
 
     def accepts_effective_model_id(self, model_id: str) -> bool:
-        return model_id == self.settings.model
+        aliases = {
+            "deepseek-v4-flash": "deepseek-flash",
+            "deepseek-flash": "deepseek-flash",
+        }
+        requested = aliases.get(self.settings.model, self.settings.model)
+        effective = aliases.get(model_id, model_id)
+        return effective == requested
 
     def request_token_upper_bound(self, request: AgentTurnRequest) -> int:
         """Bound prompt bytes plus the Provider-enforced completion ceiling."""

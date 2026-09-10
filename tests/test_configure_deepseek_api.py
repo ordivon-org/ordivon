@@ -25,7 +25,7 @@ class ConfigureDeepSeekApiTests(unittest.TestCase):
     def test_write_and_load_secret_use_private_permissions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "nested" / "deepseek.json"
-            payload = _MODULE._secret_payload("sk-" + "a" * 40, "deepseek-v4-pro")
+            payload = _MODULE._secret_payload("sk-" + "a" * 40, "deepseek-flash")
             _MODULE._write_secret(path, payload)
             self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
@@ -43,8 +43,23 @@ class ConfigureDeepSeekApiTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 _MODULE._load_secret(path)
 
+    def test_canonical_default_and_legacy_models_remain_supported(self) -> None:
+        self.assertEqual(_MODULE.DEFAULT_MODEL, "deepseek-flash")
+        self.assertIn("deepseek-flash", _MODULE.SUPPORTED_MODELS)
+        for model in ("deepseek-v4-flash", "deepseek-v4-pro"):
+            with self.subTest(model=model):
+                payload = _MODULE._secret_payload("sk-" + "d" * 40, model)
+                self.assertEqual(payload["model"], model)
+
+    def test_legacy_flash_alias_loads_with_private_permissions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            payload = _MODULE._secret_payload("sk-" + "e" * 40, "deepseek-v4-flash")
+            _MODULE._write_secret(path, payload)
+            self.assertEqual(_MODULE._load_secret(path)["model"], "deepseek-v4-flash")
+
     def test_payload_is_fixed_to_official_base_url(self) -> None:
-        payload = _MODULE._secret_payload("sk-" + "c" * 40, "deepseek-v4-pro")
+        payload = _MODULE._secret_payload("sk-" + "c" * 40, "deepseek-flash")
         self.assertEqual(payload["baseUrl"], "https://api.deepseek.com")
         self.assertEqual(payload["provider"], "deepseek")
         self.assertFalse(hasattr(_MODULE, "_fingerprint"))

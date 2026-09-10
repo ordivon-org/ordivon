@@ -15,8 +15,8 @@ from typing import Any
 
 DEFAULT_SECRET_PATH = Path.home() / ".config" / "ordivon" / "secrets" / "deepseek.json"
 DEFAULT_BASE_URL = "https://api.deepseek.com"
-DEFAULT_MODEL = "deepseek-v4-pro"
-SUPPORTED_MODELS = ("deepseek-v4-pro", "deepseek-v4-flash")
+DEFAULT_MODEL = "deepseek-flash"
+SUPPORTED_MODELS = ("deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro")
 
 
 def parse_args() -> argparse.Namespace:
