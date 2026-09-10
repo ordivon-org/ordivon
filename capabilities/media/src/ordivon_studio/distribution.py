@@ -22,7 +22,7 @@ PUBLIC_EFFECTS: Final = frozenset(
 )
 ACTIONABILITY: Final = frozenset(
     {
-        "ready",
+        "preflight_ready",
         "user_action_required",
         "provider_access_required",
         "capability_unavailable",
@@ -424,8 +424,8 @@ def plan_delivery(
         reasons.append("carrier-currently-requires-human-final-action")
         user_operations.append("perform-provider-final-action")
     else:
-        actionability = "ready"
-        reasons.append("local-preflight-satisfied-not-yet-dispatched")
+        actionability = "preflight_ready"
+        reasons.append("local-preflight-satisfied-effect-admission-must-revalidate-current-authority")
 
     if actionability not in ACTIONABILITY:
         raise AssertionError("invalid actionability")

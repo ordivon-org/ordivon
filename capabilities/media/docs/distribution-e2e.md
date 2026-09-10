@@ -24,7 +24,7 @@ A process exit, HTTP 2xx, upload receipt, provider submission identifier, or loc
 
 ## Ownership split
 
-- **Media** owns carrier-neutral Distribution semantics: carrier profiles, artifact/effect intent, authority requirements, provider state, acceptance, correction/withdrawal, feedback evidence and goal-relative natural-episode binding.
+- **Media** owns carrier-neutral Distribution planning semantics: carrier profiles, artifact/effect occurrence identity, authority/interaction requirements and correction/withdrawal capability constraints. It does not authenticate provider observations or perform provider effects.
 - **Workstation** owns local execution mechanics already present there: credentials/material census, OAuth callback handling, browser/headful human handoff, network path/currentness and bounded external execution.
 - **Web** remains an external consumer/owner. Distribution must not absorb the Web product simply because browsers are one encounter/distribution context.
 - Provider-specific adapters should remain thin. They must not grow a second scheduler, database, generic workflow system or hidden authority model.
@@ -40,6 +40,8 @@ Every public or destructive effect is gated independently across three classes:
 A reusable OAuth token therefore does not imply permission to publish arbitrary future content. TikTok creator-info/metadata/explicit consent, Douyin per-post perceptibility and Reddit explicit manual user action are represented as per-effect interactions rather than reusable grants.
 
 Provider/account authority is also **effect-specific**. Read-back/status paths request the smallest observed read authority rather than inheriting publication scopes merely because the same carrier supports writes. For example, X read-back uses a read scope rather than `tweet.write`, YouTube read-back does not request `youtube.upload`, and Douyin read-back uses video list/data permission instead of `video.create`. Carrier-level authority lists remain conservative inventory views, not the planner's minimum request set.
+
+`granted_authorities`, satisfied interactions and explicit user authority are planning inputs, not timeless effect-admission credentials. A successful plan therefore returns `actionability=preflight_ready`, never a generic `ready`. This means only that the supplied local preflight facts satisfy the current planning profile. The actual provider adapter must re-establish all authority that can expire, be revoked, change scope, or otherwise drift at the point where it admits the external effect. Provider-native expiration/revocation/introspection/request authorization remains the authority; Distribution does not cache it into an authority lease or freshness timestamp. If exact user intent is superseded before dispatch, the mutable intent/controller owner must stop the old occurrence rather than relying on the old preflight plan.
 
 When an external provider requires human UI completion, Distribution returns a bounded `user_action_required` handoff instead of impersonating automation.
 

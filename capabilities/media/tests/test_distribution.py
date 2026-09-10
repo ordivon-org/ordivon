@@ -88,7 +88,7 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(consent["actionability"], "user_action_required")
         self.assertIn("authorize-this-exact-public-effect", consent["userOperations"])
         ready = _plan("x", "publish_text")
-        self.assertEqual(ready["actionability"], "ready")
+        self.assertEqual(ready["actionability"], "preflight_ready")
         self.assertTrue(str(ready["deliveryKey"]).startswith("sha256:"))
         self.assertFalse(ready["externalEffectPerformed"])
 
@@ -98,7 +98,7 @@ class DistributionTests(unittest.TestCase):
         self.assertIn("x-tweet.read-scope", required)
         self.assertNotIn("x-tweet.write-scope", required)
         plan = _plan("x", "read_back", authorities=required, explicit=False)
-        self.assertEqual(plan["actionability"], "ready")
+        self.assertEqual(plan["actionability"], "preflight_ready")
         self.assertFalse(plan["publicEffect"])
         self.assertEqual(plan["missingInteractions"], [])
 
@@ -143,7 +143,7 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(public_plan["actionability"], "user_action_required")
         self.assertEqual(public_plan["missingInteractions"], ["reddit-explicit-manual-user-action"])
         read_plan = _plan("reddit", "read_back", authorities=_authorities("reddit", "read_back"), explicit=False)
-        self.assertEqual(read_plan["actionability"], "ready")
+        self.assertEqual(read_plan["actionability"], "preflight_ready")
         self.assertEqual(read_plan["missingInteractions"], [])
 
     def test_xiaohongshu_remains_human_handoff_and_current_scope_source(self) -> None:
@@ -199,6 +199,12 @@ class DistributionTests(unittest.TestCase):
         ]
         for current in variants:
             self.assertNotEqual(current["deliveryKey"], old["deliveryKey"])
+
+    def test_local_preflight_never_claims_dispatch_time_authority(self) -> None:
+        plan = _plan("x", "publish_text")
+        self.assertEqual(plan["actionability"], "preflight_ready")
+        self.assertFalse(plan["externalEffectPerformed"])
+        self.assertIn("effect-admission", " ".join(plan["reasons"]))
 
     def test_provider_acceptance_requirements_are_profile_requirements_not_local_proof(self) -> None:
         profile = carrier_profile("x")
