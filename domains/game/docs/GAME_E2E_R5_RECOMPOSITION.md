@@ -317,3 +317,51 @@ The cold failure is not reclassified as a Game-runtime regression and the post-i
 Workstation currently recognizes Godot under its professional-software authority and exposes `/usr/bin/godot`, while the generic Game equipment binding surface currently has no lossless professional-software binding mode for that carrier. An attempted `isolated` binding correctly returned `UNAVAILABLE` because isolated equipment is not active.
 
 R5 therefore does **not** add a fake Game-local Godot path or silently downgrade to ambient PATH discovery. Until Workstation exposes a current generic binding for professional-software execution, Game records this as a cross-owner substitution gap and uses exact observed Workstation evidence only for bounded migration validation.
+
+## 16. R5 migration milestone M4 — Workstation professional-software binding
+
+R5 found that Workstation already owns a `professional_software` census for installed tools, while the shared `equipment-binding` interface previously exposed only isolated, managed-external and browser-specific carriers. An engine consumer therefore had no lossless generic binding for a stable package-managed engine.
+
+A detached source-current Workstation candidate from `55302746d619430c1326d54ed94bd275a9baea04` is frozen as:
+
+```text
+66ed480b7a66308bd1667878c0f55a68dfc9c2bf
+```
+
+It adds:
+
+```text
+equipment-binding professional
+  --software-id <declared professional_software identity>
+  --launcher <declared launcher name>
+```
+
+The caller cannot provide an executable path. Workstation resolves the configured launcher, verifies the Linux executable and binds its SHA-256. Windows professional-software entries deliberately fail closed in this Linux projection rather than receiving inferred Windows-native truth.
+
+For current Godot the candidate resolves:
+
+```text
+equipmentId       = professional:godot:godot
+provider          = workstation.professional-software
+executionTarget   = local_linux
+executable        = /usr/bin/godot
+executableDigest  = sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd
+```
+
+Game now exposes `engine.project.execute` as a domain operation that requests only `software-id=godot` and `launcher=godot`. Game does not store `/usr/bin/godot`, discover PATH, install Godot, infer its version, or gain physical-binding authority.
+
+Verification:
+
+```text
+Workstation equipment-binding focused tests: 14/14 PASS
+Workstation adjacent equipment/software tests: 45/45 PASS
+Workstation non-Agent owner tests excluding one pre-existing missing-Playwright import carrier: 1066/1066 PASS
+Workstation Agent-Automation tests in declared uv environment: 96/96 PASS
+Game equipment-surface tests: 6/6 PASS
+Game full repository check after M4 consumer binding: 390/390 PASS
+Cross-owner live candidate resolution: AVAILABLE
+```
+
+The literal Workstation `task test` is **not recorded as PASS** for this candidate: source-current `test_browserless_submit_clean_surface` imports `playwright` from the system Python environment where that dependency is absent. That environment/materialization issue is outside the two-file M4 change and remains separate from the bounded professional-software-binding standing.
+
+Production promotion is also separate. The Workstation candidate must be replayed against latest owner source and normal convergence rules before the interface becomes a production dependency.

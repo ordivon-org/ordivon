@@ -5,12 +5,15 @@ export type GameEquipmentOperation =
   | "level.topology.author"
   | "sprite.source.author"
   | "vector.asset.author"
-  | "gpu.frame.inspect";
+  | "gpu.frame.inspect"
+  | "engine.project.execute";
 
 type Spec = {
   equipmentId: string;
   executable?: string;
-  source: "isolated" | "managed";
+  softwareId?: string;
+  launcher?: string;
+  source: "isolated" | "managed" | "professional";
   authority: string;
   admission: string;
   role: "production" | "specialist" | "diagnostic";
@@ -37,6 +40,11 @@ const SPECS: Record<GameEquipmentOperation, Spec> = {
     authority: "RenderDoc capture/decode is observation evidence, not renderer or gameplay truth.",
     admission: "Use only for an exact owned Game rendering workload; retain capture identity and interpret findings in Game.",
   },
+  "engine.project.execute": {
+    equipmentId: "professional:godot:godot", softwareId: "godot", launcher: "godot", source: "professional", role: "production",
+    authority: "Godot materializes and executes the engine project; Game owns scene, gameplay, player-facing meaning, and acceptance semantics.",
+    admission: "Consume only the exact Workstation-bound engine launcher and bind source/build/evaluation condition before promoting Game standing.",
+  },
 };
 
 export function gameEquipmentCatalog() {
@@ -54,6 +62,7 @@ export function gameEquipmentCatalog() {
 
 function bindingCommand(spec: Spec): string[] {
   if (spec.source === "managed") return ["managed", "--equipment-id", spec.equipmentId];
+  if (spec.source === "professional") return ["professional", "--software-id", spec.softwareId!, "--launcher", spec.launcher!];
   return ["isolated", "--equipment-id", spec.equipmentId, "--executable", spec.executable!];
 }
 

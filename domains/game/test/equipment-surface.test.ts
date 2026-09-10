@@ -10,7 +10,7 @@ test("Game equipment catalog preserves domain authority and has no MCP/tool regi
   assert.equal(catalog.mcpRequired, false);
   assert.equal(catalog.gameplayAuthorityGranted, false);
   assert.equal(catalog.gameOwnsDomainMeaning, true);
-  assert.deepEqual(catalog.operations.map((x) => x.operation).sort(), ["gpu.frame.inspect", "level.topology.author", "sprite.source.author", "vector.asset.author"]);
+  assert.deepEqual(catalog.operations.map((x) => x.operation).sort(), ["engine.project.execute", "gpu.frame.inspect", "level.topology.author", "sprite.source.author", "vector.asset.author"]);
 });
 
 test("exact Workstation binding is consumed but never becomes gameplay authority", () => {
@@ -63,6 +63,27 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     assert.equal(value.state, "AVAILABLE");
     const args = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(args, ["managed", "--equipment-id", "game-inkscape-e1"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("Godot engine execution requests Workstation professional software without a caller path", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-equipment-"));
+  try {
+    const log = join(root, "args.json");
+    const tool = join(root, "equipment-binding");
+    writeFileSync(tool, `#!/usr/bin/env python3
+import json,sys
+open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:godot:godot","provider":"workstation.professional-software","executable":"/exact/godot","executableDigest":"sha256:${"b".repeat(64)}"}))
+`);
+    chmodSync(tool, 0o755);
+    const value = resolveGameEquipment("engine.project.execute", { ORDIVON_EQUIPMENT_BINDING: tool });
+    assert.equal(value.state, "AVAILABLE");
+    assert.equal(value.binding.executable, "/exact/godot");
+    assert.equal(value.gameplayAuthorityGranted, false);
+    const args = JSON.parse(readFileSync(log, "utf8"));
+    assert.deepEqual(args, ["professional", "--software-id", "godot", "--launcher", "godot"]);
+    assert.ok(!args.some((item: string) => item.includes("/usr/bin/godot")));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
