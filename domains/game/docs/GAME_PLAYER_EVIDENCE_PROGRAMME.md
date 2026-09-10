@@ -37,7 +37,11 @@ PlayerEvidenceProgramme
 != ProductAuthority
 ```
 
-The strongest correction is:
+## 0.1 External-first disposition — 2026-09-10
+
+This document is now a **GamePlayerEvidenceProfile**, not a standalone Ordivon research methodology. Human-centred design and usability use ISO 9241-210 / ISO 9241-11; applicable research-service process uses ISO 20252:2026 and applicable ICC/ESOMAR duties; games-user-research method choice uses mature GUR practice; randomized field experimentation should use a mature platform/mechanism such as PlayFab rather than a Game-local experiment service. The Game profile adds claim family, Game version/condition, experience intent, transport boundary and Game decision semantics; it does not replace the external research/HCD/experiment mechanisms.
+
+The strongest correction remains:
 
 ```text
 EvidenceSubject != Method != Measure != Claim

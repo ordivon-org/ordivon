@@ -15,7 +15,7 @@ audience:
   - agent
   - producer
 updated: 2026-08-17
-summary: Canonical development model for classifying, prototyping, validating, producing, and shipping Ordivon games. Conventional GameForm is primary; Agent participation is split into optional production and runtime roles inside the normal game lifecycle, while Studio remains owner of medium-specific production.
+summary: Game-specific G0-G8 commitment/stage projection and routing profile for Ordivon games. Generic software lifecycle authority is adopted from ISO/IEC/IEEE 12207:2026; mature external methods remain authoritative in their native scopes, while Game retains product-form, Game semantics and commitment projections.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -43,7 +43,7 @@ classify the game
 → release and learn
 ```
 
-Agent-assisted production may run throughout that lifecycle. Runtime-Agent work is a separate optional lane admitted only when the selected GameForm needs it. Neither replaces the lifecycle.
+Agent-assisted production may run throughout the product stages. Runtime-Agent work is a separate optional lane admitted only when the selected GameForm needs it. Neither replaces the external generic software lifecycle processes adopted through ISO/IEC/IEEE 12207:2026. G0–G8 is a Game-specific commitment projection over that lifecycle and the external-first routing policy in `GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md`; it is not an alternative generic lifecycle standard.
 
 ## The correction
 
@@ -77,7 +77,7 @@ Deletion pressure makes the distinction operational:
 - promote the Agent research loop to stage/process authority and Game becomes research-rich but production-poor again;
 - remove classification and current tools/architecture begin choosing the product by accident.
 
-There is one product-stage authority, not two competing process authorities. G0–G8 remain the canonical stage projection; they do not by themselves explain the causal work of discovering and developing a game.
+There is one Game product-stage projection, not a second generic lifecycle authority. G0–G8 remain the canonical **Game-specific commitment projection**; ISO/IEC/IEEE 12207:2026 remains the adopted generic software lifecycle framework, and the external-first adoption matrix routes HCD, research, quality, provenance, accessibility, experimentation and platform release to their mature owners. G0–G8 do not redefine those mechanisms and do not by themselves explain the causal work of discovering and developing a game.
 
 ## 1. What an Ordivon game is
 
@@ -273,7 +273,7 @@ If the Agent mostly adds latency, cost and prose while the trajectory is equival
 
 ## 4. Canonical G0–G8 stage projection
 
-The lifecycle below is the outer process for Ordivon games. It is intentionally recognizable as normal game development.
+The stages below are the Game-specific **commitment/coordination projection** for Ordivon games. They are intentionally recognizable as ordinary game-development milestones, but they are not a replacement for ISO/IEC/IEEE 12207 lifecycle processes, ISO 9241 human-centred design, ISO/IEC 25010/25019 quality models, or platform-native release mechanisms. Each stage routes its generic work to those adopted mechanisms and preserves only Game-specific exit semantics.
 
 ### G0 — Define
 

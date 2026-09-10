@@ -382,7 +382,9 @@ Sources:
 | Prototype as experiment | present, but medium validity under-modeled |
 | GameForm vs Agent role | strong after decoupling repair |
 
-The next move is not importing an external methodology wholesale.
+### 2026-09-10 external-first correction
+
+The default is now **direct adoption of mature external mechanisms inside their native scope**, with Game retaining only a profile/semantic bridge. Do not derive a parallel Ordivon mechanism merely because Game needs the capability. The prohibition is narrower: do not import any *single* methodology wholesale as universal product authority. Use the current adoption matrix in `GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md` to compose the appropriate standards/platform mechanisms per responsibility.
 
 ## 4. Where current Ordivon is materially weak
 

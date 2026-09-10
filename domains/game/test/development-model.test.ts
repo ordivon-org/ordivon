@@ -59,7 +59,9 @@ test("development model is canonical navigation but does not register or redesig
   assert.match(readme, /docs\/DEVELOPMENT_MODEL\.md/);
   const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
   assert.match(project, /docs\/DEVELOPMENT_MODEL\.md/);
-  assert.match(authority, /DEVELOPMENT_MODEL\.md.*cross-game development process/s);
+  assert.match(authority, /DEVELOPMENT_MODEL\.md.*G0–G8 commitment\/stage projection/s);
+  assert.match(development, /ISO\/IEC\/IEEE 12207:2026/);
+  assert.match(development, /not a replacement for ISO\/IEC\/IEEE 12207 lifecycle processes/);
   assert.match(development, /does \*\*not\*\* reclassify, redesign, balance, register, or replace Station Zero/);
   assert.match(development, /Station Zero-specific Plans, Turns, Commander forms, factions, tactical Zones, sealed enemy Plans and exact Host execution shape do not survive/);
 });

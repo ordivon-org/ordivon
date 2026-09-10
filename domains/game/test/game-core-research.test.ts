@@ -22,7 +22,8 @@ test("Game Core research preserves canonical G0-G8 meanings instead of inventing
   assert.match(model, /A research round is a \*\*search method\*\*\. It is not a product phase\./);
   assert.match(readme, /No new Ordivon Game product has been selected/);
   assert.match(readme, /Canonical G0–G8 meanings remain exclusively/);
-  assert.match(authority, /only authority for G0–G8 product-stage semantics/);
+  assert.match(authority, /only Game authority for G0–G8 product-stage semantics/);
+  assert.match(authority, /not a generic software lifecycle authority/);
   assert.match(agents, /GAME_CORE_RESEARCH_RESET\.md/);
   assert.doesNotMatch(readme, /G6 Casefile candidate active/);
 });

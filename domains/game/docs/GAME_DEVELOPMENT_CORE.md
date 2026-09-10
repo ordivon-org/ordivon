@@ -39,6 +39,23 @@ DevelopmentCore != RepositoryArchitecture
 DevelopmentCore != StageProjection
 ```
 
+### External-first authority correction — 2026-09-10
+
+D1–D8 is a **routing/profile view**, not an Ordivon-owned development methodology. Each responsibility should route to the relevant mature external standard, professional practice, platform-native mechanism, or horizontal Ordivon owner before any local mechanism is created. The canonical mapping and adoption/currentness rules live in `GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md`.
+
+```text
+D1 → Double Diamond / ISO 56002 / ISO 9241-210
+D2 → Game Domain Kernel + mature game-design reference lenses
+D3 → ISO 9241-11/210 + XAG/WCAG + Games User Research
+D4 → Research E2E + ISO 20252 + GUR + platform-native playtest
+D5 → irreducible Game content/progression semantics
+D6 → Game + Studio + external accessibility/Human evaluation
+D7 → ISO 29148 / ISO 12207 / ISO 25010 + Engineering/Workstation/Artifact + SLSA/SPDX/OpenChain
+D8 → Distribution/Operations + platform-native release/analytics/experiments + ISO 25019
+```
+
+A missing external service or standard implementation produces `UNAVAILABLE/NOT_CONFIGURED/UNKNOWN`; it does not authorize a permanent Game-local clone.
+
 ## 1. The model
 
 Use eight concurrent responsibility views:
