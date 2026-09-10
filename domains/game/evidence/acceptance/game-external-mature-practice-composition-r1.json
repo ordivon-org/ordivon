@@ -5,7 +5,7 @@
   "recordedAt": "2026-09-10",
   "taskId": "task:game-external-mature-pattern-adoption-r1-20260910",
   "baseGameCarrier": "0ba8099f5433427a5aff526e1582b4198fca82db",
-  "standing": "CANDIDATE",
+  "standing": "PASS_BOUNDED",
   "authorityCorrections": [
     {
       "surface": "G0-G8",
@@ -28,8 +28,23 @@
   ],
   "localGenericCloneCensus": {
     "jobId": "job-01a08be4-2454-77e2-92f8-b4ca779caadd",
-    "searchedRoots": ["src", "scripts"],
-    "searchedClasses": ["experiment", "analytics", "telemetry", "SBOM", "SPDX", "SLSA", "release", "playtest", "accessibility", "participant", "survey"],
+    "searchedRoots": [
+      "src",
+      "scripts"
+    ],
+    "searchedClasses": [
+      "experiment",
+      "analytics",
+      "telemetry",
+      "SBOM",
+      "SPDX",
+      "SLSA",
+      "release",
+      "playtest",
+      "accessibility",
+      "participant",
+      "survey"
+    ],
     "genericServiceOrPlatformFilesFound": 0,
     "srcKeywordHits": [
       {
@@ -43,14 +58,54 @@
     "conclusion": "No current generic experiment platform, analytics warehouse, SBOM/provenance standard, platform release workflow, playtest service, or universal accessibility checklist was found in production source. The R1 change is primarily an authority/governance contraction plus future anti-duplication guard."
   },
   "routing": {
-    "D1": ["Double Diamond", "ISO 56002", "ISO 9241-210"],
-    "D2": ["Game Domain Kernel", "MDA/FADT reference lenses"],
-    "D3": ["ISO 9241-11", "ISO 9241-210", "Xbox Accessibility Guidelines", "WCAG 2.2", "Games User Research"],
-    "D4": ["Research E2E", "ISO 20252:2026", "Games User Research", "platform-native playtest"],
-    "D5": ["Game content/progression semantics"],
-    "D6": ["Game", "Studio", "accessibility/Human evaluation mechanisms"],
-    "D7": ["ISO/IEC/IEEE 29148", "ISO/IEC/IEEE 12207:2026", "ISO/IEC 25010", "Engineering E2E", "Workstation E2E", "Artifact E2E", "SLSA", "SPDX", "ISO/IEC 5230"],
-    "D8": ["Distribution E2E", "Operations E2E", "platform-native release/analytics/experiments", "ISO/IEC 25019", "ISO 20252/Research E2E"]
+    "D1": [
+      "Double Diamond",
+      "ISO 56002",
+      "ISO 9241-210"
+    ],
+    "D2": [
+      "Game Domain Kernel",
+      "MDA/FADT reference lenses"
+    ],
+    "D3": [
+      "ISO 9241-11",
+      "ISO 9241-210",
+      "Xbox Accessibility Guidelines",
+      "WCAG 2.2",
+      "Games User Research"
+    ],
+    "D4": [
+      "Research E2E",
+      "ISO 20252:2026",
+      "Games User Research",
+      "platform-native playtest"
+    ],
+    "D5": [
+      "Game content/progression semantics"
+    ],
+    "D6": [
+      "Game",
+      "Studio",
+      "accessibility/Human evaluation mechanisms"
+    ],
+    "D7": [
+      "ISO/IEC/IEEE 29148",
+      "ISO/IEC/IEEE 12207:2026",
+      "ISO/IEC 25010",
+      "Engineering E2E",
+      "Workstation E2E",
+      "Artifact E2E",
+      "SLSA",
+      "SPDX",
+      "ISO/IEC 5230"
+    ],
+    "D8": [
+      "Distribution E2E",
+      "Operations E2E",
+      "platform-native release/analytics/experiments",
+      "ISO/IEC 25019",
+      "ISO 20252/Research E2E"
+    ]
   },
   "activationPolicy": {
     "now": [
@@ -70,5 +125,26 @@
       "Claim standards compliance solely because repository mappings/tests exist",
       "Let platform metrics or technical quality mint Player Value, Human experience, rights, or product direction by identity"
     ]
+  },
+  "independentVerification": {
+    "candidateRevision": "40a41cf2c4c4b431030cdecf6d98b0b7fcd7dd69",
+    "workspaceId": "ws-game-external-pattern-adoption-r1-independent-20260910-v1",
+    "offlineInstall": {
+      "jobId": "job-01a08be9-1747-7073-8ed9-d3c992ba7442",
+      "downloads": 0,
+      "standing": "PASS"
+    },
+    "focused": {
+      "jobId": "job-01a08be9-45ef-7101-812d-8742db5d72f6",
+      "pass": 28,
+      "total": 28,
+      "standing": "PASS"
+    },
+    "fullRepository": {
+      "jobId": "job-01a08be9-609d-7cd3-9ea1-b139323ca0f4",
+      "pass": 402,
+      "total": 402,
+      "standing": "PASS"
+    }
   }
 }

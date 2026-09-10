@@ -4,6 +4,8 @@ import test from "node:test";
 
 const policy = readFileSync(new URL("../docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md", import.meta.url), "utf8");
 const matrix = JSON.parse(readFileSync(new URL("../evidence/acceptance/game-external-mature-practice-adoption-r1.json", import.meta.url), "utf8"));
+const composition = JSON.parse(readFileSync(new URL("../evidence/acceptance/game-external-mature-practice-composition-r1.json", import.meta.url), "utf8"));
+const adjudication = JSON.parse(readFileSync(new URL("../evidence/acceptance/game-external-mature-practice-adjudication-r1.json", import.meta.url), "utf8"));
 const core = readFileSync(new URL("../docs/GAME_DEVELOPMENT_CORE.md", import.meta.url), "utf8");
 const playerEvidence = readFileSync(new URL("../docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md", import.meta.url), "utf8");
 const paradigm = readFileSync(new URL("../docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md", import.meta.url), "utf8");
@@ -70,4 +72,15 @@ test("adoption policy is discoverable and has bounded authority", () => {
   assert.match(readme, /GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1\.md/);
   assert.match(policy, /No synthetic compliance/i);
   assert.match(policy, /Game does NOT own/);
+});
+
+
+test("independent adjudication binds external-first composition without claiming compliance", () => {
+  assert.equal(composition.standing, "PASS_BOUNDED");
+  assert.equal(composition.independentVerification.focused.pass, 28);
+  assert.equal(composition.independentVerification.fullRepository.pass, 402);
+  assert.equal(adjudication.verdict, "ADOPT_EXTERNAL_FIRST");
+  assert.equal(adjudication.activationContract.noForceUpdate, true);
+  assert.match(adjudication.truthRole, /not-standards-compliance-certificate/);
+  assert.ok(adjudication.doNotInfer.some((row: string) => /not ISO\/XAG\/WCAG\/SLSA\/OpenChain compliance/.test(row)));
 });
