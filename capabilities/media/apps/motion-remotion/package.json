@@ -15,10 +15,10 @@
     "@ordivon/visuals": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "remotion": "4.0.500"
+    "remotion": "4.0.502"
   },
   "devDependencies": {
-    "@remotion/cli": "4.0.500",
+    "@remotion/cli": "4.0.502",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3"
   }
