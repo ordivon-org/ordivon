@@ -13,7 +13,7 @@ privateOrEmbargoedExceptions:
   - responsible-disclosure-security-material
   - patent-sensitive-work-before-publication-decision
   - operational-details-whose-disclosure-creates-unnecessary-risk
-lastAuditedBaseRevision: b78148c4bb7de9fbde3797b91538c526b445de64
+lastAuditedBaseRevision: 2d02683e3a1b26a7f207300995e58d83ffe693cf
 publicationBoundary:
   includes:
     - remote-main
