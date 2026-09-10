@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m7-independent-adjudication",
+  "truthRole": "bounded-game-e2e-infrastructure-graduation-not-project-release",
+  "recordedAt": "2026-09-10",
+  "verdict": "GRADUATED",
+  "evaluatedCandidate": {
+    "revision": "18f40e456ff22afe350fcf5ac45bc2582903d305",
+    "workspaceId": "ws-game-e2e-r5-m7-independent-20260910-v1",
+    "workspaceSourceDigest": "sha256:276ec6f9d2db7ffeaf8a8e089053217f695a78dd6401dba2a9fb21ab922b3e0c"
+  },
+  "independentVerification": {
+    "offlineDependencyMaterialization": {
+      "jobId": "job-01a08bbe-ceec-7e20-800e-81cde7396cc3",
+      "downloads": 0,
+      "standing": "PASS"
+    },
+    "focusedDestroyer": {
+      "jobId": "job-01a08bbe-fd48-7223-a264-6d5666096b57",
+      "pass": 23,
+      "total": 23,
+      "standing": "PASS"
+    },
+    "fullRepository": {
+      "jobId": "job-01a08bbf-6097-7d03-9d38-0ce6d5cadb20",
+      "pass": 393,
+      "total": 393,
+      "standing": "PASS",
+      "runtimeAdmissionNote": "Initial Runtime registry-lock response was reconciled to the already-committed exact job rather than creating a duplicate execution."
+    },
+    "liveOwnerCurrentness": {
+      "jobId": "job-01a08bbf-2f81-7c90-8b24-63381a653a4b",
+      "standing": "PASS",
+      "workstationObservedHead": "a059a6643af78401b54fc45d2e3bb43182da6597",
+      "requiredWorkstationRepairAncestor": "9b4283a9384a213f30c9c8d1631a3dccd5e53dad",
+      "workstationSourceAndDeployedToolSha256": "sha256:47a6fa7983eaa88ba6d2e274f3ee3ed9ebe97dd157446cd44b0f33df81788f41",
+      "researchObservedHead": "bab965e19dd5ad06bb2427c3b599d775af4b6f6f"
+    }
+  },
+  "mandatoryAttackEvidence": [
+    {
+      "attack": "TECHNICAL_PASS_HUMAN_UNKNOWN",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "APPARATUS_READY_ZERO_HUMAN_SESSIONS",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "PROVENANCE_PASS_RIGHTS_INCONCLUSIVE",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "EXECUTABLE_EXISTS_WITHOUT_WORKSTATION_AUTHORITY",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bc1-9b39-7862-9300-c4fedf5517a4",
+      "witness": "/usr/bin/godot may exist but Game returns UNRESOLVED when Workstation EquipmentBinding is absent"
+    },
+    {
+      "attack": "HOST_SUCCESS_WITHOUT_AUTHORITATIVE_GAME_RECEIPT",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "LATER_GREEN_DOES_NOT_ERASE_COLD_FAILURE",
+      "standing": "PASS_CONDITION_SEPARATED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "BRANCH_NAME_DOES_NOT_MINT_CURRENTNESS",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bbe-fd48-7223-a264-6d5666096b57"
+    },
+    {
+      "attack": "CROSS_CANDIDATE_EVIDENCE_DOES_NOT_SILENTLY_COMPOSE",
+      "standing": "PASS_FAIL_CLOSED",
+      "evidenceJob": "job-01a08bc1-dcca-7d70-902e-ee319c0b3232",
+      "witness": "A21 evidence validator rejects sourceRevision drift inside one evidence run as frozen_condition_drift:2"
+    }
+  ],
+  "hypothesisStanding": {
+    "H1_SUBTRACTION_PRESERVATION": "SURVIVES_CURRENT_DESTRUCTION",
+    "H2_AUTHORITY_ISOLATION": "SURVIVES_CURRENT_DESTRUCTION",
+    "H3_NO_STANDING_LAUNDERING": "SURVIVES_CURRENT_DESTRUCTION",
+    "H4_HISTORICAL_OBSERVABILITY": "SURVIVES_CURRENT_DESTRUCTION",
+    "H5_CURRENT_CARRIER_UNIQUENESS": "SURVIVES_CURRENT_DESTRUCTION_SUBJECT_TO_LOCAL_MAIN_ACTIVATION_CONTRACT"
+  },
+  "stoppingRules": {
+    "requiredOwnerEdgesExplicitAndNonLaundered": "PASS",
+    "mandatoryAuthorityLaunderingAttacks": "PASS",
+    "historicalFalsifierPreservation": "PASS",
+    "residualKernelBoundedNecessity": "PASS_WITH_EXPLICIT_COMPATIBILITY_DEBT",
+    "freshWorkspaceRegressionAndDestruction": "PASS",
+    "projectHumanRightsReleaseStandingRemainsSeparate": "PASS",
+    "currentCarrierActivation": "REQUIRES_REFS_HEADS_MAIN_TO_RESOLVE_TO_COMMIT_CONTAINING_THIS_ARTIFACT"
+  },
+  "activationContract": {
+    "requiredRef": "refs/heads/main",
+    "failureRule": "If refs/heads/main does not resolve to a commit containing this adjudication and .ordivon/game-e2e-current.json, the GRADUATED verdict is not active as current-carrier standing.",
+    "promotionMustBe": "race-safe fast-forward from the exact observed local main; no force update and no authority inferred from ref naming"
+  },
+  "doNotInherit": {
+    "veilwildCandidateNomination": "NOT_YET_NOMINATED",
+    "veilwildDistributionRights": "INCONCLUSIVE",
+    "veilwildHuman": "UNKNOWN",
+    "stationZeroFreshPlayerHuman": "UNKNOWN",
+    "fullExternalEvidenceSubstitution": "NOT_ADMITTED"
+  },
+  "sideDiscoveriesRoutedElsewhere": {
+    "boardSequence": 15316,
+    "items": [
+      "Workstation system-Python Playwright import gap",
+      "four Workstation Temporal Artifact Delivery build-contract failures"
+    ],
+    "m7Disposition": "OUT_OF_SCOPE_NON_BLOCKING_BECAUSE_PRE_REPAIR_BASELINE_REPRODUCED_THE_SAME_FAILURE_CLASSES"
+  }
+}
