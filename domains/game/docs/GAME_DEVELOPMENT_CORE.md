@@ -44,8 +44,8 @@ DevelopmentCore != StageProjection
 D1–D8 is a **routing/profile view**, not an Ordivon-owned development methodology. Each responsibility should route to the relevant mature external standard, professional practice, platform-native mechanism, or horizontal Ordivon owner before any local mechanism is created. The canonical mapping and adoption/currentness rules live in `GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md`.
 
 ```text
-D1 → Double Diamond / ISO 56002 / ISO 9241-210
-D2 → Game Domain Kernel + mature game-design reference lenses
+D1 → external comparable-game references + GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE + Double Diamond / ISO 9241-210
+D2 → Game Domain Kernel + mature-game teardown + mature game-design reference lenses
 D3 → ISO 9241-11/210 + XAG/WCAG + Games User Research
 D4 → Research E2E + ISO 20252 + GUR + platform-native playtest
 D5 → irreducible Game content/progression semantics
@@ -526,7 +526,7 @@ Are D8 operators. They can retrieve and propose analyses/experiments without own
 
 1. Use [`GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md`](GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md) as the current real-history falsification set for D1-D8; do not build another treatment merely to fill a GameForm matrix.
 2. Existing Station Zero / Casefile / Concept Lab / Pre-G0 implementations remain regression and experiment apparatus.
-3. Use external mature games and existing apparatus until a specific unresolved claim requires a new carrier.
+3. Before G0, use `GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: external mature comparable games are the primary product-learning baseline; existing Pre-G0 apparatus is support only until a specific unresolved claim requires a new carrier.
 4. Replace `prototype count` with `decision-relevant uncertainty removed` as the search-progress measure.
 5. Treat Human evidence as a typed programme, not a generic C0 ritual.
 6. Treat content/progression architecture as a first-class positive construction capability.

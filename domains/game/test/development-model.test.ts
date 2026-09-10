@@ -6,6 +6,7 @@ const development = readFileSync(new URL("../docs/DEVELOPMENT_MODEL.md", import.
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
+const frontHalf = readFileSync(new URL("../docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md", import.meta.url), "utf8");
 
 test("Game development model keeps canonical G0-G8 stages while exposing deeper development standing", () => {
   for (const stage of [
@@ -22,6 +23,18 @@ test("Game development model keeps canonical G0-G8 stages while exposing deeper 
 
   assert.match(development, /A research round is a \*\*search method\*\*\. It is not a product phase\./);
   assert.match(agents, /A research series is a search method inside a development stage; it is never the product lifecycle itself\./);
+});
+
+
+test("product discovery before G0 is external-reference-first without creating new G-stages", () => {
+  assert.match(frontHalf, /canonical-front-half-profile/);
+  assert.match(frontHalf, /reference-class selection[\s\S]*teardown[\s\S]*baseline reproduction[\s\S]*human playtest[\s\S]*controlled subtraction \/ variation \/ recombination[\s\S]*canonical G0/i);
+  assert.match(frontHalf, /profile steps.*not additional G-stages/is);
+  assert.match(frontHalf, /Innovation is not the required input/);
+  assert.match(frontHalf, /They may not answer:[\s\S]*what product to make/);
+  assert.match(development, /Product selection now begins with the external-reference front-half profile/);
+  assert.match(authority, /GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md.*product-discovery profile before G0/s);
+  assert.match(readme, /GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md/);
 });
 
 test("classification separates conventional game form, Production Agents, and Runtime Agents", () => {

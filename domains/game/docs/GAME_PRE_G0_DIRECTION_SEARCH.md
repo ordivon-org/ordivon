@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Canonical start of Pre-G0 Game Direction Search after provisional Game Foundations v1. Opens the product GameForm space without selecting Station Zero, Casefile, Agent society, generative Persona or any existing implementation; introduces direction-search coordinates, external precedent evidence, a deliberately diverse candidate basis, Agent-necessity tests, production-burden profiles and cheapest falsifiers.
+summary: Historical first Pre-G0 Game Direction Search after provisional Game Foundations v1. Retained as coverage/falsifier research; current product discovery authority is the external-reference front-half profile and does not begin by ranking this internal candidate basis.
 evidence_status: mixed
 readiness: READY
 applies_to:
@@ -26,6 +26,8 @@ related:
   - game.development-model
 ---
 # Ordivon Game Pre-G0 Direction Search — DS0
+
+> **Current standing (2026-09-11): HISTORICAL/SUPPORTING RESEARCH.** The current product-discovery authority is [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). DS0 may provide coverage vocabulary, candidate counterexamples and falsifier ideas, but its D01–D16 basis must not rank products or precede mature comparable-game reference analysis.
 
 > **2026-08-17 search correction:** `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` supersedes DS0 wherever DS0 couples GameForm selection to `AgentParticipationProfile` or gives Agent-friendly/easily measurable forms implicit search priority. DS0 remains historical/mechanism evidence; current factorization is `GameFormProfile × ProductionAgentProfile × RuntimeAgentProfile`.
 

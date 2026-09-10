@@ -1,6 +1,8 @@
 # Ordivon Game — Pre-G0 Cheap Playable Proof Portfolio v0.1
 
-Status: **FROZEN PROOF DESIGN / NO G0 ADMISSION**
+Status: **FROZEN SUPPORTING APPARATUS / NO PRODUCT-SELECTION AUTHORITY / NO G0 ADMISSION**
+
+Current standing (2026-09-11): product discovery authority moved to [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). These packets are reusable controls/falsifiers/evidence carriers only. Use claim-appropriate mature Human playtest practice for current decisions; do not treat the historical C0/C1/C2 labels as a replacement methodology.
 Source standing: `task:game-pre-g0-direction-search-20260817@6`
 Runtime Agent baseline for every packet: **none**
 

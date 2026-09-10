@@ -228,9 +228,11 @@ test("R29 freezes a layered Game Foundations v1 without collapsing semantics or 
   assert.match(r29, /No product is selected by R29\./);
 });
 
-test("R29 continuation exits foundation noun expansion and routes to pre-G0 direction search", () => {
+test("R29 remains historical while current continuation routes product discovery to the external-reference front half", () => {
   assert.match(map, /Pre-G0 Game Direction Search/);
-  assert.match(continuation, /Pre-G0 Game Direction Search/);
+  assert.match(continuation, /External-reference front half/);
+  assert.match(continuation, /Reference class → teardown → reproduce → Human playtest → controlled differentiation → G0/);
+  assert.match(continuation, /earlier Pre-G0 Game Direction Search remains a supporting coverage\/falsifier programme only/);
   assert.match(continuation, /Foundation Reopen Conditions/);
   assert.match(continuation, /Game Foundations v1: provisionally frozen/);
   assert.match(continuation, /Technical maturity is evidence about implementation feasibility, not product value/);

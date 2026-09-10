@@ -11,6 +11,7 @@ const playerEvidence = readFileSync(new URL("../docs/GAME_PLAYER_EVIDENCE_PROGRA
 const paradigm = readFileSync(new URL("../docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+const frontHalf = readFileSync(new URL("../docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md", import.meta.url), "utf8");
 
 test("external mature mechanism is the default and local extension requires falsification", () => {
   assert.equal(matrix.defaultPolicy, "DIRECT_ADOPT_EXTERNAL_WITHIN_NATIVE_SCOPE");
@@ -18,6 +19,16 @@ test("external mature mechanism is the default and local extension requires fals
   assert.match(policy, /Default = DIRECTLY ADOPT mature external mechanism/);
   assert.match(policy, /Local extension requires falsifier/);
   assert.match(paradigm, /external-first/i);
+});
+
+
+test("front-half product discovery learns from mature comparable games before internal novelty search", () => {
+  assert.match(policy, /Product discovery: external reference before internal direction search/);
+  assert.match(policy, /External successful mature games\s+PRIMARY BASELINE MATERIAL/);
+  assert.match(frontHalf, /Steamworks.*similar titles/is);
+  assert.match(frontHalf, /Nintendo.*Echoes of Wisdom/is);
+  assert.match(frontHalf, /Human baseline validation/);
+  assert.match(frontHalf, /Runtime Agents remain `none` by default/);
 });
 
 test("authoritative external standards cover requirements quality Human research lifecycle accessibility provenance and compliance", () => {

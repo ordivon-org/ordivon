@@ -63,30 +63,44 @@ DO_NOT_OWN
 
 ## 2. Research E2E evidence map
 
-### 2.1 Direction discovery and innovation
+### 2.1 Product discovery: external reference before internal direction search
 
-**Direct process skeleton:** Design Council Double Diamond.
+**Canonical Game profile:** [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md).
+
+The default first move for a new Game product is to learn from **successful, mature, comparable existing games**, not to generate an Ordivon-internal GameForm portfolio and treat that portfolio as product authority. Steamworks' Tag Wizard explicitly uses detailed genre/subgenre, player activities, mechanics, visuals, themes and similar titles as a similarity surface; use platform/current-market evidence to construct bounded reference classes. Popularity alone is not a design or feasibility score.
 
 ```text
-Discover → Define → Develop → Deliver
+External comparable references
+→ direct play / teardown
+→ bounded baseline reproduction
+→ Human baseline validation
+→ controlled subtraction / variation / recombination
+→ G0 Game Definition
 ```
 
-The mature value is divergent/convergent search, user/problem discovery, multiple candidate development and small-scale testing/rejection. Game should not invent new synonymous discovery stages.
+**Divergent/convergent process skeleton:** Design Council Double Diamond remains `DIRECT_ADOPT` for generic search discipline, but Discover is seeded by external reference evidence and unresolved player/product opportunity rather than internal novelty generation alone.
 
-**Organizational guidance:** ISO 56002:2019 Innovation management system guidance. The 2019 edition remains the published standard while a successor edition is under development; therefore Game records edition/currentness rather than copying its contents.
+**Game-design lenses:** MDA and other mature methods remain `REFERENCE_ONLY`; they can structure teardown and causal hypotheses without becoming universal Game authority.
+
+**Industry precedent:** Nintendo's published *Echoes of Wisdom* developer interview documents parallel gameplay prototyping and a major direction change after features/feel could be tested. It is evidence for prototype-led learning, not a normative standard.
 
 Disposition:
 
 ```text
-Double Diamond                  DIRECT_ADOPT process skeleton
-ISO 56002                       PROFILE organizational innovation guidance
-Game Foundations / Pre-G0       PROFILE Game-specific search coordinates only
-G0–G8                           PROFILE project commitment projection only
+Steam/platform similarity + current catalogue evidence  DIRECT_ADOPT as reference-class input
+External successful mature games                         PRIMARY BASELINE MATERIAL
+Double Diamond                                           DIRECT_ADOPT process skeleton
+MDA / mature game-design lenses                          REFERENCE_ONLY teardown aids
+GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE               PROFILE Game-specific composition only
+Game Foundations / old Pre-G0 search                     SUPPORT: coverage/falsifiers/apparatus only
+G0–G8                                                    PROFILE project commitment projection only
 ```
 
 Sources:
-- Design Council, Double Diamond: https://www.designcouncil.org.uk/resources/the-double-diamond/
-- ISO 56002:2019: https://www.iso.org/standard/68221.html
+- Steamworks Tags / similar titles: https://partner.steamgames.com/doc/store/tags
+- Design Council, Double Diamond: https://www.designcouncil.org.uk/our-resources/the-double-diamond/
+- AAAI MDA paper: https://aaai.org/papers/ws04-04-001-mda-a-formal-approach-to-game-design-and-game-research/
+- Nintendo, *Ask the Developer: The Legend of Zelda: Echoes of Wisdom*: https://www.nintendo.com/sg/interview/bdge/index.html
 
 ### 2.2 Requirements and acceptance definition
 

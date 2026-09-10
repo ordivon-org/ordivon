@@ -15,7 +15,7 @@ audience:
   - builder
   - agent
 updated: 2026-08-17
-summary: Exact continuity handoff after R1–R29 and provisional Game Foundations v1 freeze; the next frontier is Pre-G0 Game Direction Search rather than another automatic foundation noun round.
+summary: Exact continuity handoff after R1–R29 and provisional Game Foundations v1 freeze; the next product frontier is the external-reference front-half profile, while prior Pre-G0 direction search remains supporting research/apparatus rather than product-selection authority.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -54,11 +54,14 @@ Known forced independent foundation gap: none in current test set
 Product selected: no
 ```
 
-Exact next frontier:
+Exact next product frontier:
 
 ```text
-Pre-G0 Game Direction Search
+External-reference front half
+Reference class → teardown → reproduce → Human playtest → controlled differentiation → G0
 ```
+
+See [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). The earlier Pre-G0 Game Direction Search remains a supporting coverage/falsifier programme only.
 
 ## Game Foundations v1
 
@@ -186,25 +189,22 @@ ideology
 
 They can currently be reconstructed as typed combinations/views of F1–F9 and canonical derived structures. This remains falsifiable.
 
-## Pre-G0 direction-search objective
+## Product-discovery objective after the front-half correction
 
-Do not pick the most mature existing treatment. Generate materially different directions across the open GameForm space and compare:
+Do not begin by selecting among internally generated directions. Begin with a small, stratified set of successful mature **comparable games** and learn their proven player-facing patterns through direct play, teardown and bounded reproduction.
 
 ```text
-player fantasy / target experience
-core verbs + cadence
-control topology
-World/space/time form
-social form
-Agent Participation Profile
-player-value hypothesis
-content/production burden
-cheapest falsifier
+reference-class evidence
+→ observed product facts
+→ causal teardown hypotheses
+→ lawful baseline reproduction with original expression
+→ appropriate Human baseline validation
+→ controlled subtraction / variation / recombination
+→ differentiated thesis
+→ canonical G0
 ```
 
-Keep deterministic authored, action, puzzle, strategy, social, creative, procedural, generative Persona and persistent-Agent directions open initially.
-
-The search should end only when one candidate is intentionally selected to enter canonical G0 under `DEVELOPMENT_MODEL.md`.
+The old GameForm atlas, Agent-role decoupling, D-series cheap falsifiers and A/D/I playable apparatus remain available to detect omissions, construct controls and attack false transfers. They do not rank genres or choose the product. Runtime Agent participation remains `none` unless a later product-specific causal comparison proves a cheaper baseline insufficient.
 
 ## Product-selection guardrail
 

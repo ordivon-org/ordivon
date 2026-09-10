@@ -76,10 +76,13 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 
 ## Working method
 
-For product development, first locate the work in the canonical lifecycle from `docs/DEVELOPMENT_MODEL.md`:
+For a **new product before G0**, start from `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: construct a mature comparable reference class, play/teardown it, reproduce the bounded baseline, validate the player-relevant baseline with an appropriate Human method, then test controlled differences. Do not begin from an internally generated GameForm winner.
+
+After G0, locate work in the canonical lifecycle from `docs/DEVELOPMENT_MODEL.md`:
 
 ```text
-identify the current development stage and false exit gate
+pre-G0: reference → teardown → reproduce → Human baseline → controlled differentiation
+G0+: identify the current development stage and false exit gate
 → classify the blocker as gameplay, Agent participation, content, expression, runtime, or production throughput
 → locate the sole owner
 → make the smallest owner-local experiment/change
@@ -122,11 +125,12 @@ A meaningful change should state:
 - `docs/PRODUCT.md` defines the current Station Zero product.
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
+- `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md` owns the product-discovery profile before G0: mature comparable references, teardown, bounded baseline reproduction, Human baseline validation, and controlled differentiation. Its R0–R4 labels are profile steps, not product stages.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
 - `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` retains DS0 candidate/mechanism evidence; its old GameForm↔Agent coupling and search-priority semantics are historical after the decoupling correction.
 - `docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md` owns the first executable structural-falsifier results and their exact claim boundary: simulation may delete weak realizations but cannot prove human Player Value; broad forms are not killed by one failed micro-treatment.
-- `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` owns the current search factorization: GameForm selection is independent of Agent affinity; Production Agents, runtime system intelligence and World Agents are distinct loci; DS1 survivors do not automatically outrank untested traditional forms.
-- `docs/GAME_PRE_G0_PLAYABLE_PROOF_PORTFOLIO.md` owns the frozen A–J cheap-playable proof design and C0/C1/C2 evidence gates; it does not rank packets or authorize G0.
+- `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` is supporting anti-Agent-bias/coverage guidance only: GameForm selection remains independent of Agent affinity, but this document no longer selects or prioritizes products ahead of mature comparable references.
+- `docs/GAME_PRE_G0_PLAYABLE_PROOF_PORTFOLIO.md` is retained supporting prototype/falsifier apparatus; its historical C0/C1/C2 labels do not replace claim-specific mature Human playtest practice and do not authorize product selection or G0.
 - `docs/GAME_PRE_G0_PLAYABLE_WAVE1_APPARATUS.md` owns only the bounded automated A/D/I mechanical apparatus evidence; automation is below C0/C1 human Player Value standing and leaves B/C/E/F/G/H/J untested rather than inferior.
 - `docs/GAME_CORE_RESEARCH_RESET.md` reserves G0–G8 for `DEVELOPMENT_MODEL.md` and defines current post-dogfood work as Game Core research rather than product-stage progression.
 - `docs/GAME_CORE_DIRECTION_SPACE.md` defines the open Core → Experience direction space and experimental contract.

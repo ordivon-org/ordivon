@@ -8,7 +8,8 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 
 test("Pre-G0 playable wave remains below human Player Value and G0 admission", () => {
-  assert.match(portfolio, /FROZEN PROOF DESIGN \/ NO G0 ADMISSION/);
+  assert.match(portfolio, /FROZEN SUPPORTING APPARATUS \/ NO PRODUCT-SELECTION AUTHORITY \/ NO G0 ADMISSION/);
+  assert.match(portfolio, /product discovery authority moved to.*GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md/is);
   assert.match(apparatus, /AUTOMATED APPARATUS MATERIALIZED \/ C0 UNOBSERVED \/ C1 UNOBSERVED \/ NO G0 ADMISSION/);
   assert.match(apparatus, /AutomatedApparatusEvidence[\s\S]*!= C0HumanCanary[\s\S]*!= C1MechanismEvidence[\s\S]*!= DirectionalComparison[\s\S]*!= G0Admission/);
   assert.match(apparatus, /HumanPlayerValueEvidence = unobserved/);

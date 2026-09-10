@@ -6,8 +6,10 @@ const search = readFileSync(new URL("../docs/GAME_PRE_G0_DIRECTION_SEARCH.md", i
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 
-test("Pre-G0 direction search is canonical research without selecting a G0 product", () => {
+test("Pre-G0 direction search is retained historical research without product-selection authority", () => {
   assert.match(search, /^id: game\.pre-g0-direction-search$/m);
+  assert.match(search, /HISTORICAL\/SUPPORTING RESEARCH/);
+  assert.match(search, /current product-discovery authority is.*GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md/is);
   assert.match(search, /It is not:[\s\S]*R30 Foundations[\s\S]*G0[\s\S]*Station Zero continuation[\s\S]*Casefile continuation/);
   assert.match(search, /DEVELOPMENT_MODEL\.md` remains the sole authority for G0–G8/);
   assert.match(search, /TechnicalMaturity = feasibility evidence\.[\s\S]*TechnicalMaturity != PlayerValue evidence/);

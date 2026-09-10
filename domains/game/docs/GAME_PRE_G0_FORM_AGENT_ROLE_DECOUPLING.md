@@ -27,6 +27,8 @@ related:
 ---
 # Ordivon Game Pre-G0 — GameForm × AgentRole Decoupling
 
+> **Current standing (2026-09-11): SUPPORTING PROFILE ONLY.** Product discovery authority moved to [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). This document remains authoritative only for separating GameForm from Production/Runtime Agent roles and for broad coverage/anti-bias checks. Its atlas and search sequence must not rank genres, choose a product, or outrank mature comparable external games.
+
 ## 0. Why this correction exists
 
 Pre-G0 DS0 made a useful move away from Station Zero implementation momentum, but it still embedded `AgentParticipationProfile` directly inside `DirectionVector`. DS1 then naturally favored candidates whose value claims were easy to formalize and whose Agent-necessity contrast was cheap to simulate.
@@ -572,24 +574,18 @@ Accessed 2026-08-17 unless noted.
 
 ---
 
-# 12. Exact next frontier
+# 12. Current downstream use
 
-Do **not** resume DS2 as previously defined.
+The former next frontier, `Pre-G0 Form Search — broad traditional GameForm portfolio`, is **historical and superseded as product-selection order**. Current product discovery begins in [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md).
 
-Next work is:
-
-```text
-Pre-G0 Form Search — broad traditional GameForm portfolio
-```
-
-The next round should:
+Use this document downstream only to:
 
 ```text
-1. sample F01–F22 without Agent preference;
-2. identify player-value mechanisms and cheapest valid proofs;
-3. estimate conventional burden before any Agent discount;
-4. separately map P-layer Agent production leverage;
-5. only later admit S/W runtime Agent roles where cheaper baselines fail.
+1. audit whether a reference set is biased toward Agent-friendly or easy-to-measure forms;
+2. describe GameForm independently from Production/Runtime Agent roles;
+3. identify missing coverage after reference-class selection;
+4. build cheaper-baseline falsifiers when a runtime Agent is proposed;
+5. pressure-test a claimed transfer or differentiation.
 ```
 
-No product has been selected. Canonical G0 has not begun.
+Do not sample F01–F22 merely to fill a portfolio before studying mature comparable games. No product has been selected. Canonical G0 has not begun.

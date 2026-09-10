@@ -30,11 +30,15 @@ related:
 
 Ordivon Game has accumulated strong evidence about authoritative Worlds, bounded Agent cognition, action admission, partial information, hierarchical control, recovery, replay, and player-facing causal legibility. Those are **runtime-Agent mechanisms**. They are optional capabilities, not the definition of an Ordivon game and not, by themselves, a complete game-development process.
 
-This model puts that research back inside ordinary game development:
+This model puts that research back inside ordinary game development. Product selection now begins with the external-reference front-half profile rather than an Ordivon-internal direction search:
 
 ```text
-classify the game
-→ define the experience and core loop
+select mature comparable reference games
+→ play / teardown / deconstruct
+→ reproduce the relevant proven baseline
+→ validate the baseline with appropriate Human playtest evidence
+→ run controlled subtraction / variation / recombination
+→ earn a bounded G0 Game Definition
 → prove the game kernel
 → build a playable prototype
 → prove a representative vertical slice
@@ -42,6 +46,8 @@ classify the game
 → balance, QA and polish
 → release and learn
 ```
+
+The canonical pre-G0 product-discovery profile is [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). Its R0–R4 labels are profile steps only, not additional product stages. Existing Pre-G0 direction-search/playable material is retained as coverage, apparatus and falsifier support under that profile; it no longer owns product selection.
 
 Agent-assisted production may run throughout the product stages. Runtime-Agent work is a separate optional lane admitted only when the selected GameForm needs it. Neither replaces the external generic software lifecycle processes adopted through ISO/IEC/IEEE 12207:2026. G0–G8 is a Game-specific commitment projection over that lifecycle and the external-first routing policy in `GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md`; it is not an alternative generic lifecycle standard.
 
@@ -277,9 +283,9 @@ The stages below are the Game-specific **commitment/coordination projection** fo
 
 ### G0 — Define
 
-**Question:** What game are we making and why should it exist?
+**Question:** After learning from mature comparable games and testing deliberate differences, what specific game are we now justified in making and why should it exist?
 
-Produce a bounded Game Definition:
+G0 consumes the pre-G0 external-reference evidence rather than replacing it. A bounded Game Definition should state the relevant `ReferenceClass`, retained mature patterns, deliberate differences, baseline/differentiation evidence and known transfer limits, then define:
 
 - player fantasy and target experience;
 - Conventional Form Profile;
@@ -720,7 +726,7 @@ Station Zero-specific Plans, Turns, Commander forms, factions, tactical Zones, s
 
 ## 11. Start packet for any future Ordivon game
 
-Before implementation, answer these in one bounded record:
+Before G0/implementation, first complete the smallest valid external-reference learning packet from `GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: comparable reference class, teardown facts vs inferred causes, bounded baseline reproduction, appropriate Human baseline evidence, and any controlled differentiation result. The G0 record should additionally state **Reference inheritance**: which mature patterns are retained, which are deliberately changed, and what evidence supports the transfer. Then answer:
 
 1. **Fantasy:** who is the player and what is the desired experience?
 2. **Form:** what are the verbs/cadence, control topology, space/camera, session/progression and social form?
