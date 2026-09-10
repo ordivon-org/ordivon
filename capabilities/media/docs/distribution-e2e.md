@@ -74,6 +74,8 @@ Distribution maturity must not be obtained by publishing something useless solel
 - provider-native accepted carrier effect was observed;
 - the episode is not tagged as an architecture/maturity/evidence-generating test.
 
+A natural-episode object is still only domain evidence construction, not maturity authority. Before any D2/D3 aggregation, the exact episode evidence must cross the existing Artifact E2E attestation/trust boundary (in-toto/SLSA VSA and the configured authenticity policy). Distribution does not maintain a second local evidence-authenticity scheme.
+
 This keeps the earlier GitHub D2 positive control while allowing future non-GitHub events to accumulate real cross-carrier evidence.
 
 ## Current carrier observations — 2026-09-10
@@ -95,11 +97,11 @@ These are dated observations and must be re-observed before a live effect. The c
 
 **D1 Complete One-shot Delivery substrate** is supported only when one carrier can be planned end-to-end with exact artifact identity, explicit authority, dispatch adapter, provider-state reconciliation, read-back and correction/withdrawal semantics. Local profile/state-machine tests alone are construction evidence, not a real delivery.
 
-**D2 Verified Outcome** requires provider-native acceptance of a naturally useful real external effect. Existing GitHub evidence remains bounded to GitHub. Generic/cross-carrier D2 needs at least one real non-GitHub episode and an independent graduation judgment.
+**D2 Verified Outcome** requires provider-native acceptance of a naturally useful real external effect, exact attested evidence, and an independent graduation judgment. Existing GitHub evidence remains bounded to GitHub. Generic/cross-carrier D2 needs at least one real non-GitHub episode; caller-authored mappings are not maturity evidence.
 
-**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts **plus effect variation and real recovery/correction/withdrawal evidence**, with bounded currentness, authority handling and Human Mechanical Actions. Repetition alone is insufficient; three local fixtures do not count. `maturity_observation()` reports missing effect variation or recovery evidence explicitly and can only produce a persistent-capability **candidate** requiring independent adjudication.
+**D3 Persistent Capability** requires repeated non-identical real episodes across multiple carrier contexts **plus effect variation and real recovery/correction/withdrawal evidence**, with bounded currentness, authority handling and Human Mechanical Actions. Repetition alone is insufficient; three local fixtures do not count. Distribution deliberately does not expose a generic local `maturity_observation()` aggregator: D3 evidence must be assembled from Artifact-E2E-verified attestations and adjudicated under the assurance policy rather than inferred from unauthenticated Python mappings.
 
-**DEFAULT** is a separate adjudication: sufficient D3 evidence must show that Distribution can normally be selected without treating the path as an experiment. `maturity_observation()` deliberately never sets `defaultClaimed=true`.
+**DEFAULT** is a separate adjudication: sufficient D3 evidence must show that Distribution can normally be selected without treating the path as an experiment. No local Distribution helper can set or imply DEFAULT.
 
 ## Falsifiers
 

@@ -578,6 +578,32 @@ def bind_natural_episode(
         raise ValueError("plan is not a Distribution plan")
     if outcome.get("kind") != "ordivon.media.distribution-outcome-evidence":
         raise ValueError("outcome is not Distribution outcome evidence")
+
+    granted = plan.get("grantedAuthorities")
+    interactions = plan.get("satisfiedInteractions")
+    explicit_user_authority = plan.get("explicitUserAuthority")
+    if not isinstance(granted, list) or not isinstance(interactions, list) or type(explicit_user_authority) is not bool:
+        raise ValueError("plan is not a canonical Distribution plan")
+    canonical_plan = plan_delivery(
+        carrier_id=_nonempty(plan.get("carrierId"), "plan.carrierId"),
+        effect=_nonempty(plan.get("effect"), "plan.effect"),
+        granted_authorities=granted,
+        satisfied_interactions=interactions,
+        explicit_user_authority=explicit_user_authority,
+        execution_mode=plan.get("executionMode") if isinstance(plan.get("executionMode"), str) else None,
+        account_identity=plan.get("accountIdentity") if isinstance(plan.get("accountIdentity"), str) else None,
+        artifact_digest=plan.get("artifactDigest") if isinstance(plan.get("artifactDigest"), str) else None,
+        intent_id=plan.get("intentId") if isinstance(plan.get("intentId"), str) else None,
+    )
+    if dict(plan) != canonical_plan:
+        raise ValueError("plan is not a canonical Distribution plan")
+
+    canonical_outcome = verify_provider_outcome(outcome)
+    if dict(outcome) != canonical_outcome:
+        raise ValueError("outcome is not a canonical verified provider outcome")
+    plan = canonical_plan
+    outcome = canonical_outcome
+
     if plan.get("carrierId") != outcome.get("carrierId"):
         raise ValueError("plan and outcome carrier differ")
     if plan.get("effect") != outcome.get("effect"):
@@ -635,58 +661,3 @@ def bind_natural_episode(
     }
     episode["episodeDigest"] = _digest(episode)
     return episode
-
-
-def maturity_observation(episodes: Iterable[Mapping[str, object]]) -> dict[str, object]:
-    """Conservatively summarize supplied natural episodes without claiming DEFAULT automatically."""
-
-    rows = [dict(item) for item in episodes]
-    digests: set[str] = set()
-    delivery_keys: set[str] = set()
-    carriers: set[str] = set()
-    effects: set[str] = set()
-    recovery_evidence_count = 0
-    for row in rows:
-        if row.get("kind") != "ordivon.media.distribution-natural-episode":
-            raise ValueError("maturity observation accepts only natural Distribution episodes")
-        digest = _nonempty(row.get("episodeDigest"), "episodeDigest")
-        if digest in digests:
-            raise ValueError("duplicate natural episode identity")
-        digests.add(digest)
-        delivery = _nonempty(row.get("deliveryKey"), "deliveryKey")
-        if delivery in delivery_keys:
-            raise ValueError("duplicate delivery occurrence cannot contribute twice to maturity")
-        delivery_keys.add(delivery)
-        carriers.add(_nonempty(row.get("carrierId"), "carrierId"))
-        effect = _nonempty(row.get("effect"), "effect")
-        effects.add(effect)
-        if effect in {"correct", "withdraw", "delete"} or row.get("recoveryEvidenceRef") is not None:
-            recovery_evidence_count += 1
-        if bool(row.get("syntheticForMaturity")):
-            raise ValueError("synthetic episode cannot contribute to maturity")
-
-    if len(rows) == 0:
-        standing = "no-generic-d2-evidence"
-    elif len(carriers) == 1:
-        standing = "single-carrier-evidence-only"
-    elif len(rows) < 3:
-        standing = "cross-carrier-d2-candidate-not-d3"
-    elif len(effects) < 2:
-        standing = "cross-carrier-repetition-observed-effect-variation-missing"
-    elif recovery_evidence_count == 0:
-        standing = "cross-carrier-repetition-observed-recovery-evidence-missing"
-    else:
-        standing = "persistent-capability-candidate-independent-adjudication-required"
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.media.distribution-maturity-observation",
-        "episodeCount": len(rows),
-        "carrierCount": len(carriers),
-        "carriers": sorted(carriers),
-        "effectCount": len(effects),
-        "effects": sorted(effects),
-        "recoveryEvidenceCount": recovery_evidence_count,
-        "standing": standing,
-        "defaultClaimed": False,
-        "truthRole": "bounded-episode-summary-not-graduation-verdict",
-    }

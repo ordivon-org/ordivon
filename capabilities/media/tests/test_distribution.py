@@ -8,7 +8,6 @@ from ordivon_studio.distribution import (
     carrier_profile,
     correction_disposition,
     delivery_key,
-    maturity_observation,
     plan_delivery,
     verify_provider_outcome,
 )
@@ -77,23 +76,6 @@ def _outcome(
         }
     )
 
-
-def _episode(
-    carrier: str,
-    effect: str,
-    *,
-    index: int,
-    recovery: str | None = None,
-) -> dict[str, object]:
-    plan = _plan(carrier, effect, index=index)
-    return bind_natural_episode(
-        plan=plan,
-        outcome=_outcome(plan, observed_at_ms=2000 + index),
-        goal_relevance=f"real distribution need {index}",
-        initiated_for=f"release-or-correction-{index}",
-        user_authorized_at_ms=1000,
-        recovery_evidence_ref=recovery,
-    )
 
 
 class DistributionTests(unittest.TestCase):
@@ -315,6 +297,34 @@ class DistributionTests(unittest.TestCase):
                 initiated_for="release-announcement", user_authorized_at_ms=1000,
             )
 
+    def test_natural_episode_revalidates_plan_instead_of_trusting_caller_digest(self) -> None:
+        plan = _plan("x", "publish_text")
+        forged = dict(plan)
+        forged["planDigest"] = "not-a-digest"
+        with self.assertRaisesRegex(ValueError, "canonical Distribution plan"):
+            bind_natural_episode(
+                plan=forged, outcome=_outcome(plan), goal_relevance="real release",
+                initiated_for="release-announcement", user_authorized_at_ms=1000,
+            )
+
+    def test_natural_episode_revalidates_provider_outcome_instead_of_trusting_caller_fields(self) -> None:
+        plan = _plan("x", "publish_text")
+        forged = {
+            "kind": "ordivon.media.distribution-outcome-evidence",
+            "carrierId": plan["carrierId"],
+            "effect": plan["effect"],
+            "deliveryKey": plan["deliveryKey"],
+            "artifactDigest": plan["artifactDigest"],
+            "acceptedCarrierEffect": True,
+            "observedAtMs": 2000,
+            "evidenceDigest": "not-a-digest",
+        }
+        with self.assertRaisesRegex(ValueError, "provider receipt missing fields|canonical verified provider outcome"):
+            bind_natural_episode(
+                plan=plan, outcome=forged, goal_relevance="real release",
+                initiated_for="release-announcement", user_authorized_at_ms=1000,
+            )
+
     def test_natural_episode_requires_provider_native_accepted_effect(self) -> None:
         plan = _plan("x", "publish_text")
         weak = _outcome(plan, state="submitted")
@@ -333,38 +343,6 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(episode["deliveryKey"], plan["deliveryKey"])
         self.assertEqual(episode["artifactDigest"], DIGEST)
         self.assertFalse(episode["syntheticForMaturity"])
-
-    def test_maturity_observation_stays_bounded_for_zero_or_single_carrier(self) -> None:
-        self.assertEqual(maturity_observation([])["standing"], "no-generic-d2-evidence")
-        observation = maturity_observation([_episode("x", "publish_text", index=1)])
-        self.assertEqual(observation["standing"], "single-carrier-evidence-only")
-        self.assertFalse(observation["defaultClaimed"])
-
-    def test_cross_carrier_repetition_without_recovery_does_not_reach_persistent_candidate(self) -> None:
-        episodes = [
-            _episode("x", "publish_text", index=1),
-            _episode("youtube", "publish_video", index=2),
-            _episode("x", "publish_text", index=3),
-        ]
-        observation = maturity_observation(episodes)
-        self.assertEqual(observation["carrierCount"], 2)
-        self.assertEqual(observation["effectCount"], 2)
-        self.assertEqual(observation["recoveryEvidenceCount"], 0)
-        self.assertEqual(observation["standing"], "cross-carrier-repetition-observed-recovery-evidence-missing")
-        self.assertFalse(observation["defaultClaimed"])
-
-    def test_cross_carrier_repetition_with_real_correction_or_delete_is_only_d3_candidate(self) -> None:
-        episodes = [
-            _episode("x", "publish_text", index=1),
-            _episode("youtube", "publish_video", index=2),
-            _episode("x", "delete", index=3, recovery="provider-readback:delete:3"),
-        ]
-        observation = maturity_observation(episodes)
-        self.assertEqual(observation["carrierCount"], 2)
-        self.assertGreaterEqual(observation["effectCount"], 2)
-        self.assertEqual(observation["recoveryEvidenceCount"], 1)
-        self.assertEqual(observation["standing"], "persistent-capability-candidate-independent-adjudication-required")
-        self.assertFalse(observation["defaultClaimed"])
 
 
 if __name__ == "__main__":
