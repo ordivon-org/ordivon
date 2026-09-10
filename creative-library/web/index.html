@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Ordivon Creative Library</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Local historical archive</p>
+      <h1>Creative Library</h1>
+    </div>
+    <div class="standing" id="standing">Loading archive…</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Exact-source browsing</p>
+        <h2>Open the work that actually existed.</h2>
+        <p class="lede">Search the recovered Ordivon production ecology across Media, Game, Web, and Workstation. Every carrier is resolved from its frozen Git revision instead of the current checkout.</p>
+      </div>
+      <div class="stats" id="stats" aria-label="Archive statistics"></div>
+    </section>
+
+    <section class="controls" aria-label="Library filters">
+      <label class="search-field">
+        <span>Search</span>
+        <input id="search" type="search" autocomplete="off" placeholder="Title, work ID, series, source path…">
+      </label>
+      <label><span>Owner</span><select id="owner"><option value="">All owners</option></select></label>
+      <label><span>Room</span><select id="room"><option value="">All rooms</option></select></label>
+      <label><span>Medium</span><select id="medium"><option value="">All media</option></select></label>
+    </section>
+
+    <section class="result-line">
+      <strong id="result-count">0 works</strong>
+      <button id="clear" type="button">Clear filters</button>
+    </section>
+
+    <section class="grid" id="grid" aria-live="polite"></section>
+  </main>
+
+  <dialog id="detail">
+    <button class="close" id="close" aria-label="Close detail">×</button>
+    <div id="detail-body"></div>
+  </dialog>
+
+  <template id="card-template">
+    <article class="card" tabindex="0">
+      <div class="thumb"></div>
+      <div class="card-body">
+        <div class="meta-row"><span class="owner"></span><span class="room"></span></div>
+        <h3></h3>
+        <p class="work-id"></p>
+        <div class="chips"></div>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
