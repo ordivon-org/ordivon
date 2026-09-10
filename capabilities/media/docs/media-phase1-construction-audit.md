@@ -227,6 +227,8 @@ Creating/configuring a Media remote is an operational durability/publication dec
 
 ## 7. Residual operational/external items
 
+> **Post-audit currentness — 2026-08-28.** The items below are the exact operational snapshot recorded by the 2026-08-19 Phase-1 audit, not a current outstanding-work queue. Media now has `origin=https://github.com/zycxfyh/ordivon-media.git`, and Web PR #62 (`project/media-path-rebind-20260818` → `main`) merged on 2026-08-22. Those later physical/publication changes do not alter the Phase-1 semantic closure or retroactively rewrite the historical audit evidence.
+
 ### Web PR #62
 
 During this audit, Web PR #62 was rechecked through GitHub CLI:

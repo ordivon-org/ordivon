@@ -460,3 +460,11 @@ Action-quality gain = NOT ESTABLISHED.
 ```
 
 The admitted repair changes chapter/output representation plus the Book Constitution consumer contract. It does not create a Capability ontology, registry, service, scoring system or global positive-language ratio.
+
+## Portable PDF realization — 2026-08-29
+
+The already-approved seven-chapter semantic Book at `book.mdx` / `sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4` now has one owner-approved **private/local portable PDF** projection. The exact PDF is `sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7`, 137 A5 pages, PDF 1.7, tagged, with embedded Unicode-mapped fonts. It is archived in the existing Studio local CAS and independently materialized to the Book portable working path with byte-identical digest verification.
+
+The PDF is a carrier projection, not a second Book authority. `book.mdx` remains semantic authority; the production-local converter is source-digest fenced and fail-closed on unknown Markdown token types. Current source uses only the admitted CommonMark/table token set. Mechanical validation includes qpdf PASS, source/token census, extracted-text coverage, two byte-identical fixed-epoch compiles, and visual inspection across first/dense/table/hyphen-boundary/final pages. The ten apparent ASCII-hyphen extraction deficits are Poppler line-end de-hyphenation: the explicit hyphens remain visible in rendered pixels.
+
+This closes only the selected relation: **a Human can now open one exact local PDF without repository/MDX ceremony**. It does not establish public publication, readership, Human continuous-reading comprehension, preference, trust, or realized benefit. Parent Production therefore remains `review`. No new Book prose/chapter treatment was authorized or performed.

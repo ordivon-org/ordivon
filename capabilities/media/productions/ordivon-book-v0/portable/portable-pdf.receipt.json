@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-book-portable-pdf-receipt",
+  "productionId": "ordivon-book-v0",
+  "outputId": "ordivon-book-v0-portable-pdf-zh",
+  "truthRole": "owner-approved-private-local-carrier-realization-not-publication-or-human-response",
+  "source": {
+    "path": "productions/ordivon-book-v0/book.mdx",
+    "sha256": "14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4",
+    "bytes": 169921,
+    "semanticStanding": "approved-seven-chapter-book-output"
+  },
+  "projection": {
+    "parser": "markdown-it-py 4.0.0 commonmark+table",
+    "unknownTokenTypes": [],
+    "headingCount": 146,
+    "fenceCount": 361,
+    "tableCount": 3,
+    "listItemCount": 288,
+    "sourceVisibleTextNonWhitespaceCodepoints": 90205,
+    "relativeRepositoryLinks": "visible-label-preserved; false standalone destinations not emitted"
+  },
+  "carrier": {
+    "kind": "application/pdf",
+    "profile": "private-local-a5-pdf",
+    "compiler": "Typst 0.15.1",
+    "pages": 137,
+    "bytes": 1428645,
+    "sha256": "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7",
+    "pdfVersion": "1.7",
+    "tagged": true,
+    "fontFamilies": [
+      "Noto Serif SC",
+      "Noto Sans SC",
+      "DejaVu Sans Mono"
+    ],
+    "fontsEmbedded": true,
+    "unicodeMappingsPresent": true,
+    "fontBoundary": "existing Workstation/Windows font environment used at build time; font files are not Book assets"
+  },
+  "reproducibility": {
+    "sourceDateEpoch": 1787983988,
+    "twoIndependentCompilesByteIdentical": true,
+    "compileADigest": "sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7",
+    "compileBDigest": "sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7"
+  },
+  "validation": {
+    "qpdfCheck": "PASS_NO_SYNTAX_OR_STREAM_ENCODING_ERRORS",
+    "pdfExtractedNonWhitespaceCodepoints": 90802,
+    "sourceVisibleCodepointDeficits": {
+      "-": 10
+    },
+    "hyphenDeficitDisposition": "POPPLER_DEHYPHENATION_AT_VISUAL_LINE_BREAK; explicit hyphens verified present in rendered pixels",
+    "visualPagesInspected": [
+      1,
+      22,
+      38,
+      63,
+      92,
+      93,
+      134,
+      136,
+      137
+    ],
+    "visualStanding": "PASS_NO_CLIPPING_OVERLAP_MISSING_CJK_GLYPHS_OR_TABLE_OVERFLOW"
+  },
+  "durability": {
+    "localCasObjectKey": "objects/sha256/17/174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7",
+    "localCasDisposition": "created",
+    "materializedPath": "D:/OrdivonStudio/productions/ordivon-book-v0/portable/ordivon-book-v0-zh.pdf",
+    "materializedDigestVerified": true,
+    "materializedByteIdentical": true,
+    "offMachineReplica": "NOT_SELECTED_FOR_THIS_PRIVATE_LOCAL_RELATION"
+  },
+  "standing": "APPROVED_PRIVATE_LOCAL_PORTABLE_ARTIFACT",
+  "nonClaims": [
+    "public publication",
+    "readership",
+    "Human continuous-reading comprehension",
+    "preference",
+    "trust",
+    "realized benefit",
+    "Book authority over owner sources"
+  ]
+}

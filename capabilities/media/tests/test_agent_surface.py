@@ -74,6 +74,25 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn("OMPC-v0.md", readme)
         self.assertIn("does not by itself justify creating a Production", readme)
 
+    def test_current_media_navigation_does_not_reuse_historical_operational_state(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        bridges = (root / "research/media/bridges/README.md").read_text(encoding="utf-8")
+        phase1 = (root / "docs/media-phase1-construction-audit.md").read_text(encoding="utf-8")
+        self.assertIn("Interlocus (historical owner identity/name: `research-owner:network` / Network)", bridges)
+        self.assertNotIn("- Network — transport, routing and reachability substrate.", bridges)
+        self.assertIn("Post-audit currentness — 2026-08-28", phase1)
+        self.assertIn("Web PR #62", phase1)
+        self.assertIn("merged on 2026-08-22", phase1)
+        self.assertIn("origin=https://github.com/zycxfyh/ordivon-media.git", phase1)
+        self.assertIn("not a current outstanding-work queue", phase1)
+        authority = (root / "docs/authority.md").read_text(encoding="utf-8")
+        self.assertIn("Repository source-integration currentness", authority)
+        self.assertIn("canonical upstream repository `main`", authority)
+        self.assertIn("after explicitly observing remote freshness", authority)
+        self.assertIn("phantom outstanding-work", authority)
+        self.assertIn("not automatically a live work queue", authority)
+        self.assertIn("re-observe the relevant external owner", authority)
+
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)

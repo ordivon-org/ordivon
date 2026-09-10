@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-fresh-consumer-freeform-evidence",
+  "productionId": "mhs-hardware-boundary",
+  "articleDigest": "sha256:dc6b04ef6a166f58777a5d8306bf5e411279c2c0d602a5ac1c7e7a068e6573f2",
+  "harnessRunId": "harness-run:work3-mhs-article-fresh-consumer-20260829-v2-freeform",
+  "harnessImplementation": "ordivon-harness@bb999dad54126b12f2053b6d4082800d0435efff",
+  "providerModel": "deepseek-v4-flash",
+  "stopCode": "candidate_completed",
+  "modelCalls": 1,
+  "toolCalls": 0,
+  "isolation": {
+    "articleOnly": true,
+    "claimsProvided": false,
+    "cognitionProvided": false,
+    "boardProvided": false,
+    "domainTools": false
+  },
+  "usage": {
+    "modelCalls": 1,
+    "toolCalls": 0,
+    "observationBytes": 0,
+    "totalTokens": 2964,
+    "tokenLimit": 20000,
+    "modelRetries": 0,
+    "toolCorrections": 0,
+    "conclusionCorrections": 0,
+    "conclusionCorrectionLimit": 0,
+    "observationOnlyTurns": 0,
+    "observationOnlyTurnLimit": 1,
+    "noProgressTurns": 0,
+    "noProgressTurnLimit": 1,
+    "modelObservationByteLimit": 32768,
+    "providerAttempts": 1,
+    "providerResultsReplayed": 0,
+    "wallTimeMs": 2662,
+    "deadlineOverrunMs": 0,
+    "effectiveDeadlineOverrunMs": 0,
+    "requestedModelId": "deepseek-v4-flash",
+    "effectiveModelIds": [
+      "deepseek-v4-flash"
+    ],
+    "providerUsage": [
+      {
+        "prompt_tokens": 2830,
+        "completion_tokens": 134,
+        "total_tokens": 2964,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2830,
+        "systemFingerprint": "a26a7955944dc5c60445bff77fac9c8e",
+        "providerModel": "deepseek-v4-flash",
+        "providerRequestMode": "non-thinking",
+        "requestedModelId": "deepseek-v4-flash",
+        "effectiveModelId": "deepseek-v4-flash"
+      }
+    ]
+  },
+  "boundary": "Fresh Agent semantic-consumption evidence only; caller/Media owns semantic disposition.",
+  "conclusionStatus": "candidate_completed",
+  "report": "Report on MHS article; RETAIN; boundaries are well-bounded and collapse claims are explicitly refused."
+}
