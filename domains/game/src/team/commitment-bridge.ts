@@ -186,7 +186,7 @@ export class EmbeddedTeamCommitmentBridge {
     }
     const evidence = envelope.evidenceRefs[0];
     if (!evidence) return null;
-    const artifact = this.team.host.getProtocolArtifact<ProtocolJson>(evidence.digest);
+    const artifact = this.team.evidence.getProtocolArtifact<ProtocolJson>(evidence.digest);
     if (typeof artifact.content !== "object" || artifact.content === null || Array.isArray(artifact.content)) return null;
     const { schemaVersion: _schemaVersion, kind: _kind, ...value } = artifact.content;
     return value as unknown as TeamObservation;
@@ -198,7 +198,7 @@ export class EmbeddedTeamCommitmentBridge {
       kind: "ordivon.game.team-tick-observation.v1",
       ...protocolSafe(observation) as Record<string, ProtocolJson>,
     } satisfies ProtocolJson;
-    const artifact = this.team.host.putProtocolArtifact("ordivon.game.team-tick-observation.v1", payload);
+    const artifact = this.team.evidence.putProtocolArtifact("ordivon.game.team-tick-observation.v1", payload);
     const envelope: ObservationEnvelope = {
       schemaVersion: 1,
       kind: "ordivon.observation-envelope",

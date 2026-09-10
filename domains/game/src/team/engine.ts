@@ -199,7 +199,7 @@ export class TeamHost {
       candidate.status !== "completed" && candidate.status !== "blocked");
     if (unsettled && unsettled.worldRevision < state.revision) {
       if (unsettled.status === "dispatched") return this.executeAndObserve(runId, unsettled);
-      if (unsettled.status === "observed") return this.team.host.withTransaction(runId, () => this.verifyRound(runId, unsettled));
+      if (unsettled.status === "observed") return this.team.evidence.withTransaction(runId, () => this.verifyRound(runId, unsettled));
       const blocked = this.execution.saveRound(unsettled, {
         ...unsettled,
         status: "blocked",
@@ -242,13 +242,13 @@ export class TeamHost {
       return Boolean(task && task.control.mode === "active" && !["completed", "failed", "cancelled"].includes(task.state) && (state.agents[profile.actorId]?.health ?? 0) > 0);
     });
     const contexts = this.execution.listContexts(round.roundId);
-    if (contexts.length < eligibleProfiles.length) return this.team.host.withTransaction(runId, () => this.prepareContexts(runId, round, eligibleProfiles));
+    if (contexts.length < eligibleProfiles.length) return this.team.evidence.withTransaction(runId, () => this.prepareContexts(runId, round, eligibleProfiles));
     const proposals = this.execution.listProposals(round.roundId);
     if (round.resolvedActorIds.length < contexts.length) return await this.collectProposals(runId, round, eligibleProfiles, contexts);
-    if (!round.tickPlanId) return this.team.host.withTransaction(runId, () => this.prepareTickPlan(runId, round, proposals));
-    if (!round.dispatchId) return this.team.host.withTransaction(runId, () => this.prepareDispatch(runId, round));
+    if (!round.tickPlanId) return this.team.evidence.withTransaction(runId, () => this.prepareTickPlan(runId, round, proposals));
+    if (!round.dispatchId) return this.team.evidence.withTransaction(runId, () => this.prepareDispatch(runId, round));
     if (!round.observationId) return this.executeAndObserve(runId, round);
-    if (round.status !== "completed") return this.team.host.withTransaction(runId, () => this.verifyRound(runId, round));
+    if (round.status !== "completed") return this.team.evidence.withTransaction(runId, () => this.verifyRound(runId, round));
     this.execution.reconcileCompletedRound(round);
     return this.receipt(runId, "stable", "Team Round already completed", round);
   }
@@ -303,7 +303,7 @@ export class TeamHost {
           policyMode: this.policyMode,
           tokenBudget: this.tokenBudget,
         });
-        const artifact = this.team.host.putArtifact("team-context-v1", context);
+        const artifact = this.team.evidence.putArtifact("team-context-v1", context);
         const createdAt = now();
         const reference: TeamContextReference = {
           contextId: context.contextId,
@@ -346,13 +346,13 @@ export class TeamHost {
     const resolved = new Set([...round.resolvedActorIds, ...retainedProposals.map((proposal) => proposal.actorId)]);
     const missing = contexts.filter((reference) => !resolved.has(reference.actorId));
     const results = await Promise.allSettled(missing.map(async (reference) => {
-      const context = this.team.host.getArtifact<CompiledTeamContext>(reference.artifactDigest).content;
+      const context = this.team.evidence.getArtifact<CompiledTeamContext>(reference.artifactDigest).content;
       const decision = await this.providerFor(reference.actorId).decide(context);
       return { reference, context, decision };
     }));
     this.inject("after_provider_call");
 
-    return this.team.host.withTransaction(runId, () => {
+    return this.team.evidence.withTransaction(runId, () => {
       const proposalIds = retainedProposals.map((proposal) => proposal.proposalId);
       const resolvedActorIds = [...resolved];
       for (let index = 0; index < results.length; index += 1) {
@@ -586,7 +586,7 @@ export class TeamHost {
     if (!receipt) {
       const state = this.game.loadState(runId);
       if (state.revision !== effect.requiredWorldRevision || sha256(state) !== effect.requiredWorldDigest) {
-        return this.team.host.withTransaction(runId, () => {
+        return this.team.evidence.withTransaction(runId, () => {
           dispatch = this.execution.saveDispatch({ ...dispatch, status: "rejected", error: "stale_world", updatedAt: now() }, "team.dispatch-rejected");
           effect = this.execution.saveEffect({ ...effect, status: "rejected", updatedAt: now() }, "team.effect-rejected");
           const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: "stale_world", updatedAt: now() }, "team.round-blocked");
@@ -600,7 +600,7 @@ export class TeamHost {
       }, runId);
       if (applied.result.status !== "accepted") {
         const rejected = applied.result;
-        return this.team.host.withTransaction(runId, () => {
+        return this.team.evidence.withTransaction(runId, () => {
           dispatch = this.execution.saveDispatch({ ...dispatch, status: "rejected", error: `${rejected.code}:${rejected.reason}`, updatedAt: now() }, "team.dispatch-rejected");
           effect = this.execution.saveEffect({ ...effect, status: "rejected", updatedAt: now() }, "team.effect-rejected");
           const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: rejected.code, updatedAt: now() }, "team.round-blocked");
@@ -631,7 +631,7 @@ export class TeamHost {
       verificationSuccess: event.verification?.success === true && canonicalJson(intentCommandIds) === canonicalJson(verifiedIntentCommandIds),
       createdAt,
     };
-    return this.team.host.withTransaction(runId, () => {
+    return this.team.evidence.withTransaction(runId, () => {
       this.execution.putObservation(observation);
       dispatch = this.execution.saveDispatch({ ...dispatch, status: "succeeded", worldEventId: event.eventId, commandSequence: receipt.commandSequence, error: null, updatedAt: createdAt }, "team.dispatch-succeeded");
       effect = this.execution.saveEffect({ ...effect, status: observation.verificationSuccess ? "succeeded" : "rejected", updatedAt: createdAt }, observation.verificationSuccess ? "team.effect-succeeded" : "team.effect-rejected");

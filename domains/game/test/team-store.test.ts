@@ -97,12 +97,12 @@ test("local Messages deliver by co-location, wait across separation, and later c
   const engineerMove = action(game, ENGINEER_ID, "move:power-junction", "message-engineer-move");
   const second = game.applyTeamTick({ tickId: "message-rejoin", expectedWorldRevision: 1, intents: [{ commandSequence: 1, command: engineerMove }] });
   assert.equal(second.result.status, "accepted");
-  const journalBeforeProjection = team.host.listJournal(game.activeRunId).length;
+  const journalBeforeProjection = team.evidence.listJournal(game.activeRunId).length;
   assert.equal(
     team.projection().messages.find((message) => message.messageId === pending.messageId)?.status,
     "pending",
   );
-  assert.equal(team.host.listJournal(game.activeRunId).length, journalBeforeProjection);
+  assert.equal(team.evidence.listJournal(game.activeRunId).length, journalBeforeProjection);
   const delivered = team.refreshMessages().find((message) => message.messageId === pending.messageId);
   assert.equal(delivered?.status, "delivered");
   assert.deepEqual(delivered?.pendingActorIds, []);
@@ -162,12 +162,12 @@ test("terminal Team Messages remain immutable across repeated refresh", () => {
       channel: "local",
     });
     assert.equal(delivered.status, "delivered");
-    const before = team.host.listJournal(game.activeRunId).length;
+    const before = team.evidence.listJournal(game.activeRunId).length;
     assert.deepEqual(
       team.refreshMessages().find((message) => message.messageId === delivered.messageId),
       delivered,
     );
-    assert.equal(team.host.listJournal(game.activeRunId).length, before);
+    assert.equal(team.evidence.listJournal(game.activeRunId).length, before);
   } finally {
     game.close();
   }

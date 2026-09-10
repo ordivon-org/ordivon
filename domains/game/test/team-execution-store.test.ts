@@ -101,7 +101,7 @@ test("Team Execution Store rejects corrupt retained JSON", async () => {
 test("Team Execution verification rejects terminal events that differ from retained heads", async () => {
   const { game, host, round, proposal } = await setup("run:team-execution-terminal-heads");
   try {
-    host.team.host.appendEvent(
+    host.team.evidence.appendEvent(
       game.activeRunId,
       "team.round-completed",
       "host-event:audit:forged-round-completion",
@@ -114,7 +114,7 @@ test("Team Execution verification rejects terminal events that differ from retai
 
     const second = await setup("run:team-execution-terminal-proposal");
     try {
-      second.host.team.host.appendEvent(
+      second.host.team.evidence.appendEvent(
         second.game.activeRunId,
         "team.proposal-verified",
         "host-event:audit:forged-proposal-verification",
@@ -190,11 +190,11 @@ test("a retained completed Round reconciles missing Authority completion", async
       blocker: null,
       updatedAt: "2026-08-01T00:00:09.000Z",
     };
-    host.team.host.withTransaction(runId, () => {
+    host.team.evidence.withTransaction(runId, () => {
       host.team.db.prepare(
         "UPDATE team_rounds SET status = ?, value_json = ? WHERE round_id = ? AND value_json = ?",
       ).run("completed", canonicalJson(completed), round!.roundId, canonicalJson(round));
-      host.team.host.appendEventInTransaction(
+      host.team.evidence.appendEventInTransaction(
         runId,
         "team.round-completed",
         `host-event:${round!.roundId}:team.round-completed:${completed.updatedAt}`,

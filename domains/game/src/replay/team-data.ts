@@ -88,7 +88,7 @@ export function loadReplayTeamData(
     authorityGrants: projection.authorityGrants,
     messages: projection.messages,
     contractTranscript: execution.authority.contractTranscript(runId),
-    hostJournal: team.host.listJournal(runId),
+    hostJournal: team.evidence.listJournal(runId),
   };
 
   for (const round of rounds) {

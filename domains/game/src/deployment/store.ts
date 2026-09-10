@@ -1,5 +1,5 @@
 import { canonicalJson, sha256 } from "../digest.ts";
-import { HostStore } from "../host-contract/journal.ts";
+import { createGameEvidencePort, type GameEvidencePort } from "../integration/game-evidence.ts";
 import type { GameStore } from "../storage.ts";
 import { teamCognitionStarted } from "../team/execution-store.ts";
 import type { AuthorityPolicyMode } from "../team/model.ts";
@@ -53,15 +53,15 @@ function baseManifest(store: GameStore, input: BindDeploymentInput) {
 
 export class DeploymentStore {
   readonly game: GameStore;
-  readonly host: HostStore;
+  readonly evidence: GameEvidencePort;
 
   constructor(game: GameStore) {
     this.game = game;
-    this.host = new HostStore(game.db);
+    this.evidence = createGameEvidencePort(game.db);
   }
 
   get(runId = this.game.activeRunId): DeploymentManifest | null {
-    const events = this.host.listJournal(runId).filter(
+    const events = this.evidence.listJournal(runId).filter(
       (event) => event.eventType === "game.deployment-bound",
     );
     if (events.length === 0) return null;
@@ -83,7 +83,7 @@ export class DeploymentStore {
       );
     }
 
-    const artifact = this.host.getArtifact<DeploymentManifest>(payload.artifactDigest);
+    const artifact = this.evidence.getArtifact<DeploymentManifest>(payload.artifactDigest);
     if (artifact.kind !== "game-deployment-manifest") {
       throw new DeploymentError(
         "deployment_corrupt",
@@ -144,8 +144,8 @@ export class DeploymentStore {
       );
     }
 
-    const artifact = this.host.putArtifact("game-deployment-manifest", manifest);
-    this.host.appendEvent(
+    const artifact = this.evidence.putArtifact("game-deployment-manifest", manifest);
+    this.evidence.appendEvent(
       input.runId,
       "game.deployment-bound",
       `host-event:deployment:${manifest.manifestDigest}`,

@@ -120,11 +120,11 @@ export class TeamExecutionStore {
     }
     const placeholders = insertColumns.map(() => "?").join(", ");
     const recordJson = canonicalJson(record);
-    this.team.host.withTransaction(runId, () => {
+    this.team.evidence.withTransaction(runId, () => {
       const inserted = this.db.prepare(`INSERT OR IGNORE INTO ${table} (${insertColumns.join(", ")}, value_json) VALUES (${placeholders}, ?)`)
         .run(...([...insertValues, recordJson] as never[]));
       if (Number(inserted.changes) === 1) {
-        this.team.host.appendEventInTransaction(runId, eventType, `host-event:${id}:created`, {
+        this.team.evidence.appendEventInTransaction(runId, eventType, `host-event:${id}:created`, {
           head: projectionHead(table, id, record),
         }, createdAt);
         return;
@@ -188,14 +188,14 @@ export class TeamExecutionStore {
       }
       throw new TeamStoreError("team_conflict", "Team Round was superseded");
     }
-    this.team.host.withTransaction(round.runId, () => {
+    this.team.evidence.withTransaction(round.runId, () => {
       const changed = this.db.prepare(
         "UPDATE team_rounds SET status = ?, value_json = ? WHERE round_id = ? AND value_json = ?",
       ).run(round.status, roundJson, round.roundId, expectedJson);
       if (Number(changed.changes) !== 1) {
         throw new TeamStoreError("team_conflict", "Team Round was superseded");
       }
-      this.team.host.appendEventInTransaction(round.runId, eventType, `host-event:${round.roundId}:${eventType}:${round.updatedAt}`, {
+      this.team.evidence.appendEventInTransaction(round.runId, eventType, `host-event:${round.roundId}:${eventType}:${round.updatedAt}`, {
         head: projectionHead("team-round", round.roundId, round, round.worldRevision),
       }, round.updatedAt);
     });
@@ -271,14 +271,14 @@ export class TeamExecutionStore {
       }
       return current;
     }
-    this.team.host.withTransaction(proposal.runId, () => {
+    this.team.evidence.withTransaction(proposal.runId, () => {
       const changed = this.db.prepare(
         "UPDATE team_proposals SET status = ?, value_json = ? WHERE proposal_id = ? AND value_json = ?",
       ).run(proposal.status, proposalJson, proposal.proposalId, expectedJson);
       if (Number(changed.changes) !== 1) {
         throw new TeamStoreError("team_conflict", "Team Proposal was superseded");
       }
-      this.team.host.appendEventInTransaction(proposal.runId, eventType, `host-event:${proposal.proposalId}:${eventType}:${proposal.updatedAt}`, {
+      this.team.evidence.appendEventInTransaction(proposal.runId, eventType, `host-event:${proposal.proposalId}:${eventType}:${proposal.updatedAt}`, {
         head: projectionHead("team-proposal", proposal.proposalId, proposal, proposal.actorTaskRevision),
       }, proposal.updatedAt);
     });
@@ -398,7 +398,7 @@ export class TeamExecutionStore {
       }
     }
 
-    for (const event of this.team.host.listJournal(runId)) {
+    for (const event of this.team.evidence.listJournal(runId)) {
       if (event.eventType === "team.round-completed") {
         const payload = event.payload as { round?: TeamRound; head?: ProjectionHead };
         const retained = payload.round

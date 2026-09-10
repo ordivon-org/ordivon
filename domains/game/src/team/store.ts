@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { canonicalJson, sha256 } from "../digest.ts";
-import { HostStore } from "../host-contract/journal.ts";
+import { createGameEvidencePort, type GameEvidencePort } from "../integration/game-evidence.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../scenario.ts";
 import type { GameStore } from "../storage.ts";
@@ -144,12 +144,12 @@ export interface IssueGrantInput {
 export class TeamStore {
   readonly game: GameStore;
   readonly db: DatabaseSync;
-  readonly host: HostStore;
+  readonly evidence: GameEvidencePort;
 
   constructor(game: GameStore) {
     this.game = game;
     this.db = game.db;
-    this.host = new HostStore(this.db);
+    this.evidence = createGameEvidencePort(this.db);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS team_run_configurations (
         run_id TEXT PRIMARY KEY,
@@ -225,7 +225,7 @@ export class TeamStore {
     }
     const state = this.game.loadState(runId);
     const now = new Date().toISOString();
-    const objectiveArtifact = this.host.putArtifact("team-objective-graph", TEAM_OBJECTIVE_GRAPH);
+    const objectiveArtifact = this.evidence.putArtifact("team-objective-graph", TEAM_OBJECTIVE_GRAPH);
     const goal: TeamGoal = {
       goalId: goalId(runId), runId,
       statement: "Stabilize Station Zero through independent specialists and transmit a verified rescue signal.",
@@ -254,7 +254,7 @@ export class TeamStore {
       providerOrder: [], createdAt: now, updatedAt: now,
     });
 
-    this.host.withTransaction(runId, () => {
+    this.evidence.withTransaction(runId, () => {
       const retained = this.db.prepare(
         "SELECT 1 AS present FROM team_actor_sessions WHERE run_id = ? LIMIT 1",
       ).get(runId) as { present?: number } | undefined;
@@ -262,9 +262,9 @@ export class TeamStore {
       const configurationEventId = `host-event:team-configuration:${runId}:revision:1`;
       this.db.prepare("INSERT INTO team_run_configurations (run_id, revision, head_event_id, value_json) VALUES (?, ?, ?, ?)")
         .run(runId, configuration.revision, configurationEventId, canonicalJson(configuration));
-      this.host.appendEventInTransaction(runId, "team.configuration-created", configurationEventId, { configuration }, now);
+      this.evidence.appendEventInTransaction(runId, "team.configuration-created", configurationEventId, { configuration }, now);
       const goalEventId = `host-event:${goal.goalId}:team-created`;
-      this.host.appendEventInTransaction(runId, "team.goal-created", goalEventId, { goal }, now);
+      this.evidence.appendEventInTransaction(runId, "team.goal-created", goalEventId, { goal }, now);
       for (const profile of profiles) {
         this.db.prepare("INSERT INTO team_profiles (run_id, actor_id, value_json) VALUES (?, ?, ?)")
           .run(runId, profile.actorId, canonicalJson(profile));
@@ -275,7 +275,7 @@ export class TeamStore {
           (task_id, run_id, actor_id, role, state, revision, head_event_id, value_json)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
           .run(task.taskId, runId, task.actorId, task.role, task.state, task.revision, eventId, canonicalJson(task));
-        this.host.appendEventInTransaction(runId, "team.task-created", eventId, {
+        this.evidence.appendEventInTransaction(runId, "team.task-created", eventId, {
           head: projectionHead("team-task", task.taskId, task, task.revision),
         }, now);
       }
@@ -291,7 +291,7 @@ export class TeamStore {
     const objectiveDigest = sha256({ kind: "team-objective-graph", content: TEAM_OBJECTIVE_GRAPH });
     let objectiveArtifact;
     try {
-      objectiveArtifact = this.host.getArtifact<typeof TEAM_OBJECTIVE_GRAPH>(objectiveDigest);
+      objectiveArtifact = this.evidence.getArtifact<typeof TEAM_OBJECTIVE_GRAPH>(objectiveDigest);
     } catch (error) {
       throw new TeamStoreError("team_corrupt", `Team Objective Graph Artifact is unavailable: ${String(error)}`);
     }
@@ -331,7 +331,7 @@ export class TeamStore {
     const row = this.db.prepare("SELECT task_id, head_event_id, value_json FROM team_actor_sessions WHERE task_id = ?").get(taskId) as TaskRow | undefined;
     if (!row) throw new Error(`unknown Team Task: ${taskId}`);
     const task = parse<TeamTaskProjection>(row.value_json, "Team Task");
-    const event = this.host.getJournalEvent(task.runId, row.head_event_id);
+    const event = this.evidence.getJournalEvent(task.runId, row.head_event_id);
     const payload = event?.payload as { task?: TeamTaskProjection; head?: ProjectionHead } | undefined;
     const valid = payload?.task
       ? canonicalJson(payload.task) === canonicalJson(task)
@@ -354,12 +354,12 @@ export class TeamStore {
       throw new TeamStoreError("team_conflict", "terminal Team Task cannot transition to another state");
     }
     const eventId = `host-event:${next.taskId}:revision:${next.revision}`;
-    this.host.withTransaction(next.runId, () => {
+    this.evidence.withTransaction(next.runId, () => {
       const changed = this.db.prepare(`UPDATE team_actor_sessions SET state = ?, revision = ?, head_event_id = ?, value_json = ?
         WHERE task_id = ? AND revision = ?`)
         .run(next.state, next.revision, eventId, canonicalJson(next), next.taskId, current.revision);
       if (Number(changed.changes) !== 1) throw new TeamStoreError("team_conflict", "Team Task revision was superseded");
-      this.host.appendEventInTransaction(next.runId, eventType, eventId, {
+      this.evidence.appendEventInTransaction(next.runId, eventType, eventId, {
         head: projectionHead("team-task", next.taskId, next, next.revision),
         ...eventData,
       }, next.updatedAt);
@@ -383,7 +383,7 @@ export class TeamStore {
   acquireLease(taskId: string, ownerId: string, nowMs = Date.now(), ttlMs = 30_000): TeamTaskLease {
     if (!ownerId.trim() || !Number.isSafeInteger(nowMs) || !Number.isSafeInteger(ttlMs) || ttlMs < 1) throw new TypeError("valid lease owner, time, and TTL are required");
     const task = this.getTask(taskId);
-    return this.host.withTransaction(task.runId, () => {
+    return this.evidence.withTransaction(task.runId, () => {
       const row = this.db.prepare("SELECT * FROM team_actor_leases WHERE task_id = ?").get(taskId) as LeaseRow | undefined;
       if (row && row.expires_at_ms > nowMs && row.owner_id !== ownerId) {
         throw new TeamStoreError("team_lease_held", `Team Task lease is held by ${row.owner_id}`);
@@ -399,7 +399,7 @@ export class TeamStore {
 
   releaseLease(lease: TeamTaskLease): void {
     const task = this.getTask(lease.taskId);
-    this.host.withTransaction(task.runId, () => {
+    this.evidence.withTransaction(task.runId, () => {
       const result = this.db.prepare("DELETE FROM team_actor_leases WHERE task_id = ? AND owner_id = ? AND revision = ?")
         .run(lease.taskId, lease.ownerId, lease.revision);
       if (Number(result.changes) !== 1) throw new TeamStoreError("team_conflict", "Team Task lease identity no longer matches");
@@ -444,11 +444,11 @@ export class TeamStore {
       const retained = parse<TeamMessage>(existing.value_json, "Team Message");
       return retained;
     }
-    this.host.withTransaction(runId, () => {
+    this.evidence.withTransaction(runId, () => {
       const inserted = this.db.prepare("INSERT OR IGNORE INTO team_messages (message_id, run_id, status, value_json) VALUES (?, ?, ?, ?)")
         .run(message.messageId, runId, message.status, canonicalJson(message));
       if (Number(inserted.changes) === 1) {
-        this.host.appendEventInTransaction(runId, "team.message-created", `host-event:${message.messageId}:created`, { message }, now);
+        this.evidence.appendEventInTransaction(runId, "team.message-created", `host-event:${message.messageId}:created`, { message }, now);
       }
     });
     const retained = this.db.prepare("SELECT value_json FROM team_messages WHERE message_id = ?").get(message.messageId) as JsonRow | undefined;
@@ -477,14 +477,14 @@ export class TeamStore {
         updatedAt: now,
       };
       const expectedJson = canonicalJson(message);
-      this.host.withTransaction(runId, () => {
+      this.evidence.withTransaction(runId, () => {
         const changed = this.db.prepare(
           "UPDATE team_messages SET status = ?, value_json = ? WHERE message_id = ? AND value_json = ?",
         ).run(next.status, canonicalJson(next), next.messageId, expectedJson);
         if (Number(changed.changes) !== 1) {
           throw new TeamStoreError("team_conflict", "Team Message was superseded");
         }
-        this.host.appendEventInTransaction(runId, `team.message-${next.status}`, `host-event:${next.messageId}:${next.status}:${state.turn}`, { message: next }, now);
+        this.evidence.appendEventInTransaction(runId, `team.message-${next.status}`, `host-event:${next.messageId}:${next.status}:${state.turn}`, { message: next }, now);
       });
     }
     return this.listMessages(runId);
@@ -498,11 +498,11 @@ export class TeamStore {
       return retained;
     }
     const decisionJson = canonicalJson(decision);
-    this.host.withTransaction(decision.runId, () => {
+    this.evidence.withTransaction(decision.runId, () => {
       const inserted = this.db.prepare("INSERT OR IGNORE INTO team_authority_decisions (decision_id, run_id, actor_id, outcome, value_json) VALUES (?, ?, ?, ?, ?)")
         .run(decision.decisionId, decision.runId, decision.actorId, decision.outcome, decisionJson);
       if (Number(inserted.changes) === 1) {
-        this.host.appendEventInTransaction(decision.runId, "team.authority-decided", `host-event:${decision.decisionId}:recorded`, { decision }, decision.createdAt);
+        this.evidence.appendEventInTransaction(decision.runId, "team.authority-decided", `host-event:${decision.decisionId}:recorded`, { decision }, decision.createdAt);
         return;
       }
       const retained = this.db.prepare("SELECT value_json FROM team_authority_decisions WHERE decision_id = ?").get(decision.decisionId) as JsonRow | undefined;
@@ -529,12 +529,12 @@ export class TeamStore {
     };
     const existing = this.db.prepare("SELECT value_json FROM team_authority_grants WHERE grant_id = ?").get(grant.grantId) as JsonRow | undefined;
     if (existing) return parse<AuthorityGrant>(existing.value_json, "Authority Grant");
-    this.host.withTransaction(runId, () => {
+    this.evidence.withTransaction(runId, () => {
       const inserted = this.db.prepare(`INSERT OR IGNORE INTO team_authority_grants
         (grant_id, run_id, actor_id, proposal_id, consumed_at_tick, value_json) VALUES (?, ?, ?, ?, NULL, ?)`)
         .run(grant.grantId, runId, grant.actorId, grant.proposalId, canonicalJson(grant));
       if (Number(inserted.changes) === 1) {
-        this.host.appendEventInTransaction(runId, "team.authority-granted", `host-event:${grant.grantId}:issued`, { grant }, now);
+        this.evidence.appendEventInTransaction(runId, "team.authority-granted", `host-event:${grant.grantId}:issued`, { grant }, now);
       }
     });
     const retained = this.db.prepare("SELECT value_json FROM team_authority_grants WHERE grant_id = ?").get(grant.grantId) as JsonRow | undefined;
@@ -549,11 +549,11 @@ export class TeamStore {
     if (current.proposalId !== proposalId || current.contextDigest !== contextDigest || current.worldDigest !== worldDigest) throw new TeamStoreError("team_conflict", "Authority Grant binding differs");
     if (current.consumedAtTick !== null || tick > current.expiresAtTick) throw new TeamStoreError("team_conflict", "Authority Grant is consumed or expired");
     const next = { ...current, consumedAtTick: tick };
-    this.host.withTransaction(current.runId, () => {
+    this.evidence.withTransaction(current.runId, () => {
       const updated = this.db.prepare("UPDATE team_authority_grants SET consumed_at_tick = ?, value_json = ? WHERE grant_id = ? AND consumed_at_tick IS NULL")
         .run(tick, canonicalJson(next), grantId);
       if (Number(updated.changes) !== 1) throw new TeamStoreError("team_conflict", "Authority Grant was consumed concurrently");
-      this.host.appendEventInTransaction(current.runId, "team.authority-consumed", `host-event:${grantId}:consumed`, { grant: next }, new Date().toISOString());
+      this.evidence.appendEventInTransaction(current.runId, "team.authority-consumed", `host-event:${grantId}:consumed`, { grant: next }, new Date().toISOString());
     });
     return next;
   }
@@ -572,7 +572,7 @@ export class TeamStore {
       return { schemaVersion: 1, runId, authorityPolicyMode: "autonomous", revision: 0, createdAt, updatedAt: createdAt };
     }
     const configuration = parse<TeamRunConfiguration>(row.value_json, "Team Run Configuration");
-    const event = this.host.getJournalEvent(runId, row.head_event_id);
+    const event = this.evidence.getJournalEvent(runId, row.head_event_id);
     const payload = event?.payload as { configuration?: TeamRunConfiguration } | undefined;
     if (!payload?.configuration || canonicalJson(payload.configuration) !== canonicalJson(configuration)) throw new TeamStoreError("team_corrupt", "Team Run Configuration differs from event head");
     return configuration;
@@ -587,7 +587,7 @@ export class TeamStore {
       createdAt: current.createdAt, updatedAt,
     };
     const eventId = `host-event:team-configuration:${runId}:revision:${next.revision}`;
-    this.host.withTransaction(runId, () => {
+    this.evidence.withTransaction(runId, () => {
       if (current.revision === 0) {
         this.db.prepare("INSERT INTO team_run_configurations (run_id, revision, head_event_id, value_json) VALUES (?, ?, ?, ?)")
           .run(runId, next.revision, eventId, canonicalJson(next));
@@ -596,7 +596,7 @@ export class TeamStore {
           .run(next.revision, eventId, canonicalJson(next), runId, current.revision);
         if (Number(result.changes) !== 1) throw new TeamStoreError("team_conflict", "Team Run Configuration revision was superseded");
       }
-      this.host.appendEventInTransaction(runId, "team.configuration-updated", eventId, { configuration: next }, updatedAt);
+      this.evidence.appendEventInTransaction(runId, "team.configuration-updated", eventId, { configuration: next }, updatedAt);
     });
     return this.getConfiguration(runId);
   }
@@ -632,7 +632,7 @@ export class TeamStore {
   }
 
   verify(runId = this.game.activeRunId): void {
-    this.host.verifyJournal(runId);
+    this.evidence.verifyJournal(runId);
     for (const task of this.listTasks(runId)) this.getTask(task.taskId);
     this.getGoal(runId);
   }

@@ -1,6 +1,6 @@
 import { sha256 } from "../digest.ts";
 import type { DeploymentManifest } from "../deployment/model.ts";
-import { HostStore } from "../host-contract/journal.ts";
+import { createGameEvidencePort } from "../integration/game-evidence.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { scoreMission } from "../scoring.ts";
 import type { GameStore } from "../storage.ts";
@@ -63,7 +63,7 @@ function metrics(store: GameStore, runId: string): RunComparisonMetrics {
       left.revision - right.revision || left.id.localeCompare(right.id),
     )
     .map((entry) => entry.id);
-  const hostEventTypes = new HostStore(store.db).listEventTypes(runId);
+  const hostEventTypes = createGameEvidencePort(store.db).listEventTypes(runId);
 
   const terminalItemOwners: Record<string, string[]> = {};
   for (const itemId of Object.keys(terminal.resources.consumedItems).sort()) {

@@ -133,7 +133,7 @@ function blockItems(context: CompiledTeamContext | null): string[] {
 function latestContext(execution: TeamExecutionStore, team: TeamStore, rounds: TeamRound[], actorId: string): CompiledTeamContext | null {
   for (const round of [...rounds].reverse()) {
     const reference = execution.findContextForActor(round.roundId, actorId);
-    if (reference) return team.host.getArtifact<CompiledTeamContext>(reference.artifactDigest).content;
+    if (reference) return team.evidence.getArtifact<CompiledTeamContext>(reference.artifactDigest).content;
   }
   return null;
 }
