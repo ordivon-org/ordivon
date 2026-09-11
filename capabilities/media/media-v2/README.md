@@ -27,3 +27,14 @@ bash media-v2/bin/probe-av.sh <artifact.mp4> media-v2/profiles/av-sdr-web-1080p3
 - provider-native APIs/OpenAPI clients: distribution capability and effects; no static provider-policy database in Media.
 
 R1 intentionally does not install every candidate dependency. New dependencies require a concrete consumer/falsifier.
+
+## R3 audio/loudness
+
+The audio path is also external-first:
+
+```bash
+pnpm media:v2:audio:smoke
+bash media-v2/bin/probe-audio.sh <artifact> media-v2/profiles/audio-program-48k-mono-lufs23.json <evidence-dir>
+```
+
+FFprobe supplies stream facts. FFmpeg `loudnorm` supplies the BS.1770-family loudness and true-peak measurement. The adapter retains raw tool evidence and applies only explicit profile thresholds; it does not implement DSP or infer listening quality.

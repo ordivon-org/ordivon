@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.v2.audio-profile",
+  "id": "audio-program-48k-mono-lufs23",
+  "audio": {
+    "streamCount": 1,
+    "streamIndex": 0,
+    "codec": "pcm_s24le",
+    "sampleRate": 48000,
+    "channels": 1,
+    "channelLayout": "mono"
+  },
+  "loudness": {
+    "measurement": "ffmpeg-loudnorm-bs1770-family",
+    "targetLufs": -23.0,
+    "toleranceLu": 1.0,
+    "maxTruePeakDbtp": -1.0
+  }
+}
