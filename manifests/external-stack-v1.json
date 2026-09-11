@@ -13,7 +13,7 @@
     {"capability":"host_metrics","owner":"node_exporter","status":"active_shared_slice"},
     {"capability":"black_box_probes","owner":"gatus","status":"present_owner_split_pending"},
     {"capability":"telemetry_protocol","owner":"opentelemetry","status":"adopt_later"},
-    {"capability":"log_pipeline","owner":"journald_vector_loki","status":"installed_not_cutover"},
+    {"capability":"log_pipeline","owner":"journald_vector_loki","status":"active_shared_slice"},
     {"capability":"visualization","owner":"grafana","status":"installed_not_cutover"},
     {"capability":"generic_inventory","owner":"osquery","status":"installed_not_cutover"},
     {"capability":"file_backup","owner":"restic","status":"present"},
