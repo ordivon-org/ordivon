@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.format-identification-result",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "tool": {
+    "name": "FIDO",
+    "version": "1.6.1",
+    "distribution": "opf-fido==1.6.1 via PyPI/uvx",
+    "signatureSet": "PRONOM formats-v109.xml",
+    "containerSignature": "container-signature-20200121.xml",
+    "authorityBoundary": "External PRONOM-based identifier, but signature set is stale relative to Siegfried v1.11.6 PRONOM v124. Results are pilot/provisional and must not be promoted to current formal format identity."
+  },
+  "passes": {
+    "default": "FIDO normal mode including extension fallback",
+    "noExtension": "FIDO -noextension; preferred evidence pass because filename-extension matching is disabled"
+  },
+  "entries": [
+    {
+      "ordinal": 1,
+      "workId": "media:gesture-orrery",
+      "title": "Gesture Orrery",
+      "criteria": [
+        "static-raster-artwork"
+      ],
+      "sourceRepo": "/root/projects/ordivon-media",
+      "sourceRevision": "ec905f09dc193dfa5dd8384f3315f3b5a0c86832",
+      "sourcePath": "play/gesture-orrery/",
+      "carrierRelativePath": "gesture-orrery.png",
+      "carrierGitPath": "play/gesture-orrery/gesture-orrery.png",
+      "gitBlobObjectId": "40d19df7379e1dfcd844c6cae0728b4dbdc83dbe",
+      "sha256": "sha256:969221ecc59a4aef5c169ed942249fdc3f287c441cbd0bf1970161caf8e147e1",
+      "bytes": 1038920,
+      "currentHeadPresent": false,
+      "materializedName": "gesture-orrery.png",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/12",
+          "formatName": "Portable Network Graphics",
+          "signatureName": "PNG 1.1sRGB",
+          "mimeType": "image/png",
+          "matchType": "signature",
+          "fileSize": 1038920
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/12",
+          "formatName": "Portable Network Graphics",
+          "signatureName": "PNG 1.1sRGB",
+          "mimeType": "image/png",
+          "matchType": "signature",
+          "fileSize": 1038920
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 2,
+      "workId": "media:one-bell-three-rooms",
+      "title": "One Bell, Three Rooms",
+      "criteria": [
+        "audio"
+      ],
+      "sourceRepo": "/root/projects/ordivon-media",
+      "sourceRevision": "18eebb3d6d71db85799af9de6667502b12efa673",
+      "sourcePath": "play/one-bell-three-rooms/",
+      "carrierRelativePath": "one-bell.wav",
+      "carrierGitPath": "play/one-bell-three-rooms/one-bell.wav",
+      "gitBlobObjectId": "52f770291e566532b63725e25e2bcc5ea89b61ec",
+      "sha256": "sha256:6d3711b8225b531f83e9c14a754061f8300ce3cecd56bed70f092b286c409dcb",
+      "bytes": 230444,
+      "currentHeadPresent": false,
+      "materializedName": "one-bell.wav",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/141",
+          "formatName": "Waveform Audio (PCMWAVEFORMAT)",
+          "signatureName": "Waveform Audio (PCMWAVEFORMAT)",
+          "mimeType": "audio/x-wav",
+          "matchType": "signature",
+          "fileSize": 230444
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/141",
+          "formatName": "Waveform Audio (PCMWAVEFORMAT)",
+          "signatureName": "Waveform Audio (PCMWAVEFORMAT)",
+          "mimeType": "audio/x-wav",
+          "matchType": "signature",
+          "fileSize": 230444
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 3,
+      "workId": "media:almost-arriving",
+      "title": "Almost Arriving",
+      "criteria": [
+        "video"
+      ],
+      "sourceRepo": "/root/projects/ordivon-media",
+      "sourceRevision": "208862781dc6e1b3054b74ff3f40bf8d81accb29",
+      "sourcePath": "scratch/playful-r118",
+      "carrierRelativePath": "almost-arriving.mp4",
+      "carrierGitPath": "scratch/playful-r118/almost-arriving.mp4",
+      "gitBlobObjectId": "b9fb9b6ea6429972eebd64cc7d43300e490a6da0",
+      "sha256": "sha256:7ecf162b1dd63f09f8c8912894bf94ea78c3d004f3b1f6e93f0a2ec7f6568400",
+      "bytes": 27780,
+      "currentHeadPresent": false,
+      "materializedName": "almost-arriving.mp4",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/199",
+          "formatName": "MPEG-4 Media File",
+          "signatureName": "MP4 Media File",
+          "mimeType": "application/mp4",
+          "matchType": "signature",
+          "fileSize": 27780
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/199",
+          "formatName": "MPEG-4 Media File",
+          "signatureName": "MP4 Media File",
+          "mimeType": "application/mp4",
+          "matchType": "signature",
+          "fileSize": 27780
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 4,
+      "workId": "web:article:the-future-will-not-wait",
+      "title": "The Future Will Not Wait",
+      "criteria": [
+        "text-publication"
+      ],
+      "sourceRepo": "/root/projects/ordivon-web",
+      "sourceRevision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+      "sourcePath": "content/articles/the-future-will-not-wait.mdx",
+      "carrierRelativePath": "the-future-will-not-wait.mdx",
+      "carrierGitPath": "content/articles/the-future-will-not-wait.mdx",
+      "gitBlobObjectId": "c59dcf8a186c86921a2acb801cd4b0bb3863df8d",
+      "sha256": "sha256:27ed6befbfa68eecf61104a66884d488a364597cd489998c33bec1119f56a17e",
+      "bytes": 34560,
+      "currentHeadPresent": true,
+      "materializedName": "the-future-will-not-wait.mdx",
+      "fidoDefault": [
+        {
+          "status": "KO",
+          "puid": null,
+          "formatName": null,
+          "signatureName": null,
+          "mimeType": null,
+          "matchType": "fail",
+          "fileSize": 34560
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "UNIDENTIFIED_BY_FIDO_PRONOM_V109"
+    },
+    {
+      "ordinal": 5,
+      "workId": "game:batch-zero",
+      "title": "Batch Zero: Planning Under Ghost Demand",
+      "criteria": [
+        "historical-html-js"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "5ab55f6917fd4321bea6892685d221408d8b33ac",
+      "sourcePath": "alpha20-ercot",
+      "carrierRelativePath": "index.html",
+      "carrierGitPath": "alpha20-ercot/index.html",
+      "gitBlobObjectId": "6d23c5ba2072d4f5910ea99981d72e6b6a2626ad",
+      "sha256": "sha256:f6fb6182a7544b60cbf71ad94386559ac963324dcdf5e9495eb2a5d141e0d638",
+      "bytes": 363,
+      "currentHeadPresent": false,
+      "materializedName": "index.html",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/471",
+          "formatName": "Hypertext Markup Language",
+          "signatureName": "HTML5 Variant 1",
+          "mimeType": "text/html",
+          "matchType": "signature",
+          "fileSize": 363
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/471",
+          "formatName": "Hypertext Markup Language",
+          "signatureName": "HTML5 Variant 1",
+          "mimeType": "text/html",
+          "matchType": "signature",
+          "fileSize": 363
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 6,
+      "workId": "game:nine-wells",
+      "title": "Nine Wells / 九井",
+      "criteria": [
+        "godot-playable"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "379ebdc82e74444e1b39c4ad53c0043348a11e08",
+      "sourcePath": "creative/2026-08-30-nine-wells",
+      "carrierRelativePath": "project.godot",
+      "carrierGitPath": "creative/2026-08-30-nine-wells/project.godot",
+      "gitBlobObjectId": "ee3b863d02d86df2d8f7d304e4734b52ebaa64bb",
+      "sha256": "sha256:22c66e71890dc0675e164933856f4736fa5bde4a6ff4f78fa1f4e244f3384ae9",
+      "bytes": 441,
+      "currentHeadPresent": false,
+      "materializedName": "project.godot",
+      "fidoDefault": [
+        {
+          "status": "KO",
+          "puid": null,
+          "formatName": null,
+          "signatureName": null,
+          "mimeType": null,
+          "matchType": "fail",
+          "fileSize": 441
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "UNIDENTIFIED_BY_FIDO_PRONOM_V109"
+    },
+    {
+      "ordinal": 7,
+      "workId": "workstation:signal-seed",
+      "title": "Signal Seed",
+      "criteria": [
+        "cad-step"
+      ],
+      "sourceRepo": "/root/workstation-lab",
+      "sourceRevision": "c1fb7438dc64469bad03cf3cf175ae6690441360",
+      "sourcePath": "artifacts/signal-seed",
+      "carrierRelativePath": "exports/signal-seed-assembly.step",
+      "carrierGitPath": "artifacts/signal-seed/exports/signal-seed-assembly.step",
+      "gitBlobObjectId": "76833fbc1d78bfd3d4a684b11c70e1e147a01e6d",
+      "sha256": "sha256:79fea2b2027127bbd37b9239a680b1d293702cfe76a57dd9213494c3fdb60577",
+      "bytes": 295569,
+      "currentHeadPresent": true,
+      "materializedName": "signal-seed-assembly.step",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/698",
+          "formatName": "Standard for the Exchange of Product model data",
+          "signatureName": "Standard for the Exchange of Product model data",
+          "mimeType": "None",
+          "matchType": "signature",
+          "fileSize": 295569
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/698",
+          "formatName": "Standard for the Exchange of Product model data",
+          "signatureName": "Standard for the Exchange of Product model data",
+          "mimeType": "None",
+          "matchType": "signature",
+          "fileSize": 295569
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 8,
+      "workId": "game:seen-not-approved-pcb",
+      "title": "Seen Not Approved Pcb",
+      "criteria": [
+        "kicad-eda"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "db71e5e04fb796f3a95711757a014efbfdbe1d33",
+      "sourcePath": "play/seen-not-approved-pcb",
+      "carrierRelativePath": "seen-not-approved.kicad_pcb",
+      "carrierGitPath": "play/seen-not-approved-pcb/seen-not-approved.kicad_pcb",
+      "gitBlobObjectId": "e59f69029e84a88a0174e0d8e29a383688d48cd6",
+      "sha256": "sha256:784fcfa5432ab82b3d8b47a0a5a6f20d87f72febbc8bc63f52acd61a59967350",
+      "bytes": 1944,
+      "currentHeadPresent": false,
+      "materializedName": "seen-not-approved.kicad_pcb",
+      "fidoDefault": [
+        {
+          "status": "KO",
+          "puid": null,
+          "formatName": null,
+          "signatureName": null,
+          "mimeType": null,
+          "matchType": "fail",
+          "fileSize": 1944
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "UNIDENTIFIED_BY_FIDO_PRONOM_V109"
+    },
+    {
+      "ordinal": 9,
+      "workId": "web:note:semantic-core-after-measurement",
+      "title": "Semantic Core: what remained after measurement",
+      "criteria": [
+        "historical-web-publication"
+      ],
+      "sourceRepo": "/root/projects/ordivon-web",
+      "sourceRevision": "8f5548c10b97519b47195d87f30c42665fc71083",
+      "sourcePath": "notes/semantic-core-after-measurement",
+      "carrierRelativePath": "index.html",
+      "carrierGitPath": "notes/semantic-core-after-measurement/index.html",
+      "gitBlobObjectId": "5c0603305c8e6e34618c09a55a14a854c083d1cf",
+      "sha256": "sha256:8ee3610e4f5b6cb46fec2599367bc3a48dcbe2d5d6a84169c097b8f6261f72ff",
+      "bytes": 12837,
+      "currentHeadPresent": false,
+      "materializedName": "index.html",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/471",
+          "formatName": "Hypertext Markup Language",
+          "signatureName": "HTML5 Variant 1",
+          "mimeType": "text/html",
+          "matchType": "signature",
+          "fileSize": 12837
+        }
+      ],
+      "fidoNoExtension": [
+        {
+          "status": "OK",
+          "puid": "fmt/471",
+          "formatName": "Hypertext Markup Language",
+          "signatureName": "HTML5 Variant 1",
+          "mimeType": "text/html",
+          "matchType": "signature",
+          "fileSize": 12837
+        }
+      ],
+      "identificationStanding": "CONTENT_SIGNATURE_IDENTIFIED_PRONOM_V109_PROVISIONAL"
+    },
+    {
+      "ordinal": 10,
+      "workId": "game:look-away-garden",
+      "title": "Look Away Garden",
+      "criteria": [
+        "deterministic-derived-preview",
+        "godot-source"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "3cc3a8c94bdec11716a7c4f7ad4b4742388173d5",
+      "sourcePath": "play/look-away-garden/",
+      "carrierRelativePath": "project.godot",
+      "carrierGitPath": "play/look-away-garden/project.godot",
+      "gitBlobObjectId": "7daab87778c6c2423cd6323a3bcc6d1204a90462",
+      "sha256": "sha256:a86046f834148ea3b7eb64dd42743ba005b2f757dfaebf80cc559a06267f7659",
+      "bytes": 445,
+      "currentHeadPresent": false,
+      "materializedName": "project.godot",
+      "fidoDefault": [
+        {
+          "status": "KO",
+          "puid": null,
+          "formatName": null,
+          "signatureName": null,
+          "mimeType": null,
+          "matchType": "fail",
+          "fileSize": 445
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "UNIDENTIFIED_BY_FIDO_PRONOM_V109"
+    },
+    {
+      "ordinal": 11,
+      "workId": "game:signal-garden-evidence-petals",
+      "title": "Signal Garden — Evidence Petals",
+      "criteria": [
+        "cross-work-relation",
+        "godot-source"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "a04d3f4d75181b21fa34294236cd8c0cba069af5",
+      "sourcePath": "creative/2026-08-30-signal-garden-evidence-petals",
+      "carrierRelativePath": "project.godot",
+      "carrierGitPath": "creative/2026-08-30-signal-garden-evidence-petals/project.godot",
+      "gitBlobObjectId": "200170c2b984369b816019c152169937163d3f5c",
+      "sha256": "sha256:ed9a3a257ea03f4284ee6852595eb1eeeb44a03ecdc7265be95cf12bc05727c1",
+      "bytes": 563,
+      "currentHeadPresent": false,
+      "materializedName": "project.godot",
+      "fidoDefault": [
+        {
+          "status": "KO",
+          "puid": null,
+          "formatName": null,
+          "signatureName": null,
+          "mimeType": null,
+          "matchType": "fail",
+          "fileSize": 563
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "UNIDENTIFIED_BY_FIDO_PRONOM_V109"
+    },
+    {
+      "ordinal": 12,
+      "workId": "game:adaptive-query-bench",
+      "title": "Adaptive Query Bench",
+      "criteria": [
+        "historical-carrier-absent-current-head"
+      ],
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "ac7727e69c9af4aa431d3ba61b942e21fe13a5ac",
+      "sourcePath": "play/daily-marginal-query-bench-20260830/",
+      "carrierRelativePath": "README.md",
+      "carrierGitPath": "play/daily-marginal-query-bench-20260830/README.md",
+      "gitBlobObjectId": "184cc1b345e53d06c258e5651b53559bb8cb1902",
+      "sha256": "sha256:eb14ec505b92801492b60846e3e3e35bda6c0a58bd40a85972b5cbb1d37238da",
+      "bytes": 4691,
+      "currentHeadPresent": false,
+      "materializedName": "README.md",
+      "fidoDefault": [
+        {
+          "status": "OK",
+          "puid": "fmt/1149",
+          "formatName": "Markdown",
+          "signatureName": "External",
+          "mimeType": "text/markdown",
+          "matchType": "extension",
+          "fileSize": 4691
+        }
+      ],
+      "fidoNoExtension": [],
+      "identificationStanding": "EXTENSION_OR_WEAK_IDENTIFICATION_ONLY_PRONOM_V109_PROVISIONAL"
+    }
+  ],
+  "raw": {
+    "default": [
+      "OK,57,fmt/12,\"Portable Network Graphics\",\"PNG 1.1sRGB\",1038920,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/01-media--gesture-orrery/gesture-orrery.png\",\"image/png\",\"signature\"",
+      "OK,7,fmt/141,\"Waveform Audio (PCMWAVEFORMAT)\",\"Waveform Audio (PCMWAVEFORMAT)\",230444,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/02-media--one-bell-three-rooms/one-bell.wav\",\"audio/x-wav\",\"signature\"",
+      "OK,3,fmt/199,\"MPEG-4 Media File\",\"MP4 Media File\",27780,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/03-media--almost-arriving/almost-arriving.mp4\",\"application/mp4\",\"signature\"",
+      "KO,3,,,,34560,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/04-web--article--the-future-will-not-wait/the-future-will-not-wait.mdx\",,\"fail\"",
+      "OK,3,fmt/471,\"Hypertext Markup Language\",\"HTML5 Variant 1\",363,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/05-game--batch-zero/index.html\",\"text/html\",\"signature\"",
+      "KO,2,,,,441,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/06-game--nine-wells/project.godot\",,\"fail\"",
+      "OK,5,fmt/698,\"Standard for the Exchange of Product model data\",\"Standard for the Exchange of Product model data\",295569,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/07-workstation--signal-seed/signal-seed-assembly.step\",\"None\",\"signature\"",
+      "KO,3,,,,1944,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/08-game--seen-not-approved-pcb/seen-not-approved.kicad_pcb\",,\"fail\"",
+      "OK,3,fmt/471,\"Hypertext Markup Language\",\"HTML5 Variant 1\",12837,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/09-web--note--semantic-core-after-measurement/index.html\",\"text/html\",\"signature\"",
+      "KO,3,,,,445,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/10-game--look-away-garden/project.godot\",,\"fail\"",
+      "KO,2,,,,563,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/11-game--signal-garden-evidence-petals/project.godot\",,\"fail\"",
+      "OK,3,fmt/1149,\"Markdown\",\"External\",4691,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/12-game--adaptive-query-bench/README.md\",\"text/markdown\",\"extension\""
+    ],
+    "noExtension": [
+      "OK,58,fmt/12,\"Portable Network Graphics\",\"PNG 1.1sRGB\",1038920,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/01-media--gesture-orrery/gesture-orrery.png\",\"image/png\",\"signature\"",
+      "OK,9,fmt/141,\"Waveform Audio (PCMWAVEFORMAT)\",\"Waveform Audio (PCMWAVEFORMAT)\",230444,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/02-media--one-bell-three-rooms/one-bell.wav\",\"audio/x-wav\",\"signature\"",
+      "OK,4,fmt/199,\"MPEG-4 Media File\",\"MP4 Media File\",27780,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/03-media--almost-arriving/almost-arriving.mp4\",\"application/mp4\",\"signature\"",
+      "OK,3,fmt/471,\"Hypertext Markup Language\",\"HTML5 Variant 1\",363,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/05-game--batch-zero/index.html\",\"text/html\",\"signature\"",
+      "OK,6,fmt/698,\"Standard for the Exchange of Product model data\",\"Standard for the Exchange of Product model data\",295569,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/07-workstation--signal-seed/signal-seed-assembly.step\",\"None\",\"signature\"",
+      "OK,3,fmt/471,\"Hypertext Markup Language\",\"HTML5 Variant 1\",12837,\"/tmp/ordivon-t/0abfdde196f42a23bf23/creative-preservation-fido-ail3ik04/09-web--note--semantic-core-after-measurement/index.html\",\"text/html\",\"signature\""
+    ],
+    "stderrVersionLines": [
+      "FIDO v1.6.1 (formats-v109.xml, container-signature-20200121.xml, format_extensions.xml)",
+      "FIDO: Processed     12 files in 139.89 msec, 86 files/sec",
+      "FIDO: Processed     12 files in 147.16 msec, 82 files/sec"
+    ]
+  }
+}

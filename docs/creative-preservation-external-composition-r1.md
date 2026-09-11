@@ -156,3 +156,17 @@ Therefore the first external-tool replacement is **semantically admitted but phy
 ## Authority boundary after R1
 
 `creative_archive` remains the current recovery/read-model authority only until the external preservation pilot graduates. `kind` in Creative Library is a UI presentation hint. It must never be cited as PRONOM identification, validation, or preservation evidence.
+
+## Pilot R1 outcome — 2026-09-11
+
+The heterogeneous 12-work / 86-file pilot has now mechanically validated several parts of this composition rather than merely admitting them by research:
+
+- Software Heritage `swh.model 8.4.1` produced local intrinsic SWHIDs for all representative carriers and directory SWHIDs for all 11 directory-root works: **SWHID ADOPT**.
+- Library of Congress `bagit-python 1.9.0` produced and revalidated an RFC 8493 SHA-256 transfer bag over all 86 exact frozen files: **BagIt ADOPT**.
+- FIDO 1.6.1 ran successfully with `-noextension`, but its PRONOM v109 signature set is stale; formal format identity remains **PROVISIONAL / NOT GRADUATED** until a current signature set is admitted.
+- a3m 0.8.1 generated AIPs for all 12 heterogeneous source roots, proving external BagIt/METS/PREMIS machinery can replace an Ordivon-native AIP/event ontology. Direct ingest also exposed a real policy defect: its default workflow removes hidden files, and the stable ProcessingConfig has no toggle for that step.
+- The hidden-file loss was closed without patching a3m: `exact Git roots → BagIt → ZIP → a3m` preserved all **86/86** frozen source files as a mechanically verified PREMIS-original subset, including all three `.gitignore` files, with AIP BagIt validation PASS.
+
+This is enough evidence to freeze growth of custom Ordivon software-ID, transfer-package, AIP and preservation-event machinery. It is **not** enough to migrate all 302 works or promote a3m to production preservation authority. The production comparison remains Enduro + Archivematica 1.18 versus RODA Community, using the exact same frozen pilot corpus and acceptance conditions.
+
+Machine-readable verdict: `artifacts/creative-preservation/pilot-r1/acceptance-r1.json`.

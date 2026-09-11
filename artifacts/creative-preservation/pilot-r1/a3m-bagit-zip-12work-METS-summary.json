@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.a3m-combined-mets-summary",
+  "metsSha256": "sha256:011cc1cc352f89de3684c37d89842354be23f57597032ac45f86e70938232195",
+  "fileGrpCounts": {
+    "original": 91,
+    "metadata": 1
+  },
+  "premisEventTypes": {
+    "filename change": 90,
+    "format identification": 92,
+    "ingestion": 2,
+    "message digest calculation": 92,
+    "transcription": 8,
+    "unpacking": 90
+  },
+  "formatNames": {
+    "CSV": 1,
+    "Cascading Style Sheet": 2,
+    "HTML": 4,
+    "JSON Data Interchange Format": 16,
+    "JavaScript file": 1,
+    "MPEG-4 Media File": 1,
+    "Markdown": 10,
+    "PKWARE Zip": 1,
+    "Plain Text": 24,
+    "Portable Network Graphics": 8,
+    "Python Script File": 11,
+    "SHA256 File": 3,
+    "STL (Standard Tessellation Language) Binary": 2,
+    "Scalable Vector Graphics": 2,
+    "Standard for the Exchange of Product model data": 3,
+    "Unknown": 2,
+    "Waveform Audio (PCMWAVEFORMAT)": 1
+  },
+  "formatRegistryKeys": {
+    "fmt/11": 6,
+    "fmt/1149": 10,
+    "fmt/12": 2,
+    "fmt/141": 1,
+    "fmt/199": 1,
+    "fmt/471": 4,
+    "fmt/698": 3,
+    "fmt/817": 16,
+    "fmt/865": 2,
+    "fmt/91": 2,
+    "fmt/938": 11,
+    "fmt/991": 3,
+    "x-fmt/111": 24,
+    "x-fmt/18": 1,
+    "x-fmt/224": 2,
+    "x-fmt/263": 1,
+    "x-fmt/423": 1
+  },
+  "agents": {
+    "a3m version=0.8.1": 92
+  },
+  "unknownFormatCount": 2,
+  "boundary": "Counts describe the generated combined pilot METS. Format declarations come from a3m/its bundled preservation toolchain and do not override the separate current-PRONOM admission boundary."
+}

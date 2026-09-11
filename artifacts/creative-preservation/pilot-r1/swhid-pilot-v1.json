@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.swhid-pilot",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "tool": {
+    "package": "swh.model",
+    "version": "8.4.1",
+    "implementation": "Software Heritage Python implementation",
+    "standard": "ISO/IEC 18670:2025 SWHID",
+    "calculation": "local intrinsic computation; no Software Heritage archive/network lookup"
+  },
+  "identityBoundary": "Core SWHIDs are durable intrinsic content/directory identifiers. Local repo/revision/path is retained only as resolution context; no origin qualifier is invented where a canonical external origin is not established.",
+  "rows": [
+    {
+      "workId": "media:gesture-orrery",
+      "title": "Gesture Orrery",
+      "criteria": [
+        "static-raster-artwork"
+      ],
+      "carrierGitPath": "play/gesture-orrery/gesture-orrery.png",
+      "carrierGitBlobObjectId": "40d19df7379e1dfcd844c6cae0728b4dbdc83dbe",
+      "carrierSha256": "sha256:969221ecc59a4aef5c169ed942249fdc3f287c441cbd0bf1970161caf8e147e1",
+      "contentSwhid": "swh:1:cnt:40d19df7379e1dfcd844c6cae0728b4dbdc83dbe",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:0736f36553bee3fdb3f35bc7e47049c8506bfb3a",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 4,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-media",
+        "gitRevision": "ec905f09dc193dfa5dd8384f3315f3b5a0c86832",
+        "sourcePath": "play/gesture-orrery/"
+      }
+    },
+    {
+      "workId": "media:one-bell-three-rooms",
+      "title": "One Bell, Three Rooms",
+      "criteria": [
+        "audio"
+      ],
+      "carrierGitPath": "play/one-bell-three-rooms/one-bell.wav",
+      "carrierGitBlobObjectId": "52f770291e566532b63725e25e2bcc5ea89b61ec",
+      "carrierSha256": "sha256:6d3711b8225b531f83e9c14a754061f8300ce3cecd56bed70f092b286c409dcb",
+      "contentSwhid": "swh:1:cnt:52f770291e566532b63725e25e2bcc5ea89b61ec",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:cd6c4b372cf5e42d93d454ba3960bc4ff8680d48",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 8,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-media",
+        "gitRevision": "18eebb3d6d71db85799af9de6667502b12efa673",
+        "sourcePath": "play/one-bell-three-rooms/"
+      }
+    },
+    {
+      "workId": "media:almost-arriving",
+      "title": "Almost Arriving",
+      "criteria": [
+        "video"
+      ],
+      "carrierGitPath": "scratch/playful-r118/almost-arriving.mp4",
+      "carrierGitBlobObjectId": "b9fb9b6ea6429972eebd64cc7d43300e490a6da0",
+      "carrierSha256": "sha256:7ecf162b1dd63f09f8c8912894bf94ea78c3d004f3b1f6e93f0a2ec7f6568400",
+      "contentSwhid": "swh:1:cnt:b9fb9b6ea6429972eebd64cc7d43300e490a6da0",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:4c2e5e92822d56a03c1350f289659c18c1ffb06f",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 5,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-media",
+        "gitRevision": "208862781dc6e1b3054b74ff3f40bf8d81accb29",
+        "sourcePath": "scratch/playful-r118"
+      }
+    },
+    {
+      "workId": "web:article:the-future-will-not-wait",
+      "title": "The Future Will Not Wait",
+      "criteria": [
+        "text-publication"
+      ],
+      "carrierGitPath": "content/articles/the-future-will-not-wait.mdx",
+      "carrierGitBlobObjectId": "c59dcf8a186c86921a2acb801cd4b0bb3863df8d",
+      "carrierSha256": "sha256:27ed6befbfa68eecf61104a66884d488a364597cd489998c33bec1119f56a17e",
+      "contentSwhid": "swh:1:cnt:c59dcf8a186c86921a2acb801cd4b0bb3863df8d",
+      "sourceObjectType": "blob",
+      "sourceDirectorySwhid": null,
+      "sourceDirectoryRepeatDeterministic": null,
+      "sourceDirectoryFileCount": null,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-web",
+        "gitRevision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "sourcePath": "content/articles/the-future-will-not-wait.mdx"
+      }
+    },
+    {
+      "workId": "game:batch-zero",
+      "title": "Batch Zero: Planning Under Ghost Demand",
+      "criteria": [
+        "historical-html-js"
+      ],
+      "carrierGitPath": "alpha20-ercot/index.html",
+      "carrierGitBlobObjectId": "6d23c5ba2072d4f5910ea99981d72e6b6a2626ad",
+      "carrierSha256": "sha256:f6fb6182a7544b60cbf71ad94386559ac963324dcdf5e9495eb2a5d141e0d638",
+      "contentSwhid": "swh:1:cnt:6d23c5ba2072d4f5910ea99981d72e6b6a2626ad",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:22d245cbe2cedb088e02eb5ca5ff402c065f4de5",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 4,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "5ab55f6917fd4321bea6892685d221408d8b33ac",
+        "sourcePath": "alpha20-ercot"
+      }
+    },
+    {
+      "workId": "game:nine-wells",
+      "title": "Nine Wells / 九井",
+      "criteria": [
+        "godot-playable"
+      ],
+      "carrierGitPath": "creative/2026-08-30-nine-wells/project.godot",
+      "carrierGitBlobObjectId": "ee3b863d02d86df2d8f7d304e4734b52ebaa64bb",
+      "carrierSha256": "sha256:22c66e71890dc0675e164933856f4736fa5bde4a6ff4f78fa1f4e244f3384ae9",
+      "contentSwhid": "swh:1:cnt:ee3b863d02d86df2d8f7d304e4734b52ebaa64bb",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:803746d64215e4cf2c7a59e31396594843d3714f",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 9,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "379ebdc82e74444e1b39c4ad53c0043348a11e08",
+        "sourcePath": "creative/2026-08-30-nine-wells"
+      }
+    },
+    {
+      "workId": "workstation:signal-seed",
+      "title": "Signal Seed",
+      "criteria": [
+        "cad-step"
+      ],
+      "carrierGitPath": "artifacts/signal-seed/exports/signal-seed-assembly.step",
+      "carrierGitBlobObjectId": "76833fbc1d78bfd3d4a684b11c70e1e147a01e6d",
+      "carrierSha256": "sha256:79fea2b2027127bbd37b9239a680b1d293702cfe76a57dd9213494c3fdb60577",
+      "contentSwhid": "swh:1:cnt:76833fbc1d78bfd3d4a684b11c70e1e147a01e6d",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:a86fc98e5146505c575e6310ef048f77be93d3f3",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 18,
+      "resolutionContext": {
+        "localRepo": "/root/workstation-lab",
+        "gitRevision": "c1fb7438dc64469bad03cf3cf175ae6690441360",
+        "sourcePath": "artifacts/signal-seed"
+      }
+    },
+    {
+      "workId": "game:seen-not-approved-pcb",
+      "title": "Seen Not Approved Pcb",
+      "criteria": [
+        "kicad-eda"
+      ],
+      "carrierGitPath": "play/seen-not-approved-pcb/seen-not-approved.kicad_pcb",
+      "carrierGitBlobObjectId": "e59f69029e84a88a0174e0d8e29a383688d48cd6",
+      "carrierSha256": "sha256:784fcfa5432ab82b3d8b47a0a5a6f20d87f72febbc8bc63f52acd61a59967350",
+      "contentSwhid": "swh:1:cnt:e59f69029e84a88a0174e0d8e29a383688d48cd6",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:cea82df63f152f9bd64eab3340b140419678316f",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 2,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "db71e5e04fb796f3a95711757a014efbfdbe1d33",
+        "sourcePath": "play/seen-not-approved-pcb"
+      }
+    },
+    {
+      "workId": "web:note:semantic-core-after-measurement",
+      "title": "Semantic Core: what remained after measurement",
+      "criteria": [
+        "historical-web-publication"
+      ],
+      "carrierGitPath": "notes/semantic-core-after-measurement/index.html",
+      "carrierGitBlobObjectId": "5c0603305c8e6e34618c09a55a14a854c083d1cf",
+      "carrierSha256": "sha256:8ee3610e4f5b6cb46fec2599367bc3a48dcbe2d5d6a84169c097b8f6261f72ff",
+      "contentSwhid": "swh:1:cnt:5c0603305c8e6e34618c09a55a14a854c083d1cf",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:8447d2c471a9c3e7ebb0e24bc5fc29e418375d95",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 1,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-web",
+        "gitRevision": "8f5548c10b97519b47195d87f30c42665fc71083",
+        "sourcePath": "notes/semantic-core-after-measurement"
+      }
+    },
+    {
+      "workId": "game:look-away-garden",
+      "title": "Look Away Garden",
+      "criteria": [
+        "deterministic-derived-preview",
+        "godot-source"
+      ],
+      "carrierGitPath": "play/look-away-garden/project.godot",
+      "carrierGitBlobObjectId": "7daab87778c6c2423cd6323a3bcc6d1204a90462",
+      "carrierSha256": "sha256:a86046f834148ea3b7eb64dd42743ba005b2f757dfaebf80cc559a06267f7659",
+      "contentSwhid": "swh:1:cnt:7daab87778c6c2423cd6323a3bcc6d1204a90462",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:ff6e10331e9c352df50f9b1b93307a6fab1ae238",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 4,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "3cc3a8c94bdec11716a7c4f7ad4b4742388173d5",
+        "sourcePath": "play/look-away-garden/"
+      }
+    },
+    {
+      "workId": "game:signal-garden-evidence-petals",
+      "title": "Signal Garden — Evidence Petals",
+      "criteria": [
+        "cross-work-relation",
+        "godot-source"
+      ],
+      "carrierGitPath": "creative/2026-08-30-signal-garden-evidence-petals/project.godot",
+      "carrierGitBlobObjectId": "200170c2b984369b816019c152169937163d3f5c",
+      "carrierSha256": "sha256:ed9a3a257ea03f4284ee6852595eb1eeeb44a03ecdc7265be95cf12bc05727c1",
+      "contentSwhid": "swh:1:cnt:200170c2b984369b816019c152169937163d3f5c",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:be2eee76b6146eb9a68b339a3b52268f5acf5a6a",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 8,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "a04d3f4d75181b21fa34294236cd8c0cba069af5",
+        "sourcePath": "creative/2026-08-30-signal-garden-evidence-petals"
+      }
+    },
+    {
+      "workId": "game:adaptive-query-bench",
+      "title": "Adaptive Query Bench",
+      "criteria": [
+        "historical-carrier-absent-current-head"
+      ],
+      "carrierGitPath": "play/daily-marginal-query-bench-20260830/README.md",
+      "carrierGitBlobObjectId": "184cc1b345e53d06c258e5651b53559bb8cb1902",
+      "carrierSha256": "sha256:eb14ec505b92801492b60846e3e3e35bda6c0a58bd40a85972b5cbb1d37238da",
+      "contentSwhid": "swh:1:cnt:184cc1b345e53d06c258e5651b53559bb8cb1902",
+      "sourceObjectType": "tree",
+      "sourceDirectorySwhid": "swh:1:dir:91b8caa4c7e933b4d869bed84b8653567aa57461",
+      "sourceDirectoryRepeatDeterministic": true,
+      "sourceDirectoryFileCount": 22,
+      "resolutionContext": {
+        "localRepo": "/root/projects/ordivon-game",
+        "gitRevision": "ac7727e69c9af4aa431d3ba61b942e21fe13a5ac",
+        "sourcePath": "play/daily-marginal-query-bench-20260830/"
+      }
+    }
+  ]
+}
