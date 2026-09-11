@@ -45,7 +45,7 @@
       "script/narration.zh.md"
     ],
     "timedText": [
-      "timed-text/narration.en.json"
+      "timed-text/standard/narration.en.ttml"
     ],
     "receipts": [
       "evidence/runtime-demo.receipt.json",
