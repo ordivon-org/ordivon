@@ -23,8 +23,11 @@ test("direct-play access classes cover all twelve references exactly once", () =
   assert.equal(titles.length, 12);
   assert.equal(new Set(titles).size, 12);
   for (const title of ["Factorio","Minecraft","Counter-Strike 2","Dota 2","Fortnite","Candy Crush Saga","Grand Theft Auto V","ELDEN RING","Baldur's Gate 3","Mario Kart 8 Deluxe","Animal Crossing: New Horizons","Beat Saber"]) assert.ok(titles.includes(title), title);
-  assert.equal(access.recommendedFirstCarrier.title, "Factorio");
-  assert.equal(access.recommendedFirstCarrier.notYetAuthorized, true);
+  assert.equal(access.directPlaySelection.allTwelveRequired, false);
+  assert.equal(access.directPlaySelection.previousFactorioFirstRecommendationSuperseded, true);
+  assert.equal(access.directPlaySelection.targetPortfolioSize, "3-5 learning games");
+  assert.match(doc, /FlagshipDeskTeardown != MandatoryFullPlaythrough/);
+  assert.match(doc, /No first-session game selected yet/);
 });
 
 test("downloads purchases sign-in and synthetic Human evidence stay closed without user authority", () => {

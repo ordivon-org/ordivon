@@ -87,16 +87,36 @@
       "permissionNeeded": "USER_PROVIDES_VR_HARDWARE_RUNTIME_AND_GAME_ACCESS"
     }
   ],
-  "recommendedFirstCarrier": {
-    "title": "Factorio",
-    "edition": "official public demo",
-    "why": [
-      "no purchase gate",
-      "no account sign-in required by the public download flow",
-      "mechanism is narrow enough for a focused first R1 direct-play session",
-      "official demo is explicitly designed to teach basic mechanics"
+  "directPlaySelection": {
+    "standing": "REOPENED_AFTER_WAVE_TOO_LARGE",
+    "allTwelveRequired": false,
+    "previousFactorioFirstRecommendationSuperseded": true,
+    "targetPortfolioSize": "3-5 learning games",
+    "selectionCriteria": [
+      "successful and mature enough to represent a proven game grammar",
+      "core structure becomes legible within roughly 1-3 hours rather than dozens of hours",
+      "bounded onboarding and setup burden",
+      "materially different player-value/archetype coverage",
+      "lawful accessible condition without turning convenience into product importance",
+      "direct play adds information not already recoverable from flagship desk teardown"
     ],
-    "notYetAuthorized": true
+    "roleSeparation": {
+      "flagshipReference": "may be huge; establishes success ceiling and mature system interactions; desk teardown is sufficient initially",
+      "canonicalLearningGame": "actual direct-play sweet spot; mature, successful, information-dense, bounded enough to learn efficiently",
+      "microBaseline": "our later smallest causal reproduction; never used to define the external success universe"
+    },
+    "largeFlagshipsNotRequiredForFirstDirectPlay": [
+      "Counter-Strike 2",
+      "Dota 2",
+      "Fortnite",
+      "Grand Theft Auto V",
+      "ELDEN RING",
+      "Baldur's Gate 3",
+      "Mario Kart 8 Deluxe",
+      "Animal Crossing: New Horizons",
+      "Beat Saber"
+    ],
+    "nextAction": "select a compact canonical-learning portfolio before asking for any download/install permission"
   },
   "safetyAndAuthority": {
     "automaticPurchase": false,
@@ -106,5 +126,5 @@
     "humanExperienceCanBeSynthesized": false,
     "r2ImplementationAdmitted": false
   },
-  "nextGate": "explicit user permission for one lawful direct-play carrier; then human plays under frozen observation sheet"
+  "nextGate": "first select 3-5 canonical learning games in the direct-play sweet spot; only then request explicit user permission for an actual carrier"
 }

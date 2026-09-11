@@ -55,38 +55,50 @@ D: available        ≈  57 GiB (92% used)
 
 Therefore large reference installs must not default to D:.
 
-## 2. Access ladder
-### A — lowest-friction: Factorio official demo
-Wube publishes a free public demo and explicitly says its purpose is to teach the basic mechanics and help a player decide whether the game interests them. No purchase is required. Source: https://factorio.com/download
+## 2. Access census is not the direct-play portfolio
+The census above answers **how hard each admitted flagship is to access**, not **which games we should now spend Human time playing**. Treating the twelve flagship references as twelve mandatory play assignments was a category error.
 
-This is the recommended first carrier because the R1 hypothesis is narrow: does automation transform cognition from repeated manual execution toward architecture, bottleneck diagnosis and persistent leverage?
+The corrected role separation is:
 
-**Still requires explicit permission to download/install/launch local software.**
+```text
+Flagship Reference
+  may be huge
+  establishes the success ceiling / mature system interactions
+  desk teardown is sufficient initially
 
-### B — Minecraft official trial
-Mojang publishes Java/Bedrock trials; Java supports Windows and Linux. The trial includes the core Survival experience, but the official flow requires a Microsoft account sign-in. Source: https://www.minecraft.net/en-us/free-trial
+Canonical Learning Game
+  actual Human direct-play sweet spot
+  successful + mature + information-dense
+  core grammar becomes legible in roughly 1–3 hours
 
-This is useful for persistent transformation/self-authored intention, but account sign-in is a separate user-authority boundary.
+Micro Baseline
+  our later tiny causal reproduction
+  used only after a transfer hypothesis survives
+```
 
-### C — free-to-play launcher/account products
-Counter-Strike 2, Dota 2 and Fortnite can be accessed without a base-game purchase, but Steam/Epic onboarding, account state, networking and much larger downloads make them higher-friction first sessions.
+Therefore:
 
-Sources:
-- https://help.steampowered.com/en/faqs/view/4D81-BB44-4F5C-9B6B
-- https://store.steampowered.com/app/570/Dota_2/
-- https://store.epicgames.com/all-experiences/fortnite
+```text
+ReferenceImportance != DirectPlayPriority
+DirectPlayPriority != LowestInstallCost
+FlagshipDeskTeardown != MandatoryFullPlaythrough
+```
 
-### D — Candy Crush Saga
-Free-to-play, but current official access is via supported app stores rather than browser play on King.com. Device/app installation remains a separate boundary.
+CS2, Dota 2, Fortnite, GTA V, ELDEN RING, BG3, Mario Kart, Animal Crossing and Beat Saber may remain essential references without being first-wave direct-play assignments. They can be played later when a specific unresolved claim actually requires their intended condition.
 
-### E — ownership/access unknown
-Grand Theft Auto V, ELDEN RING and Baldur's Gate 3 have no detected local install evidence. We did not query stores/accounts and therefore do not know whether the user owns them.
+Factorio's public demo, Minecraft's trial and other accessible references remain useful **access options**, but convenience alone cannot nominate the first learning game.
 
-### F — console condition
-Mario Kart 8 Deluxe and Animal Crossing: New Horizons require a Nintendo Switch access condition for valid direct-play evidence. Workstation absence says nothing about console access.
+### Direct-play sweet-spot selection rule
+Select only **3–5 canonical learning games** for the first Human portfolio. Each should satisfy most of:
 
-### G — VR condition
-Beat Saber cannot be truthfully evaluated for embodied rhythm through keyboard/mouse substitution. No standard local VR runtime marker was detected; intended VR hardware/runtime/game access is required.
+- substantial commercial/audience success and mature design practice;
+- a core interaction grammar readable within about 1–3 hours;
+- bounded setup/onboarding burden;
+- materially different player-value/archetype coverage from the other selected games;
+- direct play provides evidence that desk teardown cannot provide;
+- lawful access is realistic, but access convenience is not treated as proof of design importance.
+
+No download/install request should be made until this compact learning portfolio is selected.
 
 ## 3. Frozen observation sheet
 Every direct-play session uses the same top-level structure before R2 can be considered:
@@ -134,27 +146,10 @@ SURVIVES_DIRECT_PLAY | REVISE_CAUSAL_HYPOTHESIS | REJECT_TRANSFER | INCONCLUSIVE
 
 No demographic/sensitive participant data is needed for this first owner canary.
 
-## 4. First-session Factorio protocol
-Frozen question:
+## 4. No first-session game selected yet
+The earlier Factorio-first recommendation is **superseded**. Factorio remains a strong systems-learning candidate, but choosing it merely because a public demo is convenient would repeat the same mistake at a smaller scale.
 
-> Does the transition from manual work to automation change the player's planning from repeated execution toward system design and bottleneck diagnosis?
-
-Observe three cuts:
-
-```text
-A. before useful automation
-B. immediately after the first useful automated chain
-C. after the first visible bottleneck / throughput failure
-```
-
-Record:
-- what task the player stops doing manually;
-- what new planning problem replaces it;
-- whether throughput failure is diagnosable from visible state;
-- whether the player voluntarily redesigns the chain;
-- whether automation feels like leverage or merely waiting.
-
-Do **not** test the giant technology tree, enemies, mods, late-game megabase or commercial retention in this canary.
+The next research action is to select the 3–5-game canonical learning portfolio using the sweet-spot rule above. Only after that selection should any title receive a frozen first-session question.
 
 ## 5. Admission law
 
@@ -182,4 +177,4 @@ ProductSelected            false
 G0Entered                  false
 ```
 
-The next transition requires explicit user authority for one lawful direct-play carrier. Current recommended first carrier: **Factorio official demo**.
+The next transition is **not installation**. First select a compact 3–5-game canonical learning portfolio. Only then request explicit user authority for whichever lawful carrier is actually chosen.
