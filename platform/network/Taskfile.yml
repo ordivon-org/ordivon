@@ -37,10 +37,10 @@ tasks:
       - systemctl is-active --quiet network-v2-singbox.service
       - systemctl is-active --quiet network-v2-blackbox.service
       - systemctl is-active --quiet network-v2-prometheus.service
-      - test "$(systemctl show network-v2-singbox.service -p NRestarts --value)" = "0"
       - curl --fail --silent --show-error --proxy http://127.0.0.1:28080 --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
       - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=http_2xx&target=https://example.com/' | awk '/^probe_success / {print $2}')" = "1"
-      - curl -fsS 'http://127.0.0.1:29090/api/v1/query?query=probe_success' | grep -Eq '"value"[^]]*"1"'
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=tcp_connect&target=127.0.0.1:28080' | awk '/^probe_success / {print $2}')" = "1"
+      - ./tests/prometheus-singbox-ready.sh
 
   converge:r0:
     desc: Validate, materialize, and prove one exact live R0 generation
@@ -88,6 +88,11 @@ tasks:
     cmds:
       - task: external:wireguard-go
       - ./tests/wgquick-userspace-lifecycle.sh
+
+  smoke:recovery-live:
+    desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
+    cmds:
+      - ./tests/live-recovery-smoke.sh
 
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
