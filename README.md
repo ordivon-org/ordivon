@@ -11,7 +11,7 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 - Pydantic owns request/result validation.
 - RFC 8785 owns canonical JSON bytes used for semantic digests.
 - the official MCP Python SDK v2 owns MCP protocol/transport behavior.
-- Alembic owns schema migration.
+- Alembic exclusively owns schema creation and migration; the running Host only verifies schema readiness.
 - pytest/Hypothesis remain the executable verification layer.
 
 ## Current product surface
