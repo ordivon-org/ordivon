@@ -1,0 +1,20 @@
+services:
+  blackbox:
+    image: prom/blackbox-exporter:v0.28.0
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ../config/blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    ports:
+      - "127.0.0.1:29115:9115"
+  prometheus:
+    image: prom/prometheus:v3.13.3
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    volumes:
+      - ../config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:29090:9090"
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.12.0
+    ports:
+      - "127.0.0.1:28474:8474"
+      - "127.0.0.1:28666:8666"
