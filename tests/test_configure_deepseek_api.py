@@ -58,6 +58,38 @@ class ConfigureDeepSeekApiTests(unittest.TestCase):
             _MODULE._write_secret(path, payload)
             self.assertEqual(_MODULE._load_secret(path)["model"], "deepseek-v4-flash")
 
+    def test_current_secret_shape_with_credential_scope_is_accepted(self) -> None:
+        payload = {
+            "schemaVersion": 1,
+            "provider": "deepseek",
+            "apiKey": "sk-" + "f" * 40,
+            "baseUrl": _MODULE.DEFAULT_BASE_URL,
+            "model": "deepseek-flash",
+            "credentialScopeId": "credential-scope:deepseek:flash:0",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            path.chmod(0o600)
+            loaded = _MODULE._load_secret(path)
+        self.assertEqual(loaded, payload)
+
+    def test_unexpected_secret_field_still_fails_closed(self) -> None:
+        payload = {
+            "schemaVersion": 1,
+            "provider": "deepseek",
+            "apiKey": "sk-" + "g" * 40,
+            "baseUrl": _MODULE.DEFAULT_BASE_URL,
+            "model": "deepseek-flash",
+            "unexpected": True,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            path.chmod(0o600)
+            with self.assertRaisesRegex(ValueError, "unexpected fields"):
+                _MODULE._load_secret(path)
+
     def test_payload_is_fixed_to_official_base_url(self) -> None:
         payload = _MODULE._secret_payload("sk-" + "c" * 40, "deepseek-flash")
         self.assertEqual(payload["baseUrl"], "https://api.deepseek.com")

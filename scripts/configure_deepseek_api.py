@@ -122,25 +122,38 @@ def _load_secret(path: Path) -> dict[str, Any]:
             f"secret file permissions are too broad: {oct(mode)}; expected 0o600"
         )
     value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict) or set(value) != {
+    required_fields = {
         "schemaVersion",
         "provider",
         "apiKey",
         "baseUrl",
         "model",
-    }:
+    }
+    allowed_fields = required_fields | {"credentialScopeId"}
+    if (
+        not isinstance(value, dict)
+        or not required_fields.issubset(value)
+        or not set(value).issubset(allowed_fields)
+    ):
         raise ValueError("DeepSeek secret file has unexpected fields")
     if value.get("schemaVersion") != 1 or value.get("provider") != "deepseek":
         raise ValueError("DeepSeek secret file has an unsupported schema")
     api_key = value.get("apiKey")
     base_url = value.get("baseUrl")
     model = value.get("model")
+    credential_scope_id = value.get("credentialScopeId")
     if not isinstance(api_key, str):
         raise ValueError("DeepSeek secret file has no API key")
     if base_url != DEFAULT_BASE_URL:
         raise ValueError("DeepSeek secret file uses an unexpected base URL")
     if not isinstance(model, str) or model not in SUPPORTED_MODELS:
         raise ValueError("DeepSeek secret file uses an unsupported model")
+    if credential_scope_id is not None and (
+        not isinstance(credential_scope_id, str)
+        or not credential_scope_id.strip()
+        or credential_scope_id != credential_scope_id.strip()
+    ):
+        raise ValueError("DeepSeek credentialScopeId is invalid")
     value["apiKey"] = _validate_key(api_key)
     return value
 
