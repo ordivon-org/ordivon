@@ -12,7 +12,6 @@ from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
 from .models import Admission, CheckpointInput, MutationResult, TaskState, TaskView
-from .schema import SCHEMA_SQL
 
 
 class HostV2:
@@ -20,8 +19,26 @@ class HostV2:
         self.dsn = dsn
 
     def initialize(self) -> None:
-        with psycopg.connect(self.dsn, autocommit=True) as conn:
-            conn.execute(SCHEMA_SQL)
+        """Verify that Alembic already initialized the authority schema.
+
+        Schema creation and migration are deliberately not owned by the running Host service.
+        Production and tests must run ``alembic upgrade head`` before Host opens authority.
+        """
+        try:
+            with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+                row = conn.execute(
+                    "SELECT schema_version FROM host_v2_schema WHERE singleton"
+                ).fetchone()
+        except psycopg.errors.UndefinedTable as exc:
+            raise RuntimeError(
+                "Host v2 schema is not initialized; run alembic upgrade head"
+            ) from exc
+        if row is None or int(row["schema_version"]) != 3:
+            observed = None if row is None else int(row["schema_version"])
+            raise RuntimeError(
+                f"Host v2 schema is not at required version 3 (observed={observed}); "
+                "run alembic upgrade head"
+            )
 
     def status(self, detail: str = "summary", recent_limit: int = 5) -> dict[str, Any]:
         if detail not in {"summary", "integrity", "history"}:
