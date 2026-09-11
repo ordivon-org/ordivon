@@ -200,3 +200,33 @@ def test_client_request_id_conflicting_reuse_fails_closed() -> None:
             checkpoint=CheckpointInput(payload={"x": 2}),
             client_request_id=request_id,
         )
+
+
+
+def test_task_list_keyset_cursor_is_scope_bound_and_complete() -> None:
+    h = host()
+    goal_id = f"goal:v2:page:{uuid4().hex}"
+    created = []
+    for index in range(3):
+        task_id = tid(f"page-{index}")
+        created.append(task_id)
+        h.adopt(
+            task_id=task_id,
+            goal_id=goal_id,
+            checkpoint=CheckpointInput(payload={"n": index}),
+            client_request_id=f"a:{task_id}",
+        )
+    first, has_more, cursor = h.list_tasks_page(goal_id=goal_id, limit=2)
+    assert len(first) == 2
+    assert has_more is True
+    assert isinstance(cursor, str)
+    second, has_more_2, cursor_2 = h.list_tasks_page(
+        goal_id=goal_id, limit=2, cursor=cursor
+    )
+    assert len(second) == 1
+    assert has_more_2 is False
+    assert cursor_2 is None
+    observed = {item.task_id for item in (*first, *second)}
+    assert observed == set(created)
+    with pytest.raises(ValueError, match="query scope"):
+        h.list_tasks_page(goal_id=f"{goal_id}:other", limit=2, cursor=cursor)
