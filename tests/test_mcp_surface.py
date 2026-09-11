@@ -38,6 +38,15 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
                 "task.adopt",
                 "task.checkpoint",
             }
+            status = await client.call_tool(
+                "host.status", {"detail": "integrity", "recentLimit": 0}
+            )
+            assert status.is_error is False
+            assert status.structured_content is not None
+            assert status.structured_content["detail"] == "integrity"
+            assert status.structured_content["authority"]["journalBackend"] == "postgresql"
+            assert status.structured_content["doctor"]["healthy"] is True
+
             adopted = await client.call_tool(
                 "task.adopt",
                 {

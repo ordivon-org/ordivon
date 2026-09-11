@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Sequence
 from typing import Any
 
@@ -10,7 +11,7 @@ from psycopg.rows import dict_row
 from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
-from .models import Admission, CheckpointInput, HostStatus, MutationResult, TaskState, TaskView
+from .models import Admission, CheckpointInput, MutationResult, TaskState, TaskView
 from .schema import SCHEMA_SQL
 
 
@@ -22,14 +23,220 @@ class HostV2:
         with psycopg.connect(self.dsn, autocommit=True) as conn:
             conn.execute(SCHEMA_SQL)
 
-    def status(self) -> HostStatus:
+    def status(self, detail: str = "summary", recent_limit: int = 5) -> dict[str, Any]:
+        if detail not in {"summary", "integrity", "history"}:
+            raise ValueError("detail must be summary, integrity, or history")
+        if not 0 <= recent_limit <= 100:
+            raise ValueError("recentLimit must be in [0,100]")
+        observed_at_ms = time.time_ns() // 1_000_000
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
-            row = conn.execute(
+            schema_row = conn.execute(
                 "SELECT schema_version FROM host_v2_schema WHERE singleton"
             ).fetchone()
-            if row is None:
+            if schema_row is None:
                 raise RuntimeError("Host v2 schema is not initialized")
-            return HostStatus(schema_version=int(row["schema_version"]))
+            schema_version = int(schema_row["schema_version"])
+            state_rows = conn.execute(
+                "SELECT state,count(*) AS value FROM tasks GROUP BY state"
+            ).fetchall()
+            tasks_by_state = {row["state"]: int(row["value"]) for row in state_rows}
+            task_count = sum(tasks_by_state.values())
+            terminal_count = tasks_by_state.get("completed", 0) + tasks_by_state.get("abandoned", 0)
+            event_count = int(conn.execute("SELECT count(*) AS value FROM task_events").fetchone()["value"])
+            board_row = conn.execute(
+                "SELECT count(*) AS messages,COALESCE(max(sequence),0) AS high FROM board_messages"
+            ).fetchone()
+            news_row = conn.execute(
+                "SELECT count(*) AS publications,count(DISTINCT edition_id) AS editions FROM news_publications"
+            ).fetchone()
+            latest_news = conn.execute(
+                "SELECT edition_id,revision FROM news_publications ORDER BY sequence DESC LIMIT 1"
+            ).fetchone()
+            recent_rows = []
+            if recent_limit:
+                recent_rows = conn.execute(
+                    "SELECT e.task_id,e.revision,e.event_type,e.created_at,e.checkpoint_digest,t.state "
+                    "FROM task_events e JOIN tasks t USING(task_id) "
+                    "ORDER BY e.created_at DESC,e.task_id DESC,e.revision DESC LIMIT %s",
+                    (recent_limit,),
+                ).fetchall()
+
+            doctor = None
+            if detail != "summary":
+                checks: list[dict[str, Any]] = []
+
+                def add_check(name: str, ok: bool, detail_value: str) -> None:
+                    checks.append(
+                        {"name": name, "status": "ok" if ok else "error", "detail": detail_value}
+                    )
+
+                add_check("postgres.schema", schema_version == 3, str(schema_version))
+                current_checkpoint_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM tasks t LEFT JOIN checkpoints c "
+                        "ON c.task_id=t.task_id AND c.revision=t.revision "
+                        "WHERE c.task_id IS NULL OR c.checkpoint_digest<>t.current_checkpoint_digest"
+                    ).fetchone()["value"]
+                )
+                add_check(
+                    "task.current_checkpoint",
+                    current_checkpoint_bad == 0,
+                    f"invalid={current_checkpoint_bad}",
+                )
+                current_event_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM tasks t LEFT JOIN task_events e "
+                        "ON e.task_id=t.task_id AND e.revision=t.revision "
+                        "WHERE e.task_id IS NULL OR e.resulting_state<>t.state "
+                        "OR e.checkpoint_digest<>t.current_checkpoint_digest"
+                    ).fetchone()["value"]
+                )
+                add_check("task.current_event", current_event_bad == 0, f"invalid={current_event_bad}")
+                receipt_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM command_receipts WHERE response IS NULL"
+                    ).fetchone()["value"]
+                )
+                add_check("command_receipts.complete", receipt_bad == 0, f"incomplete={receipt_bad}")
+                reply_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM board_messages c LEFT JOIN board_messages p "
+                        "ON p.client_message_id=c.reply_to_client_message_id "
+                        "WHERE c.reply_to_client_message_id IS NOT NULL AND p.client_message_id IS NULL"
+                    ).fetchone()["value"]
+                )
+                add_check("board.reply_integrity", reply_bad == 0, f"dangling={reply_bad}")
+                news_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM (SELECT edition_id,min(revision) AS lo,max(revision) AS hi,count(*) AS n "
+                        "FROM news_publications GROUP BY edition_id) x WHERE lo<>1 OR hi<>n"
+                    ).fetchone()["value"]
+                )
+                add_check("news.revision_history", news_bad == 0, f"invalidEditions={news_bad}")
+
+                if detail == "history":
+                    task_history_bad = int(
+                        conn.execute(
+                            "SELECT count(*) AS value FROM (SELECT t.task_id,t.revision,"
+                            "count(DISTINCT c.revision) AS checkpoints,count(DISTINCT e.revision) AS events,"
+                            "min(c.revision) AS cmin,max(c.revision) AS cmax,min(e.revision) AS emin,max(e.revision) AS emax "
+                            "FROM tasks t LEFT JOIN checkpoints c USING(task_id) LEFT JOIN task_events e USING(task_id) "
+                            "GROUP BY t.task_id,t.revision) x WHERE checkpoints<>revision OR events<>revision "
+                            "OR cmin<>1 OR cmax<>revision OR emin<>1 OR emax<>revision"
+                        ).fetchone()["value"]
+                    )
+                    add_check(
+                        "task.history_contiguous",
+                        task_history_bad == 0,
+                        f"invalidTasks={task_history_bad}",
+                    )
+                    digest_bad = 0
+                    for row in conn.execute(
+                        "SELECT checkpoint_digest,payload FROM checkpoints ORDER BY task_id,revision"
+                    ).fetchall():
+                        payload = row["payload"]
+                        if isinstance(payload, str):
+                            payload = json.loads(payload)
+                        if canonical_digest(payload) != row["checkpoint_digest"]:
+                            digest_bad += 1
+                    add_check(
+                        "checkpoint.history_digest",
+                        digest_bad == 0,
+                        f"invalid={digest_bad}",
+                    )
+                doctor = {
+                    "healthy": all(item["status"] == "ok" for item in checks),
+                    "checks": checks,
+                }
+
+            tool_names = [
+                "host.status",
+                "attention.delta",
+                "board.list",
+                "board.search",
+                "board.post",
+                "news.list",
+                "news.read",
+                "news.publish",
+                "task.observe",
+                "task.list",
+                "task.resume",
+                "task.adopt",
+                "task.checkpoint",
+            ]
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-status",
+                "observedAtMs": observed_at_ms,
+                "detail": detail,
+                "interface": {
+                    "surfaceVersion": 6,
+                    "toolCount": len(tool_names),
+                    "toolNames": tool_names,
+                    "readTools": [
+                        "host.status",
+                        "attention.delta",
+                        "board.list",
+                        "board.search",
+                        "news.list",
+                        "news.read",
+                        "task.observe",
+                        "task.list",
+                        "task.resume",
+                    ],
+                    "writeTools": ["board.post", "news.publish", "task.adopt", "task.checkpoint"],
+                    "runtimeProxy": False,
+                },
+                "authority": {
+                    "journalBackend": "postgresql",
+                    "journalSchema": schema_version,
+                    "events": event_count,
+                    "tasks": task_count,
+                    "terminalTasks": terminal_count,
+                    "tasksByState": tasks_by_state,
+                    "leases": 0,
+                },
+                "board": {
+                    "messages": int(board_row["messages"]),
+                    "lastSequence": int(board_row["high"]),
+                    "truthRole": "durable-collaboration-messages",
+                },
+                "news": {
+                    "editions": int(news_row["editions"]),
+                    "publications": int(news_row["publications"]),
+                    "latestEditionId": None if latest_news is None else latest_news["edition_id"],
+                    "latestRevision": None if latest_news is None else int(latest_news["revision"]),
+                    "truthRole": "external-news-projection-not-world-truth",
+                },
+                "deployment": {
+                    "status": "not-observed",
+                    "releaseId": None,
+                    "deployedRevision": None,
+                },
+                "continuity": {
+                    "active": tasks_by_state.get("open", 0),
+                    "terminal": terminal_count,
+                },
+                "recentActivity": [
+                    {
+                        "taskId": row["task_id"],
+                        "revision": int(row["revision"]),
+                        "eventKind": row["event_type"],
+                        "recordedAtMs": int(row["created_at"].timestamp() * 1000),
+                        "ageMs": max(0, observed_at_ms - int(row["created_at"].timestamp() * 1000)),
+                        "payloadDigest": row["checkpoint_digest"],
+                        "causedByEventId": None,
+                        "currentState": row["state"],
+                    }
+                    for row in recent_rows
+                ],
+                "doctor": doctor,
+                "truthBoundary": {
+                    "host": "authoritative for Host-v2 PostgreSQL continuity and collaboration state",
+                    "deployment": "not observed by the Host-v2 semantic core",
+                    "runtime": "not checked; Runtime remains independent physical authority",
+                },
+            }
 
     def adopt(
         self,
