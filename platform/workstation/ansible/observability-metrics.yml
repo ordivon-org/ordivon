@@ -1,0 +1,55 @@
+---
+- name: Operations v2 shared metrics slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install Operations v2 Prometheus configuration
+      ansible.builtin.copy:
+        src: ../observability/prometheus.yml
+        dest: /etc/prometheus/prometheus.yml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Operations Prometheus
+
+    - name: Bind Operations Prometheus to loopback on its own port
+      ansible.builtin.copy:
+        src: ../observability/prometheus.conf
+        dest: /etc/conf.d/prometheus
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Operations Prometheus
+
+    - name: Bind node exporter to loopback on the Operations v2 port
+      ansible.builtin.copy:
+        src: ../observability/node-exporter.conf
+        dest: /etc/conf.d/prometheus-node-exporter
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart node exporter
+
+    - name: Enable and start node exporter
+      ansible.builtin.systemd_service:
+        name: prometheus-node-exporter.service
+        enabled: true
+        state: started
+
+    - name: Enable and start Operations Prometheus
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart node exporter
+      ansible.builtin.systemd_service:
+        name: prometheus-node-exporter.service
+        state: restarted
+
+    - name: Restart Operations Prometheus
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        state: restarted

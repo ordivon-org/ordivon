@@ -1,0 +1,39 @@
+---
+- name: Operations v2 external substrate
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    operations_v2_packages:
+      - opentofu
+      - prometheus-node-exporter
+      - vector
+      - osquery
+      - open-policy-agent
+      - grafana
+      - loki
+  tasks:
+    - name: Install mature external operations substrate from Arch repositories
+      community.general.pacman:
+        name: "{{ operations_v2_packages }}"
+        state: present
+
+    - name: Keep unconfigured services stopped until their v2 config is explicit
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - vector.service
+        - grafana.service
+        - loki.service
+      failed_when: false
+
+# node_exporter is intentionally not stopped here because the accepted R1 metrics
+# slice configures and enables it in observability-metrics.yml.
+#
+# Intentional omissions:
+# - no custom service supervisor
+# - no custom retry loop
+# - no automatic production cutover
+# - no takeover of Network v2 Prometheus/Gatus semantics
