@@ -127,7 +127,8 @@ A meaningful change should state:
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
 - `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md` owns the product-discovery profile before G0: mature comparable references, teardown, bounded baseline reproduction, Human baseline validation, and controlled differentiation. Its R0–R4 labels are profile steps, not product stages.
 - `docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md` owns current R0-A/R0-B success-universe census and archetype coverage. Successful games must be observed before implementation-cost filtering; unlike platform/time-window metrics remain separate.
-- `docs/GAME_R0_REFERENCE_STACKS_20260911.md` owns current R0-C and the first R1 reference-teardown admission. Its wave selects for archetype information coverage; it does not admit clone implementation, product selection or G0.
+- `docs/GAME_R0_REFERENCE_STACKS_20260911.md` owns current R0-C and R1 reference-teardown admission. Its wave selects for archetype information coverage; it does not admit clone implementation, product selection or G0.
+- `docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md` owns current Wave-1 comparative desk teardown. Observed facts, causal hypotheses, confounds and smallest baselines remain distinct; direct-play experience claims remain pending and the document cannot admit R2 by itself.
 - `docs/GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911.md` is the superseded first R0 attempt; its Balatro / Vampire Survivors / Mini Metro set is cheap-baseline support only and has no current authority.
 - `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
 - `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` retains DS0 candidate/mechanism evidence; its old GameForm↔Agent coupling and search-priority semantics are historical after the decoupling correction.

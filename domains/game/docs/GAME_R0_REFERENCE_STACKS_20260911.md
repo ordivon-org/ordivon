@@ -112,4 +112,4 @@ G0Entered                 false
 RuntimeAgentRequired      false
 ```
 
-The next work is comparative R1 teardown of the twelve references using one shared schema: observed facts, inferred causes, alternative explanations, transferable hypotheses, expression dependencies and the smallest falsifiable baseline. No product winner is selected at R1 entry.
+Wave-1 comparative desk teardown is now materialized in [`GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md`](GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md). The twelve references have been analyzed under one shared schema, but direct-play experience evidence remains pending and R2 baseline implementation is still not admitted.

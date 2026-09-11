@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-game-r1-reference-teardown-wave1",
+  "observedDate": "2026-09-11",
+  "standing": "DESK_TEARDOWN_COMPLETE_DIRECT_PLAY_PENDING",
+  "productSelected": false,
+  "g0Entered": false,
+  "cloneImplementationAdmitted": false,
+  "directPlayRequiredBeforeExperienceClaim": true,
+  "laws": [
+    "ObservedReferenceFact != InferredDesignCause",
+    "InferredDesignCause != TransferableDesignLaw",
+    "CommercialSuccess != CoreMechanicCausality",
+    "ReferenceTeardown != ProductSelection",
+    "DeskTeardown != ExperienceEvidence",
+    "LargeProduct != LargeExperiment"
+  ],
+  "schema": [
+    "observedFacts",
+    "causalHypotheses",
+    "alternativeExplanations",
+    "expressionDependencies",
+    "transferHypotheses",
+    "smallestFalsifiableBaseline",
+    "baselineFalsifier",
+    "directPlayStanding"
+  ],
+  "references": [
+    {
+      "title": "Counter-Strike 2",
+      "archetype": "competitive_tactical_fps",
+      "sources": ["https://store.steampowered.com/app/730/CounterStrike_2/"],
+      "observedFacts": [
+        "Valve positions Counter-Strike as a long-running competitive first-person team game and CS2 as the Source 2 successor.",
+        "The product is tagged and presented around tactical, competitive, team-based PvP rather than persistent character progression."
+      ],
+      "causalHypotheses": [
+        "Short round resets plus lethal commitment make positional and information mistakes legible and costly.",
+        "A comparatively stable ruleset lets mastery accumulate in aiming, movement, map knowledge, timing and team coordination."
+      ],
+      "alternativeExplanations": ["decades of brand continuity", "large competitive/esports network", "social network effects", "skin economy and community workshop", "very high production/networking quality"],
+      "expressionDependencies": ["weapon/audio feedback", "map readability", "animation timing", "network responsiveness"],
+      "transferHypotheses": ["A tiny round-based objective can test whether partial information plus irreversible death creates meaningful positional commitment."],
+      "smallestFalsifiableBaseline": "One graybox objective map, two teams, one weapon family, lethal elimination, partial information and immediate round reset; add economy only if the tested claim needs inter-round resource commitment.",
+      "baselineFalsifier": "If removing partial information or lethal round commitment does not materially change player positioning, information seeking or tension, the proposed transfer is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Dota 2",
+      "archetype": "moba_team_strategy",
+      "sources": ["https://store.steampowered.com/app/570/Dota_2/"],
+      "observedFacts": [
+        "Valve describes a battlefield with more than one hundred heroes, diverse abilities and items, and heroes that can fill multiple roles.",
+        "The product is continuously updated and explicitly emphasizes strategic variety and replayability rather than a fixed campaign."
+      ],
+      "causalHypotheses": [
+        "Long-horizon power curves turn early local choices into later teamfight and objective consequences.",
+        "Hero-role and item combinatorics create adaptation pressure both before and during a match.",
+        "Shared objectives make individual optimization insufficient without team coordination."
+      ],
+      "alternativeExplanations": ["very large established player network", "esports ecosystem", "years of balance/content iteration", "social retention", "cosmetic economy"],
+      "expressionDependencies": ["combat readability across many simultaneous effects", "hero silhouette/ability telegraphing", "UI for economy and cooldowns"],
+      "transferHypotheses": ["A one-lane micro-MOBA can test whether role asymmetry plus shared objective pressure creates meaningful coordination and timing decisions."],
+      "smallestFalsifiableBaseline": "One lane, two roles per side, minion pressure, one tower/objective, simple experience/item timing and a bounded teamfight end condition.",
+      "baselineFalsifier": "If players can independently maximize local damage without communicating or trading resources/timing for the shared objective, the role-interdependence hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Fortnite",
+      "archetype": "battle_royale_extraction_plus_ecosystem",
+      "sources": ["https://www.fortnite.com/@epic/battle-royale", "https://www.fortnite.com/competitive/discover-competitive/fortnite-ranked-play-explained", "https://create.fortnite.com/"],
+      "observedFacts": [
+        "Epic currently exposes Battle Royale and Zero Build as separate high-stakes variants, with Ranked progression influenced by placement, eliminations, damage and storm-circle survival.",
+        "Fortnite is also a creator ecosystem with UEFN/Creative publishing, playtests, analytics and monetization; it is not one mechanic or one mode."
+      ],
+      "causalHypotheses": [
+        "One-life match structure plus shrinking safe space creates repeated movement-versus-engagement tradeoffs.",
+        "Loot uncertainty and spatial information make adaptation central to each run.",
+        "The wider ecosystem may sustain longevity through social presence, rapid content change and creator variety beyond Battle Royale itself."
+      ],
+      "alternativeExplanations": ["massive live-ops cadence", "crossovers/IP collaborations", "free-to-play distribution", "cross-platform network effects", "creator economy", "social identity and cosmetics"],
+      "expressionDependencies": ["movement/shooting feel", "clear storm and threat feedback", "large content cadence", "social presentation"],
+      "transferHypotheses": ["A tiny shrinking-arena survival experiment can isolate whether uncertainty plus forced convergence produces meaningful risk timing without reproducing Fortnite's ecosystem."],
+      "smallestFalsifiableBaseline": "Eight-entity arena, sparse loot choices, one life, shrinking safe area, optional combat and clear placement outcome; building excluded from first baseline and tested separately.",
+      "baselineFalsifier": "If the shrinking boundary and one-life condition do not alter route, engagement or resource decisions compared with a static respawn arena, the BR transfer hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Minecraft",
+      "archetype": "sandbox_creation",
+      "sources": ["https://www.minecraft.net/en-us/article/what-minecraft", "https://www.minecraft.net/en-us/about-minecraft"],
+      "observedFacts": [
+        "Mojang explicitly states that Minecraft has no single required goal and supports player-chosen play.",
+        "Blocks can be broken, crafted and placed to reshape the world; Survival adds resource collection, danger, health/hunger and tool constraints, while Creative removes those constraints."
+      ],
+      "causalHypotheses": [
+        "A low-level reversible world-manipulation vocabulary lets players convert personal intentions into persistent spatial outcomes.",
+        "Survival constraints can generate reasons to explore and build without replacing self-authored goals.",
+        "The same block grammar supports construction, traversal, collection, survival and social play, increasing recombination value."
+      ],
+      "alternativeExplanations": ["huge cultural/network effects", "multiplayer servers and community content", "modding", "streaming/video culture", "education and merchandise ecosystem"],
+      "expressionDependencies": ["block readability", "immediate break/place feedback", "world persistence", "spatial legibility"],
+      "transferHypotheses": ["Self-authored intention can be tested with a very small persistent construction grammar rather than a large procedural world."],
+      "smallestFalsifiableBaseline": "A compact block field with break, obtain and place actions plus one environmental constraint; no authored objective beyond a neutral invitation to change the space.",
+      "baselineFalsifier": "If players do not form their own spatial intention or if persistent transformation does not affect subsequent behavior, the authorship hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Grand Theft Auto V",
+      "archetype": "open_world_action_crime",
+      "sources": ["https://www.rockstargames.com/gta-v"],
+      "observedFacts": [
+        "Rockstar presents Los Santos/Blaine County as the shared setting for a story campaign and the evolving GTA Online product.",
+        "GTA Online supports cooperative heists, races, adversary modes, businesses, vehicles and social spaces for up to 30 players."
+      ],
+      "causalHypotheses": [
+        "A dense shared world that supports driving, combat, traversal and social interaction makes changing activity feel continuous rather than menu-isolated.",
+        "Escalating world response can make unscripted actions generate their own short causal stories.",
+        "Vehicle access radically changes traversal affordances and the perceived possibility space."
+      ],
+      "alternativeExplanations": ["extraordinary content volume", "Rockstar brand", "cinematic writing/performance", "online network effects", "long live-ops history", "vehicle/music/world production quality"],
+      "expressionDependencies": ["vehicle handling", "animation and physical response", "city density", "audio/radio", "NPC/world reactivity"],
+      "transferHypotheses": ["Systemic freedom can be tested in one small district if actions cross subsystem boundaries and the world responds consistently."],
+      "smallestFalsifiableBaseline": "One city block, walking/driving, vehicle acquisition, simple civilian/world response, escalating law pressure and at least two escape routes.",
+      "baselineFalsifier": "If players treat verbs as isolated minigames and do not improvise plans from cross-system interactions, the systemic-freedom hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "ELDEN RING",
+      "archetype": "action_rpg_souls_hunt",
+      "sources": ["https://en.bandainamcoent.eu/elden-ring/elden-ring", "https://en.bandainamcoent.eu/elden-ring/news/what-elden-ring-about", "https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips"],
+      "observedFacts": [
+        "Bandai Namco describes a seamless large world plus complex dungeons, with traversal on foot/horseback and many combat approaches.",
+        "Official guidance explicitly says players may avoid powerful enemies and return later, and that there is not one required path or build.",
+        "Combat guidance emphasizes reading enemy intent, timing dodge/parry/guard and selecting among weapons, magic, stealth, summons and allies."
+      ],
+      "causalHypotheses": [
+        "High-cost enemy commitment windows make observation and timing learnable forms of mastery.",
+        "Open routing converts difficulty from a binary wall into a strategic choice to persist, explore or return later.",
+        "Build variety and optional assistance broaden viable solutions without removing encounter identity."
+      ],
+      "alternativeExplanations": ["FromSoftware/Souls legacy", "worldbuilding and art direction", "large authored content volume", "community discovery", "boss spectacle", "multiplayer/social discourse"],
+      "expressionDependencies": ["animation telegraphs", "hit timing and responsiveness", "enemy design", "level composition", "audio impact"],
+      "transferHypotheses": ["The combat mastery claim can be isolated in one duel; the open-routing claim requires a separate multi-route environment experiment."],
+      "smallestFalsifiableBaseline": "One graybox duel with readable telegraph, committed attack, evade/block, punish window, limited resource, death and fast retry; separate second condition allows bypass/return-later routing.",
+      "baselineFalsifier": "If repeated attempts do not change anticipation/timing or if removing commitment windows leaves the same behavior, the mastery hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Baldur's Gate 3",
+      "archetype": "reactive_crpg",
+      "sources": ["https://baldursgate3.game/about", "https://baldursgate3.game/news/a-little-about-combat-stealth_3", "https://store.steampowered.com/app/1086940/Baldurs_Gate_3/"],
+      "observedFacts": [
+        "Larian presents BG3 as a party RPG where choices shape relationships and outcomes, with multiple Origin perspectives and four-player co-op.",
+        "Its combat uses D&D-derived turn-based rules, initiative, advantage/disadvantage and environmental interaction.",
+        "Larian documented changing combat ordering during Early Access based on feedback/testing and supports forced turn-based exploration for stealth/puzzle planning."
+      ],
+      "causalHypotheses": [
+        "Agency becomes credible when multiple mechanically different approaches are acknowledged by later world/narrative state.",
+        "Systemic environment interactions make problem solving broader than dialogue-option branching.",
+        "Party composition and companion reactions give decisions social as well as tactical consequence."
+      ],
+      "alternativeExplanations": ["Dungeons & Dragons IP", "very large authored cinematic volume", "voice/performance quality", "long Early Access iteration", "co-op novelty", "production scale"],
+      "expressionDependencies": ["reactive writing", "character performance", "environment state readability", "cinematic follow-through"],
+      "transferHypotheses": ["A tiny authored situation can test whether multiple valid approaches plus later acknowledgement create perceived agency without reproducing a full CRPG."],
+      "smallestFalsifiableBaseline": "One situation with three mechanically distinct approaches, persistent consequence state, one companion/observer reaction and a later scene that acknowledges the chosen path.",
+      "baselineFalsifier": "If players perceive the approaches as cosmetic equivalents, or later acknowledgement does not change interpretation of the choice, the reactivity hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Factorio",
+      "archetype": "automation_factory",
+      "sources": ["https://www.factorio.com/game/content", "https://wiki.factorio.com/"],
+      "observedFacts": [
+        "Wube defines the core around mining resources, logistics, production, infrastructure, research, automation, energy and defense.",
+        "The official description explicitly moves from manual collection/crafting toward increasingly automated industrial systems."
+      ],
+      "causalHypotheses": [
+        "Automation turns prior manual effort into persistent capability, creating a strong visible sense of leverage.",
+        "Bottlenecks make system state diagnostically legible: throughput problems suggest concrete redesign actions.",
+        "Expansion creates self-generated complexity because each solution increases resource and coordination demands elsewhere."
+      ],
+      "alternativeExplanations": ["large recipe/technology graph", "years of tuning", "mod ecosystem", "co-op", "high simulation performance", "content breadth"],
+      "expressionDependencies": ["throughput visualization", "machine state legibility", "placement precision", "clear logistics feedback"],
+      "transferHypotheses": ["Automation value can be tested with a four-stage production chain and visible throughput before any large tech tree exists."],
+      "smallestFalsifiableBaseline": "Source -> transport -> processor -> sink, with limited power and one throughput target; allow redesign while preserving production history.",
+      "baselineFalsifier": "If automation does not change player planning from repeated execution toward diagnosis/architecture, or bottlenecks remain opaque, the leverage hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Mario Kart 8 Deluxe",
+      "archetype": "racing_vehicle_sim",
+      "sources": ["https://www.nintendo.com/sg/switch/aabp/about/index.html", "https://www.nintendo.com/sg/switch/aabp/sp/item/index.html"],
+      "observedFacts": [
+        "Nintendo exposes drift, rocket start, mini-turbo and spin turn as explicit driving techniques.",
+        "Items can disrupt rivals or boost the player and are described as tools that can turn the race; Deluxe allows two held items.",
+        "The product supports Grand Prix, Time Trial, VS Race and Battle, including local and online social play."
+      ],
+      "causalHypotheses": [
+        "Core steering/drift skill gives repeatable mastery while items inject recoverability and tactical volatility.",
+        "Short races and fast restarts make social comparison and rematch cheap.",
+        "Readable track landmarks and strong movement feedback help a broad skill range understand immediate cause/effect."
+      ],
+      "alternativeExplanations": ["Nintendo character/IP strength", "exceptional audiovisual polish", "large track/character content", "family/local multiplayer context", "hardware bundling and platform reach"],
+      "expressionDependencies": ["vehicle feel", "track readability", "speed feedback", "item anticipation/audio", "character animation"],
+      "transferHypotheses": ["Driving feel and item/catch-up dynamics should be tested separately before recombination."],
+      "smallestFalsifiableBaseline": "One short three-lap track with drift/mini-boost and ghosts; then a matched condition adds position-sensitive disruptive/boost items.",
+      "baselineFalsifier": "If the item condition does not change comeback possibility, route/risk decisions or social rematch behavior beyond adding noise, the catch-up hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Animal Crossing: New Horizons",
+      "archetype": "life_cozy_social",
+      "sources": ["https://animalcrossing.nintendo.com/new-horizons/explore/", "https://animalcrossing.nintendo.com/new-horizons/", "https://www.nintendo.com/us/store/products/animal-crossing-new-horizons-switch/"],
+      "observedFacts": [
+        "Nintendo describes a self-paced island life built from gardening, fishing, decoration, collecting and relationships with animal residents.",
+        "Time of day and seasons track real life, so available activities and discoveries change over time.",
+        "The island develops from sparse beginnings as the player creates, collects and grows the community."
+      ],
+      "causalHypotheses": [
+        "Real-time change creates a low-pressure return promise rather than demanding continuous sessions.",
+        "Persistent decoration and collection let routine actions accumulate into personal place attachment.",
+        "Weakly prescribed goals allow players to choose between collection, expression and social routines according to mood."
+      ],
+      "alternativeExplanations": ["Animal Crossing brand", "social sharing/network effects", "large content catalogue", "release-era social context", "character appeal", "Nintendo platform audience"],
+      "expressionDependencies": ["character charm", "audio ambience", "seasonal art", "decoration feedback", "persistent place identity"],
+      "transferHypotheses": ["The return-promise and place-attachment claims can be tested with a tiny persistent room/island and real-time changes without large content volume."],
+      "smallestFalsifiableBaseline": "One persistent small space with 3-4 daily activities, decoration, collection log, one resident acknowledgement and a real-time next-session change.",
+      "baselineFalsifier": "If players do not form personal routines/place ownership or real-time change does not create return intention beyond checklist completion, the transfer is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Candy Crush Saga",
+      "archetype": "mobile_merge_match_casual",
+      "sources": ["https://www.king.com/game/?language=en", "https://community.king.com/en/candy-crush-saga/discussion/584247/how-to-play"],
+      "observedFacts": [
+        "King describes Candy Crush Saga around switching and matching candies across a long sequence of levels.",
+        "Official community guidance describes adjacent swaps to make groups of three or more while satisfying level-specific goals within a limited move budget, with blockers and special candies."
+      ],
+      "causalHypotheses": [
+        "A simple local action vocabulary becomes strategically varied when board goals, blockers and move scarcity change the value of the same swap.",
+        "Very short attempt cycles make failure/retry cheap and support mobile interruption patterns.",
+        "Progression can continually recontextualize a stable core rule without requiring a new control scheme."
+      ],
+      "alternativeExplanations": ["large live-ops and content pipeline", "user acquisition", "free-to-play monetization", "brand familiarity", "social/progression systems", "years of level tuning"],
+      "expressionDependencies": ["board readability", "clear special-candy feedback", "near-miss/failure feedback", "fast input-to-result animation"],
+      "transferHypotheses": ["The level-goal/move-budget grammar can be evaluated separately from monetization and live ops."],
+      "smallestFalsifiableBaseline": "Ten original match-3 boards using one swap rule, two goal types, blockers, move limits and one special-piece combinator; no monetization or energy system.",
+      "baselineFalsifier": "If changing goals/blockers does not materially change move evaluation or retry behavior, the stable-rule/recontextualization hypothesis is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY"
+    },
+    {
+      "title": "Beat Saber",
+      "archetype": "vr_rhythm_embodied",
+      "sources": ["https://www.meta.com/experiences/beat-saber/1304877726278670/", "https://beatsaber.com/"],
+      "observedFacts": [
+        "Meta describes play as slashing, ducking and dodging in time with music while matching the color and direction of incoming notes.",
+        "Levels are handcrafted to music and use visual effects plus haptic feedback; the product is intrinsically embodied and hardware-dependent."
+      ],
+      "causalHypotheses": [
+        "Binding beat prediction to directional whole-arm motion produces a tight perception-action loop that makes musical structure physically learnable.",
+        "Immediate audiovisual/haptic confirmation turns timing error into legible motor feedback.",
+        "Short songs naturally package attempts, mastery comparison and replay."
+      ],
+      "alternativeExplanations": ["VR novelty/hardware effect", "licensed music library", "spectator/social-video appeal", "fitness value", "strong audiovisual production"],
+      "expressionDependencies": ["music licensing/composition", "beatmap craft", "motion tracking latency", "haptics", "spatial visual readability"],
+      "transferHypotheses": ["The core timing-direction claim cannot be validated by mouse/keyboard substitution; a lawful VR micro-beatmap is the minimum experiential carrier."],
+      "smallestFalsifiableBaseline": "One 60-90 second original-audio VR beatmap with color/direction notes, dodge obstacles and immediate haptic/visual timing feedback.",
+      "baselineFalsifier": "If directional embodied mapping does not improve timing anticipation, motor learning or replay desire versus a matched non-spatial rhythm control, the transfer is weak.",
+      "directPlayStanding": "PENDING_DIRECT_PLAY_HARDWARE"
+    }
+  ],
+  "crossReferenceFindings": [
+    "Successful products repeatedly combine a compact player-action grammar with a much larger context system; the context system differs by archetype.",
+    "Persistent success is often multiplexed: core interaction, content scale, social network, live ops, brand/IP and expression quality must remain separate causal candidates.",
+    "Several large products can be reduced to small causal experiments without treating the reduced experiment as a product clone.",
+    "Embodied feel, driving feel, combat timing, tension, agency and attachment remain experiential claims and are still unverified here."
+  ],
+  "nextStanding": {
+    "R1DeskTeardown": "COMPLETE_WAVE1",
+    "R1DirectPlay": "PENDING",
+    "R2BaselineReproduction": "NOT_ADMITTED",
+    "ProductSelected": false,
+    "G0Entered": false
+  }
+}

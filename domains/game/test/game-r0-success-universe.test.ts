@@ -118,5 +118,6 @@ test("current repository authority points to success universe and reference stac
   assert.equal(oldR0.standing, "SUPERSEDED_AS_R1_ADMISSION");
   assert.equal(oldR0.r1Admitted, false);
   assert.deepEqual(oldR0.cheapBaselineSet, ["Balatro", "Vampire Survivors", "Mini Metro"]);
-  assert.match(readme, /first broad R1 \*\*reference-teardown-only\*\* wave/);
+  assert.match(readme, /GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911\.md/);
+  assert.match(readme, /R1 desk teardown/i);
 });
