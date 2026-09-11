@@ -14,7 +14,7 @@ DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
 
 
-def test_official_mcp_v2_exposes_only_r1_surface_and_runs_vertical_slice() -> None:
+def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice() -> None:
     assert DSN is not None
     HostV2(DSN).initialize()
     task_id = f"task:v2:mcp:{uuid4().hex}"
@@ -25,17 +25,25 @@ def test_official_mcp_v2_exposes_only_r1_surface_and_runs_vertical_slice() -> No
             names = {tool.name for tool in listed.tools}
             assert names == {
                 "host.status",
+                "attention.delta",
+                "board.list",
+                "board.search",
+                "board.post",
+                "news.list",
+                "news.read",
+                "news.publish",
+                "task.observe",
                 "task.list",
+                "task.resume",
                 "task.adopt",
                 "task.checkpoint",
-                "task.resume",
             }
             adopted = await client.call_tool(
                 "task.adopt",
                 {
-                    "task_id": task_id,
-                    "checkpoint": {"objective": "mcp-v2", "frontier": "created"},
-                    "client_request_id": f"adopt:{task_id}",
+                    "taskId": task_id,
+                    "goalId": "goal:mcp-v2",
+                    "initialCheckpoint": {"objective": "mcp-v2", "frontier": "created"},
                 },
             )
             assert adopted.is_error is False
@@ -45,17 +53,16 @@ def test_official_mcp_v2_exposes_only_r1_surface_and_runs_vertical_slice() -> No
             updated = await client.call_tool(
                 "task.checkpoint",
                 {
-                    "task_id": task_id,
-                    "expected_revision": 1,
+                    "taskId": task_id,
+                    "expectedRevision": 1,
                     "checkpoint": {"objective": "mcp-v2", "frontier": "resumable"},
-                    "client_request_id": f"cp:{task_id}",
                 },
             )
             assert updated.is_error is False
-            resumed = await client.call_tool("task.resume", {"task_id": task_id})
+            resumed = await client.call_tool("task.resume", {"taskId": task_id})
             assert resumed.is_error is False
             assert resumed.structured_content is not None
-            assert resumed.structured_content["revision"] == 2
+            assert resumed.structured_content["task"]["revision"] == 2
             assert resumed.structured_content["checkpoint"]["frontier"] == "resumable"
 
     asyncio.run(scenario())
