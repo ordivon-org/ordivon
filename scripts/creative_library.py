@@ -22,7 +22,11 @@ DEFAULT_ARCHIVE_JSON = Path("artifacts/creative-archive/historical-works-r2-sour
 DEFAULT_DERIVED_MANIFEST = Path("artifacts/creative-library/derived/manifest-v1.json")
 DEFAULT_CATALOG = Path("artifacts/creative-library/catalog-v1.json")
 
-KIND_EXTENSIONS = {
+# Presentation-only routing hints. These suffix mappings are deliberately NOT
+# preservation format identification. PRONOM/Siegfried (or another external
+# preservation identifier) owns format identity; this table only selects a
+# reasonable browser presentation path when rendering the local library.
+PRESENTATION_KIND_EXTENSIONS = {
     "image": {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"},
     "audio": {".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac"},
     "video": {".mp4", ".webm", ".mov", ".mkv"},
@@ -49,9 +53,10 @@ MIME_OVERRIDES = {
 }
 
 
-def classify(path: str) -> str:
+def presentation_kind(path: str) -> str:
+    """Return a UI dispatch hint, never a preservation format identity."""
     ext = PurePosixPath(path).suffix.lower()
-    for kind, extensions in KIND_EXTENSIONS.items():
+    for kind, extensions in PRESENTATION_KIND_EXTENSIONS.items():
         if ext in extensions:
             return kind
     return "other"
@@ -142,7 +147,7 @@ def git_tree(repo: str, revision: str, source_path: str) -> tuple[str, list[dict
             "gitPath": path,
             "objectId": entry["objectId"],
             "size": entry["size"],
-            "kind": classify(path),
+            "kind": presentation_kind(path),
         })
     return base, carriers
 
