@@ -1,0 +1,36 @@
+version: '3'
+
+tasks:
+  validate:
+    desc: Validate all R0 configs without starting the stack
+    cmds:
+      - sing-box check -c config/sing-box/direct.json
+      - docker compose -f lab/compose.yml config -q
+
+  observe:up:
+    desc: Start blackbox exporter, Prometheus and Toxiproxy
+    cmds:
+      - docker compose -f lab/compose.yml up -d
+
+  observe:down:
+    cmds:
+      - docker compose -f lab/compose.yml down -v
+
+  observe:smoke:
+    desc: Require blackbox HTTP probe success and Prometheus health
+    cmds:
+      - curl --fail --silent 'http://127.0.0.1:29115/probe?module=http_2xx&target=https%3A%2F%2Fexample.com%2F' | grep '^probe_success 1$'
+      - curl --fail --silent http://127.0.0.1:29090/-/healthy
+
+  lab:deploy:
+    cmds:
+      - containerlab deploy -t lab/topologies/smoke.clab.yml
+
+  lab:destroy:
+    cmds:
+      - containerlab destroy -t lab/topologies/smoke.clab.yml --cleanup
+
+  perf:host-smoke:
+    cmds:
+      - iperf3 --version
+      - mtr --version

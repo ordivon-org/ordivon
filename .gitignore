@@ -1,0 +1,4 @@
+.state/
+.secrets/
+*.log
+lab/.generated/
