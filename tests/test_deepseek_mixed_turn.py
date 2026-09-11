@@ -111,6 +111,12 @@ def response(*calls: tuple[str, str, dict[str, object]]) -> bytes:
 
 
 class DeepSeekMixedTurnTests(unittest.TestCase):
+    def test_default_request_model_is_current_canonical_but_legacy_remains_explicit(self) -> None:
+        current = DeepSeekSettings(api_key="k" * 40)
+        self.assertEqual(current.model, "deepseek-flash")
+        legacy = DeepSeekSettings(api_key="k" * 40, model="deepseek-v4-flash")
+        self.assertEqual(legacy.model, "deepseek-v4-flash")
+
     def test_adapter_marks_mixed_tool_and_conclusion_as_model_correctable(self) -> None:
         mixed = response(
             ("call:observe", "observe_fact", {"key": "x"}),

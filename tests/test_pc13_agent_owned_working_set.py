@@ -356,7 +356,11 @@ class AgentOwnedWorkingSetTests(unittest.TestCase):
                     )
                 )
                 adapter = DeepSeekTurnAdapter(
-                    DeepSeekSettings(api_key="k" * 40, max_output_tokens=512),
+                    DeepSeekSettings(
+                        api_key="k" * 40,
+                        model=run_contract.requested_model_id,
+                        max_output_tokens=512,
+                    ),
                     transport=transport,
                 )
                 loop = OrdivonAgentLoop(
