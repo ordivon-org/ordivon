@@ -44,3 +44,15 @@ A passing positive without a rejecting negative is not sufficient evidence.
 R1 technical probe -> R2 real `runtime-introduction` master -> R3 timed-text/OTIO migration -> R4 asset authority migration -> R5 external review consumer -> R6 provider-native distribution/readback -> legacy deletion proof.
 
 No legacy implementation is admitted into v2 merely for parity convenience.
+
+## Repository entry points
+
+The repository now exposes the v2 path directly:
+
+```bash
+pnpm media:v2:smoke
+pnpm media:v2:render:introduction
+pnpm media:v2:probe:introduction
+```
+
+`media:v2:render:introduction` composes the existing mature Remotion backend with the new external evidence gate. It does not invoke legacy `ordivon-studio qc-video`, `normalize-h264-bt709`, review packets, or perception code.
