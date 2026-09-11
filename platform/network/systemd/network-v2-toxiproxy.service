@@ -1,0 +1,17 @@
+[Unit]
+Description=Network v2 Toxiproxy fault injector
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/toxiproxy-server -host 127.0.0.1 -port 28474
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

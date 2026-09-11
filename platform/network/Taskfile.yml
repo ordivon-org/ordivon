@@ -2,35 +2,26 @@ version: '3'
 
 tasks:
   validate:
-    desc: Validate all R0 configs without starting the stack
     cmds:
       - sing-box check -c config/sing-box/direct.json
-      - docker compose -f lab/compose.yml config -q
+      - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
+      - promtool check config config/prometheus/prometheus.yml
 
-  observe:up:
-    desc: Start blackbox exporter, Prometheus and Toxiproxy
+  smoke:direct:
     cmds:
-      - docker compose -f lab/compose.yml up -d
+      - ./tests/direct-chain-smoke.sh
 
-  observe:down:
+  smoke:observe:
     cmds:
-      - docker compose -f lab/compose.yml down -v
+      - ./tests/observation-smoke.sh
 
-  observe:smoke:
-    desc: Require blackbox HTTP probe success and Prometheus health
+  smoke:toxiproxy:
     cmds:
-      - curl --fail --silent 'http://127.0.0.1:29115/probe?module=http_2xx&target=https%3A%2F%2Fexample.com%2F' | grep '^probe_success 1$'
-      - curl --fail --silent http://127.0.0.1:29090/-/healthy
+      - ./tests/toxiproxy-smoke.sh
 
-  lab:deploy:
+  lab:netns:
     cmds:
-      - containerlab deploy -t lab/topologies/smoke.clab.yml
+      - ./tests/netns-smoke.sh
 
-  lab:destroy:
-    cmds:
-      - containerlab destroy -t lab/topologies/smoke.clab.yml --cleanup
-
-  perf:host-smoke:
-    cmds:
-      - iperf3 --version
-      - mtr --version
+  test:r0:
+    deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]

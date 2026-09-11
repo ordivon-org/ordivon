@@ -9,23 +9,25 @@ Greenfield network substrate built from mature external projects. It has zero ru
 3. Tests precede Ordivon-specific abstraction.
 4. Production data plane and test/observation planes stay separable.
 5. New custom network daemons are forbidden in R0.
+6. Unsupported host capabilities are recorded, not hidden behind compatibility shims.
 
-## R0 components
+## R0 local candidate
 
-- sing-box 1.14.x — data plane
-- Gluetun 3.41.x — Surfshark provider adapter (candidate; must earn permanence)
-- AdGuard dnsproxy 0.84.x — DNS carrier
-- Prometheus 3.13.x LTS — evidence time series
-- blackbox_exporter 0.28.x — black-box probes
-- Docker Engine — laboratory runtime
-- containerlab 0.77.x — declarative network laboratory
-- Toxiproxy 2.12.x — L4 fault injection
-- Linux tc/netem — packet impairment
-- iperf3 3.21, curl, mtr, tcpdump — measurement/diagnostics
-- bpftrace 0.26.x — deep forensic tool
+- sing-box — data plane
+- AdGuard dnsproxy — DNS carrier
+- blackbox_exporter — black-box measurement
+- Prometheus — evidence time series
+- Toxiproxy — deterministic L4 fault injection
+- Linux network namespaces + veth — local controlled topology
+- iperf3, curl, mtr, tcpdump — measurement/diagnostics
+- bpftrace — deep forensic tool
 
-## First acceptance gates
+## Reference full-fidelity lab
 
-`config -> syntax -> isolated smoke -> fault injection -> recovery -> performance -> soak -> reboot -> independent falsification`.
+A later standard-Linux runner will test containerlab + Docker + tc/netem. No unvalidated containerlab/Docker configuration is shipped in R0 because this WSL2 kernel cannot satisfy those kernel requirements.
+
+## Acceptance path
+
+`syntax -> isolated smoke -> observation -> L4 fault injection -> controlled topology/performance -> recovery -> full-fidelity Linux lab -> provider paths -> soak -> reboot -> independent falsification`.
 
 Legacy migration is explicitly out of scope until the new stack independently graduates.
