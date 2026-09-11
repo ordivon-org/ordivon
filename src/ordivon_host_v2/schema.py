@@ -41,9 +41,11 @@ CREATE TABLE IF NOT EXISTS command_receipts (
     client_request_id text PRIMARY KEY,
     operation text NOT NULL,
     request_digest text NOT NULL,
-    response jsonb NOT NULL,
+    response jsonb,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
+
+ALTER TABLE command_receipts ALTER COLUMN response DROP NOT NULL;
 
 CREATE INDEX IF NOT EXISTS tasks_state_updated_idx ON tasks(state, updated_at DESC, task_id);
 """
