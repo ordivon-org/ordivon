@@ -7,6 +7,12 @@ from mcp.server import MCPServer
 
 from .board import BoardStore
 from .canonical import canonical_digest
+from .checkpoint_contract import (
+    WorkingCheckpointInput,
+    WorkingCheckpointUpdate,
+    merge_checkpoint_update,
+    validate_full_checkpoint,
+)
 from .models import CheckpointInput, TaskState
 from .news import NewsStore
 from .service import HostV2
@@ -175,20 +181,21 @@ def build_server(dsn: str | None = None) -> MCPServer:
     def task_adopt(
         taskId: str,
         goalId: str,
-        initialCheckpoint: dict[str, Any],
+        initialCheckpoint: WorkingCheckpointInput,
         writerLabel: str | None = None,
     ) -> dict[str, Any]:
         """Create or recover one external-continuity task and initial checkpoint."""
+        initial = validate_full_checkpoint(taskId, initialCheckpoint)
         request = {
             "taskId": taskId,
             "goalId": goalId,
-            "initialCheckpoint": initialCheckpoint,
+            "initialCheckpoint": initial,
             "writerLabel": writerLabel,
         }
         result = service.adopt(
             task_id=taskId,
             goal_id=goalId,
-            checkpoint=CheckpointInput(payload=initialCheckpoint, writer_label=writerLabel),
+            checkpoint=CheckpointInput(payload=initial, writer_label=writerLabel),
             client_request_id=_request_id("task-adopt", request),
         )
         return {
@@ -205,7 +212,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
     def task_checkpoint(
         taskId: str,
         expectedRevision: int,
-        checkpoint: dict[str, Any],
+        checkpoint: WorkingCheckpointUpdate,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
         writerLabel: str | None = None,
     ) -> dict[str, Any]:
@@ -215,17 +222,29 @@ def build_server(dsn: str | None = None) -> MCPServer:
             "complete": TaskState.COMPLETED,
             "abandon": TaskState.ABANDONED,
         }[continuityDisposition]
+        if checkpoint and not any(
+            marker in checkpoint for marker in ("schemaVersion", "kind", "truthRole", "taskId")
+        ):
+            base = service.resume(taskId, expectedRevision).checkpoint
+        else:
+            base = {}
+        normalized = merge_checkpoint_update(
+            task_id=taskId,
+            base=base,
+            update=checkpoint,
+            terminal=continuityDisposition != "continue",
+        )
         request = {
             "taskId": taskId,
             "expectedRevision": expectedRevision,
-            "checkpoint": checkpoint,
+            "checkpoint": normalized,
             "continuityDisposition": continuityDisposition,
             "writerLabel": writerLabel,
         }
         result = service.checkpoint(
             task_id=taskId,
             expected_revision=expectedRevision,
-            checkpoint=CheckpointInput(payload=checkpoint, writer_label=writerLabel),
+            checkpoint=CheckpointInput(payload=normalized, writer_label=writerLabel),
             client_request_id=_request_id("task-checkpoint", request),
             state=state,
         )
