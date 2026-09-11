@@ -1,0 +1,14 @@
+{
+  "artifact": null,
+  "carrier": {
+    "accountRef": "repo:ordivon-org/ordivon-runtime",
+    "adapter": "github-rest-write",
+    "provider": "github"
+  },
+  "effect": {
+    "name": "create_issue"
+  },
+  "intentId": "r3-github-create-issue-preflight-20260911",
+  "occurrenceRef": "sha256:d597665d8c02216099acdd4c9aa06991dd1256e4e0a56b0b2a4951ee3724fa5e",
+  "schemaVersion": 2
+}
