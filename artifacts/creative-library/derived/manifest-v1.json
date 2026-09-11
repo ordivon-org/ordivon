@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.derived-preview-manifest",
+  "rows": [
+    {
+      "workId": "game:look-away-garden",
+      "path": "artifacts/creative-library/derived/game--look-away-garden.png",
+      "sha256": "sha256:f9ac2b3fb7addcaa22db4c0d9e01c2fdc393d82ec953476e27dd4b831510af32",
+      "mediaType": "image/png",
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+    },
+    {
+      "workId": "game:seen-not-approved-pcb",
+      "path": "artifacts/creative-library/derived/game--seen-not-approved-pcb.svg",
+      "sha256": "sha256:9f0e08b906654dbae81db7ae9b501d435326a29823659cacb4908ace51a6f5be",
+      "mediaType": "image/svg+xml",
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "provenanceReceipt": "artifacts/creative-library/derived/kicad-derived-preview-r1.json"
+    },
+    {
+      "workId": "game:signal-garden-evidence-petals",
+      "path": "artifacts/creative-library/derived/game--signal-garden-evidence-petals.png",
+      "sha256": "sha256:b9adf5f2942c5de9801824bf89043945f373ed6217df8eae7d9ef61c7a1ce154",
+      "mediaType": "image/png",
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+    },
+    {
+      "workId": "game:three-color-night-shift",
+      "path": "artifacts/creative-library/derived/game--three-color-night-shift.png",
+      "sha256": "sha256:d0fbfcb6a57c076a9bcd62ebe5aa3d51ecb0aeb115b8d55d70edffe29c33017a",
+      "mediaType": "image/png",
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+    },
+    {
+      "workId": "media:alignment-field",
+      "path": "artifacts/creative-library/derived/media--alignment-field.png",
+      "sha256": "sha256:f2e652a2cd1a6a343ca101f2aa22953c38dec261b62afca3d47d0dc20c7aef62",
+      "mediaType": "image/png",
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+    },
+    {
+      "workId": "workstation:signal-garden-cam-encoder",
+      "path": "artifacts/creative-library/derived/workstation--signal-garden-cam-encoder.png",
+      "sha256": "sha256:014c0da6e1e18c485ae74786d2ffd89a2c180b26e9b81ac3bee09539ee062c54",
+      "mediaType": "image/png",
+      "standing": "DERIVED_CROSS_WORK_EXACT_GEOMETRY_PREVIEW",
+      "provenanceReceipt": "artifacts/creative-library/derived/cad-cross-work-derived-preview-r1.json"
+    }
+  ],
+  "truthBoundary": "Derived previews are separate projections. They never become original work carriers or strengthen physical/Human/artistic standing."
+}

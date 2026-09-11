@@ -129,3 +129,56 @@ class CreativeLibraryHttpTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
+
+
+class CreativeLibraryDerivedPreviewTests(unittest.TestCase):
+    def test_committed_derived_manifest_is_digest_bound(self):
+        previews = creative_library.load_derived_previews(creative_library.DEFAULT_DERIVED_MANIFEST)
+        self.assertEqual(len(previews), 6)
+        self.assertEqual(previews["game:seen-not-approved-pcb"]["mediaType"], "image/svg+xml")
+        self.assertTrue(all(value["standing"].startswith("DERIVED_") for value in previews.values()))
+
+    def test_derived_endpoint_is_separate_digest_checked_and_svg_sandboxed(self):
+        import http.client
+        import threading
+        import urllib.parse
+
+        preview = creative_library.load_derived_previews(creative_library.DEFAULT_DERIVED_MANIFEST)["game:seen-not-approved-pcb"]
+        work = {"workId": "game:seen-not-approved-pcb", "carriers": [], "derivedPreview": preview}
+        catalog = {"catalogDigest": "test", "works": [work], "relations": []}
+        server = creative_library.LibraryServer(("127.0.0.1", 0), catalog)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            wid = urllib.parse.quote(work["workId"], safe="")
+            conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            conn.request("GET", f"/derived/{wid}")
+            res = conn.getresponse()
+            body = res.read()
+            self.assertEqual(res.status, 200)
+            self.assertEqual(res.getheader("X-Ordivon-Preview-Standing"), preview["standing"])
+            self.assertIn("sandbox", res.getheader("Content-Security-Policy") or "")
+            self.assertEqual("sha256:" + __import__("hashlib").sha256(body).hexdigest(), preview["sha256"])
+            conn.close()
+
+            bad = dict(preview)
+            bad["sha256"] = "sha256:" + "0" * 64
+            bad_catalog = {"catalogDigest": "test", "works": [{"workId": work["workId"], "carriers": [], "derivedPreview": bad}], "relations": []}
+            bad_server = creative_library.LibraryServer(("127.0.0.1", 0), bad_catalog)
+            bad_thread = threading.Thread(target=bad_server.serve_forever, daemon=True)
+            bad_thread.start()
+            try:
+                bad_conn = http.client.HTTPConnection("127.0.0.1", bad_server.server_port, timeout=5)
+                bad_conn.request("GET", f"/derived/{wid}")
+                bad_res = bad_conn.getresponse()
+                self.assertEqual(bad_res.status, 409)
+                bad_res.read()
+                bad_conn.close()
+            finally:
+                bad_server.shutdown()
+                bad_server.server_close()
+                bad_thread.join(timeout=5)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)

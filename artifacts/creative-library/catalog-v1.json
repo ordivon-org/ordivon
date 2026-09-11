@@ -55,6 +55,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -249,6 +250,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -428,6 +430,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -494,6 +497,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -553,6 +557,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -614,6 +619,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -787,6 +793,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -974,6 +981,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -1280,6 +1288,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -1409,6 +1418,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -1469,6 +1479,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -1535,6 +1546,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -1594,6 +1606,13 @@
         "objectId": "95da534ea5cf2c967ae755cf8173fa0a76c4ea3c",
         "size": null,
         "kind": "text"
+      },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/game--look-away-garden.png",
+        "sha256": "sha256:f9ac2b3fb7addcaa22db4c0d9e01c2fdc393d82ec953476e27dd4b831510af32",
+        "mediaType": "image/png",
+        "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+        "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
       },
       "carriers": [
         {
@@ -1661,6 +1680,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -1722,6 +1742,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -1825,6 +1846,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -2022,6 +2044,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "one-button-gets-tired.py",
@@ -2068,6 +2091,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -2148,6 +2172,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -2209,6 +2234,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "ACTIVATED_E2E_SUBGRAPH_R1.json",
@@ -3718,6 +3744,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -3784,6 +3811,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -3844,6 +3872,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -3918,6 +3947,13 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/game--seen-not-approved-pcb.svg",
+        "sha256": "sha256:9f0e08b906654dbae81db7ae9b501d435326a29823659cacb4908ace51a6f5be",
+        "mediaType": "image/svg+xml",
+        "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+        "provenanceReceipt": "artifacts/creative-library/derived/kicad-derived-preview-r1.json"
+      },
       "carriers": [
         {
           "relativePath": "README.md",
@@ -3972,6 +4008,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -4066,6 +4103,13 @@
         "objectId": "8c9c4c6253a511104fc9e73a30f81e2b958e56c8",
         "size": null,
         "kind": "text"
+      },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/game--signal-garden-evidence-petals.png",
+        "sha256": "sha256:b9adf5f2942c5de9801824bf89043945f373ed6217df8eae7d9ef61c7a1ce154",
+        "mediaType": "image/png",
+        "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+        "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
       },
       "carriers": [
         {
@@ -4163,6 +4207,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -4285,6 +4330,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "api.js",
@@ -4449,6 +4495,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -4508,6 +4555,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "app.js",
@@ -4567,6 +4615,13 @@
         "objectId": "5cf859bc089d5421bc1fabdf83bf0d416aa1ad0d",
         "size": null,
         "kind": "text"
+      },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/game--three-color-night-shift.png",
+        "sha256": "sha256:d0fbfcb6a57c076a9bcd62ebe5aa3d51ecb0aeb115b8d55d70edffe29c33017a",
+        "mediaType": "image/png",
+        "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+        "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
       },
       "carriers": [
         {
@@ -4650,6 +4705,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -4763,6 +4819,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "words-left-in-the-lift.py",
@@ -4809,6 +4866,7 @@
         "size": null,
         "kind": "pdf"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "0919-office-talisman.pdf",
@@ -4870,6 +4928,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -4965,6 +5024,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -5081,6 +5141,13 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/media--alignment-field.png",
+        "sha256": "sha256:f2e652a2cd1a6a343ca101f2aa22953c38dec261b62afca3d47d0dc20c7aef62",
+        "mediaType": "image/png",
+        "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+        "provenanceReceipt": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+      },
       "carriers": [
         {
           "relativePath": "README.md",
@@ -5169,6 +5236,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -5244,6 +5312,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -5387,6 +5456,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -5476,6 +5546,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -6389,6 +6460,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "blender-exit-zero.png",
@@ -6435,6 +6507,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -6572,6 +6645,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -6687,6 +6761,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "claims.json",
@@ -6761,6 +6836,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -6884,6 +6960,7 @@
         "size": 1260359,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -6986,6 +7063,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -7116,6 +7194,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -7212,6 +7291,7 @@
         "size": null,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -7391,6 +7471,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -7443,6 +7524,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -7531,6 +7613,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -7654,6 +7737,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -7777,6 +7861,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -7914,6 +7999,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -8051,6 +8137,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -8126,6 +8213,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -8256,6 +8344,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -8379,6 +8468,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -8510,6 +8600,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -8689,6 +8780,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -8806,6 +8898,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -8965,6 +9058,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -9138,6 +9232,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -9240,6 +9335,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -9363,6 +9459,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -9487,6 +9584,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -9617,6 +9715,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -9740,6 +9839,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -9856,6 +9956,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -9971,6 +10072,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -10017,6 +10119,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -10133,6 +10236,7 @@
         "size": 1038920,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -10202,6 +10306,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -10339,6 +10444,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -10469,6 +10575,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -10593,6 +10700,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -11004,6 +11112,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -11190,6 +11299,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -11306,6 +11416,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -11372,6 +11483,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -11425,6 +11537,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -11541,6 +11654,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -11659,6 +11773,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -11803,6 +11918,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -11918,6 +12034,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "assembly-preview.png",
@@ -11964,6 +12081,7 @@
         "size": 1382444,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -12030,6 +12148,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "claims.json",
@@ -12131,6 +12250,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "assembly-preview.png",
@@ -12177,6 +12297,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -12301,6 +12422,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "CONSUMER.md",
@@ -12437,6 +12559,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "nine-ways-a-door-can-almost-open.png",
@@ -12491,6 +12614,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -12615,6 +12739,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -12710,6 +12835,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -12826,6 +12952,7 @@
         "size": 3456044,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -12885,6 +13012,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "first-pass.md",
@@ -12932,6 +13060,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -13006,6 +13135,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "SOURCES.md",
@@ -13059,6 +13189,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -13181,6 +13312,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "book.mdx",
@@ -13360,6 +13492,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -13448,6 +13581,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -13536,6 +13670,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -13652,6 +13787,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -13774,6 +13910,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -13848,6 +13985,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -13966,6 +14104,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -14132,6 +14271,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -14422,6 +14562,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -14503,6 +14644,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -14619,6 +14761,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -14734,6 +14877,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "DOGFOOD.md",
@@ -14822,6 +14966,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -14951,6 +15096,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "board-front.png",
@@ -14997,6 +15143,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15071,6 +15218,7 @@
         "size": null,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15131,6 +15279,7 @@
         "size": null,
         "kind": "pdf"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15191,6 +15340,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -15314,6 +15464,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15430,6 +15581,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15552,6 +15704,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15639,6 +15792,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "relay-moth.gif",
@@ -15684,6 +15838,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15744,6 +15899,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -15860,6 +16016,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -15984,6 +16141,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16057,6 +16215,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16145,6 +16304,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16232,6 +16392,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16320,6 +16481,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -16450,6 +16612,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -16558,6 +16721,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16729,6 +16893,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16803,6 +16968,7 @@
         "size": null,
         "kind": "pdf"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -16863,6 +17029,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -16980,6 +17147,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -17041,6 +17209,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -17111,6 +17280,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -17271,6 +17441,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -17381,6 +17552,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -17553,6 +17725,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -17676,6 +17849,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -17806,6 +17980,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -17936,6 +18111,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -17996,6 +18172,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "CONSUMER.md",
@@ -18101,6 +18278,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -18350,6 +18528,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -18453,6 +18632,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -18548,6 +18728,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -18601,6 +18782,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -18661,6 +18843,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "CONSUMER.md",
@@ -18755,6 +18938,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "story.md",
@@ -18802,6 +18986,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -18897,6 +19082,7 @@
         "size": null,
         "kind": "pdf"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "SOURCES.md",
@@ -18957,6 +19143,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -19073,6 +19260,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -19182,6 +19370,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -19298,6 +19487,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -19512,6 +19702,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -19573,6 +19764,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -19738,6 +19930,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -19867,6 +20060,7 @@
         "size": 1269882,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "poster.png",
@@ -19922,6 +20116,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -20053,6 +20248,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -20155,6 +20351,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -20271,6 +20468,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -20358,6 +20556,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "a-better-looking-result-can-still-be-noise.mdx",
@@ -20405,6 +20604,7 @@
         "size": 6824900,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -20492,6 +20692,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -20540,6 +20741,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "demo.png",
@@ -20613,6 +20815,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "communication-is-gameplay-state.mdx",
@@ -20658,6 +20861,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "correctness-is-not-isolation.mdx",
@@ -20703,6 +20907,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "creation-judgment-recoverable-systems.mdx",
@@ -20749,6 +20954,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -20801,6 +21007,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -20846,6 +21053,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -20891,6 +21099,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "link-edge-boundary.mdx",
@@ -20936,6 +21145,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "from-tokens-to-work.mdx",
@@ -20981,6 +21191,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "history-did-not-prove-us-right.mdx",
@@ -21024,6 +21235,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "jellyfish-tea.py",
@@ -21067,6 +21279,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "kinetic-balance.py",
@@ -21112,6 +21325,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -21158,6 +21372,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "demo.png",
@@ -21210,6 +21425,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "one-authority-thirteen-tables.mdx",
@@ -21255,6 +21471,7 @@
         "size": 1728044,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "orbit-chime.wav",
@@ -21300,6 +21517,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "runtime-after-core.mdx",
@@ -21345,6 +21563,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "ordivon-runtime-release.mdx",
@@ -21391,6 +21610,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "balance-field-card.html",
@@ -21441,6 +21661,7 @@
         "size": null,
         "kind": "source"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "kinetic-balance-desk-toy.py",
@@ -21486,6 +21707,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "afterglow-dial.html",
@@ -21531,6 +21753,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "foreground-without-ranking.html",
@@ -21576,6 +21799,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "one-person-different-relations.html",
@@ -21621,6 +21845,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "replay-without-second-truth-store.mdx",
@@ -21666,6 +21891,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -21711,6 +21937,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -21756,6 +21983,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "smaller-core-strong-baselines.mdx",
@@ -21801,6 +22029,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "station-zero-alpha-1.mdx",
@@ -21846,6 +22075,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-agent-asked-for-more-evidence-the-answer-became-no.mdx",
@@ -21891,6 +22121,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "index.html",
@@ -21936,6 +22167,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-agent-knew-the-goal-it-still-wouldnt-do-it.mdx",
@@ -21981,6 +22213,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-command-succeeded-did-anything-happen.mdx",
@@ -22026,6 +22259,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-constitution-changed-the-agent-that-wasnt-enough.mdx",
@@ -22071,6 +22305,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-decision-was-valid-the-portfolio-changed.mdx",
@@ -22116,6 +22351,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-evidence-is-real-it-is-still-too-old.mdx",
@@ -22161,6 +22397,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-future-will-not-wait.mdx",
@@ -22206,6 +22443,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-model-finished-the-protocol-wasnt-done.mdx",
@@ -22251,6 +22489,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-office-is-thinking.txt",
@@ -22296,6 +22535,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-patterns-recurred-our-taxonomy-got-worse.mdx",
@@ -22341,6 +22581,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "the-shorter-explanation-won.mdx",
@@ -22386,6 +22627,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "thin-host-without-hidden-planner.mdx",
@@ -22431,6 +22673,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "transcript-not-task-database.mdx",
@@ -22476,6 +22719,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "unknown-is-a-state.html",
@@ -22521,6 +22765,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "unknown-is-operational-state.mdx",
@@ -22566,6 +22811,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "we-cut-203-observations-to-8-and-still-didnt-edit.mdx",
@@ -22611,6 +22857,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "we-deleted-16-8-gb-not-because-it-was-old.mdx",
@@ -22656,6 +22903,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "we-sorted-the-evidence-accuracy-got-worse.mdx",
@@ -22701,6 +22949,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "what-h1-h5-proved.mdx",
@@ -22746,6 +22995,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "why-ordivon.mdx",
@@ -22791,6 +23041,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "why-ordivon-needs-a-harness.mdx",
@@ -22836,6 +23087,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "host-task-continuity.mdx",
@@ -22881,6 +23133,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "winning-move-loses-contest.mdx",
@@ -22926,6 +23179,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "world-got-smaller-and-got-clearer.mdx",
@@ -22973,6 +23227,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23118,6 +23373,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23310,6 +23566,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "braid-equivalence-card-v0.png",
@@ -23357,6 +23614,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23487,6 +23745,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23617,6 +23876,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23754,6 +24014,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23870,6 +24131,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -23980,6 +24242,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -24125,6 +24388,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": ".gitignore",
@@ -24312,6 +24576,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -24464,6 +24729,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -24602,6 +24868,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -24733,6 +25000,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -24899,6 +25167,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25057,6 +25326,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25187,6 +25457,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25325,6 +25596,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -25497,6 +25769,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25641,6 +25914,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25778,6 +26052,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -25895,6 +26170,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -26033,6 +26309,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -26235,6 +26512,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -26709,6 +26987,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -26853,6 +27132,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -26983,6 +27263,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27106,6 +27387,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27369,6 +27651,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27500,6 +27783,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -27652,6 +27936,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27781,6 +28066,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27855,6 +28141,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -27999,6 +28286,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -28116,6 +28404,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -28316,6 +28605,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -28419,6 +28709,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -28599,6 +28890,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -28791,6 +29083,7 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -28872,6 +29165,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -28968,6 +29262,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -29161,6 +29456,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -29286,6 +29582,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "build.py",
@@ -29535,6 +29832,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -29665,6 +29963,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -29741,6 +30040,7 @@
         "size": null,
         "kind": "html"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -29949,6 +30249,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -30079,6 +30380,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -30196,6 +30498,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -30368,6 +30671,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -30464,6 +30768,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -30602,6 +30907,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -30738,6 +31044,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "pcb-top-v0.png",
@@ -30784,6 +31091,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -30880,6 +31188,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -31066,6 +31375,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -31247,6 +31557,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -31609,6 +31920,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -31788,6 +32100,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -31911,6 +32224,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32069,6 +32383,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32208,6 +32523,7 @@
         "size": null,
         "kind": "video"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32401,6 +32717,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32538,6 +32855,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32627,6 +32945,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32820,6 +33139,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -32957,6 +33277,13 @@
         "size": null,
         "kind": "text"
       },
+      "derivedPreview": {
+        "path": "artifacts/creative-library/derived/workstation--signal-garden-cam-encoder.png",
+        "sha256": "sha256:014c0da6e1e18c485ae74786d2ffd89a2c180b26e9b81ac3bee09539ee062c54",
+        "mediaType": "image/png",
+        "standing": "DERIVED_CROSS_WORK_EXACT_GEOMETRY_PREVIEW",
+        "provenanceReceipt": "artifacts/creative-library/derived/cad-cross-work-derived-preview-r1.json"
+      },
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33081,6 +33408,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33304,6 +33632,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33469,6 +33798,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33600,6 +33930,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33773,6 +34104,7 @@
         "size": null,
         "kind": "audio"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -33924,6 +34256,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -34062,6 +34395,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "REPORT.md",
@@ -34213,6 +34547,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -34329,6 +34664,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -34467,6 +34803,7 @@
         "size": 1064785,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -34730,6 +35067,7 @@
         "size": null,
         "kind": "image"
       },
+      "derivedPreview": null,
       "carriers": [
         {
           "relativePath": "README.md",
@@ -35087,7 +35425,8 @@
     "workCount": 302,
     "carrierCount": 3288,
     "directPreviewWorks": 302,
+    "derivedPreviewCount": 6,
     "relationCount": 45
   },
-  "catalogDigest": "sha256:ccfb5a84d748f6ad05618bd8f2f09f348edbc05b6c4301816e23e2605aa1e1f3"
+  "catalogDigest": "sha256:ba53bb826b202262f44429794b2f640e4d466f67b91b69b3af7ef450103b8ad4"
 }

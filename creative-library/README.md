@@ -43,3 +43,11 @@ python3 scripts/creative_library.py serve \
 ```
 
 Then open `http://127.0.0.1:8765/`.
+
+## Derived previews
+
+R2 adds a separate digest-bound preview layer for historical engineering/game works whose exact source roots do not already contain a useful browser-native visual carrier. These previews are never inserted into the original `carriers` array. The catalog records them as `derivedPreview`, the server exposes them only through `/derived/<work-id>`, and the UI labels them **Derived preview**.
+
+The current derived manifest contains six projections: four deterministic Godot frame captures, one deterministic KiCad 2D SVG plot, and one cross-work CAD preview whose source work shares the exact same combined STEP Git blob. Every preview has a provenance receipt and SHA-256 fence under `artifacts/creative-library/derived/`.
+
+The KiCad 3D raytracer was explicitly rejected as the frozen preview path because independent runs were pixel-nondeterministic. The retained KiCad SVG export is byte-identical across repeats.

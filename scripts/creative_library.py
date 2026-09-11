@@ -15,8 +15,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
 SCHEMA_VERSION = 1
-WEB_ROOT = Path(__file__).resolve().parents[1] / "creative-library" / "web"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+WEB_ROOT = REPO_ROOT / "creative-library" / "web"
+DERIVED_ROOT = REPO_ROOT / "artifacts" / "creative-library" / "derived"
 DEFAULT_ARCHIVE_JSON = Path("artifacts/creative-archive/historical-works-r2-source-complete.json")
+DEFAULT_DERIVED_MANIFEST = Path("artifacts/creative-library/derived/manifest-v1.json")
 DEFAULT_CATALOG = Path("artifacts/creative-library/catalog-v1.json")
 
 KIND_EXTENSIONS = {
@@ -182,7 +185,55 @@ def load_archive(args: argparse.Namespace) -> dict:
         return json.load(fh)
 
 
-def build_catalog(archive: dict) -> dict:
+def _project_path(value: str | Path) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def load_derived_previews(path: str | Path | None) -> dict[str, dict]:
+    if not path:
+        return {}
+    manifest_path = _project_path(path)
+    if not manifest_path.exists():
+        return {}
+    value = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.creative-library.derived-preview-manifest":
+        raise RuntimeError("unexpected derived preview manifest kind/schema")
+    rows = value.get("rows")
+    if not isinstance(rows, list):
+        raise RuntimeError("derived preview manifest rows must be an array")
+    root = DERIVED_ROOT.resolve()
+    result: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise RuntimeError("derived preview row must be an object")
+        work_id = str(row.get("workId") or "")
+        relative = str(row.get("path") or "")
+        expected = str(row.get("sha256") or "")
+        media_type = str(row.get("mediaType") or "")
+        standing = str(row.get("standing") or "")
+        receipt = str(row.get("provenanceReceipt") or "")
+        if not work_id or work_id in result:
+            raise RuntimeError(f"missing or duplicate derived preview work id: {work_id!r}")
+        if not expected.startswith("sha256:") or len(expected) != 71:
+            raise RuntimeError(f"invalid derived preview digest for {work_id}")
+        if not media_type.startswith("image/"):
+            raise RuntimeError(f"derived preview must be an image for {work_id}")
+        candidate = _project_path(relative).resolve()
+        if not candidate.is_relative_to(root) or not candidate.is_file():
+            raise RuntimeError(f"derived preview path escapes or is missing for {work_id}: {relative}")
+        actual = "sha256:" + hashlib.sha256(candidate.read_bytes()).hexdigest()
+        if actual != expected:
+            raise RuntimeError(f"derived preview digest mismatch for {work_id}: expected {expected}, observed {actual}")
+        result[work_id] = {
+            "path": relative, "sha256": expected, "mediaType": media_type,
+            "standing": standing, "provenanceReceipt": receipt,
+        }
+    return result
+
+
+def build_catalog(archive: dict, derived_previews: dict[str, dict] | None = None) -> dict:
+    derived_previews = derived_previews or {}
     result_works: list[dict] = []
     total_carriers = 0
     direct_preview_works = 0
@@ -208,9 +259,13 @@ def build_catalog(archive: dict) -> dict:
             "featured": bool(source.get("featured")), "evidenceLevel": source.get("evidence_level"),
             "physicalStanding": source.get("physical_standing"), "humanStanding": source.get("human_standing"),
             "sourceKind": source.get("source_kind"), "modalities": modalities,
-            "carrierCount": len(carriers), "heroCarrier": hero, "launchCarrier": launch, "carriers": carriers,
+            "carrierCount": len(carriers), "heroCarrier": hero, "launchCarrier": launch,
+            "derivedPreview": derived_previews.get(source["work_id"]), "carriers": carriers,
         })
     result_works.sort(key=lambda w: (w["owner"], w["title"].casefold(), w["workId"]))
+    unknown_derived = sorted(set(derived_previews) - {w["workId"] for w in result_works})
+    if unknown_derived:
+        raise RuntimeError("derived preview references unknown work(s): " + ", ".join(unknown_derived))
     catalog_core = {
         "schemaVersion": SCHEMA_VERSION,
         "archiveStanding": archive.get("manifest", {}).get("standing", "UNKNOWN"),
@@ -219,7 +274,8 @@ def build_catalog(archive: dict) -> dict:
         "relations": archive.get("relations", []),
         "summary": {
             "workCount": len(result_works), "carrierCount": total_carriers,
-            "directPreviewWorks": direct_preview_works, "relationCount": len(archive.get("relations", [])),
+            "directPreviewWorks": direct_preview_works, "derivedPreviewCount": len(derived_previews),
+            "relationCount": len(archive.get("relations", [])),
         },
     }
     catalog_core["catalogDigest"] = canonical_digest(catalog_core)
@@ -276,6 +332,7 @@ class LibraryServer(ThreadingHTTPServer):
         self.catalog = catalog
         self.work_by_id = {w["workId"]: w for w in catalog["works"]}
         self.path_maps = {w["workId"]: {c["relativePath"]: c for c in w["carriers"]} for w in catalog["works"]}
+        self.derived_by_id = {w["workId"]: w["derivedPreview"] for w in catalog["works"] if w.get("derivedPreview")}
 
 
 class LibraryHandler(BaseHTTPRequestHandler):
@@ -367,6 +424,30 @@ class LibraryHandler(BaseHTTPRequestHandler):
         else:
             self._send_bytes(body, mime, etag=carrier["objectId"], extra=extra, head_only=head_only)
 
+    def _serve_derived(self, request_path: str, *, head_only: bool) -> None:
+        encoded = request_path[len("/derived/"):]
+        if not encoded or "/" in encoded:
+            self._error(400, "derived path requires exactly one work id", head_only=head_only)
+            return
+        work_id = unquote(encoded)
+        preview = self.server.derived_by_id.get(work_id)
+        if not preview:
+            self._error(404, "no derived preview for work", head_only=head_only)
+            return
+        candidate = _project_path(preview["path"]).resolve()
+        if not candidate.is_relative_to(DERIVED_ROOT.resolve()) or not candidate.is_file():
+            self._error(409, "derived preview path is unavailable", head_only=head_only)
+            return
+        body = candidate.read_bytes()
+        actual = "sha256:" + hashlib.sha256(body).hexdigest()
+        if actual != preview["sha256"]:
+            self._error(409, "derived preview digest mismatch", head_only=head_only)
+            return
+        extra: dict[str, str] = {"X-Ordivon-Preview-Standing": preview["standing"]}
+        if preview["mediaType"] == "image/svg+xml":
+            extra["Content-Security-Policy"] = "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+        self._send_bytes(body, preview["mediaType"], etag=actual.removeprefix("sha256:"), extra=extra, head_only=head_only)
+
     def _dispatch(self, *, head_only: bool) -> None:
         path = urlsplit(self.path).path
         if path == "/api/catalog":
@@ -375,6 +456,8 @@ class LibraryHandler(BaseHTTPRequestHandler):
             self._send_json({"status": "ok", "catalogDigest": self.server.catalog["catalogDigest"], "workCount": len(self.server.catalog["works"])}, head_only=head_only)
         elif path.startswith("/raw/"):
             self._serve_raw(path, head_only=head_only)
+        elif path.startswith("/derived/"):
+            self._serve_derived(path, head_only=head_only)
         elif path in {"/", "/index.html"}:
             self._serve_static("index.html", head_only=head_only)
         elif path == "/app.js":
@@ -393,7 +476,8 @@ class LibraryHandler(BaseHTTPRequestHandler):
 
 def cmd_build(args: argparse.Namespace) -> int:
     archive = load_archive(args)
-    catalog = build_catalog(archive)
+    derived_previews = load_derived_previews(args.derived_manifest)
+    catalog = build_catalog(archive, derived_previews)
     write_atomic_json(Path(args.output), catalog)
     print(json.dumps({"output": args.output, "catalogDigest": catalog["catalogDigest"], **catalog["summary"]}, ensure_ascii=False))
     return 0
@@ -427,6 +511,7 @@ def parser() -> argparse.ArgumentParser:
     b.add_argument("--pg-socket", default="/var/lib/postgres/ordivon-data-r5-pg-14550-v4")
     b.add_argument("--pg-port", type=int, default=55434)
     b.add_argument("--database", default="ordivon_assets")
+    b.add_argument("--derived-manifest", default=str(DEFAULT_DERIVED_MANIFEST), help="optional digest-bound derived-preview manifest")
     b.add_argument("--output", default=str(DEFAULT_CATALOG))
     b.set_defaults(func=cmd_build)
     s = sub.add_parser("serve", help="serve the local read-only gallery")

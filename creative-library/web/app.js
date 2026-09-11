@@ -8,6 +8,7 @@ const els = {
 };
 
 const rawUrl = (work, carrier) => `/raw/${encodeURIComponent(work.workId)}/${carrier.relativePath.split('/').map(encodeURIComponent).join('/')}`;
+const derivedUrl = work => `/derived/${encodeURIComponent(work.workId)}`;
 const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const humanSize = n => n == null ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${(n/1024).toFixed(1)} KB` : `${(n/1048576).toFixed(1)} MB`;
 
@@ -34,6 +35,9 @@ function card(work) {
   const hero = work.heroCarrier;
   if (hero && hero.kind === 'image') {
     const img = document.createElement('img'); img.loading='lazy'; img.alt=''; img.src=rawUrl(work, hero); thumb.append(img);
+  } else if (work.derivedPreview) {
+    const img = document.createElement('img'); img.loading='lazy'; img.alt=''; img.src=derivedUrl(work); thumb.append(img);
+    const badge=document.createElement('span'); badge.className='derived-badge'; badge.textContent='Derived preview'; thumb.append(badge);
   } else {
     const mark=document.createElement('div'); mark.className='kind-mark'; mark.textContent=(hero?.kind || work.modalities[0] || 'work').slice(0,6); thumb.append(mark);
   }
@@ -53,6 +57,7 @@ function applyFilters() {
   if (!state.filtered.length) els.grid.innerHTML='<div class="empty">No works match these filters.</div>';
 }
 function previewHtml(work) {
+  if (work.derivedPreview) return `<div class="derived-preview-wrap"><div class="derived-note">Derived preview · ${esc(work.derivedPreview.standing)}</div><div class="preview"><img src="${esc(derivedUrl(work))}" alt="Derived preview of ${esc(work.title)}"></div></div>`;
   const c=work.launchCarrier || work.heroCarrier;
   if (!c) return '<div class="preview"><div class="kind-mark">source</div></div>';
   const u=rawUrl(work,c);
@@ -72,7 +77,7 @@ function showDetail(work) {
     <header class="detail-head"><p class="eyebrow">${esc(work.owner)} · ${esc(work.room||'unroomed')}</p><h2>${esc(work.title)}</h2><p class="detail-id">${esc(work.workId)}</p></header>
     ${previewHtml(work)}
     <div class="fact-grid">
-      ${fact('Status',work.status)}${fact('Series',work.series)}${fact('Source revision',work.sourceRevision,true)}${fact('Source path',work.sourcePath,true)}${fact('Physical standing',work.physicalStanding)}${fact('Human standing',work.humanStanding)}
+      ${fact('Status',work.status)}${fact('Series',work.series)}${fact('Source revision',work.sourceRevision,true)}${fact('Source path',work.sourcePath,true)}${fact('Physical standing',work.physicalStanding)}${fact('Human standing',work.humanStanding)}${work.derivedPreview?fact('Preview standing',work.derivedPreview.standing):''}
     </div>
     ${relations.length?`<h3 class="section-title">Relations</h3><div class="carriers">${relations.map(r=>`<div class="carrier"><span class="type">${esc(r.relation_type)}</span><code>${esc(r.child_work_id===work.workId?r.parent_work_id:r.child_work_id)}</code><span class="size"></span></div>`).join('')}</div>`:''}
     <h3 class="section-title">Exact carriers · ${work.carrierCount}</h3>

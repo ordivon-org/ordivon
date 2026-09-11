@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.derived-preview",
+  "row": {
+    "workId": "workstation:signal-garden-cam-encoder",
+    "standing": "DERIVED_CROSS_WORK_EXACT_GEOMETRY_PREVIEW",
+    "sourceRepo": "/root/workstation-lab",
+    "sourceRevision": "4a33cf29f9537c9e7b1303a00db70c39b49ac62b",
+    "sourcePath": "design/daily/signal-garden-cam-encoder/v1/",
+    "sourceCarrier": "source/upstream-v2/signal-garden-cam-triptych-v2.step",
+    "sourceBlobObjectId": "e45645434f7ef7a501c71de1879ab67d2f900fc5",
+    "sourceCarrierSha256": "sha256:58189a06651918a6c57b08d9c9290ed6e2ca3de711ccd61d7a1391a1d856bf0a",
+    "previewSourceWorkId": "workstation:signal-garden-cam-triptych",
+    "previewSourceRevision": "fdc4756e2d0c0c28b68c0aff7b20bf0b2cced7a8",
+    "previewSourcePath": "design/daily/signal-garden-cam-triptych/v2/preview/overview-v2.png",
+    "previewSourceBlobObjectId": "bbac6bfcdfba4110fa35b232c43ac7fcba434755",
+    "previewGenerationEvidence": [
+      "design/daily/signal-garden-cam-triptych/v2/generate.py",
+      "design/daily/signal-garden-cam-triptych/v2/reproducibility-v2.json"
+    ],
+    "sharedGeometryPath": "design/daily/signal-garden-cam-triptych/v2/cad/signal-garden-cam-triptych-v2.step",
+    "sharedGeometryByteEqual": true,
+    "derivedPath": "artifacts/creative-library/derived/workstation--signal-garden-cam-encoder.png",
+    "sha256": "sha256:014c0da6e1e18c485ae74786d2ffd89a2c180b26e9b81ac3bee09539ee062c54",
+    "truthBoundary": "The encoder embeds the exact same combined STEP bytes as the Cam Triptych v2 work. The reused historical overview is a cross-work projection of that exact geometry/generation bundle, not an original carrier of the encoder root and not physical-mechanism evidence."
+  }
+}
