@@ -29,12 +29,17 @@ def main() -> int:
         EvidenceRef.from_path(provider=provider, format=fmt, path=args.artifact_dir / filename)
         for provider, fmt, filename in PROVIDERS
     ]
+    status_path = args.artifact_dir / "provider-status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    refs.append(EvidenceRef.from_path(provider="ordivon-runner", format="json", path=status_path))
+
     payload = build_gate_input(
         subject_ref=args.subject_ref,
         subject_revision=args.subject_revision,
         evidence=refs,
         authority="security-verification",
     )
+    payload["providerResults"] = status["providers"]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
