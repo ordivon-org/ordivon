@@ -7,6 +7,47 @@ tasks:
       - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
       - promtool check config config/prometheus/prometheus.yml
 
+  install:r0:
+    desc: Materialize the exact validated R0 source generation into the live host
+    cmds:
+      - task: validate
+      - install -d -m 0755 /etc/network-v2/sing-box /etc/network-v2/blackbox /etc/network-v2/prometheus
+      - install -m 0644 config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+      - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+      - install -m 0644 config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - for: { var: SYSTEMD_UNITS }
+        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - systemctl daemon-reload
+      - systemctl enable network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service
+      - systemctl restart network-v2-dnsproxy.service network-v2-blackbox.service network-v2-prometheus.service network-v2-singbox.service
+      - systemctl disable --now network-v2-toxiproxy.service || true
+
+  verify:live:
+    desc: Fail closed unless live R0 bytes, services, data plane, probe plane, and evidence plane match source
+    cmds:
+      - cmp -s systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
+      - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
+      - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
+      - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
+      - cmp -s systemd/network-v2-toxiproxy.service /etc/systemd/system/network-v2-toxiproxy.service
+      - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+      - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+      - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - systemctl is-active --quiet network-v2-dnsproxy.service
+      - systemctl is-active --quiet network-v2-singbox.service
+      - systemctl is-active --quiet network-v2-blackbox.service
+      - systemctl is-active --quiet network-v2-prometheus.service
+      - test "$(systemctl show network-v2-singbox.service -p NRestarts --value)" = "0"
+      - curl --fail --silent --show-error --proxy http://127.0.0.1:28080 --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=http_2xx&target=https://example.com/' | awk '/^probe_success / {print $2}')" = "1"
+      - curl -fsS 'http://127.0.0.1:29090/api/v1/query?query=probe_success' | grep -Eq '"value"[^]]*"1"'
+
+  converge:r0:
+    desc: Validate, materialize, and prove one exact live R0 generation
+    cmds:
+      - task: install:r0
+      - task: verify:live
+
   smoke:direct:
     cmds:
       - ./tests/direct-chain-smoke.sh
@@ -25,3 +66,7 @@ tasks:
 
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
+
+vars:
+  SYSTEMD_UNITS:
+    sh: printf '%s ' systemd/network-v2-*.service
