@@ -8,6 +8,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from .canonical import canonical_digest
+from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
 from .models import Admission, CheckpointInput, HostStatus, MutationResult, TaskState, TaskView
 from .schema import SCHEMA_SQL
@@ -247,6 +248,30 @@ class HostV2:
         goal_id: str | None = None,
         runtime_workspace_id: str | None = None,
     ) -> Sequence[TaskView]:
+        return self.list_tasks_page(
+            include_terminal=include_terminal,
+            limit=limit,
+            goal_id=goal_id,
+            runtime_workspace_id=runtime_workspace_id,
+            cursor=None,
+        )[0]
+
+    def list_tasks_page(
+        self,
+        *,
+        include_terminal: bool = False,
+        limit: int = 100,
+        goal_id: str | None = None,
+        runtime_workspace_id: str | None = None,
+        cursor: str | None = None,
+    ) -> tuple[Sequence[TaskView], bool, str | None]:
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        scope = {
+            "includeTerminal": include_terminal,
+            "goalId": goal_id,
+            "runtimeWorkspaceId": runtime_workspace_id,
+        }
         clauses = [] if include_terminal else ["t.state='open'"]
         params: list[Any] = []
         if goal_id is not None:
@@ -255,18 +280,37 @@ class HostV2:
         if runtime_workspace_id is not None:
             clauses.append("c.payload #>> '{runtime,workspaceId}' = %s")
             params.append(runtime_workspace_id)
+        if cursor is not None:
+            position = decode_cursor(cursor, "task.list", scope)
+            created_at = position.get("createdAt")
+            task_id = position.get("taskId")
+            if not isinstance(created_at, str) or not isinstance(task_id, str):
+                raise ValueError("task.list cursor position is invalid")
+            clauses.append("(t.created_at < %s::timestamptz OR (t.created_at = %s::timestamptz AND t.task_id < %s))")
+            params.extend([created_at, created_at, task_id])
         where = "WHERE " + " AND ".join(clauses) if clauses else ""
-        params.append(limit)
+        params.append(limit + 1)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
             rows = conn.execute(
-                "SELECT t.task_id,t.revision FROM tasks t "
+                "SELECT t.task_id,t.revision,t.created_at FROM tasks t "
                 "JOIN checkpoints c ON c.task_id=t.task_id AND c.revision=t.revision "
-                f"{where} ORDER BY t.updated_at DESC,t.task_id LIMIT %s",
+                f"{where} ORDER BY t.created_at DESC,t.task_id DESC LIMIT %s",
                 params,
             ).fetchall()
-            return tuple(
-                self._resume_in_tx(conn, row["task_id"], int(row["revision"])) for row in rows
+            has_more = len(rows) > limit
+            page = rows[:limit]
+            tasks = tuple(
+                self._resume_in_tx(conn, row["task_id"], int(row["revision"])) for row in page
             )
+            next_cursor = None
+            if has_more and page:
+                last = page[-1]
+                next_cursor = encode_cursor(
+                    "task.list",
+                    scope,
+                    {"createdAt": last["created_at"].isoformat(), "taskId": last["task_id"]},
+                )
+            return tasks, has_more, next_cursor
 
     def attention_delta(self, *, after_sequence: int, limit: int = 100) -> dict[str, Any]:
         if after_sequence < 0 or not 1 <= limit <= 500:

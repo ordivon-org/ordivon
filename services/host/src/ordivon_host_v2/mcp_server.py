@@ -84,11 +84,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         toDate: str | None = None,
     ) -> dict[str, Any]:
         """List durable external-news publication revisions."""
-        if cursor is not None:
-            raise ValueError(
-                "Host v2 R3 does not preserve v1 cursor bytes; restart this bounded query"
-            )
-        return news.list(limit=limit, from_date=fromDate, to_date=toDate)
+        return news.list(limit=limit, cursor=cursor, from_date=fromDate, to_date=toDate)
 
     @mcp.tool(name="news.read")
     def news_read(
@@ -142,22 +138,19 @@ def build_server(dsn: str | None = None) -> MCPServer:
         includeTerminal: bool = False,
     ) -> dict[str, Any]:
         """List Host semantic-continuity tasks; not a priority or ownership surface."""
-        if cursor is not None:
-            raise ValueError(
-                "Host v2 R3 does not preserve v1 cursor bytes; restart this bounded query"
-            )
-        tasks = service.list_tasks(
+        tasks, has_more, next_cursor = service.list_tasks_page(
             include_terminal=includeTerminal,
             limit=limit,
             goal_id=goalId,
             runtime_workspace_id=runtimeWorkspaceId,
+            cursor=cursor,
         )
         return {
             "schemaVersion": 3,
             "kind": "ordivon.host-task-list",
             "tasks": [item.model_dump(mode="json") for item in tasks],
-            "hasMore": False,
-            "nextCursor": None,
+            "hasMore": has_more,
+            "nextCursor": next_cursor,
             "truthBoundary": "continuity inventory only; not work priority, owner standing, or domain truth",
         }
 

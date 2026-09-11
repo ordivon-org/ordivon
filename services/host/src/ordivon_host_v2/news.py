@@ -8,6 +8,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from .canonical import canonical_digest
+from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -141,10 +142,16 @@ class NewsStore:
             }
 
     def list(
-        self, *, limit: int = 30, from_date: str | None = None, to_date: str | None = None
+        self,
+        *,
+        limit: int = 30,
+        cursor: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
     ) -> dict[str, Any]:
         if not 1 <= limit <= 100:
             raise ValueError("limit must be in [1,100]")
+        scope = {"fromDate": from_date, "toDate": to_date}
         clauses, params = [], []
         if from_date is not None:
             clauses.append("edition_date >= %s")
@@ -152,20 +159,45 @@ class NewsStore:
         if to_date is not None:
             clauses.append("edition_date <= %s")
             params.append(to_date)
+        if cursor is not None:
+            position = decode_cursor(cursor, "news.list", scope)
+            edition_date = position.get("editionDate")
+            edition_id = position.get("editionId")
+            revision = position.get("revision")
+            sequence = position.get("sequence")
+            if not isinstance(edition_date, str) or not isinstance(edition_id, str) or not isinstance(revision, int) or not isinstance(sequence, int):
+                raise ValueError("news.list cursor position is invalid")
+            clauses.append("(edition_date,edition_id,revision,sequence) < (%s,%s,%s,%s)")
+            params.extend([edition_date, edition_id, revision, sequence])
         where = "WHERE " + " AND ".join(clauses) if clauses else ""
-        params.append(limit)
+        params.append(limit + 1)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
             rows = conn.execute(
-                f"SELECT * FROM news_publications {where} ORDER BY edition_date DESC, edition_id DESC, revision DESC LIMIT %s",
+                f"SELECT * FROM news_publications {where} ORDER BY edition_date DESC, edition_id DESC, revision DESC, sequence DESC LIMIT %s",
                 params,
             ).fetchall()
+            has_more = len(rows) > limit
+            page = rows[:limit]
+            next_cursor = None
+            if has_more and page:
+                last = page[-1]
+                next_cursor = encode_cursor(
+                    "news.list",
+                    scope,
+                    {
+                        "editionDate": last["edition_date"],
+                        "editionId": last["edition_id"],
+                        "revision": int(last["revision"]),
+                        "sequence": int(last["sequence"]),
+                    },
+                )
             return {
                 "schemaVersion": 2,
                 "kind": "ordivon.host-news-list",
                 "scope": "daily-external-news-editions",
-                "editions": [self._publication(row) for row in rows],
-                "hasMore": False,
-                "nextCursor": None,
+                "editions": [self._publication(row) for row in page],
+                "hasMore": has_more,
+                "nextCursor": next_cursor,
                 "truthBoundary": "publication inventory only; not external-world truth",
             }
 

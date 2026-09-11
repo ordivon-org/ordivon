@@ -66,3 +66,48 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             assert resumed.structured_content["checkpoint"]["frontier"] == "resumable"
 
     asyncio.run(scenario())
+
+
+
+def test_news_list_keyset_cursor_is_scope_bound_and_complete() -> None:
+    assert DSN is not None
+    from ordivon_host_v2.news import NewsStore
+
+    HostV2(DSN).initialize()
+    store = NewsStore(DSN)
+    marker = uuid4().hex
+    for index in range(3):
+        edition_id = f"news:r4-page:{marker}:{index}"
+        store.publish(
+            client_publish_id=f"publish:{edition_id}",
+            edition_id=edition_id,
+            expected_revision=0,
+            edition={
+                "editionId": edition_id,
+                "editionDate": "2099-12-31",
+                "timezone": "UTC",
+                "items": [],
+            },
+        )
+    first = store.list(limit=2, from_date="2099-12-31", to_date="2099-12-31")
+    assert len(first["editions"]) == 2
+    assert first["hasMore"] is True
+    assert isinstance(first["nextCursor"], str)
+    second = store.list(
+        limit=2,
+        cursor=first["nextCursor"],
+        from_date="2099-12-31",
+        to_date="2099-12-31",
+    )
+    assert len(second["editions"]) == 1
+    assert second["hasMore"] is False
+    assert second["nextCursor"] is None
+    ids = {item["editionId"] for item in first["editions"] + second["editions"]}
+    assert ids == {f"news:r4-page:{marker}:{index}" for index in range(3)}
+    with pytest.raises(ValueError, match="query scope"):
+        store.list(
+            limit=2,
+            cursor=first["nextCursor"],
+            from_date="2099-12-30",
+            to_date="2099-12-31",
+        )

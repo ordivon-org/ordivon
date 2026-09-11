@@ -206,7 +206,7 @@ class BoardStore:
                 "truthRole": "search-navigation-candidates-not-domain-truth",
                 "sourceSnapshotHighWater": high,
                 "liveHighWater": high,
-                "negativeResultAuthoritative": True,
+                "negativeResultAuthoritative": False,
                 "requiresExactSourceReentry": True,
                 "results": [
                     {"sequence": int(row["sequence"]), "clientMessageId": row["client_message_id"]}
