@@ -1,0 +1,36 @@
+[project]
+name = "ordivon-host-v2"
+version = "0.1.0"
+description = "External-first durable semantic continuity for Ordivon."
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "alembic==1.18.5",
+  "mcp>=2,<3",
+  "psycopg[binary,pool]==3.3.5",
+  "pydantic>=2,<3",
+  "rfc8785==0.1.4",
+]
+
+[dependency-groups]
+dev = [
+  "hypothesis>=6,<7",
+  "pytest>=8,<10",
+  "ruff>=0.15,<1",
+  "testcontainers[postgres]>=4,<5",
+]
+
+[project.scripts]
+ordivon-host-v2-mcp = "ordivon_host_v2.mcp_server:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
