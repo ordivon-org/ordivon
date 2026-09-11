@@ -47,3 +47,9 @@ Remaining R4 P0/P1 fronts:
 3. Add frozen production-state export/import and semantic equivalence verification before any writer cutover.
 4. Replace direct `HostV2.initialize()` latest-schema bootstrap with migration-owned initialization for production paths.
 5. Prove PostgreSQL restart/backup/restore/PITR plus release/cutover rollback before production authority moves.
+
+### PostgreSQL-native host.status closure
+
+`host.status` now preserves the v1 top-level input signature (`detail`, `recentLimit`) while replacing implementation-specific SQLite/CAS checks with v2-owned PostgreSQL invariants. `summary` reports interface, PostgreSQL authority counts, Board/News/continuity counts and bounded recent activity. `integrity` checks schema, current checkpoint/event coherence, committed command receipts, Board reply integrity and News revision continuity. `history` additionally checks per-Task history contiguity and recomputes every retained checkpoint canonical digest. Deployment identity remains explicitly `not-observed` until the v2 release layer owns an authenticated installed-release projection.
+
+A destructive test mutates one current checkpoint digest and verifies `host.status(detail=integrity)` becomes unhealthy; restoring the exact digest returns the clean invariant state. Fresh PostgreSQL verification now passes 18/18 tests.
