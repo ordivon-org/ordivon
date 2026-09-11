@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.v2.otio-profile",
+  "id": "runtime-introduction-assembly-v2",
+  "timelineName": "Runtime Introduction · A/V Review Candidate v2",
+  "startTimecode": "00:00:00:00",
+  "endTimecode": "00:01:18:00",
+  "durationTimecode": "00:01:18:00",
+  "trackCount": 2,
+  "clipCount": 2,
+  "mediaReferenceCount": 2,
+  "requiredMediaPrefix": "ordivon-asset://",
+  "requireAllRangesInBounds": true
+}

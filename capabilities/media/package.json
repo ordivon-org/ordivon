@@ -12,6 +12,8 @@
     "media:v2:smoke": "bash media-v2/tests/smoke.sh",
     "media:v2:audio:smoke": "bash media-v2/tests/audio-smoke.sh",
     "media:v2:timedtext:smoke": "bash media-v2/tests/timedtext-smoke.sh",
+    "media:v2:otio:smoke": "bash media-v2/tests/otio-smoke.sh",
+    "media:v2:probe:otio:introduction": "bash media-v2/bin/probe-otio.sh productions/runtime-introduction/timeline/assembly.v2.otio media-v2/profiles/otio-runtime-introduction-v2.json out/media-v2/runtime-introduction-otio",
     "media:v2:probe:timedtext:introduction": "bash media-v2/bin/probe-timed-text.sh productions/runtime-introduction/timed-text/standard/narration.en.ttml media-v2/profiles/timed-text-runtime-introduction-en.json out/media-v2/runtime-introduction-timed-text",
     "media:v2:probe:introduction": "bash media-v2/bin/probe-av.sh out/runtime-introduction-master.mp4 media-v2/profiles/av-sdr-web-1080p30-noaudio.json out/media-v2/runtime-introduction-qc",
     "media:v2:render:introduction": "pnpm tokens:build && pnpm --filter @ordivon/studio-motion render:introduction && pnpm media:v2:probe:introduction",
