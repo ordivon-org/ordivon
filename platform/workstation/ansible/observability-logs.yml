@@ -1,0 +1,94 @@
+---
+- name: Operations v2 shared log slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install loopback-only Loki configuration
+      ansible.builtin.copy:
+        src: ../observability/loki.yaml
+        dest: /etc/loki/loki.yaml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Loki
+
+    - name: Ensure Loki systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/loki.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Override packaged Loki command to use only versioned config
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/loki.service.d/operations-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=/usr/bin/loki -config.file=/etc/loki/loki.yaml
+      notify:
+        - Reload systemd
+        - Restart Loki
+
+    # Loki has a real readiness convergence window. Apply all Loki restarts now,
+    # then wait for /ready before Vector is allowed to perform its sink healthcheck.
+    - name: Converge Loki configuration before downstream startup
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start Loki
+      ansible.builtin.systemd_service:
+        name: loki.service
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for Loki readiness
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3100/ready
+        method: GET
+        status_code: 200
+      register: loki_ready
+      retries: 30
+      delay: 1
+      until: loki_ready.status == 200
+
+    - name: Install journald to Loki Vector pipeline
+      ansible.builtin.copy:
+        src: ../observability/vector.yaml
+        dest: /etc/vector/vector.yaml
+        owner: root
+        group: vector
+        mode: "0640"
+      notify: Restart Vector
+
+    - name: Clear any prior Vector start-limit state
+      ansible.builtin.command: systemctl reset-failed vector.service
+      changed_when: false
+      failed_when: false
+
+    - name: Enable and start Vector only after Loki is ready
+      ansible.builtin.systemd_service:
+        name: vector.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Loki
+      ansible.builtin.systemd_service:
+        name: loki.service
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart Vector
+      ansible.builtin.systemd_service:
+        name: vector.service
+        state: restarted

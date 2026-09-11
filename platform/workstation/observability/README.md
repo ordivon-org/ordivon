@@ -1,6 +1,6 @@
 # Observability composition
 
-R1 deliberately contains no Ordivon collector implementation.
+Operations v2 deliberately contains no Ordivon collector implementation.
 
 Selected composition:
 
@@ -9,8 +9,13 @@ node_exporter -> Prometheus
 journald -> Vector -> Loki
 OTel SDK/Collector -> standard telemetry path when introduced
 Gatus -> black-box endpoint contracts
-Grafana -> visualization
+Grafana -> visualization when explicitly admitted
 ```
+
+Current live shared slices:
+
+- metrics: node_exporter `127.0.0.1:29100` -> Prometheus `127.0.0.1:29091`;
+- logs: journald -> Vector -> Loki HTTP `127.0.0.1:3100` / gRPC `127.0.0.1:9096`.
 
 Rules:
 
@@ -18,5 +23,6 @@ Rules:
 2. monitoring configuration is version-controlled desired state;
 3. labels/attributes identify Ordivon owner/e2e/job/attempt only when the source can support that identity truthfully;
 4. an availability probe must state exactly what path it proves;
-5. no black-box probe is promoted into an owner semantic-success verdict;
-6. alerting should be actionable and SLO-oriented rather than one alert per low-level check.
+5. no black-box probe, metric or log line is promoted into an owner semantic-success or root-cause verdict;
+6. alerting should be actionable and SLO-oriented rather than one alert per low-level check;
+7. downstream components with readiness windows must converge before dependent native health checks are admitted; health checks are not disabled to hide ordering bugs.
