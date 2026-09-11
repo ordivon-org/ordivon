@@ -6,6 +6,8 @@ OUT="${2:-$ROOT/artifacts}"
 mkdir -p "$OUT"
 rm -f "$OUT"/{gitleaks.sarif,semgrep.sarif,trivy.sarif,sbom.cdx.json,osv.json,provider-status.json}
 
+observed_subject_revision="$(git -C "$TARGET" rev-parse HEAD 2>/dev/null || printf 'UNKNOWN')"
+
 /usr/bin/gitleaks detect --no-git --source "$TARGET" --report-format sarif --report-path "$OUT/gitleaks.sarif" --no-banner
 gitleaks_rc=$?
 
@@ -35,6 +37,7 @@ if [ "$syft_rc" -eq 0 ]; then syft_mech=true; else syft_mech=false; fi
 
 cat > "$OUT/provider-status.json" <<EOF
 {
+  "observedSubjectRevision":"$observed_subject_revision",
   "providers": [
     {"provider":"gitleaks","exitCode":$gitleaks_rc,"mechanicalSuccess":$gitleaks_mech,"blocking":$gitleaks_block},
     {"provider":"semgrep","exitCode":$semgrep_rc,"mechanicalSuccess":$semgrep_mech,"blocking":$semgrep_block},
