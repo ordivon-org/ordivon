@@ -50,19 +50,22 @@ mechanically_sound if {
   count(mechanical_error_providers) == 0
 }
 
+revision_current if {
+  input.observedSubjectRevision != "UNKNOWN"
+  input.observedSubjectRevision == input.subjectRevision
+}
+
 allow if {
   input.authority == "security-verification"
   evidence_complete
   mechanically_sound
+  revision_current
   count(blocking_providers) == 0
 }
 
 standing := "CURRENT" if allow
-else := "BLOCKED" if {
-  input.authority == "security-verification"
-  evidence_complete
-  mechanically_sound
-  count(blocking_providers) > 0
+else := "INCOMPLETE_EVIDENCE" if {
+  not evidence_complete
 }
 else := "PROVIDER_ERROR" if {
   input.authority == "security-verification"
@@ -70,11 +73,26 @@ else := "PROVIDER_ERROR" if {
   results_complete
   count(mechanical_error_providers) > 0
 }
+else := "STALE_EVIDENCE" if {
+  input.authority == "security-verification"
+  evidence_complete
+  mechanically_sound
+  not revision_current
+}
+else := "BLOCKED" if {
+  input.authority == "security-verification"
+  evidence_complete
+  mechanically_sound
+  revision_current
+  count(blocking_providers) > 0
+}
 else := "INCOMPLETE_EVIDENCE"
 
 decision := {
   "allow": allow,
   "standing": standing,
+  "subjectRevision": input.subjectRevision,
+  "observedSubjectRevision": input.observedSubjectRevision,
   "missingEvidenceProviders": sort([p | some p in missing_evidence_providers]),
   "missingResultProviders": sort([p | some p in missing_result_providers]),
   "mechanicalErrorProviders": sort([p | some p in mechanical_error_providers]),

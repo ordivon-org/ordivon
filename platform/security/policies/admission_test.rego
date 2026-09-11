@@ -18,34 +18,43 @@ complete_results := [
   {"provider":"osv-scanner","mechanicalSuccess":true,"blocking":false},
 ]
 
+base_input := {
+  "authority":"security-verification",
+  "subjectRevision":"rev:a",
+  "observedSubjectRevision":"rev:a",
+  "evidenceRefs":complete_evidence,
+  "providerResults":complete_results,
+}
+
 test_rejects_missing_provider if {
   not allow with input as {
     "authority":"security-verification",
+    "subjectRevision":"rev:a",
+    "observedSubjectRevision":"rev:a",
     "evidenceRefs":[{"provider":"gitleaks","sha256":"sha256:x","byte_length":1}],
     "providerResults":[],
   }
 }
 
 test_accepts_complete_clean_provider_set if {
-  allow with input as {
-    "authority":"security-verification",
-    "evidenceRefs":complete_evidence,
-    "providerResults":complete_results,
-  }
+  allow with input as base_input
 }
 
 test_blocks_provider_finding_without_calling_it_execution_failure if {
-  decision.standing == "BLOCKED" with input as {
-    "authority":"security-verification",
-    "evidenceRefs":complete_evidence,
+  decision.standing == "BLOCKED" with input as object.union(base_input, {
     "providerResults":array.concat(array.slice(complete_results,0,4), [{"provider":"osv-scanner","mechanicalSuccess":true,"blocking":true}]),
-  }
+  })
 }
 
 test_distinguishes_provider_error if {
-  decision.standing == "PROVIDER_ERROR" with input as {
-    "authority":"security-verification",
-    "evidenceRefs":complete_evidence,
+  decision.standing == "PROVIDER_ERROR" with input as object.union(base_input, {
     "providerResults":array.concat(array.slice(complete_results,0,4), [{"provider":"osv-scanner","mechanicalSuccess":false,"blocking":false}]),
-  }
+  })
+}
+
+test_rejects_stale_provider_evidence_before_using_findings if {
+  decision.standing == "STALE_EVIDENCE" with input as object.union(base_input, {
+    "observedSubjectRevision":"rev:older",
+    "providerResults":array.concat(array.slice(complete_results,0,4), [{"provider":"osv-scanner","mechanicalSuccess":true,"blocking":true}]),
+  })
 }
