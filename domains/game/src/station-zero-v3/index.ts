@@ -1,5 +1,3 @@
-export * from "./deepseek-credentials.ts";
-export * from "./deepseek-provider.ts";
 export * from "./agent-planning.ts";
 export * from "./content.ts";
 export * from "./contracts.ts";
@@ -15,6 +13,7 @@ export * from "./planning-store.ts";
 export * from "./plan-impact.ts";
 export * from "./play-projection.ts";
 export * from "./play-service.ts";
+export * from "./provider-module.ts";
 export * from "./reducer.ts";
 export * from "./topology.ts";
 export * from "./spatial-layout.ts";

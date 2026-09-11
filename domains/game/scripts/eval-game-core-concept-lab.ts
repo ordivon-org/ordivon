@@ -6,10 +6,7 @@ import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 import { createGameServer } from "../src/server.ts";
-import {
-  StationZeroV3DeepSeekCredentialPool,
-  stationZeroV3DeepSeekCredentialSources,
-} from "../src/station-zero-v3/deepseek-credentials.ts";
+import { loadExternalJsonModel } from "./external-json-model.ts";
 
 interface PlayerDecision {
   actionIndex: number;
@@ -31,8 +28,8 @@ interface CallEvidence {
   treatment: "autonomy" | "baseline";
   stage: "decision" | "reflection";
   step: number;
-  credentialId: string;
-  model: string;
+  routeId: string | null;
+  modelId: string | null;
   latencyMs: number;
   promptTokens: number;
   completionTokens: number;
@@ -66,15 +63,7 @@ Do not reveal chain-of-thought.
 Return JSON only with exactly: understanding, confusion, replayDesire, replayReason, emotionalSignal.
 replayDesire must be 0..1. Keep each string under 220 characters.`;
 
-const pool = new StationZeroV3DeepSeekCredentialPool({
-  sources: stationZeroV3DeepSeekCredentialSources(
-    process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS,
-  ),
-  defaultMaximumConcurrency: 1,
-  reloadIntervalMs: 0,
-  cooldownBaseMs: 250,
-  cooldownMaximumMs: 2_000,
-});
+const model = await loadExternalJsonModel();
 
 const calls: CallEvidence[] = [];
 
@@ -92,63 +81,21 @@ async function modelJson(
   system: string,
   payload: unknown,
 ): Promise<Record<string, unknown>> {
-  const excluded = new Set<string>();
-  let lastError: unknown = null;
-  for (let attempt = 0; attempt < Math.min(3, pool.usableSize); attempt += 1) {
-    const credential = await pool.select(excluded);
-    excluded.add(credential.fingerprint);
-    try {
-      return await credential.run(async () => {
-        const started = performance.now();
-        const response = await fetch(`${credential.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${credential.apiKey}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model: credential.model,
-            messages: [
-              { role: "system", content: system },
-              { role: "user", content: JSON.stringify(payload) },
-            ],
-            thinking: { type: "disabled" },
-            temperature: 0.1,
-            max_tokens: 512,
-            response_format: { type: "json_object" },
-            stream: false,
-          }),
-          signal: AbortSignal.timeout(20_000),
-        });
-        const body = await response.text();
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
-        const envelope = parseObject(body);
-        const choices = Array.isArray(envelope.choices) ? envelope.choices : [];
-        const first = choices[0] as Record<string, unknown> | undefined;
-        const message = first?.message as Record<string, unknown> | undefined;
-        const content = message?.content;
-        if (typeof content !== "string" || !content.trim()) throw new TypeError("model returned no content");
-        const usage = envelope.usage as Record<string, unknown> | undefined;
-        calls.push({
-          concept,
-          treatment,
-          stage,
-          step,
-          credentialId: credential.credentialId,
-          model: credential.model,
-          latencyMs: Math.round(performance.now() - started),
-          promptTokens: typeof usage?.prompt_tokens === "number" ? usage.prompt_tokens : 0,
-          completionTokens: typeof usage?.completion_tokens === "number" ? usage.completion_tokens : 0,
-        });
-        pool.reportSuccess(credential, Math.round(performance.now() - started));
-        return parseObject(content);
-      });
-    } catch (error) {
-      lastError = error;
-      pool.reportFailure(credential, "transport");
-    }
+  const result = await model.json(system, payload);
+  if (result.evidence) {
+    calls.push({
+      concept,
+      treatment,
+      stage,
+      step,
+      routeId: result.evidence.routeId ?? null,
+      modelId: result.evidence.modelId ?? null,
+      latencyMs: Number(result.evidence.latencyMs ?? 0),
+      promptTokens: Number(result.evidence.inputTokens ?? 0),
+      completionTokens: Number(result.evidence.outputTokens ?? 0),
+    });
   }
-  throw lastError instanceof Error ? lastError : new Error("fresh-player model call failed");
+  return result.value;
 }
 
 function shortText(value: unknown, label: string): string {
@@ -327,14 +274,14 @@ try {
   console.log(JSON.stringify({
     kind: "ordivon.game.core-research-fresh-agent-blind-play",
     evidenceBoundary: "fresh-agent behavioral/self-report evidence; not human fun, retention, or market evidence",
-    provider: pool.identity(),
+    provider: { providerId: model.providerId },
     sessions: summary,
     calls: {
       count: calls.length,
       promptTokens: calls.reduce((sum, call) => sum + call.promptTokens, 0),
       completionTokens: calls.reduce((sum, call) => sum + call.completionTokens, 0),
       latencyMs: calls.map((call) => call.latencyMs),
-      credentialsUsed: [...new Set(calls.map((call) => call.credentialId))].sort(),
+      routesUsed: [...new Set(calls.map((call) => call.routeId).filter((route) => route !== null))].sort(),
     },
   }, null, 2));
 } finally {

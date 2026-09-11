@@ -34,10 +34,13 @@ test("Game keeps Provider decision schema and admission while execution remains 
   assert.match(server, /requires an externally supplied providerFactory/);
 });
 
-test("Station Zero v3 direct DeepSeek transport remains explicitly research-scoped for a later subtraction", () => {
+test("Station Zero v3 no longer owns model HTTP transport or credential pools", () => {
+  assert.equal(existsSync("src/station-zero-v3/deepseek-provider.ts"), false);
+  assert.equal(existsSync("src/station-zero-v3/deepseek-credentials.ts"), false);
   const server = readFileSync("src/server.ts", "utf8");
-  const v3 = readFileSync("src/station-zero-v3/deepseek-provider.ts", "utf8");
-  assert.match(server, /researchSurfaces\?: boolean/);
-  assert.match(v3, /fetchImplementation/);
+  const providerModule = readFileSync("src/station-zero-v3/provider-module.ts", "utf8");
+  assert.match(server, /ORDIVON_GAME_V3_PROVIDER_MODULE/);
+  assert.doesNotMatch(server, /chat\/completions|apiKey|credentialPool/);
+  assert.doesNotMatch(providerModule, /fetch\(|apiKey|credential|retry|cooldown|chat\/completions/i);
   assert.doesNotMatch(readFileSync("src/mission-control/catalog.ts", "utf8"), /deepseek|codex|hermes/i);
 });

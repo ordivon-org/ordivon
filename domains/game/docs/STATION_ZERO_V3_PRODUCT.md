@@ -376,7 +376,7 @@ It does not prove final balance or human fun. Those remain later product claims.
 The live DeepSeek path is real product code, not a future stub:
 
 ```text
-ORDIVON_GAME_V3_PROVIDER=deepseek
+ORDIVON_GAME_V3_PROVIDER_MODULE=/absolute/path/to/provider-module.ts
 ```
 
 It uses the same Agent Context, Candidate admission, World authority, persistence, and browser contracts as the fixture baseline.

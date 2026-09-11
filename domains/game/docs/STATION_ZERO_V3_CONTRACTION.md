@@ -146,7 +146,7 @@ Reopen Host-like semantic state only if Game acquires a real cross-session/cross
 
 ## GC3 — DeepSeek multi-credential machinery: outer, retained locally
 
-`deepseek-provider.ts` and `deepseek-credentials.ts` are **not Game product meaning**, but the current local implementation has a real equipment responsibility:
+`StationZeroV3AgentProviderFactory` is the retained Game boundary. The former `deepseek-provider.ts` and `deepseek-credentials.ts` transport/credential implementation was retired on 2026-09-11; external cognition equipment now owns:
 
 - hot credential discovery/reload;
 - weighted credential selection;

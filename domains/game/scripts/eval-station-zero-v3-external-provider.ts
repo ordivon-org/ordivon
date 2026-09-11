@@ -2,14 +2,14 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
-  StationZeroV3DeepSeekProviderPool,
   StationZeroV3PlayService,
   StationZeroV3Store,
-  stationZeroV3DeepSeekCredentialSources,
   type StationZeroV3AgentContext,
   type StationZeroV3CommanderOrder,
   type StationZeroV3CommanderOrderPatch,
-  type StationZeroV3DeepSeekCallEvidence,
+  loadStationZeroV3ExternalProviderModule,
+  type StationZeroV3AgentProviderFactory,
+  type StationZeroV3ExternalProviderCallEvidence,
   type StationZeroV3PlanPreview,
   type StationZeroV3PlayView,
   type StationZeroV3WorldState,
@@ -286,18 +286,18 @@ function normalizedError(error: unknown): EvaluatedRun["failure"] {
 }
 
 async function evaluateRun(
-  pool: StationZeroV3DeepSeekProviderPool,
+  providerFactory: StationZeroV3AgentProviderFactory,
   profile: EvaluationProfile,
   replica: number,
   maximumTurns: number | null,
 ): Promise<EvaluatedRun> {
-  const runId = `run:deepseek-eval:${profile.profileId}:${replica}`;
+  const runId = `run:external-provider-eval:${profile.profileId}:${replica}`;
   const store = new StationZeroV3Store(":memory:");
-  const play = new StationZeroV3PlayService(store, { providerFactory: pool.providerFactory() });
+  const play = new StationZeroV3PlayService(store, { providerFactory });
   const startedAt = new Date().toISOString();
   const started = performance.now();
   const turns: EvaluatedTurn[] = [];
-  let view = play.initialize({ runId, seed: `deepseek-eval:${profile.profileId}:${replica}` });
+  let view = play.initialize({ runId, seed: `external-provider-eval:${profile.profileId}:${replica}` });
   let status: EvaluatedRun["status"] = "completed";
   let failure: EvaluatedRun["failure"] = null;
   let verified = false;
@@ -349,7 +349,7 @@ async function evaluateRun(
         resourcesAfter: structuredClone(view.resources),
       });
       console.log(JSON.stringify({
-        kind: "ordivon.game.station-zero-v3-deepseek-eval-progress",
+        kind: "ordivon.game.station-zero-v3-external-provider-eval-progress",
         runId,
         profileId: profile.profileId,
         turn: view.run.turn,
@@ -429,7 +429,7 @@ function oscillations(decisions: EvaluatedDecision[]): Array<{ runId: string; ac
   return result;
 }
 
-function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRun[]) {
+function aggregate(calls: StationZeroV3ExternalProviderCallEvidence[], runs: EvaluatedRun[]) {
   const decisions = runs.flatMap((run) => run.turns.flatMap((turn) => turn.decisions));
   const intentResults = runs.flatMap((run) => run.turns.flatMap((turn) => turn.ownIntentResults));
   const previewLatencies = runs.flatMap((run) => run.turns.map((turn) => turn.previewLatencyMs));
@@ -478,7 +478,7 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
       successRate: calls.length ? round(successfulCalls.length / calls.length) : 0,
       retryAttempts: retryCalls.length,
       outcomes: countBy(calls, (call) => call.outcome),
-      credentials: countBy(calls, (call) => call.credentialId),
+      routes: countBy(calls, (call) => call.routeId ?? "unspecified"),
       finishReasons: countBy(calls, (call) => call.finishReason ?? "none"),
       latencyMs: {
         min: callLatencies.length ? Math.min(...callLatencies) : null,
@@ -493,8 +493,8 @@ function aggregate(calls: StationZeroV3DeepSeekCallEvidence[], runs: EvaluatedRu
         max: previewLatencies.length ? Math.max(...previewLatencies) : null,
       },
       tokens: {
-        prompt: calls.reduce((sum, call) => sum + call.promptTokens, 0),
-        completion: calls.reduce((sum, call) => sum + call.completionTokens, 0),
+        input: calls.reduce((sum, call) => sum + call.inputTokens, 0),
+        output: calls.reduce((sum, call) => sum + call.outputTokens, 0),
         reasoning: calls.reduce((sum, call) => sum + call.reasoningTokens, 0),
         total: calls.reduce((sum, call) => sum + call.totalTokens, 0),
         cacheHit: calls.reduce((sum, call) => sum + call.cacheHitTokens, 0),
@@ -536,30 +536,9 @@ const runConcurrency = positiveInteger(process.env.ORDIVON_EVAL_RUN_CONCURRENCY,
 const maximumTurns = process.env.ORDIVON_EVAL_MAX_TURNS
   ? positiveInteger(process.env.ORDIVON_EVAL_MAX_TURNS, 1, "ORDIVON_EVAL_MAX_TURNS")
   : null;
-const thinkingMode = process.env.ORDIVON_GAME_V3_DEEPSEEK_THINKING === "enabled" ? "enabled" : "disabled";
-const pool = new StationZeroV3DeepSeekProviderPool({
-  credentialSources: stationZeroV3DeepSeekCredentialSources(process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS),
-  thinkingMode,
-  reasoningEffort: process.env.ORDIVON_GAME_V3_DEEPSEEK_REASONING_EFFORT === "max" ? "max" : "high",
-  timeoutMs: positiveInteger(process.env.ORDIVON_GAME_V3_DEEPSEEK_TIMEOUT_MS, 30_000, "ORDIVON_GAME_V3_DEEPSEEK_TIMEOUT_MS"),
-  maxTokens: positiveInteger(
-    process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_TOKENS,
-    thinkingMode === "enabled" ? 2_048 : 512,
-    "ORDIVON_GAME_V3_DEEPSEEK_MAX_TOKENS",
-  ),
-  maximumConcurrencyPerCredential: positiveInteger(
-    process.env.ORDIVON_GAME_V3_DEEPSEEK_CONCURRENCY,
-    4,
-    "ORDIVON_GAME_V3_DEEPSEEK_CONCURRENCY",
-  ),
-  retryBaseDelayMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RETRY_BASE_DELAY_MS ?? 1_000),
-  credentialReloadIntervalMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RELOAD_INTERVAL_MS ?? 15_000),
-  credentialCooldownMaximumMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_COOLDOWN_MAXIMUM_MS ?? 30_000),
-  ...(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS
-    ? { maximumAttempts: positiveInteger(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS, 4, "ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS") }
-    : {}),
-  temperature: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TEMPERATURE ?? 0.1),
-});
+const providerModuleSpecifier = process.env.ORDIVON_GAME_V3_PROVIDER_MODULE;
+if (!providerModuleSpecifier) throw new TypeError("ORDIVON_GAME_V3_PROVIDER_MODULE is required for external-provider evaluation");
+const providerModule = await loadStationZeroV3ExternalProviderModule(providerModuleSpecifier);
 
 const requestedProfileIds = (process.env.ORDIVON_EVAL_PROFILE_IDS ?? "")
   .split(",")
@@ -579,23 +558,21 @@ const cases = selectedProfiles.flatMap((profile) => Array.from({ length: replica
 })));
 const evaluationStartedAt = new Date().toISOString();
 const evaluationStarted = performance.now();
-const runs = await mapConcurrent(cases, runConcurrency, ({ profile, replica }) => evaluateRun(pool, profile, replica, maximumTurns));
-const providerEvidence = pool.evidenceSnapshot();
+const runs = await mapConcurrent(cases, runConcurrency, ({ profile, replica }) => evaluateRun(providerModule.providerFactory, profile, replica, maximumTurns));
+const providerEvidence = providerModule.evidenceSnapshot?.() ?? { schemaVersion: 1 as const, kind: "ordivon.game.station-zero-v3-external-provider-evidence" as const, providerId: providerModule.providerId, calls: [] };
 const calls = providerEvidence.calls;
 const report = {
   schemaVersion: 1,
-  kind: "ordivon.game.station-zero-v3-deepseek-evaluation",
+  kind: "ordivon.game.station-zero-v3-external-provider-evaluation",
   generatedAt: new Date().toISOString(),
   evaluationStartedAt,
   elapsedMs: Math.round(performance.now() - evaluationStarted),
   configuration: {
-    providerId: pool.providerId,
-    thinkingMode,
+    providerId: providerModule.providerId,
+    providerMetadata: providerEvidence.metadata ?? null,
     replicasPerProfile,
     runConcurrency,
     maximumTurns,
-    credentialPool: providerEvidence.credentialPool,
-    configuredTotalConcurrency: providerEvidence.credentials.reduce((sum, credential) => sum + credential.maximumConcurrency, 0),
     profiles: selectedProfiles,
   },
   aggregate: aggregate(calls, runs),
@@ -604,10 +581,10 @@ const report = {
 };
 const artifactDirectory = resolve(process.env.ORDIVON_EVAL_ARTIFACT_DIR ?? "artifacts/evaluations");
 mkdirSync(artifactDirectory, { recursive: true });
-const outputPath = resolve(artifactDirectory, `station-zero-v3-deepseek-${Date.now()}.json`);
+const outputPath = resolve(artifactDirectory, `station-zero-v3-external-provider-${Date.now()}.json`);
 writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({
-  kind: "ordivon.game.station-zero-v3-deepseek-evaluation-summary",
+  kind: "ordivon.game.station-zero-v3-external-provider-evaluation-summary",
   outputPath,
   elapsedMs: report.elapsedMs,
   aggregate: report.aggregate,

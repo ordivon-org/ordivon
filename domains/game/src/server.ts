@@ -28,15 +28,13 @@ import { ProviderAdapterError } from "./team/provider-contract.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
 import { TeamStoreError } from "./team/store.ts";
 import {
-  StationZeroV3DeepSeekProviderPool,
+  loadStationZeroV3ExternalProviderModule,
   StationZeroV3PlanningStoreError,
   StationZeroV3PlayService,
   StationZeroV3StorageError,
   StationZeroV3Store,
-  stationZeroV3DeepSeekCredentialSources,
   type StationZeroV3AgentProviderFactory,
   type StationZeroV3CommanderOrderPatch,
-  type StationZeroV3DeepSeekThinkingMode,
 } from "./station-zero-v3/index.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
@@ -600,27 +598,18 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const port = Number(process.env.PORT ?? 4173);
   const researchSurfaces = process.env.ORDIVON_GAME_RESEARCH_SURFACES === "1";
-  if (!researchSurfaces && process.env.ORDIVON_GAME_V3_PROVIDER !== undefined) {
-    throw new TypeError("ORDIVON_GAME_V3_PROVIDER requires ORDIVON_GAME_RESEARCH_SURFACES=1");
+  const providerModuleSpecifier = process.env.ORDIVON_GAME_V3_PROVIDER_MODULE;
+  const retiredProviderVariables = Object.keys(process.env).filter((name) =>
+    name === "ORDIVON_GAME_V3_PROVIDER" || name.startsWith("ORDIVON_GAME_V3_DEEPSEEK_"));
+  if (retiredProviderVariables.length > 0) {
+    throw new TypeError(`retired Game-owned v3 Provider configuration: ${retiredProviderVariables.sort().join(", ")}; use ORDIVON_GAME_V3_PROVIDER_MODULE`);
   }
-  const v3ProviderMode = process.env.ORDIVON_GAME_V3_PROVIDER ?? "fixture";
-  if (!["fixture", "deepseek"].includes(v3ProviderMode)) throw new TypeError(`unsupported ORDIVON_GAME_V3_PROVIDER: ${v3ProviderMode}`);
-  const thinkingMode = (process.env.ORDIVON_GAME_V3_DEEPSEEK_THINKING ?? "disabled") as StationZeroV3DeepSeekThinkingMode;
-  if (!["disabled", "enabled"].includes(thinkingMode)) throw new TypeError(`unsupported DeepSeek thinking mode: ${thinkingMode}`);
-  const v3Pool = researchSurfaces && v3ProviderMode === "deepseek" ? new StationZeroV3DeepSeekProviderPool({
-    credentialSources: stationZeroV3DeepSeekCredentialSources(process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS),
-    thinkingMode,
-    timeoutMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TIMEOUT_MS ?? 30_000),
-    maxTokens: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_TOKENS ?? (thinkingMode === "enabled" ? 2_048 : 512)),
-    temperature: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_TEMPERATURE ?? 0.1),
-    maximumConcurrencyPerCredential: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_CONCURRENCY ?? 4),
-    retryBaseDelayMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RETRY_BASE_DELAY_MS ?? 1_000),
-    credentialReloadIntervalMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_RELOAD_INTERVAL_MS ?? 15_000),
-    credentialCooldownMaximumMs: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_COOLDOWN_MAXIMUM_MS ?? 30_000),
-    ...(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS
-      ? { maximumAttempts: Number(process.env.ORDIVON_GAME_V3_DEEPSEEK_MAX_ATTEMPTS) }
-      : {}),
-  }) : null;
+  if (!researchSurfaces && providerModuleSpecifier !== undefined) {
+    throw new TypeError("ORDIVON_GAME_V3_PROVIDER_MODULE requires ORDIVON_GAME_RESEARCH_SURFACES=1");
+  }
+  const externalProvider = researchSurfaces && providerModuleSpecifier
+    ? await loadStationZeroV3ExternalProviderModule(providerModuleSpecifier)
+    : null;
   const game = createGameServer({
     dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath,
     researchSurfaces,
@@ -628,14 +617,9 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
       v3DbPath: process.env.ORDIVON_GAME_V3_DB ?? defaultV3DbPath,
       casefileDbPath: process.env.ORDIVON_GAME_CASEFILE_DB ?? defaultCasefileDbPath,
     } : {}),
-    ...(v3Pool ? { v3ProviderFactory: v3Pool.providerFactory() } : {}),
+    ...(externalProvider ? { v3ProviderFactory: externalProvider.providerFactory } : {}),
   });
-  const v3ProviderDescription = (() => {
-    if (!v3Pool) return "fixture";
-    const snapshot = v3Pool.evidenceSnapshot();
-    const totalConcurrency = snapshot.credentials.reduce((sum, credential) => sum + credential.maximumConcurrency, 0);
-    return `${v3Pool.providerId} (${snapshot.credentials.length} credentials, ${totalConcurrency} configured concurrent calls)`;
-  })();
+  const v3ProviderDescription = externalProvider?.providerId ?? "fixture";
   game.server.listen(port, "127.0.0.1", () => console.log(
     `Station Zero running at http://127.0.0.1:${port}; research surfaces ${researchSurfaces ? `enabled with v3 Provider ${v3ProviderDescription}` : "disabled"}`,
   ));

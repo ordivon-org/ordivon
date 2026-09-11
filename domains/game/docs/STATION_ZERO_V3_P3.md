@@ -296,7 +296,7 @@ The fixture Provider:
 - selects Pirate and Swarm directives;
 - supports deterministic browser tests and replay diagnosis.
 
-`StationZeroV3AgentProviderFactory` allows the live Provider to replace the fixture without changing World, Planning, persistence, or browser contracts. The current server can select the DeepSeek Provider pool through `ORDIVON_GAME_V3_PROVIDER=deepseek`; the deterministic World remains independent from model availability.
+`StationZeroV3AgentProviderFactory` allows the live Provider to replace the fixture without changing World, Planning, persistence, or browser contracts. The current research server can import an external cognition module through `ORDIVON_GAME_V3_PROVIDER_MODULE`; the deterministic World remains independent from provider availability and Game does not own model transport or credentials.
 
 G3 live holdouts established bounded Candidate admission, hidden-information safety, stable Provider execution, and real strategic realization. `objective:advance` and `responsibility:advance` now expose Game-owned current-action meaning without compiling a winning sequence into Provider instructions. Shipping-quality planning latency, waiting experience, and outcome distribution remain G4/later product questions rather than P3 architecture claims.
 

@@ -6,75 +6,30 @@ import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 import { createGameServer } from "../src/server.ts";
-import {
-  StationZeroV3DeepSeekCredentialPool,
-  stationZeroV3DeepSeekCredentialSources,
-} from "../src/station-zero-v3/deepseek-credentials.ts";
+import { loadExternalJsonModel, type ExternalJsonModelCallEvidence } from "./external-json-model.ts";
 
 interface Decision { actionIndex: number; interpretation: string; expectation: string; confidence: number }
 interface Reflection { understanding: string; confusion: string; evidenceUsed: string; replayDesire: number; replayReason: string }
 
-const pool = new StationZeroV3DeepSeekCredentialPool({
-  sources: stationZeroV3DeepSeekCredentialSources(process.env.ORDIVON_GAME_V3_DEEPSEEK_SOURCES ?? process.env.ORDIVON_GAME_V3_DEEPSEEK_SECRETS),
-  defaultMaximumConcurrency: 1,
-  reloadIntervalMs: 0,
-});
+const model = await loadExternalJsonModel();
 
 let callCount = 0;
 let promptTokens = 0;
 let completionTokens = 0;
 const latencies: number[] = [];
-
-function parseObject(text: string): Record<string, unknown> {
-  const value = JSON.parse(text);
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("model output must be one object");
-  return value as Record<string, unknown>;
-}
+const callEvidence: ExternalJsonModelCallEvidence[] = [];
 
 async function callJson(system: string, payload: unknown): Promise<Record<string, unknown>> {
-  const excluded = new Set<string>();
-  let lastError: unknown = null;
-  for (let attempt = 0; attempt < Math.min(3, pool.usableSize); attempt += 1) {
-    const credential = await pool.select(excluded);
-    excluded.add(credential.fingerprint);
-    try {
-      return await credential.run(async () => {
-        const started = performance.now();
-        const response = await fetch(`${credential.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: { authorization: `Bearer ${credential.apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify({
-            model: credential.model,
-            messages: [{ role: "system", content: system }, { role: "user", content: JSON.stringify(payload) }],
-            thinking: { type: "disabled" },
-            temperature: 0.1,
-            max_tokens: 512,
-            response_format: { type: "json_object" },
-            stream: false,
-          }),
-          signal: AbortSignal.timeout(20_000),
-        });
-        const body = await response.text();
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
-        const envelope = parseObject(body);
-        const first = Array.isArray(envelope.choices) ? envelope.choices[0] as Record<string, unknown> | undefined : undefined;
-        const message = first?.message as Record<string, unknown> | undefined;
-        if (typeof message?.content !== "string" || !message.content.trim()) throw new TypeError("model returned no content");
-        const usage = envelope.usage as Record<string, unknown> | undefined;
-        callCount += 1;
-        promptTokens += typeof usage?.prompt_tokens === "number" ? usage.prompt_tokens : 0;
-        completionTokens += typeof usage?.completion_tokens === "number" ? usage.completion_tokens : 0;
-        const latency = Math.round(performance.now() - started);
-        latencies.push(latency);
-        pool.reportSuccess(credential, latency);
-        return parseObject(message.content);
-      });
-    } catch (error) {
-      lastError = error;
-      pool.reportFailure(credential, "transport");
-    }
+  const result = await model.json(system, payload);
+  if (!result.value || typeof result.value !== "object" || Array.isArray(result.value)) throw new TypeError("external model output must be one object");
+  callCount += 1;
+  if (result.evidence) {
+    callEvidence.push({ ...result.evidence });
+    promptTokens += Number(result.evidence.inputTokens ?? 0);
+    completionTokens += Number(result.evidence.outputTokens ?? 0);
+    if (typeof result.evidence.latencyMs === "number") latencies.push(result.evidence.latencyMs);
   }
-  throw lastError instanceof Error ? lastError : new Error("model call failed");
+  return result.value;
 }
 
 const PLAYER_SYSTEM = `You are a fresh player in a short detective game you have never seen before.
@@ -166,9 +121,9 @@ try {
   console.log(JSON.stringify({
     kind: "ordivon.game.casefile-g6-fresh-agent-play",
     evidenceBoundary: "fresh-agent independent comprehension/play evidence; not human fun, attachment, retention, or market evidence",
-    provider: pool.identity(),
+    provider: { providerId: model.providerId },
     results,
-    calls: { count: callCount, promptTokens, completionTokens, latencyMs: latencies },
+    calls: { count: callCount, promptTokens, completionTokens, latencyMs: latencies, evidence: callEvidence },
   }, null, 2));
 } finally {
   await browser.close();
