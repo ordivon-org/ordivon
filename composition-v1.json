@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.external-composition",
+  "controlPlane": {
+    "orchestration": "existing-temporal-runtime",
+    "policyDecisionPoint": "opa",
+    "providerCatalogOwner": "external-provider-or-dispatch-substrate",
+    "providerTruthOwner": "provider-native-observation-boundary"
+  },
+  "lanes": [
+    {
+      "id": "social-content",
+      "defaultSubstrate": "postiz",
+      "fallback": "provider-native-thin-adapter",
+      "forbiddenLocalScaffolding": ["static-cross-provider-capability-catalog", "static-cross-provider-oauth-scope-table"]
+    },
+    {
+      "id": "file-object-cloud",
+      "defaultSubstrate": "rclone",
+      "fallback": "provider-native-tool-only-when-rclone-does-not-cover-required-semantics",
+      "forbiddenLocalScaffolding": ["generic-uploader", "generic-resume-engine", "generic-cloud-filesystem-abstraction"]
+    },
+    {
+      "id": "provider-native-api",
+      "defaultSubstrate": "openapi-generator",
+      "fallback": "thin-manual-adapter-when-no-usable-machine-readable-api-contract-exists",
+      "forbiddenLocalScaffolding": ["handwritten-generic-http-sdk-framework"]
+    }
+  ],
+  "nonClaims": [
+    "local-preflight-is-provider-acceptance",
+    "occurrence-ref-is-provider-idempotency",
+    "postiz-dispatch-success-is-social-platform-publication-truth",
+    "workflow-success-is-external-consequence-success"
+  ]
+}

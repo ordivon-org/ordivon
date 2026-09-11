@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.external-first-r1-validation",
+  "observedOn": "2026-09-11",
+  "standing": "R1_EXTERNAL_COMPOSITION_PROVEN_LOCALLY",
+  "results": {
+    "externalFirstStructure": "PASS",
+    "opaPolicyCases": {"status":"PASS","passed":5,"total":5,"release":"v1.20.2","containerDigest":"sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f"},
+    "rcloneCopyAndCheck": {"status":"PASS","localVersion":"v1.75.0","upstreamLatestObserved":"v1.75.1"},
+    "postizLiveSurface": {"status":"PASS","observation":"unauthenticated integrations request returned HTTP 401","meaning":"live API surface requires authorization"},
+    "openapiGenerator": {"status":"PASS","release":"v7.24.0","containerDigest":"sha256:5bf3dc75f764c584da8e3344c51b2f3f1e74703461d46a035b5ac1d31515cc88","generated":"python provider client from OpenAPI 3.0.3 fixture"}
+  },
+  "oldDistributionModified": false,
+  "nonClaims": [
+    "no real social post was published",
+    "no external cloud object was written",
+    "Postiz HTTP 401 is not provider publication evidence",
+    "OPA preflight_ready is not dispatch-time provider authority",
+    "rclone local copy/check is not remote-provider acceptance",
+    "OpenAPI generation does not establish provider policy or currentness",
+    "R1 does not establish D2/D3/DEFAULT Distribution maturity"
+  ],
+  "nextGate": "differential residual-semantics audit against legacy ordivon-media Distribution before any migration or deletion"
+}

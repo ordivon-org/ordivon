@@ -1,0 +1,27 @@
+{
+  "endpoint": "https://api.github.com/repos/open-policy-agent/opa",
+  "kind": "ordivon.distribution.provider-positive-control-source",
+  "method": "GET",
+  "nonClaims": [
+    "read-only positive control",
+    "does not establish authenticated account authority",
+    "does not authorize any external write",
+    "historical observation is not permanent provider-currentness"
+  ],
+  "observedAt": "2026-09-11T11:29:19Z",
+  "provider": "github",
+  "responseSummary": {
+    "archived": false,
+    "default_branch": "main",
+    "full_name": "open-policy-agent/opa",
+    "id": 48714685,
+    "node_id": "MDEwOlJlcG9zaXRvcnk0ODcxNDY4NQ==",
+    "pushed_at": "2026-09-11T06:10:13Z",
+    "updated_at": "2026-09-11T08:21:31Z",
+    "visibility": "public"
+  },
+  "runtimeArtifactDigest": "sha256:c45a97fc68b8849dc95d39a5a1c27b5eebe89015b3faf8832c5d8005fd207437",
+  "runtimeArtifactId": "attempt-01a0903a-a31d-7fa3-a37a-10710644cabd.stdout",
+  "runtimeJobId": "job-01a0903a-a31d-7fa3-a37a-106e9a19fd8b",
+  "schemaVersion": 1
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/distribution-intent.schema.json",
+  "title": "Distribution v2 Exact Effect Intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "intentId", "occurrenceRef", "carrier", "effect"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "intentId": {"type": "string", "minLength": 1},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "artifact": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": {"sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}
+    },
+    "carrier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "provider", "accountRef"],
+      "properties": {
+        "adapter": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "accountRef": {"type": "string", "minLength": 1}
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string", "minLength": 1}}
+    }
+  }
+}

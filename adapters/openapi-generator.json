@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "adapterId": "openapi-generator",
+  "substrate": "openapi-generator",
+  "baseApiKind": "build-time-client-generator",
+  "operations": ["generate-provider-client"],
+  "truthBoundary": "Generated client shape follows the supplied OpenAPI document; generation does not establish provider policy/currentness/authorization/acceptance.",
+  "selectionRule": "Prefer provider-owned machine-readable API contracts; use a thin manual adapter only when no usable contract exists."
+}
