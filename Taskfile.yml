@@ -64,6 +64,11 @@ tasks:
     cmds:
       - ./tests/netns-smoke.sh
 
+  smoke:provider-external:
+    desc: Prove sing-box can consume one already-existing WireGuard provider namespace without admitting ownership of that provider substrate
+    cmds:
+      - ./tests/provider-carrier-smoke.sh
+
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
 
