@@ -1,0 +1,11 @@
+title = "Ordivon Security v2 product-surface profile"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Research, historical evidence, documentation, and controlled fixtures are outside the product admission surface. They are scanned separately when required."
+paths = [
+  '''(^|/)(research|evidence|docs|fixtures|scenarios)/''',
+  '''(^|/)(\.git|\.venv|__pycache__|artifacts)/'''
+]
