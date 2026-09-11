@@ -16,7 +16,7 @@ audience:
   - producer
   - agent
 updated: 2026-09-11
-summary: External-first product-discovery profile before canonical G0: select mature comparable reference games, deconstruct and reproduce bounded baselines, validate with human playtesting, then use controlled variation to earn differentiation and a Game Definition.
+summary: External-first product-discovery profile before canonical G0: observe the broad external success universe before feasibility filtering, map mature archetypes and representative references, then deconstruct/reproduce bounded baselines, validate with human playtesting, and use controlled variation to earn differentiation and a Game Definition.
 evidence_status: externally-grounded
 readiness: CURRENT
 applies_to:
@@ -34,8 +34,11 @@ related:
 This document owns the **Game-specific product-discovery profile before canonical G0**. It does not create a second software lifecycle, a universal game-design theory, a market-success formula, or a replacement for mature external practice.
 
 ```text
-External successful games / platform evidence / player practice
-    -> reference-class selection
+External success surfaces / platform evidence / player practice
+    -> success-universe census (no feasibility filter)
+    -> archetype coverage map
+    -> flagship / canonical / cheap reference stack
+    -> learning-order selection
     -> teardown / play / deconstruction
     -> bounded baseline reproduction
     -> human playtest against the reference claim
@@ -57,24 +60,41 @@ The previous broad Pre-G0 GameForm search, D-series hypotheses, A/D/I playables 
 
 This profile composes mature external practice rather than renaming it.
 
-### 1.1 Comparable-game discovery
+### 1.1 Success-universe census before comparable-game discovery
 
-Steamworks' current Tag Wizard explicitly uses genre/subgenre, player activities, mechanics, visuals, themes and other descriptors to identify similar titles and advises developers to inspect similar games. Use platform-native similarity/taxonomy and current market/catalog evidence as **reference-class inputs**, not as proof that a game will succeed.
+Steamworks' current Tag Wizard explicitly uses genre/subgenre, player activities, mechanics, visuals, themes and other descriptors to identify similar titles and advises developers to inspect similar games. Platform-native taxonomy is useful **after** the success universe has been observed; it must not become an early feasibility filter.
 
-Reference-class selection should preserve at least:
+R0 therefore keeps three questions separate:
+
+```text
+Universe membership:
+  what games are empirically successful on each bounded external surface?
+
+Representative reference:
+  what mature archetype / interaction grammar does each successful game help us understand?
+
+Cheap causal baseline:
+  what is the smallest lawful reproduction that can test one transfer claim?
+```
+
+Success-universe membership should preserve source-native evidence such as platform, region, time window, revenue/download/player/lifetime-sales metric and observed rank or unit count. It is **not filtered** by our team size, engine, art capacity, networking capacity, Runtime Agent affinity or expected reproduction cost.
+
+Only after archetype coverage is established should a representative reference stack preserve additional dimensions such as:
 
 ```text
 GameForm / player activity
 Target platform + input
 Session / progression shape
 Solo / social / online burden
-Production-team / content-scale comparability
 Commercial or audience success evidence
-Longevity / design maturity where relevant
+Longevity / design maturity
 Evidence availability for teardown
+Expression/content dependencies
+Production / LiveOps burden
+Smallest causal baseline cost
 ```
 
-A globally successful game can be a design reference while being an invalid production baseline for a tiny team. Do not inherit AAA/MMO/live-service burden by popularity alone.
+A globally successful game may be an essential flagship/canonical design reference while being an invalid full-product production baseline for a tiny team. Do not delete it from the research universe for that reason; instead shrink only the **causal reproduction**, not the reference set.
 
 Source: https://partner.steamgames.com/doc/store/tags
 
@@ -117,19 +137,41 @@ Sources:
 
 These are **profile steps**, not additional G-stages. Canonical product-stage semantics still begin at G0.
 
-### R0 — Reference class
+### R0 — Success universe → archetype map → reference stacks
 
-Question: **Which successful mature games are valid things for us to learn from?**
+Question: **What successful game space exists before we ask what is cheap for us to reproduce?**
+
+R0 contains three ordered views, not three new stages:
+
+```text
+R0-A Success Universe
+  observe complete or explicitly bounded platform/market success surfaces
+  preserve each source's metric, region and time window
+
+R0-B Archetype Map
+  derive coverage of materially different successful game forms / interaction grammars
+  without treating the map as a universal ontology or scalar ranking
+
+R0-C Representative Reference Stacks
+  for each important archetype, distinguish:
+    Flagship reference     — high-expression / high-scale ceiling
+    Canonical reference    — mature repeatedly validated grammar
+    Cheap causal baseline  — smallest lawful reproduction for one claim
+```
 
 Do:
-- construct a small stratified reference set rather than one favorite title;
-- separate design success from production-scale comparability;
-- record why each reference is relevant and what must not be inherited;
+- include successful games regardless of whether the whole product is feasible for us to build;
+- use more than one external success surface so PC current-concurrency does not define the whole market;
+- preserve current/breakout evidence separately from mature/lifetime evidence;
+- use implementation cost only when choosing a cheap causal baseline or learning order;
+- record why each reference is relevant and which product burdens must not be inherited;
 - include negative/nearby references when they distinguish the target mechanism.
 
 Exit:
-- at least one bounded comparable reference class exists;
-- the learning question is clearer than an internal genre brainstorm;
+- the current bounded success universe and source limitations are explicit;
+- materially different archetypes are represented rather than prefiltered by Ordivon capability;
+- representative stacks distinguish flagship/canonical references from cheap baselines;
+- R1 learning order can be chosen without pretending that order ranks product value;
 - evidence of popularity is not being used as design authority by itself.
 
 ### R1 — Teardown

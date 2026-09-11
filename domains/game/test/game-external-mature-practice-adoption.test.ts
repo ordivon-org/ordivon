@@ -22,9 +22,10 @@ test("external mature mechanism is the default and local extension requires fals
 });
 
 
-test("front-half product discovery learns from mature comparable games before internal novelty search", () => {
+test("front-half product discovery observes the success universe before feasibility or internal novelty filtering", () => {
   assert.match(policy, /Product discovery: external reference before internal direction search/);
-  assert.match(policy, /External successful mature games\s+PRIMARY BASELINE MATERIAL/);
+  assert.match(policy, /External successful mature games\s+PRIMARY REFERENCE MATERIAL/);
+  assert.match(policy, /Implementation feasibility\s+LEARNING-ORDER \/ CHEAP-BASELINE FILTER ONLY/);
   assert.match(frontHalf, /Steamworks.*similar titles/is);
   assert.match(frontHalf, /Nintendo.*Echoes of Wisdom/is);
   assert.match(frontHalf, /Human baseline validation/);

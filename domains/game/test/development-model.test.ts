@@ -28,7 +28,8 @@ test("Game development model keeps canonical G0-G8 stages while exposing deeper 
 
 test("product discovery before G0 is external-reference-first without creating new G-stages", () => {
   assert.match(frontHalf, /canonical-front-half-profile/);
-  assert.match(frontHalf, /reference-class selection[\s\S]*teardown[\s\S]*baseline reproduction[\s\S]*human playtest[\s\S]*controlled subtraction \/ variation \/ recombination[\s\S]*canonical G0/i);
+  assert.match(frontHalf, /success-universe census[\s\S]*archetype coverage map[\s\S]*reference stack[\s\S]*learning-order selection[\s\S]*teardown[\s\S]*baseline reproduction[\s\S]*human playtest[\s\S]*controlled subtraction \/ variation \/ recombination[\s\S]*canonical G0/i);
+  assert.match(frontHalf, /Universe membership:[\s\S]*not filtered[\s\S]*team size[\s\S]*expected reproduction cost/i);
   assert.match(frontHalf, /profile steps.*not additional G-stages/is);
   assert.match(frontHalf, /Innovation is not the required input/);
   assert.match(frontHalf, /They may not answer:[\s\S]*what product to make/);

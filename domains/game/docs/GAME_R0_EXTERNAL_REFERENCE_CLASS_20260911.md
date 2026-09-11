@@ -4,15 +4,15 @@ id: game.r0.external-reference-class.20260911
 title: Ordivon Game — R0 External Reference Class 2026-09-11
 type: research-decision
 profile: product-discovery
-lifecycle: active
-source_role: current-r0-reference-corpus
+lifecycle: superseded
+source_role: superseded-r0-cheap-baseline-corpus
 visibility: public
 owners:
   - ordivon-game
 updated: 2026-09-11
-summary: First real external-reference corpus under the corrected Game E2E front half. Separates success evidence, design-reference value and production-baseline comparability, then admits only a small first teardown set without selecting a product or entering G0.
+summary: Superseded first R0 attempt. Retained for cheap-baseline analysis, but its small-team feasibility filter no longer defines the external success universe or first R1 teardown set.
 evidence_status: externally-grounded
-readiness: R0_COMPLETE_R1_READY
+readiness: SUPERSEDED_AS_R1_ADMISSION
 applies_to:
   - ordivon-game
 related:
@@ -21,6 +21,8 @@ related:
   - game.development-model
 ---
 # R0 External Reference Class — 2026-09-11
+
+> **SUPERSEDED AS R1 ADMISSION AUTHORITY (2026-09-11).** The current R0 authority is [`GAME_R0_SUCCESS_UNIVERSE_20260911.md`](GAME_R0_SUCCESS_UNIVERSE_20260911.md). This document remains useful only for cheap-baseline/reproduction-cost analysis. Balatro, Vampire Survivors and Mini Metro are not a representative success universe and are not the current first R1 set.
 
 ## 0. Decision boundary
 
@@ -65,7 +67,7 @@ Value as a controlled baseline
 
 ## 2. Reference corpus
 
-### Tier A — first teardown / baseline candidates
+### Tier A — historical cheap-baseline candidates
 
 #### A1 — Balatro
 
@@ -268,9 +270,9 @@ Sources:
 - https://www.gamedeveloper.com/business/road-to-the-igf-lucas-pope-s-i-return-of-the-obra-dinn-i-
 - https://www.gamedeveloper.com/design/on-that-incredible-demo-from-the-maker-of-i-papers-please-i-
 
-## 3. Why the first R1 set is A1–A3
+## 3. Historical reason A1–A3 were initially considered cheap baselines
 
-The first teardown set is deliberately **three games, not ten**:
+The superseded first teardown proposal used **three games, not ten**:
 
 ```text
 Balatro            symbolic / turn-based / combinatorial
@@ -325,18 +327,19 @@ Steam live Top Sellers / Most Played
 ## 5. R0 result
 
 ```text
-R0ReferenceClass = COMPLETE
+R0ReferenceClass = SUPERSEDED_BY_SUCCESS_UNIVERSE
 ProductSelected = false
 G0Entered = false
 RuntimeAgentRequired = false
-FirstR1Set = [Balatro, Vampire Survivors, Mini Metro]
+CheapBaselineSet = [Balatro, Vampire Survivors, Mini Metro]
+FirstR1Set = NONE_CURRENTLY
 ReserveSet = [FTL, Papers Please, Slay the Spire, Into the Breach]
 CeilingSet = [Stardew Valley, Hades, Return of the Obra Dinn]
 ```
 
 ### Admission to R1
 
-R1 may begin immediately on A1–A3.
+R1 may **not** begin merely from A1–A3. Any current R1 admission is owned by `GAME_R0_REFERENCE_STACKS_20260911.md`; this superseded record cannot grant it.
 
 R1 must preserve the distinction:
 

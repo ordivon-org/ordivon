@@ -67,10 +67,14 @@ DO_NOT_OWN
 
 **Canonical Game profile:** [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md).
 
-The default first move for a new Game product is to learn from **successful, mature, comparable existing games**, not to generate an Ordivon-internal GameForm portfolio and treat that portfolio as product authority. Steamworks' Tag Wizard explicitly uses detailed genre/subgenre, player activities, mechanics, visuals, themes and similar titles as a similarity surface; use platform/current-market evidence to construct bounded reference classes. Popularity alone is not a design or feasibility score.
+The default first move for a new Game product is to observe the **successful external game universe before asking what is cheap or convenient for Ordivon to reproduce**, not to generate an internal GameForm portfolio or prefilter the market by production feasibility. Steamworks' Tag Wizard remains useful for similarity dimensions, but similarity/comparability is downstream of source-bounded success census and archetype coverage. Popularity alone is not a design or feasibility score.
 
 ```text
-External comparable references
+External success surfaces
+→ source-bounded success universe
+→ archetype coverage
+→ flagship / canonical / cheap reference stacks
+→ learning-order selection
 → direct play / teardown
 → bounded baseline reproduction
 → Human baseline validation
@@ -87,8 +91,10 @@ External comparable references
 Disposition:
 
 ```text
-Steam/platform similarity + current catalogue evidence  DIRECT_ADOPT as reference-class input
-External successful mature games                         PRIMARY BASELINE MATERIAL
+Platform charts/catalogue/lifetime-sales surfaces       DIRECT_ADOPT as source-bounded success evidence
+Steam/platform similarity taxonomy                       DIRECT_ADOPT after census for archetype/reference mapping
+External successful mature games                         PRIMARY REFERENCE MATERIAL
+Implementation feasibility                               LEARNING-ORDER / CHEAP-BASELINE FILTER ONLY
 Double Diamond                                           DIRECT_ADOPT process skeleton
 MDA / mature game-design lenses                          REFERENCE_ONLY teardown aids
 GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE               PROFILE Game-specific composition only

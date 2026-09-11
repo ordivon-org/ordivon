@@ -5,6 +5,15 @@
   "productSelected": false,
   "g0Entered": false,
   "runtimeAgentRequired": false,
+  "standing": "SUPERSEDED_AS_R1_ADMISSION",
+  "supersededBy": "game-r0-success-universe-20260911",
+  "firstR1SetStanding": "HISTORICAL_PROPOSAL_ONLY",
+  "r1Admitted": false,
+  "cheapBaselineSet": [
+    "Balatro",
+    "Vampire Survivors",
+    "Mini Metro"
+  ],
   "selectionAxes": [
     "SuccessEvidence",
     "MaturityLongevity",

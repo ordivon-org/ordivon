@@ -22,8 +22,10 @@ test("R0 separates external success from product and G0 authority", () => {
   assert.match(doc, /Steam's current Charts are retained as a \*\*market pulse\*\*, not as product authority/);
 });
 
-test("R0 admits exactly three materially different first teardowns", () => {
-  assert.deepEqual(evidence.firstR1Set, ["Balatro", "Vampire Survivors", "Mini Metro"]);
+test("superseded R0 retains three materially different cheap baselines without current R1 admission", () => {
+  assert.equal(evidence.standing, "SUPERSEDED_AS_R1_ADMISSION");
+  assert.equal(evidence.r1Admitted, false);
+  assert.deepEqual(evidence.cheapBaselineSet, ["Balatro", "Vampire Survivors", "Mini Metro"]);
   const selected = evidence.references.filter((row: any) => row.tier === "A");
   assert.equal(selected.length, 3);
   assert.deepEqual(selected.map((row: any) => row.form), [
@@ -32,7 +34,7 @@ test("R0 admits exactly three materially different first teardowns", () => {
     "continuous-systemic-optimization",
   ]);
   for (const row of selected) assert.equal(row.smallScopeReproducibility, "very_high");
-  assert.match(doc, /This is a \*\*reference-learning portfolio\*\*, not a product portfolio/);
+  assert.match(doc, /SUPERSEDED AS R1 ADMISSION AUTHORITY/);
 });
 
 test("R0 keeps reserve and ceiling references instead of collapsing all success into clone targets", () => {
@@ -54,7 +56,11 @@ test("R0 uses a vector of comparability axes and preserves source provenance", (
   }
 });
 
-test("current navigation exposes the executed R0 corpus", () => {
+test("navigation retains the old R0 only as a superseded cheap-baseline record", () => {
   for (const carrier of [readme, agents, project]) assert.match(carrier, /GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911\.md/);
-  assert.match(readme, /Balatro, Vampire Survivors, and Mini Metro/);
+  assert.match(readme, /superseded first R0 attempt/);
+  assert.match(readme, /cheap-baseline learning support/);
+  assert.match(doc, /FirstR1Set = NONE_CURRENTLY/);
+  assert.match(doc, /R1 may \*\*not\*\* begin merely from A1–A3/);
+  assert.match(doc, /Any current R1 admission is owned by `GAME_R0_REFERENCE_STACKS_20260911\.md`/);
 });

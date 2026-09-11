@@ -1,0 +1,1627 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-game-r0-success-universe",
+  "observedDate": "2026-09-11",
+  "productSelected": false,
+  "g0Entered": false,
+  "r1Admitted": false,
+  "r1AdmissionMeaning": "legacy broad admission remains false; reference teardown is separately admitted while clone implementation remains closed",
+  "r1ReferenceTeardownAdmitted": true,
+  "r1CloneImplementationAdmitted": false,
+  "previousFirstR1SetSuperseded": true,
+  "cheapBaselineSet": [
+    "Balatro",
+    "Vampire Survivors",
+    "Mini Metro"
+  ],
+  "laws": [
+    "UniverseMembership != LearningOrder",
+    "PopularityMetric != DesignCause",
+    "CrossPlatformCharts != OneGlobalRank",
+    "CheapBaselineSet != RepresentativeSuccessUniverse",
+    "ObservedReferenceFact != InferredDesignCause != TransferableDesignLaw"
+  ],
+  "surfaces": {
+    "steamTopSellersUS": {
+      "metric": "current revenue",
+      "coverage": "complete top 100",
+      "source": "https://store.steampowered.com/charts/topselling/US",
+      "items": [
+        {
+          "rank": 1,
+          "title": "WARDOGS"
+        },
+        {
+          "rank": 2,
+          "title": "Halloween: The Game"
+        },
+        {
+          "rank": 3,
+          "title": "Counter-Strike 2"
+        },
+        {
+          "rank": 4,
+          "title": "Wuthering Waves"
+        },
+        {
+          "rank": 5,
+          "title": "Borderlands 4"
+        },
+        {
+          "rank": 6,
+          "title": "PUBG: BATTLEGROUNDS"
+        },
+        {
+          "rank": 7,
+          "title": "The Blood of Dawnwalker"
+        },
+        {
+          "rank": 8,
+          "title": "MapleStory"
+        },
+        {
+          "rank": 9,
+          "title": "Marvel Rivals"
+        },
+        {
+          "rank": 10,
+          "title": "Welcome to Elderfield"
+        },
+        {
+          "rank": 11,
+          "title": "Valheim"
+        },
+        {
+          "rank": 12,
+          "title": "No Man's Sky"
+        },
+        {
+          "rank": 13,
+          "title": "Bodycam"
+        },
+        {
+          "rank": 14,
+          "title": "Drag'n Wash"
+        },
+        {
+          "rank": 15,
+          "title": "Apex Legends"
+        },
+        {
+          "rank": 16,
+          "title": "Diablo IV"
+        },
+        {
+          "rank": 17,
+          "title": "How to Fish"
+        },
+        {
+          "rank": 18,
+          "title": "Onimusha: Way of the Sword"
+        },
+        {
+          "rank": 19,
+          "title": "NBA 2K27"
+        },
+        {
+          "rank": 20,
+          "title": "Overwatch"
+        },
+        {
+          "rank": 21,
+          "title": "Shroom and Gloom"
+        },
+        {
+          "rank": 22,
+          "title": "Gunman Contracts - Stand Alone"
+        },
+        {
+          "rank": 23,
+          "title": "Warframe"
+        },
+        {
+          "rank": 24,
+          "title": "STAR WARS Zero Company"
+        },
+        {
+          "rank": 25,
+          "title": "Tom Clancy's Rainbow Six Siege"
+        },
+        {
+          "rank": 26,
+          "title": "HELLDIVERS 2"
+        },
+        {
+          "rank": 27,
+          "title": "Once Human"
+        },
+        {
+          "rank": 28,
+          "title": "Rust"
+        },
+        {
+          "rank": 29,
+          "title": "Dead by Daylight"
+        },
+        {
+          "rank": 30,
+          "title": "Ready or Not"
+        },
+        {
+          "rank": 31,
+          "title": "Sid Meier's Civilization VII"
+        },
+        {
+          "rank": 32,
+          "title": "Call of Duty: Black Ops III"
+        },
+        {
+          "rank": 33,
+          "title": "Touhou Koumakyou: New Classic - the Embodiment of Scarlet Devil"
+        },
+        {
+          "rank": 34,
+          "title": "Grand Theft Auto V Enhanced"
+        },
+        {
+          "rank": 35,
+          "title": "ELDEN RING"
+        },
+        {
+          "rank": 36,
+          "title": "Black Desert"
+        },
+        {
+          "rank": 37,
+          "title": "EA SPORTS Madden NFL 27"
+        },
+        {
+          "rank": 38,
+          "title": "War Thunder"
+        },
+        {
+          "rank": 39,
+          "title": "Big Walk"
+        },
+        {
+          "rank": 40,
+          "title": "WARDOGS - Supporter Pack"
+        },
+        {
+          "rank": 41,
+          "title": "Sniper Elite: Resistance"
+        },
+        {
+          "rank": 42,
+          "title": "Monster Hunter Wilds"
+        },
+        {
+          "rank": 43,
+          "title": "Warhammer 40,000: Space Marine 2"
+        },
+        {
+          "rank": 44,
+          "title": "Resident Evil Requiem"
+        },
+        {
+          "rank": 45,
+          "title": "FOR HONOR"
+        },
+        {
+          "rank": 46,
+          "title": "Battlefield 6"
+        },
+        {
+          "rank": 47,
+          "title": "THE FINALS"
+        },
+        {
+          "rank": 48,
+          "title": "Zenless Zone Zero"
+        },
+        {
+          "rank": 49,
+          "title": "Path of Exile 2"
+        },
+        {
+          "rank": 50,
+          "title": "VRChat"
+        },
+        {
+          "rank": 51,
+          "title": "PRAGMATA"
+        },
+        {
+          "rank": 52,
+          "title": "Borderlands 4 - Story Pack 2: FL4K and the Last Resort"
+        },
+        {
+          "rank": 53,
+          "title": "BOMBANANA!"
+        },
+        {
+          "rank": 54,
+          "title": "Magic: The Gathering Arena"
+        },
+        {
+          "rank": 55,
+          "title": "Wanderburg"
+        },
+        {
+          "rank": 56,
+          "title": "Escape from Tarkov"
+        },
+        {
+          "rank": 57,
+          "title": "EA SPORTS College Football 27"
+        },
+        {
+          "rank": 58,
+          "title": "FINAL FANTASY XIV Online"
+        },
+        {
+          "rank": 59,
+          "title": "ACE COMBAT 8: WINGS OF THEVE"
+        },
+        {
+          "rank": 60,
+          "title": "Sniper Elite 5"
+        },
+        {
+          "rank": 61,
+          "title": "HOT WHEELS Infinite Rush"
+        },
+        {
+          "rank": 62,
+          "title": "DEATH STRANDING DIRECTOR'S CUT"
+        },
+        {
+          "rank": 63,
+          "title": "Hunt: Showdown 1896"
+        },
+        {
+          "rank": 64,
+          "title": "Project Zomboid"
+        },
+        {
+          "rank": 65,
+          "title": "Baldur's Gate 3"
+        },
+        {
+          "rank": 66,
+          "title": "Borderlands 4 - Loveless the Hacker"
+        },
+        {
+          "rank": 67,
+          "title": "The Elder Scrolls Online"
+        },
+        {
+          "rank": 68,
+          "title": "Gamble With Your Friends"
+        },
+        {
+          "rank": 69,
+          "title": "No More Room in Hell 2"
+        },
+        {
+          "rank": 70,
+          "title": "Heartopia"
+        },
+        {
+          "rank": 71,
+          "title": "The Isle"
+        },
+        {
+          "rank": 72,
+          "title": "Palworld"
+        },
+        {
+          "rank": 73,
+          "title": "007 First Light"
+        },
+        {
+          "rank": 74,
+          "title": "Dota 2"
+        },
+        {
+          "rank": 75,
+          "title": "Call of Duty: Black Ops II"
+        },
+        {
+          "rank": 76,
+          "title": "Diablo II: Resurrected – Infernal Edition"
+        },
+        {
+          "rank": 77,
+          "title": "Fallout 76"
+        },
+        {
+          "rank": 78,
+          "title": "Forza Horizon 6"
+        },
+        {
+          "rank": 79,
+          "title": "Destiny 2"
+        },
+        {
+          "rank": 80,
+          "title": "Red Dead Redemption"
+        },
+        {
+          "rank": 81,
+          "title": "World of Warships"
+        },
+        {
+          "rank": 82,
+          "title": "iRacing"
+        },
+        {
+          "rank": 83,
+          "title": "DRAGON BALL GEKISHIN SQUADRA"
+        },
+        {
+          "rank": 84,
+          "title": "Where Winds Meet"
+        },
+        {
+          "rank": 85,
+          "title": "Resident Evil 4"
+        },
+        {
+          "rank": 86,
+          "title": "Crimson Desert Enhanced"
+        },
+        {
+          "rank": 87,
+          "title": "Slay the Spire 2"
+        },
+        {
+          "rank": 88,
+          "title": "Mortal Shell II"
+        },
+        {
+          "rank": 89,
+          "title": "Team Fortress 2"
+        },
+        {
+          "rank": 90,
+          "title": "Shift At Midnight"
+        },
+        {
+          "rank": 91,
+          "title": "Total War: WARHAMMER III"
+        },
+        {
+          "rank": 92,
+          "title": "ICARUS"
+        },
+        {
+          "rank": 93,
+          "title": "CONTROL Resonant"
+        },
+        {
+          "rank": 94,
+          "title": "Hell Let Loose: Vietnam"
+        },
+        {
+          "rank": 95,
+          "title": "The Sims 4"
+        },
+        {
+          "rank": 96,
+          "title": "RuneScape: Dragonwilds"
+        },
+        {
+          "rank": 97,
+          "title": "RV There Yet?"
+        },
+        {
+          "rank": 98,
+          "title": "Solasta II"
+        },
+        {
+          "rank": 99,
+          "title": "The Crust"
+        },
+        {
+          "rank": 100,
+          "title": "Cyberpunk 2077"
+        }
+      ]
+    },
+    "steamMostPlayed": {
+      "metric": "current players",
+      "coverage": "complete top 100",
+      "source": "https://store.steampowered.com/charts/mostplayed/",
+      "items": [
+        {
+          "rank": 1,
+          "title": "Counter-Strike 2"
+        },
+        {
+          "rank": 2,
+          "title": "Dota 2"
+        },
+        {
+          "rank": 3,
+          "title": "WARDOGS"
+        },
+        {
+          "rank": 4,
+          "title": "FiveM"
+        },
+        {
+          "rank": 5,
+          "title": "Valheim"
+        },
+        {
+          "rank": 6,
+          "title": "Bongo Cat"
+        },
+        {
+          "rank": 7,
+          "title": "PUBG: BATTLEGROUNDS"
+        },
+        {
+          "rank": 8,
+          "title": "Marvel Rivals"
+        },
+        {
+          "rank": 9,
+          "title": "Rust"
+        },
+        {
+          "rank": 10,
+          "title": "Tom Clancy's Rainbow Six Siege"
+        },
+        {
+          "rank": 11,
+          "title": "TBH: Task Bar Hero"
+        },
+        {
+          "rank": 12,
+          "title": "Palworld"
+        },
+        {
+          "rank": 13,
+          "title": "Path of Exile 2"
+        },
+        {
+          "rank": 14,
+          "title": "Deadlock"
+        },
+        {
+          "rank": 15,
+          "title": "Project Zomboid"
+        },
+        {
+          "rank": 16,
+          "title": "EA SPORTS FC 26"
+        },
+        {
+          "rank": 17,
+          "title": "Apex Legends"
+        },
+        {
+          "rank": 18,
+          "title": "Overwatch"
+        },
+        {
+          "rank": 19,
+          "title": "Dead by Daylight"
+        },
+        {
+          "rank": 20,
+          "title": "Team Fortress 2"
+        },
+        {
+          "rank": 21,
+          "title": "Warframe"
+        },
+        {
+          "rank": 22,
+          "title": "The Binding of Isaac: Rebirth"
+        },
+        {
+          "rank": 23,
+          "title": "Slay the Spire 2"
+        },
+        {
+          "rank": 24,
+          "title": "Grand Theft Auto V Enhanced"
+        },
+        {
+          "rank": 25,
+          "title": "HELLDIVERS 2"
+        },
+        {
+          "rank": 26,
+          "title": "Grand Theft Auto V Legacy"
+        },
+        {
+          "rank": 27,
+          "title": "Wallpaper Engine"
+        },
+        {
+          "rank": 28,
+          "title": "Baldur's Gate 3"
+        },
+        {
+          "rank": 29,
+          "title": "VRChat"
+        },
+        {
+          "rank": 30,
+          "title": "Geometry Dash"
+        },
+        {
+          "rank": 31,
+          "title": "Stardew Valley"
+        },
+        {
+          "rank": 32,
+          "title": "War Thunder"
+        },
+        {
+          "rank": 33,
+          "title": "DayZ"
+        },
+        {
+          "rank": 34,
+          "title": "The Blood of Dawnwalker"
+        },
+        {
+          "rank": 35,
+          "title": "Delta Force"
+        },
+        {
+          "rank": 36,
+          "title": "PAYDAY 2"
+        },
+        {
+          "rank": 37,
+          "title": "Football Manager 26"
+        },
+        {
+          "rank": 38,
+          "title": "Terraria"
+        },
+        {
+          "rank": 39,
+          "title": "Battlefield 6"
+        },
+        {
+          "rank": 40,
+          "title": "No Man's Sky"
+        },
+        {
+          "rank": 41,
+          "title": "Crosshair X"
+        },
+        {
+          "rank": 42,
+          "title": "Call of Duty"
+        },
+        {
+          "rank": 43,
+          "title": "ELDEN RING"
+        },
+        {
+          "rank": 44,
+          "title": "Red Dead Redemption 2"
+        },
+        {
+          "rank": 45,
+          "title": "FINAL FANTASY XIV Online"
+        },
+        {
+          "rank": 46,
+          "title": "Cyberpunk 2077"
+        },
+        {
+          "rank": 47,
+          "title": "The Elder Scrolls V: Skyrim Special Edition"
+        },
+        {
+          "rank": 48,
+          "title": "ARC Raiders"
+        },
+        {
+          "rank": 49,
+          "title": "Hearts of Iron IV"
+        },
+        {
+          "rank": 50,
+          "title": "How to Fish"
+        },
+        {
+          "rank": 51,
+          "title": "eFootball"
+        },
+        {
+          "rank": 52,
+          "title": "Once Human"
+        },
+        {
+          "rank": 53,
+          "title": "Rocket League"
+        },
+        {
+          "rank": 54,
+          "title": "Left 4 Dead 2"
+        },
+        {
+          "rank": 55,
+          "title": "Total War: WARHAMMER III"
+        },
+        {
+          "rank": 56,
+          "title": "Halloween: The Game"
+        },
+        {
+          "rank": 57,
+          "title": "The Sims 4"
+        },
+        {
+          "rank": 58,
+          "title": "Sid Meier’s Civilization VI"
+        },
+        {
+          "rank": 59,
+          "title": "Arena Breakout: Infinite"
+        },
+        {
+          "rank": 60,
+          "title": "Farming Simulator 25"
+        },
+        {
+          "rank": 61,
+          "title": "Black Desert"
+        },
+        {
+          "rank": 62,
+          "title": "RimWorld"
+        },
+        {
+          "rank": 63,
+          "title": "ARK: Survival Ascended"
+        },
+        {
+          "rank": 64,
+          "title": "Garry's Mod"
+        },
+        {
+          "rank": 65,
+          "title": "Euro Truck Simulator 2"
+        },
+        {
+          "rank": 66,
+          "title": "Onimusha: Way of the Sword"
+        },
+        {
+          "rank": 67,
+          "title": "Limbus Company"
+        },
+        {
+          "rank": 68,
+          "title": "Mount & Blade II: Bannerlord"
+        },
+        {
+          "rank": 69,
+          "title": "Crimson Desert Enhanced"
+        },
+        {
+          "rank": 70,
+          "title": "7 Days to Die"
+        },
+        {
+          "rank": 71,
+          "title": "Crusader Kings III"
+        },
+        {
+          "rank": 72,
+          "title": "OBS Studio"
+        },
+        {
+          "rank": 73,
+          "title": "PEAK"
+        },
+        {
+          "rank": 74,
+          "title": "Monster Hunter Wilds"
+        },
+        {
+          "rank": 75,
+          "title": "The Isle"
+        },
+        {
+          "rank": 76,
+          "title": "Destiny 2"
+        },
+        {
+          "rank": 77,
+          "title": "BeamNG.drive"
+        },
+        {
+          "rank": 78,
+          "title": "Bodycam"
+        },
+        {
+          "rank": 79,
+          "title": "Forza Horizon 6"
+        },
+        {
+          "rank": 80,
+          "title": "Age of Empires II: Definitive Edition"
+        },
+        {
+          "rank": 81,
+          "title": "STAR WARS Zero Company"
+        },
+        {
+          "rank": 82,
+          "title": "Factorio"
+        },
+        {
+          "rank": 83,
+          "title": "Escape from Tarkov"
+        },
+        {
+          "rank": 84,
+          "title": "tModLoader"
+        },
+        {
+          "rank": 85,
+          "title": "IdleOn - The Incremental MMO"
+        },
+        {
+          "rank": 86,
+          "title": "Borderlands 4"
+        },
+        {
+          "rank": 87,
+          "title": "R.E.P.O."
+        },
+        {
+          "rank": 88,
+          "title": "Hunt: Showdown 1896"
+        },
+        {
+          "rank": 89,
+          "title": "Unturned"
+        },
+        {
+          "rank": 90,
+          "title": "NBA 2K27"
+        },
+        {
+          "rank": 91,
+          "title": "Football Manager 2024"
+        },
+        {
+          "rank": 92,
+          "title": "Satisfactory"
+        },
+        {
+          "rank": 93,
+          "title": "MIR4"
+        },
+        {
+          "rank": 94,
+          "title": "Sid Meier's Civilization V"
+        },
+        {
+          "rank": 95,
+          "title": "THE FINALS"
+        },
+        {
+          "rank": 96,
+          "title": "Brawlhalla"
+        },
+        {
+          "rank": 97,
+          "title": "PolyClassic: Wild"
+        },
+        {
+          "rank": 98,
+          "title": "Warhammer 40,000: Space Marine 2"
+        },
+        {
+          "rank": 99,
+          "title": "Yu-Gi-Oh! Master Duel"
+        },
+        {
+          "rank": 100,
+          "title": "Fallout 4"
+        }
+      ]
+    },
+    "xboxMostPlayedUS": {
+      "valid": false,
+      "standing": "INVALIDATED_DELIMITER_CORRUPTION",
+      "supersededBy": "game-r0-xbox-most-played-20260911.json",
+      "metric": "Microsoft Store most-played ordering",
+      "coverage": "INVALIDATED raw capture: a temporary pipe delimiter split Xbox Series X|S titles; do not consume embedded items; use corrected 50-item evidence file",
+      "source": "https://www.microsoft.com/en-us/store/most-popular/games/xbox",
+      "items": [
+        {
+          "observedOrder": 1,
+          "title": "Fortnite"
+        },
+        {
+          "observedOrder": 2,
+          "title": "Roblox - Xbox"
+        },
+        {
+          "observedOrder": 3,
+          "title": "Minecraft"
+        },
+        {
+          "observedOrder": 4,
+          "title": "Call of Duty"
+        },
+        {
+          "observedOrder": 5,
+          "title": "Tom Clancy's Rainbow Six Siege"
+        },
+        {
+          "observedOrder": 6,
+          "title": "Rocket League"
+        },
+        {
+          "observedOrder": 7,
+          "title": "Grand Theft Auto V (Xbox One)"
+        },
+        {
+          "observedOrder": 8,
+          "title": "NBA 2K27"
+        },
+        {
+          "observedOrder": 9,
+          "title": "EA SPORTS FC 26 XBOX Series X"
+        },
+        {
+          "observedOrder": 10,
+          "title": "S"
+        },
+        {
+          "observedOrder": 11,
+          "title": "Grand Theft Auto Online (Xbox Series X"
+        },
+        {
+          "observedOrder": 12,
+          "title": "S)"
+        },
+        {
+          "observedOrder": 13,
+          "title": "Forza Horizon 6"
+        },
+        {
+          "observedOrder": 14,
+          "title": "Marvel Rivals"
+        },
+        {
+          "observedOrder": 15,
+          "title": "NBA 2K26 for Xbox Series X"
+        },
+        {
+          "observedOrder": 16,
+          "title": "S"
+        },
+        {
+          "observedOrder": 17,
+          "title": "EA SPORTS College Football 27"
+        },
+        {
+          "observedOrder": 18,
+          "title": "Apex Legends"
+        },
+        {
+          "observedOrder": 19,
+          "title": "EA SPORTS Madden NFL 27"
+        },
+        {
+          "observedOrder": 20,
+          "title": "Battlefield"
+        },
+        {
+          "observedOrder": 21,
+          "title": "Red Dead Redemption 2"
+        },
+        {
+          "observedOrder": 22,
+          "title": "Overwatch"
+        },
+        {
+          "observedOrder": 23,
+          "title": "EA SPORTS Madden NFL 26"
+        },
+        {
+          "observedOrder": 24,
+          "title": "HELLDIVERS 2"
+        },
+        {
+          "observedOrder": 25,
+          "title": "MLB The Show 26"
+        },
+        {
+          "observedOrder": 26,
+          "title": "EA SPORTS College Football 26"
+        },
+        {
+          "observedOrder": 27,
+          "title": "Dead by Daylight"
+        },
+        {
+          "observedOrder": 28,
+          "title": "Palworld"
+        },
+        {
+          "observedOrder": 29,
+          "title": "Gang Beasts"
+        },
+        {
+          "observedOrder": 30,
+          "title": "Call of Duty: Black Ops II"
+        },
+        {
+          "observedOrder": 31,
+          "title": "Once Human"
+        },
+        {
+          "observedOrder": 32,
+          "title": "Forza Horizon 5"
+        },
+        {
+          "observedOrder": 33,
+          "title": "Call of Duty: Black Ops III"
+        },
+        {
+          "observedOrder": 34,
+          "title": "Halo: The Master Chief Collection"
+        },
+        {
+          "observedOrder": 35,
+          "title": "Cyberpunk 2077"
+        },
+        {
+          "observedOrder": 36,
+          "title": "Call of Duty: Black Ops 6 - Launcher"
+        },
+        {
+          "observedOrder": 37,
+          "title": "Call of Duty: Modern Warfare III"
+        },
+        {
+          "observedOrder": 38,
+          "title": "The Elder Scrolls V: Skyrim Special Edition"
+        },
+        {
+          "observedOrder": 39,
+          "title": "Halo: Campaign Evolved"
+        },
+        {
+          "observedOrder": 40,
+          "title": "Ready or Not"
+        },
+        {
+          "observedOrder": 41,
+          "title": "Fall Guys"
+        },
+        {
+          "observedOrder": 42,
+          "title": "EA SPORTS FC 26 Xbox One"
+        },
+        {
+          "observedOrder": 43,
+          "title": "ARC Raiders"
+        },
+        {
+          "observedOrder": 44,
+          "title": "UFC 5"
+        },
+        {
+          "observedOrder": 45,
+          "title": "ELDEN RING"
+        },
+        {
+          "observedOrder": 46,
+          "title": "Fallout 4"
+        },
+        {
+          "observedOrder": 47,
+          "title": "Brawlhalla"
+        },
+        {
+          "observedOrder": 48,
+          "title": "Destiny 2"
+        },
+        {
+          "observedOrder": 49,
+          "title": "Farming Simulator 25"
+        },
+        {
+          "observedOrder": 50,
+          "title": "Halo Infinite"
+        },
+        {
+          "observedOrder": 51,
+          "title": "Among Us"
+        },
+        {
+          "observedOrder": 52,
+          "title": "EA SPORTS College Football 25"
+        },
+        {
+          "observedOrder": 53,
+          "title": "theHunter: Call of the Wild"
+        },
+        {
+          "observedOrder": 54,
+          "title": "Subnautica 2"
+        },
+        {
+          "observedOrder": 55,
+          "title": "LEGO Batman: Legacy of the Dark Knight"
+        },
+        {
+          "observedOrder": 56,
+          "title": "Moonlighter 2: The Endless Vault"
+        }
+      ]
+    },
+    "playstationAugust2026": {
+      "metric": "monthly downloads",
+      "coverage": "PS5 top 20 US/Canada + top 20 EU + F2P top 10",
+      "source": "https://blog.playstation.com/2026/09/04/playstation-store-august-2026s-top-downloads/",
+      "ps5USCanada": [
+        {
+          "rank": 1,
+          "title": "EA Sports Madden NFL 27"
+        },
+        {
+          "rank": 2,
+          "title": "MARVEL Tōkon: Fighting Souls"
+        },
+        {
+          "rank": 3,
+          "title": "Call of Duty: Black Ops II"
+        },
+        {
+          "rank": 4,
+          "title": "No More Room in Hell 2"
+        },
+        {
+          "rank": 5,
+          "title": "Hell Let Loose: Vietnam"
+        },
+        {
+          "rank": 6,
+          "title": "EA Sports College Football 27"
+        },
+        {
+          "rank": 7,
+          "title": "Minecraft"
+        },
+        {
+          "rank": 8,
+          "title": "Halo: Campaign Evolved"
+        },
+        {
+          "rank": 9,
+          "title": "Palworld"
+        },
+        {
+          "rank": 10,
+          "title": "Call of Duty: Black Ops"
+        },
+        {
+          "rank": 11,
+          "title": "Star Wars Zero Company"
+        },
+        {
+          "rank": 12,
+          "title": "Marvel’s Spider-Man 2"
+        },
+        {
+          "rank": 13,
+          "title": "The Lord of the Rings: War in the North – Legacy Edition"
+        },
+        {
+          "rank": 14,
+          "title": "Grand Theft Auto V"
+        },
+        {
+          "rank": 15,
+          "title": "Assassin’s Creed Black Flag Resynced"
+        },
+        {
+          "rank": 16,
+          "title": "Mortal Shell II"
+        },
+        {
+          "rank": 17,
+          "title": "Mistfall Hunter"
+        },
+        {
+          "rank": 18,
+          "title": "Metal Gear Solid: Master Collection Vol.2"
+        },
+        {
+          "rank": 19,
+          "title": "007 First Light"
+        },
+        {
+          "rank": 20,
+          "title": "Mafia: Definitive Edition for PS5"
+        }
+      ],
+      "ps5EU": [
+        {
+          "rank": 1,
+          "title": "Call of Duty: Black Ops II"
+        },
+        {
+          "rank": 2,
+          "title": "Minecraft"
+        },
+        {
+          "rank": 3,
+          "title": "Assassin’s Creed Black Flag Resynced"
+        },
+        {
+          "rank": 4,
+          "title": "The Lord of the Rings: War in the North – Legacy Edition"
+        },
+        {
+          "rank": 5,
+          "title": "Mafia: Definitive Edition for PS5"
+        },
+        {
+          "rank": 6,
+          "title": "Grand Theft Auto V"
+        },
+        {
+          "rank": 7,
+          "title": "Hell Let Loose: Vietnam"
+        },
+        {
+          "rank": 8,
+          "title": "Call of Duty: Black Ops"
+        },
+        {
+          "rank": 9,
+          "title": "Marvel’s Spider-Man 2"
+        },
+        {
+          "rank": 10,
+          "title": "Palworld"
+        },
+        {
+          "rank": 11,
+          "title": "Star Wars Zero Company"
+        },
+        {
+          "rank": 12,
+          "title": "Mortal Shell II"
+        },
+        {
+          "rank": 13,
+          "title": "No More Room in Hell 2"
+        },
+        {
+          "rank": 14,
+          "title": "Forza Horizon 5"
+        },
+        {
+          "rank": 15,
+          "title": "007 First Light"
+        },
+        {
+          "rank": 16,
+          "title": "Halo: Campaign Evolved"
+        },
+        {
+          "rank": 17,
+          "title": "Waterpark Simulator"
+        },
+        {
+          "rank": 18,
+          "title": "Escape the Backrooms"
+        },
+        {
+          "rank": 19,
+          "title": "UFC 6"
+        },
+        {
+          "rank": 20,
+          "title": "Beast of Reincarnation"
+        }
+      ],
+      "freeToPlay": [
+        {
+          "rank": 1,
+          "title": "Fortnite"
+        },
+        {
+          "rank": 2,
+          "title": "Roblox"
+        },
+        {
+          "rank": 3,
+          "title": "Once Human"
+        },
+        {
+          "rank": 4,
+          "title": "Marvel Rivals"
+        },
+        {
+          "rank": 5,
+          "title": "Tom Clancy’s Rainbow Six Siege – Free Access"
+        },
+        {
+          "rank": 6,
+          "title": "Rocket League"
+        },
+        {
+          "rank": 7,
+          "title": "Call of Duty: Warzone"
+        },
+        {
+          "rank": 8,
+          "title": "Apex Legends"
+        },
+        {
+          "rank": 9,
+          "title": "Fall Guys"
+        },
+        {
+          "rank": 10,
+          "title": "eFootball"
+        }
+      ]
+    },
+    "nintendoSwitchLifetime": {
+      "metric": "worldwide lifetime unit sales",
+      "coverage": "official top 10 as of 2026-06-30",
+      "source": "https://www.nintendo.co.jp/ir/en/finance/software/switch.html",
+      "items": [
+        {
+          "rank": 1,
+          "title": "Mario Kart 8 Deluxe",
+          "millionUnits": 71.53
+        },
+        {
+          "rank": 2,
+          "title": "Animal Crossing: New Horizons",
+          "millionUnits": 50.29
+        },
+        {
+          "rank": 3,
+          "title": "Super Smash Bros. Ultimate",
+          "millionUnits": 38.14
+        },
+        {
+          "rank": 4,
+          "title": "The Legend of Zelda: Breath of the Wild",
+          "millionUnits": 34.06
+        },
+        {
+          "rank": 5,
+          "title": "Super Mario Odyssey",
+          "millionUnits": 30.8
+        },
+        {
+          "rank": 6,
+          "title": "Pokémon Scarlet/Violet",
+          "millionUnits": 28.46
+        },
+        {
+          "rank": 7,
+          "title": "Pokémon Sword/Shield",
+          "millionUnits": 27.26
+        },
+        {
+          "rank": 8,
+          "title": "The Legend of Zelda: Tears of the Kingdom",
+          "millionUnits": 22.71
+        },
+        {
+          "rank": 9,
+          "title": "Super Mario Party",
+          "millionUnits": 21.36
+        },
+        {
+          "rank": 10,
+          "title": "New Super Mario Bros. U Deluxe",
+          "millionUnits": 19.1
+        }
+      ]
+    },
+    "nintendoSwitch2Lifetime": {
+      "metric": "worldwide lifetime unit sales",
+      "coverage": "official listed leaders as of 2026-06-30",
+      "source": "https://www.nintendo.co.jp/ir/en/finance/software/index.html",
+      "items": [
+        {
+          "rank": 1,
+          "title": "Mario Kart World",
+          "millionUnits": 15.39
+        },
+        {
+          "rank": 2,
+          "title": "Donkey Kong Bananza",
+          "millionUnits": 4.78
+        },
+        {
+          "rank": 3,
+          "title": "Pokémon Legends: Z-A – Nintendo Switch 2 Edition",
+          "millionUnits": 3.99
+        },
+        {
+          "rank": 4,
+          "title": "Pokémon Pokopia",
+          "millionUnits": 3.68
+        },
+        {
+          "rank": 5,
+          "title": "Kirby Air Riders",
+          "millionUnits": 1.9
+        },
+        {
+          "rank": 6,
+          "title": "Super Mario Party Jamboree – Nintendo Switch 2 Edition",
+          "millionUnits": 1.15
+        }
+      ]
+    },
+    "mobileAugust2026": {
+      "metric": "worldwide App Store + Google Play estimates; third-party Android markets excluded",
+      "coverage": "source prose exposes top five names for revenue/downloads; chart contains full top 10",
+      "source": "https://sensortower.com/blog/top-10-worldwide-mobile-games-by-revenue-and-downloads-in-august-2026",
+      "revenueTop5": [
+        {
+          "rank": 1,
+          "title": "Honor of Kings"
+        },
+        {
+          "rank": 2,
+          "title": "Gossip Harbor"
+        },
+        {
+          "rank": 3,
+          "title": "Whiteout Survival"
+        },
+        {
+          "rank": 4,
+          "title": "Royal Match"
+        },
+        {
+          "rank": 5,
+          "title": "Candy Crush Saga"
+        }
+      ],
+      "downloadsTop5": [
+        {
+          "rank": 1,
+          "title": "Roblox"
+        },
+        {
+          "rank": 2,
+          "title": "Free Fire"
+        },
+        {
+          "rank": 3,
+          "title": "Block Blast!"
+        },
+        {
+          "rank": 4,
+          "title": "Subway Surfers"
+        },
+        {
+          "rank": 5,
+          "title": "Arrow Puzzle: Tap Puzzle Games"
+        }
+      ]
+    }
+  },
+  "supplementalSurfaces": {
+    "playstation2025Annual": {
+      "metric": "annual downloads",
+      "coverage": "official full 2025 top-download tables for PS5/PS4/PS VR2/free-to-play in US/Canada and EU",
+      "source": "https://blog.playstation.com/2026/01/14/playstation-stores-top-downloads-of-2025/",
+      "evidenceFile": "game-r0-playstation-2025-annual.json"
+    }
+  },
+  "archetypeMap": {
+    "competitive_tactical_fps": [
+      "Counter-Strike 2",
+      "Rainbow Six Siege"
+    ],
+    "hero_team_shooter": [
+      "Marvel Rivals",
+      "Overwatch",
+      "THE FINALS"
+    ],
+    "battle_royale_extraction": [
+      "PUBG: BATTLEGROUNDS",
+      "Apex Legends",
+      "Fortnite",
+      "Escape from Tarkov"
+    ],
+    "moba_team_strategy": [
+      "Dota 2",
+      "Honor of Kings"
+    ],
+    "ugc_social_platform": [
+      "Roblox",
+      "FiveM",
+      "VRChat",
+      "Garry's Mod"
+    ],
+    "open_world_action_crime": [
+      "Grand Theft Auto V",
+      "Red Dead Redemption 2",
+      "Cyberpunk 2077"
+    ],
+    "action_rpg_souls_hunt": [
+      "ELDEN RING",
+      "Monster Hunter Wilds",
+      "Path of Exile 2",
+      "Diablo IV"
+    ],
+    "reactive_crpg": [
+      "Baldur's Gate 3"
+    ],
+    "mmorpg_persistent_world": [
+      "FINAL FANTASY XIV Online",
+      "Black Desert",
+      "The Elder Scrolls Online",
+      "MapleStory"
+    ],
+    "survival_craft": [
+      "Rust",
+      "Valheim",
+      "ARK: Survival Ascended",
+      "7 Days to Die",
+      "Project Zomboid",
+      "Palworld"
+    ],
+    "sandbox_creation": [
+      "Minecraft",
+      "Terraria",
+      "No Man's Sky"
+    ],
+    "automation_factory": [
+      "Factorio",
+      "Satisfactory"
+    ],
+    "grand_strategy_4x": [
+      "Hearts of Iron IV",
+      "Civilization VI",
+      "Civilization VII",
+      "Crusader Kings III",
+      "Total War: WARHAMMER III"
+    ],
+    "management_life_sim": [
+      "RimWorld",
+      "The Sims 4",
+      "Farming Simulator 25",
+      "Football Manager 26"
+    ],
+    "racing_vehicle_sim": [
+      "Mario Kart 8 Deluxe",
+      "Mario Kart World",
+      "Forza Horizon 6",
+      "BeamNG.drive",
+      "iRacing",
+      "Euro Truck Simulator 2"
+    ],
+    "sports_competitive": [
+      "EA SPORTS FC 26",
+      "NBA 2K27",
+      "Madden NFL 27",
+      "MLB The Show 26"
+    ],
+    "party_local_social": [
+      "Super Smash Bros. Ultimate",
+      "Super Mario Party",
+      "Gang Beasts",
+      "Among Us",
+      "Fall Guys"
+    ],
+    "life_cozy_social": [
+      "Animal Crossing: New Horizons",
+      "Stardew Valley",
+      "Heartopia"
+    ],
+    "platformer_action_adventure": [
+      "Super Mario Odyssey",
+      "New Super Mario Bros. U Deluxe",
+      "Donkey Kong Bananza"
+    ],
+    "open_world_exploration": [
+      "Zelda: Breath of the Wild",
+      "Zelda: Tears of the Kingdom",
+      "No Man's Sky"
+    ],
+    "roguelike_run_based": [
+      "The Binding of Isaac: Rebirth",
+      "Slay the Spire 2"
+    ],
+    "card_deck_strategy": [
+      "Slay the Spire",
+      "Balatro",
+      "Magic: The Gathering Arena",
+      "Yu-Gi-Oh! Master Duel"
+    ],
+    "cooperative_pve_action": [
+      "HELLDIVERS 2",
+      "Warframe",
+      "Left 4 Dead 2",
+      "PAYDAY 2"
+    ],
+    "asymmetric_horror_social": [
+      "Dead by Daylight"
+    ],
+    "mobile_liveops_strategy": [
+      "Honor of Kings",
+      "Whiteout Survival"
+    ],
+    "mobile_merge_match_casual": [
+      "Gossip Harbor",
+      "Royal Match",
+      "Candy Crush Saga",
+      "Block Blast!"
+    ],
+    "endless_runner_mobile": [
+      "Subway Surfers"
+    ],
+    "precision_arcade": [
+      "Geometry Dash",
+      "Brawlhalla"
+    ],
+    "fighting_brawler": [
+      "Super Smash Bros. Ultimate",
+      "Mortal Kombat X",
+      "Injustice 2",
+      "Brawlhalla"
+    ],
+    "survival_horror": [
+      "Resident Evil 4",
+      "Resident Evil Requiem",
+      "The Forest"
+    ],
+    "real_time_strategy": [
+      "Age of Empires II: Definitive Edition"
+    ],
+    "cooperative_adventure": [
+      "It Takes Two",
+      "Split Fiction",
+      "A Way Out",
+      "Unravel Two"
+    ],
+    "vr_rhythm_embodied": [
+      "Beat Saber",
+      "Pavlov",
+      "Job Simulator"
+    ],
+    "cinematic_action_adventure": [
+      "Marvel’s Spider-Man 2",
+      "Assassin’s Creed Shadows",
+      "God of War"
+    ],
+    "live_service_gacha_action": [
+      "Wuthering Waves",
+      "Zenless Zone Zero"
+    ]
+  },
+  "coverageDebt": [
+    "pure puzzle / puzzle-adventure is weakly represented by current/lifetime source surfaces",
+    "stealth / immersive-sim is not yet isolated as a strong current success archetype",
+    "metroidvania is weakly represented in the current bounded census",
+    "visual-novel / text-first narrative forms are weakly represented",
+    "tower-defense is weakly represented"
+  ],
+  "nextDecision": "pressure-test archetype coverage and build flagship/canonical/cheap reference stacks before R1"
+}
