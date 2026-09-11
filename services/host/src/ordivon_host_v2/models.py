@@ -37,6 +37,7 @@ class TaskView(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     task_id: str
+    goal_id: str | None = None
     revision: int = Field(ge=1)
     state: TaskState
     checkpoint_digest: str
@@ -56,4 +57,4 @@ class HostStatus(BaseModel):
 
     service: str = "ordivon-host-v2"
     authority: str = "postgresql"
-    schema_version: int = 1
+    schema_version: int = 3
