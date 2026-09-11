@@ -46,7 +46,7 @@ class HostV2:
         request_digest = canonical_digest(request)
         checkpoint_digest = canonical_digest(checkpoint.payload)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._receipt(conn, client_request_id, "adopt", request_digest)
+            replay = self._claim_receipt(conn, client_request_id, "adopt", request_digest)
             if replay is not None:
                 return MutationResult.model_validate(replay)
 
@@ -114,7 +114,7 @@ class HostV2:
         request_digest = canonical_digest(request)
         checkpoint_digest = canonical_digest(checkpoint.payload)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._receipt(conn, client_request_id, "checkpoint", request_digest)
+            replay = self._claim_receipt(conn, client_request_id, "checkpoint", request_digest)
             if replay is not None:
                 return MutationResult.model_validate(replay)
 
@@ -239,22 +239,35 @@ class HostV2:
         )
 
     @staticmethod
-    def _receipt(
+    def _claim_receipt(
         conn: psycopg.Connection[dict[str, Any]],
         client_request_id: str,
         operation: str,
         request_digest: str,
     ) -> dict[str, Any] | None:
+        claimed = conn.execute(
+            "INSERT INTO command_receipts(client_request_id, operation, request_digest, response) "
+            "VALUES (%s,%s,%s,NULL) ON CONFLICT (client_request_id) DO NOTHING "
+            "RETURNING client_request_id",
+            (client_request_id, operation, request_digest),
+        ).fetchone()
+        if claimed is not None:
+            return None
+
         row = conn.execute(
             "SELECT operation, request_digest, response FROM command_receipts WHERE client_request_id=%s",
             (client_request_id,),
         ).fetchone()
         if row is None:
-            return None
+            raise RuntimeError("idempotency claim disappeared after conflict arbitration")
         if row["operation"] != operation or row["request_digest"] != request_digest:
             raise ConflictError("client_request_id was already used for different content")
         response = row["response"]
-        return json.loads(response) if isinstance(response, str) else response
+        if response is None:
+            raise RuntimeError("committed idempotency claim is missing its response")
+        replay = json.loads(response) if isinstance(response, str) else dict(response)
+        replay["admission"] = Admission.EXISTING.value
+        return replay
 
     @staticmethod
     def _record_receipt(
@@ -264,12 +277,16 @@ class HostV2:
         request_digest: str,
         result: MutationResult,
     ) -> None:
-        conn.execute(
-            "INSERT INTO command_receipts(client_request_id, operation, request_digest, response) VALUES (%s,%s,%s,%s::jsonb)",
+        updated = conn.execute(
+            "UPDATE command_receipts SET response=%s::jsonb "
+            "WHERE client_request_id=%s AND operation=%s AND request_digest=%s AND response IS NULL "
+            "RETURNING client_request_id",
             (
+                json.dumps(result.model_dump(mode="json"), separators=(",", ":")),
                 client_request_id,
                 operation,
                 request_digest,
-                json.dumps(result.model_dump(mode="json"), separators=(",", ":")),
             ),
-        )
+        ).fetchone()
+        if updated is None:
+            raise RuntimeError("idempotency claim could not be finalized")
