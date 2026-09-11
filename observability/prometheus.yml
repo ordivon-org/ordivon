@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: operations-v2-prometheus
+    static_configs:
+      - targets: ["127.0.0.1:29091"]
+        labels:
+          ordivon_owner: operations-v2
+          ordivon_scope: shared-observability
+
+  - job_name: operations-v2-node
+    static_configs:
+      - targets: ["127.0.0.1:29100"]
+        labels:
+          ordivon_owner: operations-v2
+          ordivon_scope: generic-node-facts
