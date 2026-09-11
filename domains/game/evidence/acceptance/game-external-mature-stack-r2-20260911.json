@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-external-mature-stack-r2",
+  "truthRole": "research-engineering-composition-evidence-not-external-compliance-claim",
+  "recordedAt": "2026-09-11",
+  "taskId": "task:ordivon-game-external-mature-composition-r1-20260911",
+  "baseRevision": "5d555906ce539e35e0e9b84add8670623e9390d5",
+  "projectAdmissionRule": "GitHub repository stars >= 10000; authoritative standards/specifications/official platform mechanisms are exempt from the star threshold",
+  "researchStanding": "EXTERNAL_FIRST_SUPPORTED",
+  "engineeringStanding": "KEEP_AND_SUBTRACT",
+  "greenfieldGameE2EV2": "NOT_ADMITTED",
+  "localPhysicalInventory": {
+    "available": {
+      "godot": "4.7.1.stable.arch_linux.a13da4feb",
+      "blender": "5.2.1 LTS",
+      "ffmpeg": "9.0",
+      "ffprobe": "9.0",
+      "prometheus": "3.14.0",
+      "promtool": "3.14.0",
+      "git": "2.55.0",
+      "node": "26.7.0",
+      "pnpm": "10.33.2"
+    },
+    "notMaterializedAsCommands": [
+      "git-lfs",
+      "grafana-server",
+      "sentry-cli",
+      "nakama"
+    ]
+  },
+  "externalProjectRoles": {
+    "primary": ["Godot", "Blender", "FFmpeg"],
+    "operations": ["Prometheus", "Grafana", "Sentry"],
+    "backendOnDemand": ["Nakama"],
+    "largeBinaryOnDemand": ["Git LFS"],
+    "alternativeCarriersNotDefaultDependencies": ["Bevy", "MonoGame", "Phaser", "raylib", "GDevelop"]
+  },
+  "authoritativeExternalMechanisms": [
+    "Design Council Double Diamond",
+    "ISO/IEC/IEEE 29148:2018",
+    "ISO/IEC/IEEE 12207:2026",
+    "ISO/IEC 25010:2023",
+    "ISO/IEC 25019:2023",
+    "ISO 9241-210:2019",
+    "ISO 9241-11:2018",
+    "ISO 20252:2026",
+    "ICC/ESOMAR International Code 2025 where applicable",
+    "Games User Research professional practice",
+    "Xbox Accessibility Guidelines v3.2",
+    "WCAG 2.2 where applicable",
+    "Steam Playtest when external-player access is required",
+    "Steamworks/target-platform native review and release",
+    "PlayFab Experiments or equivalent mature randomized experimentation when population causal evidence is required",
+    "SLSA v1.2",
+    "SPDX 3.0",
+    "ISO/IEC 5230:2020 OpenChain where applicable",
+    "MDA as reference-only causal design vocabulary"
+  ],
+  "highestPriorityLocalSubtractions": [
+    {
+      "path": "src/team/provider-runtime.ts",
+      "disposition": "EXTERNALIZE",
+      "targetOwner": "Runtime/Host/Provider",
+      "reason": "generic process spawn/output/timeout/abort/process-tree execution mechanics"
+    },
+    {
+      "path": "src/team/provider-preflight.ts",
+      "disposition": "EXTERNALIZE",
+      "targetOwner": "Workstation/Provider",
+      "reason": "generic executable/credential availability probing with local path knowledge"
+    },
+    {
+      "path": "src/team/codex-cli.ts",
+      "disposition": "SPLIT_EXTERNALIZE_TRANSPORT",
+      "targetOwner": "Host/Runtime/Provider",
+      "gameResidual": "Game context/decision schema/admission only"
+    },
+    {
+      "path": "src/team/hermes-cli.ts",
+      "disposition": "SPLIT_EXTERNALIZE_TRANSPORT",
+      "targetOwner": "Host/Runtime/Provider",
+      "gameResidual": "Game context/decision schema/admission only"
+    },
+    {
+      "path": "src/team/provider-chain.ts",
+      "disposition": "EXTERNALIZE_GENERIC_ORCHESTRATION",
+      "targetOwner": "Host/Provider",
+      "exception": "retain only when provider ordering is intentionally a Game evaluation condition"
+    }
+  ],
+  "splitNotDelete": [
+    "src/storage.ts",
+    "src/replay/*",
+    "src/deployment/*"
+  ],
+  "keepGameAuthority": [
+    "src/station-zero-v3/*",
+    "Game World legal transitions and invariants",
+    "Game-specific Team action/authority admission",
+    "Mission Control product/player projections",
+    "Game-specific replay and diagnosis meaning",
+    "Game-specific product-value/falsifier logic",
+    "Game content/progression semantics"
+  ],
+  "historyNotTemplate": ["experiments/veilwild-r1/*"],
+  "gitLfsDecision": {
+    "standing": "ON_DEMAND_NOT_ACTIVATED",
+    "reason": "no .gitattributes or LFS currently; largest tracked Game binaries observed below approximately 0.5 MB, so current pressure does not justify activation"
+  },
+  "compositionLaw": "External standard/platform/project keeps native authority; Ordivon horizontal owner keeps generic cross-domain execution; Game keeps only irreducible Game semantics plus thin profiles/adapters.",
+  "nextEngineeringOrder": [
+    "Move provider process execution out of Game",
+    "Move provider preflight/availability out of Game",
+    "Reduce Codex/Hermes adapters to Game decision-schema/admission bindings",
+    "Externalize generic provider fallback orchestration",
+    "Split storage implementation mechanics from Game world/recovery semantics without weakening atomicity",
+    "Keep Game replay semantics and move only proven-generic transport/provenance fragments",
+    "Route future telemetry transport to Operations substrates",
+    "Activate Git LFS/Sentry/Nakama/platform mechanisms only under real product pressure"
+  ]
+}
