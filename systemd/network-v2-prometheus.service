@@ -1,0 +1,21 @@
+[Unit]
+Description=Network v2 Prometheus evidence store
+After=network-v2-blackbox.service
+Requires=network-v2-blackbox.service
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+StateDirectory=network-v2-prometheus
+ExecStart=/usr/bin/prometheus --config.file=/etc/network-v2/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/network-v2-prometheus --storage.tsdb.retention.time=7d --web.listen-address=127.0.0.1:29090
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

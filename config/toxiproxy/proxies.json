@@ -1,0 +1,8 @@
+[
+  {
+    "name": "r0-http",
+    "listen": "127.0.0.1:28666",
+    "upstream": "127.0.0.1:28888",
+    "enabled": true
+  }
+]

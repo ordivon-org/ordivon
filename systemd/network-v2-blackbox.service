@@ -1,0 +1,19 @@
+[Unit]
+Description=Network v2 blackbox exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecStart=/usr/bin/prometheus-blackbox-exporter --config.file=/etc/network-v2/blackbox/blackbox.yml --web.listen-address=127.0.0.1:29115
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
