@@ -62,3 +62,43 @@ The findings reinforce the v2 boundary:
 ## Next migration gate
 
 Before migrating old implementation code, establish explicit production/research scan scopes using provider-native configuration, then select one genuinely Ordivon-specific semantic consumer for differential migration. Do not copy old QEMU/KVM lifecycle, scanner wrappers, corpus mirroring, or research runners by default.
+
+## R1 product-surface closure
+
+A provider-native `product` scope was then established without introducing an Ordivon suppression DSL. The profile excludes `research/`, `evidence/`, `docs/`, `fixtures/`, and `scenarios/` from the product admission claim using each provider's own path-selection mechanism.
+
+On the same old Security revision:
+
+- Gitleaks reduced from 5 repository-wide findings to 1 product-surface candidate;
+- Semgrep reduced from 2 to 0;
+- Trivy reduced from 1 to 0;
+- Syft and OSV-Scanner completed mechanically;
+- the remaining Gitleaks candidate was the previously identified `run_token=run_token` variable-forwarding line.
+
+A migration-only Gitleaks configuration then adjudicated that exact candidate using all three of rule identity (`generic-api-key`), exact source path, and exact line-pattern matching. The configuration digest is:
+
+`sha256:084c8f1a2d2b2d26534d13e33dfc4fc24e45b2908b28323a13e6d0835508076f`
+
+No other rule or path was weakened. Re-running the complete product profile produced five mechanically successful providers, zero blocking providers, exact revision agreement, and final OPA standing `CURRENT`.
+
+This closes the first old->v2 differential at the **product scan/admission layer**. It does not migrate the old runtime/range/research apparatus and does not claim that excluded research material is safe.
+
+## Standard attestation closure
+
+Security v2 revision `f338a071b4de843339f41309b20bbbc4fa4166da` adds in-toto Reference Statements for retained external reports and a SLSA v1.2 Verification Summary Attestation for the final policy result.
+
+The final R1 VSA binds:
+
+- subject Git commit `5e3142b92fc5aed3259295b63c0300f01b45e04a`;
+- verifier revision `f338a071b4de843339f41309b20bbbc4fa4166da`;
+- exact admission-policy digest;
+- the migration-local Gitleaks configuration digest above;
+- six input reference-attestation digests;
+- `verificationResult=PASSED`;
+- custom verified level `SECURITY_PRODUCT_POLICY` (not a SLSA Build/Source level claim).
+
+Final VSA SHA-256:
+
+`f86740ba752b05d5419710233603d80f08ba143c554cdc23b5418c67e84dc182`
+
+The R1 VSA is intentionally unsigned. It therefore proves structural/digest binding but not independently authenticated verifier identity. Standard signing/envelope integration remains a later admission requirement.
