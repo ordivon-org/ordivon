@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
+import { ProviderAdapterError } from "../src/team/provider-contract.ts";
 import {
   FixtureStationZeroV3AgentProvider,
   StationZeroV3DeepSeekCredentialPool,

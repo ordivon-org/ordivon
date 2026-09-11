@@ -7,7 +7,12 @@ import { compareRuns, ComparisonError } from "./comparison/compare.ts";
 import { CasefileService, CasefileStore, CasefileStoreError } from "./casefile/index.ts";
 import type { DeploymentProviderOptions } from "./deployment/model.ts";
 import { DeploymentError, DeploymentStore } from "./deployment/store.ts";
-import { createMissionControlCatalog, isMissionProviderName } from "./mission-control/catalog.ts";
+import {
+  createMissionControlCatalog,
+  isMissionProviderName,
+  MISSION_PROVIDER_OPTIONS,
+  type MissionProviderOption,
+} from "./mission-control/catalog.ts";
 import {
   MissionControlService,
   type MissionControlCommand,
@@ -18,12 +23,8 @@ import type { DoctrineId, MissionAdvanceMode } from "./mission-control/model.ts"
 import { buildReplayReport } from "./replay/report.ts";
 import { replayFrame } from "./replay/frames.ts";
 import { GameStore, StorageError } from "./storage.ts";
-import { TeamCodexCliProvider } from "./team/codex-cli.ts";
-import { TeamHermesCliProvider } from "./team/hermes-cli.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "./team/model.ts";
-import { providerPreflight } from "./team/provider-preflight.ts";
-import { TeamProviderChain } from "./team/provider-chain.ts";
-import { ProviderAdapterError } from "./team/provider-runtime.ts";
+import { ProviderAdapterError } from "./team/provider-contract.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
 import { TeamStoreError } from "./team/store.ts";
 import {
@@ -129,16 +130,15 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 }
 
 function defaultProviderFactory(name: MissionProviderName, options?: DeploymentProviderOptions): TeamDecisionProvider {
-  switch (name) {
-    case "fixture":
-      return new FixtureTeamProvider({
-        breachStrategy: options?.coordinationProfileId === "engineer-seal" ? "engineer-seal" : "security-contain",
-      });
-    case "codex": return new TeamCodexCliProvider();
-    case "hermes": return new TeamHermesCliProvider();
-    case "codex-hermes": return new TeamProviderChain([new TeamCodexCliProvider(), new TeamHermesCliProvider()]);
-    case "hermes-codex": return new TeamProviderChain([new TeamHermesCliProvider(), new TeamCodexCliProvider()]);
+  if (name === "fixture") {
+    return new FixtureTeamProvider({
+      breachStrategy: options?.coordinationProfileId === "engineer-seal" ? "engineer-seal" : "security-contain",
+    });
   }
+  throw new ProviderAdapterError(
+    "unavailable",
+    `Mission Provider ${name} requires an externally supplied providerFactory`,
+  );
 }
 
 function requiredString(value: unknown, label: string): string {
@@ -151,8 +151,11 @@ function bodyRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function parseProviderName(value: unknown): MissionProviderName {
-  if (isMissionProviderName(value ?? "fixture")) return (value ?? "fixture") as MissionProviderName;
+function parseProviderName(
+  value: unknown,
+  providerOptions: readonly MissionProviderOption[],
+): MissionProviderName {
+  if (isMissionProviderName(value ?? "fixture", providerOptions)) return (value ?? "fixture") as MissionProviderName;
   throw new TypeError("unsupported Mission Provider");
 }
 
@@ -238,7 +241,10 @@ function parseV3OrderPatch(body: Record<string, unknown>): StationZeroV3Commande
   return patch;
 }
 
-function parseCommand(body: Record<string, unknown>): MissionControlCommand {
+function parseCommand(
+  body: Record<string, unknown>,
+  providerOptions: readonly MissionProviderOption[],
+): MissionControlCommand {
   const action = requiredString(body.action, "Mission Control action");
   switch (action) {
     case "approve": return {
@@ -254,7 +260,7 @@ function parseCommand(body: Record<string, unknown>): MissionControlCommand {
     case "resume":
     case "cancel": return { action, actorId: requiredString(body.actorId, "actorId") };
     case "set-provider": return {
-      action, actorId: requiredString(body.actorId, "actorId"), provider: parseProviderName(body.provider),
+      action, actorId: requiredString(body.actorId, "actorId"), provider: parseProviderName(body.provider, providerOptions),
     };
     case "set-authority-policy": return { action, policyMode: parseAuthorityPolicy(body.policyMode) };
     case "send-message": return {
@@ -277,6 +283,7 @@ export interface GameServerOptions {
   researchSurfaces?: boolean;
   webRoot?: string;
   providerFactory?: MissionProviderFactory;
+  providerOptions?: readonly MissionProviderOption[];
   v3DbPath?: string;
   v3WebRoot?: string;
   labWebRoot?: string;
@@ -324,6 +331,8 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
   const preG0WebRoot = options.preG0WebRoot ?? defaultPreG0WebRoot;
   const casefileWebRoot = options.casefileWebRoot ?? defaultCasefileWebRoot;
   const providerFactory = options.providerFactory ?? defaultProviderFactory;
+  const providerOptions = options.providerOptions ?? MISSION_PROVIDER_OPTIONS;
+  const catalog = createMissionControlCatalog(providerOptions);
   const service = (): MissionControlService => new MissionControlService(store, providerFactory);
 
   const server = createServer(async (request, response) => {
@@ -421,12 +430,8 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         sendJson(response, 200, { activeRunId: store.activeRunId, runs: store.listRuns() });
         return;
       }
-      if (request.method === "GET" && url.pathname === "/api/providers/preflight") {
-        sendJson(response, 200, providerPreflight());
-        return;
-      }
       if (request.method === "GET" && url.pathname === "/api/mission-control/catalog") {
-        sendJson(response, 200, createMissionControlCatalog());
+        sendJson(response, 200, catalog);
         return;
       }
       if (request.method === "GET" && url.pathname === "/api/mission-control/state") {
@@ -442,7 +447,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
           ...(typeof body.scenarioCaseId === "string" ? { scenarioCaseId: body.scenarioCaseId } : {}),
           ...(body.authorityPolicyMode === undefined ? {} : { authorityPolicyMode: parseAuthorityPolicy(body.authorityPolicyMode) }),
           ...(body.doctrineId === undefined ? {} : { doctrineId: parseDoctrineId(body.doctrineId) }),
-          providers: Object.fromEntries(Object.entries(rawProviders).map(([id, provider]) => [id, parseProviderName(provider)])),
+          providers: Object.fromEntries(Object.entries(rawProviders).map(([id, provider]) => [id, parseProviderName(provider, providerOptions)])),
           ...(typeof body.coordinationProfileId === "string" ? { coordinationProfileId: body.coordinationProfileId } : {}),
         }));
         return;
@@ -458,7 +463,7 @@ export function createGameServer(options: GameServerOptions = {}): GameServer {
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/mission-control/command") {
-        const result = service().command(runId, parseCommand(bodyRecord(await readJson(request))));
+        const result = service().command(runId, parseCommand(bodyRecord(await readJson(request)), providerOptions));
         sendJson(response, 200, { result, view: service().state(runId) });
         return;
       }

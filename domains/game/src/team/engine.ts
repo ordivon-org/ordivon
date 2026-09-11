@@ -1,6 +1,6 @@
 import { canonicalJson, sha256 } from "../digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
-import { ProviderAdapterError } from "./provider-runtime.ts";
+import { ProviderAdapterError } from "./provider-contract.ts";
 import type { GameStore } from "../storage.ts";
 import { authorityTargetId, evaluateAuthority } from "./authority.ts";
 import { compileTeamContext } from "./context.ts";

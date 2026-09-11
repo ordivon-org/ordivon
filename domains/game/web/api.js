@@ -26,10 +26,6 @@ export function loadCatalog() {
   return request("/api/mission-control/catalog");
 }
 
-export function loadProviderPreflight() {
-  return request("/api/providers/preflight");
-}
-
 export function listRuns() {
   return request("/api/runs");
 }

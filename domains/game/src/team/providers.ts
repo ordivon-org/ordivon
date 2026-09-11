@@ -1,5 +1,5 @@
 import type { WorldState } from "../model.ts";
-import { ProviderAdapterError } from "./provider-runtime.ts";
+import { ProviderAdapterError } from "./provider-contract.ts";
 import type { CompiledTeamContext, TeamProviderDecision } from "./model.ts";
 
 export interface TeamDecisionProvider {

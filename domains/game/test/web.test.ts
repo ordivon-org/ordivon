@@ -34,11 +34,11 @@ test("humanize makes persisted camelCase identities readable", () => {
   assert.equal(humanize("coordinationProfileId"), "Coordination Profile Id");
 });
 
-test("Deployment renders fixed loadout, measured coordination, and Provider readiness", () => {
+test("Deployment renders fixed loadout, measured coordination, and configured Providers", () => {
   const html = renderDeployment([], {
     catalog: {
       actors: [{ actorId: "engineer-01", name: "Engineer", role: "engineer", defaultProvider: "fixture" }],
-      providers: [{ providerId: "fixture", label: "Fixture", deterministic: true }],
+      providers: [{ providerId: "fixture", label: "Fixture", deterministic: true, executionOwner: "game" }],
       cases: [{ caseId: "baseline", label: "Baseline" }],
       authorityPolicies: [{ policyMode: "autonomous", label: "Autonomous" }],
       doctrines: [{ doctrineId: "delegated-response", label: "Delegated response", description: "Routine work proceeds.", authorityPolicyMode: "autonomous" }],
@@ -46,12 +46,12 @@ test("Deployment renders fixed loadout, measured coordination, and Provider read
       fixedLoadout: { profileId: "standard-loadout", label: "Standard loadout", description: "Fixed" },
       coordinationProfiles: [{ profileId: "specialist-containment", label: "Specialist containment" }],
     },
-    preflight: { providers: [{ providerId: "fixture", ready: true, summary: "Ready" }] },
   });
   assert.match(html, /Coordination fixture/);
   assert.match(html, /Command doctrine/);
   assert.match(html, /Three persistent specialists/);
-  assert.match(html, /Provider readiness/);
+  assert.match(html, /Fixture · deterministic/);
+  assert.doesNotMatch(html, /Provider readiness/);
 });
 
 test("Replay, Diagnosis, and Compare render bounded product evidence", () => {

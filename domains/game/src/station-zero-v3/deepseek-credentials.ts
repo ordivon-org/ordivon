@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 
-import { ProviderAdapterError } from "../team/provider-runtime.ts";
+import { ProviderAdapterError } from "../team/provider-contract.ts";
 
 export interface StationZeroV3DeepSeekCredentialConfig {
   schemaVersion: 1;

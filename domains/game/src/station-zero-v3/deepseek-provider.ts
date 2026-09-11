@@ -1,4 +1,4 @@
-import { ProviderAdapterError } from "../team/provider-runtime.ts";
+import { ProviderAdapterError } from "../team/provider-contract.ts";
 import { assertStationZeroV3AgentDecision } from "./agent-planning.ts";
 import {
   StationZeroV3DeepSeekCredentialPool,

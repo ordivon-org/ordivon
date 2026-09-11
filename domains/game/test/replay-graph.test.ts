@@ -55,7 +55,7 @@ test("Message and player configuration evidence remain visible before the first 
   const service = new MissionControlService(store, () => new FixtureTeamProvider());
   try {
     service.initialize({ runId, scenarioCaseId: "baseline", authorityPolicyMode: "supervised" });
-    service.command(runId, { action: "set-provider", actorId: "engineer-01", provider: "codex-hermes" });
+    service.command(runId, { action: "set-provider", actorId: "engineer-01", provider: "external:recorded-condition" });
     service.command(runId, {
       action: "send-message", senderActorId: "engineer-01", recipientActorIds: ["security-01"],
       kind: "help-request", boundedSummary: "Reserve the maintenance route.", channel: "station-radio", ttlTicks: 3,

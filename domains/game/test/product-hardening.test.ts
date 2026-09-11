@@ -130,7 +130,7 @@ test("Mission Control catalog is the single product contract for Cases, Provider
   const catalog = createMissionControlCatalog();
   assert.equal(catalog.scenario.seedSemantics, "compatibility-label");
   assert.deepEqual(catalog.cases.map((entry) => entry.caseId), ["baseline", "power-constrained", "oxygen-constrained"]);
-  assert.deepEqual(catalog.providers.map((entry) => entry.providerId), ["fixture", "codex", "hermes", "codex-hermes", "hermes-codex"]);
+  assert.deepEqual(catalog.providers.map((entry) => entry.providerId), ["fixture"]);
   assert.deepEqual(catalog.evidenceOrdering.authoritative, ["world-revision", "host-sequence", "projection-revision"]);
   assert.equal(catalog.evidenceOrdering.timestamp, "metadata-only");
   for (const actor of catalog.actors) assert.deepEqual(actor.objectiveIds, objectivesForRole(actor.role));

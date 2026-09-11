@@ -207,12 +207,6 @@ dt { color: var(--quiet); font-size: .62rem; text-transform: uppercase; letter-s
 .comparison-metrics table { width: 100%; border-collapse: collapse; }
 .comparison-metrics th, .comparison-metrics td { padding: 13px; text-align: left; border-bottom: 1px solid var(--line); }
 .comparison-metrics td { color: var(--muted); }
-.provider-preflight { margin: 4px 0 16px; color: var(--muted); }
-.provider-preflight summary { cursor: pointer; font-size: 0.78rem; }
-.provider-preflight ul { display: grid; gap: 7px; padding: 10px 0 0; list-style: none; }
-.provider-preflight li { display: flex; justify-content: space-between; gap: 14px; font-size: 0.72rem; }
-.provider-preflight li.ready strong { color: #86efac; }
-.provider-preflight li.unavailable strong { color: #fca5a5; }
 .terminal-panel .button-row { flex-wrap: wrap; }
 
 @media (max-width: 900px) {

@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
 import type { PrimitiveWorldCommand } from "../src/model.ts";
-import { ProviderAdapterError } from "../src/team/provider-runtime.ts";
+import { ProviderAdapterError } from "../src/team/provider-contract.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../src/scenario.ts";
 import { GameStore } from "../src/storage.ts";
 import { TeamHost, type TeamFaultPoint } from "../src/team/engine.ts";

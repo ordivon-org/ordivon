@@ -40,7 +40,7 @@ test("Play catalog exposes doctrines with the supported Provider choices", () =>
     "strict-control",
   ]);
   assert.equal(catalog.playDefaults.doctrineId, "critical-approval");
-  assert.ok(catalog.providers.some((entry) => entry.providerId === "codex"));
+  assert.deepEqual(catalog.providers.map((entry) => entry.providerId), ["fixture"]);
 });
 
 test("doctrine mappings preserve explicit modes and bounded fallbacks", () => {

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-provider-execution-subtraction-r1",
+  "truthRole": "engineering-subtraction-evidence-not-provider-currentness-or-external-compliance-claim",
+  "recordedAt": "2026-09-11",
+  "taskId": "task:ordivon-game-external-mature-composition-r1-20260911",
+  "baseCandidate": "c89c8c9d599b587807faa7b60410c3955477b365",
+  "standing": "PASS_BOUNDED",
+  "retired": [
+    {"path":"src/team/provider-runtime.ts","previousLoc":118,"responsibility":"generic process spawn/output/timeout/abort/process-tree execution"},
+    {"path":"src/team/codex-cli.ts","previousLoc":113,"responsibility":"Game-owned Codex CLI transport and process isolation"},
+    {"path":"src/team/hermes-cli.ts","previousLoc":148,"responsibility":"Game-owned Hermes CLI transport, credential copying and process isolation"},
+    {"path":"src/team/provider-preflight.ts","previousLoc":112,"responsibility":"Game-owned executable and credential readiness probing"},
+    {"path":"src/team/provider-chain.ts","previousLoc":36,"responsibility":"generic technical provider fallback orchestration"}
+  ],
+  "retiredLoc": 527,
+  "replacementBoundary": {
+    "gameKeeps": [
+      "TeamDecisionProvider interface",
+      "CompiledTeamContext and allowed-action frontier",
+      "TeamProviderDecision structured parser",
+      "Game decision admission and stale-world/action checks",
+      "provider identity as evaluation/evidence condition",
+      "deterministic FixtureTeamProvider baseline"
+    ],
+    "externalOwnerKeeps": [
+      "provider process/runtime execution",
+      "provider configuration and credentials",
+      "provider availability/currentness",
+      "provider retry/fallback orchestration"
+    ],
+    "injection": ["GameServerOptions.providerOptions", "GameServerOptions.providerFactory"]
+  },
+  "defaultProviderCatalog": ["fixture"],
+  "removedEndpoint": "GET /api/providers/preflight",
+  "focusedVerification": {"pass":57,"total":57},
+  "fullVerification": {"pass":427,"total":427,"fail":0},
+  "remainingProviderTransportDebt": [
+    "opt-in Station Zero v3 researchSurfaces direct DeepSeek HTTP/credential pool"
+  ],
+  "explicitNonScope": ["src/storage.ts", "src/replay/*", "src/deployment/*"]
+}

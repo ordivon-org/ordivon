@@ -7,7 +7,6 @@ import {
   loadCatalog,
   loadDeploymentManifest,
   loadMission,
-  loadProviderPreflight,
   loadReplayFrame,
   loadReplayReport,
 } from "./api.js";
@@ -28,7 +27,6 @@ import {
 const root = document.querySelector("#app");
 let runs = [];
 let catalog = null;
-let preflight = null;
 let view = null;
 let replayReport = null;
 let replayFrame = null;
@@ -62,7 +60,6 @@ function draw() {
       error,
       selectedRunId: currentRunId,
       catalog,
-      preflight,
       cloneManifest,
       compareBaseRunId,
     });
@@ -152,7 +149,7 @@ async function bootFromUrl() {
 
 async function boot() {
   try {
-    [catalog, preflight] = await Promise.all([loadCatalog(), loadProviderPreflight()]);
+    catalog = await loadCatalog();
     await refreshRuns();
     await bootFromUrl();
     draw();

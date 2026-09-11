@@ -26,11 +26,6 @@ function selected(value, expected) {
   return value === expected ? "selected" : "";
 }
 
-function providerReadiness(preflight) {
-  return (preflight?.providers ?? []).map((entry) => `
-    <li class="${entry.ready ? "ready" : "unavailable"}"><strong>${escapeHtml(humanize(entry.providerId))}</strong><span>${escapeHtml(entry.summary)}</span></li>`).join("");
-}
-
 function doctrineIdForManifest(catalog, manifest) {
   return catalog?.doctrines?.find((entry) => entry.authorityPolicyMode === manifest?.authorityPolicyMode)?.doctrineId
     ?? catalog?.playDefaults?.doctrineId
@@ -42,14 +37,13 @@ export function renderDeployment(runs, options = {}) {
     error = null,
     selectedRunId = null,
     catalog = null,
-    preflight = null,
     cloneManifest = null,
     compareBaseRunId = null,
   } = options;
   const actorFields = (catalog?.actors ?? []).map((actor) => {
     const retained = cloneManifest?.actors?.find((item) => item.actorId === actor.actorId);
     const provider = retained?.providerOrder?.[0] ?? actor.defaultProvider;
-    return `<label class="provider-field"><span>${escapeHtml(actor.name)} · ${escapeHtml(humanize(actor.role))}</span><select name="${escapeHtml(actor.actorId)}">${providerOptions(catalog?.providers, provider, preflight)}</select></label>`;
+    return `<label class="provider-field"><span>${escapeHtml(actor.name)} · ${escapeHtml(humanize(actor.role))}</span><select name="${escapeHtml(actor.actorId)}">${providerOptions(catalog?.providers, provider)}</select></label>`;
   }).join("");
   const scenarioCaseId = cloneManifest?.scenarioCaseId ?? catalog?.playDefaults?.scenarioCaseId ?? "baseline";
   const caseOptions = (catalog?.cases ?? []).map((scenarioCase) => `
@@ -80,7 +74,6 @@ export function renderDeployment(runs, options = {}) {
             <summary>Provider and coordination configuration</summary>
             <label class="authority-field"><span>Coordination fixture</span><select name="coordinationProfileId">${coordinationOptions}</select></label>
             <div class="provider-grid">${actorFields}</div>
-            <details class="provider-preflight"><summary>Provider readiness</summary><ul>${providerReadiness(preflight)}</ul></details>
           </details>
           <input type="hidden" name="runId" value="${escapeHtml(selectedRunId ?? "")}" />
           <button class="primary deployment-start" type="submit">${cloneManifest ? "Start comparison mission" : "Begin emergency response"}</button>

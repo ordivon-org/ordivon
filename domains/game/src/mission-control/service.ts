@@ -9,7 +9,7 @@ import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/m
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
 import type { TeamDecisionProvider } from "../team/providers.ts";
 import { TeamStore, TeamStoreError, teamRunInitialized } from "../team/store.ts";
-import { isMissionProviderName, type MissionProviderName } from "./catalog.ts";
+import type { MissionProviderName } from "./catalog.ts";
 import { policyForDoctrine } from "./experience.ts";
 import type { DoctrineId, MissionAdvanceMode, MissionControlAdvanceResult, MissionControlView, MissionTimelineItem } from "./model.ts";
 import { createMissionControlView, deriveInterventions, missionTimelineItems } from "./projection.ts";
@@ -36,14 +36,10 @@ export type MissionControlCommand =
   | { action: "send-message"; senderActorId: string; recipientActorIds: string[]; kind: MessageKind; boundedSummary: string; channel: MessageChannel; ttlTicks?: number };
 
 function providerName(value: string | undefined): MissionProviderName {
-  return isMissionProviderName(value) ? value : "fixture";
+  return value && value === value.trim() ? value : "fixture";
 }
 
 function providerForOrder(order: string[], factory: MissionProviderFactory, options: DeploymentProviderOptions): TeamDecisionProvider {
-  if (order.length >= 2) {
-    const pair = `${order[0]}-${order[1]}`;
-    if (pair === "codex-hermes" || pair === "hermes-codex") return factory(pair, options);
-  }
   return factory(providerName(order[0]), options);
 }
 
@@ -365,7 +361,7 @@ export class MissionControlService {
         }, `team.task-player-${command.action}d`, { actorId: command.actorId });
       }
       case "set-provider": {
-        if (!isMissionProviderName(command.provider)) throw new TypeError("unsupported Team Provider");
+        if (!command.provider || command.provider !== command.provider.trim()) throw new TypeError("invalid Team Provider identity");
         const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
         if (!task) throw new TypeError("no matching Actor Task");
         const recoveringProviderWait = task.control.mode === "active" && task.wait?.kind === "provider";

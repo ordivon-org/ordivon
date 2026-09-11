@@ -5,15 +5,46 @@ import type { ActorRole, AuthorityPolicyMode } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
 import { DOCTRINES } from "./experience.ts";
 
-export const MISSION_PROVIDER_OPTIONS = [
-  { providerId: "fixture", label: "Fixture baseline", deterministic: true },
-  { providerId: "codex", label: "Codex", deterministic: false },
-  { providerId: "hermes", label: "Hermes / DeepSeek", deterministic: false },
-  { providerId: "codex-hermes", label: "Codex → Hermes", deterministic: false },
-  { providerId: "hermes-codex", label: "Hermes → Codex", deterministic: false },
+export interface MissionProviderOption {
+  providerId: string;
+  label: string;
+  deterministic: boolean;
+  executionOwner: "game" | "external";
+}
+
+export const MISSION_PROVIDER_OPTIONS: readonly MissionProviderOption[] = [
+  { providerId: "fixture", label: "Fixture baseline", deterministic: true, executionOwner: "game" },
 ] as const;
 
-export type MissionProviderName = typeof MISSION_PROVIDER_OPTIONS[number]["providerId"];
+export type MissionProviderName = string;
+
+export function validateMissionProviderOptions(
+  providers: readonly MissionProviderOption[],
+): MissionProviderOption[] {
+  if (providers.length === 0) throw new TypeError("Mission Provider catalog must not be empty");
+  const ids = new Set<string>();
+  const normalized = providers.map((provider) => {
+    if (!provider.providerId || provider.providerId !== provider.providerId.trim()) {
+      throw new TypeError("Mission Provider identity must be non-empty and trimmed");
+    }
+    if (!provider.label || provider.label !== provider.label.trim()) {
+      throw new TypeError(`Mission Provider ${provider.providerId} label must be non-empty and trimmed`);
+    }
+    if (ids.has(provider.providerId)) throw new TypeError(`duplicate Mission Provider identity: ${provider.providerId}`);
+    ids.add(provider.providerId);
+    return { ...provider };
+  });
+  if (!ids.has("fixture")) throw new TypeError("Mission Provider catalog must retain the fixture baseline");
+  return normalized;
+}
+
+export function isMissionProviderName(
+  value: unknown,
+  providers: readonly MissionProviderOption[] = MISSION_PROVIDER_OPTIONS,
+): value is MissionProviderName {
+  return typeof value === "string" && value.length > 0 && value === value.trim()
+    && providers.some((option) => option.providerId === value);
+}
 
 export const AUTHORITY_POLICY_OPTIONS: Array<{
   policyMode: AuthorityPolicyMode;
@@ -23,10 +54,6 @@ export const AUTHORITY_POLICY_OPTIONS: Array<{
   { policyMode: "supervised", label: "Supervised" },
   { policyMode: "locked", label: "Locked" },
 ];
-
-export function isMissionProviderName(value: unknown): value is MissionProviderName {
-  return MISSION_PROVIDER_OPTIONS.some((option) => option.providerId === value);
-}
 
 export interface MissionControlCatalog {
   schemaVersion: 1;
@@ -47,7 +74,7 @@ export interface MissionControlCatalog {
     defaultProvider: MissionProviderName;
     objectiveIds: string[];
   }>;
-  providers: Array<{ providerId: MissionProviderName; label: string; deterministic: boolean }>;
+  providers: MissionProviderOption[];
   authorityPolicies: typeof AUTHORITY_POLICY_OPTIONS;
   doctrines: typeof DOCTRINES;
   playDefaults: { doctrineId: "critical-approval"; scenarioCaseId: "baseline"; coordinationProfileId: "specialist-containment" };
@@ -58,7 +85,10 @@ export interface MissionControlCatalog {
   };
 }
 
-export function createMissionControlCatalog(): MissionControlCatalog {
+export function createMissionControlCatalog(
+  providerOptions: readonly MissionProviderOption[] = MISSION_PROVIDER_OPTIONS,
+): MissionControlCatalog {
+  const providers = validateMissionProviderOptions(providerOptions);
   const world = initialTeamWorld();
   const roles: Record<string, Exclude<ActorRole, "coordinator">> = {
     "engineer-01": "engineer",
@@ -90,7 +120,7 @@ export function createMissionControlCatalog(): MissionControlCatalog {
     fixedLoadout: deployment.fixedLoadout,
     coordinationProfiles: deployment.coordination,
     actors,
-    providers: MISSION_PROVIDER_OPTIONS.map((option) => ({ ...option })),
+    providers: providers.map((option) => ({ ...option })),
     authorityPolicies: AUTHORITY_POLICY_OPTIONS.map((option) => ({ ...option })),
     doctrines: DOCTRINES.map((entry) => ({ ...entry })),
     playDefaults: { doctrineId: "critical-approval", scenarioCaseId: "baseline", coordinationProfileId: "specialist-containment" },
