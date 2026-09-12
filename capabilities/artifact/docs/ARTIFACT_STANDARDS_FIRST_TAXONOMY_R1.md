@@ -112,9 +112,9 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-Five non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, and **moving-image**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
+Six non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, **moving-image**, and **software-release**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema now maps all eight current production v1 profiles plus five standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio and Moving Image) with semantic-field preservation and a green 188-test full regression. Moving Image adds specialist implementation-check evidence and decoded-frame identity without requiring another common classification axis. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus six standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image and Software Release) with semantic-field preservation and a green 198-test full regression. Software Release adds OCI identity, SBOM/security snapshots and runtime read-back without requiring another common classification axis. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
@@ -152,6 +152,6 @@ The lowest-risk order is determined by existing mature local substrate, not by p
 
 1. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
 2. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
-3. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
+2. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
 
 This ordering deliberately tests different semantic regimes before any profile-v2 schema is frozen.

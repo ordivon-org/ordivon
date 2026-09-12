@@ -121,6 +121,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertEqual(mapped['objectContract']['binding'],'request-digest')
         self.assertEqual(mapped['classification']['format']['mediaType'],'application/vnd.apache.parquet')
 
+    def test_software_release_shadow_maps_implementation_matrix_and_release_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/software-release-oci-image-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'software-release')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'application/vnd.oci.image.manifest.v1+json')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
+
     def test_moving_image_shadow_maps_standard_validator_and_decoded_content_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/moving-image-matroska-ffv1-v3-r1.json').read_text())
         mapped=MODULE.map_shadow(source)

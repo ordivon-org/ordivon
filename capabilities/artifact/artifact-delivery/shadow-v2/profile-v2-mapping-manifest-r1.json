@@ -1,7 +1,7 @@
 {
-  "fullRegression": "188 tests / 186 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "198 tests / 196 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 13,
+  "mappingCount": 14,
   "mappings": [
     {
       "family": "text-document",
@@ -124,6 +124,16 @@
       "validation": "PASS"
     },
     {
+      "family": "software-release",
+      "mapped": "artifact-delivery/shadow-v2/examples/software-release-oci-image-r1-v2.json",
+      "mappedDigest": "61f38947015035558dccad104c95240b3a5d92e9d5ed59e6f9fffb707095150b",
+      "profileId": "software-release-oci-image-r1",
+      "source": "artifact-delivery/shadow-profiles/software-release-oci-image-r1.json",
+      "sourceDigest": "5e9f9c367fe47bddbeb6db7dce06fcd5d106d4471624e9d0f3d30d03ae7fd7be",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "still-image",
       "mapped": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
       "mappedDigest": "1b56b51eef8c3703cf7125779c002e6b535d27fd6ccc8840af400841501cbd6a",
@@ -139,7 +149,8 @@
     "dataset",
     "geospatial",
     "audio",
-    "moving-image"
+    "moving-image",
+    "software-release"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"
