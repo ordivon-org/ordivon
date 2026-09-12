@@ -1,7 +1,7 @@
 {
-  "fullRegression": "198 tests / 196 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "206 tests / 204 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 14,
+  "mappingCount": 15,
   "mappings": [
     {
       "family": "text-document",
@@ -104,6 +104,16 @@
       "validation": "PASS"
     },
     {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-static-mesh-r1-v2.json",
+      "mappedDigest": "ae8bfa857b5efac85ab8900fc40c7fe4adc8a11979bfeab5a9d44d12e864ab5a",
+      "profileId": "design-3d-glb-static-mesh-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-static-mesh-r1.json",
+      "sourceDigest": "8ed26fc4a63cf3632442cf376bae8feda4eb9b2ab5054235e432b2c220efbc0b",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "geospatial",
       "mapped": "artifact-delivery/shadow-v2/examples/geospatial-geopackage-point-r1-v2.json",
       "mappedDigest": "8120f5e14489fbc645a4c62f0c7972ea17bf91e575bef50a7b6ae9b601ab9982",
@@ -150,7 +160,8 @@
     "geospatial",
     "audio",
     "moving-image",
-    "software-release"
+    "software-release",
+    "design-3d"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

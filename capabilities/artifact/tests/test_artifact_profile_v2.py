@@ -121,6 +121,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertEqual(mapped['objectContract']['binding'],'request-digest')
         self.assertEqual(mapped['classification']['format']['mediaType'],'application/vnd.apache.parquet')
 
+    def test_design3d_shadow_maps_standard_validator_and_scene_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/design-3d-glb-static-mesh-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'design-3d')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'model/gltf-binary')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'standard-validator')
+
     def test_software_release_shadow_maps_implementation_matrix_and_release_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/software-release-oci-image-r1.json').read_text())
         mapped=MODULE.map_shadow(source)

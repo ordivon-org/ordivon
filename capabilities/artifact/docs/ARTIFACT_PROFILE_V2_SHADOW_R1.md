@@ -4,7 +4,7 @@
 
 `SHADOW_SCHEMA_PROVEN`
 
-Full Artifact regression after Software Release pressure testing: **198 tests, 196 PASS, 2 existing conditional skips, 0 failures**.
+Full Artifact regression after Design/3D pressure testing: **206 tests, 204 PASS, 2 existing conditional skips, 0 failures**.
 
 Profile v2 is a shadow compatibility model. It does **not** replace `profile-v1.schema.json`, change Temporal routing, alter existing release gates, or authorize a production cutover.
 
@@ -97,6 +97,8 @@ Moving Image R1 added a second codec/container case with a different evidence to
 
 Software Release R1 adds software-supply-chain pressure without changing the common schema: final OCI manifest identity and container policy stay profile-specific, platform/rootfs/runtime/security expectations live in the object contract, and SBOM/vulnerability/secret/runtime observations remain evidence. Generic SLSA/in-toto/Sigstore trust remains outside the family profile in the common release envelope.
 
+Design/3D R1 adds scene/mesh and consumer-coordinate pressure without changing the common schema. Khronos conformance remains a standard-validator authority, scene topology/bounds remain object-contract facts, and Blender coordinate conversion remains consumer-specific evidence rather than a new global coordinate field.
+
 ## Differential mapping proof
 
 `scripts/artifact_profile_v2.py` maps both:
@@ -112,7 +114,7 @@ and are digest-bound in:
 
 `artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json`.
 
-R1 currently maps **14 profiles**: eight production v1 profiles plus six standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image and Software Release).
+R1 currently maps **15 profiles**: eight production v1 profiles plus seven standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image, Software Release and Design/3D).
 
 For every production v1 profile, differential tests verify preservation of:
 
