@@ -1,7 +1,7 @@
 {
-  "fullRegression": "171 tests / 169 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "179 tests / 177 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 11,
+  "mappingCount": 12,
   "mappings": [
     {
       "family": "text-document",
@@ -84,6 +84,16 @@
       "validation": "PASS"
     },
     {
+      "family": "audio",
+      "mapped": "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json",
+      "mappedDigest": "ba6a12e1fedcf5e74862251ae9d34369b913f873a333542539b75a139519c7d8",
+      "profileId": "audio-flac-pcm16-r1",
+      "source": "artifact-delivery/shadow-profiles/audio-flac-pcm16-r1.json",
+      "sourceDigest": "c8f1eaaea67022dcdce764d97e557f2bcf01b08f37d9f55df152392e0f14b2e8",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "dataset",
       "mapped": "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json",
       "mappedDigest": "23ce6392668418a5590b22d85d6b02defab7eb74bbb6381dea5275c0892dccb5",
@@ -117,7 +127,8 @@
   "pressureTests": [
     "still-image",
     "dataset",
-    "geospatial"
+    "geospatial",
+    "audio"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

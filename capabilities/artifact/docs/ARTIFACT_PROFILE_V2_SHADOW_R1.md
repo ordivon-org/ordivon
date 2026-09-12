@@ -4,7 +4,7 @@
 
 `SHADOW_SCHEMA_PROVEN`
 
-Full Artifact regression after Geospatial pressure testing: **171 tests, 169 PASS, 2 existing conditional skips, 0 failures**.
+Full Artifact regression after Audio pressure testing: **179 tests, 177 PASS, 2 existing conditional skips, 0 failures**.
 
 Profile v2 is a shadow compatibility model. It does **not** replace `profile-v1.schema.json`, change Temporal routing, alter existing release gates, or authorize a production cutover.
 
@@ -91,6 +91,8 @@ The common schema intentionally does not understand those structures.
 
 Geospatial R1 subsequently pressure-tested this boundary with CRS, geometry type, GeoPackage container rules and OGC conformance. It required no new common axis. It did force two useful generalizations: `objectContract` is generic rather than Dataset-specific, and `standard-validator` is a first-class target authority alongside native consumers and independent implementation matrices.
 
+Audio R1 then added codec/container/decoded-content identity pressure without changing the common schema: native FLAC format policy stayed profile-specific, the exact sample-rate/channel/sample-count/PCM identity stayed in the object contract, and independent decoder agreement remained ordinary evidence under an implementation matrix.
+
 ## Differential mapping proof
 
 `scripts/artifact_profile_v2.py` maps both:
@@ -106,7 +108,7 @@ and are digest-bound in:
 
 `artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json`.
 
-R1 currently maps **11 profiles**: eight production v1 profiles plus three standards-first shadow profiles (Still Image, Dataset and Geospatial).
+R1 currently maps **12 profiles**: eight production v1 profiles plus four standards-first shadow profiles (Still Image, Dataset, Geospatial and Audio).
 
 For every production v1 profile, differential tests verify preservation of:
 
