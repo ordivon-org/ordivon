@@ -158,9 +158,9 @@
       "representations": ["scene", "mesh", "cad", "bim", "manufacturing-model"],
       "standards": ["ISO/IEC 12113:2022 Khronos glTF 2.0", "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"],
       "exampleFormats": ["gltf", "glb", "step", "ifc", "3mf", "obj", "stl"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "BLENDER_PRESENT_OFFICIAL_GLTF_VALIDATOR_MISSING"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["design-3d-glb-static-mesh-r1"],
+      "localToolStanding": "KHRONOS_VALIDATOR_ASSIMP_BLENDER_MATRIX_PROVEN"
     },
     {
       "id": "software-release",

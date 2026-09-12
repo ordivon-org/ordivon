@@ -1,0 +1,45 @@
+{
+  "bindingVersion": 1,
+  "id": "design-3d-glb-static-mesh-local-r1",
+  "profileId": "design-3d-glb-static-mesh-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "standardValidator": {
+      "tool": "Khronos glTF Validator",
+      "version": "2.0.0-dev.3.10",
+      "path": "/opt/ordivon/external/gltf-validator/2.0.0-dev.3.10/gltf-validator",
+      "npmShasumSha1": "9b09225db864fe3f0a584259f65d087e2213a93a",
+      "packageArchiveSha256": "4e03dbdc3bc0d1342afd5d2d7ae341a7e3474502ccb872b02dbbaddaee0fdec6",
+      "moduleWrapperSha256": "f817fde51399f0a7a3f9eb3fd5ae6ff77108d492a7397978022c94700e244b56"
+    },
+    "independentConsumerA": {
+      "tool": "Assimp",
+      "version": "6.0.5",
+      "path": "/usr/bin/assimp",
+      "binarySha256": "810fb7a18359a1bf6c92ff22f202fd39ab3e98336c4f6345e318dbe2dc4c8482",
+      "packageSignatureValidation": "PASS"
+    },
+    "independentConsumerB": {
+      "tool": "Blender",
+      "version": "5.2.1 LTS",
+      "path": "/usr/bin/blender",
+      "binarySha256": "fd7c5e44f50de3012e9cd8c919ce7cfaca716ff7bc3b9d9e53d300401b892e7c",
+      "packageSignatureValidation": "PASS"
+    }
+  },
+  "proof": {
+    "focusedTests": "7 PASS / 0 FAIL",
+    "validStaticTriangleGlb": "PASS",
+    "wrongBoundsContract": "KHRONOS_PASS_BUT_OBJECT_CONTRACT_FAIL",
+    "materialAdded": "KHRONOS_PASS_BUT_BOUNDED_PROFILE_FAIL",
+    "accessorDeclaredBoundsMismatch": "KHRONOS_VALIDATOR_FAIL",
+    "extraNode": "KHRONOS_PASS_BUT_ASSIMP_CONTRACT_FAIL",
+    "corruptGlbHeader": "FAIL_CLOSED",
+    "liveSmokeRuntimeJobId": "job-01a0961a-f63a-7c40-963e-374bb7e3d27f",
+    "liveSmokeArtifactSha256": "c9293c553471438317be72ef6a95a5dd9f71729cfee78536ab9ec42fbdafeb34",
+    "liveSmokeContractCanonicalDigest": "ba89fa6799fa4b0273d859c7803340fdceb277601863acd9db9919b365e32de6",
+    "liveSmokeKhronosEvidenceSha256": "e6436227e4e688c642232e114eec5b8681f56618e2507aeb2e682a2204f81ae2",
+    "liveSmokeAssimpEvidenceSha256": "b594d8de4a776146c66f067105a1bfb44a0203cf692227028be7dc917d56d50c",
+    "liveSmokeBlenderStdoutSha256": "f8c2472fc282f60f544260cda82ddde934ba4767874cf5fc00fe64b8b7ff2578"
+  }
+}
