@@ -15,4 +15,4 @@ A domain profile should progressively describe:
 - V&V and acceptance mappings;
 - domain-specific information items.
 
-The first domain is `game`. `research` and `software` follow only after the first real Game vertical slice is working.
+The first domain implementation slice is `game`. Research and Software/Engineering are not waiting to be conceptually invented: their mature external bodies of knowledge and life-cycle practices are adopted directly when integrated. Domain slices exist to tailor and exercise the common environment against real work.
