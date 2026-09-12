@@ -128,9 +128,9 @@
       "representations": ["audiovisual-container", "master-package"],
       "standards": ["SMPTE ST 2067 IMF for professional master workflows", "profile-selected container/codec standards"],
       "exampleFormats": ["mp4", "mkv", "mov", "mxf", "imf-package"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "FFMPEG_PRESENT_SPECIALIST_CONFORMANCE_MISSING"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["moving-image-matroska-ffv1-v3-r1"],
+      "localToolStanding": "RFC9559_RFC9043_MEDIACONCH_MEDIAINFO_FFPROBE_PROVEN"
     },
     {
       "id": "web",

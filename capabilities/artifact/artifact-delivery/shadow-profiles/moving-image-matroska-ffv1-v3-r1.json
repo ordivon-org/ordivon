@@ -1,0 +1,77 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "moving-image-matroska-ffv1-v3-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "moving-image",
+    "representation": "audiovisual-container",
+    "format": "Matroska",
+    "mediaType": "video/matroska",
+    "conformanceProfile": "RFC 9559 Matroska v4 + RFC 9043 stable FFV1 version 3 bounded video-only profile",
+    "targetAuthority": "MediaConch implementation standard-validator",
+    "purpose": ["preservation", "interchange"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "moving-image-ffv1-contract-v1",
+    "schemaReference": "shadow-contracts/moving-image-ffv1-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "containerStandard": "IETF RFC 9559 Matroska",
+    "containerVersion": 4,
+    "codecStandard": "IETF RFC 9043 FFV1",
+    "ffv1MajorVersion": 3,
+    "minimumStableMicroVersion": 4,
+    "videoTracks": 1,
+    "audioTracks": 0,
+    "subtitleTracks": 0,
+    "attachments": 0,
+    "pixelFormat": "yuv422p",
+    "bitDepth": 8,
+    "chromaSubsampling": "4:2:2",
+    "scanType": "Progressive",
+    "frameRateMode": "CFR",
+    "canonicalDecodedVideo": "rawvideo yuv422p frames in presentation/decode order",
+    "integrityPolicy": "MediaConch built-in implementation checks must report zero failures and zero warnings; Matroska/EBML checks must execute. FFV1 checker zero tests on a clean file is not promoted to full FFV1 conformance evidence, but any reported FFV1 implementation failure is release-blocking."
+  },
+  "requiredEvidence": {
+    "contractSchema": {
+      "required": true,
+      "claim": "moving-image object contract is valid under moving-image-ffv1-contract-v1"
+    },
+    "matroskaImplementation": {
+      "required": true,
+      "claim": "MediaConch executes Matroska/EBML implementation checks and reports zero failures/warnings on the exact artifact"
+    },
+    "ffv1Implementation": {
+      "required": true,
+      "claim": "MediaConch reports no FFV1 implementation failures/warnings; absence of positive FFV1 tests is explicitly not interpreted as full codec conformance"
+    },
+    "mediaInfoTechnical": {
+      "required": true,
+      "claim": "MediaInfo identifies Matroska v4, stable FFV1 v3 micro-version >=4, and technical video facts matching the object contract"
+    },
+    "ffprobeTechnical": {
+      "required": true,
+      "claim": "FFprobe independently identifies one FFV1 video stream and agrees on dimensions, frame rate, frame count, pixel format, bit depth and progressive scan"
+    },
+    "streamTopology": {
+      "required": true,
+      "claim": "artifact contains exactly one video stream and no audio/subtitle streams in bounded R1"
+    },
+    "decodedVideoIdentity": {
+      "required": true,
+      "claim": "FFmpeg decodes the exact artifact to the canonical rawvideo representation with contract-derived byte count and optional SHA-256 identity"
+    }
+  },
+  "nonClaims": [
+    "full FFV1 conformance solely from a zero-failure MediaConch report when its clean-file FFV1 checker executes zero tests",
+    "visual or artistic correctness of the frame content",
+    "colorimetric accuracy beyond the bounded pixel/chroma fields checked by R1",
+    "audio, subtitle, attachment or chapter semantics",
+    "subjective playback quality across arbitrary players",
+    "preservation-policy compliance beyond this bounded Matroska/FFV1 profile",
+    "bit-exact reproducibility of Matroska container bytes across muxing runs"
+  ]
+}
