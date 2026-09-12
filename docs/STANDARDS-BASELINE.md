@@ -41,3 +41,18 @@ Ordivon retains only the thin semantic waist required to bind those artifacts to
 - `INCOMPLETE_EVIDENCE`: required evidence/result coverage is missing.
 
 This file records the baseline only. It does not claim NIST, OSPS, SLSA, or other compliance.
+
+## R2 lifecycle expansion references
+
+The R2 technology selection extends the original verification-focused baseline without replacing its provider-native evidence rules. The selected external references/providers are:
+
+- OWASP Threat Modeling guidance and OWASP Threat Dragon for design-time threat models;
+- MITRE CAPEC and CWE as referenced attack/weakness vocabularies rather than copied taxonomies;
+- OpenSSF Scorecard for repository security-posture evidence;
+- OWASP ZAP Automation Framework for authorized DAST/API testing;
+- ClusterFuzzLite for CI continuous fuzzing, with OSS-Fuzz conditional for eligible public projects;
+- SLSA v1.2 Build Provenance emitted by the real build owner and verified by Security;
+- Falco as the default runtime detection provider, subject to host eBPF acceptance;
+- Tetragon only when an explicit consumer needs kernel-inline enforcement and separate authority is proven.
+
+These additions do not turn Security into the owner of repository hosting, build infrastructure, runtime execution, secret storage, or incident workflow durability. See `TECHNOLOGY-SELECTION-R2.md` for the ownership matrix and explicit non-selections.
