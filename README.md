@@ -60,3 +60,7 @@ Operations v2 owns generic host desired-state bytes for systemd manager limits, 
 ## Workstation recovery scheduler substrate
 
 Operations v2 owns only the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer unit bytes and the current disabled timer lifecycle. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance. The current disabled schedule is a containment policy; enabling it later requires a separate owner decision, not an incidental Operations convergence.
+
+## Standards-first integration composition
+
+The integration edge is now selected as **n8n**, while Temporal remains the durable-workflow authority and Ordivon Runtime remains the physical-execution authority. Cross-system event envelopes use CloudEvents 1.0; asynchronous contracts use AsyncAPI; reliable database-to-event handoff uses the Transactional Outbox pattern; synchronous HTTP APIs use OpenAPI only where a real API exists. n8n host-execution nodes are explicitly excluded so integration workflows cannot bypass Runtime. See `docs/STANDARDS_FIRST_COMPOSITION.md` and `contracts/`.

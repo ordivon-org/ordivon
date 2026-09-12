@@ -1,0 +1,15 @@
+-- Pattern only. Each domain owns its own table, transaction, retention, and semantic acceptance.
+CREATE TABLE integration_outbox (
+    event_id uuid PRIMARY KEY,
+    event_type text NOT NULL,
+    event_source text NOT NULL,
+    event_subject text,
+    occurred_at timestamptz NOT NULL DEFAULT now(),
+    payload jsonb NOT NULL,
+    published_at timestamptz,
+    publish_attempts integer NOT NULL DEFAULT 0
+);
+
+CREATE INDEX integration_outbox_unpublished_idx
+    ON integration_outbox (occurred_at)
+    WHERE published_at IS NULL;

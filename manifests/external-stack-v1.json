@@ -1,18 +1,24 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.operations.external-stack",
-  "principle": "external-first",
+  "principle": "external-first-standards-first",
   "layers": [
     {"capability":"service_lifecycle","owner":"systemd","status":"present"},
     {"capability":"container_lifecycle","owner":"podman_quadlet","status":"present"},
     {"capability":"host_desired_state","owner":"ansible","status":"present"},
     {"capability":"external_infrastructure_state","owner":"opentofu","status":"installed_unbound"},
-    {"capability":"durable_workflow","owner":"temporal","status":"present"},
+    {"capability":"integration_edge","owner":"n8n","status":"active_loopback_postgresql_runtime_bypass_blocked"},
+    {"capability":"durable_workflow","owner":"temporal","status":"present_dev_persistence_productionization_pending"},
+    {"capability":"durable_service_contract","owner":"temporal_nexus","status":"selected_not_cutover"},
     {"capability":"execution_truth","owner":"ordivon_runtime","status":"retain"},
+    {"capability":"event_envelope","owner":"cloudevents_1_0","status":"contract_baseline_present"},
+    {"capability":"async_contract","owner":"asyncapi_3_0","status":"contract_baseline_present"},
+    {"capability":"sync_http_contract","owner":"openapi","status":"adopt_per_real_api"},
+    {"capability":"reliable_db_event_handoff","owner":"transactional_outbox","status":"pattern_baseline_present"},
     {"capability":"metrics","owner":"prometheus","status":"active_shared_slice"},
     {"capability":"host_metrics","owner":"node_exporter","status":"active_shared_slice"},
     {"capability":"black_box_probes","owner":"gatus","status":"present_owner_split_pending"},
-    {"capability":"telemetry_protocol","owner":"opentelemetry","status":"adopt_later"},
+    {"capability":"telemetry_protocol","owner":"opentelemetry","status":"selected_cutover_pending"},
     {"capability":"log_pipeline","owner":"journald_vector_loki","status":"active_shared_slice"},
     {"capability":"visualization","owner":"grafana","status":"installed_not_cutover"},
     {"capability":"generic_inventory","owner":"osquery","status":"installed_not_cutover"},
@@ -25,6 +31,6 @@
     {"capability":"load_testing","owner":"k6","status":"adopt_later"},
     {"capability":"network_fault_injection","owner":"toxiproxy","status":"present"}
   ],
-  "deferred": ["kubernetes","helm","argocd","flux","vault","backstage","mimir","thanos","chaos_mesh","falco","goalert"],
+  "deferred": ["kafka","nats","dapr","kubernetes","helm","argocd","flux","vault","backstage","mimir","thanos","chaos_mesh","falco","goalert"],
   "retainedOrdivonResidual": ["evidence_binding","owner_semantic_verification","cross_e2e_handoff","runtime_execution_truth"]
 }
