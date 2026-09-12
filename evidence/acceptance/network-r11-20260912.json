@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "round": "R11",
+  "date": "2026-09-12",
+  "scope": "generic Network v2 protocol-divergence and isolated UDP/QUIC capability",
+  "standing": "PASSED_LOCAL_WSL_PROTOCOL_COVERAGE",
+  "consumerMigrationInScope": false,
+  "liveRoutingModelChanged": false,
+  "protocolDivergence": {
+    "http11": true,
+    "http2": true,
+    "dnsUdpA": true,
+    "dnsUdpAAAA": true,
+    "dnsTcpA": true,
+    "dnsTcpAAAA": true,
+    "stableEgressIdentity": "39.144.242.0",
+    "stableEgressSamples": 5,
+    "repeatedLongFlowBytes": 5000000,
+    "repeatedLongFlowCount": 3
+  },
+  "quic": {
+    "nativeHttp3": true,
+    "httpConnectCarriesHttp3": false,
+    "httpConnectLimitationClass": "entry-protocol-tcp-only-not-underlay-quic-failure",
+    "isolatedTunHttp3": true,
+    "isolatedTunTcp": true,
+    "isolatedTunHostDefaultRouteChanged": false,
+    "isolatedTunPersistentServiceInstalled": false,
+    "canonicalEndpoint": "104.18.26.14",
+    "canonicalTunRxPackets": 156,
+    "canonicalTunTxPackets": 55
+  },
+  "canonicalAcceptance": {
+    "entryPoint": "task test:r11",
+    "jobId": "job-01a0955d-2118-7d32-a16a-4715fd07f8d4",
+    "operationDigest": "sha256:a23e97aaef50a4fbb72d82d53892d50cde5c31a2458dc9385a387a0a070b1fc9",
+    "stdoutSha256": "62d3f0773853653c9e3d7328bd740e580865fbc0e1325f088bd8b42230c60100",
+    "terminalEvidenceSha256": "a98bbb9b728490982f23fe71f8f7754e2db17c23055921ff3602d6872a789628"
+  },
+  "postState": {
+    "jobId": "job-01a0955d-d093-7233-905e-0a53b1fa39e9",
+    "operationDigest": "sha256:318f4a6714dde2814057d35e2bce3aad48a801754a25682e28db5de0b035ca71",
+    "stdoutSha256": "4c9454ffc13c000eb917a5f35062a7b4a1ad1923883a09893bf250d66c10339a",
+    "terminalEvidenceSha256": "469daad068e598b4c5f0c0e394203d893a53c25658188ff8987fbd05d269f1d6",
+    "transientTunCleanup": true,
+    "hostDefaultRouteUntouched": true,
+    "liveR0Verified": true,
+    "cloudflareHa": {"productionA":4,"productionB":4,"canary":4}
+  },
+  "defaultPolicy": {
+    "liveR0Entry": "loopback-mixed-proxy",
+    "udpQuicEntry": "on-demand-sing-box-tun-in-isolated-netns",
+    "hostWideTun": false
+  },
+  "externalFidelityStillRequired": [
+    "standard-linux-tc-netem",
+    "standard-linux-containerlab",
+    "kernel-wireguard-differential",
+    "actual-machine-reboot"
+  ]
+}

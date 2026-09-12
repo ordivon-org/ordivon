@@ -10,7 +10,7 @@
 | DNS | AdGuard dnsproxy | 0.84.2 distro package; R9 live A + AAAA |
 | Metrics | Prometheus | 3.14.0 distro package; R0 live |
 | Probes | blackbox_exporter | 0.28.0 distro package; R0 live |
-| Local lab topology | Linux iproute2 | netns + veth |
+| Local lab topology | Linux iproute2 + sing-box TUN | netns + veth; isolated TCP/UDP/QUIC TUN acceptance passed in R11 |
 | Reference lab topology | containerlab | 0.77.x on standard Linux runner |
 | L4 faults | Toxiproxy | 2.12.0 checksum-verified upstream binary |
 | Packet faults | tc/netem | required on reference Linux runner; unavailable in current WSL kernel |

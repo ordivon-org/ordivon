@@ -71,3 +71,11 @@ The acceptance surface now rejects small-request false greens. `task test:r9` pr
 The current WSL kernel still does not provide the `netem` qdisc (`Specified qdisc kind is unknown`). Network v2 records that as a platform capability boundary instead of adding a compatibility shim. Packet-level netem, containerlab, and kernel-WireGuard differential acceptance remain standard-Linux reference-runner gates. An actual machine reboot is also intentionally not claimed from inside the active Runtime/Cloudflare control-plane session.
 
 Standing: **generic Network v2 on the current WSL platform is PASSED**. Consumer migration remains separate. See `docs/PLATFORM_R9.md` and `evidence/acceptance/network-r9-20260912.json`.
+
+## R11 protocol divergence and isolated UDP/QUIC
+
+R11 hardens the graduated generic platform against protocol-specific false greens without changing live R0 routing. The live loopback mixed proxy now has explicit acceptance for HTTP/1.1, HTTP/2, DNS over UDP and TCP, five-sample stable public egress identity, and three repeated 5 MB transfers.
+
+UDP/QUIC is expressed with a mature sing-box TUN inbound confined to a temporary Linux network namespace rather than a host-wide TUN. Canonical `task test:r11` proved HTTP/3 over that isolated TUN plus ordinary TCP through the same path, then verified that the transient namespace/TUN was removed, host default routes were unchanged, live R0 remained green, and Runtime/Cloudflare remained independent.
+
+The default platform policy therefore stays conservative: loopback mixed proxy for normal live TCP workloads; isolated netns TUN on demand for UDP/QUIC/full-IP workloads. Host-wide default-route takeover is not part of Network v2. See `docs/PROTOCOL_R11.md` and `evidence/acceptance/network-r11-20260912.json`.
