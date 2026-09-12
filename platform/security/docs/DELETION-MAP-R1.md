@@ -2,7 +2,7 @@
 
 Date: 2026-09-12
 
-This map records what the first three old->v2 differentials have actually shown. It is not permission to delete the old repository wholesale.
+This map records what the first three old->v2 semantic differentials and the first VM-provider displacement proof have actually shown. It is not permission to delete the old repository wholesale.
 
 ## Proven non-migration decisions
 
@@ -55,16 +55,46 @@ The final verified-consequence payload exactly matched the old AF3 world-truth o
 
 Therefore AF3, `RangeSession.poll_backend()`, and the old Range event log are not prerequisites for preserving this consequence-verification semantic in v2.
 
+### Direct QEMU / swtpm lifecycle ownership
+
+A real provider-displacement proof now exists for the basic VM lifecycle.
+
+Current external owners:
+
+- libvirt `12.7.0` / virtqemud;
+- QEMU `11.0.3` with KVM;
+- swtpm `0.10.1` managed by libvirt;
+- virt-install `5.1.0` available;
+- Packer `1.16.0` with HashiCorp QEMU plugin `1.1.6`.
+
+A transient, no-network KVM domain was created through libvirt, observed as running, inspected through libvirt-mediated QMP (`query-status` and `query-pci`), destroyed through libvirt, and proven absent afterward. A second transient domain delegated TPM 2.0 to libvirt; QMP observed the emulator-backed `tpm-tis` device, the live swtpm process was libvirt-owned, and bounded post-destroy observation proved both domain and swtpm process absent.
+
+Therefore the following old mechanical responsibilities are no longer justified as Security-owned lifecycle primitives:
+
+- direct QEMU `Popen` ownership;
+- QEMU PID lifecycle bookkeeping as the primary authority;
+- hand-owned QMP socket lifecycle;
+- direct QEMU quit/process terminate as the normal lifecycle API;
+- direct swtpm PID/socket/process lifecycle;
+- basic VM create/start/inspect/destroy mechanics.
+
+Packer's QEMU plugin is initialized and the v2 template validates only with a caller-supplied exact SHA-256 installation-image digest; `iso_checksum=none` fails closed. This proves provider/toolchain availability, not a real Windows image build.
+
 ## Still unresolved / not deletion-authorized
 
-The following old capabilities have not yet been replaced by a v2 differential and must not be deleted solely on the basis of R1-R3:
+The following old capabilities have not yet been replaced by a complete provider/differential proof:
 
-- how physical execution providers expose exact immutable receipts and independent readback evidence in production;
+- real Windows image construction from a frozen authoritative installation source;
+- qemu-nbd/partx/mtools/NTFS image manipulation and independent offline readback;
+- network namespace/traffic-capture scenarios;
+- physical execution provider receipt + independent readback for the actual Windows consumer;
+- recovery/compensation semantics under host, daemon, or provider failure;
 - world-truth versus sensor/claim epistemic separation for consumers more complex than the closed AF3 consequence path;
-- physical/recovery semantics that remain after mature VM/tool delegation;
 - specialized malware/memory-forensics experiments if retained as research artifacts;
 - any old consumer whose exact contract has not yet been replayed against v2.
 
+`libguestfs` remains unavailable because the current Arch package database/mirror set attempted to resolve QEMU `11.1.1-1` packages no longer served by the configured mirrors; the failed transaction committed no upgrade and installed QEMU remained `11.0.3-1`. This package/mirror skew must be repaired safely before retrying offline-image displacement.
+
 ## Next deletion gate
 
-The next high-value gate is provider displacement: determine whether mature VM/image owners such as libvirt, QEMU tooling, Packer, and related native provider mechanisms can own physical lifecycle while Security v2 retains only authority and evidence bindings. No old QEMU/KVM scaffold should migrate until this gate proves a residual requirement.
+Select or produce an authoritative, digest-frozen image fixture and prove image construction/offline readback through mature owners. Until then, direct QEMU/swtpm lifecycle code is a proven non-migration candidate, while old image-manipulation and recovery code remains evidence-bearing legacy rather than deletion-authorized code.
