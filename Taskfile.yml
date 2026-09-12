@@ -404,12 +404,17 @@ tasks:
     cmds:
       - ./reference/linux/wireguard-kernel-smoke.sh
 
+  reference:linux:wireguard-userspace:
+    desc: Prove the pinned wireguard-go implementation directly as userspace TUN/UAPI, including failure and recovery
+    cmds:
+      - ./reference/linux/wireguard-userspace-smoke.sh
+
   reference:linux:wireguard-differential:
-    desc: Prove both kernel WireGuard and the pinned wireguard-go fallback lifecycle on one standard-Linux runner
+    desc: Prove kernel WireGuard and pinned wireguard-go as distinct implementations on one standard-Linux runner
     cmds:
       - task: capability:wireguard:materialize
       - task: reference:linux:wireguard-kernel
-      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
+      - task: reference:linux:wireguard-userspace
 
   reference:linux:accept:
     desc: Close the external-fidelity gates on an explicitly provisioned standard-Linux reference runner
