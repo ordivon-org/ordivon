@@ -366,11 +366,58 @@ tasks:
       - task: core:verify
 
   accept:local:
-    desc: Full local WSL graduation from source validation through exact live convergence and all generic acceptance
+    desc: Full local WSL graduation; refresh current capability evidence only after every acceptance gate passes
     cmds:
       - task: accept:source
       - task: core:converge
       - task: accept:live
+      - python3 scripts/capability-report.py write-local
+
+  evidence:verify-local:
+    desc: Fail if the checked-in local capability report no longer matches the generic source or current platform fingerprint
+    cmds:
+      - python3 scripts/capability-report.py verify-local
+
+  evidence:refresh-local:
+    desc: Re-run full local graduation and regenerate the current capability report
+    cmds:
+      - task: accept:local
+      - task: evidence:verify-local
+
+  reference:linux:preflight:
+    desc: Require a non-WSL Linux runner with netem, Docker, containerlab, and kernel WireGuard
+    cmds:
+      - ./reference/linux/preflight.sh
+
+  reference:linux:netem:
+    desc: Prove deterministic packet loss plus delay/reorder on the reference Linux kernel
+    cmds:
+      - ./reference/linux/netem-smoke.sh
+
+  reference:linux:containerlab:
+    desc: Prove a real two-node Linux containerlab data topology
+    cmds:
+      - ./reference/linux/containerlab-smoke.sh
+
+  reference:linux:wireguard-kernel:
+    desc: Prove kernel-WireGuard creation, failure, and recovery
+    cmds:
+      - ./reference/linux/wireguard-kernel-smoke.sh
+
+  reference:linux:wireguard-differential:
+    desc: Prove both kernel WireGuard and the pinned wireguard-go fallback lifecycle on one standard-Linux runner
+    cmds:
+      - task: capability:wireguard:materialize
+      - task: reference:linux:wireguard-kernel
+      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
+
+  reference:linux:accept:
+    desc: Close the external-fidelity gates on an explicitly provisioned standard-Linux reference runner
+    cmds:
+      - task: reference:linux:preflight
+      - task: reference:linux:netem
+      - task: reference:linux:containerlab
+      - task: reference:linux:wireguard-differential
 
 vars:
   SYSTEMD_UNITS:

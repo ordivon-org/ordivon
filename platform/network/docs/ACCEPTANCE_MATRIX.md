@@ -41,3 +41,26 @@ task accept:local
 ```
 
 Provider and consumer acceptance use their own namespaces and are not generic graduation prerequisites.
+
+## Evidence projection
+
+`evidence/current-capabilities.json` is a generated acceptance projection, not hand-authored authority.
+
+The local authority path is:
+
+```text
+task accept:local
+  → every generic source/live acceptance gate passes
+  → scripts/capability-report.py write-local
+  → evidence/current-capabilities.json
+```
+
+The report records:
+
+- the acceptance entry point;
+- acceptance timestamp;
+- source Git revision;
+- a content+mode fingerprint over generic Task/config/systemd/acceptance/evidence-generator inputs;
+- a stable platform fingerprint (OS, architecture, kernel release, WSL classification).
+
+`task evidence:verify-local` fails if the checked-in report no longer matches the generic source or current platform. This prevents a historical PASS document from silently remaining current after behavior-defining files or the execution kernel change.

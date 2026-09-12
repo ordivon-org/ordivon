@@ -90,3 +90,9 @@ External fidelity gates requiring standard Linux remain:
 Windows-host reboot plus WSL auto-launch belongs to Workstation/bootstrap. Consumer cutover and legacy retirement belong to consumer migration.
 
 See `docs/ARCHITECTURE.md`, `docs/DECISION_MATRIX.md`, `docs/ACCEPTANCE_MATRIX.md`, and `evidence/current-capabilities.json`.
+
+## Evidence and reference fidelity
+
+A full `task accept:local` run now refreshes `evidence/current-capabilities.json` only after all local acceptance gates pass. `task evidence:verify-local` detects source/platform drift against that generated projection.
+
+Cross-platform kernel fidelity is expressed separately under `reference/linux/`. Run `task reference:linux:accept` only on a dedicated non-WSL Linux runner with netem, Docker/containerlab, and kernel WireGuard. The checked-in GitHub Actions workflow targets a self-hosted runner labelled `network-e2e`; it is not active until this repository is attached to an appropriate Git remote/runner.

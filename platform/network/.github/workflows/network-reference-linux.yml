@@ -1,0 +1,20 @@
+name: network-reference-linux
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'reference/linux/**'
+      - 'capabilities/wireguard/**'
+      - 'Taskfile.yml'
+      - '.github/workflows/network-reference-linux.yml'
+
+jobs:
+  reference-linux:
+    runs-on: [self-hosted, linux, x64, network-e2e]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reference runner preflight
+        run: task reference:linux:preflight
+      - name: Standard Linux fidelity acceptance
+        run: task reference:linux:accept
