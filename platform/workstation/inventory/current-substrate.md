@@ -64,3 +64,10 @@ The following mature packages were installed from the configured Arch repositori
 - `/etc/wsl.conf`: Ansible `ini_file`, owned keys only;
 - Windows `.wslconfig`: Ansible `ini_file`, owned keys only; the separately present custom `kernel=` entry is deliberately preserved;
 - WSL shutdown/restart is not part of routine convergence and must be admitted separately when activation is required.
+
+## Operations v2 Workstation recovery scheduler slice
+
+- systemd service/timer bytes: Operations Ansible desired state;
+- current timer policy: disabled + inactive;
+- semantic launcher: externally owned `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`;
+- this slice does not execute backup, select recovery generations, or establish restore correctness.

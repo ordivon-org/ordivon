@@ -56,3 +56,7 @@ Operations v2 owns only the generic node-operational substrate for the shared Po
 ## Local host / WSL substrate
 
 Operations v2 owns generic host desired-state bytes for systemd manager limits, coredump policy, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
+
+## Workstation recovery scheduler substrate
+
+Operations v2 owns only the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer unit bytes and the current disabled timer lifecycle. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance. The current disabled schedule is a containment policy; enabling it later requires a separate owner decision, not an incidental Operations convergence.
