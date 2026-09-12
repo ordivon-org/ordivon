@@ -40,7 +40,7 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 | Hypervisor | QEMU/KVM | displacement proven | External execution substrate |
 | Virtual TPM | swtpm via libvirt | displacement proven | External provider lifecycle |
 | Image construction | Packer | toolchain proven | Exact installation-source digest required |
-| Offline image inspection | libguestfs | selected, currently blocked by host package/mirror skew | Independent image readback provider |
+| Offline image inspection | libguestfs | selected; Nix 1.56.2 path found, materialization latency currently blocks appliance acceptance | Independent image readback provider |
 | Secrets lifecycle | OpenBao | conditional; Operations-owned | Security may verify policy/evidence, but does not become secret store/issuer |
 | Durable security workflow | Temporal | shared infrastructure | Incident/remediation workflow durability, not security truth |
 | Physical execution | Ordivon Runtime | shared authority | Exact execution/attempt/delivery evidence |

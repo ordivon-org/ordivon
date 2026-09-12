@@ -84,3 +84,10 @@ R1 does not yet prove displacement of:
 - recovery/compensation semantics under host or process failure.
 
 `libguestfs` remains unavailable. Its installation was retried only after reconciling a stale pacman lock, but the transaction then failed before commit because the local Arch package database referenced QEMU `11.1.1-1` artifacts no longer present on the configured mirrors. The installed QEMU family was re-verified unchanged at `11.0.3-1`. Do not perform an unsafe partial upgrade merely to satisfy this migration; restore package database/mirror consistency first.
+
+
+The failed package transaction did not commit partial upgrades, so the installed QEMU version remains unchanged.
+
+### Nix successor path (2026-09-12)
+
+The locked Nix 26.05 package set exposes `libguestfs 1.56.2` and `guestfs-tools 1.52.3`, providing a route that does not require repairing Arch package mirrors or partially upgrading QEMU. Two bounded real materialization attempts were made. The first requested libguestfs plus guestfs-tools and timed out after 420 seconds during closure realization; the second requested only `libguestfs` and timed out after 300 seconds in the same phase. In both cases the target `/nix/store/...-libguestfs-1.56.2` path was still not valid at termination, so no `guestfish` appliance test was possible. This narrows the blocker to materialization throughput/latency on the current substrate. It does not establish libguestfs incompatibility.
