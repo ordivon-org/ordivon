@@ -844,7 +844,7 @@ class DeployReclaimTests(unittest.TestCase):
             }
             self.assertEqual(after, before)
             self.assertEqual((install / "runtime").read_text(), "old-runtime\n")
-            self.assertEqual(state := subprocess.run(
+            self.assertEqual(subprocess.run(
                 [str(systemctl), "is-active", "ordivon-runtime.service"],
                 check=True,
                 text=True,
