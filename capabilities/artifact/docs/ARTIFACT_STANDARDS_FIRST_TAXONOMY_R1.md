@@ -50,7 +50,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `audio` | profile-selected codecs/containers; BWF/WAVE where required | none | FFmpeg/ffprobe present; specialist conformance missing |
 | `moving-image` | profile-selected codecs/containers; SMPTE IMF for master workflows | none | FFmpeg/ffprobe present; MediaConch absent |
 | `web` | HTML Living Standard, CSS, WCAG 2.2 | `web-r1` | strong; WebKit remains supported-runner bounded |
-| `geospatial` | OGC GeoPackage, GeoTIFF, GeoJSON/OGC ecosystem | none | GDAL 3.13.3 present |
+| `geospatial` | OGC GeoPackage, GeoTIFF, GeoJSON/OGC ecosystem | shadow `geospatial-geopackage-point-r1` | OGC/GDAL validator + SQLite + OGR contract proof live-proven |
 | `design-3d` | ISO/IEC 12113 glTF 2.0; STEP/IFC/3MF when selected | none | Blender present; official glTF Validator absent |
 | `software-release` | OCI, SLSA, in-toto, Sigstore, SPDX/CycloneDX | no family profile yet | ORAS/OPA/Cosign + Syft/Trivy present |
 | `web-archive` | ISO 28500 WARC, WACZ ecosystem | none | specialist tools absent |
@@ -112,9 +112,9 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-Two non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image** (`still-image-png-srgb-r1`) and **dataset** (`dataset-parquet-flat-r1`). The production count remains five while the standards-first model has now survived both a visual/raster domain and a typed/non-visual data domain.
+Three non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, and **geospatial**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema has now also mapped all eight current production v1 profiles plus both standards-first shadow profiles with semantic-field preservation and a green 163-test full regression. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus three standards-first shadow profiles (Still Image, Dataset and Geospatial) with semantic-field preservation and a green 171-test full regression. Geospatial required no new common classification axis; it generalized object contracts and standard-validator target authority. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
@@ -150,10 +150,9 @@ Do not make every tool a mandatory global dependency. Tools remain profile-selec
 
 The lowest-risk order is determined by existing mature local substrate, not by perceived architectural importance:
 
-1. **geospatial** — GDAL already present and exposes standard-aware validation, testing a genuinely domain-specific family;
-2. **audio + moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
-3. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
-4. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
-5. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
+1. **audio + moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
+2. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
+3. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
+4. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
 
 This ordering deliberately tests different semantic regimes before any profile-v2 schema is frozen.

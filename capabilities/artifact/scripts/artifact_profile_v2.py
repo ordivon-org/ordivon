@@ -171,6 +171,8 @@ def shadow_target(source: dict[str, Any]) -> list[dict[str, Any]]:
                 minimum = max(minimum, int(value[key]))
     if "matrix" in authority:
         return [{"authorityClass": "independent-implementation-matrix", "name": authority, "required": True, "minimumIndependentImplementations": minimum}]
+    if "standard-validator" in authority or "conformance-validator" in authority:
+        return [{"authorityClass": "standard-validator", "name": authority, "required": True}]
     return [{"authorityClass": "native-consumer", "name": authority, "required": True}]
 
 
@@ -203,7 +205,12 @@ def map_shadow(source: dict[str, Any]) -> dict[str, Any]:
         "nonClaims": list(source.get("nonClaims", [])),
         "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
     }
-    if c["family"] == "dataset":
+    object_contract = source.get("objectContract")
+    if object_contract:
+        out["objectContract"] = dict(object_contract)
+    elif c["family"] == "dataset":
+        # Compatibility with the first Dataset shadow object before the generic
+        # objectContract descriptor was proven by the Geospatial pressure test.
         out["objectContract"] = {
             "required": True,
             "kind": "dataset-contract-v1",

@@ -4,7 +4,7 @@
 
 `SHADOW_SCHEMA_PROVEN`
 
-Full Artifact regression after mapping: **163 tests, 161 PASS, 2 existing conditional skips, 0 failures**.
+Full Artifact regression after Geospatial pressure testing: **171 tests, 169 PASS, 2 existing conditional skips, 0 failures**.
 
 Profile v2 is a shadow compatibility model. It does **not** replace `profile-v1.schema.json`, change Temporal routing, alter existing release gates, or authorize a production cutover.
 
@@ -89,6 +89,8 @@ Format/domain-specific policy stays here instead of inflating the common schema:
 
 The common schema intentionally does not understand those structures.
 
+Geospatial R1 subsequently pressure-tested this boundary with CRS, geometry type, GeoPackage container rules and OGC conformance. It required no new common axis. It did force two useful generalizations: `objectContract` is generic rather than Dataset-specific, and `standard-validator` is a first-class target authority alongside native consumers and independent implementation matrices.
+
 ## Differential mapping proof
 
 `scripts/artifact_profile_v2.py` maps both:
@@ -104,7 +106,7 @@ and are digest-bound in:
 
 `artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json`.
 
-R1 currently maps **10 profiles**: eight production v1 profiles plus two standards-first shadow profiles.
+R1 currently maps **11 profiles**: eight production v1 profiles plus three standards-first shadow profiles (Still Image, Dataset and Geospatial).
 
 For every production v1 profile, differential tests verify preservation of:
 
@@ -166,7 +168,6 @@ Production remains on v1 until all of the following are true:
 1. v2 shadow mappings validate;
 2. current v1 semantics are differentially preserved;
 3. existing production Artifact regressions remain green;
-4. at least one additional strongly domain-specific family (recommended: geospatial) proves the common waist does not need another structural axis;
-5. a v1/v2 acceptance-equivalence run is performed on existing Golden artifacts before any cutover.
+4. a v1/v2 acceptance-equivalence run is performed on existing Golden artifacts before any cutover.
 
 Therefore `profile-v2.shadow.schema.json` is an evidence-bearing candidate, not a production contract.

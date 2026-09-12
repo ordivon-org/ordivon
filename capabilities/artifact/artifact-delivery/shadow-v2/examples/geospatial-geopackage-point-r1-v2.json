@@ -1,0 +1,97 @@
+{
+  "classification": {
+    "conformanceProfile": "OGC GeoPackage 1.4.0 bounded single 2D Point feature-layer profile",
+    "family": "geospatial",
+    "format": {
+      "mediaType": "application/geopackage+sqlite3",
+      "name": "OGC GeoPackage"
+    },
+    "purposes": [
+      "interchange",
+      "analysis"
+    ],
+    "representation": "geospatial-database"
+  },
+  "id": "geospatial-geopackage-point-r1",
+  "nonClaims": [
+    "geodetic positional accuracy of coordinates",
+    "factual truth of feature attributes or locations",
+    "fitness of the selected CRS for a particular analysis",
+    "topological validity for geometry families not admitted by this Point-only profile",
+    "cartographic styling or rendering quality",
+    "tile/raster GeoPackage semantics",
+    "application-defined GeoPackage extensions beyond what the OGC/GDAL validator accepts",
+    "spatial analysis correctness or scientific interpretation"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "geospatial-vector-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/geospatial-vector-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/geopackage+sqlite3",
+        "name": "OGC GeoPackage"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "applicationIdDecimal": 1196444487,
+      "applicationIdText": "GPKG",
+      "attributesOnlyTables": false,
+      "geometryDimension": "2D",
+      "geometryType": "POINT",
+      "geometryValidity": "Point geometries are intrinsically simple/valid for this bounded R1; polygon/line validity becomes a separate profile requirement when those types are admitted",
+      "singleFeatureLayer": true,
+      "sqliteFormat": 3,
+      "standard": "OGC GeoPackage Encoding Standard 1.4.0 (12-128r19)",
+      "tiles": false,
+      "userVersion": 10400
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "attributeCrossView": {
+      "claim": "raw SQLite attribute rows and OGR/GeoJSON properties agree after primary-key canonicalization",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "geospatial object contract is valid under geospatial-vector-contract-v1",
+      "required": true
+    },
+    "geospatialInterpretation": {
+      "claim": "OGR interprets the same layer, geometry type, CRS, feature count and fields required by the object contract",
+      "required": true
+    },
+    "keyIntegrity": {
+      "claim": "declared logical primary-key attributes are present, non-null in observed features and unique",
+      "required": true
+    },
+    "nativeMetadata": {
+      "claim": "gpkg_contents, gpkg_geometry_columns, gpkg_spatial_ref_sys and native table schema agree with the object contract",
+      "required": true
+    },
+    "ogcConformance": {
+      "claim": "a mature GeoPackage standard validator accepts the exact artifact under full checks",
+      "required": true
+    },
+    "sqliteContainer": {
+      "claim": "SQLite integrity, GeoPackage application_id and user_version match the selected GeoPackage 1.4 profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "standard-validator",
+      "name": "OGC GeoPackage standard-validator",
+      "required": true
+    }
+  ]
+}

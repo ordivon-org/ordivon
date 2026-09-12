@@ -1,7 +1,7 @@
 {
-  "fullRegression": "163 tests / 161 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "171 tests / 169 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 10,
+  "mappingCount": 11,
   "mappings": [
     {
       "family": "text-document",
@@ -89,7 +89,17 @@
       "mappedDigest": "23ce6392668418a5590b22d85d6b02defab7eb74bbb6381dea5275c0892dccb5",
       "profileId": "dataset-parquet-flat-r1",
       "source": "artifact-delivery/shadow-profiles/dataset-parquet-flat-r1.json",
-      "sourceDigest": "5354003a9548950ed23072962278a9e7919985a460939ad7ee2e03ba0f557dcc",
+      "sourceDigest": "a5f9c4629ef0ba55f2d6618fe44335241a9dd569031ba012fb334be58e4145d7",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "geospatial",
+      "mapped": "artifact-delivery/shadow-v2/examples/geospatial-geopackage-point-r1-v2.json",
+      "mappedDigest": "8120f5e14489fbc645a4c62f0c7972ea17bf91e575bef50a7b6ae9b601ab9982",
+      "profileId": "geospatial-geopackage-point-r1",
+      "source": "artifact-delivery/shadow-profiles/geospatial-geopackage-point-r1.json",
+      "sourceDigest": "2f7eb9c61de29618392d9baf29830fce9c37e2cbb18d4e0d75ac506fe6c29960",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
@@ -103,6 +113,11 @@
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     }
+  ],
+  "pressureTests": [
+    "still-image",
+    "dataset",
+    "geospatial"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

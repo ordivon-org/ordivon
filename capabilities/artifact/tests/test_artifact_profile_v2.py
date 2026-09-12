@@ -56,6 +56,8 @@ class ArtifactProfileV2Tests(unittest.TestCase):
             self.assertEqual(mapped['classification']['purposes'],c['purpose'],p.name)
             self.assertEqual(mapped['profilePolicy']['formatPolicy'],source['formatPolicy'],p.name)
             self.assertEqual(mapped['nonClaims'],source['nonClaims'],p.name)
+            if 'objectContract' in source:
+                self.assertEqual(mapped.get('objectContract'),source['objectContract'],p.name)
             for name,value in source['requiredEvidence'].items():
                 got=mapped['requiredEvidence'][name]
                 self.assertEqual(got['required'],value['required'],f"{p.name}:{name}")
@@ -118,6 +120,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertTrue(mapped['objectContract']['required'])
         self.assertEqual(mapped['objectContract']['binding'],'request-digest')
         self.assertEqual(mapped['classification']['format']['mediaType'],'application/vnd.apache.parquet')
+
+    def test_geospatial_shadow_maps_standard_validator_and_generic_object_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/geospatial-geopackage-point-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'geospatial')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'application/geopackage+sqlite3')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'standard-validator')
 
     def test_schema_rejects_old_category_error_as_family(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/still-image-png-srgb-r1.json').read_text())

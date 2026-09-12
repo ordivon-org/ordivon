@@ -9,12 +9,20 @@
     "mediaType": "application/vnd.apache.parquet",
     "conformanceProfile": "bounded flat primitive tabular Parquet profile",
     "targetAuthority": "independent-reader-matrix",
-    "purpose": ["interchange", "analysis"]
+    "purpose": [
+      "interchange",
+      "analysis"
+    ]
   },
   "formatPolicy": {
     "standard": "Apache Parquet file format specification",
     "flatColumnsOnly": true,
-    "allowedLogicalTypes": ["int64", "string", "float64", "boolean"],
+    "allowedLogicalTypes": [
+      "int64",
+      "string",
+      "float64",
+      "boolean"
+    ],
     "nestedTypes": false,
     "listsMapsStructs": false,
     "nonFiniteFloatValues": false,
@@ -54,5 +62,11 @@
     "encryption policy",
     "warehouse/catalog transaction semantics",
     "database constraints beyond the declared Artifact dataset contract"
-  ]
+  ],
+  "objectContract": {
+    "required": true,
+    "kind": "dataset-contract-v1",
+    "schemaReference": "shadow-contracts/dataset-contract-v1.schema.json",
+    "binding": "request-digest"
+  }
 }
