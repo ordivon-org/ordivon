@@ -21,7 +21,7 @@ The selected lifecycle expansion is recorded in [`docs/TECHNOLOGY-SELECTION-R2.m
 Provider-native formats are retained instead of normalized into a proprietary finding model:
 
 - Gitleaks / Semgrep / Trivy -> SARIF
-- Syft -> CycloneDX JSON
+- Syft -> CycloneDX 1.7 JSON SBOM; detached CycloneDX VEX remains provider-native and is bound to exact SBOM components
 - OSV-Scanner -> provider-native JSON
 - OPA -> JSON decision
 
