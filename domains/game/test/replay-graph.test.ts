@@ -7,7 +7,7 @@ import test from "node:test";
 import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { assertEvidenceLinkIntegrity, buildRunEvidenceGraph, ReplayEvidenceError } from "../products/station-zero-v2/src/replay/evidence.ts";
 import { MAX_REPLAY_FRAME_BYTES, replayFrame, replayFramesPage, replaySummary } from "../products/station-zero-v2/src/replay/frames.ts";
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";

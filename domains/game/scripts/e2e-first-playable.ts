@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
 import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import type { MissionProviderFactory } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 

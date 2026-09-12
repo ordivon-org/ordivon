@@ -7,7 +7,7 @@ import { buildKeyTurns, buildReplayCurves, replayCurvesFromFrames, replayKeyTurn
 import { boundedFinalRoundSensitivity, diagnoseProjection, diagnoseRun, diagnosisDirectExplanation } from "../products/station-zero-v2/src/replay/diagnosis.ts";
 import { buildRunEvidenceGraph } from "../products/station-zero-v2/src/replay/evidence.ts";
 import { buildReplayProjection } from "../products/station-zero-v2/src/replay/projection.ts";
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";

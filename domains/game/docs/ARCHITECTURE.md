@@ -107,7 +107,7 @@ Historical `host_*` table or event names may remain only as retained-schema comp
 
 ## HTTP carrier
 
-Station Zero v2 product code is enclosed under `products/station-zero-v2/`; retained research apparatus is enclosed under `experiments/`. The remaining `src/server.ts` still multiplexes those independently owned surfaces only as temporary local transport debt. It is not a Big Game server framework and is removed in the next carrier-separation step.
+Station Zero v2 product code and its default HTTP/browser carrier are enclosed under `products/station-zero-v2/`. Retained research apparatus is enclosed under `experiments/`, with `experiments/research-preview/server.ts` available only as an explicit local research/E2E preview harness. Big Game owns no shared application server.
 
 ## Verification
 

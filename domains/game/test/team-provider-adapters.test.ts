@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import type { CompiledTeamContext, TeamProviderDecision } from "../products/station-zero-v2/src/team/model.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
 

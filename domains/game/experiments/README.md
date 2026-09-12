@@ -10,5 +10,6 @@ This directory contains retained playable experiments, falsification apparatus, 
 - `pre-g0/` — automated pre-G0 playable apparatus; C0/C1 Human standing remains unobserved unless separately established.
 - `veilwild-r1/` — historical/regression carrier.
 - `game-e2e-r5/` — retained migration/falsification apparatus.
+- `research-preview/server.ts` — explicit local multi-surface preview/E2E carrier for experiment reproduction; never the default product carrier.
 
 Repository-level scripts and tests may launch or verify these carriers, but orchestration does not promote them into Big Game shared runtime.

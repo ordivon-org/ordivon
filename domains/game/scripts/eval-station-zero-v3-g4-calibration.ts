@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 
-import { createGameServer } from "../src/server.ts";
+import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
 type Severity = "critical" | "major" | "minor";
@@ -243,7 +243,7 @@ async function repeatedTurnCalibration(browser: Browser, base: string): Promise<
 }
 
 const tempDirectory = mkdtempSync(join(tmpdir(), "station-zero-g4-calibration-server-"));
-const server = createGameServer({ researchSurfaces: true, dbPath: join(tempDirectory, "v2.sqlite3"), v3DbPath: join(tempDirectory, "v3.sqlite3") });
+const server = createResearchPreviewServer({ researchSurfaces: true, dbPath: join(tempDirectory, "v2.sqlite3"), v3DbPath: join(tempDirectory, "v3.sqlite3") });
 await new Promise<void>((resolvePromise) => server.server.listen(0, "127.0.0.1", () => resolvePromise()));
 const address = server.server.address();
 if (!address || typeof address === "string") throw new Error("G4 calibration server did not expose a TCP address");

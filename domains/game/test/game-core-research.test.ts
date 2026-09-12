@@ -10,7 +10,7 @@ const model = readFileSync(new URL("../docs/DEVELOPMENT_MODEL.md", import.meta.u
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
-const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
+const server = readFileSync(new URL("../experiments/research-preview/server.ts", import.meta.url), "utf8");
 const lab = readFileSync(new URL("../experiments/concept-lab/web/app.js", import.meta.url), "utf8");
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 

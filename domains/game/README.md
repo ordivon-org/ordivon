@@ -194,7 +194,7 @@ pnpm start
 The default server mounts only the registered Station Zero product. Retained Game Core / Pre-G0 research apparatus is not a default executable affordance and does not materialize its v3 or Casefile stores. Enable those surfaces explicitly for reproduction work:
 
 ```bash
-ORDIVON_GAME_RESEARCH_SURFACES=1 pnpm start
+pnpm start:research
 ```
 
 Open:
@@ -282,8 +282,11 @@ products/station-zero-v2/web/
 src/digest.ts, src/build.ts
     small repository-level mechanical helpers retained temporarily for multiple current carriers; not Big Game framework APIs
 
-src/server.ts
-    temporary local multi-surface carrier pending Phase 5 demolition; not Big Game infrastructure
+products/station-zero-v2/src/server.ts
+    registered product HTTP/browser carrier only
+
+experiments/research-preview/server.ts
+    explicit multi-surface research/E2E preview harness; not Big Game or product infrastructure
 
 experiments/station-zero-v3/{src,web,assets}/
     retained Station Zero v3 research/regression apparatus pending Phase 4 enclosure

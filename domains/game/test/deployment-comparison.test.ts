@@ -16,7 +16,7 @@ import {
   MissionControlService,
   type MissionProviderFactory,
 } from "../products/station-zero-v2/src/mission-control/service.ts";
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";

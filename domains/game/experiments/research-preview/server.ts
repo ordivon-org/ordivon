@@ -3,30 +3,30 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compareRuns, ComparisonError } from "../products/station-zero-v2/src/comparison/compare.ts";
-import { CasefileService, CasefileStore, CasefileStoreError } from "../experiments/casefile/src/index.ts";
-import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
-import { DeploymentError, DeploymentStore } from "../products/station-zero-v2/src/deployment/store.ts";
+import { compareRuns, ComparisonError } from "../../products/station-zero-v2/src/comparison/compare.ts";
+import { CasefileService, CasefileStore, CasefileStoreError } from "../casefile/src/index.ts";
+import type { DeploymentProviderOptions } from "../../products/station-zero-v2/src/deployment/model.ts";
+import { DeploymentError, DeploymentStore } from "../../products/station-zero-v2/src/deployment/store.ts";
 import {
   createMissionControlCatalog,
   isMissionProviderName,
   MISSION_PROVIDER_OPTIONS,
   type MissionProviderOption,
-} from "../products/station-zero-v2/src/mission-control/catalog.ts";
+} from "../../products/station-zero-v2/src/mission-control/catalog.ts";
 import {
   MissionControlService,
   type MissionControlCommand,
   type MissionProviderFactory,
   type MissionProviderName,
-} from "../products/station-zero-v2/src/mission-control/service.ts";
-import type { DoctrineId, MissionAdvanceMode } from "../products/station-zero-v2/src/mission-control/model.ts";
-import { buildReplayReport } from "../products/station-zero-v2/src/replay/report.ts";
-import { replayFrame } from "../products/station-zero-v2/src/replay/frames.ts";
-import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
-import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../products/station-zero-v2/src/team/model.ts";
-import { ProviderAdapterError } from "../products/station-zero-v2/src/team/provider-contract.ts";
-import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
-import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
+} from "../../products/station-zero-v2/src/mission-control/service.ts";
+import type { DoctrineId, MissionAdvanceMode } from "../../products/station-zero-v2/src/mission-control/model.ts";
+import { buildReplayReport } from "../../products/station-zero-v2/src/replay/report.ts";
+import { replayFrame } from "../../products/station-zero-v2/src/replay/frames.ts";
+import { GameStore, StorageError } from "../../products/station-zero-v2/src/storage.ts";
+import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../../products/station-zero-v2/src/team/model.ts";
+import { ProviderAdapterError } from "../../products/station-zero-v2/src/team/provider-contract.ts";
+import { FixtureTeamProvider, type TeamDecisionProvider } from "../../products/station-zero-v2/src/team/providers.ts";
+import { TeamStoreError } from "../../products/station-zero-v2/src/team/store.ts";
 import {
   loadStationZeroV3ExternalProviderModule,
   StationZeroV3PlanningStoreError,
@@ -35,13 +35,13 @@ import {
   StationZeroV3Store,
   type StationZeroV3AgentProviderFactory,
   type StationZeroV3CommanderOrderPatch,
-} from "../experiments/station-zero-v3/src/index.ts";
+} from "../station-zero-v3/src/index.ts";
 
-const defaultWebRoot = fileURLToPath(new URL("../products/station-zero-v2/web", import.meta.url));
-const defaultV3WebRoot = fileURLToPath(new URL("../experiments/station-zero-v3/web", import.meta.url));
-const defaultLabWebRoot = fileURLToPath(new URL("../experiments/concept-lab/web", import.meta.url));
-const defaultPreG0WebRoot = fileURLToPath(new URL("../experiments/pre-g0/web", import.meta.url));
-const defaultCasefileWebRoot = fileURLToPath(new URL("../experiments/casefile/web", import.meta.url));
+const defaultWebRoot = fileURLToPath(new URL("../../products/station-zero-v2/web", import.meta.url));
+const defaultV3WebRoot = fileURLToPath(new URL("../station-zero-v3/web", import.meta.url));
+const defaultLabWebRoot = fileURLToPath(new URL("../concept-lab/web", import.meta.url));
+const defaultPreG0WebRoot = fileURLToPath(new URL("../pre-g0/web", import.meta.url));
+const defaultCasefileWebRoot = fileURLToPath(new URL("../casefile/web", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const defaultV3DbPath = resolve(process.cwd(), "data/station-zero-v3.sqlite3");
 const defaultCasefileDbPath = resolve(process.cwd(), "data/casefile.sqlite3");
@@ -275,7 +275,7 @@ function parseCommand(
   }
 }
 
-export interface GameServerOptions {
+export interface ResearchPreviewServerOptions {
   dbPath?: string;
   /** Explicitly mount retained research/regression surfaces (v3, Casefile, Lab, Pre-G0). */
   researchSurfaces?: boolean;
@@ -291,7 +291,7 @@ export interface GameServerOptions {
   v3ProviderFactory?: StationZeroV3AgentProviderFactory;
 }
 
-export interface GameServer {
+export interface ResearchPreviewServer {
   server: Server;
   store: GameStore;
   v3Store: StationZeroV3Store | null;
@@ -301,7 +301,7 @@ export interface GameServer {
   close(): Promise<void>;
 }
 
-export function createGameServer(options: GameServerOptions = {}): GameServer {
+export function createResearchPreviewServer(options: ResearchPreviewServerOptions = {}): ResearchPreviewServer {
   const researchSurfaces = options.researchSurfaces === true;
   const researchOptions = [
     options.v3DbPath, options.v3WebRoot, options.labWebRoot, options.preG0WebRoot,
@@ -610,7 +610,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const externalProvider = researchSurfaces && providerModuleSpecifier
     ? await loadStationZeroV3ExternalProviderModule(providerModuleSpecifier)
     : null;
-  const game = createGameServer({
+  const game = createResearchPreviewServer({
     dbPath: process.env.ORDIVON_GAME_DB ?? defaultDbPath,
     researchSurfaces,
     ...(researchSurfaces ? {

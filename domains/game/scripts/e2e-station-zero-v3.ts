@@ -6,10 +6,10 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
-import { createGameServer } from "../src/server.ts";
+import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
 
 
-async function listen(game: ReturnType<typeof createGameServer>): Promise<string> {
+async function listen(game: ReturnType<typeof createResearchPreviewServer>): Promise<string> {
   await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));
   const address = game.server.address();
   if (!address || typeof address === "string") throw new Error("server has no TCP address");
@@ -19,7 +19,7 @@ async function listen(game: ReturnType<typeof createGameServer>): Promise<string
 process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
 
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-e2e-"));
-const game = createGameServer({
+const game = createResearchPreviewServer({
   researchSurfaces: true,
   dbPath: join(directory, "current.sqlite3"),
   v3DbPath: join(directory, "v3.sqlite3"),

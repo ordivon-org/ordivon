@@ -13,7 +13,7 @@ import { MissionControlService } from "../products/station-zero-v2/src/mission-c
 import { listRulesetContracts, listScenarioContracts, resolveScenario } from "../products/station-zero-v2/src/registry.ts";
 import { applyScenarioGenesisSpec, createScenarioCaseWorld, listScenarioCases, resolveScenarioCase } from "../products/station-zero-v2/src/scenario-cases.ts";
 import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
-import { createGameServer } from "../src/server.ts";
+import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import { objectivesForRole } from "../products/station-zero-v2/src/team/objectives.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";

@@ -56,6 +56,14 @@ test("research apparatus is enclosed under experiments and does not depend on St
   assert.deepEqual(offenders, []);
 });
 
+test("Big Game has no shared application server", () => {
+  assert.equal(existsSync("src/server.ts"), false);
+  assert.equal(existsSync("products/station-zero-v2/src/server.ts"), true);
+  assert.equal(existsSync("experiments/research-preview/server.ts"), true);
+  const productServer = readFileSync("products/station-zero-v2/src/server.ts", "utf8");
+  assert.doesNotMatch(productServer, /StationZeroV3|Casefile|researchSurfaces|\/api\/station-zero-v3|\/api\/casefile|\/lab|\/pre-g0/);
+});
+
 test("canonical ownership authority rejects a generic Big Game framework", () => {
   const boundary = readFileSync("docs/GAME_E2E_OWNERSHIP_BOUNDARY.md", "utf8");
   assert.match(boundary, /not.*reusable Game Framework/i);
