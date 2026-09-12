@@ -1,0 +1,41 @@
+{
+  "bindingVersion": 1,
+  "id": "dataset-parquet-flat-local-r1",
+  "profileId": "dataset-parquet-flat-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "readerMatrix": [
+      {
+        "tool": "DuckDB",
+        "version": "1.5.5",
+        "path": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
+        "binarySha256": "02f1b93ff8b0dc40f3600b04d55b5f2ca4e968ef22e8c1a3cc49dcf34f880a06",
+        "package": "duckdb 1.5.5-1",
+        "packageSha256": "81a5ec42e26876ba0161fde1a29b6b7bf822ccbbc08bb063a05842016a728136",
+        "packageSignatureVerification": "PASS"
+      },
+      {
+        "tool": "PyArrow",
+        "version": "25.0.1",
+        "path": "/opt/ordivon/external/pyarrow/25.0.1/python",
+        "wheel": "pyarrow-25.0.1-cp314-cp314-manylinux_2_28_x86_64.whl",
+        "wheelSha256": "9171748cdf796972d85a4b60157c279913e242992e350c90c7450182a9838b2a",
+        "source": "PyPI official release file metadata"
+      }
+    ]
+  },
+  "proof": {
+    "focusedTests": "6 PASS / 0 FAIL",
+    "validFlatPrimitiveParquet": "PASS",
+    "validParquetWrongContractNullability": "FAIL_AS_CONTRACT_EXPECTED",
+    "duplicatePrimaryKey": "FAIL_CLOSED_AFTER_BOTH_READERS_DECODE_AND_AGREE",
+    "corruptParquet": "FAIL_CLOSED",
+    "nonFiniteFloat": "FAIL_CLOSED_OUTSIDE_PROFILE",
+    "nullablePrimaryKeyContract": "FAIL_BEFORE_READER_PROMOTION",
+    "liveSmokeRuntimeJobId": "job-01a095ad-8cbd-7013-ae86-99c18268a372",
+    "liveSmokeArtifactSha256": "32370bdf9c76e2f27597116618431fb5fd951e3ab2d7c9a74f41e65e8662aa52",
+    "liveSmokeContractCanonicalDigest": "bb339bfbbe334a7bc50ff25282ab78d15935b220d3e3f1b1c2f2ed50a9d7de3b",
+    "liveSmokeCanonicalRowsSha256": "2ae3600a21041f871c48499eee42252746640b1701085a6bd4be20150167ce77",
+    "independentReaders": "DuckDB parquet_schema/read_parquet and PyArrow ParquetFile independently agree on bounded schema facts and logical rows"
+  }
+}

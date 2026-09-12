@@ -45,7 +45,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `fixed-document` | PDF 2.0, PDF/A-4, PDF/UA-2 | `pdf-fixed-r1`, `pdf-accessible-r1` | strong |
 | `presentation` | PresentationML/OOXML | three PPTX profiles | strong + external PowerPoint target |
 | `spreadsheet` | SpreadsheetML/OOXML, ODF | `spreadsheet-r1` | strong/partial |
-| `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | none | `jq`, DuckDB present |
+| `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | shadow `dataset-parquet-flat-r1` | DuckDB + PyArrow native schema/row matrix live-proven |
 | `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | shadow `still-image-png-srgb-r1` | pngcheck + ExifTool + ImageMagick/libvips matrix live-proven |
 | `audio` | profile-selected codecs/containers; BWF/WAVE where required | none | FFmpeg/ffprobe present; specialist conformance missing |
 | `moving-image` | profile-selected codecs/containers; SMPTE IMF for master workflows | none | FFmpeg/ffprobe present; MediaConch absent |
@@ -112,13 +112,13 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-A first non-production shadow profile now also proves the **still-image** family (`still-image-png-srgb-r1`) without extending the legacy `artifactClass` enum. This leaves the production count at five while adding one shadow-proven family.
+Two non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image** (`still-image-png-srgb-r1`) and **dataset** (`dataset-parquet-flat-r1`). The production count remains five while the standards-first model has now survived both a visual/raster domain and a typed/non-visual data domain.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
 - still image: ImageMagick 7.1.2-29, libvips, librsvg;
 - audio/video: FFmpeg/ffprobe 9.0;
-- datasets: jq 1.8.2 and DuckDB;
+- datasets: jq 1.8.2, DuckDB and the isolated PyArrow carrier;
 - geospatial: GDAL 3.13.3;
 - design/3D: Blender (but no official Khronos glTF Validator yet);
 - software release: Syft, Trivy, Cosign, ORAS and OPA.
@@ -148,12 +148,10 @@ Do not make every tool a mandatory global dependency. Tools remain profile-selec
 
 The lowest-risk order is determined by existing mature local substrate, not by perceived architectural importance:
 
-1. **still-image** — ImageMagick/libvips/librsvg already present; clean separation of format, render and metadata checks;
-2. **dataset** — jq/DuckDB already present; useful for defining schema/data-semantic evidence without visual assumptions;
-3. **geospatial** — GDAL already present and exposes standard-aware validation, testing a genuinely domain-specific family;
-4. **audio + moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
-5. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
-6. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
-7. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
+1. **geospatial** — GDAL already present and exposes standard-aware validation, testing a genuinely domain-specific family;
+2. **audio + moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
+3. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
+4. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
+5. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
 
 This ordering deliberately tests different semantic regimes before any profile-v2 schema is frozen.

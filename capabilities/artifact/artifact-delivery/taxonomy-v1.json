@@ -98,9 +98,9 @@
       "representations": ["delimited-text", "structured-text", "columnar", "database", "scientific-array"],
       "standards": ["RFC 8259 JSON", "text/csv family", "Apache Parquet specification", "Apache Arrow specification", "HDF5/netCDF domain standards where applicable"],
       "exampleFormats": ["csv", "tsv", "json", "parquet", "arrow", "sqlite", "hdf5", "netcdf"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "MECHANICAL_TOOLS_PRESENT"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["dataset-parquet-flat-r1"],
+      "localToolStanding": "PARQUET_CONTRACT_AND_DUCKDB_PYARROW_READER_MATRIX_PROVEN"
     },
     {
       "id": "still-image",
