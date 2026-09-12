@@ -419,6 +419,19 @@ tasks:
       - task: reference:linux:containerlab
       - task: reference:linux:wireguard-differential
 
+  consumer:browserless:validate:
+    desc: Validate the serialized Browserless migration gate without changing production
+    deps: [provider:surfshark:validate]
+    cmds:
+      - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
+      - test -x consumers/browserless/acceptance/serial-browserless.sh
+
+  consumer:browserless:serial-accept:
+    desc: Serialize the shared provider identity, prove real Browserless over Network v2, then restore legacy production
+    deps: [consumer:browserless:validate, provider:surfshark:verify-local]
+    cmds:
+      - ./consumers/browserless/acceptance/serial-browserless.sh
+
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service
