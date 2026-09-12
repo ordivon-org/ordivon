@@ -166,11 +166,11 @@
       "id": "software-release",
       "externalAlignment": ["Library of Congress: Software and Video Games", "software supply-chain standards"],
       "representations": ["binary", "package", "container", "source-release"],
-      "standards": ["OCI Image/Distribution 1.1", "SLSA 1.2", "in-toto", "Sigstore", "SPDX 3.0 / ISO/IEC 5962:2021", "CycloneDX where selected"],
+      "standards": ["OCI Image/Distribution 1.1", "SLSA 1.2", "in-toto", "Sigstore", "SPDX 2.3 / SPDX 3.0 as selected (ISO/IEC 5962:2021 corresponds to SPDX 2.2.1)", "CycloneDX where selected"],
       "exampleFormats": ["oci-artifact", "container-image", "deb", "rpm", "apk", "ipa", "exe", "tarball"],
-      "currentCoverage": "NO_ARTIFACT_PROFILE_BUT_RELEASE_SUBSTRATE_PRESENT",
-      "currentProfiles": [],
-      "localToolStanding": "STRONG_RELEASE_TOOLS_PRESENT"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["software-release-oci-image-r1"],
+      "localToolStanding": "OCI_SYFT_FROZEN_TRIVY_RUNTIME_READBACK_PROVEN"
     },
     {
       "id": "web-archive",

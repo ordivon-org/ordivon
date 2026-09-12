@@ -1,0 +1,54 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "software-release-oci-image-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "software-release",
+    "representation": "container-image",
+    "format": "OCI Image Layout",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "conformanceProfile": "OCI Image Format 1.1 bounded single-platform Linux/amd64 image profile",
+    "targetAuthority": "OCI independent-toolchain matrix",
+    "purpose": ["release", "deployment"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "software-release-oci-contract-v1",
+    "schemaReference": "shadow-contracts/software-release-oci-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "standard": "OCI Image Format 1.1.1 / OCI Image Layout",
+    "singleManifest": true,
+    "manifestMediaType": "application/vnd.oci.image.manifest.v1+json",
+    "configMediaType": "application/vnd.oci.image.config.v1+json",
+    "layerMediaTypes": ["application/vnd.oci.image.layer.v1.tar+gzip"],
+    "platform": "linux/amd64",
+    "artifactIdentity": "OCI manifest descriptor digest from the final OCI layout",
+    "transportBoundary": "builder/container-storage identities are source evidence only; final Artifact identity is taken after Skopeo normalization into OCI layout",
+    "sbom": "Syft SPDX 2.3 JSON bound to exact OCI manifest digest",
+    "vulnerabilityIntelligence": "Trivy 0.73 scan bound to frozen DB snapshot 20260912-r1",
+    "secretScanning": "Trivy secret scan over rootfs exported from final OCI-layout read-back image",
+    "runtimeReadback": "Skopeo imports final OCI layout into an isolated temporary Podman tag; Podman executes with network=none"
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "software-release object contract is valid under software-release-oci-contract-v1"},
+    "ociIdentity": {"required": true, "claim": "OCI layout/index/manifest/config/layer descriptors are internally digest/size consistent and manifest identity matches the contract"},
+    "platformConfig": {"required": true, "claim": "OCI config platform, entrypoint and working directory match the object contract"},
+    "rootfsReadback": {"required": true, "claim": "final OCI layout can be imported independently and exported rootfs files match contract digests"},
+    "sbom": {"required": true, "claim": "Syft emits SPDX 2.3 JSON whose CONTAINER root is bound to the exact final manifest digest and required packages are present"},
+    "vulnerabilityScan": {"required": true, "claim": "Trivy offline vulnerability scan over final rootfs uses the exact frozen DB snapshot and remains within contract count"},
+    "secretScan": {"required": true, "claim": "Trivy secret scan over final rootfs remains within contract count"},
+    "runtimeReadback": {"required": true, "claim": "final OCI-layout read-back image executes with network disabled and exact contract exit/stdout/stderr behavior"}
+  },
+  "nonClaims": [
+    "that Artifact E2E built the software; build authorship remains Engineer-side",
+    "that SPDX 2.3 is ISO/IEC 5962:2021; that ISO standard corresponds to SPDX 2.2.1",
+    "absence of vulnerabilities outside the exact frozen Trivy DB snapshot",
+    "absence of runtime vulnerabilities not detectable from static rootfs/package evidence",
+    "production deployment safety, scalability or service reliability",
+    "signature/provenance trust beyond the separate common SLSA/in-toto/Sigstore release envelope",
+    "multi-platform image-index semantics",
+    "registry authorization, replication or retention policy"
+  ]
+}
