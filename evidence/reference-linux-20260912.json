@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "platform": "standard-linux-kvm-reference",
+  "standing": "STANDARD_LINUX_REFERENCE_GRADUATED",
+  "authority": {
+    "acceptanceJobId": "job-01a0961f-65d1-7503-b278-3a7d6d8577e4",
+    "clientRequestId": "network-e2e-reference-v2-accept-overlay-20260912-01",
+    "operationDigest": "sha256:a5b0effcf2a8ee0261bf25185d3e5e705e765177268aed7303327a4ff4d4b9da",
+    "terminalEvidenceSha256": "bd773779b6ecf70073078e78fea8275c56705a8d3af133133eae23518f053e3e",
+    "admissionSourceRevision": "bdab549d123aa81562bae749cc2efcbe0cdcd33b",
+    "testedWorkspaceSourceDigest": "sha256:e2db80a87a774b018e5cf4307902f787d024ac46c54fde7cbaddb0119623a62a",
+    "behaviorCommit": "71e494aff3136c40e95f95999534a6ceec5343a8",
+    "behaviorCommitNote": "The reference acceptance ran from the dirty workspace immediately before this commit. Precommit inspection showed only Taskfile.yml plus reference/linux/wireguard-userspace-smoke.sh as behavior changes, and this commit contains exactly those changes. Runtime workspaceSourceDigest is not compared across the dirty-to-clean commit boundary because revision/dirty state is part of that source-state identity."
+  },
+  "platformEvidence": {
+    "os": "Arch Linux",
+    "kernelRelease": "7.2.4-arch1-2",
+    "virtualization": "kvm",
+    "wsl": false,
+    "dockerVersion": "29.8.0",
+    "containerlabVersion": "0.79.0",
+    "wireguardGoVersion": "v0.0.20250522",
+    "wireguardGoBinarySha256": "284ff89fcf1527fe574bdf2acaf7ab0d8b68d9f52aa256f824b4f37626724e54"
+  },
+  "immutableBase": {
+    "format": "qcow2",
+    "sha256": "0fe8806a5439f0c5bcdfd0ecd5d6ec7a6012ddfcb1f8065e90005c355a2ffb13",
+    "filesystemCheckBeforeAcceptance": "PASS",
+    "baseDigestUnchangedAfterAcceptance": true,
+    "disposableOverlayCheck": "PASS",
+    "guestShutdown": "CLEAN_SYSTEM_POWER_OFF"
+  },
+  "capabilities": {
+    "tcNetemLoss": "PASS",
+    "tcNetemDelayReorder": "PASS",
+    "containerlabTwoNodeTopology": "PASS",
+    "containerlabDataLinkReachability": "PASS",
+    "kernelWireguardInitial": "PASS",
+    "kernelWireguardFailure": "PASS",
+    "kernelWireguardRecovery": "PASS",
+    "userspaceWireguardImplementationIdentity": "PASS",
+    "userspaceWireguardInitial": "PASS",
+    "userspaceWireguardFailure": "PASS",
+    "userspaceWireguardRecovery": "PASS",
+    "kernelVsUserspaceWireguardDifferential": "PASS"
+  }
+}

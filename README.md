@@ -81,11 +81,15 @@ Proven locally:
 - process recovery, whole-platform cold start, and real WSL reboot recovery;
 - control-plane independence while the generic R0 data plane is stopped.
 
-External fidelity gates requiring standard Linux remain:
+Standard-Linux reference fidelity is also graduated independently of WSL:
 
-- `tc/netem` packet impairment;
-- containerlab topology fidelity;
-- kernel-WireGuard differential against the WSL `wireguard-go` fallback.
+- `tc/netem` packet loss plus delay/reorder: PASS;
+- containerlab two-node data topology: PASS;
+- kernel WireGuard initial/failure/recovery: PASS;
+- direct userspace `wireguard-go` initial/failure/recovery: PASS;
+- kernel-vs-userspace WireGuard differential: PASS.
+
+The reference authority uses a clean Arch Linux KVM base plus a disposable qcow2 overlay; the base remains immutable across acceptance.
 
 Windows-host reboot plus WSL auto-launch belongs to Workstation/bootstrap. Consumer cutover and legacy retirement belong to consumer migration.
 
@@ -95,4 +99,4 @@ See `docs/ARCHITECTURE.md`, `docs/DECISION_MATRIX.md`, `docs/ACCEPTANCE_MATRIX.m
 
 A full `task accept:local` run now refreshes `evidence/current-capabilities.json` only after all local acceptance gates pass. `task evidence:verify-local` detects source/platform drift against that generated projection.
 
-Cross-platform kernel fidelity is expressed separately under `reference/linux/`. Run `task reference:linux:accept` only on a dedicated non-WSL Linux runner with netem, Docker/containerlab, and kernel WireGuard. The checked-in GitHub Actions workflow targets a self-hosted runner labelled `network-e2e`; it is not active until this repository is attached to an appropriate Git remote/runner.
+Cross-platform kernel fidelity is expressed separately under `reference/linux/`. The standard-Linux reference lane has now passed on an isolated KVM guest. Future CI can replay the same `task reference:linux:accept` contract on a dedicated non-WSL self-hosted runner labelled `network-e2e`; the checked-in GitHub Actions workflow remains a replay contract until this repository is attached to an appropriate Git remote/runner.

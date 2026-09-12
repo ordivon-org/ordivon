@@ -75,9 +75,9 @@ Current local execution target:
 
 - WSL platform: locally graduated.
 
-Reference fidelity target:
+Reference fidelity standing:
 
-- standard Linux kernel for `tc/netem`, containerlab and kernel-WireGuard differential acceptance.
+- standard Linux kernel `tc/netem`, containerlab, kernel WireGuard, and direct userspace wireguard-go differential: graduated on an isolated KVM reference guest.
 
 Unsupported host capabilities are recorded explicitly rather than hidden behind compatibility shims.
 
@@ -92,6 +92,6 @@ The reference lane lives under `reference/linux/` and requires a dedicated, priv
 - kernel WireGuard;
 - the tooling required to run the pinned userspace `wireguard-go` counterpart.
 
-The lane proves deterministic packet impairment, a real two-node containerlab topology, and kernel-vs-userspace WireGuard lifecycle behavior. A WSL host is rejected by preflight rather than treated as a failed reference implementation.
+The lane proves deterministic packet impairment, a real two-node containerlab topology, and kernel-vs-userspace WireGuard lifecycle behavior. The graduated reference run used a clean immutable Arch Linux KVM base and a disposable qcow2 overlay; the guest shut down cleanly after acceptance and the base digest remained unchanged. A WSL host is rejected by preflight rather than treated as a failed reference implementation.
 
 For CI, the repository carries a GitHub Actions workflow targeting a dedicated self-hosted runner with `[self-hosted, linux, x64, network-e2e]`. The repository currently has no Git remote, so the workflow is a ready contract rather than an executed remote proof.
