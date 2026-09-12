@@ -31,12 +31,17 @@
     {
       "capability": "durable_workflow",
       "owner": "temporal",
-      "status": "production_green_postgresql_new_admissions_cutover_blue_history_draining"
+      "status": "production_postgresql_cutover_complete_blue_archived_retired"
     },
     {
       "capability": "durable_service_contract",
       "owner": "temporal_nexus",
       "status": "workflow_backed_e2e_verified_experimental_adopt_on_real_demand"
+    },
+    {
+      "capability": "legacy_host_authority",
+      "owner": "retired_read_only_archive",
+      "status": "host_v1_retired_8898_closed_integrity_manifest_present"
     },
     {
       "capability": "execution_truth",
