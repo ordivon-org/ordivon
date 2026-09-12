@@ -33,3 +33,6 @@
 5. Temporal Nexus service contracts for cross-E2E durable operations.
 6. OpenTelemetry propagation into the existing Prometheus/Vector/Loki/Grafana Operations stack.
 7. Host active-state migration and read-only archival, then Host retirement.
+## Proven integration slice
+
+The first executable integration slice is source-controlled under `n8n/workflows/ordivon-integration-smoke-v1.json`. It proves n8n Webhook -> external task runner -> external HTTP -> correlated result, and the same integration call has been completed from a Temporal Activity on the Operations-managed production-green Temporal substrate at `127.0.0.1:17233`. See `docs/N8N_INTEGRATION_SMOKE.md`.

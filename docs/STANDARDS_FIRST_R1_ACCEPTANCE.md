@@ -6,7 +6,7 @@ Date: 2026-09-12
 
 **SUPPORTED FOR INTEGRATION-EDGE + CONTRACT-BASELINE SLICE.**
 
-This standing does not claim Temporal production persistence, Nexus cutover, OpenTelemetry end-to-end propagation, or Host retirement. Those remain later gates.
+This standing now includes the separately accepted Temporal production-green PostgreSQL substrate and the n8n composition slice on that substrate. It still does not claim global Temporal application cutover, Nexus cutover, OpenTelemetry end-to-end propagation, or Host retirement.
 
 ## n8n integration edge
 
@@ -33,6 +33,16 @@ The first container cut exposed a read-only-rootfs cache requirement; the accept
 
 The previous host-native `n8n.service` and its host-native environment were retired after container readiness passed. Rootful staging images and the incidental `/root/.n8n` CLI state were also removed after proving they had no consumers.
 
+## n8n vertical-slice acceptance
+
+A source-controlled acceptance workflow now proves the integration composition rather than only service health. A direct run completed:
+
+`CloudEvent JSON -> n8n webhook -> external JS runner -> httpbin.org -> external JS runner -> correlated CloudEvent result`.
+
+The accepted direct n8n execution was successful and preserved the request ID as `correlationid`. A second run completed through the Operations-managed Temporal production-green cluster at `127.0.0.1:17233` and returned the same correlated result to the Temporal Workflow. The Workflow was independently present in PostgreSQL-backed Temporal visibility with completed status. This proves the `Temporal -> n8n -> external -> result` composition boundary on the production-green substrate. Global application cutover from the existing `7233` dogfood/dev cluster remains a separate gate.
+
+The local webhook uses a CloudEvents 1.0 JSON envelope with `application/json`; n8n 2.36.7 maps `application/cloudevents+json` webhook bodies to binary input, so HTTP structured-mode media binding remains unclaimed in this slice.
+
 ## Standards baseline
 
 Versioned contracts now establish:
@@ -49,7 +59,7 @@ Kafka, NATS, Dapr and Kubernetes remain deferred until concrete fan-out, replay,
 ## Remaining gates
 
 1. thin Temporal Activity -> Runtime MCP adapter with stable Runtime request identity;
-2. Temporal service migration from dev SQLite persistence to Operations-managed PostgreSQL with backup/recovery acceptance;
+2. application cutover from the dev `7233` Temporal cluster to the accepted production-green `17233` cluster, with active-workflow drain/bootstrap disposition;
 3. Temporal Nexus contract cutover where cross-E2E durable calls actually exist;
 4. OpenTelemetry propagation into the existing Prometheus/Vector/Loki/Grafana substrate;
 5. active Host task migration + terminal/history archive + Host retirement.
