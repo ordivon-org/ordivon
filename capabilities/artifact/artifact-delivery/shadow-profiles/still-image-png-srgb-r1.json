@@ -36,6 +36,7 @@
     },
     "decoderMatrix": {
       "required": true,
+      "claim": "independent mature decoders agree on normalized decoded sample bytes",
       "minimumIndependentDecoders": 2,
       "normalization": "8-bit sRGB RGBA samples",
       "acceptance": "exact decoded sample-byte equality"

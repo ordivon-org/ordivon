@@ -1,0 +1,89 @@
+{
+  "classification": {
+    "family": "spreadsheet",
+    "format": {
+      "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "name": "xlsx"
+    },
+    "purposes": [
+      "editable-microsoft-excel"
+    ],
+    "representation": "office-package"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "en-US"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "google-drive",
+      "windows-workstation"
+    ]
+  },
+  "id": "spreadsheet-r1",
+  "nonClaims": [],
+  "notes": "Generated-managed XLSX production profile. Formula/recalculation and target workbook behavior remain Excel-owned acceptance facts.",
+  "outputs": [
+    {
+      "editable": true,
+      "format": {
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "name": "xlsx"
+      },
+      "purpose": "editable-microsoft-excel",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "accessibility": {
+      "claim": "accessibility evidence satisfies the profile",
+      "required": true
+    },
+    "conformance": {
+      "claim": "selected external conformance profile is satisfied",
+      "required": false
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "dependency": {
+      "claim": "declared build/render dependencies are satisfied",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "releaseProvenance": {
+      "claim": "release provenance evidence is present and accepted",
+      "required": true
+    },
+    "semantic": {
+      "claim": "profile-specific semantic checks",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Microsoft Excel Desktop",
+      "platform": "Windows",
+      "required": true
+    }
+  ]
+}

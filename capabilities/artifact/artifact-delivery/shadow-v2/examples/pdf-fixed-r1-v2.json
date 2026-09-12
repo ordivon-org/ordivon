@@ -1,0 +1,81 @@
+{
+  "classification": {
+    "family": "fixed-document",
+    "format": {
+      "mediaType": "application/pdf",
+      "name": "pdf"
+    },
+    "purposes": [
+      "portable-fixed-view"
+    ],
+    "representation": "fixed-layout"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "en-US"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "google-drive",
+      "windows-workstation"
+    ]
+  },
+  "id": "pdf-fixed-r1",
+  "nonClaims": [],
+  "notes": "Ordinary fixed-view PDF profile. qpdf structure PASS does not imply PDF/A or PDF/UA conformance.",
+  "outputs": [
+    {
+      "editable": false,
+      "format": {
+        "mediaType": "application/pdf",
+        "name": "pdf"
+      },
+      "purpose": "portable-fixed-view",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "accessibility": {
+      "claim": "accessibility evidence satisfies the profile",
+      "required": false
+    },
+    "conformance": {
+      "claim": "selected external conformance profile is satisfied",
+      "required": false
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "releaseProvenance": {
+      "claim": "release provenance evidence is present and accepted",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Adobe Acrobat Pro",
+      "platform": "Windows/macOS",
+      "required": true
+    }
+  ]
+}

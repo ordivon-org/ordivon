@@ -1,0 +1,88 @@
+{
+  "classification": {
+    "conformanceProfile": "PDF/UA-2",
+    "family": "fixed-document",
+    "format": {
+      "mediaType": "application/pdf",
+      "name": "pdf-ua-2"
+    },
+    "purposes": [
+      "accessible-portable-document",
+      "accessibility"
+    ],
+    "representation": "fixed-layout"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "en-US"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "google-drive",
+      "windows-workstation"
+    ]
+  },
+  "id": "pdf-accessible-r1",
+  "nonClaims": [],
+  "notes": "PDF/UA-2 profile. veraPDF ua2 validation is required but does not replace human accessibility/use review.",
+  "outputs": [
+    {
+      "editable": false,
+      "format": {
+        "mediaType": "application/pdf",
+        "name": "pdf-ua-2"
+      },
+      "purpose": "accessible-portable-document",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "conformance": {
+      "pdfFlavour": "ua2"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "accessibility": {
+      "claim": "accessibility evidence satisfies the profile",
+      "required": true
+    },
+    "conformance": {
+      "claim": "selected external conformance profile is satisfied",
+      "required": true
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "releaseProvenance": {
+      "claim": "release provenance evidence is present and accepted",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Adobe Acrobat Pro",
+      "platform": "Windows/macOS",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "classification": {
+    "family": "web",
+    "format": {
+      "mediaType": "text/html",
+      "name": "html"
+    },
+    "purposes": [
+      "standards-based-web-delivery"
+    ],
+    "representation": "html-css-js-runtime"
+  },
+  "construction": {
+    "authorityMode": "source-authored",
+    "locale": "en-US"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "web-origin"
+    ]
+  },
+  "id": "web-r1",
+  "nonClaims": [],
+  "notes": "HTML/CSS/SVG source-authored profile. Browser parity and WCAG-oriented automated checks are independent from server/deployment health.",
+  "outputs": [
+    {
+      "editable": true,
+      "format": {
+        "mediaType": "text/html",
+        "name": "html"
+      },
+      "purpose": "standards-based-web-delivery",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "accessibility": {
+      "claim": "accessibility evidence satisfies the profile",
+      "required": true
+    },
+    "conformance": {
+      "claim": "selected external conformance profile is satisfied",
+      "required": true
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "releaseProvenance": {
+      "claim": "release provenance evidence is present and accepted",
+      "required": true
+    },
+    "semantic": {
+      "claim": "profile-specific semantic checks",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Chromium",
+      "platform": "Linux/Windows/macOS",
+      "required": true
+    },
+    {
+      "authorityClass": "native-consumer",
+      "name": "Firefox",
+      "platform": "cross-platform",
+      "required": true
+    },
+    {
+      "authorityClass": "native-consumer",
+      "name": "WebKit",
+      "platform": "cross-platform",
+      "required": true
+    }
+  ]
+}

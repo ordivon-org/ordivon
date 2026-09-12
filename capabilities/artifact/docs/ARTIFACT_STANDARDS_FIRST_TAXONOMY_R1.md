@@ -114,6 +114,8 @@ The production profile library currently covers **5 of the 14 operational famili
 
 Two non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image** (`still-image-png-srgb-r1`) and **dataset** (`dataset-parquet-flat-r1`). The production count remains five while the standards-first model has now survived both a visual/raster domain and a typed/non-visual data domain.
 
+A shadow `profile-v2` schema has now also mapped all eight current production v1 profiles plus both standards-first shadow profiles with semantic-field preservation and a green 163-test full regression. Production remains on v1; v2 is not cut over.
+
 The workstation already has useful mature mechanical tools for several uncovered families:
 
 - still image: ImageMagick 7.1.2-29, libvips, librsvg;

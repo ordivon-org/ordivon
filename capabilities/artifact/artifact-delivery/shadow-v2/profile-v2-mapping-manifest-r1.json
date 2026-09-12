@@ -1,0 +1,109 @@
+{
+  "fullRegression": "163 tests / 161 PASS / 2 conditional skips / 0 failures",
+  "kind": "artifact-profile-v2-shadow-mapping-manifest",
+  "mappingCount": 10,
+  "mappings": [
+    {
+      "family": "text-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+      "mappedDigest": "1259f21c76c166b3505f79506de07fd60d743b8f98a9bfb780d6b9f1738da72c",
+      "profileId": "document-r1",
+      "source": "artifact-delivery/examples/document-r1.json",
+      "sourceDigest": "37e4829af8dd4fc0b5bf2297ea7fb63e5c9893dce81cb5215cdab0ece45b2137",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
+      "mappedDigest": "3b7dc2dec1acdd3b06f1b5399f0907dd22b356d41b7260521fff6a698e7e7721",
+      "profileId": "pdf-accessible-r1",
+      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
+      "sourceDigest": "f2054e46d2a7bcdafa229dac4f7d9e00615723eec6b55df1416f4886b2b3b97e",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
+      "mappedDigest": "bc99e245a814b2d84b10b32c12c47b057f9efdeb1b4a9f4310ea6014277ec06b",
+      "profileId": "pdf-fixed-r1",
+      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
+      "sourceDigest": "4a3b897fed8dd17c223bc3f6281ea67f249fe6e3449bec58413969799b0087ed",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+      "mappedDigest": "fed993f4eba4dbbdffd91b619e15141d941f697f6ba5ff043b7bb13384cf05a9",
+      "profileId": "pdu-sdu-presentation-r1",
+      "source": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+      "sourceDigest": "8cbfaf52493d764cffb54f95230b4d64fa2bca9d8b1c5815b2a63f08404cfde7",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-local-development-r1-v2.json",
+      "mappedDigest": "fea99dba228733fc6274771100b6d30df5ecd26eea8dc2599a140675d529d837",
+      "profileId": "presentation-local-development-r1",
+      "source": "artifact-delivery/examples/presentation-local-development-r1.json",
+      "sourceDigest": "a085f11f5bcd8daa6fe163cba34ec87ef6da72d6bfc7b21b36e314a7ddd08488",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-ultrawide-34x10-r1-v2.json",
+      "mappedDigest": "b15ae5fb8487aaa7472b69654c055e02ad6d684b9ad318011722aecb9246d385",
+      "profileId": "presentation-ultrawide-34x10-r1",
+      "source": "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
+      "sourceDigest": "0c3db0c648f3d47169141a80a5e1e2a1107865b433318c795e390e8be0bd9d1f",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "spreadsheet",
+      "mapped": "artifact-delivery/shadow-v2/examples/spreadsheet-r1-v2.json",
+      "mappedDigest": "bac2f20b142bac6bc74138e3a42a76b498c7c63da33dba9e6d95cad4fc436ead",
+      "profileId": "spreadsheet-r1",
+      "source": "artifact-delivery/examples/spreadsheet-r1.json",
+      "sourceDigest": "ff089eb7c06da9d3ca8cb9a444c48e74eb3385de300ddcef774eff98d058cd32",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "web",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
+      "mappedDigest": "22870b78df128b558cfd01b4a8357f97e5dcf9d1060afe886c15c9eb7f676083",
+      "profileId": "web-r1",
+      "source": "artifact-delivery/examples/web-r1.json",
+      "sourceDigest": "4c038fed35c4dcb0ee4a82277972307290b4424e50d2268df763a055e76db273",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "dataset",
+      "mapped": "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json",
+      "mappedDigest": "23ce6392668418a5590b22d85d6b02defab7eb74bbb6381dea5275c0892dccb5",
+      "profileId": "dataset-parquet-flat-r1",
+      "source": "artifact-delivery/shadow-profiles/dataset-parquet-flat-r1.json",
+      "sourceDigest": "5354003a9548950ed23072962278a9e7919985a460939ad7ee2e03ba0f557dcc",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "still-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+      "mappedDigest": "1b56b51eef8c3703cf7125779c002e6b535d27fd6ccc8840af400841501cbd6a",
+      "profileId": "still-image-png-srgb-r1",
+      "source": "artifact-delivery/shadow-profiles/still-image-png-srgb-r1.json",
+      "sourceDigest": "d737e08bcce10116a24e6cae99ab5916112c56972b15caba5c027cce5348c8d9",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    }
+  ],
+  "schemaVersion": 1,
+  "status": "SHADOW_SCHEMA_PROVEN"
+}

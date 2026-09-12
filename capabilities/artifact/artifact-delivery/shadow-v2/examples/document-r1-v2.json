@@ -1,0 +1,103 @@
+{
+  "classification": {
+    "family": "text-document",
+    "format": {
+      "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "name": "docx"
+    },
+    "purposes": [
+      "editable-microsoft-word"
+    ],
+    "representation": "office-package"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "en-US"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "google-drive",
+      "windows-workstation"
+    ]
+  },
+  "id": "document-r1",
+  "nonClaims": [],
+  "notes": "Generated-managed DOCX production profile. Word Desktop is the primary target; Pandoc/Open XML evidence cannot substitute for target acceptance.",
+  "outputs": [
+    {
+      "editable": true,
+      "format": {
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "name": "docx"
+      },
+      "purpose": "editable-microsoft-word",
+      "required": true,
+      "role": "primary"
+    },
+    {
+      "editable": false,
+      "format": {
+        "mediaType": "application/pdf",
+        "name": "pdf"
+      },
+      "purpose": "portable-fixed-view",
+      "required": true,
+      "role": "companion"
+    }
+  ],
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "accessibility": {
+      "claim": "accessibility evidence satisfies the profile",
+      "required": true
+    },
+    "companionPdf": {
+      "claim": "required companion PDF exists and is accepted",
+      "required": true
+    },
+    "conformance": {
+      "claim": "selected external conformance profile is satisfied",
+      "required": false
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "dependency": {
+      "claim": "declared build/render dependencies are satisfied",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "releaseProvenance": {
+      "claim": "release provenance evidence is present and accepted",
+      "required": true
+    },
+    "semantic": {
+      "claim": "profile-specific semantic checks",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Microsoft Word Desktop",
+      "platform": "Windows",
+      "required": true
+    }
+  ]
+}
