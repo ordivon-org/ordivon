@@ -56,3 +56,11 @@ The following mature packages were installed from the configured Arch repositori
 - backup/PITR authority: pgBackRest;
 - schedule/lifecycle authority: systemd;
 - owner semantic restore acceptance remains with each database consumer and is not inferred from backup command success.
+
+## Operations v2 local host / WSL owner slice
+
+- systemd system/user manager file-descriptor policy: Ansible-owned file desired state;
+- coredump suppression policy: Ansible-owned file desired state;
+- `/etc/wsl.conf`: Ansible `ini_file`, owned keys only;
+- Windows `.wslconfig`: Ansible `ini_file`, owned keys only; the separately present custom `kernel=` entry is deliberately preserved;
+- WSL shutdown/restart is not part of routine convergence and must be admitted separately when activation is required.
