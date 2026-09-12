@@ -48,3 +48,8 @@ ordivon-next/
 Historical Ordivon repositories are read-only inputs to migration analysis. Nothing is migrated merely because it existed before. A historical concept is retained only when it maps cleanly to the new model and still solves a real problem not already owned by a mature external capability.
 
 The common core is capability-neutral. Mature disciplines, domains, standards, tools and execution systems are activated as a task-local working set and may change without changing Ordivon itself. There is no prescribed domain sequence or upgrade path.
+
+
+## Current common capability coverage
+
+See `docs/CAPABILITY_PACKAGES_R1.md` for the current high-frequency Capability Package working map. It is a task-oriented coverage inventory, not a fixed architecture.
