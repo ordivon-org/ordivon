@@ -1,7 +1,24 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "platform": "current-wsl",
   "standing": "LOCAL_WSL_GRADUATED",
+  "authority": {
+    "entryPoint": "task accept:local",
+    "acceptedAt": "2026-09-12T15:19:55+00:00",
+    "sourceRevision": "7dbe8eef17950371f38e51792006a682f5fc1f6a",
+    "sourceFingerprint": "sha256:3184b682d8bf3dd68024bbc38f98b44ab2bcff8d561b5f6b9a5d943528bf2ea7",
+    "platformFingerprint": "sha256:6725d1a575be2c3787e385cd27bd3c8ce1fc14f8ea966bf7b051ad75f6c63301"
+  },
+  "platformEvidence": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernelRelease": "6.6.123.2-microsoft-standard-WSL2",
+    "os": {
+      "id": "arch",
+      "versionId": "unknown"
+    },
+    "wsl": true
+  },
   "generic": {
     "ipv4": "PASS",
     "ipv6": "PASS",
@@ -13,7 +30,7 @@
     "udpQuicIsolatedTun": "PASS",
     "longFlow": "PASS",
     "concurrency": "PASS",
-    "stableEgressIdentity": "PASS",
+    "externalEgressObservation": "PASS",
     "dnsPartialUpstreamFailure": "PASS",
     "dnsAllUpstreamFailClosed": "PASS",
     "dnsRecoveryWithoutRestart": "PASS",
