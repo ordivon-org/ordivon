@@ -9,7 +9,7 @@
     {"capability":"external_infrastructure_state","owner":"opentofu","status":"installed_unbound"},
     {"capability":"integration_edge","owner":"n8n","status":"active_rootless_oci_loopback_postgresql_external_runners_runtime_bypass_blocked"},
     {"capability":"durable_workflow","owner":"temporal","status":"production_green_postgresql_workflow_restore_verified_not_cutover"},
-    {"capability":"durable_service_contract","owner":"temporal_nexus","status":"selected_not_cutover"},
+    {"capability":"durable_service_contract","owner":"temporal_nexus","status":"workflow_backed_e2e_verified_experimental_adopt_on_real_demand"},
     {"capability":"execution_truth","owner":"ordivon_runtime","status":"retain"},
     {"capability":"event_envelope","owner":"cloudevents_1_0","status":"contract_baseline_present"},
     {"capability":"async_contract","owner":"asyncapi_3_0","status":"contract_baseline_present"},
