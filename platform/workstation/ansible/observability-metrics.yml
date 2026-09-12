@@ -4,6 +4,29 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Ensure Netdata systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/netdata.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Own the loopback-only Netdata service realization
+      ansible.builtin.copy:
+        src: ../observability/netdata-v2.conf
+        dest: /etc/systemd/system/netdata.service.d/10-ordivon-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd and restart Netdata
+
+    - name: Enable and start Netdata
+      ansible.builtin.systemd_service:
+        name: netdata.service
+        enabled: true
+        state: started
+
     - name: Install Operations v2 Prometheus configuration
       ansible.builtin.copy:
         src: ../observability/prometheus.yml
@@ -52,4 +75,9 @@
     - name: Restart Operations Prometheus
       ansible.builtin.systemd_service:
         name: prometheus.service
+        state: restarted
+    - name: Reload systemd and restart Netdata
+      ansible.builtin.systemd_service:
+        name: netdata.service
+        daemon_reload: true
         state: restarted
