@@ -1,8 +1,6 @@
-# Common Contract Candidates
+# Machine-Actionable Bridge Schemas
 
-This directory intentionally starts without a large ontology.
-
-Candidate common contracts are discovered through real vertical slices. The first candidates are:
+This directory intentionally avoids inventing a new universal ontology. The first choice is always to reuse or profile mature external representations. Local schemas exist only where Ordivon needs a concrete machine-actionable bridge between mature knowledge, decisions, workflows, tools and validation. Candidate bridge records include:
 
 - Problem / ProblemClass
 - Requirement / Constraint
@@ -13,12 +11,10 @@ Candidate common contracts are discovered through real vertical slices. The firs
 - Validator / AcceptanceCriterion
 - Evidence / Result
 
-## Promotion policy
+## Selection policy
 
-1. A domain may first define a local representation.
-2. If a second materially different domain needs the same semantics, compare the two representations.
-3. Promote only the proven common semantic intersection.
-4. Prefer external standards for representation where one exists.
-5. Do not promote convenience fields that encode one tool or one domain.
-
-Game, Research and Software/Engineering are the first planned falsification domains.
+1. Search for a mature external representation first.
+2. Profile or map that representation when possible.
+3. Add a local bridge schema only when execution/integration requires one.
+4. Keep local fields minimal and avoid encoding one tool or one domain into the common layer.
+5. Use Game, Research and Software/Engineering as integration/compatibility tests, not as the source of the underlying theory.

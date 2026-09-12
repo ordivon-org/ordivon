@@ -42,4 +42,4 @@ An observation or artifact supporting or refuting a claim about execution, confo
 
 ## Common Core
 
-Only those semantics demonstrated to be genuinely cross-domain. The Common Core is discovered through vertical slices; it is not designed speculatively.
+The broadly applicable problem-solving foundations Ordivon adopts from mature human disciplines and standards. Examples include KM, DSS/OR, Systems Engineering, BPM/workflow, V&V, research/scientific methods, software/system engineering practices, and shared representation/interface standards. Ordivon does not need to rediscover these through its own domains; domain work tests integration, tailoring and applicability.

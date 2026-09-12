@@ -161,27 +161,13 @@ An E2E profile is not a software subsystem. It is a domain-tailored composition 
 - enabling systems/capabilities;
 - verification and validation.
 
-## 7. Common contracts: promote only after proof
+## 7. Common core: adopt before inventing
 
-Candidate common objects:
+The Common Core is not discovered by Ordivon through repeated domain experiments. Its starting point is the set of mature, broadly validated disciplines and standards that already structure real problem solving, including Knowledge Management, Decision Support / Operations Research, Systems Engineering, BPM/workflow, Verification & Validation, scientific/research methods, software/system engineering practices, and applicable representation/interface standards.
 
-- Problem;
-- ProblemClass;
-- Requirement;
-- Constraint;
-- KnowledgeSource;
-- Standard;
-- Method;
-- Algorithm;
-- Capability;
-- ToolProvider;
-- Decision;
-- Workflow;
-- Validator;
-- Evidence;
-- Result.
+Ordivon should therefore import or profile mature external concepts before defining private equivalents. Local schemas exist only where a machine-actionable bridge is actually needed and no suitable external representation is available. Candidate bridge objects may include Problem, Requirement, Constraint, KnowledgeSource, Standard, Method, Capability, Decision, Workflow, Validator, Evidence and Result, but these are integration records rather than claims of a new universal ontology.
 
-These are not frozen ontology. A contract enters `schemas/` only after at least two materially different domains need the same semantics; promotion to a stable Common Core should preferably survive Game, Research and Software/Engineering use.
+Domain work validates the *integration and tailoring* of this common core. It does not re-prove the underlying disciplines.
 
 ## 8. Ownership rule
 
@@ -209,9 +195,10 @@ Agent statements are observations, not final authority. Verification should pref
 
 ## 10. Initial vertical-slice strategy
 
-1. Game — first real vertical slice and first domain taxonomy/standards/tool/validator mapping.
-2. Research — deliberately different domain to challenge common assumptions.
-3. Software/Engineering — third domain to determine what truly belongs in the shared core.
-4. Only then consolidate stable cross-domain contracts.
+1. Establish the externally grounded Common Core from mature disciplines and standards.
+2. Game — first real vertical slice to validate domain tailoring and end-to-end integration.
+3. Research — adopt mature research/scientific practice and validate the same integration fabric.
+4. Software/Engineering — adopt mature systems/software engineering practice and validate the same integration fabric.
+5. Refine only Ordivon-specific adapters/mappings where real integration gaps remain.
 
-No universal platform is built before these slices demonstrate demand.
+No universal platform is built merely to rediscover knowledge that mature disciplines already provide.

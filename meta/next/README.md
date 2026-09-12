@@ -10,7 +10,7 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 
 ## What this repository owns
 
-- common problem/knowledge/capability/composition/verification contracts;
+- profiles and mappings that expose mature human knowledge and capabilities in a common usable form;
 - domain life-cycle profiles;
 - mappings from problem classes to mature methods, standards, algorithms, tools and validators;
 - thin adapters to external execution systems;
@@ -47,4 +47,4 @@ ordivon-next/
 
 Historical Ordivon repositories are read-only inputs to migration analysis. Nothing is migrated merely because it existed before. A historical concept is retained only when it maps cleanly to the new model and still solves a real problem not already owned by a mature external capability.
 
-The first implementation target is a real Game vertical slice. Research and Software/Engineering follow as independent falsification domains before anything is promoted into a common core.
+The common core is adopted from mature, externally validated disciplines and standards rather than invented from Ordivon experiments. Domain slices such as Game, Research and Software/Engineering validate integration, tailoring and usability; they do not define whether the underlying mature disciplines are valid.
