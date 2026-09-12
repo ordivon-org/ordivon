@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium, type Page } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
-import { loadExternalJsonModel, type ExternalJsonModelCallEvidence } from "./external-json-model.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
+import { loadExternalJsonModel, type ExternalJsonModelCallEvidence } from "../../../tools/external-json-model.ts";
 
 interface Decision { actionIndex: number; interpretation: string; expectation: string; confidence: number }
 interface Reflection { understanding: string; confusion: string; evidenceUsed: string; replayDesire: number; replayReason: string }
@@ -77,7 +77,7 @@ async function reflect(transcript: unknown, terminal: string): Promise<Reflectio
   return { understanding: text(output.understanding, "understanding"), confusion: text(output.confusion, "confusion"), evidenceUsed: text(output.evidenceUsed, "evidenceUsed"), replayDesire: output.replayDesire, replayReason: text(output.replayReason, "replayReason") };
 }
 
-process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
+if (process.env.ORDIVON_BROWSER_TMPDIR) process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR;
 const directory = mkdtempSync(join(tmpdir(), "casefile-fresh-agent-"));
 const game = createResearchPreviewServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3"), casefileDbPath: join(directory, "casefile.sqlite3") });
 await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));

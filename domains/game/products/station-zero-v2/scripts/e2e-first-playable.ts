@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
 
-import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
-import { createGameServer } from "../products/station-zero-v2/src/server.ts";
-import type { MissionProviderFactory } from "../products/station-zero-v2/src/mission-control/service.ts";
-import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import type { DeploymentProviderOptions } from "../src/deployment/model.ts";
+import { createGameServer } from "../src/server.ts";
+import type { MissionProviderFactory } from "../src/mission-control/service.ts";
+import { FixtureTeamProvider } from "../src/team/providers.ts";
 
 const fixtureFactory: MissionProviderFactory = (_name, options?: DeploymentProviderOptions) =>
   new FixtureTeamProvider({
@@ -53,7 +53,7 @@ async function finishMission(page: import("playwright").Page): Promise<{ runActi
   throw new Error("Mission did not reach a terminal state within 40 player decisions");
 }
 
-process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
+if (process.env.ORDIVON_BROWSER_TMPDIR) process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR;
 
 const directory = mkdtempSync(join(tmpdir(), "ordivon-first-playable-e2e-"));
 const game = createGameServer({

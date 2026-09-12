@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium, type Page } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
-import { loadExternalJsonModel } from "./external-json-model.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
+import { loadExternalJsonModel } from "../../../tools/external-json-model.ts";
 
 interface PlayerDecision {
   actionIndex: number;
@@ -224,7 +224,7 @@ async function playSession(
   return { concept, treatment, steps, terminal, reflection };
 }
 
-process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
+if (process.env.ORDIVON_BROWSER_TMPDIR) process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR;
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-core-fresh-agent-"));
 const game = createResearchPreviewServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));

@@ -75,7 +75,7 @@ export function stationZeroV3ProductValueContext(root = PROJECT_ROOT) {
     sourceReceipt: CURRENT_RECEIPT,
     escapeHatch: {
       standing: "docs/STATION_ZERO_V3_PRODUCT_VALUE.md",
-      evaluator: "scripts/eval-station-zero-v3-product-value.ts",
+      evaluator: "experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts",
       rawEvidenceRoot: "evidence/station-zero-v3",
     },
   };

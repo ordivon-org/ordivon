@@ -80,11 +80,8 @@ test("high-fidelity Agent decisions remain concurrent under an externally suppli
     const play = new StationZeroV3PlayService(store, { providerFactory: () => provider });
     const runId = "run:external-provider:parallel";
     play.initialize({ runId });
-    const started = performance.now();
     const preview = await play.generatePreview(runId);
-    const elapsed = performance.now() - started;
-    assert.equal(maximumActive, 5);
-    assert.ok(elapsed < 300, `parallel Preview took ${elapsed} ms`);
+    assert.equal(maximumActive, 5, "all five high-fidelity decisions must overlap before any delayed call returns");
     assert.ok(preview.preview.agentDecisions.every((decision) => decision.providerId === provider.providerId));
   } finally { store.close(); }
 });

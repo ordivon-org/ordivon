@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
 
 
 interface RetainedV3StateView {
@@ -32,7 +32,7 @@ async function listen(game: ReturnType<typeof createResearchPreviewServer>): Pro
   return `http://127.0.0.1:${address.port}`;
 }
 
-process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
+if (process.env.ORDIVON_BROWSER_TMPDIR) process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR;
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-g5-e2e-"));
 const game = createResearchPreviewServer({ researchSurfaces: true, dbPath: join(directory, "v2.sqlite3"), v3DbPath: join(directory, "v3.sqlite3") });
 const base = await listen(game);

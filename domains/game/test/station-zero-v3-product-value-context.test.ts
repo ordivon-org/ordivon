@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 
-import { stationZeroV3ProductValueContext } from "../scripts/product-value-context.ts";
+import { stationZeroV3ProductValueContext } from "../experiments/station-zero-v3/scripts/product-value-context.ts";
 
 const root = resolve(new URL("..", import.meta.url).pathname);
 
@@ -32,12 +32,12 @@ test("Product Value context fails currentness when one fenced semantic source ch
     const receiptTarget = join(temp, "evidence/station-zero-v3/product-value-current.json");
     mkdirSync(dirname(receiptTarget), { recursive: true });
     writeFileSync(receiptTarget, `${JSON.stringify(receipt, null, 2)}\n`);
-    const evaluator = join(temp, "scripts/eval-station-zero-v3-product-value.ts");
+    const evaluator = join(temp, "experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts");
     writeFileSync(evaluator, `${readFileSync(evaluator, "utf8")}\n// semantic drift fixture\n`);
     const value = stationZeroV3ProductValueContext(temp);
     assert.equal(value.currentness.state, "STALE");
     assert.equal(value.currentness.usableForCurrentDecision, false);
-    assert.deepEqual(value.currentness.stalePaths, ["scripts/eval-station-zero-v3-product-value.ts"]);
+    assert.deepEqual(value.currentness.stalePaths, ["experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts"]);
     assert.deepEqual(value.lanes, []);
     assert.deepEqual(value.retainedConsequences, []);
     assert.equal(value.historicalEvidence?.state, "WITHHELD_STALE");

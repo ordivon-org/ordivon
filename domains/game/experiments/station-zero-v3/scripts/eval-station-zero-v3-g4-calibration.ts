@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
 
 type Severity = "critical" | "major" | "minor";
 interface Finding { id: string; severity: Severity; passed: boolean; evidence: unknown; }

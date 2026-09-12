@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
 
 async function listen(game: ReturnType<typeof createResearchPreviewServer>): Promise<string> {
   await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));

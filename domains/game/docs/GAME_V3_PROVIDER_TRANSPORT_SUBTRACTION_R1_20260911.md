@@ -64,7 +64,7 @@ Historical `ORDIVON_GAME_V3_PROVIDER=deepseek` and `ORDIVON_GAME_V3_DEEPSEEK_*` 
 Historical fresh-agent evaluation runners were preserved without retaining transport debt:
 
 - Casefile and Concept Lab now load `ORDIVON_GAME_EXTERNAL_JSON_MODEL_MODULE`;
-- Station Zero v3 evaluation is now `scripts/eval-station-zero-v3-external-provider.ts`;
+- Station Zero v3 evaluation is now `experiments/station-zero-v3/scripts/eval-station-zero-v3-external-provider.ts`;
 - no research runner in this candidate opens model credential files or calls `/chat/completions` directly.
 
 These are experiment/evaluation adapters, not provider owners.

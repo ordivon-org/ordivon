@@ -469,7 +469,7 @@ Changing an Order row or Preview row independently fails closed.
 
 `test/station-zero-v3-web.test.ts` verifies strategic controls, sealed enemy plans, bounded aftermath, and terminal rendering.
 
-`scripts/e2e-station-zero-v3.ts` drives a real Chromium browser through:
+`experiments/station-zero-v3/scripts/e2e-station-zero-v3.ts` drives a real Chromium browser through:
 
 ```text
 open /v3

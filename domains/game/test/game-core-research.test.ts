@@ -57,6 +57,6 @@ test("Concept Lab remains disposable research scaffolding isolated from Station 
   assert.match(lab, /Last Light/);
   assert.match(lab, /Echo Hunt/);
   assert.match(lab, /location\.href='\/v3'/);
-  assert.equal(packageJson.scripts["e2e:lab"], "node scripts/e2e-game-core-concept-lab.ts");
+  assert.equal(packageJson.scripts["e2e:lab"], "node experiments/concept-lab/scripts/e2e-game-core-concept-lab.ts");
   assert.match(packageJson.scripts.webcheck, /experiments\/concept-lab\/web\/\*\.js/);
 });

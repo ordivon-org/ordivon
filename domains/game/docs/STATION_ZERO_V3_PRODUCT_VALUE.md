@@ -565,8 +565,8 @@ The complete battery remains available, but ordinary autonomous iteration may se
 ```text
 pnpm eval:v3:product-value:information
 pnpm eval:v3:product-value:targeted-controls
-node scripts/eval-station-zero-v3-product-value.ts --lane pressure
-node scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
+node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane pressure
+node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
 ```
 
 `--lane` changes execution granularity only; it does not redefine metrics, evidence classes, or Product Value authority. Multiple `--lane` arguments may be combined, and no argument preserves the original complete evaluator. Cheap slices are for frequent falsification; the full battery remains the stronger periodic cross-lane check.
@@ -574,9 +574,9 @@ node scripts/eval-station-zero-v3-product-value.ts --lane specialist-identity
 One selected lane may be narrowed further along dimensions that the existing experiment already owns:
 
 ```text
-node scripts/eval-station-zero-v3-product-value.ts --lane information --objective rescue-two-civilians
-node scripts/eval-station-zero-v3-product-value.ts --lane pressure --profile rescue-cautious-cohesive
-node scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls --profile rescue --control lootPolicy
+node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane information --objective rescue-two-civilians
+node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane pressure --profile rescue-cautious-cohesive
+node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls --profile rescue --control lootPolicy
 ```
 
 These selectors **only reduce the sampled cases inside the unchanged lane**. Every scoped report carries `selectedScope`; a scoped result is diagnostic evidence for exactly that objective/profile/control and must not be promoted to the standing of the complete lane or full Product Value battery. Invalid lane/selector combinations fail closed. `control-leverage` retains only its complete lane because one-control filtering still cost roughly 23.5 seconds in the measured audit and did not earn another ordinary-iteration interface. Use the smallest claim-preserving slice where it materially lowers cost, and periodically rerun complete lanes/the full battery when broader standing matters.
@@ -780,7 +780,7 @@ Before scaling any unproven axis, use a research-only counterfactual or one boun
 
 ## G5-P1 — topology/choke outer-axis admission
 
-The first G5 production-grammar proof intentionally changed **no Game core contract**. `scripts/eval-station-zero-v3-topology-axis.ts` clones the canonical Genesis in memory, mutates only bounded Zone capacity, then reuses the existing Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. No Variant Engine, custom-Genesis Store API, or new World abstraction was introduced.
+The first G5 production-grammar proof intentionally changed **no Game core contract**. `experiments/station-zero-v3/scripts/eval-station-zero-v3-topology-axis.ts` clones the canonical Genesis in memory, mutates only bounded Zone capacity, then reuses the existing Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. No Variant Engine, custom-Genesis Store API, or new World abstraction was introduced.
 
 The evaluator runs the exact 18-profile strategy matrix across six conditions (`baseline` plus five bounded topology treatments), for 108 full deterministic Runs. Admission requires all three:
 
@@ -860,7 +860,7 @@ This evaluator is an **outer production instrument**, not a new permanent produc
 
 ## G5-P3 — enemy directive doctrine admission
 
-The next independent outer-axis test changes **no World law, Candidate admission, Objective definition, or production Case**. `scripts/eval-station-zero-v3-enemy-doctrine-axis.ts` supplies a research-only Provider that forces one already-valid Pirate or Swarm directive while preserving the real first-Turn Context/Candidate identities. The canonical planner still expands the leader directive into policy-follower actions, enemy Commander actions, Plans, and deterministic World consequence.
+The next independent outer-axis test changes **no World law, Candidate admission, Objective definition, or production Case**. `experiments/station-zero-v3/scripts/eval-station-zero-v3-enemy-doctrine-axis.ts` supplies a research-only Provider that forces one already-valid Pirate or Swarm directive while preserving the real first-Turn Context/Candidate identities. The canonical planner still expands the leader directive into policy-follower actions, enemy Commander actions, Plans, and deterministic World consequence.
 
 The evaluator runs 18 Rescue strategy profiles across adaptive baseline plus all six fixed enemy directives, for 126 full deterministic Runs. A directive treatment passes only when:
 
@@ -908,7 +908,7 @@ At the end of G5-P3, G5 had one bounded second Case plus two independently prove
 
 ## G5-P4 — objective-bearing placement admission
 
-The third independent outer-axis test changes only authored Genesis placement. `scripts/eval-station-zero-v3-placement-axis.ts` relocates civilians or the Research Core in a cloned `fixed-genesis` state, synchronizes existing bounded Actor last-known location where that Actor was already known, validates the mutated World, then reuses the canonical Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. Topology, Objectives, rules, loadouts, and production Scenario Cases remain unchanged.
+The third independent outer-axis test changes only authored Genesis placement. `experiments/station-zero-v3/scripts/eval-station-zero-v3-placement-axis.ts` relocates civilians or the Research Core in a cloned `fixed-genesis` state, synchronizes existing bounded Actor last-known location where that Actor was already known, validates the mutated World, then reuses the canonical Candidate, fixture-Provider, Plan, commitment, and deterministic reducer path. Topology, Objectives, rules, loadouts, and production Scenario Cases remain unchanged.
 
 The matrix uses 18 Rescue strategy profiles across baseline plus six placement treatments, for 126 full deterministic Runs. A treatment passes the research-axis gate only when:
 

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { sha256 } from "../tools/canonical-digest.ts";
+import { sha256 } from "../../../tools/canonical-digest.ts";
 import {
   applyStationZeroV3Turn,
   assertStationZeroV3World,
@@ -18,7 +18,7 @@ import {
   type StationZeroV3PlanPreview,
   type StationZeroV3ResponsibilityFeedback,
   type StationZeroV3WorldState,
-} from "../experiments/station-zero-v3/src/index.ts";
+} from "../src/index.ts";
 
 const OBJECTIVES: StationZeroV3CommanderOrder["primaryObjectiveId"][] = [
   "rescue-two-civilians",

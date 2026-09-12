@@ -13,7 +13,7 @@ import {
   type StationZeroV3PlanPreview,
   type StationZeroV3PlayView,
   type StationZeroV3WorldState,
-} from "../experiments/station-zero-v3/src/index.ts";
+} from "../src/index.ts";
 
 interface EvaluationProfile {
   profileId: string;

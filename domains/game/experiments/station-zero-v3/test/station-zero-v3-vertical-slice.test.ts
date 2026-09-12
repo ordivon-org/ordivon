@@ -76,5 +76,5 @@ test("G4 calibration owns focused lifecycle announcements and responsive reading
   assert.match(app, /mobileReadingOrder\.matches/);
   assert.match(app, /Plan ready for Turn/);
   assert.match(app, /Review Aftermath and mission-front changes/);
-  assert.equal(pkg.scripts["eval:v3:g4"], "node scripts/eval-station-zero-v3-g4-calibration.ts");
+  assert.equal(pkg.scripts["eval:v3:g4"], "node experiments/station-zero-v3/scripts/eval-station-zero-v3-g4-calibration.ts");
 });

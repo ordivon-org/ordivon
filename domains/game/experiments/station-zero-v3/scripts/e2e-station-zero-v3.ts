@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { chromium } from "playwright";
-import { resolveChromiumExecutable } from "./browser-equipment.ts";
+import { resolveChromiumExecutable } from "../../../tools/browser-equipment.ts";
 
-import { createResearchPreviewServer } from "../experiments/research-preview/server.ts";
+import { createResearchPreviewServer } from "../../research-preview/server.ts";
 
 
 async function listen(game: ReturnType<typeof createResearchPreviewServer>): Promise<string> {
@@ -16,7 +16,7 @@ async function listen(game: ReturnType<typeof createResearchPreviewServer>): Pro
   return `http://127.0.0.1:${address.port}`;
 }
 
-process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR ?? "/tmp";
+if (process.env.ORDIVON_BROWSER_TMPDIR) process.env.TMPDIR = process.env.ORDIVON_BROWSER_TMPDIR;
 
 const directory = mkdtempSync(join(tmpdir(), "ordivon-game-v3-e2e-"));
 const game = createResearchPreviewServer({

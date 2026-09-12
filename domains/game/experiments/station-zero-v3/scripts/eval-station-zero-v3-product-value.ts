@@ -11,7 +11,7 @@ import {
   type StationZeroV3CommanderOrderPatch,
   type StationZeroV3PlanPreview,
   type StationZeroV3WorldState,
-} from "../experiments/station-zero-v3/src/index.ts";
+} from "../src/index.ts";
 
 type PrimaryObjective = StationZeroV3CommanderOrder["primaryObjectiveId"];
 
@@ -547,7 +547,7 @@ function parseProductValueSelection(): ProductValueSelection {
   for (let index = 0; index < args.length; index += 1) {
     const token = args[index]!;
     if (token === "--help" || token === "-h") {
-      console.log(`Usage: node scripts/eval-station-zero-v3-product-value.ts [--lane LANE ...] [one lane-scoped selector per dimension]
+      console.log(`Usage: node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts [--lane LANE ...] [one lane-scoped selector per dimension]
 
 Lanes: ${PRODUCT_VALUE_LANES.join(", ")}
 Information selector: --objective ${PRODUCT_VALUE_OBJECTIVES.join(" | ")}
