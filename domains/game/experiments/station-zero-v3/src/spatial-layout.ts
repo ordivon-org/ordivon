@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { sha256 } from "../../../src/digest.ts";
+import { sha256 } from "../../../tools/canonical-digest.ts";
 import type { StationZeroV3WorldState } from "./model.ts";
 
 export interface StationZeroV3SpatialPoint {

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
 import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 

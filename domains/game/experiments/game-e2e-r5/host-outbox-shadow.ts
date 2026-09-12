@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import { canonicalJson, sha256 } from "../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../tools/canonical-digest.ts";
 
 export interface ShadowOutboxEvent {
   outboxId: string;

@@ -1,4 +1,4 @@
-import { sha256 } from "../../../../src/digest.ts";
+import { sha256 } from "../../../../tools/canonical-digest.ts";
 import type { DeploymentManifest } from "../deployment/model.ts";
 import { createGameEvidencePort } from "../integration/game-evidence.ts";
 import { DeploymentStore } from "../deployment/store.ts";

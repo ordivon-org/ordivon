@@ -1,4 +1,4 @@
-import { sha256 } from "../../../../src/digest.ts";
+import { sha256 } from "../../../../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import type {
   ActorProfile,

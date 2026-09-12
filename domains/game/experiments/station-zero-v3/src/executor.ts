@@ -1,4 +1,4 @@
-import { canonicalJson } from "../../../src/digest.ts";
+import { canonicalJson } from "../../../tools/canonical-digest.ts";
 import type {
   StationZeroV3ExecutorObservation,
   StationZeroV3PreparedTurn,

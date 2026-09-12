@@ -9,9 +9,9 @@ import { buildRunEvidenceGraph } from "../products/station-zero-v2/src/replay/ev
 import { buildReplayProjection } from "../products/station-zero-v2/src/replay/projection.ts";
 import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
-async function run(caseId:string,strategy:"security-contain"|"engineer-seal",store=new GameStore(":memory:")){const runId=`run:diagnosis:${caseId}:${strategy}`;store.createRun({runId,scenarioVersion:2,scenarioCaseId:caseId,rulesetVersion:3});const host=new TeamHost(store,new FixtureTeamProvider({breachStrategy:strategy}));await host.run(runId,512);return{store,runId};}
+async function run(caseId:string,strategy:"security-contain"|"engineer-seal",store=new GameStore(":memory:")){const runId=`run:diagnosis:${caseId}:${strategy}`;store.createRun({runId,scenarioVersion:2,scenarioCaseId:caseId,rulesetVersion:3});const host=new StationZeroTeamCoordinator(store,new FixtureTeamProvider({breachStrategy:strategy}));await host.run(runId,512);return{store,runId};}
 async function listen(game:ReturnType<typeof createGameServer>){await new Promise<void>(resolve=>game.server.listen(0,"127.0.0.1",resolve));const address=game.server.address();if(!address||typeof address==="string")throw new Error("no address");return`http://127.0.0.1:${address.port}`;}
 test("running mission diagnosis never invents a terminal failure",()=>{const store=new GameStore(":memory:");try{const diagnosis=diagnoseRun(store);assert.equal(diagnosis.terminal.status,"running");assert.equal(diagnosis.claims.some(c=>c.evidenceClass==="VERIFIED_DIRECT"),false);assert.ok(diagnosis.claims.some(claim=>/Mission remains active/.test(claim.title)));}finally{store.close();}});
 
@@ -73,7 +73,7 @@ test("synthetic retained projections cover timeout and incapable item-holder con
       scenarioCaseId: "baseline",
       rulesetVersion: 3,
     });
-    new TeamHost(store, new FixtureTeamProvider()).initialize(runId);
+    new StationZeroTeamCoordinator(store, new FixtureTeamProvider()).initialize(runId);
     const projection = buildReplayProjection(store, runId);
     const terminal = projection.frames.at(-1)!;
     terminal.state.mission.status = "failure";

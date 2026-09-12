@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canonicalJson } from "../src/digest.ts";
+import { canonicalJson } from "../tools/canonical-digest.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
 
@@ -11,7 +11,7 @@ async function setup(runId: string) {
   const game = new GameStore(":memory:");
   game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
   game.setActiveRun(runId);
-  const host = new TeamHost(game, new FixtureTeamProvider());
+  const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
   await host.step(runId);
   await host.step(runId);
   await host.step(runId);
@@ -139,7 +139,7 @@ test("a stale completed writer cannot override a blocked Round head", async () =
   const runId = "run:team-execution-authority-race";
   try {
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
-    const host = new TeamHost(game, new FixtureTeamProvider());
+    const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     let round = null as ReturnType<typeof host.execution.listRounds>[number] | null;
     for (let index = 0; index < 12; index += 1) {
       await host.step(runId);
@@ -175,7 +175,7 @@ test("a retained completed Round needs no duplicate authority completion", async
   const runId = "run:team-execution-authority-recovery";
   try {
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
-    const host = new TeamHost(game, new FixtureTeamProvider());
+    const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     let round = null as ReturnType<typeof host.execution.listRounds>[number] | null;
     for (let index = 0; index < 12; index += 1) {
       await host.step(runId);

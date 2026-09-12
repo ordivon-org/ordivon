@@ -2,8 +2,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { CURRENT_BUILD } from "../../../src/build.ts";
-import { canonicalJson, sha256 } from "../../../src/digest.ts";
+import { STATION_ZERO_V3_BUILD } from "./build.ts";
+import { canonicalJson, sha256 } from "../../../tools/canonical-digest.ts";
 import { assertStationZeroTurnBatch, assertStationZeroFactionTurnPlan } from "./contracts.ts";
 import { STATION_ZERO_V3_SCENARIO_CASES } from "./content.ts";
 import { createStationZeroV3Genesis, assertStationZeroV3World } from "./genesis.ts";
@@ -298,7 +298,7 @@ export class StationZeroV3Store {
 
   constructor(dbPath: string, options: StationZeroV3StoreOptions = {}) {
     this.dbPath = dbPath;
-    this.createdWithBuild = options.createdWithBuild ?? CURRENT_BUILD;
+    this.createdWithBuild = options.createdWithBuild ?? STATION_ZERO_V3_BUILD;
     this.faultInjector = options.faultInjector;
     if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new DatabaseSync(dbPath);

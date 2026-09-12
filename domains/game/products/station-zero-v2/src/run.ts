@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { MissionStatus, WorldState } from "./model.ts";
-import { CURRENT_BUILD } from "../../../src/build.ts";
+import { CURRENT_BUILD } from "./build.ts";
 
 export const DEFAULT_RUN_ID = "run:default";
 

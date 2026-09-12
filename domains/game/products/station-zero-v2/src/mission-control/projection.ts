@@ -1,4 +1,4 @@
-import { sha256 } from "../../../../src/digest.ts";
+import { sha256 } from "../../../../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand, WorldFact, WorldState } from "../model.ts";
 import { scoreMission } from "../scoring.ts";
 import type { GameStore } from "../storage.ts";

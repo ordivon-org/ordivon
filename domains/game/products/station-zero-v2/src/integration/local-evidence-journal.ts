@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { gunzipSync, gzipSync } from "node:zlib";
 
-import { canonicalJson, sha256 } from "../../../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 
 
 export interface LocalEvidenceArtifact<T = unknown> {

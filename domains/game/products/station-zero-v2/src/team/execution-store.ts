@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-import { canonicalJson, sha256 } from "../../../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 import type { GameStore } from "../storage.ts";
 import { DerivedTeamCommitmentView } from "./commitment-view.ts";
 import type {

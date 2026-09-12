@@ -7,7 +7,7 @@ import {
   STATION_ZERO_COORDINATION_POLICY_ID,
   STATION_ZERO_SPECIALIST_LIMIT,
 } from "../products/station-zero-v2/src/team/coordination-policy.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { teamCognitionStarted } from "../products/station-zero-v2/src/team/execution-store.ts";
 import type { ActionProposal } from "../products/station-zero-v2/src/team/model.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
@@ -17,7 +17,7 @@ async function proposalFixture() {
   const game = new GameStore(":memory:");
   const runId = "run:coordination-policy";
   game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
-  const host = new TeamHost(game, new FixtureTeamProvider());
+  const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
   for (let index = 0; index < 3; index += 1) await host.step(runId);
   const round = host.execution.listRounds(runId).at(-1);
   assert.ok(round);
@@ -98,7 +98,7 @@ test("Team cognition detection is owner-local and begins with the first retained
   try {
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
     assert.equal(teamCognitionStarted(game, runId), false);
-    const host = new TeamHost(game, new FixtureTeamProvider());
+    const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     host.initialize(runId);
     assert.equal(teamCognitionStarted(game, runId), false);
     await host.step(runId);

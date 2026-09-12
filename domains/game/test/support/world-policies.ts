@@ -1,4 +1,4 @@
-import { sha256 } from "../../src/digest.ts";
+import { sha256 } from "../../tools/canonical-digest.ts";
 import type { AvailableAction, WorldEvent, WorldState } from "../../products/station-zero-v2/src/model.ts";
 import { ENGINEER_ID, initialTeamWorld, isOperational, POWER_JUNCTION_ID } from "../../products/station-zero-v2/src/scenario.ts";
 import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "../../products/station-zero-v2/src/world.ts";

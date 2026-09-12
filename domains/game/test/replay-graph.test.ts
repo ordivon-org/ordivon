@@ -9,7 +9,7 @@ import { assertEvidenceLinkIntegrity, buildRunEvidenceGraph, ReplayEvidenceError
 import { MAX_REPLAY_FRAME_BYTES, replayFrame, replayFramesPage, replaySummary } from "../products/station-zero-v2/src/replay/frames.ts";
 import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 async function finish(strategy: "security-contain" | "engineer-seal", store = new GameStore(":memory:")) {
@@ -83,7 +83,7 @@ test("fresh Replay reads a Dispatch-prepared Round before the World advances", a
   try {
     const service = new MissionControlService(store, () => new FixtureTeamProvider());
     service.initialize({ runId, scenarioCaseId: "baseline" });
-    const host = new TeamHost(store, new FixtureTeamProvider());
+    const host = new StationZeroTeamCoordinator(store, new FixtureTeamProvider());
     const statuses: string[] = [];
     for (let index = 0; index < 5; index += 1) statuses.push((await host.step(runId)).status);
     assert.deepEqual(statuses, ["initialized", "contexts_prepared", "proposals_recorded", "tick_plan_prepared", "dispatch_prepared"]);

@@ -1,4 +1,4 @@
-import { sha256 } from "../../../../src/digest.ts";
+import { sha256 } from "../../../../tools/canonical-digest.ts";
 import type { GameStore } from "../storage.ts";
 import { actorCanClaimMissionItem } from "../team/context.ts";
 import { TEAM_OBJECTIVE_GRAPH, objectiveSatisfied } from "../team/objectives.ts";

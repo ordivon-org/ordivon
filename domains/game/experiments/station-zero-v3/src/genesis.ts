@@ -1,4 +1,4 @@
-import { sha256 } from "../../../src/digest.ts";
+import { sha256 } from "../../../tools/canonical-digest.ts";
 import {
   STATION_ZERO_V3_COMMANDER_ABILITIES,
   STATION_ZERO_V3_EQUIPMENT,

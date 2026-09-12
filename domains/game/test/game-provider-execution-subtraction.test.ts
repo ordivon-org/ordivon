@@ -16,7 +16,7 @@ test("Game no longer owns generic Provider process, preflight, CLI transport, or
   const service = readFileSync("products/station-zero-v2/src/mission-control/service.ts", "utf8");
   const team = [
     readFileSync("products/station-zero-v2/src/team/providers.ts", "utf8"),
-    readFileSync("products/station-zero-v2/src/team/engine.ts", "utf8"),
+    readFileSync("products/station-zero-v2/src/team/coordinator.ts", "utf8"),
   ].join("\n");
   for (const source of [server, service, team]) {
     assert.doesNotMatch(source, /node:child_process|\/usr\/bin\/codex|\/root\/\.local\/bin\/hermes|\.hermes\/\.env|TeamProviderChain|providerPreflight/);

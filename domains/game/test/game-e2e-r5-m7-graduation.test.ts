@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
 
@@ -19,7 +19,7 @@ async function observedTeam(runId: string) {
   const game = new GameStore(":memory:");
   game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
   game.setActiveRun(runId);
-  const host = new TeamHost(game, new FixtureTeamProvider());
+  const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
   let round: ReturnType<typeof host.execution.listRounds>[number] | undefined;
   for (let i = 0; i < 14; i += 1) {
     await host.step(runId);

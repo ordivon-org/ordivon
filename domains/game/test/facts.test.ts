@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import type { WorldCommand, WorldFact } from "../products/station-zero-v2/src/model.ts";
 import { communicationsFirstPolicy, recoveryPolicy } from "./support/world-policies.ts";
 import { resolveRuleset } from "../products/station-zero-v2/src/registry.ts";

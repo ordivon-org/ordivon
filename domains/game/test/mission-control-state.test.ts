@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { MissionControlService, type MissionProviderFactory } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 import { MEDIC_ID, SECURITY_ID } from "../products/station-zero-v2/src/scenario.ts";
 
@@ -21,7 +21,7 @@ function fixture(runId: string) {
   return { directory, dbPath, game };
 }
 
-function setControl(host: TeamHost, actorId: string, mode: "active" | "paused" | "cancelled") {
+function setControl(host: StationZeroTeamCoordinator, actorId: string, mode: "active" | "paused" | "cancelled") {
   const task = host.team.listTasks().find((candidate) => candidate.actorId === actorId);
   assert.ok(task);
   const tick = host.game.loadState().turn;
@@ -34,7 +34,7 @@ function setControl(host: TeamHost, actorId: string, mode: "active" | "paused" |
   }, `team.task-test-${mode}`);
 }
 
-test("paused and cancelled Actors remain outside TeamHost eligibility until explicit resume", async () => {
+test("paused and cancelled Actors remain outside StationZeroTeamCoordinator eligibility until explicit resume", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-m4-control-"));
   const dbPath = join(directory, "world.sqlite3");
   const game = new GameStore(dbPath);
@@ -42,7 +42,7 @@ test("paused and cancelled Actors remain outside TeamHost eligibility until expl
     const runId = "run:m4-control";
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
     game.setActiveRun(runId);
-    const host = new TeamHost(game, new FixtureTeamProvider());
+    const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     host.initialize(runId);
 
     setControl(host, MEDIC_ID, "paused");
@@ -73,7 +73,7 @@ test("rejected Proposals are excluded from legal subset selection", async () => 
     const runId = "run:m4-deny";
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
     game.setActiveRun(runId);
-    const host = new TeamHost(game, new FixtureTeamProvider(), { policyMode: "supervised" });
+    const host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider(), { policyMode: "supervised" });
     const blocked = await host.run(runId, 128);
     assert.equal(blocked.steps.at(-1)?.status, "authority_required");
     const round = blocked.rounds.at(-1)!;
@@ -125,7 +125,7 @@ test("Mission Control approval provenance is derived from the local player ingre
     const grant = service.command(runId, injected) as { grantId: string; issuedBy: string };
     assert.equal(grant.issuedBy, "player:mission-control");
 
-    const team = new TeamHost(game, new FixtureTeamProvider()).team;
+    const team = new StationZeroTeamCoordinator(game, new FixtureTeamProvider()).team;
     const persisted = team.listAuthorityGrants(runId).find((entry) => entry.grantId === grant.grantId);
     assert.equal(persisted?.issuedBy, "player:mission-control");
 
@@ -146,7 +146,7 @@ test("Team authority and per-Actor Provider configuration survive a fresh proces
   try {
     game.createRun({ runId, scenarioVersion: 2, rulesetVersion: 3 });
     game.setActiveRun(runId);
-    let host = new TeamHost(game, new FixtureTeamProvider());
+    let host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     host.initialize(runId);
     const medic = host.team.listTasks(runId).find((task) => task.actorId === MEDIC_ID)!;
     host.team.transitionTask(medic.taskId, { providerOrder: ["hermes", "codex"] }, "team.task-provider-updated");
@@ -154,7 +154,7 @@ test("Team authority and per-Actor Provider configuration survive a fresh proces
     game.close();
 
     game = new GameStore(dbPath, { activeRunId: runId });
-    host = new TeamHost(game, new FixtureTeamProvider());
+    host = new StationZeroTeamCoordinator(game, new FixtureTeamProvider());
     assert.equal(host.team.getConfiguration(runId).authorityPolicyMode, "locked");
     assert.deepEqual(host.team.listTasks(runId).find((task) => task.actorId === MEDIC_ID)?.providerOrder, ["hermes", "codex"]);
     host.team.verify(runId);
@@ -179,7 +179,7 @@ test("Provider replacement clears the Provider wait and returns the Actor to the
     assert.ok(failureCard);
     assert.deepEqual(failureCard.commands, [{ action: "resume", actorId: SECURITY_ID }]);
 
-    const team = new TeamHost(game, new FixtureTeamProvider()).team;
+    const team = new StationZeroTeamCoordinator(game, new FixtureTeamProvider()).team;
     const before = team.listTasks(runId).find((task) => task.actorId === SECURITY_ID);
     assert.equal(before?.state, "waiting");
     assert.equal(before?.wait?.kind, "provider");

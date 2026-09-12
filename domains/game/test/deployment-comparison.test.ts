@@ -18,7 +18,7 @@ import {
 } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { createGameServer } from "../products/station-zero-v2/src/server.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator } from "../products/station-zero-v2/src/team/coordinator.ts";
 import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 const factory: MissionProviderFactory = (name, options) => {
@@ -104,7 +104,7 @@ test("Deployment cannot be added after cognition or World execution", async () =
       scenarioCaseId: "baseline",
       rulesetVersion: 3,
     });
-    const team = new TeamHost(store, new FixtureTeamProvider());
+    const team = new StationZeroTeamCoordinator(store, new FixtureTeamProvider());
     await team.run(runId, 8);
     assert.ok(store.loadState(runId).revision > 0);
     assert.throws(
@@ -202,7 +202,7 @@ test("Deployment binding closes at the first retained Team Round before World ex
       scenarioCaseId: "baseline",
       rulesetVersion: 3,
     });
-    const team = new TeamHost(store, new FixtureTeamProvider());
+    const team = new StationZeroTeamCoordinator(store, new FixtureTeamProvider());
     team.initialize(runId);
     const actors = team.team.listTasks(runId)
       .filter((task) => task.actorId)

@@ -103,11 +103,13 @@ The product owns only the semantic contract needed to obtain and validate a cand
 
 Station Zero currently uses `node:sqlite`. SQLite owns database mechanics such as transactions, locking, WAL, constraints, and file persistence. Station Zero owns only its product-level meaning of World revisions, Commands/Events, recovery, exact replay, and atomic product evidence.
 
-Historical `host_*` table or event names may remain only as retained-schema compatibility vocabulary. Their names do not establish a generic Host subsystem or Big Game ownership and are subject to later bounded migration/removal.
+Historical `host_*` table or event names may remain only as retained-schema compatibility vocabulary. Their names do not establish a generic Host subsystem or Big Game ownership. Current retained identifiers include `host_artifacts`, `host_journal`, `host-event:*`, and replay kind `host-contract`; they may be read/written only to preserve the already-retained Station Zero evidence contract. New generic Host modules, `HostStore`, or new Host-owned lifecycle semantics are forbidden. Renaming these durable identifiers requires a versioned, lossless migration with replay/recovery equivalence; cosmetic churn alone is not sufficient reason to migrate retained data.
+
+The active Station Zero coordination implementation is `StationZeroTeamCoordinator` under `products/station-zero-v2/src/team/coordinator.ts`. It is a three-specialist product component, not a reusable Team/Host framework.
 
 ## HTTP carrier
 
-Station Zero v2 product code and its default HTTP/browser carrier are enclosed under `products/station-zero-v2/`. Retained research apparatus is enclosed under `experiments/`, with `experiments/research-preview/server.ts` available only as an explicit local research/E2E preview harness. Big Game owns no shared application server.
+Station Zero v2 product code and its default HTTP/browser carrier are enclosed under `products/station-zero-v2/`. Retained research apparatus is enclosed under `experiments/`, with `experiments/research-preview/server.ts` available only as an explicit local research/E2E preview harness. Big Game owns no shared application server and has no root runtime source tree. Repository-mechanical hashing lives under `tools/`; product build identity stays with the product.
 
 ## Verification
 

@@ -1,4 +1,4 @@
-import { canonicalJson, sha256 } from "../../../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 import type { ItemId, PrimitiveWorldCommand, WorldFact, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
 import { listAvailableActions, materializeAction } from "../world.ts";

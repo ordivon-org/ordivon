@@ -1,4 +1,4 @@
-import { canonicalJson, sha256 } from "../../../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "./provider-contract.ts";
 import type { GameStore } from "../storage.ts";
@@ -29,7 +29,7 @@ import {
 } from "./providers.ts";
 import { coordinatorTaskId, TeamStore } from "./store.ts";
 
-export type TeamFaultPoint =
+export type StationZeroCoordinationFaultPoint =
   | "after_context_persisted"
   | "after_provider_call"
   | "after_proposal_persisted"
@@ -39,14 +39,14 @@ export type TeamFaultPoint =
   | "after_observation_persisted"
   | "before_task_advance";
 
-export interface TeamHostOptions {
+export interface StationZeroTeamCoordinatorOptions {
   policyMode?: AuthorityPolicyMode;
-  faultInjector?: (point: TeamFaultPoint) => void;
+  faultInjector?: (point: StationZeroCoordinationFaultPoint) => void;
   ownerId?: string;
   tokenBudget?: number;
 }
 
-export interface TeamHostStepReceipt {
+export interface StationZeroCoordinationStepReceipt {
   runId: string;
   roundId: string | null;
   status:
@@ -73,9 +73,9 @@ export interface TeamHostStepReceipt {
   detail: string;
 }
 
-export interface TeamHostRunReceipt {
+export interface StationZeroCoordinationRunReceipt {
   runId: string;
-  steps: TeamHostStepReceipt[];
+  steps: StationZeroCoordinationStepReceipt[];
   projection: TeamProjection;
   rounds: TeamRound[];
   worldRevision: number;
@@ -115,27 +115,27 @@ function resourceClaims(command: PrimitiveWorldCommand, state: WorldState): Reso
 }
 
 
-export class TeamHost {
+export class StationZeroTeamCoordinator {
   readonly game: GameStore;
   readonly team: TeamStore;
   readonly execution: TeamExecutionStore;
   readonly policyMode: AuthorityPolicyMode;
   readonly ownerId: string;
   readonly tokenBudget: number;
-  readonly faultInjector: ((point: TeamFaultPoint) => void) | undefined;
+  readonly faultInjector: ((point: StationZeroCoordinationFaultPoint) => void) | undefined;
   private readonly providers: TeamDecisionProvider | Record<string, TeamDecisionProvider>;
 
   constructor(
     game: GameStore,
     providers: TeamDecisionProvider | Record<string, TeamDecisionProvider>,
-    options: TeamHostOptions = {},
+    options: StationZeroTeamCoordinatorOptions = {},
   ) {
     this.game = game;
     this.team = new TeamStore(game);
     this.execution = new TeamExecutionStore(this.team);
     this.providers = providers;
     this.policyMode = options.policyMode ?? "autonomous";
-    this.ownerId = options.ownerId ?? `team-host:${process.pid}`;
+    this.ownerId = options.ownerId ?? `station-zero-coordinator:${process.pid}`;
     this.tokenBudget = options.tokenBudget ?? 4_000;
     this.faultInjector = options.faultInjector;
   }
@@ -157,16 +157,16 @@ export class TeamHost {
     return provider;
   }
 
-  private inject(point: TeamFaultPoint): void {
+  private inject(point: StationZeroCoordinationFaultPoint): void {
     this.faultInjector?.(point);
   }
 
   private receipt(
     runId: string,
-    status: TeamHostStepReceipt["status"],
+    status: StationZeroCoordinationStepReceipt["status"],
     detail: string,
     round: TeamRound | null = null,
-  ): TeamHostStepReceipt {
+  ): StationZeroCoordinationStepReceipt {
     const state = this.game.loadState(runId);
     const proposals = round ? this.execution.listProposals(round.roundId) : [];
     return {
@@ -186,7 +186,7 @@ export class TeamHost {
     };
   }
 
-  async step(runId = this.game.activeRunId): Promise<TeamHostStepReceipt> {
+  async step(runId = this.game.activeRunId): Promise<StationZeroCoordinationStepReceipt> {
     const projection = this.team.isInitialized(runId) ? this.team.projection(runId) : this.initialize(runId);
     const state = this.game.loadState(runId);
     if (state.revision > 0) {
@@ -253,9 +253,9 @@ export class TeamHost {
     return this.receipt(runId, "stable", "Team Round already completed", round);
   }
 
-  async run(runId = this.game.activeRunId, maximumSteps = 256): Promise<TeamHostRunReceipt> {
+  async run(runId = this.game.activeRunId, maximumSteps = 256): Promise<StationZeroCoordinationRunReceipt> {
     if (!Number.isSafeInteger(maximumSteps) || maximumSteps < 1) throw new TypeError("maximumSteps must be positive");
-    const steps: TeamHostStepReceipt[] = [];
+    const steps: StationZeroCoordinationStepReceipt[] = [];
     for (let index = 0; index < maximumSteps; index += 1) {
       const receipt = await this.step(runId);
       steps.push(receipt);
@@ -275,7 +275,7 @@ export class TeamHost {
     };
   }
 
-  private prepareContexts(runId: string, round: TeamRound, profiles: ActorProfile[]): TeamHostStepReceipt {
+  private prepareContexts(runId: string, round: TeamRound, profiles: ActorProfile[]): StationZeroCoordinationStepReceipt {
     const state = this.game.loadState(runId);
     const messages = this.team.refreshMessages(runId);
     const contextIds = this.execution.listContexts(round.roundId).map((reference) => reference.contextId);
@@ -340,7 +340,7 @@ export class TeamHost {
     round: TeamRound,
     profiles: ActorProfile[],
     contexts: TeamContextReference[],
-  ): Promise<TeamHostStepReceipt> {
+  ): Promise<StationZeroCoordinationStepReceipt> {
     const stateBefore = this.game.loadState(runId);
     const retainedProposals = this.execution.listProposals(round.roundId);
     const resolved = new Set([...round.resolvedActorIds, ...retainedProposals.map((proposal) => proposal.actorId)]);
@@ -477,7 +477,7 @@ export class TeamHost {
     ) ?? null;
   }
 
-  private prepareTickPlan(runId: string, round: TeamRound, proposals: ActionProposal[]): TeamHostStepReceipt {
+  private prepareTickPlan(runId: string, round: TeamRound, proposals: ActionProposal[]): StationZeroCoordinationStepReceipt {
     const state = this.game.loadState(runId);
     const grants = this.team.listAuthorityGrants(runId);
     const candidates = proposals
@@ -541,7 +541,7 @@ export class TeamHost {
     return this.receipt(runId, "tick_plan_prepared", `Selected ${selected.length} compatible Proposals`, updated);
   }
 
-  private prepareDispatch(runId: string, round: TeamRound): TeamHostStepReceipt {
+  private prepareDispatch(runId: string, round: TeamRound): StationZeroCoordinationStepReceipt {
     if (!round.tickPlanId) throw new Error("Team Round has no TickPlan");
     const plan = this.execution.getTickPlan(round.tickPlanId);
     const createdAt = now();
@@ -577,7 +577,7 @@ export class TeamHost {
     return this.receipt(runId, "dispatch_prepared", `Prepared ${dispatch.dispatchId}`, updated);
   }
 
-  private executeAndObserve(runId: string, round: TeamRound): TeamHostStepReceipt {
+  private executeAndObserve(runId: string, round: TeamRound): StationZeroCoordinationStepReceipt {
     if (!round.tickPlanId || !round.effectId || !round.dispatchId) throw new Error("Team Round is not dispatchable");
     const plan = this.execution.getTickPlan(round.tickPlanId);
     let effect = this.execution.getEffect(round.effectId);
@@ -641,7 +641,7 @@ export class TeamHost {
     });
   }
 
-  private verifyRound(runId: string, round: TeamRound): TeamHostStepReceipt {
+  private verifyRound(runId: string, round: TeamRound): StationZeroCoordinationStepReceipt {
     const observation = this.execution.findObservationForRound(round.roundId);
     if (!observation || !observation.verificationSuccess) {
       const blocked = this.execution.saveRound(round, { ...round, status: "blocked", blocker: "verification_failed", updatedAt: now() }, "team.round-blocked");

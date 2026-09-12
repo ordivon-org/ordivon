@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { recoveryPolicy } from "./support/world-policies.ts";
 import { createGameServer } from "../products/station-zero-v2/src/server.ts";

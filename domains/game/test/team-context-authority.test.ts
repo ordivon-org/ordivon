@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import { evaluateAuthority } from "../products/station-zero-v2/src/team/authority.ts";

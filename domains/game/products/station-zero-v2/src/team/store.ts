@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-import { canonicalJson, sha256 } from "../../../../src/digest.ts";
+import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 import { createGameEvidencePort, type GameEvidencePort } from "../integration/game-evidence.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../scenario.ts";

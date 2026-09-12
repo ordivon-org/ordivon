@@ -34,7 +34,10 @@ function files(root: string): string[] {
 
 test("Big Game does not own Station Zero v2 runtime implementation", () => {
   assert.equal(existsSync("products/station-zero-v2/src/world.ts"), true);
-  assert.equal(existsSync("products/station-zero-v2/src/team/engine.ts"), true);
+  assert.equal(existsSync("products/station-zero-v2/src/team/coordinator.ts"), true);
+  const coordinator = readFileSync("products/station-zero-v2/src/team/coordinator.ts", "utf8");
+  assert.match(coordinator, /class StationZeroTeamCoordinator/);
+  assert.doesNotMatch(coordinator, /class TeamHost/);
   for (const path of RETIRED_BIG_GAME_PRODUCT_PATHS) {
     assert.equal(existsSync(path), false, `${path} must not return to Big Game root ownership`);
   }
@@ -54,6 +57,14 @@ test("research apparatus is enclosed under experiments and does not depend on St
     .filter((path) => /\.(?:ts|js)$/.test(path))
     .filter((path) => readFileSync(path, "utf8").includes("products/station-zero-v2"));
   assert.deepEqual(offenders, []);
+});
+
+test("Big Game has no root runtime utility ownership", () => {
+  assert.equal(existsSync("src/build.ts"), false);
+  assert.equal(existsSync("src/digest.ts"), false);
+  assert.equal(existsSync("tools/canonical-digest.ts"), true);
+  assert.equal(existsSync("products/station-zero-v2/src/build.ts"), true);
+  assert.equal(existsSync("experiments/station-zero-v3/src/build.ts"), true);
 });
 
 test("Big Game has no shared application server", () => {

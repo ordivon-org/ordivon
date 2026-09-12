@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-import { canonicalJson, sha256 } from "../src/digest.ts";
+import { canonicalJson, sha256 } from "../tools/canonical-digest.ts";
 import { createMissionControlCatalog } from "../products/station-zero-v2/src/mission-control/catalog.ts";
 import { missionControlEncodedSize } from "../products/station-zero-v2/src/mission-control/projection.ts";
 import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";

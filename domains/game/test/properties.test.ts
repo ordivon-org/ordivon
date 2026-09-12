@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import fc, { type Command } from "fast-check";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import type { WorldState } from "../products/station-zero-v2/src/model.ts";
 import { resolveRuleset } from "../products/station-zero-v2/src/registry.ts";
 import { assertWorldInvariants, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";

@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand } from "../products/station-zero-v2/src/model.ts";
 import { ProviderAdapterError } from "../products/station-zero-v2/src/team/provider-contract.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../products/station-zero-v2/src/scenario.ts";
 import { GameStore } from "../products/station-zero-v2/src/storage.ts";
-import { TeamHost, type TeamFaultPoint } from "../products/station-zero-v2/src/team/engine.ts";
+import { StationZeroTeamCoordinator, type StationZeroCoordinationFaultPoint } from "../products/station-zero-v2/src/team/coordinator.ts";
 import type { CompiledTeamContext, TeamProviderDecision } from "../products/station-zero-v2/src/team/model.ts";
 import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
 import { TeamStore } from "../products/station-zero-v2/src/team/store.ts";
@@ -133,7 +133,7 @@ test("communication reachability changes the deterministic Team outcome", async 
   const execute = async (channel: "local" | "station-radio") => {
     const runId = `run:team-communication:${channel}`;
     const { directory, game } = fixture(runId);
-    const host = new TeamHost(game, new MessageAwareContainmentProvider());
+    const host = new StationZeroTeamCoordinator(game, new MessageAwareContainmentProvider());
     host.initialize(runId);
     const message = host.team.sendMessage({
       senderActorId: ENGINEER_ID,
@@ -173,7 +173,7 @@ test("communication reachability changes the deterministic Team outcome", async 
   }
 });
 
-const faultPoints: TeamFaultPoint[] = ["after_world_apply"];
+const faultPoints: StationZeroCoordinationFaultPoint[] = ["after_world_apply"];
 
 test("a committed World Tick recovers without duplicate effects after interruption", async () => {
   for (const point of faultPoints) {
@@ -182,7 +182,7 @@ test("a committed World Tick recovers without duplicate effects after interrupti
     const provider = new CountingTeamProvider();
     let injected = false;
     try {
-      const crashing = new TeamHost(game, provider, {
+      const crashing = new StationZeroTeamCoordinator(game, provider, {
         faultInjector(current) {
           if (!injected && current === point) {
             injected = true;
@@ -199,7 +199,7 @@ test("a committed World Tick recovers without duplicate effects after interrupti
 
       const reopened = new GameStore(path, { activeRunId: runId });
       try {
-        const fresh = new TeamHost(reopened, provider);
+        const fresh = new StationZeroTeamCoordinator(reopened, provider);
         const result = await fresh.run(runId, 256);
         assert.equal(reopened.loadState(runId).mission.status, "victory", point);
         assert.equal(reopened.eventCount(runId), 18, point);
@@ -223,7 +223,7 @@ test("one failed specialist does not block unrelated Actor progress", async () =
   const { directory, game } = fixture("run:team-provider-failure");
   try {
     const provider = new CountingTeamProvider({ failActors: [SECURITY_ID] });
-    const host = new TeamHost(game, provider);
+    const host = new StationZeroTeamCoordinator(game, provider);
     const result = await host.run(game.activeRunId, 15);
     assert.ok(game.loadState().revision >= 2);
     const securityTask = result.projection.tasks.find((task) => task.actorId === SECURITY_ID);
@@ -250,7 +250,7 @@ test("conflicting seal and containment Proposals select one legal hazard action 
       [MEDIC_ID]: "wait",
       [SECURITY_ID]: "contain:maintenance-breach",
     });
-    const host = new TeamHost(game, provider);
+    const host = new StationZeroTeamCoordinator(game, provider);
     const result = await host.run(game.activeRunId, 7);
     assert.equal(game.loadState().revision, 5);
     const round = result.rounds.at(-1);
@@ -278,7 +278,7 @@ test("supervised high-risk Proposals wait for an exact single-use Grant", async 
       [MEDIC_ID]: null,
       [SECURITY_ID]: "contain:maintenance-breach",
     });
-    const host = new TeamHost(game, provider, { policyMode: "supervised" });
+    const host = new StationZeroTeamCoordinator(game, provider, { policyMode: "supervised" });
     const blocked = await host.run(game.activeRunId, 8);
     assert.equal(blocked.steps.at(-1)?.status, "authority_required");
     assert.equal(game.loadState().revision, 4);
@@ -325,7 +325,7 @@ test("world drift during concurrent cognition supersedes all stale Team Decision
         return { providerId: "drifting-team-provider", contextId: context.contextId, selectedActionCandidateId: candidate?.actionCandidateId ?? null, confidence: 1, rationale: "stale on purpose" };
       },
     };
-    const host = new TeamHost(game, drifting);
+    const host = new StationZeroTeamCoordinator(game, drifting);
     assert.equal((await host.step()).status, "initialized");
     assert.equal((await host.step()).status, "contexts_prepared");
     assert.equal((await host.step()).status, "proposals_recorded");
@@ -340,14 +340,14 @@ test("world drift during concurrent cognition supersedes all stale Team Decision
   }
 });
 
-test("TeamHost validates the run step budget and technical Provider failure shape", async () => {
+test("StationZeroTeamCoordinator validates the run step budget and technical Provider failure shape", async () => {
   const { directory, game } = fixture("run:team-budget-provider");
   try {
     const failed: TeamDecisionProvider = {
       providerId: "failed-team-provider",
       async decide() { throw new ProviderAdapterError("unavailable", "offline"); },
     };
-    const host = new TeamHost(game, failed);
+    const host = new StationZeroTeamCoordinator(game, failed);
     await assert.rejects(() => host.run(game.activeRunId, 0), /maximumSteps/);
     const result = await host.run(game.activeRunId, 4);
     assert.equal(result.steps.length, 4);
@@ -367,7 +367,7 @@ test("player Task redirect supersedes a prepared Context before Provider admissi
       [MEDIC_ID]: "move:power-junction",
       [SECURITY_ID]: "move:power-junction",
     });
-    const host = new TeamHost(game, provider);
+    const host = new StationZeroTeamCoordinator(game, provider);
     assert.equal((await host.step()).status, "initialized");
     assert.equal((await host.step()).status, "contexts_prepared");
     const engineerTask = host.team.listTasks().find((task) => task.actorId === ENGINEER_ID)!;

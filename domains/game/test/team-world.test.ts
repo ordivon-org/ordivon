@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { sha256 } from "../src/digest.ts";
+import { sha256 } from "../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand, TickBatch } from "../products/station-zero-v2/src/model.ts";
 import { resolveRuleset, resolveScenario } from "../products/station-zero-v2/src/registry.ts";
 import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, evaluateMission, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";

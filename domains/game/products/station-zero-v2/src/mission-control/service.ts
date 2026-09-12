@@ -4,7 +4,7 @@ import { resolveCoordinationProfile } from "../deployment/profiles.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
 import { authorityTargetId } from "../team/authority.ts";
-import { TeamHost } from "../team/engine.ts";
+import { StationZeroTeamCoordinator } from "../team/coordinator.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
 import type { TeamDecisionProvider } from "../team/providers.ts";
@@ -72,7 +72,7 @@ export class MissionControlService {
     return new TeamStore(this.store);
   }
 
-  private host(runId: string): TeamHost {
+  private coordinator(runId: string): StationZeroTeamCoordinator {
     const team = this.teamStore();
     team.initialize(runId);
     const configuration = team.getConfiguration(runId);
@@ -82,7 +82,7 @@ export class MissionControlService {
     for (const task of team.listTasks(runId).filter((candidate) => candidate.actorId)) {
       providers[task.actorId!] = providerForOrder(task.providerOrder, this.providerFactory, providerOptions);
     }
-    return new TeamHost(this.store, providers, { policyMode: configuration.authorityPolicyMode });
+    return new StationZeroTeamCoordinator(this.store, providers, { policyMode: configuration.authorityPolicyMode });
   }
 
   private withRunAdvance(
@@ -185,10 +185,10 @@ export class MissionControlService {
       return { boundary: "proposal-review", steps: [], committedRevisions: [], stopReason: "proposal-review", view: initial };
     }
     const startRevision = initial.generatedFrom.worldRevision;
-    const host = this.host(runId);
+    const coordinator = this.coordinator(runId);
     const steps: string[] = [];
     for (let index = 0; index < maximumInternalSteps; index += 1) {
-      const receipt = await host.step(runId);
+      const receipt = await coordinator.step(runId);
       steps.push(receipt.status);
       const committedRevisions = receipt.worldRevision > startRevision ? [receipt.worldRevision] : [];
       if (receipt.missionStatus !== "running") {
@@ -239,12 +239,12 @@ export class MissionControlService {
       return { boundary: "intervention", steps: [], committedRevisions: [], stopReason: "pending-intervention", view: initial };
     }
 
-    const host = this.host(runId);
+    const coordinator = this.coordinator(runId);
     const steps: string[] = [];
     const committedRevisions: number[] = [];
     let previousRevision = initial.generatedFrom.worldRevision;
     for (let index = 0; index < maximumInternalSteps; index += 1) {
-      const receipt = await host.step(runId);
+      const receipt = await coordinator.step(runId);
       steps.push(receipt.status);
       if (receipt.worldRevision > previousRevision) {
         committedRevisions.push(receipt.worldRevision);
@@ -293,12 +293,12 @@ export class MissionControlService {
 
   command(runId: string, command: MissionControlCommand): unknown {
     this.assertRunNotAdvancing(runId);
-    const host = this.host(runId);
-    const team = host.team;
+    const coordinator = this.coordinator(runId);
+    const team = coordinator.team;
     const state = this.store.loadState(runId);
     switch (command.action) {
       case "approve": {
-        const proposal = host.execution.getProposal(command.proposalId);
+        const proposal = coordinator.execution.getProposal(command.proposalId);
         if (proposal.runId !== runId || proposal.status !== "proposed" || proposal.authorityOutcome !== "require-human") throw new TeamStoreError("team_conflict", "Proposal is not awaiting human authority");
         const expiresAtTick = command.expiresAtTick ?? state.turn + 2;
         if (!Number.isSafeInteger(expiresAtTick) || expiresAtTick < state.turn) throw new TypeError("expiresAtTick must be a current or future integer Tick");
@@ -319,9 +319,9 @@ export class MissionControlService {
         }, runId);
       }
       case "deny": {
-        const proposal = host.execution.getProposal(command.proposalId);
+        const proposal = coordinator.execution.getProposal(command.proposalId);
         if (proposal.runId !== runId || proposal.status !== "proposed") throw new TeamStoreError("team_conflict", "Proposal is not pending player review");
-        const updated = host.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
+        const updated = coordinator.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
         const task = team.getTask(proposal.actorTaskId);
         team.transitionTask(task.taskId, {
           state: task.control.mode === "paused" ? "waiting" : task.control.mode === "cancelled" ? "cancelled" : "blocked",

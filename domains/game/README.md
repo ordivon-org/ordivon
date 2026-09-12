@@ -279,8 +279,11 @@ products/station-zero-v2/src/
 products/station-zero-v2/web/
     registered Station Zero v2 browser carrier
 
-src/digest.ts, src/build.ts
-    small repository-level mechanical helpers retained temporarily for multiple current carriers; not Big Game framework APIs
+tools/canonical-digest.ts
+    repository-mechanical canonical JSON + SHA-256 helper; not a Big Game runtime API
+
+products/station-zero-v2/src/build.ts
+    Station Zero v2 build/input identity owned by the registered product
 
 products/station-zero-v2/src/server.ts
     registered product HTTP/browser carrier only
