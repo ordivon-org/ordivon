@@ -3,35 +3,168 @@
   "kind": "ordivon.operations.external-stack",
   "principle": "external-first-standards-first",
   "layers": [
-    {"capability":"service_lifecycle","owner":"systemd","status":"present"},
-    {"capability":"container_lifecycle","owner":"podman_quadlet","status":"present"},
-    {"capability":"host_desired_state","owner":"ansible","status":"present"},
-    {"capability":"external_infrastructure_state","owner":"opentofu","status":"installed_unbound"},
-    {"capability":"integration_edge","owner":"n8n","status":"active_rootless_oci_external_runners_runtime_bypass_blocked_temporal_green_vertical_slice_verified"},
-    {"capability":"durable_workflow","owner":"temporal","status":"production_postgresql_cutover_complete_blue_archived_retired"},
-    {"capability":"durable_service_contract","owner":"temporal_nexus","status":"workflow_backed_e2e_verified_experimental_adopt_on_real_demand"},
-    {"capability":"legacy_host_authority","owner":"retired_read_only_archive","status":"host_v1_fully_retired_runtime_removed_dns_revoked_archive_retained"},
-    {"capability":"execution_truth","owner":"ordivon_runtime","status":"retain"},
-    {"capability":"event_envelope","owner":"cloudevents_1_0","status":"contract_baseline_present"},
-    {"capability":"async_contract","owner":"asyncapi_3_0","status":"contract_baseline_present"},
-    {"capability":"sync_http_contract","owner":"openapi","status":"adopt_per_real_api"},
-    {"capability":"reliable_db_event_handoff","owner":"transactional_outbox","status":"pattern_baseline_present"},
-    {"capability":"metrics","owner":"prometheus","status":"active_native_otlp_http_verified"},
-    {"capability":"host_metrics","owner":"node_exporter","status":"active_shared_slice"},
-    {"capability":"black_box_probes","owner":"workstation_gatus","status":"active_runtime_world_external_probes_host_removed"},
-    {"capability":"telemetry_protocol","owner":"opentelemetry","status":"otlp_http_grpc_logs_metrics_verified_traces_deferred"},
-    {"capability":"log_pipeline","owner":"journald_vector_loki","status":"active_buffer_recovery_zero_drop_verified"},
-    {"capability":"visualization","owner":"grafana_official_oci","status":"active_official_oci_prometheus_loki_e2e_verified"},
-    {"capability":"generic_inventory","owner":"osquery","status":"installed_not_cutover"},
-    {"capability":"file_backup","owner":"restic","status":"present"},
-    {"capability":"postgres_backup","owner":"pgbackrest","status":"present"},
-    {"capability":"secrets_at_rest","owner":"sops_age","status":"present_partial"},
-    {"capability":"policy_as_code","owner":"opa","status":"installed_unbound"},
-    {"capability":"security_scanning","owner":"trivy","status":"present"},
-    {"capability":"dependency_updates","owner":"renovate","status":"adopt_later"},
-    {"capability":"load_testing","owner":"k6","status":"adopt_later"},
-    {"capability":"network_fault_injection","owner":"toxiproxy","status":"present"}
+    {
+      "capability": "service_lifecycle",
+      "owner": "systemd",
+      "status": "present"
+    },
+    {
+      "capability": "container_lifecycle",
+      "owner": "podman_quadlet",
+      "status": "present"
+    },
+    {
+      "capability": "host_desired_state",
+      "owner": "ansible",
+      "status": "present"
+    },
+    {
+      "capability": "external_infrastructure_state",
+      "owner": "opentofu",
+      "status": "installed_unbound"
+    },
+    {
+      "capability": "integration_edge",
+      "owner": "n8n",
+      "status": "active_rootless_oci_external_runners_runtime_bypass_blocked_temporal_green_vertical_slice_verified"
+    },
+    {
+      "capability": "durable_workflow",
+      "owner": "temporal",
+      "status": "production_postgresql_cutover_complete_blue_archived_retired"
+    },
+    {
+      "capability": "durable_service_contract",
+      "owner": "temporal_nexus",
+      "status": "workflow_backed_e2e_verified_experimental_adopt_on_real_demand"
+    },
+    {
+      "capability": "legacy_host_authority",
+      "owner": "retired_read_only_archive",
+      "status": "host_v1_fully_retired_runtime_removed_dns_revoked_archive_retained"
+    },
+    {
+      "capability": "execution_truth",
+      "owner": "ordivon_runtime",
+      "status": "retain"
+    },
+    {
+      "capability": "event_envelope",
+      "owner": "cloudevents_1_0",
+      "status": "contract_baseline_present"
+    },
+    {
+      "capability": "async_contract",
+      "owner": "asyncapi_3_0",
+      "status": "contract_baseline_present"
+    },
+    {
+      "capability": "sync_http_contract",
+      "owner": "openapi",
+      "status": "adopt_per_real_api"
+    },
+    {
+      "capability": "reliable_db_event_handoff",
+      "owner": "transactional_outbox",
+      "status": "pattern_baseline_present"
+    },
+    {
+      "capability": "metrics",
+      "owner": "prometheus",
+      "status": "active_native_otlp_http_verified"
+    },
+    {
+      "capability": "host_metrics",
+      "owner": "node_exporter",
+      "status": "active_shared_slice"
+    },
+    {
+      "capability": "black_box_probes",
+      "owner": "workstation_gatus",
+      "status": "active_runtime_world_external_probes_host_removed"
+    },
+    {
+      "capability": "telemetry_protocol",
+      "owner": "opentelemetry",
+      "status": "otlp_http_grpc_logs_metrics_verified_traces_deferred"
+    },
+    {
+      "capability": "log_pipeline",
+      "owner": "journald_vector_loki",
+      "status": "active_buffer_recovery_zero_drop_verified"
+    },
+    {
+      "capability": "visualization",
+      "owner": "grafana_official_oci",
+      "status": "active_official_oci_prometheus_loki_e2e_verified"
+    },
+    {
+      "capability": "generic_inventory",
+      "owner": "osquery",
+      "status": "active_authority"
+    },
+    {
+      "capability": "file_backup",
+      "owner": "restic",
+      "status": "present"
+    },
+    {
+      "capability": "postgres_backup",
+      "owner": "pgbackrest",
+      "status": "present"
+    },
+    {
+      "capability": "secrets_at_rest",
+      "owner": "sops_age",
+      "status": "present_partial"
+    },
+    {
+      "capability": "policy_as_code",
+      "owner": "opa",
+      "status": "installed_unbound"
+    },
+    {
+      "capability": "security_scanning",
+      "owner": "trivy",
+      "status": "present"
+    },
+    {
+      "capability": "dependency_updates",
+      "owner": "renovate",
+      "status": "adopt_later"
+    },
+    {
+      "capability": "load_testing",
+      "owner": "k6",
+      "status": "adopt_later"
+    },
+    {
+      "capability": "network_fault_injection",
+      "owner": "toxiproxy",
+      "status": "present"
+    }
   ],
-  "deferred": ["kafka","nats","dapr","kubernetes","helm","argocd","flux","vault","backstage","mimir","thanos","tempo","chaos_mesh","falco","goalert"],
-  "retainedOrdivonResidual": ["evidence_binding","owner_semantic_verification","cross_e2e_handoff","runtime_execution_truth"]
+  "deferred": [
+    "kafka",
+    "nats",
+    "dapr",
+    "kubernetes",
+    "helm",
+    "argocd",
+    "flux",
+    "vault",
+    "backstage",
+    "mimir",
+    "thanos",
+    "tempo",
+    "chaos_mesh",
+    "falco",
+    "goalert"
+  ],
+  "retainedOrdivonResidual": [
+    "evidence_binding",
+    "owner_semantic_verification",
+    "cross_e2e_handoff",
+    "runtime_execution_truth"
+  ]
 }

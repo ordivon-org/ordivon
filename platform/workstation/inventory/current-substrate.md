@@ -28,7 +28,7 @@ The following mature packages were installed from the configured Arch repositori
 | opentofu | 1.12.6-1 | installed; no infrastructure authority migrated yet |
 | prometheus-node-exporter | 1.12.1-1 | active, loopback `127.0.0.1:29100` |
 | vector | 0.57.0-1 | installed, inactive pending explicit log config |
-| osquery | 5.23.1-1 | installed, inactive pending inventory contract |
+| osquery | 5.23.1-1 | active generic host inventory authority; direct query contract under `inventory/queries/` |
 | open-policy-agent | 1.20.2-1 | installed, no policy authority migrated yet |
 | grafana | 13.2.1-1 | installed, inactive pending auth/provisioning config |
 | loki | 3.6.6-1 | installed, inactive pending durable local config |
