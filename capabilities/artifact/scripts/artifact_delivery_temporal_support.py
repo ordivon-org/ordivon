@@ -8,6 +8,7 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT_PYTHON = Path("/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python")
 DEFAULT_ARTIFACT_CLI = ROOT / "scripts/artifact_delivery.py"
+DEFAULT_ARTIFACT_OCI_CLI = ROOT / "scripts/artifact_oci_package.py"
 
 def sha256_file(path: Path) -> str:
     h=hashlib.sha256()
@@ -78,13 +79,16 @@ def validate_public_trust_material_envelope(value: object) -> dict[str, Any]:
     return value
 
 class ReceiptFencedArtifactExecutor:
-    def __init__(self,state_root:Path,*,artifact_python:Path=DEFAULT_ARTIFACT_PYTHON,artifact_cli:Path=DEFAULT_ARTIFACT_CLI)->None:
-        self.state_root=state_root.resolve(); self.artifact_python=artifact_python.absolute(); self.artifact_cli=artifact_cli.resolve()
+    def __init__(self,state_root:Path,*,artifact_python:Path=DEFAULT_ARTIFACT_PYTHON,artifact_cli:Path=DEFAULT_ARTIFACT_CLI,artifact_oci_cli:Path=DEFAULT_ARTIFACT_OCI_CLI)->None:
+        self.state_root=state_root.resolve(); self.artifact_python=artifact_python.absolute(); self.artifact_cli=artifact_cli.resolve(); self.artifact_oci_cli=artifact_oci_cli.resolve()
         if not self.artifact_python.is_file(): raise RuntimeError(f"Artifact Delivery Python is absent: {self.artifact_python}")
         if not self.artifact_cli.is_file(): raise RuntimeError(f"Artifact Delivery CLI is absent: {self.artifact_cli}")
+        if not self.artifact_oci_cli.is_file(): raise RuntimeError(f"Artifact OCI Package CLI is absent: {self.artifact_oci_cli}")
         (self.state_root/'operations').mkdir(parents=True,exist_ok=True); (self.state_root/'locks').mkdir(parents=True,exist_ok=True)
     def _run_cli(self,args:list[str],*,timeout:int=300)->subprocess.CompletedProcess[str]:
         return subprocess.run([str(self.artifact_python),str(self.artifact_cli),*args],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout,env=dict(os.environ))
+    def _run_oci_cli(self,args:list[str],*,timeout:int=300)->subprocess.CompletedProcess[str]:
+        return subprocess.run([str(self.artifact_python),str(self.artifact_oci_cli),*args],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout,env=dict(os.environ))
     @staticmethod
     def _cli_failure_message(label:str,p:subprocess.CompletedProcess[str],report:Path|None=None)->str:
         details=[]
@@ -205,19 +209,20 @@ class ReceiptFencedArtifactExecutor:
         oid=str(value['operationId']); profile_path=_expected_file(dict(value['profile']),'profile'); artifact_path=_expected_file(dict(value['artifact']),'artifact'); verify_report_path=_expected_file(dict(value['verifyReport']),'verifyReport'); local=bool(value.get('allowLocalUnsignedDevelopment',False)); trust=None if local else self._validate_trust_material(dict(value.get('trustMaterial') or {})); inputs={'profile':file_fact(profile_path),'artifact':file_fact(artifact_path),'verifyReport':file_fact(verify_report_path),'allowLocalUnsignedDevelopment':local}
         if trust is not None: inputs['trustMaterial']=trust['commitment']
         def produce(tmp:Path):
-            pkg=tmp/'package'; out=tmp/'package-stage.json'; args=['package-stage','--profile',str(profile_path),'--primary',str(artifact_path),'--verify-report',str(verify_report_path),'--output-directory',str(pkg),'--output',str(out)]
+            pkg=tmp/'package'; out=tmp/'oci-package-stage.json'; args=['--profile',str(profile_path),'--primary',str(artifact_path),'--verify-report',str(verify_report_path),'--output-directory',str(pkg),'--output',str(out)]
             if local: args.append('--allow-local-unsigned')
             else:
                 assert trust is not None
                 for gate,fact in sorted(trust['bundles'].items()): args += ['--gate-bundle',f"{gate}={fact['path']}"]
                 for gate,sid in sorted(trust['signerIds'].items()): args += ['--gate-signer',f'{gate}={sid}']
                 args += ['--trust-policy',trust['trustPolicy']['path']]
-            p=self._run_cli(args)
-            if p.returncode or not out.is_file(): raise RuntimeError(self._cli_failure_message("package-stage",p,out))
+            p=self._run_oci_cli(args)
+            if p.returncode or not out.is_file(): raise RuntimeError(self._cli_failure_message("oci-package-stage",p,out))
             result=json.loads(out.read_text())
-            if result.get('status')!='PASS': raise RuntimeError(f"package stage did not PASS: {result.get('failures')}")
-            roles={'packageReport':'package-stage.json'}
-            for role,name in [('packageIndex','package-index.json'),('releaseManifest','release-manifest.json')]:
-                if (pkg/name).is_file(): roles[role]=f'package/{name}'
-            return roles,{'releaseReady':bool(result.get('releaseReady')),'trustStanding':result.get('trustStanding'),'packageRelativePath':'package'}
-        result=self._fenced('package',oid,inputs,produce); result['packageDirectory']=str(Path(result['operationDirectory'])/'package'); return result
+            if result.get('status')!='PASS': raise RuntimeError(f"OCI package stage did not PASS: {result.get('failures')}")
+            layout=pkg/'layout'
+            roles={'packageReport':'oci-package-stage.json','ociLayoutIndex':'package/layout/index.json','ociLayoutMarker':'package/layout/oci-layout'}
+            for blob in sorted((layout/'blobs'/'sha256').glob('*')):
+                roles[f'ociBlob:{blob.name}']=f'package/layout/blobs/sha256/{blob.name}'
+            return roles,{'releaseReady':bool(result.get('releaseReady')),'trustStanding':result.get('trustStanding'),'packageRelativePath':'package/layout','subjectDigest':result.get('oci',{}).get('subject',{}).get('digest'),'referrerCount':len(result.get('oci',{}).get('discover',{}).get('referrers',[]))}
+        result=self._fenced('package',oid,inputs,produce); result['packageDirectory']=str(Path(result['operationDirectory'])/'package'/'layout'); return result

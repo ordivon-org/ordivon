@@ -22,6 +22,12 @@ from typing import Any
 import artifact_delivery as artifact_delivery_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
+GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
+GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
+GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
+GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
+GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
 LOCK = json.loads((ROOT / "artifact-delivery/toolchain-v1.lock.json").read_text())
 OPENXML_LOCK = json.loads((ROOT / "artifact-delivery/openxml-runtime-v1.lock.json").read_text())
 
@@ -66,8 +72,15 @@ def record(checks: list[dict[str, Any]], name: str, ok: bool, **details: Any) ->
     checks.append({"name": name, "status": "PASS" if ok else "FAIL", **details})
 
 
-def selected_path(env_name: str, default: Path) -> str:
-    return os.environ.get(env_name, str(default))
+def selected_path(env_name: str, global_default: Path, legacy_default: Path | None = None) -> str:
+    configured = os.environ.get(env_name)
+    if configured:
+        return configured
+    if global_default.exists():
+        return str(global_default)
+    if legacy_default is not None and legacy_default.exists():
+        return str(legacy_default)
+    return str(global_default)
 
 
 def main() -> int:
@@ -225,8 +238,7 @@ def main() -> int:
         package_dir = tmp / "package"
         packaged = run([
             python,
-            "scripts/artifact_delivery.py",
-            "package-stage",
+            "scripts/artifact_oci_package.py",
             "--profile",
             str(package_profile),
             "--primary",
@@ -246,31 +258,36 @@ def main() -> int:
         if packaged is not None and packaged.returncode == 0:
             try:
                 package_value = json.loads(packaged.stdout)
-                package_index = json.loads((package_dir / "package-index.json").read_text())
+                layout = package_dir / "layout"
+                refs = package_value.get("oci", {}).get("discover", {}).get("referrers", [])
                 package_ok = (
                     package_value.get("status") == "PASS"
                     and package_value.get("releaseReady") is False
                     and package_value.get("trustStanding") == "LOCAL_UNSIGNED_DEVELOPMENT"
-                    and package_value.get("releaseManifest", {}).get("status") == "PASS"
-                    and package_index.get("status") == "PASS"
-                    and package_index.get("releaseReady") is False
-                    and len(package_index.get("attestations", [])) == 3
+                    and (layout / "index.json").is_file()
+                    and (layout / "oci-layout").is_file()
+                    and not (package_dir / "package-index.json").exists()
+                    and not (package_dir / "release-manifest.json").exists()
+                    and len(refs) == 4
                 )
                 details["packageTrustStanding"] = package_value.get("trustStanding")
                 details["packageReleaseReady"] = package_value.get("releaseReady")
-                details["attestationCount"] = len(package_index.get("attestations", []))
+                details["ociSubjectDigest"] = package_value.get("oci", {}).get("subject", {}).get("digest")
+                details["ociReferrerCount"] = len(refs)
+                details["legacyPackageIndexPresent"] = (package_dir / "package-index.json").exists()
+                details["legacyReleaseManifestPresent"] = (package_dir / "release-manifest.json").exists()
             except Exception as error:
                 details["parseError"] = str(error)
         else:
             details["packageStderr"] = packaged.stderr[-2000:] if packaged is not None else "package not run"
-        record(checks, "digest-bound-development-package", package_ok, **details)
+        record(checks, "digest-bound-development-oci-package", package_ok, **details)
 
-    pandoc = selected_path("ARTIFACT_PANDOC", ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
+    pandoc = selected_path("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
     proc = run([pandoc, "--version"])
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     record(checks, "pandoc", proc.returncode == 0 and first == f"pandoc {LOCK['pandoc']['version']}", observed=first)
 
-    verapdf = selected_path("ARTIFACT_VERAPDF", ROOT / ".cache/artifact-toolchain/verapdf/current/verapdf")
+    verapdf = selected_path("ARTIFACT_VERAPDF", GLOBAL_VERAPDF, ROOT / ".cache/artifact-toolchain/verapdf/current/verapdf")
     proc = run([verapdf, "--version"])
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     record(checks, "verapdf", proc.returncode == 0 and first == f"veraPDF {LOCK['veraPDF']['version']}", observed=first)
@@ -283,7 +300,7 @@ def main() -> int:
     else:
         record(checks, "qpdf", False, error="qpdf not found")
 
-    vnu = Path(selected_path("ARTIFACT_VNU", ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"))
+    vnu = Path(selected_path("ARTIFACT_VNU", GLOBAL_VNU, ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"))
     java = shutil.which("java")
     if vnu.is_file() and java:
         proc = run([java, "-jar", str(vnu), "--version"])
@@ -299,7 +316,7 @@ def main() -> int:
     else:
         record(checks, "nu-html-checker", False, error="Nu Html Checker or Java not found")
 
-    cosign = selected_path("ARTIFACT_COSIGN", ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign")
+    cosign = selected_path("ARTIFACT_COSIGN", GLOBAL_COSIGN, ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign")
     if not Path(cosign).is_file():
         cosign = shutil.which("cosign")
     if cosign:
@@ -438,7 +455,10 @@ wb = xlsxwriter.Workbook(xlsx_path); ws = wb.add_worksheet(); fmt = wb.add_forma
 
     node = shutil.which("node")
     if node:
-        proc = run([node, "./probe.mjs"], cwd=ROOT / "artifact-delivery/node", timeout=90)
+        node_env = os.environ.copy()
+        if "ARTIFACT_NODE_PACKAGE_ROOT" not in node_env and (GLOBAL_NODE_PACKAGE_ROOT / "package.json").is_file():
+            node_env["ARTIFACT_NODE_PACKAGE_ROOT"] = str(GLOBAL_NODE_PACKAGE_ROOT)
+        proc = run([node, "./probe.mjs"], cwd=ROOT / "artifact-delivery/node", timeout=90, env=node_env)
         try:
             web = json.loads(proc.stdout)
         except Exception:

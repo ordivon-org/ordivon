@@ -29,6 +29,28 @@ import zipfile
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
+GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
+GLOBAL_PANDOC_ARCHIVE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/pandoc-3.10.2-linux-amd64.tar.gz"
+GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
+GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
+GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
+GLOBAL_COSIGN_ARCH_PACKAGE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst"
+GLOBAL_COSIGN_ARCH_PACKAGE_SIGNATURE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst.sig"
+GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
+
+
+def _selected_external_file(env_name: str, global_candidate: Path, legacy_candidate: Path) -> Path:
+    configured = os.environ.get(env_name)
+    if configured:
+        return Path(configured)
+    if global_candidate.is_file():
+        return global_candidate
+    if legacy_candidate.is_file():
+        return legacy_candidate
+    return global_candidate
+
+
 DEFAULT_SCHEMA = ROOT / "artifact-delivery/profile-v1.schema.json"
 DEFAULT_REQUEST_SCHEMA = ROOT / "artifact-delivery/request-v1.schema.json"
 DEFAULT_PRESENTATION_SOURCE_SCHEMA = ROOT / "artifact-delivery/presentation-source-v1.schema.json"
@@ -44,9 +66,19 @@ SIGSTORE_BUNDLE_V03 = "application/vnd.dev.sigstore.bundle.v0.3+json"
 INTOTO_DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 COSIGN_STANDARD_BUNDLE_MIN_VERSION = (3, 0, 6)
 COSIGN_LOCK_PATH = ROOT / "artifact-delivery/toolchain-v1.lock.json"
-COSIGN_SELECTED_BINARY = ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign"
-COSIGN_ARCH_PACKAGE = ROOT / ".cache/artifact-toolchain/cosign/bootstrap-arch-3.1.3-1/cosign-3.1.3-1-x86_64.pkg.tar.zst"
-COSIGN_ARCH_PACKAGE_SIGNATURE = Path(str(COSIGN_ARCH_PACKAGE) + ".sig")
+COSIGN_SELECTED_BINARY = _selected_external_file(
+    "ARTIFACT_COSIGN", GLOBAL_COSIGN, ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign"
+)
+COSIGN_ARCH_PACKAGE = _selected_external_file(
+    "ARTIFACT_COSIGN_ARCH_PACKAGE",
+    GLOBAL_COSIGN_ARCH_PACKAGE,
+    ROOT / ".cache/artifact-toolchain/cosign/bootstrap-arch-3.1.3-1/cosign-3.1.3-1-x86_64.pkg.tar.zst",
+)
+COSIGN_ARCH_PACKAGE_SIGNATURE = _selected_external_file(
+    "ARTIFACT_COSIGN_ARCH_PACKAGE_SIGNATURE",
+    GLOBAL_COSIGN_ARCH_PACKAGE_SIGNATURE,
+    Path(str(ROOT / ".cache/artifact-toolchain/cosign/bootstrap-arch-3.1.3-1/cosign-3.1.3-1-x86_64.pkg.tar.zst") + ".sig"),
+)
 _COSIGN_PROVENANCE_CACHE: dict[tuple[str, str, str], dict[str, Any]] = {}
 VSA_GATE_NAMES = frozenset({
     "profileSchema",
@@ -471,7 +503,7 @@ def execute_build_stage(request_path: Path, output_directory: Path | None = None
     if adapter == "python-pptx-presentation-source-v1":
         adapter_result = build_presentation_source(source_path, profile_path, output_path)
     elif adapter == "pandoc-docx":
-        pandoc = Path(os.environ.get("ARTIFACT_PANDOC", ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc"))
+        pandoc = _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
         if not pandoc.is_file():
             adapter_result = {"status": "FAIL", "error": f"Pandoc not found: {pandoc}"}
         else:
@@ -598,7 +630,7 @@ def _run_pandoc_ast(pandoc: Path, source: Path, from_format: str) -> dict[str, A
 
 
 def verify_document_semantic_correspondence(source: Path, document: Path, pandoc: Path | None = None) -> dict[str, Any]:
-    executable = pandoc or Path(os.environ.get("ARTIFACT_PANDOC", ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc"))
+    executable = pandoc or _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
     failures: list[str] = []
     if not executable.is_file() or not os.access(executable, os.X_OK):
         return {"status": "FAIL", "source": file_fact(source), "artifact": file_fact(document), "pandoc": {"path": str(executable), "status": "NOT_AVAILABLE"}, "failures": ["Pandoc semantic verifier is unavailable"]}
@@ -633,8 +665,8 @@ def verify_document_dependencies(request_path: Path, document: Path, pandoc: Pat
     validation = validate_delivery_request(request_path)
     plan = compile_delivery_plan(request_path)
     lock_path = toolchain_lock or ROOT / "artifact-delivery/toolchain-v1.lock.json"
-    executable = pandoc or Path(os.environ.get("ARTIFACT_PANDOC", ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc"))
-    archive = pandoc_archive or ROOT / ".cache/artifact-toolchain/pandoc/pandoc-3.10.2-linux-amd64.tar.gz"
+    executable = pandoc or _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
+    archive = pandoc_archive or _selected_external_file("ARTIFACT_PANDOC_ARCHIVE", GLOBAL_PANDOC_ARCHIVE, ROOT / ".cache/artifact-toolchain/pandoc/pandoc-3.10.2-linux-amd64.tar.gz")
     validator = openxml_validator or Path(os.environ.get("ARTIFACT_OPENXML_VALIDATOR", "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml"))
     failures: list[str] = []
     if validation.get("status") != "PASS":
@@ -677,39 +709,6 @@ def verify_document_dependencies(request_path: Path, document: Path, pandoc: Pat
     resolved = validation.get("resolved", {}) if isinstance(validation.get("resolved"), dict) else {}
     return {"status": "PASS" if not failures else "FAIL", "artifact": file_fact(document), "request": file_fact(request_path), "profile": resolved.get("profile"), "source": resolved.get("source"), "declaredMaterials": resolved.get("materials", []), "pandoc": pandoc_fact, "pandocReleaseArchive": archive_fact, "openXmlValidator": validator_fact, "toolchainLock": file_fact(lock_path) if lock_path.is_file() else {"path": str(lock_path)}, "failures": failures, "boundary": "Dependency PASS binds the exact request/source/profile plus locked Pandoc builder bytes, official release archive digest, and Open XML validator availability. It does not establish Microsoft Word target behavior, PDF companion correctness, accessibility, visual acceptance, or release-signature authenticity."}
 
-
-def aggregate_gate_results(profile_path: Path, gate_paths: dict[str, Path]) -> dict[str, Any]:
-    profile_result = validate_profile(profile_path)
-    profile = profile_result.get("profile", {})
-    required = {name for name, flag in profile.get("gates", {}).items() if flag is True}
-    components: dict[str, Any] = {}
-    failures: list[str] = []
-    for gate, path in sorted(gate_paths.items()):
-        value = load_json(path)
-        status = value.get("status") if isinstance(value, dict) else None
-        components[gate] = {
-            "status": status,
-            "evidence": file_fact(path),
-        }
-        if gate not in profile.get("gates", {}):
-            failures.append(f"gate evidence supplied for undeclared gate: {gate}")
-    for gate in sorted(required):
-        if gate not in components:
-            failures.append(f"required gate evidence missing: {gate}")
-        elif components[gate].get("status") != "PASS":
-            failures.append(f"required gate did not PASS: {gate}")
-    if profile_result.get("status") != "PASS":
-        failures.append("profile schema did not PASS")
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-gate-aggregation",
-        "status": "PASS" if not failures else "FAIL",
-        "profileId": profile.get("id"),
-        "requiredGates": sorted(required),
-        "components": components,
-        "failures": failures,
-        "boundary": "Aggregation only composes independently-produced gate statuses and evidence digests. It does not execute or reinterpret the underlying validators.",
-    }
 
 
 def _hex_color(value: str):
@@ -1700,11 +1699,13 @@ def _verapdf_executable() -> Path | None:
     if configured:
         path = Path(configured)
         return path if path.is_file() else None
-    system = shutil.which("verapdf")
-    if system:
-        return Path(system)
+    if GLOBAL_VERAPDF.is_file():
+        return GLOBAL_VERAPDF
     local = ROOT / ".cache/artifact-toolchain/verapdf/current/verapdf"
-    return local if local.is_file() else None
+    if local.is_file():
+        return local
+    system = shutil.which("verapdf")
+    return Path(system) if system else None
 
 
 def verify_pdf_conformance(path: Path, flavour: str) -> dict[str, Any]:
@@ -1791,6 +1792,8 @@ def _vnu_jar() -> Path | None:
     if configured:
         path = Path(configured)
         return path if path.is_file() else None
+    if GLOBAL_VNU.is_file():
+        return GLOBAL_VNU
     local = ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"
     return local if local.is_file() else None
 
@@ -1848,6 +1851,9 @@ def verify_web_local(path: Path) -> dict[str, Any]:
     verifier = ROOT / "artifact-delivery/node/verify_html.mjs"
     if node is None or not verifier.is_file():
         return {"status": "NOT_RUN", "artifact": artifact, "error": "Node/Playwright HTML verifier is unavailable"}
+    node_env = os.environ.copy()
+    if "ARTIFACT_NODE_PACKAGE_ROOT" not in node_env and (GLOBAL_NODE_PACKAGE_ROOT / "package.json").is_file():
+        node_env["ARTIFACT_NODE_PACKAGE_ROOT"] = str(GLOBAL_NODE_PACKAGE_ROOT)
     proc = subprocess.run(
         [node, str(verifier), str(path.resolve())],
         cwd=ROOT / "artifact-delivery/node",
@@ -1856,6 +1862,7 @@ def verify_web_local(path: Path) -> dict[str, Any]:
         stderr=subprocess.PIPE,
         check=False,
         timeout=90,
+        env=node_env,
     )
     parsed: dict[str, Any] | None = None
     parse_error: str | None = None
@@ -2821,316 +2828,7 @@ def verify_file_fact(fact: dict[str, Any]) -> dict[str, Any]:
     return {"status": "PASS" if not failures else "FAIL", "path": str(path), "actual": actual, "failures": failures}
 
 
-def _copy_exact(
-    source: Path,
-    destination: Path,
-    expected_source_fact: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    source_before = file_fact(source)
-    expected_digest = (
-        expected_source_fact.get("digest", {}).get("sha256")
-        if isinstance(expected_source_fact, dict)
-        else source_before["digest"]["sha256"]
-    )
-    expected_size = expected_source_fact.get("size") if isinstance(expected_source_fact, dict) else source_before["size"]
-    expected_name = expected_source_fact.get("name") if isinstance(expected_source_fact, dict) else source_before["name"]
-    expected_matched = (
-        source_before["digest"]["sha256"] == expected_digest
-        and source_before["size"] == expected_size
-        and source_before["name"] == expected_name
-    )
-    if not expected_matched:
-        return {
-            "status": "FAIL",
-            "source": source_before,
-            "destination": None,
-            "expectedSource": expected_source_fact,
-            "expectedSourceMatched": False,
-            "sourceStable": False,
-            "digestMatched": False,
-        }
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, destination)
-    source_after = file_fact(source)
-    destination_fact = file_fact(destination)
-    source_stable = (
-        source_after["digest"]["sha256"] == source_before["digest"]["sha256"]
-        and source_after["size"] == source_before["size"]
-    )
-    destination_matched = (
-        destination_fact["digest"]["sha256"] == expected_digest
-        and destination_fact["size"] == expected_size
-    )
-    return {
-        "status": "PASS" if expected_matched and source_stable and destination_matched else "FAIL",
-        "source": source_after,
-        "destination": destination_fact,
-        "expectedSource": expected_source_fact,
-        "expectedSourceMatched": expected_matched,
-        "sourceStable": source_stable,
-        "digestMatched": destination_matched,
-    }
 
-
-def _relative_file_fact(root: Path, path: Path) -> dict[str, Any]:
-    fact = file_fact(path)
-    fact["path"] = path.resolve().relative_to(root.resolve()).as_posix()
-    return fact
-
-
-def execute_package_stage(
-    profile_path: Path,
-    primary: Path,
-    verify_report_path: Path,
-    output_dir: Path,
-    companions: Iterable[Path] = (),
-    request_path: Path | None = None,
-    provenance_path: Path | None = None,
-    allow_local_unsigned: bool = False,
-    gate_bundles: dict[str, Path] | None = None,
-    trust_policy_path: Path | None = None,
-    signer_ids: dict[str, str] | None = None,
-) -> dict[str, Any]:
-    profile_result = validate_profile(profile_path)
-    profile = profile_result.get("profile", {})
-    failures: list[str] = []
-    if profile_result.get("status") != "PASS":
-        failures.append("delivery profile did not PASS validation")
-    if not primary.is_file():
-        failures.append("primary artifact is absent")
-    verify_report_fact = file_fact(verify_report_path)
-    verify_report = load_json(verify_report_path)
-    if verify_report.get("kind") != "artifact-delivery-verify-stage":
-        failures.append("verify report kind is not artifact-delivery-verify-stage")
-    report_artifact = verify_report.get("artifact", {}) if isinstance(verify_report.get("artifact"), dict) else {}
-    if report_artifact.get("digest", {}).get("sha256") != sha256_file(primary):
-        failures.append("verify report artifact digest does not bind the primary artifact")
-    if report_artifact.get("name") != primary.name:
-        failures.append("verify report artifact name does not bind the primary artifact")
-
-    receipts = verify_report.get("receipts", {}) if isinstance(verify_report.get("receipts"), dict) else {}
-    gate_paths: dict[str, Path] = {}
-    raw_paths: dict[str, Path] = {}
-    expected_raw_facts: dict[str, dict[str, Any]] = {}
-    expected_vsa_facts: dict[str, dict[str, Any]] = {}
-    receipt_checks: dict[str, Any] = {}
-    for gate, receipt in sorted(receipts.items()):
-        if not isinstance(receipt, dict):
-            failures.append(f"invalid verify receipt object: {gate}")
-            continue
-        raw_fact = receipt.get("rawEvidence", {}) if isinstance(receipt.get("rawEvidence"), dict) else {}
-        vsa_fact = receipt.get("vsa", {}) if isinstance(receipt.get("vsa"), dict) else {}
-        raw_check = verify_file_fact(raw_fact)
-        vsa_check = verify_file_fact(vsa_fact)
-        receipt_checks[gate] = {"raw": raw_check, "vsa": vsa_check}
-        if raw_check.get("status") != "PASS":
-            failures.append(f"raw evidence file fact failed: {gate}")
-        if vsa_check.get("status") != "PASS":
-            failures.append(f"VSA file fact failed: {gate}")
-        if raw_check.get("status") == "PASS":
-            raw_paths[gate] = Path(raw_check["path"])
-            expected_raw_facts[gate] = raw_fact
-        if vsa_check.get("status") == "PASS":
-            gate_paths[gate] = Path(vsa_check["path"])
-            expected_vsa_facts[gate] = vsa_fact
-
-    bundle_paths = gate_bundles or {}
-    selected_signers = signer_ids or {}
-    trust_policy_fact = (
-        file_fact(trust_policy_path)
-        if trust_policy_path is not None and trust_policy_path.is_file()
-        else None
-    )
-    gate_aggregation = aggregate_vsa_gates(
-        profile_path,
-        primary,
-        gate_paths,
-        allow_local_unsigned,
-        bundle_paths,
-        trust_policy_path,
-        selected_signers,
-    )
-    if gate_aggregation.get("status") != "PASS":
-        failures.append("required VSA gate aggregation did not PASS")
-
-    if failures:
-        return {
-            "schemaVersion": 1,
-            "kind": "artifact-delivery-package-stage",
-            "status": "FAIL",
-            "profileId": profile.get("id"),
-            "primary": file_fact(primary) if primary.is_file() else None,
-            "verifyReport": file_fact(verify_report_path),
-            "receiptChecks": receipt_checks,
-            "gateAggregation": gate_aggregation,
-            "packageCreated": False,
-            "releaseReady": False,
-            "failures": failures,
-            "boundary": "Package-stage preflight failed before copying release bytes. Missing/failed/authenticity-unverified required gates cannot be converted into package PASS.",
-        }
-
-    if output_dir.exists() and any(output_dir.iterdir()):
-        return {
-            "schemaVersion": 1,
-            "kind": "artifact-delivery-package-stage",
-            "status": "FAIL",
-            "profileId": profile.get("id"),
-            "packageCreated": False,
-            "releaseReady": False,
-            "failures": ["package output directory already exists and is not empty"],
-        }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    artifacts_dir = output_dir / "artifacts"
-    evidence_dir = output_dir / "evidence"
-    attestations_dir = output_dir / "attestations"
-    artifacts_dir.mkdir(parents=True, exist_ok=True)
-    evidence_dir.mkdir(parents=True, exist_ok=True)
-    attestations_dir.mkdir(parents=True, exist_ok=True)
-
-    copy_results: list[dict[str, Any]] = []
-    package_primary = artifacts_dir / primary.name
-    copy_results.append(_copy_exact(primary, package_primary, report_artifact))
-    companion_paths = list(companions)
-    package_companions: list[Path] = []
-    seen_artifact_names = {primary.name}
-    for companion in companion_paths:
-        if companion.name in seen_artifact_names:
-            failures.append(f"artifact basename collision: {companion.name}")
-            continue
-        seen_artifact_names.add(companion.name)
-        destination = artifacts_dir / companion.name
-        copy_results.append(_copy_exact(companion, destination))
-        package_companions.append(destination)
-
-    package_evidence: list[Path] = []
-    package_vsas: list[Path] = []
-    package_sigstore_bundles: list[Path] = []
-    package_gate_paths: dict[str, Path] = {}
-    package_bundle_paths: dict[str, Path] = {}
-    for gate in sorted(gate_paths):
-        raw_destination = evidence_dir / f"{gate}.raw.json"
-        vsa_destination = attestations_dir / f"{gate}.vsa.json"
-        copy_results.append(_copy_exact(raw_paths[gate], raw_destination, expected_raw_facts[gate]))
-        copy_results.append(_copy_exact(gate_paths[gate], vsa_destination, expected_vsa_facts[gate]))
-        package_evidence.append(raw_destination)
-        package_vsas.append(vsa_destination)
-        package_gate_paths[gate] = vsa_destination
-        if gate in bundle_paths:
-            bundle_destination = attestations_dir / f"{gate}.sigstore.json"
-            expected_bundle_fact = gate_aggregation.get("bundles", {}).get(gate)
-            copy_results.append(_copy_exact(bundle_paths[gate], bundle_destination, expected_bundle_fact))
-            package_sigstore_bundles.append(bundle_destination)
-            package_bundle_paths[gate] = bundle_destination
-    verify_destination = evidence_dir / "verify-stage.json"
-    copy_results.append(_copy_exact(verify_report_path, verify_destination, verify_report_fact))
-    package_evidence.append(verify_destination)
-
-    if any(item.get("status") != "PASS" for item in copy_results):
-        failures.append("one or more exact package copies failed expected-digest/stability comparison")
-
-    if trust_policy_fact is not None and verify_file_fact(trust_policy_fact).get("status") != "PASS":
-        failures.append("VSA trust policy changed after preflight verification")
-    packaged_gate_aggregation = aggregate_vsa_gates(
-        profile_path,
-        package_primary,
-        package_gate_paths,
-        allow_local_unsigned,
-        package_bundle_paths,
-        trust_policy_path,
-        selected_signers,
-    )
-    if packaged_gate_aggregation.get("status") != "PASS":
-        failures.append("packaged VSA gate aggregation did not PASS re-verification")
-    gate_aggregation_path = evidence_dir / "vsa-gate-aggregation.json"
-    write_json(gate_aggregation_path, packaged_gate_aggregation)
-    package_evidence.append(gate_aggregation_path)
-
-    provenance_destination: Path | None = None
-    if provenance_path is not None:
-        provenance_destination = attestations_dir / "slsa-provenance.json"
-        copy_results.append(_copy_exact(provenance_path, provenance_destination))
-    elif profile.get("gates", {}).get("releaseProvenance") is True:
-        if request_path is None:
-            failures.append("release provenance is required but neither request nor provenance was supplied")
-        else:
-            request_validation = validate_delivery_request(request_path)
-            if request_validation.get("status") != "PASS":
-                failures.append("delivery request did not PASS validation for provenance generation")
-            else:
-                request = request_validation["request"]
-                profile_ref = request.get("profile", {})
-                if profile_ref.get("id") != profile.get("id") or profile_ref.get("sha256") != sha256_file(profile_path):
-                    failures.append("delivery request profile binding does not match package profile")
-                else:
-                    materials = [Path(request_validation["resolved"]["source"]["path"])]
-                    materials.extend(Path(item["path"]) for item in request_validation["resolved"].get("materials", []))
-                    provenance_destination = attestations_dir / "slsa-provenance.json"
-                    provenance = slsa_statement(
-                        [package_primary, *package_companions],
-                        materials,
-                        profile_path,
-                        request["builder"]["id"],
-                        request["builder"]["buildType"],
-                    )
-                    write_json(provenance_destination, provenance)
-
-    release_manifest = build_release_manifest(
-        profile_path,
-        package_primary,
-        package_companions,
-        [*package_evidence, *package_vsas, *package_sigstore_bundles],
-        provenance_destination,
-    )
-    if release_manifest.get("status") != "PASS":
-        failures.append("release manifest assembly did not PASS")
-    release_manifest_path = output_dir / "release-manifest.json"
-    write_json(release_manifest_path, release_manifest)
-
-    package_status = "PASS" if not failures else "FAIL"
-    package_index = {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-package-index",
-        "status": package_status,
-        "profile": {"id": profile.get("id"), "sha256": sha256_file(profile_path)},
-        "primary": _relative_file_fact(output_dir, package_primary),
-        "companions": [_relative_file_fact(output_dir, path) for path in package_companions],
-        "evidence": [_relative_file_fact(output_dir, path) for path in package_evidence],
-        "attestations": [
-            *[_relative_file_fact(output_dir, path) for path in package_vsas],
-            *[_relative_file_fact(output_dir, path) for path in package_sigstore_bundles],
-            *([_relative_file_fact(output_dir, provenance_destination)] if provenance_destination and provenance_destination.is_file() else []),
-        ],
-        "trustPolicy": (
-            {
-                "id": load_json(trust_policy_path).get("id"),
-                "sha256": sha256_file(trust_policy_path),
-            }
-            if trust_policy_path is not None and trust_policy_path.is_file()
-            else None
-        ),
-        "releaseManifest": _relative_file_fact(output_dir, release_manifest_path),
-        "trustStanding": "LOCAL_UNSIGNED_DEVELOPMENT" if allow_local_unsigned else "CRYPTOGRAPHICALLY_VERIFIED",
-        "releaseReady": package_status == "PASS" and not allow_local_unsigned,
-    }
-    package_index_path = output_dir / "package-index.json"
-    write_json(package_index_path, package_index)
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-package-stage",
-        "status": package_status,
-        "profileId": profile.get("id"),
-        "packageDirectory": str(output_dir.resolve()),
-        "packageCreated": package_status == "PASS",
-        "packageIndex": file_fact(package_index_path),
-        "releaseManifest": release_manifest,
-        "preflightGateAggregation": gate_aggregation,
-        "gateAggregation": packaged_gate_aggregation,
-        "copyResults": copy_results,
-        "trustStanding": package_index["trustStanding"],
-        "releaseReady": package_index["releaseReady"],
-        "failures": failures,
-        "boundary": "Package PASS means exact bytes/evidence/attestations were assembled and the release manifest passed. Production releaseReady additionally means every required VSA gate passed policy-bound cryptographic Sigstore verification; local unsigned mode remains development-only and explicitly not release-ready.",
-    }
 
 
 def verify_release_provenance(provenance_path: Path, subjects: Iterable[Path]) -> dict[str, Any]:
@@ -3161,54 +2859,6 @@ def verify_release_provenance(provenance_path: Path, subjects: Iterable[Path]) -
         "failures": failures,
     }
 
-
-def build_release_manifest(
-    profile_path: Path,
-    primary: Path,
-    companions: Iterable[Path] = (),
-    evidence: Iterable[Path] = (),
-    provenance: Path | None = None,
-) -> dict[str, Any]:
-    profile_result = validate_profile(profile_path)
-    profile = profile_result["profile"]
-    failures: list[str] = []
-    suffix_map = {"pptx": ".pptx", "docx": ".docx", "xlsx": ".xlsx", "html": ".html", "pdf": ".pdf", "pdf-a-4": ".pdf", "pdf-ua-2": ".pdf"}
-    primary_format = str(profile.get("primaryOutput", {}).get("format", ""))
-    expected_suffix = suffix_map.get(primary_format)
-    if expected_suffix and primary.suffix.casefold() != expected_suffix:
-        failures.append(f"primary artifact suffix {primary.suffix} does not match profile format {primary_format}")
-    primary_fact = file_fact(primary)
-    companion_paths = list(companions)
-    declared_companions = list(profile.get("companions", []))
-    required_formats = [str(item.get("format")) for item in declared_companions if item.get("required") is True]
-    observed_suffixes = [path.suffix.casefold() for path in companion_paths]
-    required_suffixes = [suffix_map.get(fmt) for fmt in required_formats]
-    if len(companion_paths) < len(required_formats):
-        failures.append(f"profile requires {len(required_formats)} companion artifact(s), received {len(companion_paths)}")
-    for suffix in required_suffixes:
-        if suffix is not None and suffix not in observed_suffixes:
-            failures.append(f"required companion format with suffix {suffix} is absent")
-    companion_facts = [file_fact(path) for path in companion_paths]
-    evidence_facts = [file_fact(path) for path in evidence]
-    provenance_result: dict[str, Any] | None = None
-    if provenance is not None:
-        provenance_result = verify_release_provenance(provenance, [primary, *companion_paths])
-        if provenance_result.get("status") != "PASS":
-            failures.extend(f"release provenance: {item}" for item in provenance_result.get("failures", []))
-    elif profile.get("gates", {}).get("releaseProvenance") is True:
-        failures.append("profile requires release provenance but no provenance statement was supplied")
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-release-manifest",
-        "status": "PASS" if profile_result.get("status") == "PASS" and not failures else "FAIL",
-        "profile": {"id": profile.get("id"), "sha256": sha256_file(profile_path)},
-        "primary": primary_fact,
-        "companions": companion_facts,
-        "evidence": evidence_facts,
-        "provenance": provenance_result,
-        "failures": failures,
-        "boundary": "Manifest PASS establishes package assembly and exact digest/provenance binding only. Target rendering, visual acceptance, accessibility/conformance and destination read-back retain their independent gates.",
-    }
 
 
 def verify_render_evidence(render_dir: Path, expected_slides: int) -> dict[str, Any]:
@@ -3614,11 +3264,6 @@ def main() -> int:
     p.add_argument("--hybrid-source", type=Path, required=True)
     p.add_argument("--output", type=Path)
 
-    p = sub.add_parser("aggregate-gates")
-    p.add_argument("--profile", type=Path, required=True)
-    p.add_argument("--gate", action="append", default=[], help="gateName=path/to/evidence.json")
-    p.add_argument("--output", type=Path)
-
     p = sub.add_parser("verify-stage")
     p.add_argument("--profile", type=Path, required=True)
     p.add_argument("--artifact", type=Path, required=True)
@@ -3657,20 +3302,6 @@ def main() -> int:
     p.add_argument("--allow-local-unsigned", action="store_true")
     p.add_argument("--output", type=Path)
 
-    p = sub.add_parser("package-stage")
-    p.add_argument("--profile", type=Path, required=True)
-    p.add_argument("--primary", type=Path, required=True)
-    p.add_argument("--verify-report", type=Path, required=True)
-    p.add_argument("--output-directory", type=Path, required=True)
-    p.add_argument("--companion", type=Path, action="append", default=[])
-    p.add_argument("--request", type=Path)
-    p.add_argument("--provenance", type=Path)
-    p.add_argument("--gate-bundle", action="append", default=[], help="gateName=path/to/sigstore-bundle.json")
-    p.add_argument("--gate-signer", action="append", default=[], help="gateName=trusted-signer-id")
-    p.add_argument("--trust-policy", type=Path)
-    p.add_argument("--allow-local-unsigned", action="store_true")
-    p.add_argument("--output", type=Path)
-
     p = sub.add_parser("inspect-pptx")
     p.add_argument("pptx", type=Path)
     p.add_argument("--placeholder", action="append", default=[])
@@ -3683,14 +3314,6 @@ def main() -> int:
     p = sub.add_parser("verify-pdf-conformance")
     p.add_argument("pdf", type=Path)
     p.add_argument("--flavour", required=True, choices=("4", "4f", "4e", "ua1", "ua2", "wt1r", "wt1a"))
-    p.add_argument("--output", type=Path)
-
-    p = sub.add_parser("release-manifest")
-    p.add_argument("--profile", type=Path, required=True)
-    p.add_argument("--primary", type=Path, required=True)
-    p.add_argument("--companion", type=Path, action="append", default=[])
-    p.add_argument("--evidence", type=Path, action="append", default=[])
-    p.add_argument("--provenance", type=Path)
     p.add_argument("--output", type=Path)
 
     p = sub.add_parser("snapshot")
@@ -3745,16 +3368,6 @@ def main() -> int:
             value = compose_reference_hybrid_source(
                 args.semantic_source, args.reference_map, args.visual_root, args.hybrid_source
             )
-        elif args.command == "aggregate-gates":
-            gate_paths: dict[str, Path] = {}
-            for item in args.gate:
-                if "=" not in item:
-                    raise RuntimeError("--gate requires gateName=path")
-                gate, path_text = item.split("=", 1)
-                if not gate or gate in gate_paths:
-                    raise RuntimeError(f"duplicate/invalid gate name: {gate!r}")
-                gate_paths[gate] = Path(path_text)
-            value = aggregate_gate_results(args.profile, gate_paths)
         elif args.command == "verify-stage":
             value = execute_verify_stage(args.profile, args.artifact, args.output_directory, args.request)
         elif args.command == "verify-vsa":
@@ -3778,30 +3391,12 @@ def main() -> int:
                 args.trust_policy,
                 signer_ids,
             )
-        elif args.command == "package-stage":
-            gate_bundles = _parse_named_values(args.gate_bundle, "--gate-bundle", path_values=True)
-            gate_signers = _parse_named_values(args.gate_signer, "--gate-signer")
-            value = execute_package_stage(
-                args.profile,
-                args.primary,
-                args.verify_report,
-                args.output_directory,
-                args.companion,
-                args.request,
-                args.provenance,
-                args.allow_local_unsigned,
-                gate_bundles,
-                args.trust_policy,
-                gate_signers,
-            )
         elif args.command == "inspect-pptx":
             value = inspect_pptx(args.pptx, args.placeholder)
         elif args.command == "verify-pdf":
             value = verify_pdf(args.pdf)
         elif args.command == "verify-pdf-conformance":
             value = verify_pdf_conformance(args.pdf, args.flavour)
-        elif args.command == "release-manifest":
-            value = build_release_manifest(args.profile, args.primary, args.companion, args.evidence, args.provenance)
         elif args.command == "snapshot":
             value = snapshot_materials(args.material)
         elif args.command == "verify-readback":

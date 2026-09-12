@@ -1,5 +1,5 @@
 from __future__ import annotations
-import ast,hashlib,importlib.util,subprocess,tempfile,unittest
+import ast,hashlib,importlib.util,json,subprocess,tempfile,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; SUPPORT=ROOT/'scripts/artifact_delivery_temporal_support.py'
 def load_support():
@@ -48,6 +48,29 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             ex=m.ReceiptFencedArtifactExecutor(Path(d)/'state');req=ROOT/'artifact-delivery/examples/presentation-native-smoke-request-r1.json';value={'operationId':'test/build/drift','request':{'path':str(req),'sha256':hashlib.sha256(req.read_bytes()).hexdigest()}};result=ex.build(value);artifact=Path(result['roles']['artifact']['path']);artifact.write_bytes(artifact.read_bytes()+b'drift')
             with self.assertRaisesRegex(RuntimeError,'committed activity output drift'):ex.build(value)
+
+    def test_package_activity_uses_oci_layout_and_receipt_fences_every_blob(self):
+        m=load_support()
+        spec=importlib.util.spec_from_file_location('artifact_delivery',ROOT/'scripts/artifact_delivery.py'); ad=importlib.util.module_from_spec(spec); spec.loader.exec_module(ad)
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); ex=m.ReceiptFencedArtifactExecutor(root/'state')
+            profile=json.loads((ROOT/'artifact-delivery/examples/pdu-sdu-presentation-r1.json').read_text()); profile.pop('$schema',None); profile['id']='temporal-oci-package-test-r1'; profile.pop('companions',None)
+            for gate in list(profile['gates']): profile['gates'][gate]=False
+            for gate in ('profileSchema','structural','semantic'): profile['gates'][gate]=True
+            profile_path=root/'profile.json'; profile_path.write_text(json.dumps(profile))
+            pptx=root/'artifact.pptx'; built=ad.build_presentation_source(ROOT/'artifact-delivery/examples/presentation-native-smoke-source-r1.json',ROOT/'artifact-delivery/examples/pdu-sdu-presentation-r1.json',pptx); self.assertEqual(built['status'],'PASS')
+            verify_dir=root/'verify'; verified=ad.execute_verify_stage(profile_path,pptx,verify_dir); self.assertTrue(verified['profileVerificationComplete'])
+            report=root/'verify-stage.json'; ad.write_json(report,verified)
+            fact=lambda q:{'path':str(q),'sha256':hashlib.sha256(q.read_bytes()).hexdigest(),'name':q.name,'size':q.stat().st_size}
+            value={'operationId':'test/package/oci','profile':fact(profile_path),'artifact':fact(pptx),'verifyReport':fact(report),'allowLocalUnsignedDevelopment':True}
+            first=ex.package(value); second=ex.package(value)
+            self.assertFalse(first['replayed']); self.assertTrue(second['replayed'])
+            self.assertEqual(first['metadata']['trustStanding'],'LOCAL_UNSIGNED_DEVELOPMENT'); self.assertFalse(first['metadata']['releaseReady']); self.assertEqual(first['metadata']['referrerCount'],4)
+            blob_roles=sorted(k for k in first['roles'] if k.startswith('ociBlob:')); self.assertTrue(blob_roles)
+            self.assertIn('ociLayoutIndex',first['roles']); self.assertIn('ociLayoutMarker',first['roles'])
+            package_root=Path(first['packageDirectory']).parent; self.assertFalse((package_root/'package-index.json').exists()); self.assertFalse((package_root/'release-manifest.json').exists())
+            victim=Path(first['roles'][blob_roles[0]]['path']); victim.write_bytes(victim.read_bytes()+b'drift')
+            with self.assertRaisesRegex(RuntimeError,'committed activity output drift'): ex.package(value)
 
     def test_deployment_is_main_source_fenced_and_hardened(self):
         deploy=(ROOT/'scripts/temporal_artifact_delivery_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/projects/ordivon-artifact-v2')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("if not current['applyEligible']",deploy);self.assertIn('artifact_python_probe()',deploy);self.assertIn("artifact_python['ready']",deploy);self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-delivery-temporal',unit)

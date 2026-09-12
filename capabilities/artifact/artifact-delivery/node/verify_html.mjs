@@ -3,10 +3,11 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import { createRequire } from 'node:module';
-import { chromium, firefox, webkit } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
-
-const require = createRequire(import.meta.url);
+const packageRoot = process.env.ARTIFACT_NODE_PACKAGE_ROOT;
+const require = packageRoot ? createRequire(path.join(path.resolve(packageRoot), 'package.json')) : createRequire(import.meta.url);
+const { chromium, firefox, webkit } = require('@playwright/test');
+const axeModule = require('@axe-core/playwright');
+const AxeBuilder = axeModule.default ?? axeModule;
 const pkgVersion = (name) => {
   let dir = path.dirname(require.resolve(name));
   for (;;) {

@@ -722,16 +722,6 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["inspection"]["status"], "PASS")
             self.assertEqual(result["semantic"]["status"], "PASS")
 
-    def test_gate_aggregation_fails_closed_for_missing_required_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            evidence = root / "structural.json"
-            evidence.write_text(json.dumps({"status": "PASS"}))
-            profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
-            result = MODULE.aggregate_gate_results(profile, {"structural": evidence})
-            self.assertEqual(result["status"], "FAIL")
-            self.assertTrue(any("required gate evidence missing: target" in item for item in result["failures"]))
-
     def test_verification_summary_binds_subject_and_profile_without_false_slsa_claim(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1090,55 +1080,6 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["authenticity"], "NOT_VERIFIED")
             self.assertTrue(any("cryptographic attestation verification failed" in item for item in result["failures"]))
 
-    def test_package_stage_signed_vsa_set_is_release_ready(self) -> None:
-        if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
-            self.skipTest("python-pptx/jsonschema are not available")
-        if not (openxml_dotnet_path()).is_file():
-            self.skipTest("Open XML validator runtime is not available")
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            profile_path = self._package_smoke_profile(root)
-            pptx, report_path, verified = self._package_smoke_verified_artifact(root, profile_path)
-            private_key, policy_path, signing_config, env = self._cosign_key_and_policy(root)
-            bundles: dict[str, Path] = {}
-            signers: dict[str, str] = {}
-            for gate, receipt in sorted(verified["receipts"].items()):
-                statement = Path(receipt["vsa"]["path"])
-                bundle = root / f"{gate}.sigstore.json"
-                self._sign_vsa_no_tlog(pptx, statement, bundle, private_key, signing_config, env)
-                bundles[gate] = bundle
-                signers[gate] = "release-signer"
-            package_dir = root / "signed-package"
-            result = MODULE.execute_package_stage(
-                profile_path,
-                pptx,
-                report_path,
-                package_dir,
-                allow_local_unsigned=False,
-                gate_bundles=bundles,
-                trust_policy_path=policy_path,
-                signer_ids=signers,
-            )
-            self.assertEqual(result["status"], "PASS", result)
-            self.assertTrue(result["packageCreated"])
-            self.assertTrue(result["releaseReady"])
-            self.assertEqual(result["trustStanding"], "CRYPTOGRAPHICALLY_VERIFIED")
-            self.assertEqual(result["preflightGateAggregation"]["status"], "PASS")
-            self.assertEqual(result["gateAggregation"]["status"], "PASS")
-            self.assertTrue(all(
-                item["authenticity"] == "VERIFIED"
-                for item in result["gateAggregation"]["components"].values()
-            ))
-            self.assertTrue(all(
-                Path(item["statement"]["path"]).parent.resolve() == (package_dir / "attestations").resolve()
-                for item in result["gateAggregation"]["components"].values()
-            ))
-            index = json.loads((package_dir / "package-index.json").read_text())
-            self.assertTrue(index["releaseReady"])
-            bundle_paths = [item["path"] for item in index["attestations"] if item["path"].endswith(".sigstore.json")]
-            self.assertEqual(len(bundle_paths), 3)
-            self.assertTrue(all(path.startswith("attestations/") for path in bundle_paths))
-
     def test_signed_vsa_rejects_legacy_bundle_shape(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1156,37 +1097,6 @@ class ArtifactDeliveryTests(unittest.TestCase):
         self.assertFalse(MODULE._version_at_least((3, 0, 5), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
         self.assertTrue(MODULE._version_at_least((3, 0, 6), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
         self.assertTrue(MODULE._version_at_least((3, 1, 0), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
-
-    def _package_smoke_profile(self, root: Path) -> Path:
-        profile = json.loads((ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json").read_text())
-        profile.pop("$schema", None)
-        profile["id"] = "presentation-package-smoke-r1"
-        profile.pop("companions", None)
-        for gate in list(profile["gates"]):
-            profile["gates"][gate] = False
-        profile["gates"]["profileSchema"] = True
-        profile["gates"]["structural"] = True
-        profile["gates"]["semantic"] = True
-        profile_path = root / "profile.json"
-        profile_path.write_text(json.dumps(profile))
-        return profile_path
-
-    def _package_smoke_verified_artifact(self, root: Path, profile_path: Path) -> tuple[Path, Path, dict]:
-        pptx = root / "artifact.pptx"
-        built = MODULE.build_presentation_source(
-            ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
-            ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
-            pptx,
-        )
-        self.assertEqual(built["status"], "PASS", built)
-        verify_dir = root / "verify"
-        verified = MODULE.execute_verify_stage(profile_path, pptx, verify_dir)
-        self.assertEqual(verified["status"], "PASS", verified)
-        self.assertTrue(verified["profileVerificationComplete"], verified)
-        self.assertEqual(set(verified["receipts"]), {"profileSchema", "structural", "semantic"})
-        report_path = root / "verify-stage.json"
-        MODULE.write_json(report_path, verified)
-        return pptx, report_path, verified
 
     def test_vsa_aggregation_separates_verification_from_assembly_gates(self) -> None:
         if importlib.util.find_spec("jsonschema") is None:
@@ -1213,77 +1123,6 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["requiredGates"], ["profileSchema"])
             self.assertEqual(result["assemblyGates"], ["companionPdf"])
-
-    def test_package_stage_fails_closed_without_vsa_authenticity(self) -> None:
-        if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
-            self.skipTest("python-pptx/jsonschema are not available")
-        if not (openxml_dotnet_path()).is_file():
-            self.skipTest("Open XML validator runtime is not available")
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            profile_path = self._package_smoke_profile(root)
-            pptx, report_path, _ = self._package_smoke_verified_artifact(root, profile_path)
-            package_dir = root / "package"
-            result = MODULE.execute_package_stage(
-                profile_path, pptx, report_path, package_dir, allow_local_unsigned=False
-            )
-            self.assertEqual(result["status"], "FAIL", result)
-            self.assertFalse(result["packageCreated"])
-            self.assertFalse(result["releaseReady"])
-            self.assertFalse(package_dir.exists())
-            self.assertTrue(any("VSA gate aggregation" in item for item in result["failures"]))
-            self.assertTrue(any("authenticity" in item for item in result["gateAggregation"]["failures"]))
-
-    def test_package_stage_local_unsigned_builds_digest_bound_development_package(self) -> None:
-        if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
-            self.skipTest("python-pptx/jsonschema are not available")
-        if not (openxml_dotnet_path()).is_file():
-            self.skipTest("Open XML validator runtime is not available")
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            profile_path = self._package_smoke_profile(root)
-            pptx, report_path, _ = self._package_smoke_verified_artifact(root, profile_path)
-            package_dir = root / "package"
-            result = MODULE.execute_package_stage(
-                profile_path, pptx, report_path, package_dir, allow_local_unsigned=True
-            )
-            self.assertEqual(result["status"], "PASS", result)
-            self.assertTrue(result["packageCreated"])
-            self.assertEqual(result["releaseManifest"]["status"], "PASS", result)
-            self.assertEqual(result["trustStanding"], "LOCAL_UNSIGNED_DEVELOPMENT")
-            self.assertFalse(result["releaseReady"])
-            index = json.loads((package_dir / "package-index.json").read_text())
-            self.assertEqual(index["status"], "PASS")
-            self.assertFalse(index["releaseReady"])
-            self.assertEqual(index["primary"]["digest"]["sha256"], MODULE.sha256_file(pptx))
-            self.assertEqual(len(index["attestations"]), 3)
-            self.assertTrue(all(item["path"].startswith("attestations/") for item in index["attestations"]))
-            self.assertTrue(all(not Path(item["path"]).is_absolute() for item in index["evidence"] + index["attestations"]))
-            copied_vsa = package_dir / "attestations/structural.vsa.json"
-            copied_primary = package_dir / "artifacts/artifact.pptx"
-            checked = MODULE.verify_verification_summary(copied_vsa, copied_primary, profile_path)
-            self.assertEqual(checked["status"], "PASS", checked)
-            self.assertEqual(checked["authenticity"], "NOT_VERIFIED")
-
-    def test_package_stage_detects_verification_evidence_drift_before_copy(self) -> None:
-        if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
-            self.skipTest("python-pptx/jsonschema are not available")
-        if not (openxml_dotnet_path()).is_file():
-            self.skipTest("Open XML validator runtime is not available")
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            profile_path = self._package_smoke_profile(root)
-            pptx, report_path, verified = self._package_smoke_verified_artifact(root, profile_path)
-            raw_path = Path(verified["receipts"]["structural"]["rawEvidence"]["path"])
-            raw_path.write_text(raw_path.read_text() + " ")
-            package_dir = root / "package"
-            result = MODULE.execute_package_stage(
-                profile_path, pptx, report_path, package_dir, allow_local_unsigned=True
-            )
-            self.assertEqual(result["status"], "FAIL", result)
-            self.assertFalse(result["packageCreated"])
-            self.assertFalse(package_dir.exists())
-            self.assertTrue(any("raw evidence file fact failed: structural" == item for item in result["failures"]))
 
     def test_pptx_package_relationships_and_placeholder_gate(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1537,35 +1376,6 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertIn("visual", result["requiredGateFailures"])
             self.assertIn("companionPdf", result["requiredGateFailures"])
             self.assertIn("deliveryReadback", result["requiredGateFailures"])
-
-    def test_release_manifest_requires_profile_requested_provenance(self) -> None:
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            primary = root / "report.docx"
-            companion = root / "report.pdf"
-            provenance = root / "provenance.json"
-            primary.write_bytes(b"docx")
-            companion.write_bytes(b"pdf")
-            profile = ROOT / "artifact-delivery/examples/document-r1.json"
-            missing = MODULE.build_release_manifest(profile, primary, [companion])
-            self.assertEqual(missing["status"], "FAIL")
-            self.assertTrue(any("release provenance" in item for item in missing["failures"]))
-            statement = MODULE.slsa_statement(
-                [primary, companion],
-                [],
-                profile,
-                "https://builder.example.test/artifact-delivery",
-                "https://builder.example.test/artifact-delivery/document/v1",
-            )
-            provenance.write_text(json.dumps(statement))
-            assembled = MODULE.build_release_manifest(profile, primary, [companion], provenance=provenance)
-            schema_available = MODULE.validate_profile(profile)["jsonSchema"]["status"] == "PASS"
-            self.assertEqual(assembled["status"], "PASS" if schema_available else "FAIL", assembled)
-            self.assertEqual(assembled["primary"]["digest"]["sha256"], MODULE.sha256_file(primary))
-            self.assertEqual(assembled["provenance"]["status"], "PASS")
-            statement["subject"] = statement["subject"][:1]
-            provenance.write_text(json.dumps(statement))
-            self.assertEqual(MODULE.build_release_manifest(profile, primary, [companion], provenance=provenance)["status"], "FAIL")
 
     def test_verapdf_rejects_ordinary_powerpoint_pdf_as_pdfua2_when_available(self) -> None:
         pdf = ROOT / ".cache/artifact-toolchain/python-pptx/target/probe.pdf"
