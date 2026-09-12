@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "verifiers": {
+    "https://ordivon.local/security-v2": {
+      "publicKeySha256": "sha256:426a1044bec0857fc2286638fd95995bddfdb075ab2cbd42d9affa61c5b6d75a"
+    }
+  }
+}
