@@ -35,7 +35,7 @@ ordivon-next/
 ├── schemas/         # minimal common contracts; added only after cross-domain proof
 ├── knowledge/       # curated metadata/mappings to human knowledge, not copied world knowledge
 ├── domains/         # domain life-cycle profiles such as game/research/software
-├── capabilities/    # registry records for external capabilities and providers
+├── capabilities/    # external capability/provider records and task-local Capability Package inventories
 ├── compositions/    # reusable problem -> solution -> validation recipes
 ├── adapters/        # thin integration edges to mature external systems
 ├── verification/    # acceptance profiles and validator mappings
