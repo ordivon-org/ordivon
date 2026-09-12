@@ -1,0 +1,33 @@
+{
+  "allowedTargetAuthorities": [
+    "artifact-golden-r1"
+  ],
+  "bucket": "ordivon-artifacts",
+  "contentIdentity": {
+    "digestAlgorithm": "sha256",
+    "fields": [
+      "mediaType",
+      "digest",
+      "size"
+    ]
+  },
+  "createOnly": {
+    "header": "If-None-Match",
+    "value": "*"
+  },
+  "credentialFile": "/root/.config/ordivon/secrets/cloudflare-account-api-token.json",
+  "credentialRef": "cloudflare-account-api-token",
+  "defaultCapabilityTtlSeconds": 300,
+  "kind": "ordivon.artifact-r2-mailbox-operator-config",
+  "maxBytes": 8388608,
+  "nonClaims": [
+    "provider-object-existence-is-input-authority",
+    "transport-success-is-artifact-acceptance",
+    "presigned-url-is-single-use",
+    "account-api-token-is-zero-trust-access-token",
+    "account-api-token-is-persisted-temporary-s3-credential"
+  ],
+  "objectPrefix": "objects/sha256",
+  "provider": "cloudflare-r2",
+  "schemaVersion": 1
+}
