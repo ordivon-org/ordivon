@@ -10,3 +10,4 @@ This directory contains interoperability contracts, not a new Ordivon middleware
 - **OpenTelemetry** owns telemetry semantics and propagation.
 
 Authority rule: contracts standardize transport/interoperability; they do not grant domain permission or external-effect authority.
+The Distribution integration boundary has explicit AsyncAPI message variants for `io.ordivon.distribution.admission.v1`, blocked results, and read-only provider readback results. These contracts intentionally do not copy Distribution occurrence/effect-authority policy; they only standardize the integration envelope and preserve `externalEffectPerformed=false`. The current n8n workflow is one replaceable implementation of this contract.

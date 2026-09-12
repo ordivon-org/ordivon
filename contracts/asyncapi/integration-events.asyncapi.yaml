@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Ordivon Integration Events
-  version: 0.1.0
+  version: 0.2.0
   description: Logical asynchronous contract between integration edges and durable/domain owners. No broker is implied.
 channels:
   integrationEvents:
@@ -9,6 +9,12 @@ channels:
     messages:
       cloudEvent:
         $ref: '#/components/messages/CloudEvent'
+      distributionAdmission:
+        $ref: '#/components/messages/DistributionAdmission'
+      distributionBlockedResult:
+        $ref: '#/components/messages/DistributionBlockedResult'
+      distributionReadbackResult:
+        $ref: '#/components/messages/DistributionReadbackResult'
 operations:
   receiveIntegrationEvent:
     action: receive
@@ -25,3 +31,64 @@ components:
       contentType: application/cloudevents+json
       payload:
         $ref: ../cloudevents/ordivon-event.schema.json
+    DistributionAdmission:
+      name: DistributionAdmission
+      title: Distribution admission decision ready for an integration adapter
+      contentType: application/cloudevents+json
+      payload:
+        allOf:
+          - $ref: ../cloudevents/ordivon-event.schema.json
+          - type: object
+            required: [type, data]
+            properties:
+              type:
+                const: io.ordivon.distribution.admission.v1
+              data:
+                $ref: ./distribution-admission-data.schema.json
+    DistributionBlockedResult:
+      name: DistributionBlockedResult
+      title: Integration adapter blocked without calling the provider
+      contentType: application/cloudevents+json
+      payload:
+        allOf:
+          - $ref: ../cloudevents/ordivon-event.schema.json
+          - type: object
+            required: [type, correlationid, data]
+            properties:
+              type:
+                const: io.ordivon.integration.distribution.blocked.v1
+              correlationid:
+                type: string
+                minLength: 1
+              data:
+                allOf:
+                  - $ref: ./distribution-integration-result-data.schema.json
+                  - type: object
+                    properties:
+                      providerCalled:
+                        const: false
+    DistributionReadbackResult:
+      name: DistributionReadbackResult
+      title: Read-only provider-native integration readback result
+      contentType: application/cloudevents+json
+      payload:
+        allOf:
+          - $ref: ../cloudevents/ordivon-event.schema.json
+          - type: object
+            required: [type, correlationid, data]
+            properties:
+              type:
+                const: io.ordivon.integration.distribution.readback.v1
+              correlationid:
+                type: string
+                minLength: 1
+              data:
+                allOf:
+                  - $ref: ./distribution-integration-result-data.schema.json
+                  - type: object
+                    required: [externalMethod]
+                    properties:
+                      providerCalled:
+                        const: true
+                      externalMethod:
+                        const: GET
