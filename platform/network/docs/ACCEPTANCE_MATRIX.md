@@ -24,9 +24,9 @@ Acceptance is capability-based rather than round-based.
 | Process recovery | kill live sing-box and observe systemd recovery | PASS |
 | WSL reboot recovery | real WSL boot boundary + post-boot live verify | PASS |
 | Control-plane independence | R0 stopped while Runtime/Cloudflare remain healthy | PASS |
-| Packet delay/loss/reorder | tc/netem | EXTERNAL — current WSL kernel lacks netem |
-| Full topology fidelity | containerlab | EXTERNAL — standard Linux runner required |
-| Kernel WireGuard differential | kernel WG vs wireguard-go | EXTERNAL — standard Linux runner required |
+| Packet delay/loss/reorder | tc/netem on standard-Linux KVM reference | PASS on reference Linux |
+| Full topology fidelity | containerlab two-node Linux topology + data-link reachability | PASS on reference Linux |
+| Kernel WireGuard differential | kernel WG lifecycle vs direct wireguard-go TUN/UAPI lifecycle | PASS on reference Linux |
 
 ## Public task entry points
 
@@ -64,3 +64,8 @@ The report records:
 - a stable platform fingerprint (OS, architecture, kernel release, WSL classification).
 
 `task evidence:verify-local` fails if the checked-in report no longer matches the generic source or current platform. This prevents a historical PASS document from silently remaining current after behavior-defining files or the execution kernel change.
+
+
+## Standard-Linux reference authority
+
+The current reference standing is **STANDARD_LINUX_REFERENCE_GRADUATED**. The authority record is `evidence/reference-linux-20260912.json`. Local WSL evidence and standard-Linux reference evidence are intentionally separate projections: WSL proves the real workstation path; KVM reference Linux proves kernel capabilities unavailable to WSL.

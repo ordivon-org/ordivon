@@ -33,7 +33,15 @@
     }
   },
   "standardLinux": {
+    "standing": "STANDARD_LINUX_REFERENCE_GRADUATED",
     "entryPoint": "task reference:linux:accept",
-    "required": ["tcNetem", "containerlab", "kernelWireguardDifferential"]
+    "evidence": "evidence/reference-linux-20260912.json",
+    "capabilities": {
+      "tcNetem": "PASS",
+      "containerlab": "PASS",
+      "kernelWireguard": "PASS",
+      "userspaceWireguard": "PASS",
+      "kernelWireguardDifferential": "PASS"
+    }
   }
 }

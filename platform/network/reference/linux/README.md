@@ -26,4 +26,8 @@ Reference acceptance covers:
 1. deterministic `tc/netem` loss plus delay/reorder;
 2. a two-node containerlab Linux topology and real data-interface reachability;
 3. kernel-WireGuard lifecycle;
-4. the existing pinned `wireguard-go` userspace lifecycle as a differential counterpart.
+4. direct pinned `wireguard-go` userspace TUN/UAPI lifecycle as a differential counterpart to kernel WireGuard.
+
+## Current standing
+
+`STANDARD_LINUX_REFERENCE_GRADUATED` on a clean Arch Linux KVM guest. The authority evidence is `../../evidence/reference-linux-20260912.json`. The acceptance run used an immutable qcow2 base plus a disposable overlay and local OCI/tool fixtures so registry or module-proxy availability was not part of network correctness.
