@@ -36,7 +36,8 @@ def main() -> int:
     revision = _run("git", "rev-parse", "HEAD", cwd=repo)
     source_uri = "git+" + repo.as_uri()
     uv_version = _run("uv", "--version").split()[1]
-    python_version = _run("uv", "run", "--python", "3.12", "python", "-c", "import platform; print(platform.python_version())", cwd=repo)
+    python_executable = _run("uv", "python", "find", "3.12")
+    python_version = _run(python_executable, "-c", "import platform; print(platform.python_version())")
 
     output.mkdir(parents=True, exist_ok=True)
     for child in output.iterdir():
