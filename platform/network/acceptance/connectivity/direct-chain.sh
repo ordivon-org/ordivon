@@ -4,10 +4,11 @@ DNS_UNIT=network-v2-r0-dnsproxy-smoke.service
 SB_UNIT=network-v2-r0-singbox-smoke.service
 SB4_UNIT=network-v2-r0-singbox-v4-smoke.service
 SB6_UNIT=network-v2-r0-singbox-v6-smoke.service
+ORIGIN_UNIT=network-v2-r0-stream-origin-smoke.service
 TMP=$(mktemp -d /tmp/network-v2-direct-smoke.XXXXXX)
 cleanup(){
-  systemctl stop "$SB6_UNIT" "$SB4_UNIT" "$SB_UNIT" "$DNS_UNIT" 2>/dev/null || true
-  systemctl reset-failed "$SB6_UNIT" "$SB4_UNIT" "$SB_UNIT" "$DNS_UNIT" 2>/dev/null || true
+  systemctl stop "$SB6_UNIT" "$SB4_UNIT" "$SB_UNIT" "$DNS_UNIT" "$ORIGIN_UNIT" 2>/dev/null || true
+  systemctl reset-failed "$SB6_UNIT" "$SB4_UNIT" "$SB_UNIT" "$DNS_UNIT" "$ORIGIN_UNIT" 2>/dev/null || true
   rm -rf "$TMP"
 }
 trap cleanup EXIT
@@ -28,13 +29,26 @@ done
 make_cfg(){
   strategy=$1; port=$2; out=$3
   jq --arg strategy "$strategy" --argjson port "$port" \
-    '.dns.servers[0].server_port=25354 | .dns.strategy=$strategy | .inbounds[0].listen_port=$port' \
+    '.dns.servers[0].server_port=25354 | .dns.strategy=$strategy | .inbounds[0].listen_port=$port | .route.rules=[]' \
     config/sing-box/direct.json >"$out"
   /usr/bin/sing-box check -c "$out"
 }
 make_cfg prefer_ipv6 28081 "$TMP/dual.json"
 make_cfg ipv4_only 28082 "$TMP/v4.json"
 make_cfg ipv6_only 28083 "$TMP/v6.json"
+
+# Deterministic stream origin: large-flow correctness must not depend on CDN/ISP throughput.
+mkdir -p "$TMP/www"
+truncate -s 5000000 "$TMP/www/5m.bin"
+ORIGIN_SHA=$(sha256sum "$TMP/www/5m.bin" | awk '{print $1}')
+ORIGIN_PORT=38280
+for p in 38280 38281 38282 38283; do
+  if ! ss -ltnH "sport = :$p" | grep -q .; then ORIGIN_PORT=$p; break; fi
+done
+systemd-run --quiet --unit="$ORIGIN_UNIT" --property=Type=simple --property=Restart=no \
+  /usr/bin/python3 -m http.server "$ORIGIN_PORT" --bind 127.0.0.1 --directory "$TMP/www"
+for _ in $(seq 1 50); do curl --noproxy '*' -fsS "http://127.0.0.1:$ORIGIN_PORT/5m.bin" -o /dev/null 2>/dev/null && break; sleep 0.1; done
+curl --noproxy '*' -fsS "http://127.0.0.1:$ORIGIN_PORT/5m.bin" -o /dev/null
 
 start_sb(){
   unit=$1; cfg=$2; port=$3
@@ -51,12 +65,14 @@ probe_example(){
 start_sb "$SB_UNIT" "$TMP/dual.json" 28081
 probe_example 28081
 
-# Large-body path: catches small-request false greens and PMTU/stream stalls.
-meta=$(curl --fail --silent --show-error --proxy http://127.0.0.1:28081 --connect-timeout 5 --max-time 45 \
-  -o "$TMP/5m.bin" -w 'http=%{http_code} bytes=%{size_download} speed=%{speed_download} time=%{time_total}' \
-  'https://speed.cloudflare.com/__down?bytes=5000000')
-test "$(stat -c %s "$TMP/5m.bin")" -eq 5000000
-printf 'dualstack-longflow %s\n' "$meta"
+# Deterministic large-body path: catches small-request false greens and stream stalls
+# without treating public-CDN throughput as a correctness property.
+meta=$(curl --fail --silent --show-error --noproxy '' --proxy http://127.0.0.1:28081 --connect-timeout 3 --max-time 20 \
+  -o "$TMP/5m.download" -w 'http=%{http_code} bytes=%{size_download} speed=%{speed_download} time=%{time_total}' \
+  "http://127.0.0.1:$ORIGIN_PORT/5m.bin")
+test "$(stat -c %s "$TMP/5m.download")" -eq 5000000
+test "$(sha256sum "$TMP/5m.download" | awk '{print $1}')" = "$ORIGIN_SHA"
+printf 'deterministic-longflow %s\n' "$meta"
 
 # Concurrent connection admission: no request may silently fall out of the proxy.
 for i in 1 2 3 4; do

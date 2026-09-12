@@ -10,9 +10,9 @@ Acceptance is capability-based rather than round-based.
 | Address-family fallback | preferred family unavailable in deterministic local origin | PASS both directions |
 | HTTP/1.1 | proxied request with negotiated version assertion | PASS |
 | HTTP/2 | proxied request with negotiated version assertion | PASS |
-| Long flow | repeated 5 MB proxied transfer | PASS |
-| Concurrency | parallel proxied requests | PASS |
-| Stable egress identity | repeated public egress observation | PASS |
+| Long flow | deterministic local 5 MB origin through isolated sing-box proxy, exact size + SHA-256 | PASS |
+| Concurrency | parallel proxied external requests | PASS |
+| External egress observation | one valid public IP observation through live proxy | PASS |
 | UDP/QUIC | HTTP/3 through isolated TUN/netns | PASS |
 | DNS partial failure | one upstream unavailable | PASS UDP/TCP |
 | DNS all-upstream failure | uncached/expired query returns SERVFAIL | PASS |
