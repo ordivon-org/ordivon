@@ -1,0 +1,316 @@
+---
+- name: Operations v2 production Temporal green cluster
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    postgres_port: 55434
+    postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+    temporal_db_user: temporal
+    temporal_db_name: temporal
+    temporal_visibility_db_name: temporal_visibility
+    temporal_secret_file: /etc/temporal/temporal-secrets.env
+    temporal_server: /opt/ordivon/external/temporal-server/1.31.2/temporal-server
+    temporal_sql_tool: /opt/ordivon/external/temporal-server/1.31.2/temporal-sql-tool
+    temporal_cli: /opt/ordivon/external/temporal-cli/1.8.3/temporal
+    temporal_schema_root: /opt/ordivon/external/temporal-server/1.31.2/schema/postgresql/v12
+    temporal_address: 127.0.0.1:17233
+  tasks:
+    - name: Verify exact Temporal production binaries are present
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ temporal_server }}"
+        - "{{ temporal_sql_tool }}"
+        - "{{ temporal_cli }}"
+      register: temporal_binaries
+
+    - name: Refuse missing Temporal production substrate
+      ansible.builtin.assert:
+        that:
+          - temporal_binaries.results | map(attribute='stat.exists') | min
+          - temporal_binaries.results | map(attribute='stat.executable') | min
+
+    - name: Create dedicated Temporal service account
+      ansible.builtin.user:
+        name: temporal
+        system: true
+        shell: /usr/bin/nologin
+        home: /var/lib/temporal
+        create_home: false
+
+    - name: Create Temporal configuration directory
+      ansible.builtin.file:
+        path: /etc/temporal
+        state: directory
+        owner: root
+        group: temporal
+        mode: "0750"
+
+    - name: Create Temporal state directory
+      ansible.builtin.file:
+        path: /var/lib/temporal
+        state: directory
+        owner: temporal
+        group: temporal
+        mode: "0700"
+
+    - name: Generate Temporal PostgreSQL secret once
+      ansible.builtin.shell: |
+        set -euo pipefail
+        umask 077
+        password="$(/usr/bin/openssl rand -hex 32)"
+        printf 'TEMPORAL_POSTGRES_PASSWORD=%s\n' "$password" > "{{ temporal_secret_file }}"
+      args:
+        executable: /usr/bin/bash
+        creates: "{{ temporal_secret_file }}"
+      no_log: true
+
+    - name: Preserve root-only Temporal secret permissions
+      ansible.builtin.file:
+        path: "{{ temporal_secret_file }}"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Read Temporal secret for PostgreSQL reconciliation
+      ansible.builtin.slurp:
+        src: "{{ temporal_secret_file }}"
+      register: temporal_secret_blob
+      no_log: true
+
+    - name: Extract Temporal PostgreSQL password without publishing it
+      ansible.builtin.set_fact:
+        temporal_db_password: "{{ (temporal_secret_blob.content | b64decode | regex_search('TEMPORAL_POSTGRES_PASSWORD=([^\\n]+)', '\\1'))[0] }}"
+      no_log: true
+
+    - name: Create dedicated Temporal PostgreSQL role
+      community.postgresql.postgresql_user:
+        name: "{{ temporal_db_user }}"
+        password: "{{ temporal_db_password }}"
+        login_user: postgres
+        login_port: "{{ postgres_port }}"
+        login_unix_socket: "{{ postgres_socket }}"
+      become_user: postgres
+      no_log: true
+
+    - name: Create Temporal persistence databases
+      community.postgresql.postgresql_db:
+        name: "{{ item }}"
+        owner: "{{ temporal_db_user }}"
+        login_user: postgres
+        login_port: "{{ postgres_port }}"
+        login_unix_socket: "{{ postgres_socket }}"
+      become_user: postgres
+      loop:
+        - "{{ temporal_db_name }}"
+        - "{{ temporal_visibility_db_name }}"
+
+    - name: Detect Temporal schema version tables
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/psql
+          - -p
+          - "{{ postgres_port | string }}"
+          - -h
+          - "{{ postgres_socket }}"
+          - -d
+          - "{{ item }}"
+          - -Atqc
+          - "select case when to_regclass('public.schema_version') is null then 'absent' else 'present' end;"
+      become_user: postgres
+      loop:
+        - "{{ temporal_db_name }}"
+        - "{{ temporal_visibility_db_name }}"
+      register: temporal_schema_tables
+      changed_when: false
+
+    - name: Initialize Temporal schema version table when absent
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_sql_tool }}"
+          - --endpoint
+          - 127.0.0.1
+          - --port
+          - "{{ postgres_port | string }}"
+          - --user
+          - "{{ temporal_db_user }}"
+          - --password
+          - "{{ temporal_db_password }}"
+          - --database
+          - "{{ item.item }}"
+          - --plugin
+          - postgres12
+          - setup-schema
+          - --version
+          - "0.0"
+      loop: "{{ temporal_schema_tables.results }}"
+      when: item.stdout == 'absent'
+      no_log: true
+
+    - name: Upgrade Temporal core schema to server-supported latest
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_sql_tool }}"
+          - --endpoint
+          - 127.0.0.1
+          - --port
+          - "{{ postgres_port | string }}"
+          - --user
+          - "{{ temporal_db_user }}"
+          - --password
+          - "{{ temporal_db_password }}"
+          - --database
+          - "{{ temporal_db_name }}"
+          - --plugin
+          - postgres12
+          - update-schema
+          - --schema-dir
+          - "{{ temporal_schema_root }}/temporal/versioned"
+      no_log: true
+      changed_when: false
+
+    - name: Upgrade Temporal visibility schema to server-supported latest
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_sql_tool }}"
+          - --endpoint
+          - 127.0.0.1
+          - --port
+          - "{{ postgres_port | string }}"
+          - --user
+          - "{{ temporal_db_user }}"
+          - --password
+          - "{{ temporal_db_password }}"
+          - --database
+          - "{{ temporal_visibility_db_name }}"
+          - --plugin
+          - postgres12
+          - update-schema
+          - --schema-dir
+          - "{{ temporal_schema_root }}/visibility/versioned"
+      no_log: true
+      changed_when: false
+
+    - name: Read resulting Temporal schema versions
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/psql
+          - -p
+          - "{{ postgres_port | string }}"
+          - -h
+          - "{{ postgres_socket }}"
+          - -d
+          - "{{ item }}"
+          - -Atqc
+          - "select curr_version from schema_version;"
+      become_user: postgres
+      loop:
+        - "{{ temporal_db_name }}"
+        - "{{ temporal_visibility_db_name }}"
+      register: temporal_schema_versions
+      changed_when: false
+
+    - name: Require exact Temporal 1.31 schema floor
+      ansible.builtin.assert:
+        that:
+          - temporal_schema_versions.results[0].stdout == '1.19'
+          - temporal_schema_versions.results[1].stdout == '1.14'
+        fail_msg: Temporal 1.31.2 requires core schema 1.19 and visibility schema 1.14.
+
+    - name: Install Temporal production config
+      ansible.builtin.copy:
+        src: ../temporal/production.yaml
+        dest: /etc/temporal/production.yaml
+        owner: root
+        group: temporal
+        mode: "0640"
+      notify: Restart Temporal green
+
+    - name: Install Temporal production systemd unit
+      ansible.builtin.template:
+        src: ../temporal/temporal.service.j2
+        dest: /etc/systemd/system/temporal.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart Temporal green
+
+    - name: Converge Temporal unit definitions
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start Temporal green cluster
+      ansible.builtin.systemd_service:
+        name: temporal.service
+        enabled: true
+        state: started
+
+    - name: Wait for Temporal green cluster health
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_cli }}"
+          - operator
+          - cluster
+          - health
+          - --address
+          - "{{ temporal_address }}"
+      register: temporal_health
+      retries: 30
+      delay: 1
+      until: temporal_health.rc == 0
+      changed_when: false
+
+    - name: Check default namespace on green cluster
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_cli }}"
+          - operator
+          - namespace
+          - describe
+          - --address
+          - "{{ temporal_address }}"
+          - --namespace
+          - default
+      register: temporal_default_namespace
+      changed_when: false
+      failed_when: false
+
+    - name: Create default namespace when absent
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_cli }}"
+          - operator
+          - namespace
+          - create
+          - --address
+          - "{{ temporal_address }}"
+          - --namespace
+          - default
+          - --retention
+          - 7d
+      when: temporal_default_namespace.rc != 0
+
+    - name: Verify default namespace after convergence
+      ansible.builtin.command:
+        argv:
+          - "{{ temporal_cli }}"
+          - operator
+          - namespace
+          - describe
+          - --address
+          - "{{ temporal_address }}"
+          - --namespace
+          - default
+      changed_when: false
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Temporal green
+      ansible.builtin.systemd_service:
+        name: temporal.service
+        state: restarted
