@@ -90,8 +90,8 @@
     },
     {
       "capability": "visualization",
-      "owner": "grafana",
-      "status": "installed_not_cutover"
+      "owner": "grafana_official_oci",
+      "status": "active_official_oci_prometheus_loki_e2e_verified"
     },
     {
       "capability": "generic_inventory",
