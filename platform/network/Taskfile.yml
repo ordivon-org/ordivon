@@ -1,7 +1,7 @@
 version: '3'
 
 tasks:
-  validate:r0:
+  core:validate:
     desc: Validate only the generic Network v2 R0 platform, independent of consumer-specific profiles
     cmds:
       - sing-box check -c config/sing-box/direct.json
@@ -9,17 +9,26 @@ tasks:
       - promtool check config config/prometheus/prometheus.yml
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
-  validate:
-    deps: [validate:r0]
+  provider:surfshark:validate:
+    desc: Validate only the Surfshark provider profile layer
     cmds:
-      - sing-box check -c config/provider-carrier.json
-      - sing-box check -c config/finance-okx-singbox.json
-      - sing-box check -c config/finance-okx-shadow.json
+      - sing-box check -c providers/surfshark/config/carrier.json
 
-  install:r0:
+  consumer:finance-okx:validate:
+    desc: Validate only the finance-okx consumer profile; does not grant consumer authority
+    deps: [provider:surfshark:validate]
+    cmds:
+      - sing-box check -c consumers/finance-okx/config/provider-selection.json
+      - sing-box check -c consumers/finance-okx/config/shadow.json
+
+  all:validate:
+    desc: Validate core plus optional provider and consumer profiles without changing live state
+    deps: [core:validate, provider:surfshark:validate, consumer:finance-okx:validate]
+
+  core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
     cmds:
-      - task: validate:r0
+      - task: core:validate
       - install -d -m 0755 /etc/network-v2/sing-box /etc/network-v2/blackbox /etc/network-v2/prometheus
       - install -m 0644 config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
       - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
@@ -32,7 +41,7 @@ tasks:
       - systemctl restart network-v2-r0.target
       - systemctl disable --now network-v2-toxiproxy.service || true
 
-  verify:live:
+  core:verify:
     desc: Fail closed unless live R0 bytes, systemd composition root, dual-stack data plane, probe plane, and evidence plane match source
     cmds:
       - cmp -s systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
@@ -62,15 +71,15 @@ tasks:
       - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=dns_a&target=127.0.0.1:25353' | awk '/^probe_success / {print $2}')" = "1"
       - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=dns_aaaa&target=127.0.0.1:25353' | awk '/^probe_success / {print $2}')" = "1"
       - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=tcp_connect&target=127.0.0.1:28080' | awk '/^probe_success / {print $2}')" = "1"
-      - ./tests/prometheus-singbox-ready.sh
+      - ./acceptance/observability/live-prometheus-ready.sh
 
-  converge:r0:
+  core:converge:
     desc: Validate, materialize, and prove one exact live R0 generation
     cmds:
-      - task: install:r0
-      - task: verify:live
+      - task: core:install
+      - task: core:verify
 
-  external:wireguard-go:
+  capability:wireguard:materialize:
     desc: Build the pinned official wireguard-go source and install it only inside Network v2 libexec
     cmds:
       - rm -rf /tmp/network-v2-wireguard-go-build
@@ -84,48 +93,49 @@ tasks:
       - install -m 0755 /tmp/network-v2-wireguard-go-build/wireguard-go /usr/local/libexec/network-v2/wireguard-go
       - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
 
-  smoke:direct:
+  accept:connectivity:
     cmds:
-      - ./tests/direct-chain-smoke.sh
+      - ./acceptance/connectivity/direct-chain.sh
 
-  smoke:observe:
+  accept:observability:
     cmds:
-      - ./tests/observation-smoke.sh
+      - ./acceptance/observability/blackbox-prometheus.sh
 
-  smoke:toxiproxy:
+  accept:fault-l4:
     cmds:
-      - ./tests/toxiproxy-smoke.sh
+      - ./acceptance/fault/l4-toxiproxy.sh
 
-  lab:netns:
+  accept:topology:
     cmds:
-      - ./tests/netns-smoke.sh
+      - ./acceptance/topology/netns.sh
 
-  smoke:provider-external:
+  provider:surfshark:carrier:
     desc: Prove sing-box can consume one already-existing WireGuard provider namespace without admitting ownership of that provider substrate
     cmds:
-      - ./tests/provider-carrier-smoke.sh
+      - ./providers/surfshark/acceptance/carrier-smoke.sh
 
-  lab:wireguard-userspace:
+  capability:wireguard:accept:
     desc: Prove wg-quick + pinned official wireguard-go can create, fail, and recover a v2-owned userspace WireGuard lifecycle
     cmds:
-      - task: external:wireguard-go
-      - ./tests/wgquick-userspace-lifecycle.sh
+      - task: capability:wireguard:materialize
+      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
 
-  smoke:recovery-live:
+  accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
     cmds:
-      - ./tests/live-recovery-smoke.sh
+      - ./acceptance/lifecycle/process-recovery.sh
 
-  smoke:priority-failover:
+  capability:failover:accept:
     desc: Prove HAProxy TCP primary/backup failover across mature sing-box provider/direct carriers without mutating the provider tunnel
     cmds:
-      - ./tests/priority-failover-smoke.sh
+      - ./capabilities/failover/acceptance/priority-failover-smoke.sh
 
   test:r4:
+    internal: true
     desc: Prove the external-provider carrier and deterministic mature primary/backup failover/failback mechanism
-    deps: [validate, smoke:provider-external, smoke:priority-failover]
+    deps: [provider:surfshark:validate, provider:surfshark:carrier, capability:failover:accept]
 
-  external:gluetun-servers:
+  provider:surfshark:catalog:
     desc: Materialize the pinned Gluetun Surfshark server catalog used as provider endpoint/public-key authority
     cmds:
       - rm -rf /tmp/network-v2-gluetun-servers
@@ -139,9 +149,9 @@ tasks:
       - install -m 0644 /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} {{.GLUETUN_SERVERS_INSTALL}}
       - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
 
-  materialize:provider-profiles:
+  provider:surfshark:profiles:
     desc: Convert v2-owned standard Surfshark WireGuard configs into static numeric-endpoint wg-quick profiles using yq and the pinned Gluetun catalog
-    deps: [external:gluetun-servers]
+    deps: [provider:surfshark:catalog]
     cmds:
       - |
         set -eu
@@ -177,15 +187,20 @@ tasks:
         done
         test "$(find "$out" -mindepth 2 -maxdepth 2 -type f -name '*.conf' | wc -l)" -eq 6
 
-  test:r6:
-    desc: Prove independent dual Surfshark WireGuard provider admission, sing-box URLTest failover, destination fencing, recovery, and all-provider fail-closed behavior
-    deps: [validate, external:wireguard-go, materialize:provider-profiles]
+  consumer:finance-okx:provider-path-accept:
+    desc: Prove the finance-okx two-provider path policy without granting production authority
+    deps: [consumer:finance-okx:validate, capability:wireguard:materialize, provider:surfshark:profiles]
     cmds:
-      - ./tests/provider-dual-failclosed-smoke.sh
+      - ./consumers/finance-okx/acceptance/provider-dual-failclosed.sh
 
-  verify:r6-local-inputs:
+  test:r6:
+    internal: true
+    cmds:
+      - task: consumer:finance-okx:provider-path-accept
+
+  provider:surfshark:verify-local:
     desc: Verify the already-graduated local R6 provider inputs without re-fetching external sources
-    deps: [validate]
+    deps: [provider:surfshark:validate]
     cmds:
       - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
       - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
@@ -206,14 +221,14 @@ tasks:
           test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
         done <"$manifest"
 
-  materialize:finance-okx-shadow:
+  consumer:finance-okx:materialize:
     desc: Build the non-production systemd shadow topology from the admitted R6 provider inputs without enabling it at boot
     cmds:
       - systemctl stop network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
-      - task: verify:r6-local-inputs
+      - task: provider:surfshark:verify-local
       - install -d -m 0755 /etc/network-v2/finance-okx
-      - install -m 0644 config/provider-carrier.json /etc/network-v2/finance-okx/provider-carrier.json
-      - install -m 0644 config/finance-okx-shadow.json /etc/network-v2/finance-okx/shadow.json
+      - install -m 0644 providers/surfshark/config/carrier.json /etc/network-v2/finance-okx/provider-carrier.json
+      - install -m 0644 consumers/finance-okx/config/shadow.json /etc/network-v2/finance-okx/shadow.json
       - |
         set -eu
         manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
@@ -250,84 +265,112 @@ tasks:
         install -m 0600 "$b_tmp" /etc/network-v2/finance-okx/provider-b.env
       - for: { var: FINANCE_OKX_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
-      - /usr/bin/systemd-analyze verify systemd/finance-okx/network-v2-finance-okx-netns@.service systemd/finance-okx/network-v2-finance-okx-wireguard@.service systemd/finance-okx/network-v2-finance-okx-carrier@.service systemd/finance-okx/network-v2-finance-okx-shadow.service systemd/finance-okx/network-v2-finance-okx-shadow.target
+      - /usr/bin/systemd-analyze verify consumers/finance-okx/systemd/network-v2-finance-okx-netns@.service consumers/finance-okx/systemd/network-v2-finance-okx-wireguard@.service consumers/finance-okx/systemd/network-v2-finance-okx-carrier@.service consumers/finance-okx/systemd/network-v2-finance-okx-shadow.service consumers/finance-okx/systemd/network-v2-finance-okx-shadow.target
       - systemctl daemon-reload
       - systemctl disable network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
 
-  start:finance-okx-shadow:
+  consumer:finance-okx:start:
     desc: Materialize, start, and destructively verify the isolated finance-okx shadow without changing production consumer authority
     cmds:
-      - task: materialize:finance-okx-shadow
+      - task: consumer:finance-okx:materialize
       - systemctl start network-v2-finance-okx-shadow.target
-      - task: verify:finance-okx-shadow
+      - task: consumer:finance-okx:verify
 
-  verify:finance-okx-shadow:
+  consumer:finance-okx:verify:
     desc: Verify persistent shadow service, two-provider failure/recovery, destination fencing, and control-plane/legacy non-interference
     cmds:
-      - ./tests/finance-okx-shadow-smoke.sh
+      - ./consumers/finance-okx/acceptance/shadow-smoke.sh
 
-  stop:finance-okx-shadow:
+  consumer:finance-okx:stop:
     desc: Stop only the Network v2 finance-okx shadow topology
     cmds:
       - systemctl stop network-v2-finance-okx-shadow.target
 
   test:r7:
+    internal: true
     desc: Build and verify the persistent non-production finance-okx shadow topology
     cmds:
-      - task: start:finance-okx-shadow
+      - task: consumer:finance-okx:start
 
-  smoke:cold-start-r0:
+  accept:cold-start:
     desc: Stop and cold-start the whole generic R0 target while proving control-plane independence and dual-stack readiness
     cmds:
-      - ./tests/r0-cold-start-smoke.sh
+      - ./acceptance/lifecycle/cold-start.sh
 
   test:r0:
-    deps: [validate:r0, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
+    internal: true
+    deps: [core:validate, accept:connectivity, accept:observability, accept:fault-l4, accept:topology]
 
   test:r9:
+    internal: true
     desc: "Graduate the generic Network v2 platform: isolated dual-stack/long-flow tests, live convergence, cold-start recovery, and process recovery"
     cmds:
       - task: test:r0
-      - task: converge:r0
-      - task: smoke:cold-start-r0
-      - task: smoke:recovery-live
-      - task: verify:live
+      - task: core:converge
+      - task: accept:cold-start
+      - task: accept:process-recovery
+      - task: core:verify
 
-  smoke:protocol-divergence:
+  accept:protocol:
     desc: Prove HTTP/1.1 and HTTP/2 parity, UDP/TCP DNS parity, stable egress identity, and repeated long-flow success
     cmds:
-      - ./tests/protocol-divergence-smoke.sh
+      - ./acceptance/protocol/divergence.sh
 
-  lab:tun-quic:
+  accept:full-ip:
     desc: Prove TCP and UDP/QUIC through a sing-box TUN confined to an isolated Linux network namespace
     cmds:
-      - ./tests/tun-quic-smoke.sh
+      - ./acceptance/full-ip/tun-quic.sh
 
   test:r11:
+    internal: true
     desc: "Harden generic Network v2 protocol coverage without changing the live host routing model"
     cmds:
-      - task: verify:live
-      - task: smoke:protocol-divergence
-      - task: lab:tun-quic
-      - task: verify:live
+      - task: core:verify
+      - task: accept:protocol
+      - task: accept:full-ip
+      - task: core:verify
 
-  smoke:family-fallback:
+  accept:family-fallback:
     desc: Prove bidirectional address-family fallback under deterministic local single-family failure
     cmds:
-      - ./tests/family-fallback-smoke.sh
+      - ./acceptance/connectivity/family-fallback.sh
 
-  smoke:dns-resilience:
+  accept:dns-resilience:
     desc: Prove partial-upstream survival, all-upstream fail-closed semantics, cache expiry, and recovery without dnsproxy restart
     cmds:
-      - ./tests/dns-resilience-smoke.sh
+      - ./acceptance/dns/upstream-resilience.sh
 
   test:r12:
+    internal: true
     desc: "Harden generic Network v2 resilience without changing live R0 configuration"
     cmds:
-      - task: verify:live
-      - task: smoke:family-fallback
-      - task: smoke:dns-resilience
-      - task: verify:live
+      - task: core:verify
+      - task: accept:family-fallback
+      - task: accept:dns-resilience
+      - task: core:verify
+
+  accept:source:
+    desc: Run generic isolated acceptance without converging or mutating live R0
+    deps: [core:validate, accept:connectivity, accept:observability, accept:fault-l4, accept:topology]
+
+  accept:live:
+    desc: Revalidate the current live R0 across lifecycle, protocol, full-IP, and resilience capabilities
+    cmds:
+      - task: core:verify
+      - task: accept:cold-start
+      - task: accept:process-recovery
+      - task: accept:protocol
+      - task: accept:full-ip
+      - task: accept:family-fallback
+      - task: accept:dns-resilience
+      - task: core:verify
+
+  accept:local:
+    desc: Full local WSL graduation from source validation through exact live convergence and all generic acceptance
+    cmds:
+      - task: accept:source
+      - task: core:converge
+      - task: accept:live
 
 vars:
   SYSTEMD_UNITS:
@@ -335,20 +378,20 @@ vars:
   R0_SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
   FINANCE_OKX_SYSTEMD_UNITS:
-    sh: printf '%s ' systemd/finance-okx/*
+    sh: printf '%s ' consumers/finance-okx/systemd/*
   WIREGUARD_GO_REPO:
-    sh: awk -F= '$1=="repository"{print $2}' external/wireguard-go.lock
+    sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_REVISION:
-    sh: awk -F= '$1=="revision"{print $2}' external/wireguard-go.lock
+    sh: awk -F= '$1=="revision"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_VERSION:
-    sh: awk -F= '$1=="version"{print $2}' external/wireguard-go.lock
+    sh: awk -F= '$1=="version"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   GLUETUN_SERVERS_REPO:
-    sh: awk -F= '$1=="repository"{print $2}' external/gluetun-servers.lock
+    sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun-servers.lock
   GLUETUN_SERVERS_REVISION:
-    sh: awk -F= '$1=="revision"{print $2}' external/gluetun-servers.lock
+    sh: awk -F= '$1=="revision"{print $2}' providers/surfshark/external/gluetun-servers.lock
   GLUETUN_SERVERS_FILE:
-    sh: awk -F= '$1=="file"{print $2}' external/gluetun-servers.lock
+    sh: awk -F= '$1=="file"{print $2}' providers/surfshark/external/gluetun-servers.lock
   GLUETUN_SERVERS_SHA256:
-    sh: awk -F= '$1=="sha256"{print $2}' external/gluetun-servers.lock
+    sh: awk -F= '$1=="sha256"{print $2}' providers/surfshark/external/gluetun-servers.lock
   GLUETUN_SERVERS_INSTALL:
-    sh: awk -F= '$1=="install"{print $2}' external/gluetun-servers.lock
+    sh: awk -F= '$1=="install"{print $2}' providers/surfshark/external/gluetun-servers.lock

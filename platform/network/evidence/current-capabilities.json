@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "platform": "current-wsl",
+  "standing": "LOCAL_WSL_GRADUATED",
+  "generic": {
+    "ipv4": "PASS",
+    "ipv6": "PASS",
+    "dnsA": "PASS",
+    "dnsAAAA": "PASS",
+    "familyFallback": "PASS_BOTH_DIRECTIONS",
+    "http11": "PASS",
+    "http2": "PASS",
+    "udpQuicIsolatedTun": "PASS",
+    "longFlow": "PASS",
+    "concurrency": "PASS",
+    "stableEgressIdentity": "PASS",
+    "dnsPartialUpstreamFailure": "PASS",
+    "dnsAllUpstreamFailClosed": "PASS",
+    "dnsRecoveryWithoutRestart": "PASS",
+    "blackboxPrometheus": "PASS",
+    "toxiproxyL4Faults": "PASS",
+    "netnsTopology": "PASS",
+    "coldStart": "PASS",
+    "processRecovery": "PASS",
+    "wslRebootRecovery": "PASS",
+    "controlPlaneIndependence": "PASS"
+  },
+  "externalFidelity": {
+    "tcNetem": "REQUIRES_STANDARD_LINUX",
+    "containerlab": "REQUIRES_STANDARD_LINUX",
+    "kernelWireguardDifferential": "REQUIRES_STANDARD_LINUX"
+  },
+  "outsideNetworkBoundary": {
+    "windowsHostRebootWslAutolaunch": "WORKSTATION_BOOTSTRAP",
+    "consumerCutover": "CONSUMER_MIGRATION",
+    "legacyRetirement": "CONSUMER_MIGRATION"
+  }
+}

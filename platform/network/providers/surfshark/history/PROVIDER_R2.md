@@ -13,7 +13,7 @@ Network v2 did not add a compatibility daemon. Instead it uses the mature upstre
 3. `wg(8)` remains the configuration/control interface;
 4. Linux netns + veth provide the controlled underlay for the local acceptance test.
 
-The official source is pinned by exact revision in `external/wireguard-go.lock` and installed only under `/usr/local/libexec/network-v2/`, so Network v2 does not alter the global `wireguard-go` command resolution used by unrelated software.
+The official source is pinned by exact revision in `capabilities/wireguard/external/wireguard-go.lock` and installed only under `/usr/local/libexec/network-v2/`, so Network v2 does not alter the global `wireguard-go` command resolution used by unrelated software.
 
 ## Acceptance result
 

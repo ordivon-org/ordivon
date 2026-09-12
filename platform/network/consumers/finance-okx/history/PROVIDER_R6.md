@@ -60,13 +60,13 @@ No `wg set ... endpoint` controller remains in R6. Each candidate is a complete 
 
 ### Provider carrier, health, selection, and policy — sing-box
 
-Each provider namespace runs the same static `config/provider-carrier.json`:
+Each provider namespace runs the same static `providers/surfshark/config/carrier.json`:
 
 - provider DNS is explicit;
 - private destinations and IPv6 are rejected;
 - the HTTP carrier is only a transport surface over the already-admitted provider tunnel.
 
-The root `config/finance-okx-singbox.json` owns:
+The root `consumers/finance-okx/config/provider-selection.json` owns:
 
 - the exact `openapi.okx.com:443` destination fence;
 - two provider HTTP outbounds;
