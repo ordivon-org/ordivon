@@ -60,3 +60,26 @@ The retirement was executed after the admission rule passed. Final receipt:
 - archive root: `/var/lib/ordivon/retired/host-v1`.
 
 The original `/var/lib/ordivon/host` tree is retained as historical state rather than duplicated. The independent DB backup, per-file digest manifest, ready-projection archive, and retirement receipt are mode `0400`.
+
+## Runtime and public-surface retirement
+
+After the durable-state archive was independently verified, the executable Host installation was retired as a separate step.
+
+Before deletion, `/usr/local/libexec/ordivon/host` was reduced to a provenance manifest rather than copied:
+
+- files: `11,409`;
+- bytes: `590,019,750`;
+- content root: `sha256:60383abcc8edeaf908a30f7d4ac2e4df47195c5f455f1d15c7825be23e26fdc3`;
+- manifest SHA-256: `sha256:06a4a3fb5829637e3464591b64ea9802ed50b4dca8421552ef6783c3cccbbadb`;
+- provenance receipt: `/var/lib/ordivon/retired/host-v1/host-v1-install-provenance.json`.
+
+The following live-runtime material was then removed:
+
+- `ordivon-host-mcp.service`;
+- Host env/token material under `/etc/ordivon`;
+- `/usr/local/bin/ordivon-host-mcp` and `/usr/local/bin/ordivon-host`;
+- `/usr/local/libexec/ordivon/host`.
+
+Post-removal verification reports `LoadState=not-found` and no listener on `8898`. The historical `/var/lib/ordivon/host` tree and retirement archive remain intact.
+
+The Cloudflare DNS CNAME for `host-mcp.ordivon.com` was independently inventoried as a Host-specific record and deleted through the canonical Cloudflare account API-token authority. A post-delete authoritative DNS inventory returned an empty set. The old Cloudflare Access application remains as an inert provider-side policy object with no Host DNS entry; it is not considered a live Ordivon surface and should be removed separately when that provider mutation path is available.
