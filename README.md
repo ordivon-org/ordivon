@@ -86,3 +86,6 @@ See `docs/R6-APPROVAL-INGRESS.md` and `evidence/r6-validation-20260912.json`.
 - Existing Ordivon Temporal/Runtime + Workstation ingress: durable orchestration, immutable-input authority, and exact external-file ingress remain shared infrastructure owners.
 
 See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/`, and `scripts/test-all.sh`.
+## R7 Artifact release-standing handoff
+
+Artifact-backed distribution intents now bind Artifact SHA-256, `releaseReady`, `trustStanding`, and source lineage into occurrence identity. Effectful publication is rejected with `artifact_release_not_ready` unless `releaseReady=true`; release readiness never replaces exact user EffectAuthority. The real post-retirement Artifact development package was evaluated through this gate with `externalEffectPerformed=false`. See `docs/R7-ARTIFACT-HANDOFF.md`.

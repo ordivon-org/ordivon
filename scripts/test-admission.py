@@ -19,7 +19,12 @@ def envelope(*, mode="read", supported=True, execution="api", requirements=None,
         "schemaVersion": 2,
         "intentId": "intent:test:1",
         "occurrenceRef": "sha256:" + "0" * 64,
-        "artifact": {"sha256": "sha256:" + "a" * 64},
+        "artifact": {
+            "sha256": "sha256:" + "a" * 64,
+            "releaseReady": True,
+            "trustStanding": "CRYPTOGRAPHICALLY_VERIFIED",
+            "sourceRef": "artifact:test:release-ready",
+        },
         "carrier": {"adapter": "test-adapter", "provider": "test-provider", "accountRef": "account:test"},
         "effect": {
             "name": "publish" if mode != "read" else "read_back",
@@ -101,6 +106,16 @@ def main() -> int:
     expect_action("read-ready", envelope(), "preflight_ready")
     expect_action("write-needs-authority", envelope(mode="write"), "user_action_required")
     expect_action("write-bound-authority", envelope(mode="write", authority=True), "preflight_ready")
+    unreleased = envelope(mode="write", authority=True)
+    unreleased["intent"]["artifact"]["releaseReady"] = False
+    unreleased["intent"]["artifact"]["trustStanding"] = "LOCAL_UNSIGNED_DEVELOPMENT"
+    unreleased["intent"]["occurrenceRef"] = occurrence_ref(unreleased["intent"])
+    unreleased["providerObservation"]["occurrenceRef"] = unreleased["intent"]["occurrenceRef"]
+    unreleased["providerObservation"]["observationRef"] = provider_observation_ref(unreleased["providerObservation"])
+    auth = unreleased["effectAuthority"]
+    auth["occurrenceRef"] = unreleased["intent"]["occurrenceRef"]
+    auth["authorityRef"] = effect_authority_ref(auth)
+    expect_action("artifact-write-release-not-ready", unreleased, "artifact_release_not_ready")
     expect_action("provider-access-missing", envelope(requirements=["provider-access"]), "provider_access_required")
     expect_action("human-handoff", envelope(execution="human_handoff"), "user_action_required")
     expect_action("unsupported", envelope(supported=False), "capability_unavailable")

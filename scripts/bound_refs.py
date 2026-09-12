@@ -17,15 +17,25 @@ def effect_payload_ref(intent: dict) -> str:
 
 def occurrence_projection(intent: dict) -> dict:
     artifact = intent.get("artifact")
-    return {
+    projection = {
         "schemaVersion": 2,
         "intentId": intent["intentId"],
         "provider": intent["carrier"]["provider"],
         "accountRef": intent["carrier"]["accountRef"],
-        "artifactSha256": artifact.get("sha256") if isinstance(artifact, dict) else None,
         "effectName": intent["effect"]["name"],
         "effectPayloadRef": effect_payload_ref(intent),
     }
+    if isinstance(artifact, dict):
+        projection["artifact"] = {
+            "sha256": artifact.get("sha256"),
+            "releaseReady": artifact.get("releaseReady"),
+            "trustStanding": artifact.get("trustStanding"),
+            "sourceRef": artifact.get("sourceRef"),
+        }
+    else:
+        # Preserve the R6 occurrence identity for non-artifact intents.
+        projection["artifactSha256"] = None
+    return projection
 
 
 def occurrence_ref(intent: dict) -> str:

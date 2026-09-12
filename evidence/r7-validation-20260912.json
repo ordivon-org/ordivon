@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-12",
+  "decision": "artifact_release_not_ready",
+  "externalEffectPerformed": false,
+  "files": {
+    "contracts/distribution-intent.schema.json": "sha256:a45fddb23f71e0a7414477285691827f92abbc7ab36aade474d92bc83f595583",
+    "evidence/r7-artifact-development-publication-intent.json": "sha256:9ad725105c95c195a0d83579c1563eedf74015c9058da1fbb51648198c4c732e",
+    "policy/distribution.rego": "sha256:dc9097d40830078c12382b136d82e14432bf20d70b196eecd5c7c7f29495ad51",
+    "scripts/admission.py": "sha256:6e57971c1c5301122069d6cd742ec5faa7d4a73eec815bc1affb41afbbd0e50a",
+    "scripts/artifact_handoff.py": "sha256:cab9c8b04ab9aacf632a0bea7878cbcbe5af4ed54dee69c5d6fc7ce049ac26c4",
+    "scripts/bound_refs.py": "sha256:6e488f4bab3041e12158accabd874b6bb6829641df7865f1c18e16034f5d7093",
+    "scripts/test-artifact-handoff.py": "sha256:44e44ec6a38ec16c6bbfac889d3c5a6a4ae9499042ea4b465e2534e9c854f9da"
+  },
+  "githubWritePerformed": false,
+  "historicalNullArtifactOccurrencePreserved": "sha256:85c9751defd978f24a659cdc3acdb6bd0fb8249488a33d181012329d49ad827a",
+  "kind": "distribution-v2-r7-validation",
+  "realArtifactReleaseReady": false,
+  "realArtifactSha256": "sha256:2e5970e05bc8b823e9ca2f4fcaa2fa97de43b619c896c85afde92058fae0c9e9",
+  "realArtifactTrustStanding": "LOCAL_UNSIGNED_DEVELOPMENT",
+  "realArtifactWorkflow": "artifact-v2-source-authority-smoke-20260912-03",
+  "schemaVersion": 1,
+  "standing": "PASS"
+}

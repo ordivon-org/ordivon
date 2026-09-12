@@ -94,7 +94,8 @@ def normalize(envelope: dict, now: datetime | None = None) -> dict:
         "intent": {
             "intentId": intent["intentId"], "occurrenceRef": intent["occurrenceRef"],
             "provider": intent["carrier"]["provider"], "accountRef": intent["carrier"]["accountRef"],
-            "adapter": intent["carrier"]["adapter"], "effectName": intent["effect"]["name"]
+            "adapter": intent["carrier"]["adapter"], "effectName": intent["effect"]["name"],
+            "artifact": intent.get("artifact"),
         },
         "provider": {
             "observationRef": provider["observationRef"], "effectName": provider["effectName"],

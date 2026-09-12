@@ -21,6 +21,14 @@ effectful if {
   input.provider.effectMode == "destructive"
 }
 
+artifact_release_eligible if {
+  input.intent.artifact == null
+}
+
+artifact_release_eligible if {
+  input.intent.artifact.releaseReady == true
+}
+
 decision := {
   "action": "capability_unavailable",
   "reason": "provider-does-not-support-effect",
@@ -51,6 +59,19 @@ decision := {
 }
 
 decision := {
+  "action": "artifact_release_not_ready",
+  "reason": "artifact-backed-effect-requires-release-ready-artifact",
+  "externalEffectPerformed": false,
+} if {
+  input.provider.effectSupported == true
+  count(input.provider.missingProviderRequirements) == 0
+  count(input.provider.missingInteractions) == 0
+  effectful
+  input.intent.artifact != null
+  input.intent.artifact.releaseReady != true
+}
+
+decision := {
   "action": "user_action_required",
   "reason": "bound-exact-effect-authority-required",
   "externalEffectPerformed": false,
@@ -59,6 +80,7 @@ decision := {
   count(input.provider.missingProviderRequirements) == 0
   count(input.provider.missingInteractions) == 0
   effectful
+  artifact_release_eligible
   input.authority.granted != true
 }
 
@@ -84,6 +106,7 @@ decision := {
   count(input.provider.missingInteractions) == 0
   input.provider.executionMode == "human_handoff"
   effectful
+  artifact_release_eligible
   input.authority.granted == true
 }
 
@@ -109,5 +132,6 @@ decision := {
   count(input.provider.missingInteractions) == 0
   input.provider.executionMode != "human_handoff"
   effectful
+  artifact_release_eligible
   input.authority.granted == true
 }
