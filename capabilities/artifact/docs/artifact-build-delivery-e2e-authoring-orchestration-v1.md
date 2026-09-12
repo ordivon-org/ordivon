@@ -216,7 +216,7 @@ The implementation has been exercised against the live local Temporal server, no
 - cancellation at the trust wait: workflow cancellation produced no package operation;
 - direct activity replay: a repeated package/build operation returns the committed receipt instead of duplicating the effect.
 
-A hardened systemd worker unit and plan/apply deployment helper are defined. The helper refuses to apply from a detached Runtime workspace: installation is eligible only from `/root/workstation-lab` after the candidate is integrated into the main source authority. This keeps code verification separate from production cutover.
+A hardened systemd worker unit and plan/apply deployment helper are defined. The helper refuses to apply from a detached Runtime workspace: installation is eligible only from `/root/projects/ordivon-artifact-v2` after the candidate is integrated into the main source authority. This keeps code verification separate from production cutover.
 
 ## Next admissible implementation
 

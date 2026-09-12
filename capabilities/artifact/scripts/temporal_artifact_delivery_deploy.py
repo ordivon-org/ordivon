@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse,hashlib,json,os,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-MAIN=Path('/root/workstation-lab')
+MAIN=Path('/root/projects/ordivon-artifact-v2')
 UNIT='ordivon-artifact-temporal-worker.service'
 SOURCE_UNIT=ROOT/'systemd'/UNIT
 SYSTEM_UNIT=Path('/etc/systemd/system')/UNIT

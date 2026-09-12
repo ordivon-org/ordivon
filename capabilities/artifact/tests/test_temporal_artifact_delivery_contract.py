@@ -50,7 +50,7 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'committed activity output drift'):ex.build(value)
 
     def test_deployment_is_main_source_fenced_and_hardened(self):
-        deploy=(ROOT/'scripts/temporal_artifact_delivery_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/workstation-lab')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("if not current['applyEligible']",deploy);self.assertIn('artifact_python_probe()',deploy);self.assertIn("artifact_python['ready']",deploy);self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-delivery-temporal',unit)
+        deploy=(ROOT/'scripts/temporal_artifact_delivery_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/projects/ordivon-artifact-v2')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("if not current['applyEligible']",deploy);self.assertIn('artifact_python_probe()',deploy);self.assertIn("artifact_python['ready']",deploy);self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-delivery-temporal',unit)
 
     def test_trust_material_rejects_secret_fields(self):
         m=load_support()
