@@ -55,7 +55,7 @@ Observed locally and therefore not reinstalled for this pack:
 - containers: Docker, Podman;
 - infrastructure/configuration: OpenTofu, Ansible;
 - languages/tooling: Python, Node/npm/pnpm, uv/uvx, Git, ripgrep, jq, yq;
-- document/visual/media: Typst, FFmpeg, ImageMagick, Blender, Godot, qpdf;
+- document/visual/media: Quarto 1.10.18 (bundled Pandoc 3.10), Typst, FFmpeg, ImageMagick, Blender, Godot, qpdf;
 - software supply chain/security: Syft, Trivy, Skopeo, Cosign;
 - data/geospatial: DuckDB, SQLite, GDAL/OGR.
 
