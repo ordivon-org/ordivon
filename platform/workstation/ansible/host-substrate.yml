@@ -1,0 +1,116 @@
+---
+- name: Operations v2 local host and WSL desired state
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    operations_wslconfig_path: /mnt/c/Users/16663/.wslconfig
+    operations_wsl2_settings:
+      - { option: memory, value: 8GB }
+      - { option: processors, value: "16" }
+      - { option: swap, value: 6GB }
+      - { option: swapFile, value: 'D:\WSL\wsl-swap.vhdx' }
+      - { option: networkingMode, value: mirrored }
+      - { option: dnsTunneling, value: "true" }
+      - { option: autoProxy, value: "false" }
+      - { option: maxCrashDumpCount, value: "3" }
+      - { option: guiApplications, value: "false" }
+      - { option: nestedVirtualization, value: "true" }
+    operations_wsl_experimental_settings:
+      - { option: autoMemoryReclaim, value: dropCache }
+      - { option: sparseVhd, value: "true" }
+    operations_wsl_distro_settings:
+      - { section: boot, option: systemd, value: "true" }
+      - { section: user, option: default, value: root }
+      - { section: network, option: generateResolvConf, value: "true" }
+      - { section: interop, option: enabled, value: "true" }
+      - { section: interop, option: appendWindowsPath, value: "false" }
+  tasks:
+    - name: Ensure system manager drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure user manager drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/user.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure coredump drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/coredump.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Own system manager file-descriptor limit desired state
+      ansible.builtin.copy:
+        src: ../host/system.conf.d-20-ordivon-agent-limits.conf
+        dest: /etc/systemd/system.conf.d/20-ordivon-agent-limits.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Own user manager file-descriptor limit desired state
+      ansible.builtin.copy:
+        src: ../host/user.conf.d-20-ordivon-agent-limits.conf
+        dest: /etc/systemd/user.conf.d/20-ordivon-agent-limits.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Own coredump suppression desired state
+      ansible.builtin.copy:
+        src: ../host/coredump.conf.d-20-ordivon-agent-node.conf
+        dest: /etc/systemd/coredump.conf.d/20-ordivon-agent-node.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Preserve unowned Windows WSL configuration while converging owned WSL2 keys
+      community.general.ini_file:
+        path: "{{ operations_wslconfig_path }}"
+        section: wsl2
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        create: false
+        no_extra_spaces: true
+        modify_inactive_option: false
+        unsafe_writes: true
+      loop: "{{ operations_wsl2_settings }}"
+
+    - name: Preserve unowned Windows WSL configuration while converging owned experimental keys
+      community.general.ini_file:
+        path: "{{ operations_wslconfig_path }}"
+        section: experimental
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        create: false
+        no_extra_spaces: true
+        modify_inactive_option: false
+        unsafe_writes: true
+      loop: "{{ operations_wsl_experimental_settings }}"
+
+    - name: Converge WSL distribution settings without replacing unrelated sections
+      community.general.ini_file:
+        path: /etc/wsl.conf
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        create: false
+        no_extra_spaces: true
+        modify_inactive_option: false
+      loop: "{{ operations_wsl_distro_settings }}"
+
+    - name: Record that WSL activation is an explicit external restart boundary
+      ansible.builtin.debug:
+        msg: >-
+          WSL config bytes are converged only. This playbook does not run wsl --shutdown,
+          restart the distribution, or claim the new Windows-side WSL generation is live.
