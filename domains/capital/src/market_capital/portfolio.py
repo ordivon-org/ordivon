@@ -44,3 +44,32 @@ def build_equal_weight_validation_portfolio(
             "reference_retrieved_at": reference["retrieved_at"],
         },
     }
+
+
+def build_research_gated_validation_portfolio(
+    ips: dict[str, Any], reference: dict[str, Any], research: dict[str, Any]
+) -> dict[str, Any]:
+    rows = research.get("features")
+    if not isinstance(rows, list):
+        raise ValueError("Research artifact does not contain a features list")
+
+    symbols = [row.get("symbol") for row in rows]
+    if len(symbols) != len(set(symbols)):
+        raise ValueError("Research artifact contains duplicate symbols")
+
+    required = set(ips["allowed_instruments"])
+    observed = set(symbols)
+    missing = sorted(required - observed)
+    if missing:
+        raise ValueError(f"Missing research evidence for: {missing}")
+
+    portfolio = build_equal_weight_validation_portfolio(ips, reference)
+    portfolio["method"] = "equal_weight_validation_research_gated"
+    portfolio["inputs"]["research_source"] = research.get("source")
+    portfolio["inputs"]["research_symbols"] = sorted(required)
+    portfolio["inputs"]["research_fiscal_years"] = {
+        row["symbol"]: row.get("fiscal_year")
+        for row in rows
+        if row.get("symbol") in required
+    }
+    return portfolio
