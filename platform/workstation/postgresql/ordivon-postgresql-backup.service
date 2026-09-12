@@ -1,0 +1,14 @@
+[Unit]
+Description=Ordivon PostgreSQL verified full backup
+Requires=postgresql.service
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+ExecStartPre=/usr/bin/pgbackrest --stanza=ordivon --log-level-console=info check
+ExecStart=/usr/bin/pgbackrest --stanza=ordivon --type=full --log-level-console=info backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6

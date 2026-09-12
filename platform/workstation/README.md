@@ -48,3 +48,7 @@ Only three classes of custom behavior are expected to survive migration:
 3. **Cross-E2E handoff contracts** — explicit transfer between desired state, physical realization, Runtime execution truth, and owner verdict.
 
 See `docs/ARCHITECTURE.md` and `docs/MIGRATION_R1.md`.
+
+## Shared PostgreSQL backup substrate
+
+Operations v2 owns only the generic node-operational substrate for the shared PostgreSQL service: Ansible desired state, packaged PostgreSQL, pgBackRest configuration/PITR, and the systemd backup timer. Consumer schemas, database meaning, migration admission, and restored-state semantic acceptance remain with Host/Research/Finance/other data owners. Routine Operations convergence never restarts PostgreSQL implicitly when `postgresql_alter_system` reports a restart requirement.
