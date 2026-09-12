@@ -216,13 +216,13 @@ The implementation has been exercised against the live local Temporal server, no
 - cancellation at the trust wait: workflow cancellation produced no package operation;
 - direct activity replay: a repeated package/build operation returns the committed receipt instead of duplicating the effect.
 
-A hardened systemd worker unit and plan/apply deployment helper are defined. The helper refuses to apply from a detached Runtime workspace: installation is eligible only from `/root/projects/ordivon-artifact-v2` after the candidate is integrated into the main source authority. This keeps code verification separate from production cutover.
+A hardened systemd worker unit and plan/apply deployment helper are defined and deployed from `/root/projects/ordivon-artifact-v2`. The helper still refuses to apply from a detached Runtime workspace. The accepted worker targets the production-green Temporal cluster at `127.0.0.1:17233`, and the checked-in development-only workflow fixture has completed prepare/build/verify/package without promoting release readiness.
 
 ## Next admissible implementation
 
 The remaining Linux-local orchestration work is:
 
-1. integrate the Temporal worker candidate into the main source authority, then run the guarded worker deployment/readiness smoke; do not apply the detached-workspace unit directly;
+1. preserve the accepted independent source authority and guarded worker deployment; do not reintroduce Workstation as Artifact source owner or apply detached-workspace units;
 2. complete the verify-stage matrix for gates that can run locally and preserve externally-blocked Office/WebKit/visual/delivery gates as explicit pending/fail-closed states;
 3. decide and implement cryptographic authenticity for SLSA release provenance using the same Sigstore substrate or a separately authorized release-signer policy, rather than inventing another provenance format;
 4. exercise the standardized-bundle keyless identity path with explicit identity/issuer/transparency-log/TrustedRoot integration evidence; an independently verified upstream Sigstore asset may later replace the GPG-verified distribution package as tool-origin hardening;
