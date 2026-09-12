@@ -1,0 +1,112 @@
+{
+  "classification": {
+    "conformanceProfile": "RFC 5322 + RFC 2045/2046 bounded UTF-8 single-part text message",
+    "family": "message",
+    "format": {
+      "mediaType": "message/rfc822",
+      "name": "RFC 5322 Internet Message + MIME text/plain"
+    },
+    "purposes": [
+      "interchange",
+      "preservation"
+    ],
+    "representation": "internet-message"
+  },
+  "id": "message-internet-text-r1",
+  "nonClaims": [
+    "SMTP transport/delivery success",
+    "sender identity authentication",
+    "DKIM, SPF, DMARC or ARC validity",
+    "mailbox-container semantics such as mbox/PST/MSG",
+    "multipart/attachment correctness",
+    "HTML rendering safety or fidelity",
+    "semantic truth of message content",
+    "spam/malware classification"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "message-internet-text-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/message-internet-text-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "message/rfc822",
+        "name": "RFC 5322 Internet Message + MIME text/plain"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "attachments": false,
+      "bcc": false,
+      "cc": false,
+      "charset": "utf-8",
+      "contentTransferEncoding": "8bit",
+      "contentType": "text/plain",
+      "fromAddressCount": 1,
+      "html": false,
+      "lineEndings": "CRLF",
+      "maximumPhysicalLineLength": 998,
+      "mimeVersion": "1.0",
+      "multipart": false,
+      "requiredHeaders": [
+        "Date",
+        "From",
+        "To",
+        "Subject",
+        "Message-ID",
+        "MIME-Version",
+        "Content-Type",
+        "Content-Transfer-Encoding"
+      ],
+      "singletonHeaders": [
+        "Date",
+        "From",
+        "To",
+        "Subject",
+        "Message-ID",
+        "MIME-Version",
+        "Content-Type",
+        "Content-Transfer-Encoding"
+      ],
+      "toAddressCount": 1
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "bodyIdentity": {
+      "claim": "both parsers decode exactly the expected UTF-8 text body SHA-256",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "message object contract validates",
+      "required": true
+    },
+    "nodeParser": {
+      "claim": "mailparser independently exposes matching header/address/body facts",
+      "required": true
+    },
+    "pythonParser": {
+      "claim": "Python email parser reports no defects and exposes bounded MIME/message facts",
+      "required": true
+    },
+    "rawSyntaxPolicy": {
+      "claim": "raw message uses bounded RFC line/header structure with required singleton headers",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-parser-matrix",
+      "required": true
+    }
+  ]
+}

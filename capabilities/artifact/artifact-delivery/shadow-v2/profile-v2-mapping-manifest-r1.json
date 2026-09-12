@@ -1,7 +1,7 @@
 {
-  "fullRegression": "214 tests / 212 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "223 tests / 221 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 16,
+  "mappingCount": 17,
   "mappings": [
     {
       "family": "text-document",
@@ -124,6 +124,16 @@
       "validation": "PASS"
     },
     {
+      "family": "message",
+      "mapped": "artifact-delivery/shadow-v2/examples/message-internet-text-r1-v2.json",
+      "mappedDigest": "717d0bb062512a780d842a65ae09511a99255aa8e562796d61456e68cbcfade0",
+      "profileId": "message-internet-text-r1",
+      "source": "artifact-delivery/shadow-profiles/message-internet-text-r1.json",
+      "sourceDigest": "04059d9ce46e639032f0b2dc2391c9077f3ce8ea5dc4c442714df17a4be1a6d9",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "moving-image",
       "mapped": "artifact-delivery/shadow-v2/examples/moving-image-matroska-ffv1-v3-r1-v2.json",
       "mappedDigest": "b2472b4d760329978b2e94557b51bf5a6ccbf6b88810b64f63a6bc722b0b8761",
@@ -172,7 +182,8 @@
     "moving-image",
     "software-release",
     "design-3d",
-    "web-archive"
+    "web-archive",
+    "message"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

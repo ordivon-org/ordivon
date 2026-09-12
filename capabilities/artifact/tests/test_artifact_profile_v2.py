@@ -121,6 +121,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertEqual(mapped['objectContract']['binding'],'request-digest')
         self.assertEqual(mapped['classification']['format']['mediaType'],'application/vnd.apache.parquet')
 
+    def test_message_shadow_maps_parser_matrix_and_message_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/message-internet-text-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'message')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'message/rfc822')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
+
     def test_web_archive_shadow_maps_parser_matrix_and_capture_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json').read_text())
         mapped=MODULE.map_shadow(source)
