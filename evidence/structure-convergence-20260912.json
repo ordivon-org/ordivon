@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-12",
+  "scope": "Network E2E capability-first repository convergence",
+  "standing": "GREENFIELD_STRUCTURE_CONVERGED",
+  "liveNetworkMechanismChanged": false,
+  "genericCore": {
+    "providerConsumerDependency": false,
+    "publicTaskModel": [
+      "core:*",
+      "accept:*",
+      "capability:*",
+      "provider:*",
+      "consumer:*"
+    ],
+    "roundTasksPublic": false,
+    "currentCapabilityReport": "evidence/current-capabilities.json"
+  },
+  "repositoryBoundaries": {
+    "genericConfig": "config/",
+    "genericLifecycle": "systemd/",
+    "genericAcceptance": "acceptance/",
+    "optionalCapabilities": "capabilities/",
+    "providers": "providers/",
+    "consumers": "consumers/",
+    "history": "history/"
+  },
+  "validation": {
+    "structuralBehaviorJobId": "job-01a095aa-1079-7e11-addb-6bbc92602372",
+    "structuralBehaviorOperationDigest": "sha256:7e39ea5702ff37ab14370b6cb6f39311951a1e258a8935a28f8e2f3e8c1f84f2",
+    "coreValidate": true,
+    "coreVerify": true,
+    "genericSourceAcceptance": true,
+    "providerLocalInputsVerified": true,
+    "consumerProfileValidatedWithoutStart": true,
+    "liveRevalidationJobId": "job-01a095aa-b1fd-7bf3-9909-cc6bbe490933",
+    "liveRevalidationOperationDigest": "sha256:94d16d83a73616e7feae7ce9163be29d6f85b752bcb2efec75eaf83c3125245a",
+    "coldStart": true,
+    "processRecovery": true,
+    "protocolDivergence": true,
+    "isolatedTunQuic": true,
+    "familyFallback": true,
+    "dnsResilience": true,
+    "finalCoreVerify": true,
+    "cloudflareHa": {"productionA":4,"productionB":4,"canary":4}
+  },
+  "consumerAuthority": {
+    "financeMigrationResumed": false,
+    "financeProductionCutover": false
+  }
+}

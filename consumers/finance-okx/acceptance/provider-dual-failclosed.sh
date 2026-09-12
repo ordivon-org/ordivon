@@ -5,7 +5,7 @@ CONFIG_ROOT=${CONFIG_ROOT:-/etc/network-v2/providers}
 PROFILE_ROOT=${PROFILE_ROOT:-$CONFIG_ROOT/catalog-profiles}
 PROFILE_MANIFEST=${PROFILE_MANIFEST:-$PROFILE_ROOT/MANIFEST.tsv}
 SERVER_CATALOG=${SERVER_CATALOG:-/usr/local/share/network-v2/gluetun-servers/surfshark.json}
-SERVER_CATALOG_LOCK=${SERVER_CATALOG_LOCK:-external/gluetun-servers.lock}
+SERVER_CATALOG_LOCK=${SERVER_CATALOG_LOCK:-providers/surfshark/external/gluetun-servers.lock}
 NODE_A=${NODE_A:-kr-seo}
 NODE_B=${NODE_B:-th-bkk}
 WGGO=${WGGO:-/usr/local/libexec/network-v2/wireguard-go}
@@ -14,8 +14,8 @@ TARGET_JQ=${TARGET_JQ:-'.code == "0" and (.data | type == "array") and (.data | 
 ROOT_PORT=${ROOT_PORT:-28220}
 ROOT_API_PORT=${ROOT_API_PORT:-28229}
 ROOT_UNIT=network-v2-r6-urltest.service
-ROOT_CFG=config/finance-okx-singbox.json
-CARRIER_CFG=config/provider-carrier.json
+ROOT_CFG=consumers/finance-okx/config/provider-selection.json
+CARRIER_CFG=providers/surfshark/config/carrier.json
 
 declare -A NODE SOURCE NS HOST_IF NS_IF WG_IF HOST_IP NS_IP CARRIER_PORT SB_UNIT SOURCE_PEER SELECTED HANDSHAKE ACTIVE_PROFILE LAST_PROFILE
 NODE[A]=$NODE_A; NODE[B]=$NODE_B
