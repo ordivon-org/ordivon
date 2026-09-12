@@ -20,7 +20,7 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 | Threat model artifact | OWASP Threat Model Library TM-BOM; Threat Dragon as editor/viewer | P0 selected | Bind standards-format model to exact architecture envelope; do not make the editor the authority |
 | Threat identification method | OWASP threat-modeling process + STRIDE | P0 selected | Preserve exact threat/mitigation/verification references |
 | Attack/weakness vocabulary | MITRE CAPEC + CWE | P0 selected references | Reference external identifiers; do not clone taxonomies |
-| Repository security posture | OpenSSF Scorecard | P0 selected | Treat individual checks as evidence; never promote the aggregate score directly to authority |
+| Repository security posture | OpenSSF Scorecard | R1 provider acceptance proven; Ordivon project admission pending | Treat individual checks as evidence; never promote the aggregate score directly to authority |
 | Secret detection | Gitleaks | implemented | Provider-native evidence only |
 | SAST | Semgrep | implemented | Provider-native evidence only |
 | Dependency vulnerability | OSV-Scanner | implemented | Provider-native evidence only |
