@@ -30,8 +30,8 @@
       "role": "fixture-agent-control-semantics"
     },
     {
-      "path": "test/station-zero-v3-order-comprehension.test.ts",
-      "digest": "sha256:fa32c53d12e7073fa39aff2143cc1a4f34955e2dd0192cf5dd892f9d4bad8770",
+      "path": "experiments/station-zero-v3/test/station-zero-v3-order-comprehension.test.ts",
+      "digest": "sha256:b273ec649f408522b1b02f5911655ce56d39cf6fc56d06b215437deef2758db4",
       "role": "focused-control-semantics-test"
     },
     {

@@ -279,6 +279,9 @@ products/station-zero-v2/src/
 products/station-zero-v2/web/
     registered Station Zero v2 browser carrier
 
+products/station-zero-v2/test/
+    Station Zero v2 product tests and test support
+
 tools/canonical-digest.ts
     repository-mechanical canonical JSON + SHA-256 helper; not a Big Game runtime API
 
@@ -291,10 +294,10 @@ products/station-zero-v2/src/server.ts
 experiments/research-preview/server.ts
     explicit multi-surface research/E2E preview harness; not Big Game or product infrastructure
 
-experiments/station-zero-v3/{src,web,assets}/
-    retained Station Zero v3 research/regression apparatus pending Phase 4 enclosure
+experiments/station-zero-v3/{src,web,assets,test}/
+    retained Station Zero v3 research/regression apparatus
 
-experiments/casefile/{src,web}/
+experiments/casefile/{src,web,test}/
     retained Casefile research apparatus pending Phase 4 enclosure
 
 experiments/concept-lab/web/, experiments/pre-g0/web/, experiments/veilwild-r1/, research/

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-out="${1:-web-v3/assets/audio}"
+out="${1:-experiments/station-zero-v3/web/assets/audio}"
 mkdir -p "$out"
 # Short, low-fatigue synthetic cues. No external samples.
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i "aevalsrc=0.050*sin(2*PI*660*t)+0.025*sin(2*PI*990*t):s=48000:d=0.22" -af "afade=t=in:st=0:d=0.015,afade=t=out:st=0.14:d=0.08" -c:a libvorbis -q:a 4 "$out/plan-ready.ogg"

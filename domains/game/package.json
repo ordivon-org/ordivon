@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node products/station-zero-v2/src/server.ts",
     "start:research": "ORDIVON_GAME_RESEARCH_SURFACES=1 node experiments/research-preview/server.ts",
-    "test": "node --test test/*.test.ts",
+    "test": "node --test test/*.test.ts products/station-zero-v2/test/*.test.ts experiments/station-zero-v3/test/*.test.ts experiments/casefile/test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "webcheck": "for file in products/station-zero-v2/web/*.js experiments/station-zero-v3/web/*.js experiments/concept-lab/web/*.js experiments/casefile/web/*.js experiments/pre-g0/web/*.js; do node --check \"$file\"; done",
     "check": "pnpm typecheck && pnpm webcheck && pnpm test",
