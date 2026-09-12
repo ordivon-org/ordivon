@@ -4,6 +4,8 @@ tasks:
   validate:
     cmds:
       - sing-box check -c config/sing-box/direct.json
+      - sing-box check -c config/provider-carrier.json
+      - sing-box check -c config/finance-okx-singbox.json
       - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
       - promtool check config config/prometheus/prometheus.yml
 
@@ -103,6 +105,64 @@ tasks:
     desc: Prove the external-provider carrier and deterministic mature primary/backup failover/failback mechanism
     deps: [validate, smoke:provider-external, smoke:priority-failover]
 
+  external:gluetun-servers:
+    desc: Materialize the pinned Gluetun Surfshark server catalog used as provider endpoint/public-key authority
+    cmds:
+      - rm -rf /tmp/network-v2-gluetun-servers
+      - git init -q /tmp/network-v2-gluetun-servers
+      - git -C /tmp/network-v2-gluetun-servers remote add origin {{.GLUETUN_SERVERS_REPO}}
+      - git -C /tmp/network-v2-gluetun-servers fetch --quiet --depth 1 origin {{.GLUETUN_SERVERS_REVISION}}
+      - git -C /tmp/network-v2-gluetun-servers checkout --quiet --detach FETCH_HEAD
+      - test "$(git -C /tmp/network-v2-gluetun-servers rev-parse HEAD)" = "{{.GLUETUN_SERVERS_REVISION}}"
+      - test "$(sha256sum /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+      - install -d -m 0755 "$(dirname {{.GLUETUN_SERVERS_INSTALL}})"
+      - install -m 0644 /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} {{.GLUETUN_SERVERS_INSTALL}}
+      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+
+  materialize:provider-profiles:
+    desc: Convert v2-owned standard Surfshark WireGuard configs into static numeric-endpoint wg-quick profiles using yq and the pinned Gluetun catalog
+    deps: [external:gluetun-servers]
+    cmds:
+      - |
+        set -eu
+        src=/etc/network-v2/providers
+        catalog={{.GLUETUN_SERVERS_INSTALL}}
+        out="$src/catalog-profiles"
+        test -f "$src/kr-seo.conf"
+        test -f "$src/th-bkk.conf"
+        rm -rf "$out"
+        mkdir -p "$out"
+        chmod 0700 "$out"
+        : >"$out/MANIFEST.tsv"
+        chmod 0600 "$out/MANIFEST.tsv"
+        for spec in "kr-seo nv2r6a kr" "th-bkk nv2r6b th"; do
+          set -- $spec
+          node=$1
+          iface=$2
+          prefix=$3
+          host="$node.prod.surfshark.com"
+          i=0
+          jq -r --arg h "$host" '.servers[] | select(.vpn=="wireguard" and .hostname==$h) | .ips[]' "$catalog" | while IFS= read -r ip; do
+            i=$((i + 1))
+            dir="$out/$prefix-$i"
+            mkdir -p "$dir"
+            chmod 0700 "$dir"
+            dst="$dir/$iface.conf"
+            EP="$ip:51820" yq -p=ini -o=ini 'del(.Interface.DNS) | .Interface.Table="off" | .Interface.MTU="1280" | .Peer.Endpoint=strenv(EP)' "$src/$node.conf" >"$dst"
+            chmod 0600 "$dst"
+            WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$dst" >/dev/null
+            digest=$(sha256sum "$dst" | awk '{print $1}')
+            printf '%s\t%s\t%s\t%s\tsha256:%s\n' "$node" "$ip" "$iface" "$dst" "$digest" >>"$out/MANIFEST.tsv"
+          done
+        done
+        test "$(find "$out" -mindepth 2 -maxdepth 2 -type f -name '*.conf' | wc -l)" -eq 6
+
+  test:r6:
+    desc: Prove independent dual Surfshark WireGuard provider admission, sing-box URLTest failover, destination fencing, recovery, and all-provider fail-closed behavior
+    deps: [validate, external:wireguard-go, materialize:provider-profiles]
+    cmds:
+      - ./tests/provider-dual-failclosed-smoke.sh
+
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
 
@@ -115,3 +175,13 @@ vars:
     sh: awk -F= '$1=="revision"{print $2}' external/wireguard-go.lock
   WIREGUARD_GO_VERSION:
     sh: awk -F= '$1=="version"{print $2}' external/wireguard-go.lock
+  GLUETUN_SERVERS_REPO:
+    sh: awk -F= '$1=="repository"{print $2}' external/gluetun-servers.lock
+  GLUETUN_SERVERS_REVISION:
+    sh: awk -F= '$1=="revision"{print $2}' external/gluetun-servers.lock
+  GLUETUN_SERVERS_FILE:
+    sh: awk -F= '$1=="file"{print $2}' external/gluetun-servers.lock
+  GLUETUN_SERVERS_SHA256:
+    sh: awk -F= '$1=="sha256"{print $2}' external/gluetun-servers.lock
+  GLUETUN_SERVERS_INSTALL:
+    sh: awk -F= '$1=="install"{print $2}' external/gluetun-servers.lock

@@ -1,0 +1,6 @@
+repository=https://github.com/qdm12/gluetun-servers.git
+tag=v0.2.0
+revision=0c7381faba8b0ef5d59caec11eae7ef629f6b4c9
+file=pkg/servers/surfshark.json
+sha256=aa2d6ecf9f851964d3e5a96f4ae9b08ae178103b0ada15f56652946bcae50ec7
+install=/usr/local/share/network-v2/gluetun-servers/surfshark.json

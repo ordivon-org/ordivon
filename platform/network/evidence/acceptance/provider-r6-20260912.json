@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "round": "R6",
+  "date": "2026-09-12",
+  "scope": "independent dual Surfshark WireGuard provider authority for read-only finance-okx candidate",
+  "standing": "PASSED_NO_PRODUCTION_CUTOVER",
+  "catalog": {
+    "repository": "https://github.com/qdm12/gluetun-servers.git",
+    "tag": "v0.2.0",
+    "revision": "0c7381faba8b0ef5d59caec11eae7ef629f6b4c9",
+    "file": "pkg/servers/surfshark.json",
+    "sha256": "aa2d6ecf9f851964d3e5a96f4ae9b08ae178103b0ada15f56652946bcae50ec7"
+  },
+  "composition": {
+    "providerServerAuthority": "gluetun-servers",
+    "providerCredentialAuthority": "/etc/network-v2/providers/*.conf",
+    "profileMaterialization": "yq INI -> static numeric endpoint profiles",
+    "wireguardLifecycle": "wg-quick + pinned official wireguard-go",
+    "providerCarrier": "sing-box",
+    "providerHealthSelection": "sing-box urltest",
+    "consumerPolicy": "sing-box exact destination rule",
+    "directFallback": false
+  },
+  "acceptance": {
+    "jobId": "job-01a094e4-46d1-7381-ad35-4c77d4847805",
+    "operationDigest": "sha256:99b16f3dbb4688bb061d0813bbeced3f05614c2744fdd21162cf4f0f28ee4993",
+    "stdoutArtifact": {
+      "artifactId": "attempt-01a094e4-46d1-7381-ad35-4c8ee408ce3c.stdout",
+      "sha256": "d240772e9660e7168c7da766efc50c763f8f58baffe0e1d3b3cb5129a23528a6"
+    },
+    "terminalEvidence": {
+      "artifactId": "attempt-01a094e4-46d1-7381-ad35-4c8ee408ce3c.terminal-evidence.f0a5bafb20f5c4ccb1e1e119954ec3a9e2aa6cbb08eee9890617fff327d19614",
+      "sha256": "f0a5bafb20f5c4ccb1e1e119954ec3a9e2aa6cbb08eee9890617fff327d19614"
+    },
+    "providerA": {
+      "node": "kr-seo",
+      "endpoint": "61.97.243.107",
+      "profileSha256": "a538597d652837e7d52d781d168d455f49112ee60b5bbfe8e6ff2876763d2c91",
+      "handshake": true
+    },
+    "providerB": {
+      "node": "th-bkk",
+      "endpoint": "151.240.88.133",
+      "profileSha256": "7b22f946478e693296770892eb42d373a57a39c6d49d1906477734149801a1a6",
+      "handshake": true
+    },
+    "checks": {
+      "bothHealthyApplicationSuccess": true,
+      "providerBDownProviderASurvives": true,
+      "providerBRecovery": true,
+      "providerADownProviderBSurvives": true,
+      "bothProvidersDownFailClosed": true,
+      "recoveryAfterAllDown": true,
+      "nonOkxDestinationRejected": true,
+      "singBoxApiObservedBothDown": true
+    }
+  },
+  "nonInterference": {
+    "jobId": "job-01a094e5-b2d2-7130-a54c-886201d11fa4",
+    "operationDigest": "sha256:a8fe347eb1c4e752c8fa177b8a23c93ed2dd6a5d0cb878e344668628246834ed",
+    "stdoutSha256": "05887d7d30fcaf1fc921c719677a53d36b02d2b5db22117f84efcfb02765311d",
+    "runtimeActive": true,
+    "runtimeListener": "127.0.0.1:8897",
+    "cloudflareProductionAHaConnections": 4,
+    "cloudflareProductionBHaConnections": 4,
+    "cloudflareCanaryHaConnections": 4,
+    "legacyFinanceListeners": [19083, 19084, 19085],
+    "temporaryR6UnitsInactive": true,
+    "temporaryR6NamespacesRemaining": 0
+  },
+  "authorization": {
+    "productionCutover": false,
+    "legacyRetirement": false,
+    "cloudflareControlPlaneMigration": false
+  }
+}

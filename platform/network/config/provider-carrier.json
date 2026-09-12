@@ -1,0 +1,53 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "provider-dns-1",
+        "server": "162.252.172.57",
+        "server_port": 53
+      },
+      {
+        "type": "udp",
+        "tag": "provider-dns-2",
+        "server": "149.154.159.92",
+        "server_port": 53
+      }
+    ],
+    "final": "provider-dns-1",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "provider-in",
+      "listen": "0.0.0.0",
+      "listen_port": 28221
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "provider-direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "ip_is_private": true,
+        "action": "reject"
+      },
+      {
+        "ip_version": 6,
+        "action": "reject"
+      }
+    ],
+    "final": "provider-direct",
+    "default_domain_resolver": "provider-dns-1"
+  }
+}
