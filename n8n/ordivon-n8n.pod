@@ -1,0 +1,19 @@
+[Unit]
+Description=Ordivon n8n integration pod
+After=network-online.target
+Wants=network-online.target
+
+[Pod]
+PodName=ordivon-n8n-pod
+Network=pasta:--ipv4-only,-a,10.89.10.2,-n,24,-g,10.89.10.1,--dns-forward,10.89.10.3,--map-gw
+PublishPort=127.0.0.1:5678:5678
+UserNS=keep-id
+
+[Service]
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=900
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target
