@@ -1,3 +1,50 @@
 # Ordivon Next
 
-Greenfield rebuild root. Architecture first; legacy systems remain external until explicitly mapped.
+Ordivon Next is a greenfield rebuild focused on one outcome: turning mature human knowledge and existing capabilities into verified real-world results.
+
+## Core loop
+
+`KNOW -> DEFINE -> DECIDE -> PLAN -> ACT -> VERIFY -> LEARN`
+
+Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workflow engines, databases, network stacks, or domain science. It organizes and composes them.
+
+## What this repository owns
+
+- common problem/knowledge/capability/composition/verification contracts;
+- domain life-cycle profiles;
+- mappings from problem classes to mature methods, standards, algorithms, tools and validators;
+- thin adapters to external execution systems;
+- reusable, evidence-backed compositions;
+- migration/disposition records for historical Ordivon components.
+
+## What this repository does not own
+
+- KM, DSS/OR, Systems Engineering, BPM, V&V as disciplines;
+- domain science;
+- external standards;
+- generic algorithms;
+- generic infrastructure;
+- execution engines such as Temporal, n8n, Snakemake, CI systems, databases or container runtimes;
+- tools such as Git, Blender, Godot, ffmpeg, R, Python, Lean, browsers, or external APIs.
+
+## Structure
+
+```text
+ordivon-next/
+├── docs/            # architecture, terminology, classification, migration rules
+├── schemas/         # minimal common contracts; added only after cross-domain proof
+├── knowledge/       # curated metadata/mappings to human knowledge, not copied world knowledge
+├── domains/         # domain life-cycle profiles such as game/research/software
+├── capabilities/    # registry records for external capabilities and providers
+├── compositions/    # reusable problem -> solution -> validation recipes
+├── adapters/        # thin integration edges to mature external systems
+├── verification/    # acceptance profiles and validator mappings
+├── policies/        # responsibility/authority/risk rules
+└── migrations/      # read-only mapping from historical Ordivon to the new model
+```
+
+## Rebuild rule
+
+Historical Ordivon repositories are read-only inputs to migration analysis. Nothing is migrated merely because it existed before. A historical concept is retained only when it maps cleanly to the new model and still solves a real problem not already owned by a mature external capability.
+
+The first implementation target is a real Game vertical slice. Research and Software/Engineering follow as independent falsification domains before anything is promoted into a common core.
