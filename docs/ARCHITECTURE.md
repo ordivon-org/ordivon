@@ -80,3 +80,18 @@ Reference fidelity target:
 - standard Linux kernel for `tc/netem`, containerlab and kernel-WireGuard differential acceptance.
 
 Unsupported host capabilities are recorded explicitly rather than hidden behind compatibility shims.
+
+## Standard Linux reference lane
+
+WSL is a supported local execution target, not the cross-platform fidelity authority for kernel networking.
+
+The reference lane lives under `reference/linux/` and requires a dedicated, privileged standard-Linux VM/runner. Its runner is provisioned independently and must expose:
+
+- `tc/netem`;
+- Docker + containerlab;
+- kernel WireGuard;
+- the tooling required to run the pinned userspace `wireguard-go` counterpart.
+
+The lane proves deterministic packet impairment, a real two-node containerlab topology, and kernel-vs-userspace WireGuard lifecycle behavior. A WSL host is rejected by preflight rather than treated as a failed reference implementation.
+
+For CI, the repository carries a GitHub Actions workflow targeting a dedicated self-hosted runner with `[self-hosted, linux, x64, network-e2e]`. The repository currently has no Git remote, so the workflow is a ready contract rather than an executed remote proof.

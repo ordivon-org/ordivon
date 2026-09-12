@@ -2,3 +2,5 @@
 .secrets/
 *.log
 lab/.generated/
+__pycache__/
+*.pyc
