@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "standing": "NETWORK_E2E_IMPLEMENTATION_FROZEN",
   "date": "2026-09-12",
-  "behaviorSourceRevision": "7dbe8eef17950371f38e51792006a682f5fc1f6a",
+  "behaviorSourceRevision": "da5f541cfabc96845d71471f90b30659c3926e0d",
   "localWslAuthority": {
     "standing": "LOCAL_WSL_GRADUATED",
     "report": "evidence/current-capabilities.json",
-    "reportSha256": "4ebb19161db30e2bd339b49aa4d4f0b4902e1204e63c104498bf613121469659",
-    "refreshJobId": "job-01a09633-1336-70a1-ba38-b5c57d4b3480",
-    "operationDigest": "sha256:534b49ce9c78412096eba8f5c3958825ceaffd8b1daf7701044bbada678efd7a",
-    "terminalEvidenceSha256": "7358e98a77368454a3ddb1358cf415262f818c66a42c2ca63ee92316f5c2c549"
+    "reportSha256": "8fe14cbf42a1e77714acfd7935f6ad89b8eccf88b9ea5d967352617fc53fd279",
+    "refreshJobId": "job-01a09636-bc4c-7b60-bd92-e6ba9f4c8907",
+    "operationDigest": "sha256:8ef2c3ba8b76f92fc185d9bd806bd215b3cabe5220a058a32cff147955fb16db",
+    "terminalEvidenceSha256": "32a6778394390db2a09ddadc7cf63d131e082e4444813446ae59a6b0f84ffca3"
   },
   "standardLinuxAuthority": {
     "standing": "STANDARD_LINUX_REFERENCE_GRADUATED",
