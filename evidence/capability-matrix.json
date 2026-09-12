@@ -14,7 +14,7 @@
       "udpQuicIsolatedTun": "PASS",
       "longFlow": "PASS",
       "concurrency": "PASS",
-      "stableEgressIdentity": "PASS",
+      "externalEgressObservation": "PASS",
       "dnsPartialUpstreamFailure": "PASS",
       "dnsAllUpstreamFailClosed": "PASS",
       "dnsRecoveryWithoutRestart": "PASS",

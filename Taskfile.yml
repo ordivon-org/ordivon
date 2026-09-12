@@ -312,7 +312,7 @@ tasks:
       - task: core:verify
 
   accept:protocol:
-    desc: Prove HTTP/1.1 and HTTP/2 parity, UDP/TCP DNS parity, stable egress identity, and repeated long-flow success
+    desc: Prove HTTP/1.1 and HTTP/2 parity, UDP/TCP DNS parity, and observable external egress without treating public throughput or IP stability as generic correctness
     cmds:
       - ./acceptance/protocol/divergence.sh
 
