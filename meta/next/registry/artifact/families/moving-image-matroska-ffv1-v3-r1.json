@@ -1,0 +1,23 @@
+{
+  "id": "artifact.moving-image.matroska-ffv1-v3-r1",
+  "kind": "artifact-profile-capability",
+  "family": "moving-image",
+  "representation": "audiovisual-container",
+  "format": "Matroska + FFV1",
+  "mediaType": "video/matroska",
+  "purpose": ["preservation", "interchange"],
+  "standards": [
+    {"name": "Matroska", "reference": "RFC 9559"},
+    {"name": "FFV1", "reference": "RFC 9043"}
+  ],
+  "profileConstraints": ["one video stream", "FFV1 version 3 micro-version >=4", "yuv422p 8-bit 4:2:2", "progressive", "CFR"],
+  "validators": [
+    {"name": "MediaConch", "version": "25.04", "role": "Matroska/FFV1 implementation checks"},
+    {"name": "MediaInfo", "version": "26.05", "role": "technical interpretation"},
+    {"name": "FFprobe/FFmpeg", "version": "9.0", "role": "independent decode/technical evidence"},
+    {"name": "canonical rawvideo digest comparison", "role": "decoded-visual identity"}
+  ],
+  "standing": "SHADOW_PROFILE_LIVE_PROVEN",
+  "evidence": ["/root/projects/ordivon-artifact-v2/docs/ARTIFACT_FAMILY_MOVING_IMAGE_R1.md"],
+  "boundaries": ["container byte identity and decoded visual identity are distinct"]
+}
