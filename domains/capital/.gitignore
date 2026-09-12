@@ -7,3 +7,4 @@ data/derived/*
 !data/derived/.gitkeep
 artifacts/*
 !artifacts/.gitkeep
+mlruns/
