@@ -47,7 +47,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `spreadsheet` | SpreadsheetML/OOXML, ODF | `spreadsheet-r1` | strong/partial |
 | `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | shadow `dataset-parquet-flat-r1` | DuckDB + PyArrow native schema/row matrix live-proven |
 | `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | shadow `still-image-png-srgb-r1` | pngcheck + ExifTool + ImageMagick/libvips matrix live-proven |
-| `audio` | profile-selected codecs/containers; BWF/WAVE where required | none | FFmpeg/ffprobe present; specialist conformance missing |
+| `audio` | RFC 9639 FLAC; BWF/WAVE or other standards when selected | shadow `audio-flac-pcm16-r1` | reference FLAC + FFmpeg independent decoder matrix live-proven |
 | `moving-image` | profile-selected codecs/containers; SMPTE IMF for master workflows | none | FFmpeg/ffprobe present; MediaConch absent |
 | `web` | HTML Living Standard, CSS, WCAG 2.2 | `web-r1` | strong; WebKit remains supported-runner bounded |
 | `geospatial` | OGC GeoPackage, GeoTIFF, GeoJSON/OGC ecosystem | shadow `geospatial-geopackage-point-r1` | OGC/GDAL validator + SQLite + OGR contract proof live-proven |
@@ -112,9 +112,9 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-Three non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, and **geospatial**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
+Four non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, and **audio**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema now maps all eight current production v1 profiles plus three standards-first shadow profiles (Still Image, Dataset and Geospatial) with semantic-field preservation and a green 171-test full regression. Geospatial required no new common classification axis; it generalized object contracts and standard-validator target authority. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus four standards-first shadow profiles (Still Image, Dataset, Geospatial and Audio) with semantic-field preservation and a green 179-test full regression. Geospatial generalized object contracts and standard-validator authority; Audio added codec/decoded-content identity without requiring another common classification axis. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
@@ -150,7 +150,7 @@ Do not make every tool a mandatory global dependency. Tools remain profile-selec
 
 The lowest-risk order is determined by existing mature local substrate, not by perceived architectural importance:
 
-1. **audio + moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
+1. **moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
 2. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
 3. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
 4. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.

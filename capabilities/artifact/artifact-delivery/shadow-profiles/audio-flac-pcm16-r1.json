@@ -1,0 +1,71 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "audio-flac-pcm16-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "audio",
+    "representation": "lossless-encoded-audio",
+    "format": "FLAC",
+    "mediaType": "audio/flac",
+    "conformanceProfile": "RFC 9639 native FLAC bounded 16-bit mono/stereo PCM profile",
+    "targetAuthority": "independent-decoder-matrix",
+    "purpose": ["interchange"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "audio-flac-contract-v1",
+    "schemaReference": "shadow-contracts/audio-flac-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "standard": "IETF RFC 9639",
+    "nativeFlacOnly": true,
+    "bitsPerSample": 16,
+    "channels": [1, 2],
+    "canonicalDecodedPcm": "signed little-endian interleaved 16-bit PCM (s16le)",
+    "requireNonZeroStreamInfoMd5": true,
+    "allowedMetadataBlockTypes": [0, 1, 3, 4],
+    "allowedMetadataBlocks": ["STREAMINFO", "PADDING", "SEEKTABLE", "VORBIS_COMMENT"],
+    "forbiddenInR1": ["APPLICATION", "CUESHEET", "PICTURE", "unknown/reserved metadata blocks", "Ogg FLAC", "FLAC in MP4/other containers"]
+  },
+  "requiredEvidence": {
+    "contractSchema": {
+      "required": true,
+      "claim": "audio object contract is valid under audio-flac-contract-v1"
+    },
+    "referenceIntegrity": {
+      "required": true,
+      "claim": "reference FLAC implementation decodes/tests the complete stream without error"
+    },
+    "streamInfo": {
+      "required": true,
+      "claim": "native STREAMINFO technical facts and decoded-audio MD5 satisfy the object contract and R1 profile"
+    },
+    "metadataBlockPolicy": {
+      "required": true,
+      "claim": "all FLAC metadata block types are within the bounded R1 allow-list"
+    },
+    "decoderMatrix": {
+      "required": true,
+      "claim": "reference FLAC decoder and independent FFmpeg decoder produce exactly identical canonical s16le PCM bytes",
+      "minimumIndependentDecoders": 2
+    },
+    "independentTechnicalView": {
+      "required": true,
+      "claim": "FFprobe independently identifies native FLAC and agrees on sample rate, channels, bit depth and sample count"
+    },
+    "pcmIdentity": {
+      "required": true,
+      "claim": "STREAMINFO MD5 matches canonical decoded PCM MD5 and any contract expectedPcmSha256 matches decoded PCM SHA-256"
+    }
+  },
+  "nonClaims": [
+    "factual or artistic correctness of the audio content",
+    "subjective sound quality",
+    "loudness compliance or mastering quality",
+    "truth or completeness of Vorbis comments/tags",
+    "semantics of metadata block families excluded from R1",
+    "preservation-policy compliance beyond the bounded RFC 9639/profile checks",
+    "absence of clipping, silence, phase issues or other signal-quality defects"
+  ]
+}

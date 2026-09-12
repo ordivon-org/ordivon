@@ -118,9 +118,9 @@
       "representations": ["elementary-stream", "audio-container"],
       "standards": ["format/profile-selected codec and container standards", "BWF/WAVE or professional preservation profiles where required"],
       "exampleFormats": ["wav", "flac", "aac", "mp3", "opus"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "FFMPEG_PRESENT_SPECIALIST_CONFORMANCE_MISSING"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["audio-flac-pcm16-r1"],
+      "localToolStanding": "RFC9639_REFERENCE_AND_FFMPEG_DECODER_MATRIX_PROVEN"
     },
     {
       "id": "moving-image",
