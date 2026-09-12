@@ -18,6 +18,7 @@ This is an auditable local environment snapshot, not a Registry, ontology, subsy
   - source: `github/awesome-copilot`
   - pinned commit: `7568a482ce2df38f8965ab5336a3220db796a4ba`
   - purpose: repository-scale onboarding/mapping only; not routine edits.
+  - compatibility note: uses GitHub/Copilot `argument-hint` frontmatter extension; accepted by the current `gh skill`/Codex path but rejected by strict `skills-ref` Agent Skills Core validation.
 - `security-review`
   - source: `github/awesome-copilot`
   - pinned commit: `7568a482ce2df38f8965ab5336a3220db796a4ba`
