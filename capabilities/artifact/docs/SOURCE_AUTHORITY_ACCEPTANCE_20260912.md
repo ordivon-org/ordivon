@@ -97,3 +97,44 @@ Artifact Build & Delivery ends at a verified/package-ready Artifact fact. Extern
 The historical Workstation implementation was retired in commit `a7f82ded74908af5bca0e956a9b38a7cbd97eecf`: 82 migrated Artifact-owned files were removed and the old Workstation test dispatcher/cross-owner assertion were detached from Artifact. A tracked-reference scan found zero remaining technical references to the retired scripts or worker. Historical Creative/archive path strings were retained only as provenance.
 
 After those files were absent from the filesystem, production-green Workflow `artifact-v2-source-authority-smoke-20260912-03` completed successfully with Run ID `01a0940e-0343-75d4-9f42-1cfed2d930bd`, the same artifact digest, `LOCAL_UNSIGNED_DEVELOPMENT`, and `releaseReady=false`. This is the post-retirement proof that the live Artifact path no longer depends on the historical Workstation source tree.
+## OCI / OPA package cutover acceptance
+
+The forward source authority was cut over from custom package mechanics to standards-native OCI/OPA packaging in commit `d33ad67a6363679837907dbb58fe45bbdbe2d2ed`. The historical Workstation proof branch was used only as differential evidence; it was not reintroduced as a source owner.
+
+Responsibility after cutover:
+
+- OCI 1.1 + ORAS 1.3.4 own content-addressed package layout, subject manifests, blobs and referrer relationships;
+- Artifact continues to own profile semantics, raw-evidence/VSA binding, Sigstore trust verification and release-provenance semantics;
+- OPA 1.20.2 evaluates `data.artifact.release.ready` from explicit verification/trust/assembly facts;
+- Temporal continues to own durable ordering and receipt-fenced replay, now fencing `oci-layout`, `index.json` and every OCI blob;
+- custom `aggregate-gates`, `package-stage`, `package-index.json`, `release-manifest.json` and the custom package relationship tree are retired.
+
+Candidate/live regression before deployment:
+
+- full unittest discovery: **142 tests total, 140 PASS, 2 environment-conditional skips, 0 failures**;
+- Artifact toolchain Doctor: **17/17 PASS**;
+- signed OCI package suite: **4/4 PASS**;
+- Temporal contract suite: **12/12 PASS**, including replay and deliberate committed-blob drift fail-closed.
+
+The production worker was restarted from the integrated forward repository. PID changed from `491` to `15802`; afterwards it remained `active/running`, `WorkingDirectory=/root/projects/ordivon-artifact-v2`, `NRestarts=0`.
+
+Two fresh production-green Temporal workflows then exercised the new package path:
+
+1. `artifact-v2-oci-cutover-smoke-20260912-01`, Run ID `01a09569-4450-712a-b761-86c42d778184`
+   - `LOCAL_UNSIGNED_DEVELOPMENT`;
+   - `releaseReady=false`;
+   - OCI subject `sha256:4f0872a39ec2f1b8b5f7065bfc7c4cf4eb1a7b2175bc8a0e09a40ff714b33cea`;
+   - 4 OCI referrers;
+   - no `package-index.json` or `release-manifest.json`.
+
+2. `artifact-v2-oci-cutover-signed-smoke-20260912-01`, Run ID `01a0956a-3961-7488-8506-29b447981b7e`
+   - reached `WAIT_TRUST_MATERIAL`;
+   - three actual workflow VSAs were signed with one-time test-only public-key Sigstore v0.3 bundles; private key/password never entered Temporal history and were deleted with the temporary signing directory;
+   - trust activity accepted exactly `profileSchema`, `semantic`, `structural`;
+   - `CRYPTOGRAPHICALLY_VERIFIED`;
+   - OPA `releaseReady=true`;
+   - OCI subject `sha256:68a7ed669228c7e8cf66b4de5b4ed4c1144a7f7b6a33993203588a831bbde362`;
+   - 4 OCI referrers;
+   - production OPA policy SHA-256 `0af8b4bfb79b1c22b07fd1f99bfad5ed1555bcda7f7171901c6d57007ed74e5f`.
+
+The signed smoke establishes the live cryptographic/OPA path but **does not create or claim a production signing identity**; it used an ephemeral test key solely to exercise the public-key trust contract. Formal target, visual, accessibility, delivery and other profile-specific gates remain independent and fail closed when required.

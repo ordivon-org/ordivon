@@ -140,54 +140,31 @@ Keyless identity verification is intentionally **not yet claimed** on the curren
 
 `aggregate-vsa-gates --allow-local-unsigned` remains available only for same-workspace development. Without that switch, every required VSA gate must provide a trusted signer id, a standardized Sigstore bundle and the out-of-band trust policy; otherwise aggregation fails closed.
 
-The older `aggregate-gates` function remains a low-level mechanical composer for tests/manual evidence. It is not the production trust boundary and a fake JSON file containing `status=PASS` is never sufficient conformance evidence.
+Generic JSON gate composition and custom package relationship mechanics have been retired. `aggregate-vsa-gates` remains the Artifact semantic trust aggregator, but final release admission is no longer a Python boolean policy: Artifact submits verification/trust/assembly facts to `artifact-delivery/policy/release.rego`, and OPA evaluates `data.artifact.release.ready`.
 
-## Package stage
+## OCI package and release composition
 
-`package-stage` provides the explicit boundary between verification and release assembly. It accepts one exact primary artifact, its digest-bound verify-stage report, optional required companions, the selected delivery profile and optional request/provenance inputs.
+The durable package boundary remains after verification/trust, but OCI 1.1/ORAS owns mechanical content identity and relationships. `scripts/artifact_oci_package.py` is intentionally a thin adapter: it validates Artifact-specific commitments and invokes pinned ORAS rather than serializing an Artifact-specific package index or release manifest.
 
-The package preflight distinguishes two gate classes:
+The package preflight still distinguishes two gate classes:
 
 - **verification/VSA gates** — `profileSchema`, `structural`, `dependency`, `semantic`, `visual`, `target`, `accessibility`, `conformance`, `deliveryReadback`;
 - **assembly/provenance gates** — `companionPdf`, `releaseProvenance`.
 
-This prevents circular semantics such as requiring a VSA that says release provenance already exists before the package stage is allowed to create or verify that provenance. Every verify receipt is rechecked against the current raw-evidence and VSA file bytes before copying, so evidence drift after verification fails before package assembly.
-
-A signed package has this shape:
+Every verify receipt is rechecked against current raw-evidence/VSA bytes before OCI creation, so post-verification drift fails before packaging. The release subject contains the primary artifact and required companions as exact OCI layers. Verification gates are OCI Referrers carrying raw evidence + VSA and, for trusted production gates, the exact Sigstore bundle. The verify-stage report is a separate referrer; in-toto/SLSA provenance is another referrer when present.
 
 ```text
-package/
-  artifacts/
-    <primary>
-    <companions...>
-  evidence/
-    <gate>.raw.json
-    verify-stage.json
-    vsa-gate-aggregation.json
-  attestations/
-    <gate>.vsa.json
-    <gate>.sigstore.json
-    slsa-provenance.json   # when supplied/required
-  release-manifest.json
-  package-index.json
+package/layout/
+  oci-layout
+  index.json
+  blobs/sha256/*
 ```
 
-`package-index.json` uses package-relative paths for package members and records exact SHA-256 values. The trust policy is referenced by id + digest rather than treated as a trust root merely because a copy appears beside the artifact. VSA `resourceUri` uses RFC 6920 `ni` content identity, so moving identical bytes from build space into package space does not invalidate the VSA resource binding.
+There is no custom `package-index.json`, `release-manifest.json`, `artifacts/`, `evidence/` or `attestations/` relationship tree. OCI descriptors/referrers provide those mechanical relationships. VSA `resourceUri` continues to use RFC 6920 `ni` content identity, so Artifact trust remains content-bound rather than path-bound.
 
-Trust remains explicit in two modes. `--allow-local-unsigned` can produce a digest-bound **development package**, marked `LOCAL_UNSIGNED_DEVELOPMENT` and `releaseReady=false`. A production package reaches `CRYPTOGRAPHICALLY_VERIFIED` / `releaseReady=true` only when every required VSA gate passes the signer/verifier trust policy and Cosign verification. Package assembly alone cannot promote trust.
+Trust remains explicit in two modes. Local unsigned development packages are `LOCAL_UNSIGNED_DEVELOPMENT` and OPA forces `releaseReady=false`. Production packages require trusted signer/verifier mappings plus standardized Sigstore bundles; after cryptographic verification, OPA grants `releaseReady=true` only when every required verification and assembly fact is present. Package creation alone cannot promote trust.
 
-## Release composition
-
-The existing release-manifest layer binds:
-
-- profile;
-- primary artifact;
-- required companions;
-- raw verification evidence;
-- VSA statements and Sigstore bundles;
-- in-toto Statement v1 / SLSA Provenance v1.
-
-Provenance subjects must exactly match the release primary + companion SHA-256 map. Package assembly cannot turn a missing target, visual, accessibility, conformance or delivery gate into PASS.
+The live cutover was accepted on 2026-09-12 with both modes through the production Temporal worker: a local-unsigned workflow produced four OCI referrers with `releaseReady=false`, and a separate trust-signal workflow reached `CRYPTOGRAPHICALLY_VERIFIED`, four OCI referrers and OPA `releaseReady=true`.
 
 ## Temporal durable execution
 
