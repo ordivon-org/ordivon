@@ -69,3 +69,22 @@ def test_netdata_is_loopback_reachable() -> None:
         text=True, capture_output=True, timeout=10,
     )
     assert info.returncode == 0, info.stderr or info.stdout
+
+def _osquery(query: str) -> list[dict[str, str]]:
+    import json
+    cp = subprocess.run(["/usr/bin/osqueryi", "--json", query], text=True, capture_output=True, timeout=20)
+    assert cp.returncode == 0, cp.stderr or cp.stdout
+    rows = json.loads(cp.stdout)
+    assert rows
+    return rows
+
+
+def test_osquery_is_generic_host_inventory_authority() -> None:
+    root = pathlib.Path(__file__).resolve().parents[1] / "inventory" / "queries"
+    system = _osquery((root / "system_identity.sql").read_text().strip())[0]
+    operating_system = _osquery((root / "os_version.sql").read_text().strip())[0]
+    uptime = _osquery((root / "uptime.sql").read_text().strip())[0]
+    assert system["hostname"]
+    assert int(system["physical_memory"]) > 0
+    assert operating_system["platform"] == "arch"
+    assert int(uptime["total_seconds"]) >= 0
