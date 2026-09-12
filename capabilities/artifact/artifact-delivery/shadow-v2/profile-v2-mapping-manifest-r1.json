@@ -1,7 +1,7 @@
 {
-  "fullRegression": "206 tests / 204 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "214 tests / 212 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 15,
+  "mappingCount": 16,
   "mappings": [
     {
       "family": "text-document",
@@ -152,6 +152,16 @@
       "sourceDigest": "d737e08bcce10116a24e6cae99ab5916112c56972b15caba5c027cce5348c8d9",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
+    },
+    {
+      "family": "web-archive",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-archive-warc-response-r1-v2.json",
+      "mappedDigest": "589b7ffd72768937ca43a092135fb9b27bf0afaaf4a81f53046a08f9497c7912",
+      "profileId": "web-archive-warc-response-r1",
+      "source": "artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json",
+      "sourceDigest": "28d8a4c9a5830a8061a6d90a5c05216fb2f8de15c03ceed8c702f3ae89d75a8e",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
     }
   ],
   "pressureTests": [
@@ -161,7 +171,8 @@
     "audio",
     "moving-image",
     "software-release",
-    "design-3d"
+    "design-3d",
+    "web-archive"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

@@ -112,9 +112,9 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-Seven non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, **moving-image**, **software-release**, and **design-3d**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
+Eight non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, **moving-image**, **software-release**, **design-3d**, and **web-archive**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema now maps all eight current production v1 profiles plus seven standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image, Software Release and Design/3D) with semantic-field preservation and a green 206-test full regression. Design/3D adds scene/mesh and consumer-coordinate semantics without requiring another common classification axis. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus eight standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image, Software Release, Design/3D and Web Archive) with semantic-field preservation and a green 214-test full regression. Web Archive adds capture-container identity and independent parser read-back without requiring another common classification axis. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
