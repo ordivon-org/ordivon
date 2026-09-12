@@ -1,0 +1,148 @@
+---
+- name: Operations v2 shared PostgreSQL and pgBackRest substrate
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    operations_postgres_data_dir: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+    operations_postgres_port: 55434
+    operations_postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+    operations_pgbackrest_stanza: ordivon
+  tasks:
+    - name: Install mature PostgreSQL backup and Ansible PostgreSQL adapter packages
+      community.general.pacman:
+        name:
+          - pgbackrest
+          - python-psycopg
+        state: present
+
+    - name: Keep pgBackRest repository and log directories under postgres authority
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0750"
+      loop:
+        - /var/lib/pgbackrest
+        - /var/log/pgbackrest
+
+    - name: Ensure pgBackRest config directory exists
+      ansible.builtin.file:
+        path: /etc/pgbackrest
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install pgBackRest configuration
+      ansible.builtin.copy:
+        src: ../postgresql/pgbackrest.conf
+        dest: /etc/pgbackrest/pgbackrest.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure PostgreSQL systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/postgresql.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Bind packaged PostgreSQL service to the shared persistent cluster
+      ansible.builtin.copy:
+        src: ../postgresql/postgresql-pgdata.conf
+        dest: /etc/systemd/system/postgresql.service.d/20-ordivon-pgdata.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Install pgBackRest backup service
+      ansible.builtin.copy:
+        src: ../postgresql/ordivon-postgresql-backup.service
+        dest: /etc/systemd/system/ordivon-postgresql-backup.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Install pgBackRest backup timer
+      ansible.builtin.copy:
+        src: ../postgresql/ordivon-postgresql-backup.timer
+        dest: /etc/systemd/system/ordivon-postgresql-backup.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Converge systemd definitions before lifecycle checks
+      ansible.builtin.meta: flush_handlers
+
+    - name: Keep shared PostgreSQL service enabled and running without implicit restart
+      ansible.builtin.systemd_service:
+        name: postgresql.service
+        enabled: true
+        state: started
+
+    - name: Keep pgBackRest backup timer enabled and running
+      ansible.builtin.systemd_service:
+        name: ordivon-postgresql-backup.timer
+        enabled: true
+        state: started
+
+    - name: Set PostgreSQL WAL archive mode through PostgreSQL authority
+      community.postgresql.postgresql_alter_system:
+        param: archive_mode
+        value: "on"
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+      become_user: postgres
+      register: archive_mode_result
+
+    - name: Set PostgreSQL WAL archive command through PostgreSQL authority
+      community.postgresql.postgresql_alter_system:
+        param: archive_command
+        value: "/usr/bin/pgbackrest --stanza={{ operations_pgbackrest_stanza }} archive-push %p"
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+      become_user: postgres
+      register: archive_command_result
+
+    - name: Set PostgreSQL WAL archive timeout through PostgreSQL authority
+      community.postgresql.postgresql_alter_system:
+        param: archive_timeout
+        value: "300s"
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+      become_user: postgres
+      register: archive_timeout_result
+
+    - name: Refuse hidden restart requirements during routine desired-state convergence
+      ansible.builtin.assert:
+        that:
+          - not archive_mode_result.restart_required
+          - not archive_command_result.restart_required
+          - not archive_timeout_result.restart_required
+        fail_msg: PostgreSQL desired-state change requires an explicit owner-coordinated restart; routine Operations convergence will not perform it.
+
+    - name: Verify pgBackRest stanza against the live PostgreSQL cluster
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/pgbackrest
+          - --stanza={{ operations_pgbackrest_stanza }}
+          - --log-level-console=info
+          - check
+      become_user: postgres
+      changed_when: false
+      when: not ansible_check_mode
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

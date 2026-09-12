@@ -48,3 +48,11 @@ The following mature packages were installed from the configured Arch repositori
 - Network v2 Prometheus remains Network-owned. Operations v2 does not treat it as shared global monitoring authority.
 - Temporal is deployed outside PATH under `/opt/ordivon/external/...`; lack of a `temporal` PATH command never implied absence.
 - package installation changed executable-path topology, so Runtime correctly failed closed with `EXECUTABLE_RUNTIME_DRIFT` even though package-manager output showed completed external effects. Physical state was reconciled before continuing; the install was not blindly retried.
+
+## Operations v2 PostgreSQL / pgBackRest owner slice
+
+- desired-state authority: Ansible (`ansible/postgresql-backup.yml`);
+- database service/configuration authority: packaged PostgreSQL + `community.postgresql.postgresql_alter_system`;
+- backup/PITR authority: pgBackRest;
+- schedule/lifecycle authority: systemd;
+- owner semantic restore acceptance remains with each database consumer and is not inferred from backup command success.
