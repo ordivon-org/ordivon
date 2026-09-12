@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, initialTeamWorld } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { evaluateAuthority } from "../src/team/authority.ts";
-import { actorCanClaimMissionItem, compileTeamContext } from "../src/team/context.ts";
-import { actorTaskId, TeamStore } from "../src/team/store.ts";
-import { listAvailableActions, materializeAction } from "../src/world.ts";
+import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { evaluateAuthority } from "../products/station-zero-v2/src/team/authority.ts";
+import { actorCanClaimMissionItem, compileTeamContext } from "../products/station-zero-v2/src/team/context.ts";
+import { actorTaskId, TeamStore } from "../products/station-zero-v2/src/team/store.ts";
+import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function setup(runId = "run:team-context"): { game: GameStore; team: TeamStore } {
   const game = new GameStore(":memory:");

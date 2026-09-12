@@ -5,12 +5,12 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { MissionControlService } from "../src/mission-control/service.ts";
+import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
 import { recoveryPolicy } from "./support/world-policies.ts";
 import { createGameServer } from "../src/server.ts";
-import { GameStore, StorageError } from "../src/storage.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { materializeAction } from "../src/world.ts";
+import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 async function finish(
   breachStrategy: "security-contain" | "engineer-seal",

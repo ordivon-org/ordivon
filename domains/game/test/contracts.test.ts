@@ -3,8 +3,8 @@ import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
 import { communicationsFirstPolicy, recoveryPolicy, runPolicy } from "./support/world-policies.ts";
-import { initialTeamWorld } from "../src/scenario.ts";
-import { applyWorldCommand, listAvailableActions, materializeAction } from "../src/world.ts";
+import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { applyWorldCommand, listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function applyActionId(state: ReturnType<typeof initialTeamWorld>, actionId: string, commandId: string) {
   const action = listAvailableActions(state).find((candidate) => candidate.actionId === actionId);

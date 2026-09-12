@@ -6,11 +6,11 @@ import test from "node:test";
 import fc, { type Command } from "fast-check";
 
 import { sha256 } from "../src/digest.ts";
-import type { WorldState } from "../src/model.ts";
-import { resolveRuleset } from "../src/registry.ts";
-import { assertWorldInvariants, initialTeamWorld } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { listAvailableActions, materializeAction } from "../src/world.ts";
+import type { WorldState } from "../products/station-zero-v2/src/model.ts";
+import { resolveRuleset } from "../products/station-zero-v2/src/registry.ts";
+import { assertWorldInvariants, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 const ruleset = resolveRuleset("station-zero-core", 3);
 

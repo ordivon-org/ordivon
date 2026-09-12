@@ -4,11 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { MissionControlService, type MissionProviderFactory } from "../src/mission-control/service.ts";
-import { GameStore } from "../src/storage.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { MEDIC_ID, SECURITY_ID } from "../src/scenario.ts";
+import { MissionControlService, type MissionProviderFactory } from "../products/station-zero-v2/src/mission-control/service.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { MEDIC_ID, SECURITY_ID } from "../products/station-zero-v2/src/scenario.ts";
 
 function fixture(runId: string) {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-m4-control-"));

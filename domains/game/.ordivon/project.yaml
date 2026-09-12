@@ -1,7 +1,7 @@
 schema_version: 1
 id: ordivon-game
 name: Ordivon Game
-repository: https://github.com/zycxfyh/ordivon-game
+repository: https://github.com/ordivon-org/ordivon-game
 kind: research-engineering
 default_profiles:
   - engineering
@@ -15,6 +15,7 @@ managed_paths:
   - README.md
   - docs/PRODUCT.md
   - docs/ARCHITECTURE.md
+  - docs/GAME_E2E_OWNERSHIP_BOUNDARY.md
   - docs/VISION.md
   - docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md
   - docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md

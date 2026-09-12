@@ -4,11 +4,11 @@ import { join } from "node:path";
 import test from "node:test";
 
 const CONSUMER_ROOTS = [
-  "src/team",
-  "src/deployment",
-  "src/comparison",
-  "src/replay",
-  "src/mission-control",
+  "products/station-zero-v2/src/team",
+  "products/station-zero-v2/src/deployment",
+  "products/station-zero-v2/src/comparison",
+  "products/station-zero-v2/src/replay",
+  "products/station-zero-v2/src/mission-control",
 ];
 
 function tsFiles(root: string): string[] {
@@ -33,12 +33,12 @@ test("R5 Game consumers cannot directly import the retired embedded Host impleme
 });
 
 test("R5 local evidence persistence is quarantined behind the Game evidence adapter", () => {
-  const adapter = readFileSync("src/integration/game-evidence.ts", "utf8");
+  const adapter = readFileSync("products/station-zero-v2/src/integration/game-evidence.ts", "utf8");
   assert.match(adapter, /class LocalEvidenceAdapter/);
   assert.match(adapter, /new LocalEvidenceJournal\(db\)/);
   assert.match(adapter, /source-current external Host replacement must preserve/);
 
-  const teamStore = readFileSync("src/team/store.ts", "utf8");
+  const teamStore = readFileSync("products/station-zero-v2/src/team/store.ts", "utf8");
   assert.match(teamStore, /readonly evidence: GameEvidencePort/);
   assert.doesNotMatch(teamStore, /readonly host:/);
 });

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { WorldCommand, WorldState } from "../src/model.ts";
+import type { WorldCommand, WorldState } from "../products/station-zero-v2/src/model.ts";
 import {
   advanceEnvironment,
   assertWorldInvariants,
   evaluateMission,
   initialTeamWorld,
-} from "../src/scenario.ts";
-import { parseWorldCommand, shortestPath, validateWorldCommand } from "../src/world.ts";
+} from "../products/station-zero-v2/src/scenario.ts";
+import { parseWorldCommand, shortestPath, validateWorldCommand } from "../products/station-zero-v2/src/world.ts";
 
 function clone(): WorldState {
   return structuredClone(initialTeamWorld());

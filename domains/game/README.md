@@ -14,7 +14,7 @@ audience:
   - designer
   - builder
   - agent
-updated: 2026-08-17
+updated: 2026-09-12
 summary: Canonical entry to Ordivon Game, its cross-game development model, current Station Zero executable, research treatments, and the R1–R29 foundations corpus without selecting a new product.
 evidence_status: verified
 readiness: READY
@@ -44,7 +44,8 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 ## Start here
 
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current executable architecture and state ownership.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current Station Zero v2 product architecture and state ownership.
+- [`docs/GAME_E2E_OWNERSHIP_BOUNDARY.md`](docs/GAME_E2E_OWNERSHIP_BOUNDARY.md) defines what Big Game may own and forbids promoting product mechanics into a generic Game framework without cross-product evidence.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
 - [`docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md) owns product discovery before G0: learn from mature comparable games through teardown, bounded reproduction, Human baseline validation and controlled differentiation.
 - [`docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md`](docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md) owns the current R0-A/R0-B success-universe census and archetype coverage: external success surfaces are observed before feasibility filtering and are never collapsed into one fake global rank.
@@ -123,16 +124,15 @@ configure deployment
 ```text
 Player / Browser
         ↓ doctrine, commands, approvals
-Mission Control
+Station Zero Mission Control
         ↓ bounded product state and intervention rules
-Station Zero Team domain
-        ↓ actor Contexts, Messages, Proposals, authority, coordination
-Embedded Host authority
-        ↓ Task, Effect, Dispatch, Observation, Verification, Outcome
-Deterministic World
+Station Zero specialist coordination
+        ↓ Contexts, Messages, Proposals, authority, coordination
+Deterministic Station Zero World
         ↓ atomic Tick and authoritative state transition
-SQLite evidence
-        ↓ recovery, replay, diagnosis, comparison
+SQLite product evidence
+        ↓ recovery and derived product projections
+Replay / Diagnosis / Comparison
 ```
 
 The model never owns World state. It cannot create objects, capabilities, observations, approvals, actions, or completion claims. Every accepted consequence is checked by the World and independently represented as evidence.
@@ -173,7 +173,7 @@ Canonical product stages: G0–G8 retain only DEVELOPMENT_MODEL meanings
 Encounter budget: 20 Turns
 ```
 
-The v3 reference experiment remains available through a separate API namespace, SQLite database, and browser surface. It is still absent from `src/registry.ts` and does not replace the current root product. Additional content is not implied by its technical maturity; changes should serve an explicit Game Core hypothesis or a later intentionally selected product.
+The v3 reference experiment remains available through a separate API namespace, SQLite database, and browser surface. It is still absent from `products/station-zero-v2/src/registry.ts` and does not replace the current root product. Additional content is not implied by its technical maturity; changes should serve an explicit Game Core hypothesis or a later intentionally selected product.
 
 ## Run
 
@@ -273,44 +273,29 @@ The v3 preview uses `data/station-zero-v3.sqlite3` by default and does not add v
 ## Repository map
 
 ```text
-src/model.ts, scenario.ts, world.ts, facts.ts
-    current authoritative World state, rules, facts, and verification
+products/station-zero-v2/src/
+    registered Station Zero v2 product implementation: World, product persistence, specialist coordination, Mission Control, replay/diagnosis, deployment profiles, comparison, and product evidence semantics
 
-src/storage.ts, run.ts, registry.ts
-    current contract identity, persistence, recovery, and replay source
+products/station-zero-v2/web/
+    registered Station Zero v2 browser carrier
 
-src/team/
-    current specialist Context, Messages, authority, Proposals, coordination, Providers
+src/digest.ts, src/build.ts
+    small repository-level mechanical helpers retained temporarily for multiple current carriers; not Big Game framework APIs
 
-src/host-contract/
-    shared Task/Effect/Dispatch/Observation/Verification authority
+src/server.ts
+    temporary local multi-surface carrier pending Phase 5 demolition; not Big Game infrastructure
 
-src/mission-control/
-    current player-facing doctrine, forecast, intervention, and bounded read model
-
-src/replay/, src/deployment/, src/comparison/
-    current evidence projection, diagnosis, retained configuration, and Run comparison
-
-src/server.ts, web/
-    current product HTTP service and browser interface
-
-src/station-zero-v3/
-    v3 content, Genesis, deterministic reducer, Planning/Turn authority, exact Game-owned execution evidence, Agent Context and Candidate admission, policy expansion, Play Service, recovery, and bounded projections
-
-web-v3/
-    isolated Station Zero v3 reference browser
+src/station-zero-v3/, web-v3/
+    retained Station Zero v3 research/regression apparatus pending Phase 4 enclosure
 
 src/casefile/, web-casefile/
-    epistemic Game Core treatment: hidden incident content, deterministic witness policy, revision-fenced SQLite state, exact legal investigation actions, public projection and browser
+    retained Casefile research apparatus pending Phase 4 enclosure
 
-web-lab/
-    disposable Game Core direction treatments; not product authority or G-stage progression
+web-lab/, web-pre-g0/, experiments/, research/
+    Game research/evidence apparatus and historical experiments
 
-docs/STATION_ZERO_V3_P0.md through docs/STATION_ZERO_V3_P3.md
-    v3 encounter, reducer, durable execution, and playable planning boundaries
-
-test/, scripts/e2e-first-playable.ts, scripts/e2e-station-zero-v3.ts
-    current-product verification plus v3 contract, reducer, persistence, planning, API, renderer, and real-browser journeys
+docs/
+    Game-domain development, research, evaluation, product, and authority records
 ```
 
 See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/VISION.md`](docs/VISION.md).
@@ -319,7 +304,7 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 
 - [Public project directory](https://ordivon.com/projects) — current product, v3 preview status, project role, and next steps.
 - [Cross-project map](https://github.com/zycxfyh/ordivon-computing/blob/main/projects/README.md) — stable roles, repository links, and authority entry points for the current project family.
-- Related owners: Game owns authoritative game World state and player-facing rules; [Ordivon Host](https://github.com/zycxfyh/ordivon-host), [Harness](https://github.com/zycxfyh/ordivon-harness), and [Runtime](https://github.com/zycxfyh/ordivon-runtime) own their generic boundaries only when a Game path consumes them.
+- Related owners: concrete games own their product semantics; Runtime owns generic Agent execution, Temporal owns durable workflow execution, mature engines/platforms own engine mechanics, Operations owns observability, Artifact/Engineering own build/provenance mechanics, and Distribution owns release/distribution mechanics. Big Game does not duplicate those owners.
 
 ## License
 

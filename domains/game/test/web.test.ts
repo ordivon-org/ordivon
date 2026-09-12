@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderCompare } from "../web/render-compare.js";
+import { renderCompare } from "../products/station-zero-v2/web/render-compare.js";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderDiagnosis } from "../web/render-diagnosis.js";
+import { renderDiagnosis } from "../products/station-zero-v2/web/render-diagnosis.js";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderReplay } from "../web/render-replay.js";
+import { renderReplay } from "../products/station-zero-v2/web/render-replay.js";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderDeployment } from "../web/render-shell.js";
+import { renderDeployment } from "../products/station-zero-v2/web/render-shell.js";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { compareRunIdFromUrl, revisionFromUrl, surfaceFromUrl, urlForState } from "../web/store.js";
+import { compareRunIdFromUrl, revisionFromUrl, surfaceFromUrl, urlForState } from "../products/station-zero-v2/web/store.js";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { humanize } from "../web/render-utils.js";
+import { humanize } from "../products/station-zero-v2/web/render-utils.js";
 
 test("URL state retains Run, surface, revision, and comparison base", () => {
   const url = urlForState("https://game.test/?source=retained", {

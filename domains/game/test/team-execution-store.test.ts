@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { canonicalJson } from "../src/digest.ts";
-import { GameStore } from "../src/storage.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { TeamStoreError } from "../src/team/store.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
 
 async function setup(runId: string) {
   const game = new GameStore(":memory:");

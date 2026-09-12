@@ -5,8 +5,8 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { recoveryPolicy } from "./support/world-policies.ts";
-import { GameStore, type StorageFaultPoint } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { GameStore, type StorageFaultPoint } from "../products/station-zero-v2/src/storage.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 const preCommitPoints: StorageFaultPoint[] = [
   "before_begin",

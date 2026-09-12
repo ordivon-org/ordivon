@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createMissionControlCatalog } from "../src/mission-control/catalog.ts";
+import { createMissionControlCatalog } from "../products/station-zero-v2/src/mission-control/catalog.ts";
 import {
   doctrineForPolicy,
   forecastCommands,
@@ -9,11 +9,11 @@ import {
   missionOutcome,
   passiveForecast,
   policyForDoctrine,
-} from "../src/mission-control/experience.ts";
-import { MissionControlService } from "../src/mission-control/service.ts";
-import { ENGINEER_ID, MEDIC_ID, initialTeamWorld } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
+} from "../products/station-zero-v2/src/mission-control/experience.ts";
+import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
+import { ENGINEER_ID, MEDIC_ID, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 function service(store = new GameStore(":memory:")) {
   return { store, service: new MissionControlService(store, () => new FixtureTeamProvider()) };

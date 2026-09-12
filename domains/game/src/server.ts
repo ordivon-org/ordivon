@@ -3,30 +3,30 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compareRuns, ComparisonError } from "./comparison/compare.ts";
+import { compareRuns, ComparisonError } from "../products/station-zero-v2/src/comparison/compare.ts";
 import { CasefileService, CasefileStore, CasefileStoreError } from "./casefile/index.ts";
-import type { DeploymentProviderOptions } from "./deployment/model.ts";
-import { DeploymentError, DeploymentStore } from "./deployment/store.ts";
+import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
+import { DeploymentError, DeploymentStore } from "../products/station-zero-v2/src/deployment/store.ts";
 import {
   createMissionControlCatalog,
   isMissionProviderName,
   MISSION_PROVIDER_OPTIONS,
   type MissionProviderOption,
-} from "./mission-control/catalog.ts";
+} from "../products/station-zero-v2/src/mission-control/catalog.ts";
 import {
   MissionControlService,
   type MissionControlCommand,
   type MissionProviderFactory,
   type MissionProviderName,
-} from "./mission-control/service.ts";
-import type { DoctrineId, MissionAdvanceMode } from "./mission-control/model.ts";
-import { buildReplayReport } from "./replay/report.ts";
-import { replayFrame } from "./replay/frames.ts";
-import { GameStore, StorageError } from "./storage.ts";
-import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "./team/model.ts";
-import { ProviderAdapterError } from "./team/provider-contract.ts";
-import { FixtureTeamProvider, type TeamDecisionProvider } from "./team/providers.ts";
-import { TeamStoreError } from "./team/store.ts";
+} from "../products/station-zero-v2/src/mission-control/service.ts";
+import type { DoctrineId, MissionAdvanceMode } from "../products/station-zero-v2/src/mission-control/model.ts";
+import { buildReplayReport } from "../products/station-zero-v2/src/replay/report.ts";
+import { replayFrame } from "../products/station-zero-v2/src/replay/frames.ts";
+import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
+import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../products/station-zero-v2/src/team/model.ts";
+import { ProviderAdapterError } from "../products/station-zero-v2/src/team/provider-contract.ts";
+import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
 import {
   loadStationZeroV3ExternalProviderModule,
   StationZeroV3PlanningStoreError,
@@ -37,7 +37,7 @@ import {
   type StationZeroV3CommanderOrderPatch,
 } from "./station-zero-v3/index.ts";
 
-const defaultWebRoot = fileURLToPath(new URL("../web", import.meta.url));
+const defaultWebRoot = fileURLToPath(new URL("../products/station-zero-v2/web", import.meta.url));
 const defaultV3WebRoot = fileURLToPath(new URL("../web-v3", import.meta.url));
 const defaultLabWebRoot = fileURLToPath(new URL("../web-lab", import.meta.url));
 const defaultPreG0WebRoot = fileURLToPath(new URL("../web-pre-g0", import.meta.url));

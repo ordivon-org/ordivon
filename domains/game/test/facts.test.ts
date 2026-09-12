@@ -6,12 +6,12 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import type { WorldCommand, WorldFact } from "../src/model.ts";
+import type { WorldCommand, WorldFact } from "../products/station-zero-v2/src/model.ts";
 import { communicationsFirstPolicy, recoveryPolicy } from "./support/world-policies.ts";
-import { resolveRuleset } from "../src/registry.ts";
-import { initialTeamWorld } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { resolveRuleset } from "../products/station-zero-v2/src/registry.ts";
+import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function executePolicy(store: GameStore, runId: string, policy: typeof recoveryPolicy): void {
   let state = store.loadState(runId);

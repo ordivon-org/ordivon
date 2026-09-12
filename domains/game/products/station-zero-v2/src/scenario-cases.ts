@@ -1,4 +1,4 @@
-import { sha256 } from "./digest.ts";
+import { sha256 } from "../../../src/digest.ts";
 import type { WorldState } from "./model.ts";
 import { assertWorldInvariants, initialTeamWorld } from "./scenario.ts";
 

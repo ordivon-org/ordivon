@@ -8,18 +8,18 @@ import {
   compareRuns,
   comparisonCompatibility,
   ComparisonError,
-} from "../src/comparison/compare.ts";
-import { STANDARD_LOADOUT_PROFILE_ID } from "../src/deployment/model.ts";
-import { deploymentCatalog, resolveCoordinationProfile } from "../src/deployment/profiles.ts";
-import { DeploymentError, DeploymentStore } from "../src/deployment/store.ts";
+} from "../products/station-zero-v2/src/comparison/compare.ts";
+import { STANDARD_LOADOUT_PROFILE_ID } from "../products/station-zero-v2/src/deployment/model.ts";
+import { deploymentCatalog, resolveCoordinationProfile } from "../products/station-zero-v2/src/deployment/profiles.ts";
+import { DeploymentError, DeploymentStore } from "../products/station-zero-v2/src/deployment/store.ts";
 import {
   MissionControlService,
   type MissionProviderFactory,
-} from "../src/mission-control/service.ts";
+} from "../products/station-zero-v2/src/mission-control/service.ts";
 import { createGameServer } from "../src/server.ts";
-import { GameStore } from "../src/storage.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 const factory: MissionProviderFactory = (name, options) => {
   assert.equal(name, "fixture");

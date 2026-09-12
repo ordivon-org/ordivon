@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createMissionControlCatalog, MISSION_PROVIDER_OPTIONS, validateMissionProviderOptions } from "../src/mission-control/catalog.ts";
+import { createMissionControlCatalog, MISSION_PROVIDER_OPTIONS, validateMissionProviderOptions } from "../products/station-zero-v2/src/mission-control/catalog.ts";
 
 test("default Game Provider catalog owns only the deterministic fixture baseline", () => {
   const catalog = createMissionControlCatalog();

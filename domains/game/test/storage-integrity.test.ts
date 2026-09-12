@@ -5,8 +5,8 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { GameStore, StorageError } from "../src/storage.ts";
-import { listAvailableActions, materializeAction } from "../src/world.ts";
+import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
+import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function directory(): string {
   return mkdtempSync(join(tmpdir(), "ordivon-game-integrity-"));

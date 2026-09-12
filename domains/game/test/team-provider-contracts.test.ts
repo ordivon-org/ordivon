@@ -2,19 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { ProviderAdapterError } from "../src/team/provider-contract.ts";
-import { ENGINEER_ID } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { compileTeamContext } from "../src/team/context.ts";
-import type { CompiledTeamContext, TeamProviderDecision } from "../src/team/model.ts";
+import { ProviderAdapterError } from "../products/station-zero-v2/src/team/provider-contract.ts";
+import { ENGINEER_ID } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { compileTeamContext } from "../products/station-zero-v2/src/team/context.ts";
+import type { CompiledTeamContext, TeamProviderDecision } from "../products/station-zero-v2/src/team/model.ts";
 import {
   admitTeamProviderDecision,
   FixtureTeamProvider,
   parseTeamProviderDecision,
   TeamDecisionAdmissionError,
   validateTeamProviderDecision,
-} from "../src/team/providers.ts";
-import { actorTaskId, TeamStore } from "../src/team/store.ts";
+} from "../products/station-zero-v2/src/team/providers.ts";
+import { actorTaskId, TeamStore } from "../products/station-zero-v2/src/team/store.ts";
 
 function context(): { game: GameStore; team: TeamStore; context: CompiledTeamContext } {
   const game = new GameStore(":memory:");

@@ -5,9 +5,9 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { recoveryPolicy } from "./support/world-policies.ts";
-import { UnsupportedVersionError } from "../src/registry.ts";
-import { GameStore } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { UnsupportedVersionError } from "../products/station-zero-v2/src/registry.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function withStore(run: (store: GameStore) => void): void {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-runs-"));

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { describeFact, deriveFacts, enrichWorldEvent } from "../src/facts.ts";
-import type { TeamTickCommand, WorldEvent } from "../src/model.ts";
-import { initialTeamWorld } from "../src/scenario.ts";
-import { parseWorldCommand } from "../src/world.ts";
+import { describeFact, deriveFacts, enrichWorldEvent } from "../products/station-zero-v2/src/facts.ts";
+import type { TeamTickCommand, WorldEvent } from "../products/station-zero-v2/src/model.ts";
+import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { parseWorldCommand } from "../products/station-zero-v2/src/world.ts";
 
 test("team command parser accepts exact contain and team envelopes and rejects malformed nesting", () => {
   const contain = parseWorldCommand({

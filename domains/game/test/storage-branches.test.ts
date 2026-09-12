@@ -6,8 +6,8 @@ import test from "node:test";
 
 import { canonicalJson, sha256 } from "../src/digest.ts";
 import { recoveryPolicy } from "./support/world-policies.ts";
-import { GameStore, StorageError } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { GameStore, StorageError } from "../products/station-zero-v2/src/storage.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function temp(): { directory: string; path: string } {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-storage-branches-"));

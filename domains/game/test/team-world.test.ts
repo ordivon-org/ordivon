@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import type { PrimitiveWorldCommand, TickBatch } from "../src/model.ts";
-import { resolveRuleset, resolveScenario } from "../src/registry.ts";
-import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, evaluateMission, initialTeamWorld } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { applyWorldCommand, applyWorldTick, listAvailableActions, materializeAction, validateWorldCommand } from "../src/world.ts";
+import type { PrimitiveWorldCommand, TickBatch } from "../products/station-zero-v2/src/model.ts";
+import { resolveRuleset, resolveScenario } from "../products/station-zero-v2/src/registry.ts";
+import { ENGINEER_ID, MEDIC_ID, SECURITY_ID, evaluateMission, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { applyWorldCommand, applyWorldTick, listAvailableActions, materializeAction, validateWorldCommand } from "../products/station-zero-v2/src/world.ts";
 
 function command(state: ReturnType<typeof initialTeamWorld>, actorId: string, actionId: string, commandId: string): PrimitiveWorldCommand {
   const action = listAvailableActions(state, actorId).find((candidate) => candidate.actionId === actionId);

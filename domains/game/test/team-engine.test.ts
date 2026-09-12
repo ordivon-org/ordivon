@@ -5,15 +5,15 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import type { PrimitiveWorldCommand } from "../src/model.ts";
-import { ProviderAdapterError } from "../src/team/provider-contract.ts";
-import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { TeamHost, type TeamFaultPoint } from "../src/team/engine.ts";
-import type { CompiledTeamContext, TeamProviderDecision } from "../src/team/model.ts";
-import { FixtureTeamProvider, type TeamDecisionProvider } from "../src/team/providers.ts";
-import { TeamStore } from "../src/team/store.ts";
-import { listAvailableActions, materializeAction } from "../src/world.ts";
+import type { PrimitiveWorldCommand } from "../products/station-zero-v2/src/model.ts";
+import { ProviderAdapterError } from "../products/station-zero-v2/src/team/provider-contract.ts";
+import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost, type TeamFaultPoint } from "../products/station-zero-v2/src/team/engine.ts";
+import type { CompiledTeamContext, TeamProviderDecision } from "../products/station-zero-v2/src/team/model.ts";
+import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { TeamStore } from "../products/station-zero-v2/src/team/store.ts";
+import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 const TEAM_DIGEST = "fd84c72053e1e0e533d12296bb6643617f6813bcd5cbb59815911f5b063d09aa";
 

@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { GameStore } from "../src/storage.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 import {
   evaluateStationZeroCoordination,
   STATION_ZERO_COORDINATION_POLICY_ID,
   STATION_ZERO_SPECIALIST_LIMIT,
-} from "../src/team/coordination-policy.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { teamCognitionStarted } from "../src/team/execution-store.ts";
-import type { ActionProposal } from "../src/team/model.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { teamRunInitialized, TeamStore } from "../src/team/store.ts";
+} from "../products/station-zero-v2/src/team/coordination-policy.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { teamCognitionStarted } from "../products/station-zero-v2/src/team/execution-store.ts";
+import type { ActionProposal } from "../products/station-zero-v2/src/team/model.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { teamRunInitialized, TeamStore } from "../products/station-zero-v2/src/team/store.ts";
 
 async function proposalFixture() {
   const game = new GameStore(":memory:");

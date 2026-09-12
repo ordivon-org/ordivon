@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createGameServer } from "../src/server.ts";
-import type { CompiledTeamContext, TeamProviderDecision } from "../src/team/model.ts";
-import { FixtureTeamProvider, type TeamDecisionProvider } from "../src/team/providers.ts";
+import type { CompiledTeamContext, TeamProviderDecision } from "../products/station-zero-v2/src/team/model.ts";
+import { FixtureTeamProvider, type TeamDecisionProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 async function listen(game: ReturnType<typeof createGameServer>): Promise<string> {
   await new Promise<void>((resolve) => game.server.listen(0, "127.0.0.1", resolve));

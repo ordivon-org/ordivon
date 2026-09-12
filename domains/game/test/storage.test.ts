@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import type { MoveCommand } from "../src/model.ts";
+import type { MoveCommand } from "../products/station-zero-v2/src/model.ts";
 import { recoveryPolicy } from "./support/world-policies.ts";
-import { GameStore } from "../src/storage.ts";
-import { materializeAction } from "../src/world.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function withDatabase(run: (path: string) => void): void {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-test-"));

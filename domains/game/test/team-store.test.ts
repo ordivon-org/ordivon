@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { PrimitiveWorldCommand } from "../src/model.ts";
-import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../src/scenario.ts";
-import { GameStore } from "../src/storage.ts";
-import { actorTaskId, TeamStore, TeamStoreError } from "../src/team/store.ts";
-import { listAvailableActions, materializeAction } from "../src/world.ts";
+import type { PrimitiveWorldCommand } from "../products/station-zero-v2/src/model.ts";
+import { ENGINEER_ID, MEDIC_ID, SECURITY_ID } from "../products/station-zero-v2/src/scenario.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { actorTaskId, TeamStore, TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
+import { listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 function setup(runId = "run:team-store"): { game: GameStore; team: TeamStore } {
   const game = new GameStore(":memory:");

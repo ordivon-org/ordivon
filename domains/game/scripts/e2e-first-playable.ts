@@ -6,10 +6,10 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { resolveChromiumExecutable } from "./browser-equipment.ts";
 
-import type { DeploymentProviderOptions } from "../src/deployment/model.ts";
+import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
 import { createGameServer } from "../src/server.ts";
-import type { MissionProviderFactory } from "../src/mission-control/service.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
+import type { MissionProviderFactory } from "../products/station-zero-v2/src/mission-control/service.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 const fixtureFactory: MissionProviderFactory = (_name, options?: DeploymentProviderOptions) =>
   new FixtureTeamProvider({

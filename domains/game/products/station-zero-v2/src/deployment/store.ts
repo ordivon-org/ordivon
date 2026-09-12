@@ -1,4 +1,4 @@
-import { canonicalJson, sha256 } from "../digest.ts";
+import { canonicalJson, sha256 } from "../../../../src/digest.ts";
 import { createGameEvidencePort, type GameEvidencePort } from "../integration/game-evidence.ts";
 import type { GameStore } from "../storage.ts";
 import { teamCognitionStarted } from "../team/execution-store.ts";

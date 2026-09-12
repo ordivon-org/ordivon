@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { initialTeamWorld } from "../src/scenario.ts";
-import { applyWorldTick, listAvailableActions, materializeAction } from "../src/world.ts";
+import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { applyWorldTick, listAvailableActions, materializeAction } from "../products/station-zero-v2/src/world.ts";
 
 test("one intent advances one simulation tick and one world revision", () => {
   const state = initialTeamWorld();

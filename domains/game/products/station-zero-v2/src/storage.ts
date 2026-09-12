@@ -2,11 +2,11 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { canonicalJson, sha256 } from "./digest.ts";
+import { canonicalJson, sha256 } from "../../../src/digest.ts";
 import type { ApplyResult, JournalEvent, PrimitiveWorldCommand, TickBatch, WorldCommand, WorldEvent, WorldState } from "./model.ts";
 import { RULESET_VERSION, SCENARIO_VERSION, resolveRuleset, resolveScenario } from "./registry.ts";
 import type { PointInTimeReplayResult } from "./replay/model.ts";
-import { CURRENT_BUILD, CURRENT_INPUTS_DIGEST } from "./build.ts";
+import { CURRENT_BUILD, CURRENT_INPUTS_DIGEST } from "../../../src/build.ts";
 import {
   DEFAULT_RUN_ID,
   newRunId,

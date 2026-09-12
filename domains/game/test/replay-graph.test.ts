@@ -4,13 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { MissionControlService } from "../src/mission-control/service.ts";
-import { assertEvidenceLinkIntegrity, buildRunEvidenceGraph, ReplayEvidenceError } from "../src/replay/evidence.ts";
-import { MAX_REPLAY_FRAME_BYTES, replayFrame, replayFramesPage, replaySummary } from "../src/replay/frames.ts";
+import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
+import { assertEvidenceLinkIntegrity, buildRunEvidenceGraph, ReplayEvidenceError } from "../products/station-zero-v2/src/replay/evidence.ts";
+import { MAX_REPLAY_FRAME_BYTES, replayFrame, replayFramesPage, replaySummary } from "../products/station-zero-v2/src/replay/frames.ts";
 import { createGameServer } from "../src/server.ts";
-import { GameStore } from "../src/storage.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 async function finish(strategy: "security-contain" | "engineer-seal", store = new GameStore(":memory:")) {
   const runId = `run:replay-graph:${strategy}`;

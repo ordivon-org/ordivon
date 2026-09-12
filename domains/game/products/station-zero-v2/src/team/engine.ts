@@ -1,4 +1,4 @@
-import { canonicalJson, sha256 } from "../digest.ts";
+import { canonicalJson, sha256 } from "../../../../src/digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "./provider-contract.ts";
 import type { GameStore } from "../storage.ts";

@@ -1,4 +1,4 @@
-import { sha256 } from "../digest.ts";
+import { sha256 } from "../../../../src/digest.ts";
 import type { ItemId, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
 import { TEAM_OBJECTIVE_GRAPH, objectiveSatisfied } from "../team/objectives.ts";

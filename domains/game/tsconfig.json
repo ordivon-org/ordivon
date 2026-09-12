@@ -13,5 +13,5 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": false
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "products/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
 }

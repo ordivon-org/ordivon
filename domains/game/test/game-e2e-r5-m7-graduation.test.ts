@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { GameStore } from "../src/storage.ts";
-import { TeamHost } from "../src/team/engine.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
-import { TeamStoreError } from "../src/team/store.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { TeamHost } from "../products/station-zero-v2/src/team/engine.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
+import { TeamStoreError } from "../products/station-zero-v2/src/team/store.ts";
 
 const protocol = JSON.parse(readFileSync("evidence/acceptance/game-e2e-r5-m7-protocol.json", "utf8"));
 const currentness = JSON.parse(readFileSync("evidence/acceptance/game-e2e-r5-m7-currentness.json", "utf8"));

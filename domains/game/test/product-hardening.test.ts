@@ -7,16 +7,16 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
 import { canonicalJson, sha256 } from "../src/digest.ts";
-import { createMissionControlCatalog } from "../src/mission-control/catalog.ts";
-import { missionControlEncodedSize } from "../src/mission-control/projection.ts";
-import { MissionControlService } from "../src/mission-control/service.ts";
-import { listRulesetContracts, listScenarioContracts, resolveScenario } from "../src/registry.ts";
-import { applyScenarioGenesisSpec, createScenarioCaseWorld, listScenarioCases, resolveScenarioCase } from "../src/scenario-cases.ts";
-import { initialTeamWorld } from "../src/scenario.ts";
+import { createMissionControlCatalog } from "../products/station-zero-v2/src/mission-control/catalog.ts";
+import { missionControlEncodedSize } from "../products/station-zero-v2/src/mission-control/projection.ts";
+import { MissionControlService } from "../products/station-zero-v2/src/mission-control/service.ts";
+import { listRulesetContracts, listScenarioContracts, resolveScenario } from "../products/station-zero-v2/src/registry.ts";
+import { applyScenarioGenesisSpec, createScenarioCaseWorld, listScenarioCases, resolveScenarioCase } from "../products/station-zero-v2/src/scenario-cases.ts";
+import { initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
 import { createGameServer } from "../src/server.ts";
-import { GameStore } from "../src/storage.ts";
-import { objectivesForRole } from "../src/team/objectives.ts";
-import { FixtureTeamProvider } from "../src/team/providers.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
+import { objectivesForRole } from "../products/station-zero-v2/src/team/objectives.ts";
+import { FixtureTeamProvider } from "../products/station-zero-v2/src/team/providers.ts";
 
 async function finish(
   scenarioCaseId: string,
@@ -134,6 +134,6 @@ test("Mission Control catalog is the single product contract for Cases, Provider
   assert.deepEqual(catalog.evidenceOrdering.authoritative, ["world-revision", "host-sequence", "projection-revision"]);
   assert.equal(catalog.evidenceOrdering.timestamp, "metadata-only");
   for (const actor of catalog.actors) assert.deepEqual(actor.objectiveIds, objectivesForRole(actor.role));
-  const browserStore = readFileSync(new URL("../web/store.js", import.meta.url), "utf8");
+  const browserStore = readFileSync(new URL("../products/station-zero-v2/web/store.js", import.meta.url), "utf8");
   assert.doesNotMatch(browserStore, /codex|hermes|engineer-01|breach-contained/);
 });

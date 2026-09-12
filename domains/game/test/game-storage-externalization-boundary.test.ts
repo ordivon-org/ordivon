@@ -11,7 +11,7 @@ function between(source: string, start: string, end: string): string {
 }
 
 test("Game storage already consumes SQLite as the mature mechanical substrate", () => {
-  const storage = readFileSync("src/storage.ts", "utf8");
+  const storage = readFileSync("products/station-zero-v2/src/storage.ts", "utf8");
   const v3 = readFileSync("src/station-zero-v3/persistence.ts", "utf8");
   const casefile = readFileSync("src/casefile/store.ts", "utf8");
   for (const source of [storage, v3, casefile]) {
@@ -22,7 +22,7 @@ test("Game storage already consumes SQLite as the mature mechanical substrate", 
 });
 
 test("GameStore atomic World truth keeps Command Event status and commit in one transaction", () => {
-  const source = readFileSync("src/storage.ts", "utf8");
+  const source = readFileSync("products/station-zero-v2/src/storage.ts", "utf8");
   const apply = between(source, "  apply(command: WorldCommand", "  commandReceipt(");
   const begin = apply.indexOf('this.db.exec("BEGIN IMMEDIATE")');
   const command = apply.indexOf("INSERT INTO commands");
@@ -35,7 +35,7 @@ test("GameStore atomic World truth keeps Command Event status and commit in one 
 });
 
 test("GameStore replay truth remains stronger than snapshots", () => {
-  const source = readFileSync("src/storage.ts", "utf8");
+  const source = readFileSync("products/station-zero-v2/src/storage.ts", "utf8");
   assert.match(source, /verifyStream\(runId/);
   assert.match(source, /replayStateFromSnapshot/);
   assert.match(source, /replayed event differs from retained event/);

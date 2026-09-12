@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { LocalEvidenceJournal, LocalEvidenceError } from "../src/integration/local-evidence-journal.ts";
-import { GameStore } from "../src/storage.ts";
+import { LocalEvidenceJournal, LocalEvidenceError } from "../products/station-zero-v2/src/integration/local-evidence-journal.ts";
+import { GameStore } from "../products/station-zero-v2/src/storage.ts";
 
 function withStores(run: (game: GameStore, host: LocalEvidenceJournal) => void): void {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-game-local-evidence-"));

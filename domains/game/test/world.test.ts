@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256 } from "../src/digest.ts";
-import { ITEM_IDS } from "../src/model.ts";
-import { assertWorldInvariants, currentItemTotal, initialTeamWorld } from "../src/scenario.ts";
-import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "../src/world.ts";
+import { ITEM_IDS } from "../products/station-zero-v2/src/model.ts";
+import { assertWorldInvariants, currentItemTotal, initialTeamWorld } from "../products/station-zero-v2/src/scenario.ts";
+import { applyWorldCommand, listAvailableActions, materializeAction, shortestPath } from "../products/station-zero-v2/src/world.ts";
 
 test("initial station graph and resource ledgers are valid", () => {
   const state = initialTeamWorld();

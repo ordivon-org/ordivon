@@ -2,8 +2,8 @@
 schema_version: 1
 id: game.architecture
 title: Architecture
-type: architecture
 profile: engineering
+type: architecture
 lifecycle: active
 source_role: canonical
 visibility: public
@@ -14,8 +14,8 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-03
-summary: Canonical architecture for the registered Station Zero executable, deterministic World authority, Team domain, embedded Host contract, Mission Control, persistence, replay, and HTTP surface.
+updated: 2026-09-12
+summary: Current Station Zero v2 product architecture, explicitly enclosed as product implementation rather than Big Game infrastructure.
 evidence_status: verified
 readiness: READY
 applies_to:
@@ -24,81 +24,62 @@ applies_to:
 related:
   - game.start
   - game.product.station-zero
+  - game.ownership-boundary
   - game.authority
 ---
 # Architecture
 
-## Purpose
+## Scope
 
-Connect uncertain Agent cognition to one deterministic persistent game world without allowing Provider output, presentation state, or recovery machinery to become authoritative reality.
+This document describes the **registered Station Zero v2 product architecture**. It does not define reusable Big Game infrastructure. Cross-game ownership is governed by [`GAME_E2E_OWNERSHIP_BOUNDARY.md`](GAME_E2E_OWNERSHIP_BOUNDARY.md).
 
-## Boundaries
+## Product architecture
 
-The Game World owns legal state and transitions; GameStore owns retained Commands, Events, snapshots, and hash chains; Team owns specialist coordination; the embedded Host adapter owns commitment evidence; Mission Control and replay are projections. The registered executable remains Station Zero v2, while v3 is an unregistered target path.
+Station Zero is a deterministic intervention-driven mission game. Its product implementation contains:
 
-## Components
+- deterministic World state and legal transitions;
+- Engineer, Medic, and Security product roles and coordination policy;
+- player doctrine, authority, intervention, and Mission Control projection;
+- SQLite-backed product history and recovery semantics;
+- product-specific replay, diagnosis, deployment profiles, and run comparison;
+- a bounded Provider contract whose real execution is injected from outside the product;
+- an HTTP/browser carrier for the current product.
 
-The executable combines Mission Control, the Station Zero Team domain, embedded Host authority, deterministic World reducer, SQLite evidence, replay and diagnosis, deployment comparison, Provider adapters, one local HTTP service, and the browser interface.
+These responsibilities are retained because they express Station Zero behavior, not because Ordivon Game owns generic equivalents.
 
-## Data flow
-
-Player doctrine and interventions constrain Team Tasks and Proposals; admitted compatible intents become one atomic World Tick; World state and evidence commit together; Host Observations and Verification bind completion; Mission Control projects the next consequential boundary; replay and comparison derive from retained history.
-
-## Failure modes
-
-The architecture fails closed on unknown contract versions, stale World revisions, invalid capabilities, duplicate or conflicting actions, partial Tick mutation, invented Provider identities, missing verification, corrupted history, concurrent writer conflict, and any projection that attempts to become a second truth store.
-
-## Verification
-
-Exact behavior is verified by deterministic reducer and storage tests, hash-chain and replay checks, Host Contract evidence, Provider isolation tests, product hardening tests, `pnpm check`, and the complete browser acceptance journey. The player experience is defined in [`PRODUCT.md`](PRODUCT.md), and the authority split is recorded in [`authority.md`](authority.md). Source and tests remain stronger than prose for exact fields and transitions.
-
-## Objective
-
-Ordivon Game connects uncertain Agent cognition to a deterministic, persistent game world without allowing model output to become authoritative reality.
-
-The repository supports one executable architecture:
+## Authority flow
 
 ```text
-Mission Control
-→ Station Zero Team domain
-→ Embedded Host authority
-→ Game World
-→ SQLite evidence
-→ Replay / Diagnosis / Comparison
+Player / Browser
+        ↓ doctrine, commands, approvals
+Station Zero Mission Control
+        ↓ bounded product state and intervention rules
+Station Zero specialist coordination
+        ↓ Contexts, Messages, Proposals, authority, coordination
+Deterministic Station Zero World
+        ↓ legal atomic Tick and authoritative state transition
+SQLite product evidence
+        ↓ exact recovery and product projections
+Replay / Diagnosis / Comparison
 ```
 
-It runs as one local Node.js process with one SQLite database. Module boundaries are semantic ownership boundaries, not network services.
+There is no embedded generic Host authority in the current architecture. The earlier `src/host-contract/` subsystem and Game-owned Codex/Hermes provider execution were physically removed. Durable workflow execution and generic Agent execution are external concerns.
 
-## Final executable contract
+## Product state authority
 
-```text
-Scenario: station-zero@2
-Ruleset: station-zero-core@3
-World schema: 2
-Actors: Engineer, Medic, Security
-Maximum coordinated specialists: 3
-```
-
-Unknown Scenario or Ruleset versions fail closed. The repository contains no previous reducer, single-Agent execution stack, compatibility API, or database migration path.
-
-## State ownership
-
-| State | Sole authority |
+| State | Sole product authority |
 |---|---|
-| map, actors, crew, inventory, systems, hazards, resources | Game World |
-| World revision, simulation Tick, mission result | Game World |
-| Commands, Events, snapshots, hash chains | GameStore |
-| actor Tasks, Messages, Decisions, Grants, Proposals, Rounds | Team domain |
-| Task, Effect, Dispatch, Observation, Verification, Outcome | Embedded Host authority |
-| provider output | immutable cognition record |
-| player view and forecasts | Mission Control projection |
-| replay, diagnosis, comparison | pure projection over retained evidence |
+| rooms, actors, crew, inventory, systems, hazards, resources | Station Zero World |
+| World revision, simulation Tick, mission result | Station Zero World |
+| retained Commands, Events, snapshots, hash chains | Station Zero product persistence |
+| specialist tasks/messages/decisions/grants/proposals/rounds | Station Zero specialist coordination |
+| cognition output | immutable Provider result admitted through product validation |
+| player view and forecasts | Station Zero Mission Control projection |
+| replay, diagnosis, comparison | derived product projections over retained evidence |
 
-No layer may create a second source of truth for another layer's state.
+No projection may become a second source of truth.
 
 ## World transition
-
-The authoritative reducer accepts either a primitive command or an atomic multi-Actor Tick:
 
 ```text
 WorldState(revision N)
@@ -112,156 +93,26 @@ WorldState(revision N)
 → WorldState(revision N+1) + TickEvent
 ```
 
-Every accepted Tick advances one World revision and one simulation Tick. Conflicting mutable targets, duplicate actors, duplicate command identities, stale revisions, and over-allocated inventory fail without partial mutation.
-
-### World invariants
-
-- room adjacency is symmetric;
-- every actor, crew member, system, and hazard references an existing room;
-- item quantities are conserved across rooms, actors, and consumed ledgers;
-- battery charge plus consumed energy equals initial energy;
-- health, oxygen, heat, and integrity remain bounded;
-- running missions have no terminal reason;
-- terminal missions have an explicit reason.
-
-## Team domain
-
-Engineer, Medic, and Security have distinct capabilities and actor-local observations. Team coordination owns:
-
-- persistent actor Tasks;
-- bounded typed Context blocks;
-- local and station-radio Messages;
-- Provider decisions and admitted Proposals;
-- attribute-based authority;
-- exact, expiring, single-use Grants;
-- deterministic legal-subset selection;
-- Round and TickPlan persistence;
-- interruption reconciliation.
-
-The Station Zero selector intentionally supports no more than three specialists. It is a domain policy, not a general scheduler.
-
-## Embedded Host authority
-
-`src/host-contract/` provides the one generic commitment path retained in Game:
-
-```text
-TaskDescriptor
-→ Effect
-→ Dispatch
-→ Observation
-→ VerificationReceipt
-→ TaskOutcome
-```
-
-Completion requires an accepted VerificationReceipt. Stable identities make response-loss recovery idempotent: after uncertainty, the system observes retained World evidence before considering redelivery.
-
-This adapter is deliberately thin. Generic Agent sessions, planning loops, strategic Operations, and alternative Host implementations do not live in this repository.
+The three-specialist limit, role capabilities, objectives, Mission Fronts, deployment profiles, and diagnosis rules are Station Zero rules. They are not a generic scheduler or Team framework.
 
 ## Provider boundary
 
-Fixture, Codex, Hermes, and bounded fallback chains implement one Team Provider contract. Providers receive actor-specific Context and return one structured candidate identity or abstention.
-
-Provider isolation guarantees that cognition cannot:
-
-- read or mutate the repository or database;
-- alter World rules or scoring;
-- invent an actor or candidate;
-- bypass authority;
-- claim completion;
-- own task continuity.
-
-Technical Provider failure may trigger a configured fallback. A valid admitted choice is never replaced because another Provider might choose better.
-
-## Mission Control
-
-Mission Control is a pure bounded product projection over World, Team, Host, deployment, and replay evidence. It owns no independent database.
-
-The default player cadence is intervention-driven:
-
-```text
-run ordinary verified work
-→ stop at authority, conflict, provider failure, block, budget, or terminal outcome
-→ show exact next-Tick forecast and Mission Fronts
-→ accept player command
-→ continue from durable state
-```
-
-Reads must not create semantic events or mutate Team state.
-
-### Advancement hot path
-
-Mission advancement distinguishes internal progress from player-facing projection:
-
-```text
-TeamHost Step Receipt
-→ local boundary decision
-→ continue without rebuilding the full product view
-→ build Mission Control View only for an actual intervention, budget boundary, or terminal result
-```
-
-A Step Receipt carries the current World revision, mission status, Round status, and blocker. Full Mission Control views remain pure projections, but are no longer rebuilt after every Context, Proposal, Dispatch, Observation, and Verification stage.
-
-One Run has one active Mission writer. Identical concurrent advance requests share the same in-flight result; a different advance or player mutation fails closed until that writer finishes. Different Runs may overlap external Provider cognition while SQLite serializes their short durable checkpoints.
+The product owns only the semantic contract needed to obtain and validate a candidate decision. The default fixture provider is deterministic test/product apparatus. Process spawning, model credentials, HTTP transport, retries, provider pools, cooldowns, fallbacks, and provider-specific execution are not owned by Game and are injected externally when needed.
 
 ## Persistence and replay
 
-SQLite retains:
+Station Zero currently uses `node:sqlite`. SQLite owns database mechanics such as transactions, locking, WAL, constraints, and file persistence. Station Zero owns only its product-level meaning of World revisions, Commands/Events, recovery, exact replay, and atomic product evidence.
 
-- final Run identity;
-- canonical Tick Commands and Events;
-- before/after digests;
-- command and event hash chains;
-- sparse snapshots as caches;
-- Team and Host journals;
-- immutable deployment manifests.
+Historical `host_*` table or event names may remain only as retained-schema compatibility vocabulary. Their names do not establish a generic Host subsystem or Big Game ownership and are subject to later bounded migration/removal.
 
-Recovery begins from the newest valid snapshot and replays the tail. A successful recovery establishes a verified in-memory World Head. Normal current-state reads compare that Head with the latest retained Command/Event digest and return it directly; a mismatch invalidates the Head and triggers recovery. Full verification still begins from Genesis and checks the complete retained history. Snapshot deletion cannot destroy truth; corrupted snapshots or journal chains fail closed.
+## HTTP carrier
 
-Hot-path validation and deep audit are intentionally separate:
+The current local HTTP carrier exists to serve Station Zero and retained research apparatus. It is not a Big Game server framework. Research surfaces are opt-in and will be physically separated from the current product carrier during the enclosure migration.
 
-| Boundary | Validation |
-|---|---|
-| current read | latest sequence and retained Head digests |
-| Team transition | identity, revision CAS, lease, and projection-head digest |
-| Effect preparation | required World revision/digest and idempotency key |
-| Effect observation | retained World Event and Observation binding |
-| Round completion | VerificationReceipt and terminal projection heads |
-| recovery / explicit audit | complete World streams, Host Journal, Contracts, and Replay |
+## Verification
 
-Host Contract events remain authoritative in the Host Journal. `host_contract_entries` is a rebuildable materialized index written in the same transaction and point-validated against Journal and Artifact evidence before use. It is not a second history.
+The current product architecture is verified by deterministic reducer/persistence tests, hash-chain/replay checks, product hardening tests, `pnpm check`, and browser acceptance journeys. Infrastructure graduation never implies fresh-player, Human, rights, or release standing.
 
-Team Projection tables retain complete current objects. Lifecycle Journal events retain compact object identity, revision, and digest heads rather than copying the complete object at every transition. Readers accept existing full-object events and the compact head form, preserving retained Run compatibility.
+## Repository constraint
 
-Large Artifact bodies and non-Contract Journal payloads use transparent gzip storage when it is smaller. Digests continue to bind canonical logical content, and public read APIs return the original JSON objects.
-
-Durable Team work uses short checkpoint transactions around Context preparation, Provider result admission, Tick planning, Dispatch preparation, post-Effect Observation, and Verification. Provider calls and World Effects remain outside long Host transactions.
-
-Replay, diagnosis, and comparison are derived views. They never write a second history.
-
-## HTTP surface
-
-The service exposes only current product responsibilities:
-
-- Run listing;
-- Provider readiness;
-- Mission Control;
-- replay timeline/report/frame;
-- deployment manifest;
-- compatible Run comparison;
-- browser assets.
-
-Primitive World mutation, raw Team stepping, single-Agent control, and debug compatibility endpoints are not part of the executable.
-
-## Repository constraints
-
-New permanent structure must own a responsibility that the current modules cannot safely own locally. A second materially different world is required before Station Zero mechanisms are generalized into a reusable Game platform.
-
-## R5 domain-kernel migration note
-
-The `Embedded Host authority` section above describes the retained Station Zero compatibility implementation at the R5 source cut; it is no longer the target ownership model for generic Host lifecycle semantics.
-
-R5 introduces `src/team/commitment-bridge.ts` as the Game-consumer seam. Team execution speaks in Team `Round`/`Effect`/`Dispatch`/`Observation` identities; generic Host wire objects are quarantined behind the bridge. The current embedded implementation remains only until a source-current external Host substitution preserves the same response-loss, verification, recovery, and replay judgments.
-
-Do not generalize the embedded Host implementation into Game infrastructure. New Game/domain code must not import Host wire types merely to participate in Team execution. Remaining direct `HostStore` consumers are migration debt, not evidence that Game owns a generic journal platform.
-
-See [`GAME_E2E_R5_RECOMPOSITION.md`](GAME_E2E_R5_RECOMPOSITION.md), [`GAME_E2E_R5_SUBTRACTION_MAP.md`](GAME_E2E_R5_SUBTRACTION_MAP.md), and [`GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md`](GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md).
+No new module is admitted to Big Game merely because several files need somewhere to live. Product semantics remain with the product; generic mechanics go to mature external owners; historical compatibility is deleted or quarantined. Promotion to cross-game shared code requires the evidence test in [`GAME_E2E_OWNERSHIP_BOUNDARY.md`](GAME_E2E_OWNERSHIP_BOUNDARY.md).

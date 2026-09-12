@@ -1,4 +1,4 @@
-import { sha256 } from "./digest.ts";
+import { sha256 } from "../../../src/digest.ts";
 import { enrichWorldEvent } from "./facts.ts";
 import {
   ITEM_IDS,
