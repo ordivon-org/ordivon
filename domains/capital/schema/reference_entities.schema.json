@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["source", "retrieved_at", "entities"],
+  "properties": {
+    "source": {"const": "GLEIF API"},
+    "retrieved_at": {"type": "string"},
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["symbol", "requested_legal_name", "lei", "legal_name", "registration_status"],
+        "properties": {
+          "symbol": {"type": "string"},
+          "requested_legal_name": {"type": "string"},
+          "lei": {"type": "string", "minLength": 20, "maxLength": 20},
+          "legal_name": {"type": "string"},
+          "registration_status": {"const": "ISSUED"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

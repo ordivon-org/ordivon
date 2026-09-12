@@ -1,0 +1,7 @@
+{
+  "instruments": [
+    {"symbol": "AAPL", "legal_name": "Apple Inc.", "asset_class": "equity", "currency": "USD"},
+    {"symbol": "MSFT", "legal_name": "Microsoft Corporation", "asset_class": "equity", "currency": "USD"},
+    {"symbol": "NVDA", "legal_name": "NVIDIA Corporation", "asset_class": "equity", "currency": "USD"}
+  ]
+}
