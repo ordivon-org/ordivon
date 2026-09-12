@@ -91,3 +91,9 @@ After runtime re-materialization:
 ## Next boundary
 
 Artifact Build & Delivery ends at a verified/package-ready Artifact fact. External publication/provider effects belong to the Integration/Distribution boundary. A future n8n handoff must consume an Artifact result contract; n8n workflow IDs or provider-specific identifiers must not become Artifact domain authority.
+
+## Legacy source retirement proof
+
+The historical Workstation implementation was retired in commit `a7f82ded74908af5bca0e956a9b38a7cbd97eecf`: 82 migrated Artifact-owned files were removed and the old Workstation test dispatcher/cross-owner assertion were detached from Artifact. A tracked-reference scan found zero remaining technical references to the retired scripts or worker. Historical Creative/archive path strings were retained only as provenance.
+
+After those files were absent from the filesystem, production-green Workflow `artifact-v2-source-authority-smoke-20260912-03` completed successfully with Run ID `01a0940e-0343-75d4-9f42-1cfed2d930bd`, the same artifact digest, `LOCAL_UNSIGNED_DEVELOPMENT`, and `releaseReady=false`. This is the post-retirement proof that the live Artifact path no longer depends on the historical Workstation source tree.

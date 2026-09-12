@@ -9,3 +9,5 @@
 - migration date: 2026-09-12
 
 The historical repository remains Git provenance for pre-split history. `/root/projects/ordivon-artifact-v2` is the accepted forward source authority after differential tests, stable-runtime re-materialization, and production-green Temporal workflow acceptance. See `docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`.
+- historical Workstation Artifact source retired in `/root/workstation-lab` commit `a7f82ded74908af5bca0e956a9b38a7cbd97eecf` after zero remaining tracked technical references were observed.
+- post-retirement production-green proof: Workflow `artifact-v2-source-authority-smoke-20260912-03`, Run `01a0940e-0343-75d4-9f42-1cfed2d930bd`, completed PASS with `LOCAL_UNSIGNED_DEVELOPMENT`, `releaseReady=false`, and artifact SHA-256 `2e5970e05bc8b823e9ca2f4fcaa2fa97de43b619c896c85afde92058fae0c9e9`.
