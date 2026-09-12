@@ -17,7 +17,7 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 
 | Lifecycle responsibility | Selected owner/provider | Standing | Security v2 ownership |
 |---|---|---|---|
-| Threat model artifact | OWASP Threat Dragon | P0 selected | Bind model to exact architecture/source revision; do not own diagramming or threat taxonomy engine |
+| Threat model artifact | OWASP Threat Model Library TM-BOM; Threat Dragon as editor/viewer | P0 selected | Bind standards-format model to exact architecture envelope; do not make the editor the authority |
 | Threat identification method | OWASP threat-modeling process + STRIDE | P0 selected | Preserve exact threat/mitigation/verification references |
 | Attack/weakness vocabulary | MITRE CAPEC + CWE | P0 selected references | Reference external identifiers; do not clone taxonomies |
 | Repository security posture | OpenSSF Scorecard | P0 selected | Treat individual checks as evidence; never promote the aggregate score directly to authority |
@@ -47,9 +47,11 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 
 ## P0 additions
 
-### 1. OWASP Threat Dragon
+### 1. TM-BOM + OWASP Threat Dragon
 
-Use Threat Dragon as the default threat-model authoring artifact because it provides data-flow diagrams with associated threats and mitigations and supports STRIDE. Models must be revision-bound to the architecture/source they describe.
+Use the OWASP Threat Model Library JSON schema (TM-BOM direction) as the canonical machine-readable threat-model artifact. Threat Dragon is the preferred human editor/viewer, not the authority format. This keeps the model portable when the UI/provider changes.
+
+Threat Dragon 2.6.2 can read/import TM-BOM-oriented library models, while its native v2 format remains tool-specific and its documented long-term direction is TM-BOM. Security therefore validates the canonical artifact against an exact external schema tag/digest and separately binds the model to an exact architecture envelope.
 
 Security v2 does **not** create an `OrdivonThreatOntology`. CAPEC/CWE identifiers may be referenced where useful, while project-specific threats remain ordinary model content.
 

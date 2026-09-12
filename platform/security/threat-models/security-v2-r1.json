@@ -1,0 +1,362 @@
+{
+  "$schema": "https://github.com/OWASP/www-project-threat-model-library/blob/v1.0.2/threat-model.schema.json",
+  "version": "1.0",
+  "scope": {
+    "title": "Ordivon Security v2",
+    "description": "External-first security verification and authority/admission semantic waist for Ordivon.",
+    "business_criticality": "high",
+    "data_sensitivity": [
+      "cred",
+      "op"
+    ],
+    "exposure": "internal",
+    "tier": "mission_critical"
+  },
+  "description": "Security v2 composes external scanners, policy, signing, runtime and virtualization providers while retaining exact subject/evidence binding, authority/admission and verified-consequence semantics.",
+  "frozen": false,
+  "trust_zones": [
+    {
+      "symbolic_name": "engineering-zone",
+      "title": "Engineering and Security Policy",
+      "description": "Version-controlled Security v2 source, policy and threat model."
+    },
+    {
+      "symbolic_name": "execution-zone",
+      "title": "Trusted Local Execution",
+      "description": "Ordivon Runtime and locally admitted execution providers."
+    },
+    {
+      "symbolic_name": "external-provider-zone",
+      "title": "External Provider Boundary",
+      "description": "External scanners, repositories and security providers whose outputs are evidence, not Ordivon authority."
+    }
+  ],
+  "trust_boundaries": [
+    {
+      "trust_zone_a": "engineering-zone",
+      "trust_zone_b": "execution-zone",
+      "access_control_methods": [
+        "acl"
+      ],
+      "authentication_methods": [
+        "token"
+      ]
+    },
+    {
+      "trust_zone_a": "engineering-zone",
+      "trust_zone_b": "external-provider-zone",
+      "access_control_methods": [
+        "acl"
+      ],
+      "authentication_methods": [
+        "token"
+      ]
+    },
+    {
+      "trust_zone_a": "execution-zone",
+      "trust_zone_b": "external-provider-zone",
+      "access_control_methods": [
+        "acl"
+      ],
+      "authentication_methods": [
+        "token"
+      ]
+    }
+  ],
+  "actors": [
+    {
+      "symbolic_name": "operator",
+      "title": "Authorized operator",
+      "description": "Human or higher-level owner supplying exact target and effect authority.",
+      "type": "administrator",
+      "permissions": "May request only explicitly authorized verification/effect operations.",
+      "trust_zone": "engineering-zone"
+    },
+    {
+      "symbolic_name": "external-security-provider",
+      "title": "External security provider",
+      "description": "Mature external tool or service producing provider-native evidence.",
+      "type": "third_party",
+      "permissions": "Produces observations only unless separately admitted for effectful testing.",
+      "trust_zone": "external-provider-zone"
+    }
+  ],
+  "components": [
+    {
+      "symbolic_name": "security-waist",
+      "title": "Security v2 semantic waist",
+      "description": "Binds exact subjects, evidence digests/currentness/applicability, authority, admission and verified consequence.",
+      "trust_zone": "engineering-zone"
+    },
+    {
+      "symbolic_name": "opa-policy",
+      "title": "OPA/Rego policy decision point",
+      "description": "Evaluates admission and standing from explicitly supplied evidence and authority context.",
+      "trust_zone": "engineering-zone"
+    },
+    {
+      "symbolic_name": "runtime",
+      "title": "Ordivon Runtime",
+      "description": "Owns exact physical execution/attempt/delivery evidence; does not inherit Security policy authority.",
+      "trust_zone": "execution-zone"
+    },
+    {
+      "symbolic_name": "temporal",
+      "title": "Temporal",
+      "description": "Owns durable workflow continuity, not security truth.",
+      "trust_zone": "execution-zone"
+    },
+    {
+      "symbolic_name": "scanner-providers",
+      "title": "External verification providers",
+      "description": "Gitleaks, Semgrep, OSV-Scanner, Trivy, Syft, Scorecard, ZAP, fuzzing and runtime-detection providers as admitted by profile.",
+      "trust_zone": "external-provider-zone"
+    },
+    {
+      "symbolic_name": "independent-observer",
+      "title": "Independent authoritative observer",
+      "description": "Provider/native observation capable of establishing a later consequence independently from the executor receipt.",
+      "trust_zone": "execution-zone"
+    }
+  ],
+  "data_stores": [],
+  "data_sets": [],
+  "data_flows": [
+    {
+      "symbolic_name": "operator-security-request",
+      "title": "Operator to Security",
+      "description": "Exact subject, requested verification/effect and authority context.",
+      "source": {
+        "type": "actor",
+        "object": "operator"
+      },
+      "destination": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "has_sensitive_data": true,
+      "encrypted": true
+    },
+    {
+      "symbolic_name": "provider-evidence",
+      "title": "Provider evidence to Security",
+      "description": "Provider-native evidence retained by digest and exact subject binding.",
+      "source": {
+        "type": "component",
+        "object": "scanner-providers"
+      },
+      "destination": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "has_sensitive_data": true,
+      "encrypted": true
+    },
+    {
+      "symbolic_name": "security-policy-input",
+      "title": "Security to OPA",
+      "description": "Bound evidence, applicability and authority context for policy evaluation.",
+      "source": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "destination": {
+        "type": "component",
+        "object": "opa-policy"
+      },
+      "has_sensitive_data": true,
+      "encrypted": false
+    },
+    {
+      "symbolic_name": "security-runtime-effect",
+      "title": "Admitted effect to Runtime",
+      "description": "Only an admitted exact effect is submitted for physical execution.",
+      "source": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "destination": {
+        "type": "component",
+        "object": "runtime"
+      },
+      "has_sensitive_data": true,
+      "encrypted": false
+    },
+    {
+      "symbolic_name": "runtime-execution-receipt",
+      "title": "Runtime receipt to Security",
+      "description": "Execution receipt is evidence of execution and never self-promotes to verified world consequence.",
+      "source": {
+        "type": "component",
+        "object": "runtime"
+      },
+      "destination": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "has_sensitive_data": false,
+      "encrypted": false
+    },
+    {
+      "symbolic_name": "observer-consequence",
+      "title": "Independent observation to Security",
+      "description": "Authoritative observation used to verify consequence against the exact request and post-state digest.",
+      "source": {
+        "type": "component",
+        "object": "independent-observer"
+      },
+      "destination": {
+        "type": "component",
+        "object": "security-waist"
+      },
+      "has_sensitive_data": false,
+      "encrypted": false
+    }
+  ],
+  "threat_personas": [
+    {
+      "symbolic_name": "evidence-spoofer",
+      "title": "Evidence spoofer",
+      "description": "Adversary or compromised provider attempting to make wrong/stale evidence appear current.",
+      "is_person": false,
+      "skill_level": "expert_engineer",
+      "access_level": "user",
+      "malicious_intent": true,
+      "applicability_to_org": "moderate"
+    },
+    {
+      "symbolic_name": "authority-confuser",
+      "title": "Authority boundary confuser",
+      "description": "Requester attempting to turn reachability or credentials into effect authority.",
+      "is_person": true,
+      "skill_level": "engineer",
+      "access_level": "user",
+      "malicious_intent": true,
+      "applicability_to_org": "moderate"
+    }
+  ],
+  "threats": [
+    {
+      "symbolic_name": "stale-evidence-promotion",
+      "title": "Stale evidence promoted as current",
+      "description": "Evidence produced for a different architecture/source revision is used for current admission.",
+      "components_affected": [
+        "security-waist"
+      ],
+      "threat_persona": "evidence-spoofer",
+      "event": "Architecture changes after evidence/model capture.",
+      "sources": [
+        "adversary",
+        "human_error"
+      ],
+      "weaknesses": []
+    },
+    {
+      "symbolic_name": "unauthorized-active-effect",
+      "title": "Reachability confused with authority",
+      "description": "An effectful scanner or runtime operation is executed merely because the target is reachable or credentials exist.",
+      "components_affected": [
+        "security-waist",
+        "runtime",
+        "scanner-providers"
+      ],
+      "threat_persona": "authority-confuser",
+      "event": "Effectful verification is requested without an exact target grant.",
+      "sources": [
+        "adversary",
+        "human_error"
+      ],
+      "weaknesses": []
+    },
+    {
+      "symbolic_name": "executor-self-verification",
+      "title": "Executor self-verifies world consequence",
+      "description": "An execution receipt is accepted as independent proof that the intended world consequence occurred.",
+      "components_affected": [
+        "runtime",
+        "security-waist"
+      ],
+      "threat_persona": "evidence-spoofer",
+      "event": "Executor returns a successful receipt without independent readback.",
+      "sources": [
+        "failure",
+        "adversary"
+      ],
+      "weaknesses": []
+    }
+  ],
+  "controls": [
+    {
+      "symbolic_name": "architecture-envelope-binding",
+      "title": "Exact architecture envelope binding",
+      "description": "Threat model and retained evidence bind to an exact deterministic architecture-file envelope digest.",
+      "threats": [
+        "stale-evidence-promotion"
+      ],
+      "status": "active",
+      "priority": "critical"
+    },
+    {
+      "symbolic_name": "explicit-effect-authority",
+      "title": "Explicit effect authority",
+      "description": "Effectful verification requires exact actor/authority/target/capability admission; credentials and reachability are insufficient.",
+      "threats": [
+        "unauthorized-active-effect"
+      ],
+      "status": "active",
+      "priority": "critical"
+    },
+    {
+      "symbolic_name": "independent-consequence-observation",
+      "title": "Independent consequence observation",
+      "description": "Verified consequence requires a later authoritative observation bound to the request and matching post-state digest.",
+      "threats": [
+        "executor-self-verification"
+      ],
+      "status": "active",
+      "priority": "critical"
+    }
+  ],
+  "risks": [
+    {
+      "symbolic_name": "incorrect-security-admission",
+      "title": "Incorrect security admission",
+      "description": "Stale or spoofed evidence may produce an incorrect current security decision.",
+      "threats": [
+        "stale-evidence-promotion",
+        "executor-self-verification"
+      ],
+      "likelihood": "possible",
+      "impact": "major",
+      "impact_description": "A subject or effect could be incorrectly trusted or reported as verified.",
+      "score": 16,
+      "level": "high"
+    },
+    {
+      "symbolic_name": "unauthorized-security-effect",
+      "title": "Unauthorized verification effect",
+      "description": "An active scan or physical operation could affect a target outside granted scope.",
+      "threats": [
+        "unauthorized-active-effect"
+      ],
+      "likelihood": "unlikely",
+      "impact": "severe",
+      "impact_description": "An undeclared third-party or production target could be modified or disrupted.",
+      "score": 15,
+      "level": "high"
+    }
+  ],
+  "extensions": {
+    "ordivon.dev/security/source-binding": {
+      "schemaVersion": 1,
+      "architecturePaths": [
+        "README.md",
+        "docs/STANDARDS-BASELINE.md",
+        "docs/TECHNOLOGY-SELECTION-R2.md"
+      ],
+      "architectureEnvelopeSha256": "sha256:6df9828946b8dc299e93b897ff53fd9736b939a88e2efe4a08b56c2ba4c5fcfb",
+      "modelingMethod": "OWASP Threat Model Library schema with STRIDE-compatible analysis; CAPEC/CWE references may be added when applicable",
+      "editorStanding": "Threat Dragon is a replaceable editor/viewer, not the authority format"
+    }
+  }
+}
