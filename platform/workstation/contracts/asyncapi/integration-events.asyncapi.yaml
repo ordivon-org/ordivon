@@ -1,0 +1,27 @@
+asyncapi: 3.0.0
+info:
+  title: Ordivon Integration Events
+  version: 0.1.0
+  description: Logical asynchronous contract between integration edges and durable/domain owners. No broker is implied.
+channels:
+  integrationEvents:
+    address: ordivon.integration.events
+    messages:
+      cloudEvent:
+        $ref: '#/components/messages/CloudEvent'
+operations:
+  receiveIntegrationEvent:
+    action: receive
+    channel:
+      $ref: '#/channels/integrationEvents'
+  sendIntegrationEvent:
+    action: send
+    channel:
+      $ref: '#/channels/integrationEvents'
+components:
+  messages:
+    CloudEvent:
+      name: CloudEvent
+      contentType: application/cloudevents+json
+      payload:
+        $ref: ../cloudevents/ordivon-event.schema.json

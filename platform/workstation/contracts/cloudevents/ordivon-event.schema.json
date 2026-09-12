@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/contracts/cloudevents/ordivon-event.schema.json",
+  "title": "Ordivon CloudEvent",
+  "description": "CloudEvents 1.0 JSON envelope used at integration boundaries. Domain payload schemas remain domain-owned.",
+  "type": "object",
+  "required": ["specversion", "id", "source", "type"],
+  "properties": {
+    "specversion": {"const": "1.0"},
+    "id": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "format": "uri-reference", "minLength": 1},
+    "type": {"type": "string", "minLength": 1},
+    "subject": {"type": "string"},
+    "time": {"type": "string", "format": "date-time"},
+    "datacontenttype": {"type": "string"},
+    "dataschema": {"type": "string", "format": "uri"},
+    "data": {}
+  },
+  "additionalProperties": true
+}
