@@ -56,7 +56,7 @@ Operations v2 owns only the generic node-operational substrate for the shared Po
 
 ## Local host / WSL substrate
 
-Operations v2 owns generic host desired-state bytes for systemd manager limits, coredump policy, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
+Operations v2 owns generic host desired-state for systemd manager limits, coredump policy, the disabled `systemd-homed` lifecycle on this non-homed node, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
 
 ## Workstation recovery scheduler substrate
 

@@ -25,6 +25,9 @@
       - { section: network, option: generateResolvConf, value: "true" }
       - { section: interop, option: enabled, value: "true" }
       - { section: interop, option: appendWindowsPath, value: "false" }
+    operations_disabled_system_units:
+      - systemd-homed.service
+      - systemd-homed-activate.service
   tasks:
     - name: Ensure system manager drop-in directory exists
       ansible.builtin.file:
@@ -73,6 +76,13 @@
         owner: root
         group: root
         mode: "0644"
+
+    - name: Keep unneeded systemd-homed units disabled on this non-homed node
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop: "{{ operations_disabled_system_units }}"
 
     - name: Preserve unowned Windows WSL configuration while converging owned WSL2 keys
       community.general.ini_file:
