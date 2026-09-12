@@ -39,3 +39,9 @@ R4 keeps provider ownership outside Network v2. sing-box remains the HTTP CONNEC
 An earlier live POC used sing-box `urltest` and did prove failover/failback in one observation window. R4 intentionally does not productize that mechanism because URLTest is latency selection, not a stable provider-primary/direct-backup policy: during canonicalization it failed over correctly but legitimately stayed on the lower-latency direct path after provider recovery. The migration therefore replaces policy mechanics instead of wrapping that semantic mismatch in custom code.
 
 This is canonical acceptance equipment, not consumer authority and not a production provider controller. It does not modify provider namespaces, machine default routing, system proxy state, Cloudflare control-plane ingress, or Runtime/Host MCP listeners. See `docs/FAILOVER_R4.md`.
+
+## R5 first-consumer differential
+
+The first real consumer chosen for migration is the read-only `finance-okx` public-time path. A temporary differential harness compared the current production proxy with a Network v2 composition over the same two provider namespaces and preserved the consumer's actual policy: two provider paths only, current production member as primary, the other provider as backup, no direct fallback, exact CONNECT destination `openapi.okx.com:443`, and fail-closed behavior when both providers are unavailable.
+
+The differential passed twice independently while the legacy production listeners and processes remained unchanged and Cloudflare/Runtime control-plane guards stayed green. The temporary harness intentionally is **not** part of this repository because it consumed legacy `/run/ordivon` state only to bind the comparison to the same physical providers. Shipping that dependency would violate Network v2's greenfield boundary. See `docs/FINANCE_OKX_R5.md`.
