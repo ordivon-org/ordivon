@@ -7,7 +7,8 @@ uv run python scripts/test-approval-request.py
 bash scripts/test-bound-entrypoint.sh
 uv run python scripts/test-reconciliation.py
 bash scripts/test-github-read-positive-control.sh
+bash scripts/test-github-provider-readback.sh
 bash scripts/test-rclone.sh
 bash scripts/test-postiz-surface.sh
 bash scripts/test-openapi-generator.sh
-printf 'PASS Distribution v2 R4 payload-bound producer-separation suite\n'
+printf 'PASS Distribution v2 R5 carrier-coverage suite\n'

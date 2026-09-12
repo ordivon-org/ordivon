@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.carrier-coverage-cut",
+  "observedOn": "2026-09-12",
+  "candidateHead": "ee0441bb94ef09e1d168be6b3befb4e8d612c795",
+  "standing": "PARTIAL_REAL_CARRIER_COVERAGE",
+  "lanes": {
+    "githubProviderNative": {
+      "standing": "READBACK_PROVEN_WRITE_AUTHORITY_BLOCKED",
+      "provider": "github",
+      "target": "ordivon-org/ordivon-runtime",
+      "credentialCapabilityObserved": {"admin": true, "push": true},
+      "writeEffectCandidate": "create_issue",
+      "writeStanding": "user_action_required",
+      "existingObjectReadback": {
+        "kind": "issue",
+        "number": 72,
+        "id": 5036001838,
+        "nodeId": "I_kwDOSEmM188AAAABLCtKLg",
+        "sourceJobId": "job-01a0930b-0b44-7243-979f-e9643fccf9cf",
+        "stdoutDigest": "sha256:42b2a729665e934805270781f80cf637ac9805623103d3d0d8b3a2ac37dfc969"
+      },
+      "liveSuiteJobId": "job-01a0930c-14cc-7231-ac54-5947117e6007"
+    },
+    "rcloneRemote": {
+      "standing": "BLOCKED_NO_CONFIGURED_REMOTE",
+      "localSubstrate": "rclone",
+      "censusJobId": "job-01a0930a-66f1-7301-8701-7aa5022546fc",
+      "configuredRemotes": 0,
+      "localCopyCheck": "PASS",
+      "cloudflareAccountApiTokenObserved": true,
+      "cloudflareTokenMetadataJobId": "job-01a0930e-b385-7313-9011-3b3861c155f8",
+      "rcloneCompatibleR2S3CredentialObserved": false,
+      "remoteTransferClaim": false
+    },
+    "postizSocial": {
+      "standing": "BLOCKED_NO_AUTHENTICATED_INTEGRATION",
+      "publicApiSurface": "reachable",
+      "unauthenticatedIntegrations": "HTTP_401_OR_403_EXPECTED",
+      "localApiCredentialObserved": false,
+      "localServiceObserved": false,
+      "realSocialDispatchClaim": false
+    },
+    "youtubeNative": {
+      "standing": "BLOCKED_NO_YOUTUBE_OAUTH",
+      "googleSecretFilesObserved": 5,
+      "youtubeOauthCredentialObserved": false,
+      "note": "Observed google*.json files are generic provider/model API-key configurations, not YouTube installed/web OAuth client credentials.",
+      "realUploadClaim": false
+    }
+  },
+  "coverageMeaning": {
+    "mechanismCoverage": "stronger than carrier coverage",
+    "carrierCoverage": "only GitHub provider-native read/readback is proven; no real social/cloud/video write lane is proven",
+    "externalProjectSupportIsNotLocalCoverage": true
+  },
+  "negativeEvidence": [
+    "a Cloudflare account API token is not treated as an rclone S3 access-key/secret pair",
+    "Postiz platform breadth is not counted without a local authenticated integration",
+    "generic Google API-key/provider configuration is not treated as YouTube OAuth upload identity"
+  ],
+  "nextExecutionOrder": [
+    "complete GitHub bounded write only after exact approval ingress/authority",
+    "configure one real rclone remote and prove write plus checksum/readback",
+    "connect one authenticated Postiz integration and prove one bounded social publish plus Postiz/provider readback",
+    "provision YouTube OAuth upload identity and prove private/bounded upload plus videos.list readback"
+  ]
+}

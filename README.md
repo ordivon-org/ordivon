@@ -2,38 +2,26 @@
 
 Greenfield, external-first Distribution control plane. This repository intentionally does **not** copy provider capability catalogs, OAuth scope matrices, schedulers, file-transfer engines, package registries, rollout controllers, or attestation formats into Ordivon.
 
-## R4 architecture
+## R5 architecture
 
 ```text
-exact Distribution intent
-        |
-        +--> effect payload canonical digest
-        |
-        v
-RFC8785 occurrence identity
-        |
-        +--> mature provider observer (for GitHub: gh api)
-        |       ↓ Runtime Job evidence
-        |       ↓ consume-only InputAuthority
-        |
-        +--> exact EffectApprovalRequest
-                ↓ NON-AUTHORITATIVE
-                ↓ dedicated approval ingress still required
-        |
-        v
-Runtime execBound immutable inputs
-        |
-        v
+prepared artifact / payload
+        ↓
+exact intent + payload digest
+        ↓
+provider capability observation
+        ↓
+exact effect authority
+        ↓
 OPA admission
-        |
-        +--> exact effect authority required for write/destructive effects
-        |
-        v
-external execution only after authority
+        ↓
+provider execution substrate
+        ↓
+provider object identity
         ↓
 provider-native readback
         ↓
-reconciliation / safe-retry policy
+reconciliation / safe retry
 ```
 
 ## Residual Ordivon semantics
@@ -59,25 +47,37 @@ R3 also added reconciliation semantics: ambiguous outcomes remain non-retryable 
 
 ## R4 producer separation and payload binding
 
-R4 adds the canonical digest of `effect.payload` to occurrence identity. Changing a title, body, target parameter, or other effect payload changes the occurrence and invalidates previously bound observations/authority.
+R4 added the canonical digest of `effect.payload` to occurrence identity and separated provider observation from exact-effect approval. GitHub provider capability is observed through the mature GitHub CLI/API rather than a local provider catalog. `EffectApprovalRequest` is explicitly non-authoritative.
 
-Provider observation does not gain another Ordivon framework. For the GitHub lane, the mature GitHub CLI/API is the producer. A Runtime Job executed `gh api` against `ordivon-org/ordivon-runtime`, observed current issue support and authenticated repository capability, and materialized a digest-bound observation for later `execBound` consumption. Even with `admin=true` and `push=true`, the exact `create_issue` intent remained `user_action_required` because no exact effect authority existed.
+## R5 real carrier coverage
 
-R4 introduces `EffectApprovalRequest`, which binds the exact occurrence and effect payload but is structurally **not** an `EffectAuthority`. Distribution does not mint its own grant from that request.
+R5 changes the success criterion: an external project's feature matrix is not counted as Ordivon-local carrier coverage. A lane is covered only when the current environment can traverse identity/configuration, admission, provider execution or observation, provider object identity, and provider-native readback.
 
-Production Runtime already has mature `input.ingest`, but ingress is enabled only for explicitly operator-configured authorities. At the R4 cut, Distribution's evidence authority is consume-only. The next authority-side gate is therefore an Operations-controlled dedicated approval authority/ingress (for example `distribution-effect-approvals`), not reuse of another domain's ingress and not a self-authored Distribution approval service.
+### GitHub provider-native
 
-No real external write was performed in R4.
+GitHub is the first real carrier lane with provider-native read/readback proof. The environment has authenticated repository capability and can independently read a real GitHub issue by provider object number. The live readback test verifies stable `id`, `node_id`, and `number`, which is the acceptance pattern for a future bounded write. The proposed `create_issue` effect remains blocked by the exact-effect authority gate; no GitHub write has been performed.
 
-See `docs/R4-PRODUCER-SEPARATION.md` and `evidence/r4-validation-20260912.json`.
+### rclone file/object/cloud
+
+`rclone` is installed and local copy/check is proven, but the current configuration exposes zero remotes. A Cloudflare account API-token file exists, but no rclone-compatible R2/S3 access-key/secret configuration was observed. Therefore real remote object transfer is not yet covered.
+
+### Postiz social
+
+The Postiz public API surface is reachable and correctly requires authorization. No local Postiz API credential, connected integration, or local Postiz service was observed. Postiz upstream platform breadth is substrate capability only and does not count as local Distribution coverage until an authenticated integration and bounded publish/readback episode succeed.
+
+### YouTube native
+
+No YouTube OAuth upload identity was observed. Existing `google*.json` files are generic provider/model API-key configurations rather than installed/web OAuth credentials suitable for YouTube upload. Real video upload/readback is therefore not yet covered.
+
+See `docs/R5-CARRIER-COVERAGE.md` and `evidence/r5-carrier-coverage-20260912.json`.
 
 ## Activated external substrate
 
 - Open Policy Agent: policy decision point; no Python clone of the admission state machine.
-- GitHub CLI/API or provider-native APIs: current provider observation; no internal provider catalog.
-- Postiz: social/content dispatch aggregator; it does not become provider-truth authority.
+- GitHub CLI/API or provider-native APIs: provider observation/readback; no internal provider catalog.
+- Postiz: social/content dispatch aggregator; not counted as local coverage until authenticated integrations exist.
 - OpenAPI Generator: generated clients for provider-native APIs where a useful OpenAPI document exists.
-- rclone: file/object/cloud transfer substrate; Ordivon does not reimplement transfer/resume/provider filesystem semantics.
+- rclone: file/object/cloud transfer substrate; local mechanics proven, remote coverage pending real configuration.
 - Existing Ordivon Temporal/Runtime: durable orchestration, immutable-input authority, and optional external-file ingress remain one owner.
 
 See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/`, and `scripts/test-all.sh`.
