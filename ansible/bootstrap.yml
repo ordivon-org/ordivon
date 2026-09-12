@@ -10,7 +10,6 @@
       - vector
       - osquery
       - open-policy-agent
-      - grafana
       - loki
   tasks:
     - name: Install mature external operations substrate from Arch repositories
@@ -18,19 +17,9 @@
         name: "{{ operations_v2_packages }}"
         state: present
 
-    - name: Keep unconfigured services stopped until their v2 config is explicit
-      ansible.builtin.systemd_service:
-        name: "{{ item }}"
-        enabled: false
-        state: stopped
-      loop:
-        - vector.service
-        - grafana.service
-        - loki.service
-      failed_when: false
-
-# node_exporter is intentionally not stopped here because the accepted R1 metrics
-# slice configures and enables it in observability-metrics.yml.
+# Package installation and service lifecycle are deliberately separate owners.
+# Each accepted Operations slice enables/configures its own service in a dedicated
+# playbook; bootstrap must never stop a service that another slice has admitted.
 #
 # Intentional omissions:
 # - no custom service supervisor
