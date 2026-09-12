@@ -1,0 +1,14 @@
+{
+  "contractVersion": 1,
+  "id": "message-internet-text-smoke-r1",
+  "profileId": "message-internet-text-r1",
+  "message": {
+    "from": {"name": "Alice Example", "address": "alice@example.invalid"},
+    "to": {"name": "Bob Example", "address": "bob@example.invalid"},
+    "subject": "Ordivon message R1",
+    "messageId": "<ordivon-message-r1@example.invalid>",
+    "date": "2026-09-12T10:00:00Z",
+    "bodySha256": "55b312a3ebddd6b9e7fe6b281c29fe7e57b93625041010e329944290ed298377"
+  },
+  "notes": "Single-part UTF-8 text/plain Internet Message smoke object."
+}

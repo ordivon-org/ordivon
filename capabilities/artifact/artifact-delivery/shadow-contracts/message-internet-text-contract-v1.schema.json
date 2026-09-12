@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Internet Message Text Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "message"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "message-internet-text-r1"},
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "subject", "messageId", "date", "bodySha256"],
+      "properties": {
+        "from": {"$ref": "#/$defs/address"},
+        "to": {"$ref": "#/$defs/address"},
+        "subject": {"type": "string"},
+        "messageId": {"type": "string", "pattern": "^<[^<>@]+@[^<>@]+>$"},
+        "date": {"type": "string", "format": "date-time"},
+        "bodySha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "address": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "address"],
+      "properties": {
+        "name": {"type": "string"},
+        "address": {"type": "string", "pattern": "^[^@\\s]+@[^@\\s]+$"}
+      }
+    }
+  }
+}

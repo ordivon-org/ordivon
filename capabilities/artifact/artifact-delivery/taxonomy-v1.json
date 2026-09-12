@@ -188,9 +188,9 @@
       "representations": ["internet-message", "mailbox-container"],
       "standards": ["RFC 5322 Internet Message Format", "MIME RFC 2045-2049 family"],
       "exampleFormats": ["eml", "mbox", "msg", "pst"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "NO_DEDICATED_PROFILE_OR_VALIDATOR"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["message-internet-text-r1"],
+      "localToolStanding": "PYTHON_EMAIL_AND_MAILPARSER_INDEPENDENT_PARSER_MATRIX_PROVEN"
     }
   ],
   "specialistExtensionsDeferred": [
