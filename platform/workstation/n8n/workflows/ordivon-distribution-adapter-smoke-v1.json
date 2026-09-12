@@ -1,0 +1,175 @@
+{
+  "id": "ordivon-dist-adapter-smoke-v1",
+  "name": "Ordivon Distribution Adapter Smoke v1",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ordivon-distribution-adapter-smoke-v1",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -760,
+        0
+      ],
+      "id": "014f17d8-80b9-4ad8-acb6-aa2ea76eb0bf",
+      "name": "Webhook",
+      "webhookId": "b071214a-0e6d-49b4-9cc7-9e9a5e36b002"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst event = input.body ?? input;\nfor (const key of ['specversion', 'id', 'source', 'type', 'data']) { if (event[key] === undefined || event[key] === null) throw new Error(`missing CloudEvent field: ${key}`); }\nif (event.specversion !== '1.0') throw new Error(`unsupported CloudEvents specversion: ${event.specversion}`);\nif (event.type !== 'io.ordivon.distribution.admission.v1') throw new Error(`unexpected event type: ${event.type}`);\nif (!event.data.decision || typeof event.data.decision.action !== 'string') throw new Error('missing Distribution decision');\nif (event.data.decision.externalEffectPerformed !== false) throw new Error('integration edge refuses a decision claiming an external effect already occurred');\nreturn [{ json: event }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "2ce91720-15e7-42be-bacf-bf408fabcf0d",
+      "name": "Validate Distribution Event"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7e152df4-1992-4c48-9ca9-b9eb8a62a31f",
+              "leftValue": "={{ $json.data.decision.action }}",
+              "rightValue": "preflight_ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -280,
+        0
+      ],
+      "id": "174bcf8f-e4f7-4a4f-b8cb-0d77b3ad09a8",
+      "name": "Admission Is Preflight Ready"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/ordivon-org/ordivon-runtime/issues/72",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -20,
+        -140
+      ],
+      "id": "757532d2-6c8a-4f38-b794-88871e0f0a72",
+      "name": "GitHub Provider Readback"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const issue = $input.first().json;\nconst event = $('Validate Distribution Event').first().json;\nif (issue.number !== 72 || !issue.id || !issue.node_id) throw new Error('GitHub readback identity mismatch');\nreturn [{ json: { specversion: '1.0', id: `${event.id}:n8n-readback`, source: 'urn:ordivon:integration:n8n', type: 'io.ordivon.integration.distribution.readback.v1', subject: event.id, time: new Date().toISOString(), datacontenttype: 'application/json', correlationid: event.id, data: { admissionAction: event.data.decision.action, requestedEffect: event.data.intent?.effectName ?? null, provider: 'github', providerCalled: true, externalMethod: 'GET', observedObject: { kind: 'issue', number: issue.number, id: issue.id, nodeId: issue.node_id, state: issue.state }, externalEffectPerformed: false } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -140
+      ],
+      "id": "55ff6715-1354-42ea-a426-79041fc308ad",
+      "name": "Build Provider Readback Result"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const event = $input.first().json;\nreturn [{ json: { specversion: '1.0', id: `${event.id}:n8n-blocked`, source: 'urn:ordivon:integration:n8n', type: 'io.ordivon.integration.distribution.blocked.v1', subject: event.id, time: new Date().toISOString(), datacontenttype: 'application/json', correlationid: event.id, data: { admissionAction: event.data.decision.action, reason: event.data.decision.reason ?? null, provider: event.data.intent?.provider ?? null, providerCalled: false, externalEffectPerformed: false } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        140
+      ],
+      "id": "b78363ff-611f-4e40-bbb4-ef97f8517bed",
+      "name": "Build Blocked Result"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Distribution Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Distribution Event": {
+      "main": [
+        [
+          {
+            "node": "Admission Is Preflight Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admission Is Preflight Ready": {
+      "main": [
+        [
+          {
+            "node": "GitHub Provider Readback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Blocked Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Provider Readback": {
+      "main": [
+        [
+          {
+            "node": "Build Provider Readback Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
