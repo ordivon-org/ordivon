@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 generic R0 platform
+Wants=network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service
+After=network-online.target network-v2-dnsproxy.service network-v2-blackbox.service
+
+[Install]
+WantedBy=multi-user.target

@@ -61,3 +61,13 @@ R7 converts the graduated R6 provider composition into an independently owned, n
 Shadow startup validates the already-graduated local R6 inputs by exact version/digest/manifest and does not fetch upstream sources. A falsification run also confirmed that `systemd active` is not sufficient readiness evidence: the final gate waits for a real OKX application response and sing-box API readiness before destructive tests. Canonical `task test:r7` proved B-down/A-survival, B recovery, A-down/B-survival, all-provider fail-closed, recovery from all-down, root shadow restart recovery, and non-interference with legacy Finance plus Runtime/Cloudflare.
 
 The shadow remains active but explicitly disabled at boot, while production authority stays on legacy `19083/19084/19085`. R7 therefore graduates the persistent shadow but **does not authorize production cutover**. See `docs/FINANCE_OKX_R7.md` and `evidence/acceptance/finance-okx-r7-20260912.json`.
+
+## R9 generic Network platform graduation
+
+R9 graduates the generic Network v2 platform on the current WSL execution environment independently of any Finance or other consumer migration. R0 is now dual-stack: dnsproxy carries both A and AAAA, sing-box uses a normal `prefer_ipv6` strategy instead of an artificial IPv4-only policy, and Blackbox/Prometheus independently observe HTTP IPv4, HTTP IPv6, DNS A, DNS AAAA, and the sing-box TCP listener.
+
+The acceptance surface now rejects small-request false greens. `task test:r9` proves forced IPv4 and forced IPv6 HTTPS, normal dual-stack operation, four concurrent connections, a 5 MB isolated long flow, exact live materialization, a whole-platform cold stop/start, a 1 MB post-cold-start long flow, and automatic sing-box process recovery. Generic R0 lifecycle is owned by one `network-v2-r0.target`; only that target is enabled at boot, while dnsproxy/sing-box/blackbox/Prometheus are individually disabled and bound to the target.
+
+The current WSL kernel still does not provide the `netem` qdisc (`Specified qdisc kind is unknown`). Network v2 records that as a platform capability boundary instead of adding a compatibility shim. Packet-level netem, containerlab, and kernel-WireGuard differential acceptance remain standard-Linux reference-runner gates. An actual machine reboot is also intentionally not claimed from inside the active Runtime/Cloudflare control-plane session.
+
+Standing: **generic Network v2 on the current WSL platform is PASSED**. Consumer migration remains separate. See `docs/PLATFORM_R9.md` and `evidence/acceptance/network-r9-20260912.json`.
