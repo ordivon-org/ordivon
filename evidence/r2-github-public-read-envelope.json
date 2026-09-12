@@ -8,10 +8,11 @@
       "provider": "github"
     },
     "effect": {
-      "name": "read_repository"
+      "name": "read_repository",
+      "payload": null
     },
     "intentId": "r2-github-public-read-20260911",
-    "occurrenceRef": "sha256:caf80d6cd0739886241a237cb797120bebbacdfbb5d88a16cc97ae6170a84145",
+    "occurrenceRef": "sha256:248af9bbc68ffb8e29ac33eef6db7d5bd63b2b3a0deb8a4fe65633290a9c83d1",
     "schemaVersion": 2
   },
   "providerObservation": {
@@ -23,9 +24,9 @@
     "executionMode": "api",
     "missingInteractions": [],
     "missingProviderRequirements": [],
-    "observationRef": "sha256:f7a9c390eb725fa9e3bf67525e1542ac1094907a812191a5f4779e6ec7b71720",
+    "observationRef": "sha256:16a52d67b71a126cd2ec1e23ad8509ba8599a17687aa0963209661dd1d95f409",
     "observedAt": "2026-09-11T11:29:19Z",
-    "occurrenceRef": "sha256:caf80d6cd0739886241a237cb797120bebbacdfbb5d88a16cc97ae6170a84145",
+    "occurrenceRef": "sha256:248af9bbc68ffb8e29ac33eef6db7d5bd63b2b3a0deb8a4fe65633290a9c83d1",
     "provider": "github",
     "schemaVersion": 2,
     "sourceKind": "provider_api",

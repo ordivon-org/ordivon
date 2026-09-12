@@ -28,8 +28,11 @@
     "effect": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name"],
-      "properties": {"name": {"type": "string", "minLength": 1}}
+      "required": ["name", "payload"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "payload": {}
+      }
     }
   }
 }

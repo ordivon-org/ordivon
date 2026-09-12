@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from copy import deepcopy
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -22,7 +21,10 @@ def envelope(*, mode="read", supported=True, execution="api", requirements=None,
         "occurrenceRef": "sha256:" + "0" * 64,
         "artifact": {"sha256": "sha256:" + "a" * 64},
         "carrier": {"adapter": "test-adapter", "provider": "test-provider", "accountRef": "account:test"},
-        "effect": {"name": "publish" if mode != "read" else "read_back"},
+        "effect": {
+            "name": "publish" if mode != "read" else "read_back",
+            "payload": {"object": "test", "revision": 1} if mode != "read" else None,
+        },
     }
     intent["occurrenceRef"] = occurrence_ref(intent)
     provider = {
@@ -111,6 +113,10 @@ def main() -> int:
     bad_occ["intent"]["intentId"] = "changed-after-occurrence"
     expect_deny("occurrence-mismatch", bad_occ, "occurrenceRef")
 
+    payload_swap = envelope(mode="write", authority=True)
+    payload_swap["intent"]["effect"]["payload"] = {"object": "different", "revision": 2}
+    expect_deny("effect-payload-swap-invalidates-occurrence-and-authority", payload_swap, "occurrenceRef")
+
     bad_provider_binding = envelope()
     bad_provider_binding["providerObservation"]["accountRef"] = "account:other"
     bad_provider_binding["providerObservation"]["observationRef"] = provider_observation_ref(bad_provider_binding["providerObservation"])
@@ -134,7 +140,7 @@ def main() -> int:
     expired["providerObservation"]["observationRef"] = provider_observation_ref(expired["providerObservation"])
     expect_deny("expired-provider-observation", expired, "expired")
 
-    print("PASS Distribution v2 R2 authority-bound admission suite")
+    print("PASS Distribution v2 R4 payload-bound authority admission suite")
     return 0
 
 

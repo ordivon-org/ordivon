@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.r4-validation",
+  "observedOn": "2026-09-12",
+  "standing": "R4_PROVIDER_PRODUCER_AND_PAYLOAD_BINDING_PROVEN_APPROVAL_PRODUCER_BLOCKED",
+  "writeStanding": "NOT_ADMITTED",
+  "results": {
+    "payloadBoundOccurrence": {
+      "status": "PASS",
+      "writeOccurrenceRef": "sha256:85c9751defd978f24a659cdc3acdb6bd0fb8249488a33d181012329d49ad827a",
+      "effectPayloadRef": "sha256:1c1e17001545a9b2cee706bff49943bb8762f85527be20c51aea0c1126b26a55",
+      "falsifier": "payload mutation invalidates occurrence and prior authority binding"
+    },
+    "providerProducer": {
+      "status": "PASS",
+      "mechanism": "GitHub CLI/API executed as a Runtime Job; no custom GitHub observer framework",
+      "jobId": "job-01a092f5-1e57-7e30-adcc-286c920ac95d",
+      "stdoutDigest": "sha256:bed41438e44d75fc6c96ed1f24e5557ca1c191bea77d77df21230e85787ef042",
+      "terminalEvidenceDigest": "sha256:c5fed98ca2cfdf8f795ba2da29cb8845bc64680eb96fcaa88b9c7e2b7ac50d77",
+      "providerObservationFileDigest": "sha256:b9fdb1346af50f065f1f519074c2b5412463ff92dad6207541a3aace6b23810e",
+      "providerFacts": {"repo": "ordivon-org/ordivon-runtime", "archived": false, "hasIssues": true, "admin": true, "push": true}
+    },
+    "currentProviderObservationWithoutEffectAuthority": {
+      "status": "PASS_DENIED",
+      "jobId": "job-01a092f5-8009-72e2-bd57-5edbe91bc31c",
+      "terminalEvidenceDigest": "sha256:d0c17e6cec335be8ba1158b501a67187204c0ae8e9023dd537ff596a29b80cb6",
+      "action": "user_action_required",
+      "reason": "bound-exact-effect-authority-required"
+    },
+    "approvalRequest": {
+      "status": "PASS_NON_AUTHORITATIVE",
+      "artifact": "evidence/r4-github-create-issue-approval-request.json",
+      "digest": "sha256:1d73d28d1636c5619eeeaa66997f81eabc39c303b03baad865c583bfdd73ab97",
+      "standing": "approval_required_no_effect_authority"
+    },
+    "runtimeIngressCensus": {
+      "status": "PROVEN_EXISTING_BUT_NOT_DISTRIBUTION_ENABLED",
+      "jobId": "job-01a092f6-8c62-7190-aff5-b4501be2842e",
+      "runtimeHasInputIngest": true,
+      "ingressEnabledAuthorities": ["artifact-golden-r1"],
+      "distributionEvidenceAuthority": "distribution-r3-evidence",
+      "distributionEvidenceIngressEnabled": false
+    },
+    "fullSuite": {
+      "status": "PASS",
+      "jobId": "job-01a092f6-40e2-7db3-8d15-f017f5307a88",
+      "stdoutDigest": "sha256:a292bf97feec1c2aceffbbbd86d1306fb2d5fcdd05a3873161dc389c152ccff6"
+    }
+  },
+  "nonClaims": [
+    "no external GitHub write was performed",
+    "the current chat instruction to continue was not interpreted as exact approval for the create_issue payload",
+    "EffectApprovalRequest is not an EffectAuthority",
+    "provider credential capability is not user effect authority",
+    "artifact-golden-r1 is not reused as Distribution approval authority",
+    "production Runtime ingress configuration was not changed in R4"
+  ],
+  "nextGate": "Operations-controlled addition of a dedicated distribution-effect-approvals InputAuthority + input.ingest path, followed by exact approval ingestion, immutable execBound verification, narrow effect-authority translation, bounded external write, provider-native readback, and real ambiguous-outcome recovery"
+}

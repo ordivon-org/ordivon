@@ -6,9 +6,13 @@
     "provider": "github"
   },
   "effect": {
-    "name": "create_issue"
+    "name": "create_issue",
+    "payload": {
+      "body": "Bounded Distribution v2 authority/readback test. This payload is not executed without a separate exact-effect approval.",
+      "title": "Distribution v2 bounded write positive control"
+    }
   },
   "intentId": "r3-github-create-issue-preflight-20260911",
-  "occurrenceRef": "sha256:d597665d8c02216099acdd4c9aa06991dd1256e4e0a56b0b2a4951ee3724fa5e",
+  "occurrenceRef": "sha256:85c9751defd978f24a659cdc3acdb6bd0fb8249488a33d181012329d49ad827a",
   "schemaVersion": 2
 }

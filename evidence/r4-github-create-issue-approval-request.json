@@ -1,0 +1,12 @@
+{
+  "accountRef": "repo:ordivon-org/ordivon-runtime",
+  "effectName": "create_issue",
+  "effectPayloadRef": "sha256:1c1e17001545a9b2cee706bff49943bb8762f85527be20c51aea0c1126b26a55",
+  "expiresAt": "2026-09-12T00:45:00Z",
+  "occurrenceRef": "sha256:85c9751defd978f24a659cdc3acdb6bd0fb8249488a33d181012329d49ad827a",
+  "provider": "github",
+  "requestId": "approval-request:bc7db1eb-d013-453f-8099-f23d608b3266",
+  "requestedAt": "2026-09-12T00:15:00Z",
+  "schemaVersion": 1,
+  "standing": "approval_required_no_effect_authority"
+}
