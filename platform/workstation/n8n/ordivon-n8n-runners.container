@@ -1,0 +1,23 @@
+[Unit]
+Description=Ordivon n8n external task runners
+
+[Container]
+Image=ghcr.io/n8n-io/runners@sha256:f171bd9b3bb8e4668f2ec4293307043987140b26ebc2f7d8ec81b6738953a7e1
+ContainerName=ordivon-n8n-runners
+Pod=ordivon-n8n.pod
+Pull=never
+Environment=N8N_RUNNERS_TASK_BROKER_URI=http://127.0.0.1:5679
+Environment=N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT=15
+Environment=GENERIC_TIMEZONE=Asia/Singapore
+Environment=TZ=Asia/Singapore
+Secret=n8n-runner-auth-token,type=env,target=N8N_RUNNERS_AUTH_TOKEN
+ReadOnly=true
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+DropCapability=all
+
+[Service]
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=900
+TimeoutStopSec=90

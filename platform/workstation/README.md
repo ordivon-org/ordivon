@@ -12,6 +12,7 @@ Use mature upstream systems for generic operations capability. Keep Ordivon code
 - host desired state: Ansible
 - external infrastructure desired state: OpenTofu
 - durable workflow: Temporal
+- integration edge: n8n (rootless Podman/Quadlet, official digest-pinned OCI images + external task runners)
 - execution truth: Ordivon Runtime
 - metrics: Prometheus + node_exporter
 - black-box probing: Gatus
@@ -63,4 +64,4 @@ Operations v2 owns only the generic systemd scheduling substrate for the existin
 
 ## Standards-first integration composition
 
-The integration edge is now selected as **n8n**, while Temporal remains the durable-workflow authority and Ordivon Runtime remains the physical-execution authority. Cross-system event envelopes use CloudEvents 1.0; asynchronous contracts use AsyncAPI; reliable database-to-event handoff uses the Transactional Outbox pattern; synchronous HTTP APIs use OpenAPI only where a real API exists. n8n host-execution nodes are explicitly excluded so integration workflows cannot bypass Runtime. See `docs/STANDARDS_FIRST_COMPOSITION.md` and `contracts/`.
+The integration edge is **n8n**, deployed by Operations as a rootless Podman/Quadlet pod using official digest-pinned OCI images and external task runners. Temporal remains the durable-workflow authority and Ordivon Runtime remains the physical-execution authority. Cross-system event envelopes use CloudEvents 1.0; asynchronous contracts use AsyncAPI; reliable database-to-event handoff uses the Transactional Outbox pattern; synchronous HTTP APIs use OpenAPI only where a real API exists. n8n host-execution nodes are explicitly excluded so integration workflows cannot bypass Runtime. See `docs/STANDARDS_FIRST_COMPOSITION.md` and `contracts/`.

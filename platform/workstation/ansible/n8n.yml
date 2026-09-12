@@ -1,0 +1,623 @@
+---
+- name: Operations v2 n8n rootless integration service
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    n8n_user: n8n
+    n8n_group: n8n
+    n8n_uid: 934
+    n8n_gid: 934
+    n8n_subid_start: 165536
+    n8n_subid_count: 65536
+    n8n_state_dir: /var/lib/n8n
+    n8n_config_dir: /etc/n8n
+    n8n_secret_file: /etc/n8n/n8n-secrets.env
+    n8n_container_env_file: /etc/n8n/n8n-container.env
+    n8n_legacy_env_file: /etc/n8n/n8n.env
+    n8n_quadlet_dir: /etc/containers/systemd/users/934
+    n8n_database: n8n
+    n8n_database_user: n8n
+    n8n_main_image: ghcr.io/n8n-io/n8n@sha256:770da605a7dfdda55838fb2b66b701435690ffcce5d3067585fc7e3cb17b168f
+    n8n_runner_image: ghcr.io/n8n-io/runners@sha256:f171bd9b3bb8e4668f2ec4293307043987140b26ebc2f7d8ec81b6738953a7e1
+    operations_postgres_data_dir: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+    operations_postgres_port: 55434
+    operations_postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+    n8n_rootless_env: >-
+      HOME=/var/lib/n8n USER=n8n LOGNAME=n8n PATH=/usr/bin:/bin
+      XDG_RUNTIME_DIR=/run/user/934
+      DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/934/bus
+  tasks:
+    - name: Create dedicated n8n system group with stable identity
+      ansible.builtin.group:
+        name: "{{ n8n_group }}"
+        gid: "{{ n8n_gid }}"
+        system: true
+        state: present
+
+    - name: Create dedicated n8n system user with stable identity
+      ansible.builtin.user:
+        name: "{{ n8n_user }}"
+        uid: "{{ n8n_uid }}"
+        group: "{{ n8n_group }}"
+        home: "{{ n8n_state_dir }}"
+        shell: /usr/bin/nologin
+        system: true
+        create_home: false
+        state: present
+
+    - name: Admit rootless Podman subordinate UID range
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        regexp: '^{{ n8n_user }}:'
+        line: "{{ n8n_user }}:{{ n8n_subid_start }}:{{ n8n_subid_count }}"
+        create: true
+        mode: "0644"
+
+    - name: Admit rootless Podman subordinate GID range
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        regexp: '^{{ n8n_user }}:'
+        line: "{{ n8n_user }}:{{ n8n_subid_start }}:{{ n8n_subid_count }}"
+        create: true
+        mode: "0644"
+
+    - name: Read n8n linger state
+      ansible.builtin.command:
+        argv: [/usr/bin/loginctl, show-user, "{{ n8n_user }}", -p, Linger, --value]
+      register: n8n_linger
+      changed_when: false
+      failed_when: false
+
+    - name: Enable user-manager linger for rootless Quadlet
+      ansible.builtin.command:
+        argv: [/usr/bin/loginctl, enable-linger, "{{ n8n_user }}"]
+      when: n8n_linger.stdout | trim != 'yes'
+
+    - name: Create n8n persistent state directory
+      ansible.builtin.file:
+        path: "{{ n8n_state_dir }}"
+        state: directory
+        owner: "{{ n8n_user }}"
+        group: "{{ n8n_group }}"
+        mode: "0750"
+
+    - name: Create n8n persistent application state directory
+      ansible.builtin.file:
+        path: "{{ n8n_state_dir }}/.n8n"
+        state: directory
+        owner: "{{ n8n_user }}"
+        group: "{{ n8n_group }}"
+        mode: "0750"
+
+    - name: Create n8n configuration directory
+      ansible.builtin.file:
+        path: "{{ n8n_config_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create administrator-managed rootless Quadlet directory
+      ansible.builtin.file:
+        path: "{{ n8n_quadlet_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Inspect durable n8n secret source
+      ansible.builtin.stat:
+        path: "{{ n8n_secret_file }}"
+      register: n8n_secret_state
+
+    - name: Generate n8n database, encryption, and runner secrets once
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp {{ n8n_config_dir }}/.n8n-secrets.XXXXXX)"
+          trap 'rm -f "$tmp"' EXIT
+          db_password="$(/usr/bin/openssl rand -hex 32)"
+          encryption_key="$(/usr/bin/openssl rand -hex 32)"
+          runner_token="$(/usr/bin/openssl rand -hex 32)"
+          printf 'DB_POSTGRESDB_PASSWORD=%s\nN8N_ENCRYPTION_KEY=%s\nN8N_RUNNERS_AUTH_TOKEN=%s\n' \
+            "$db_password" "$encryption_key" "$runner_token" > "$tmp"
+          /usr/bin/chown root:root "$tmp"
+          /usr/bin/chmod 0600 "$tmp"
+          /usr/bin/mv "$tmp" {{ n8n_secret_file }}
+          trap - EXIT
+        executable: /usr/bin/bash
+      when:
+        - not n8n_secret_state.stat.exists
+        - not ansible_check_mode
+      register: n8n_secret_created
+      no_log: true
+
+    - name: Add runner authentication token to pre-container secret source
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          if /usr/bin/grep -q '^N8N_RUNNERS_AUTH_TOKEN=' {{ n8n_secret_file }}; then
+            echo present
+            exit 0
+          fi
+          umask 077
+          printf 'N8N_RUNNERS_AUTH_TOKEN=%s\n' "$(/usr/bin/openssl rand -hex 32)" >> {{ n8n_secret_file }}
+          echo added
+        executable: /usr/bin/bash
+      when:
+        - n8n_secret_state.stat.exists or (n8n_secret_created is defined and n8n_secret_created.changed)
+        - not ansible_check_mode
+      register: n8n_runner_token_admission
+      changed_when: n8n_runner_token_admission.stdout | default('') == 'added'
+      no_log: true
+
+    - name: Re-read n8n secret source state
+      ansible.builtin.stat:
+        path: "{{ n8n_secret_file }}"
+      register: n8n_secret_ready
+
+    - name: Refuse deployment without protected durable n8n secrets
+      ansible.builtin.assert:
+        that:
+          - n8n_secret_ready.stat.exists
+          - n8n_secret_ready.stat.mode == '0600'
+          - n8n_secret_ready.stat.pw_name == 'root'
+        fail_msg: n8n durable secret source is absent or has unsafe ownership/mode.
+      when: not ansible_check_mode
+
+    - name: Read durable n8n secret source
+      ansible.builtin.slurp:
+        src: "{{ n8n_secret_file }}"
+      register: n8n_secret_blob
+      when: n8n_secret_ready.stat.exists
+      no_log: true
+
+    - name: Parse n8n secrets without logging them
+      ansible.builtin.set_fact:
+        n8n_secret_text: "{{ n8n_secret_blob.content | b64decode }}"
+        n8n_database_password: "{{ (n8n_secret_blob.content | b64decode).splitlines() | select('match', '^DB_POSTGRESDB_PASSWORD=') | first | regex_replace('^DB_POSTGRESDB_PASSWORD=', '') }}"
+        n8n_encryption_key: "{{ (n8n_secret_blob.content | b64decode).splitlines() | select('match', '^N8N_ENCRYPTION_KEY=') | first | regex_replace('^N8N_ENCRYPTION_KEY=', '') }}"
+        n8n_runner_auth_token: "{{ (n8n_secret_blob.content | b64decode).splitlines() | select('match', '^N8N_RUNNERS_AUTH_TOKEN=') | first | regex_replace('^N8N_RUNNERS_AUTH_TOKEN=', '') }}"
+      when: n8n_secret_ready.stat.exists
+      no_log: true
+
+    - name: Ensure n8n PostgreSQL login role exists with SCRAM password
+      community.postgresql.postgresql_user:
+        name: "{{ n8n_database_user }}"
+        password: "{{ n8n_database_password }}"
+        no_password_changes: true
+        role_attr_flags: NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOREPLICATION,NOBYPASSRLS
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+        state: present
+      become_user: postgres
+      when: n8n_secret_ready.stat.exists
+      no_log: true
+
+    - name: Ensure dedicated n8n PostgreSQL database exists
+      community.postgresql.postgresql_db:
+        name: "{{ n8n_database }}"
+        owner: "{{ n8n_database_user }}"
+        encoding: UTF8
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+        state: present
+      become_user: postgres
+      when: n8n_secret_ready.stat.exists
+
+    - name: Require SCRAM for the n8n loopback database connection
+      ansible.builtin.lineinfile:
+        path: "{{ operations_postgres_data_dir }}/pg_hba.conf"
+        line: "host    n8n             n8n             127.0.0.1/32            scram-sha-256"
+        insertbefore: '^host\s+all\s+all\s+127\.0\.0\.1/32\s+trust'
+        state: present
+        owner: postgres
+        group: postgres
+        mode: "0600"
+      register: n8n_hba
+
+    - name: Keep PostgreSQL listener bounded to host loopback
+      community.postgresql.postgresql_alter_system:
+        param: listen_addresses
+        value: "127.0.0.1"
+        login_user: postgres
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
+      become_user: postgres
+      register: n8n_pg_listen
+
+    - name: Apply PostgreSQL restart only when listener admission requires it
+      ansible.builtin.systemd_service:
+        name: postgresql.service
+        state: restarted
+      when:
+        - not ansible_check_mode
+        - n8n_pg_listen.restart_required | default(false)
+
+    - name: Reload PostgreSQL when only HBA policy changed
+      ansible.builtin.systemd_service:
+        name: postgresql.service
+        state: reloaded
+      when:
+        - not ansible_check_mode
+        - n8n_hba.changed
+        - not (n8n_pg_listen.restart_required | default(false))
+
+    - name: Wait for PostgreSQL loopback endpoint
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ operations_postgres_port }}"
+        timeout: 30
+      when: not ansible_check_mode
+
+    - name: Verify n8n PostgreSQL credentials over loopback
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/psql
+          - -h
+          - 127.0.0.1
+          - -p
+          - "{{ operations_postgres_port | string }}"
+          - -U
+          - "{{ n8n_database_user }}"
+          - -d
+          - "{{ n8n_database }}"
+          - -Atqc
+          - SELECT current_user || ':' || current_database();
+      environment:
+        PGPASSWORD: "{{ n8n_database_password }}"
+      changed_when: false
+      when:
+        - not ansible_check_mode
+        - n8n_secret_ready.stat.exists
+      no_log: true
+
+    - name: Install non-secret n8n container environment
+      ansible.builtin.copy:
+        src: ../n8n/n8n.env
+        dest: "{{ n8n_container_env_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      register: n8n_env_install
+
+    - name: Install n8n rootless Pod Quadlet
+      ansible.builtin.copy:
+        src: ../n8n/ordivon-n8n.pod
+        dest: "{{ n8n_quadlet_dir }}/ordivon-n8n.pod"
+        owner: root
+        group: root
+        mode: "0644"
+      register: n8n_pod_quadlet
+
+    - name: Install n8n main-container Quadlet
+      ansible.builtin.copy:
+        src: ../n8n/ordivon-n8n.container
+        dest: "{{ n8n_quadlet_dir }}/ordivon-n8n.container"
+        owner: root
+        group: root
+        mode: "0644"
+      register: n8n_main_quadlet
+
+    - name: Install n8n runner-container Quadlet
+      ansible.builtin.copy:
+        src: ../n8n/ordivon-n8n-runners.container
+        dest: "{{ n8n_quadlet_dir }}/ordivon-n8n-runners.container"
+        owner: root
+        group: root
+        mode: "0644"
+      register: n8n_runner_quadlet
+
+    - name: Check pinned n8n main image in rootless image store
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman image exists '{{ n8n_main_image }}'
+        executable: /usr/bin/bash
+      register: n8n_main_image_state
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Pull pinned n8n main image only when absent
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman pull '{{ n8n_main_image }}'
+        executable: /usr/bin/bash
+      when:
+        - not ansible_check_mode
+        - n8n_main_image_state.rc != 0
+
+    - name: Check pinned n8n distroless runner image in rootless image store
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman image exists '{{ n8n_runner_image }}'
+        executable: /usr/bin/bash
+      register: n8n_runner_image_state
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Pull pinned n8n distroless runner image only when absent
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman pull '{{ n8n_runner_image }}'
+        executable: /usr/bin/bash
+      when:
+        - not ansible_check_mode
+        - n8n_runner_image_state.rc != 0
+
+    - name: Check rootless n8n database-password secret
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret exists n8n-db-password
+        executable: /usr/bin/bash
+      register: n8n_db_secret_state
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+      no_log: true
+
+    - name: Create rootless n8n database-password secret once
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          cd {{ n8n_state_dir }}
+          printf '%s' "$SECRET_VALUE" | runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret create n8n-db-password -
+        executable: /usr/bin/bash
+      environment:
+        SECRET_VALUE: "{{ n8n_database_password }}"
+      register: n8n_db_secret_created
+      when:
+        - not ansible_check_mode
+        - n8n_db_secret_state.rc != 0
+      no_log: true
+
+    - name: Check rootless n8n encryption-key secret
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret exists n8n-encryption-key
+        executable: /usr/bin/bash
+      register: n8n_encryption_secret_state
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+      no_log: true
+
+    - name: Create rootless n8n encryption-key secret once
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          cd {{ n8n_state_dir }}
+          printf '%s' "$SECRET_VALUE" | runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret create n8n-encryption-key -
+        executable: /usr/bin/bash
+      environment:
+        SECRET_VALUE: "{{ n8n_encryption_key }}"
+      register: n8n_encryption_secret_created
+      when:
+        - not ansible_check_mode
+        - n8n_encryption_secret_state.rc != 0
+      no_log: true
+
+    - name: Check rootless n8n runner-auth secret
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret exists n8n-runner-auth-token
+        executable: /usr/bin/bash
+      register: n8n_runner_secret_state
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+      no_log: true
+
+    - name: Create rootless n8n runner-auth secret once
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          cd {{ n8n_state_dir }}
+          printf '%s' "$SECRET_VALUE" | runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman secret create n8n-runner-auth-token -
+        executable: /usr/bin/bash
+      environment:
+        SECRET_VALUE: "{{ n8n_runner_auth_token }}"
+      register: n8n_runner_secret_created
+      when:
+        - not ansible_check_mode
+        - n8n_runner_secret_state.rc != 0
+      no_log: true
+
+    - name: Reload n8n user systemd generator
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user daemon-reload
+        executable: /usr/bin/bash
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Inspect legacy host-native n8n unit
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, cat, n8n.service]
+      register: n8n_legacy_unit
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Inspect legacy host-native n8n activity
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, is-active, n8n.service]
+      register: n8n_legacy_active
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Inspect rootless n8n pod enablement
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user is-enabled ordivon-n8n-pod.service
+        executable: /usr/bin/bash
+      register: n8n_pod_enabled
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Inspect rootless n8n pod activity
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user is-active ordivon-n8n-pod.service
+        executable: /usr/bin/bash
+      register: n8n_pod_active
+      changed_when: false
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Cut over from legacy host service to rootless Quadlet
+      when: not ansible_check_mode
+      block:
+        - name: Stop legacy host-native n8n before claiming loopback port
+          ansible.builtin.systemd_service:
+            name: n8n.service
+            state: stopped
+          when:
+            - n8n_legacy_unit.rc == 0
+            - n8n_legacy_active.stdout | trim == 'active'
+
+        - name: Enable rootless n8n pod
+          ansible.builtin.shell:
+            cmd: |
+              cd {{ n8n_state_dir }}
+              runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user enable ordivon-n8n-pod.service
+            executable: /usr/bin/bash
+          when: n8n_pod_enabled.rc != 0
+
+        - name: Start rootless n8n pod when inactive
+          ansible.builtin.shell:
+            cmd: |
+              cd {{ n8n_state_dir }}
+              runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user start ordivon-n8n-pod.service
+            executable: /usr/bin/bash
+          when: n8n_pod_active.rc != 0
+
+        - name: Restart rootless n8n pod when service inputs changed
+          ansible.builtin.shell:
+            cmd: |
+              cd {{ n8n_state_dir }}
+              runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user restart ordivon-n8n-pod.service
+            executable: /usr/bin/bash
+          when:
+            - n8n_pod_active.rc == 0
+            - n8n_env_install.changed or n8n_pod_quadlet.changed or n8n_main_quadlet.changed or n8n_runner_quadlet.changed or (n8n_db_secret_created.changed | default(false)) or (n8n_encryption_secret_created.changed | default(false)) or (n8n_runner_secret_created.changed | default(false))
+
+        - name: Wait for n8n database-aware readiness
+          ansible.builtin.uri:
+            url: http://127.0.0.1:5678/healthz/readiness
+            method: GET
+            status_code: 200
+            return_content: true
+          register: n8n_readiness
+          retries: 30
+          delay: 2
+          until: n8n_readiness.status == 200
+
+      rescue:
+        - name: Stop failed rootless cutover
+          ansible.builtin.shell:
+            cmd: |
+              cd {{ n8n_state_dir }}
+              runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user stop ordivon-n8n-pod.service || true
+            executable: /usr/bin/bash
+          changed_when: false
+
+        - name: Restore legacy host-native service when it was active before cutover
+          ansible.builtin.systemd_service:
+            name: n8n.service
+            state: started
+          when:
+            - n8n_legacy_unit.rc == 0
+            - n8n_legacy_active.stdout | trim == 'active'
+
+        - name: Fail closed after rollback
+          ansible.builtin.fail:
+            msg: Rootless n8n cutover failed; legacy host service was restored when previously active.
+
+    - name: Disable legacy host-native n8n unit after successful cutover
+      ansible.builtin.systemd_service:
+        name: n8n.service
+        enabled: false
+      when:
+        - not ansible_check_mode
+        - n8n_legacy_unit.rc == 0
+      failed_when: false
+
+    - name: Remove legacy host-native n8n unit after successful cutover
+      ansible.builtin.file:
+        path: /etc/systemd/system/n8n.service
+        state: absent
+      register: n8n_legacy_removed
+
+    - name: Retire legacy host-native n8n environment after successful cutover
+      ansible.builtin.file:
+        path: "{{ n8n_legacy_env_file }}"
+        state: absent
+      when: not ansible_check_mode
+
+    - name: Reload system systemd after legacy-unit retirement
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: n8n_legacy_removed.changed
+
+    - name: Verify only loopback n8n endpoint is published on the host
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          /usr/bin/ss -ltn | /usr/bin/awk '$4 ~ /:(5678|5679|5680)$/ {print}'
+          /usr/bin/ss -ltn | /usr/bin/awk '$4 == "127.0.0.1:5678" {ok=1} END {exit ok?0:1}'
+          if /usr/bin/ss -ltn | /usr/bin/awk '$4 ~ /:(5679|5680)$/ {bad=1} END {exit bad?0:1}'; then
+            exit 42
+          fi
+        executable: /usr/bin/bash
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Verify n8n runner launcher is private and healthy inside pod network namespace
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman exec ordivon-n8n node -e \
+            "fetch('http://127.0.0.1:5680/healthz').then(async r=>{console.log(r.status);if(!r.ok)process.exit(2)}).catch(()=>process.exit(3))"
+        executable: /usr/bin/bash
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Verify rootless n8n can reach external HTTPS APIs
+      ansible.builtin.shell:
+        cmd: |
+          cd {{ n8n_state_dir }}
+          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} \
+            podman exec ordivon-n8n node -e \
+            "fetch('https://api.github.com',{headers:{'user-agent':'ordivon-n8n-acceptance'}}).then(r=>{console.log(r.status);if(!r.ok)process.exit(2)}).catch(()=>process.exit(3))"
+        executable: /usr/bin/bash
+      changed_when: false
+      when: not ansible_check_mode

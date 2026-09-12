@@ -26,7 +26,7 @@
 
 ## Current rollout order
 
-1. n8n + dedicated PostgreSQL database + loopback-only systemd service.
+1. n8n + dedicated PostgreSQL database + rootless Podman/Quadlet service using official digest-pinned OCI images and external task runners.
 2. CloudEvents/AsyncAPI contract baseline.
 3. Thin Temporal -> Runtime Activity adapter with stable operation identity.
 4. Temporal production service migration from local dev persistence to Operations-managed PostgreSQL.
