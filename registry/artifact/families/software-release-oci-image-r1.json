@@ -1,0 +1,22 @@
+{
+  "id": "artifact.software-release.oci-image-r1",
+  "kind": "artifact-profile-capability",
+  "family": "software-release",
+  "representation": "container-image",
+  "format": "OCI Image Layout / OCI image manifest",
+  "purpose": ["release", "deployment"],
+  "standards": [
+    {"name": "OCI Image Format", "version": "1.1"},
+    {"name": "SLSA / in-toto", "role": "provenance and verification envelope"}
+  ],
+  "profileConstraints": ["linux/amd64", "single manifest", "contract-bound entrypoint/rootfs/runtime/security facts"],
+  "validators": [
+    {"name": "Skopeo", "role": "final OCI layout normalization/read-back"},
+    {"name": "Syft", "version": "1.50.0", "role": "SBOM evidence"},
+    {"name": "Trivy", "role": "vulnerability/secret evidence"},
+    {"name": "Podman", "role": "network-disabled runtime read-back acceptance"}
+  ],
+  "standing": "SHADOW_PROFILE_LIVE_PROVEN",
+  "evidence": ["/root/projects/ordivon-artifact-v2/docs/ARTIFACT_FAMILY_SOFTWARE_RELEASE_R1.md"],
+  "boundaries": ["does not build software", "does not replace Engineer", "structurally valid OCI is not sufficient for security/runtime policy acceptance"]
+}

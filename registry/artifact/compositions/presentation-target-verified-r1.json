@@ -1,0 +1,32 @@
+{
+  "id": "composition.artifact.presentation.target-verified-r1",
+  "problemClasses": [
+    "create-editable-presentation",
+    "verify-pptx-in-powerpoint",
+    "produce-native-pdf-companion",
+    "validate-slide-rendering"
+  ],
+  "profile": "artifact.presentation.pptx.powerpoint-r1",
+  "workingSet": [
+    "OOXML / PresentationML knowledge",
+    "python-pptx 1.0.2",
+    "DocumentFormat.OpenXml OpenXmlValidator 3.5.1",
+    "Microsoft PowerPoint Desktop 16.0",
+    "qpdf 12.3.2",
+    "digest-bound visual review",
+    "destination read-back SHA-256"
+  ],
+  "optionalWorkingSet": ["Temporal durable orchestration", "OCI/ORAS packaging", "Sigstore/in-toto/SLSA trust envelope", "OPA release policy"],
+  "acceptance": [
+    "PPTX structural validation passes",
+    "PowerPoint opens and exports target PNG/PDF",
+    "target render evidence is digest-bound",
+    "required visual review passes",
+    "required destination read-back matches exact bytes"
+  ],
+  "sourceEvidence": [
+    "/root/projects/ordivon-artifact-v2/docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md",
+    "/root/projects/ordivon-artifact-v2/docs/artifact-build-delivery-e2e-v1-r1-status.md"
+  ],
+  "standing": "EVIDENCE_BACKED_COMPOSITION"
+}

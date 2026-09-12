@@ -1,7 +1,7 @@
 # Provider: Artifact v2
 
 - Source: `/root/projects/ordivon-artifact-v2`
-- Observed revision: `e06b17a517c4`
+- Observed revision: `39b6281b9b59c5d9d372a04e36f845758a7c93cf`
 - Current standing: accepted forward source authority for Artifact Build & Delivery
 - Role: artifact construction/validation/package/delivery preparation capability provider
 - Migration mode: metadata/evidence registration only
