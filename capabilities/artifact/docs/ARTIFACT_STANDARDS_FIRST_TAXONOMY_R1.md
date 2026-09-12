@@ -48,7 +48,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | shadow `dataset-parquet-flat-r1` | DuckDB + PyArrow native schema/row matrix live-proven |
 | `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | shadow `still-image-png-srgb-r1` | pngcheck + ExifTool + ImageMagick/libvips matrix live-proven |
 | `audio` | RFC 9639 FLAC; BWF/WAVE or other standards when selected | shadow `audio-flac-pcm16-r1` | reference FLAC + FFmpeg independent decoder matrix live-proven |
-| `moving-image` | profile-selected codecs/containers; SMPTE IMF for master workflows | none | FFmpeg/ffprobe present; MediaConch absent |
+| `moving-image` | RFC 9559 Matroska; RFC 9043 FFV1; SMPTE IMF when profile-selected | shadow `moving-image-matroska-ffv1-v3-r1` | MediaConch + MediaInfo + FFprobe/FFmpeg bounded preservation profile live-proven |
 | `web` | HTML Living Standard, CSS, WCAG 2.2 | `web-r1` | strong; WebKit remains supported-runner bounded |
 | `geospatial` | OGC GeoPackage, GeoTIFF, GeoJSON/OGC ecosystem | shadow `geospatial-geopackage-point-r1` | OGC/GDAL validator + SQLite + OGR contract proof live-proven |
 | `design-3d` | ISO/IEC 12113 glTF 2.0; STEP/IFC/3MF when selected | none | Blender present; official glTF Validator absent |
@@ -112,9 +112,9 @@ The production profile library currently covers **5 of the 14 operational famili
 - spreadsheet;
 - web.
 
-Four non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, and **audio**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
+Five non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, and **moving-image**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema now maps all eight current production v1 profiles plus four standards-first shadow profiles (Still Image, Dataset, Geospatial and Audio) with semantic-field preservation and a green 179-test full regression. Geospatial generalized object contracts and standard-validator authority; Audio added codec/decoded-content identity without requiring another common classification axis. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus five standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio and Moving Image) with semantic-field preservation and a green 188-test full regression. Moving Image adds specialist implementation-check evidence and decoded-frame identity without requiring another common classification axis. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
@@ -150,9 +150,8 @@ Do not make every tool a mandatory global dependency. Tools remain profile-selec
 
 The lowest-risk order is determined by existing mature local substrate, not by perceived architectural importance:
 
-1. **moving-image** — FFmpeg is present; add a specialist conformance/QC authority rather than treating ffprobe as sufficient;
-2. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
-3. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
-4. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
+1. **software-release** — existing OCI/OPA/Sigstore/Syft/Trivy substrate makes the release waist strong, but ownership boundaries with Engineer E2E must remain explicit;
+2. **design-3d** — add official Khronos glTF Validator before claiming glTF conformance;
+3. **EPUB/text-document extension**, **web-archive** and **message** after their specialist validators are materialized.
 
 This ordering deliberately tests different semantic regimes before any profile-v2 schema is frozen.

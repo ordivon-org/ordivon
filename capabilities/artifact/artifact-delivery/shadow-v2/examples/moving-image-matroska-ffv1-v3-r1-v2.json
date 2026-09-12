@@ -1,0 +1,101 @@
+{
+  "classification": {
+    "conformanceProfile": "RFC 9559 Matroska v4 + RFC 9043 stable FFV1 version 3 bounded video-only profile",
+    "family": "moving-image",
+    "format": {
+      "mediaType": "video/matroska",
+      "name": "Matroska"
+    },
+    "purposes": [
+      "preservation",
+      "interchange"
+    ],
+    "representation": "audiovisual-container"
+  },
+  "id": "moving-image-matroska-ffv1-v3-r1",
+  "nonClaims": [
+    "full FFV1 conformance solely from a zero-failure MediaConch report when its clean-file FFV1 checker executes zero tests",
+    "visual or artistic correctness of the frame content",
+    "colorimetric accuracy beyond the bounded pixel/chroma fields checked by R1",
+    "audio, subtitle, attachment or chapter semantics",
+    "subjective playback quality across arbitrary players",
+    "preservation-policy compliance beyond this bounded Matroska/FFV1 profile",
+    "bit-exact reproducibility of Matroska container bytes across muxing runs"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "moving-image-ffv1-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "video/matroska",
+        "name": "Matroska"
+      },
+      "purpose": "preservation",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "attachments": 0,
+      "audioTracks": 0,
+      "bitDepth": 8,
+      "canonicalDecodedVideo": "rawvideo yuv422p frames in presentation/decode order",
+      "chromaSubsampling": "4:2:2",
+      "codecStandard": "IETF RFC 9043 FFV1",
+      "containerStandard": "IETF RFC 9559 Matroska",
+      "containerVersion": 4,
+      "ffv1MajorVersion": 3,
+      "frameRateMode": "CFR",
+      "integrityPolicy": "MediaConch built-in implementation checks must report zero failures and zero warnings; Matroska/EBML checks must execute. FFV1 checker zero tests on a clean file is not promoted to full FFV1 conformance evidence, but any reported FFV1 implementation failure is release-blocking.",
+      "minimumStableMicroVersion": 4,
+      "pixelFormat": "yuv422p",
+      "scanType": "Progressive",
+      "subtitleTracks": 0,
+      "videoTracks": 1
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "moving-image object contract is valid under moving-image-ffv1-contract-v1",
+      "required": true
+    },
+    "decodedVideoIdentity": {
+      "claim": "FFmpeg decodes the exact artifact to the canonical rawvideo representation with contract-derived byte count and optional SHA-256 identity",
+      "required": true
+    },
+    "ffprobeTechnical": {
+      "claim": "FFprobe independently identifies one FFV1 video stream and agrees on dimensions, frame rate, frame count, pixel format, bit depth and progressive scan",
+      "required": true
+    },
+    "ffv1Implementation": {
+      "claim": "MediaConch reports no FFV1 implementation failures/warnings; absence of positive FFV1 tests is explicitly not interpreted as full codec conformance",
+      "required": true
+    },
+    "matroskaImplementation": {
+      "claim": "MediaConch executes Matroska/EBML implementation checks and reports zero failures/warnings on the exact artifact",
+      "required": true
+    },
+    "mediaInfoTechnical": {
+      "claim": "MediaInfo identifies Matroska v4, stable FFV1 v3 micro-version >=4, and technical video facts matching the object contract",
+      "required": true
+    },
+    "streamTopology": {
+      "claim": "artifact contains exactly one video stream and no audio/subtitle streams in bounded R1",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "standard-validator",
+      "name": "MediaConch implementation standard-validator",
+      "required": true
+    }
+  ]
+}

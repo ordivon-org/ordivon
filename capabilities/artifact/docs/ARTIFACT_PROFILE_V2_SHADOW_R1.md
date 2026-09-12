@@ -4,7 +4,7 @@
 
 `SHADOW_SCHEMA_PROVEN`
 
-Full Artifact regression after Audio pressure testing: **179 tests, 177 PASS, 2 existing conditional skips, 0 failures**.
+Full Artifact regression after Moving Image pressure testing: **188 tests, 186 PASS, 2 existing conditional skips, 0 failures**.
 
 Profile v2 is a shadow compatibility model. It does **not** replace `profile-v1.schema.json`, change Temporal routing, alter existing release gates, or authorize a production cutover.
 
@@ -93,6 +93,8 @@ Geospatial R1 subsequently pressure-tested this boundary with CRS, geometry type
 
 Audio R1 then added codec/container/decoded-content identity pressure without changing the common schema: native FLAC format policy stayed profile-specific, the exact sample-rate/channel/sample-count/PCM identity stayed in the object contract, and independent decoder agreement remained ordinary evidence under an implementation matrix.
 
+Moving Image R1 added a second codec/container case with a different evidence topology: MediaConch supplies specialist implementation-check evidence, MediaInfo/FFprobe bind technical facts, and decoded-frame identity remains in the object contract. Its clean FFV1 checker can execute zero positive tests, which is retained as a profile-specific non-claim rather than requiring a new global schema field.
+
 ## Differential mapping proof
 
 `scripts/artifact_profile_v2.py` maps both:
@@ -108,7 +110,7 @@ and are digest-bound in:
 
 `artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json`.
 
-R1 currently maps **12 profiles**: eight production v1 profiles plus four standards-first shadow profiles (Still Image, Dataset, Geospatial and Audio).
+R1 currently maps **13 profiles**: eight production v1 profiles plus five standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio and Moving Image).
 
 For every production v1 profile, differential tests verify preservation of:
 

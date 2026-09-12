@@ -1,7 +1,7 @@
 {
-  "fullRegression": "179 tests / 177 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "188 tests / 186 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 12,
+  "mappingCount": 13,
   "mappings": [
     {
       "family": "text-document",
@@ -114,6 +114,16 @@
       "validation": "PASS"
     },
     {
+      "family": "moving-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/moving-image-matroska-ffv1-v3-r1-v2.json",
+      "mappedDigest": "b2472b4d760329978b2e94557b51bf5a6ccbf6b88810b64f63a6bc722b0b8761",
+      "profileId": "moving-image-matroska-ffv1-v3-r1",
+      "source": "artifact-delivery/shadow-profiles/moving-image-matroska-ffv1-v3-r1.json",
+      "sourceDigest": "83e0d616e5f5aea5d3a5fde95351100e23b930642909923d1fc2b31bfefc4a9b",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "still-image",
       "mapped": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
       "mappedDigest": "1b56b51eef8c3703cf7125779c002e6b535d27fd6ccc8840af400841501cbd6a",
@@ -128,7 +138,8 @@
     "still-image",
     "dataset",
     "geospatial",
-    "audio"
+    "audio",
+    "moving-image"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"
