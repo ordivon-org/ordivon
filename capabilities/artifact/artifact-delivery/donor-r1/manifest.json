@@ -1,0 +1,2218 @@
+{
+  "baseRevision": "72f41bb46e1e787920643bd26d9db191053eb919",
+  "coverage": {
+    "isolatedValidatorImplementations": 9,
+    "liveProvenShadowBindings": 9,
+    "normalizedProfiles": 17,
+    "representedFamilies": 14,
+    "taxonomyFamilies": 14
+  },
+  "excludedInfrastructure": [
+    {
+      "concept": "legacy Artifact delivery orchestration",
+      "disposition": "DO_NOT_PROMOTE",
+      "reason": "Mixed production orchestration and historical compatibility are execution implementation, not reusable problem knowledge.",
+      "reference": {
+        "path": "scripts/artifact_delivery.py",
+        "sha256": "df434b16de5ec869a6084cc8784b3118de90b3ab7b2e607569e6cae538ab032e"
+      }
+    },
+    {
+      "concept": "Temporal Artifact execution wiring",
+      "disposition": "DO_NOT_PROMOTE",
+      "reason": "Durability and activity execution belong to the replaceable workflow provider layer.",
+      "reference": {
+        "path": "scripts/artifact_delivery_temporal_support.py",
+        "sha256": "39280953dc279b702663376a64f1d9592570e00a8f7a25a6030e0349e70c5c50"
+      }
+    },
+    {
+      "concept": "Artifact OCI package/release adapter",
+      "disposition": "DO_NOT_PROMOTE",
+      "reason": "OCI packaging is release infrastructure and a replaceable capability provider, not Artifact problem ontology.",
+      "reference": {
+        "path": "scripts/artifact_oci_package.py",
+        "sha256": "d93b1944687ed6b6da6235de0ad25f3af17ed4fdfebb98860cf5abf504b58b30"
+      }
+    },
+    {
+      "concept": "R2 mailbox transport implementation",
+      "disposition": "DO_NOT_PROMOTE",
+      "reason": "Transport/effect reconciliation belongs to delivery infrastructure rather than Artifact classification or validation knowledge.",
+      "reference": {
+        "path": "scripts/artifact_r2_mailbox.py",
+        "sha256": "3bf2c1d6b40257b8241e5594834f19462ccbdd0dac77dcbbb4691d958c4c68e7"
+      }
+    },
+    {
+      "concept": "toolchain doctor",
+      "disposition": "DO_NOT_PROMOTE",
+      "reason": "Environment probing is provider integration and should remain replaceable.",
+      "reference": {
+        "path": "scripts/artifact_delivery_toolchain_doctor.py",
+        "sha256": "7ab6cf4a2bd3133cc855fa439366f0fea7c0978da775ee4a803e9c6a2ad9a105"
+      }
+    }
+  ],
+  "id": "artifact-k2a-donor-r1",
+  "kind": "artifact-knowledge-to-action-donor",
+  "knownGaps": [
+    {
+      "id": "object-contract-coverage",
+      "observation": {
+        "profilesWithExplicitObjectContract": 8,
+        "profilesWithoutExplicitObjectContract": 9
+      },
+      "standing": "PRESERVE_GAP_DO_NOT_INVENT"
+    },
+    {
+      "id": "result-boundary-coverage",
+      "observation": {
+        "profilesWithExplicitNonClaims": 9,
+        "profilesWithoutExplicitNonClaims": 8
+      },
+      "standing": "PRESERVE_GAP_DO_NOT_INVENT"
+    },
+    {
+      "id": "composition-sequencing",
+      "observation": {
+        "profilesWithEncodedSequence": 0,
+        "profilesWithoutEncodedSequence": 17
+      },
+      "standing": "PRESERVE_GAP_DO_NOT_INVENT"
+    }
+  ],
+  "migrationClasses": {
+    "DIRECT_REFERENCE": "Keep the source semantics and provenance as-is; only relocate/index later.",
+    "DO_NOT_PROMOTE": "Keep only as a replaceable execution/provider adapter or historical implementation; never treat it as Core ontology.",
+    "SEMANTIC_MAPPING": "Map the source concept into future Common Contracts without assuming the current Artifact schema is universal."
+  },
+  "principles": [
+    "reference proven Artifact assets instead of copying or re-owning them",
+    "preserve external standards and tool identities as knowledge/capability references",
+    "do not infer workflow sequence when the source profile did not encode sequence",
+    "do not promote Temporal, Runtime, transport or legacy delivery wiring into Ordivon Core",
+    "candidateProblemKey is a donor lookup key, not a universal Core ontology commitment",
+    "profile PASS boundaries and nonClaims migrate with the validation knowledge"
+  ],
+  "profiles": [
+    {
+      "candidateProblemKey": "artifact/audio/audio-flac-pcm16-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "independentDecoder",
+          "referenceDecoder"
+        ],
+        "proofKeys": [
+          "corruptAudioFrame",
+          "focusedTests",
+          "liveSmokeArtifactSha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokePcmMd5",
+          "liveSmokePcmSha256",
+          "liveSmokeRuntimeJobId",
+          "nonR1BitDepthContract",
+          "validFlacPictureMetadata",
+          "validNativeFlacContract",
+          "wrongExpectedPcmDigest",
+          "wrongSampleRateContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json",
+          "sha256": "175de2b8bfb807ca673cab0b2e5cfba77cf3d193f098681eeae7702945862825"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "RFC 9639 native FLAC bounded 16-bit mono/stereo PCM profile",
+        "family": "audio",
+        "format": {
+          "mediaType": "audio/flac",
+          "name": "FLAC"
+        },
+        "purposes": [
+          "interchange"
+        ],
+        "representation": "lossless-encoded-audio"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "independent-decoder-matrix",
+          "independentDecoder",
+          "referenceDecoder"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "decoderMatrix",
+          "independentTechnicalView",
+          "metadataBlockPolicy",
+          "pcmIdentity",
+          "referenceIntegrity",
+          "streamInfo"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "audio-flac-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/audio-flac-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/audio-flac-contract-v1.schema.json",
+          "sha256": "14c83f23057c61c16961c4399145455c937b71c2ec17e211e4598c83cf7d3421"
+        }
+      },
+      "profileId": "audio-flac-pcm16-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "factual or artistic correctness of the audio content",
+          "subjective sound quality",
+          "loudness compliance or mastering quality",
+          "truth or completeness of Vorbis comments/tags",
+          "semantics of metadata block families excluded from R1",
+          "preservation-policy compliance beyond the bounded RFC 9639/profile checks",
+          "absence of clipping, silence, phase issues or other signal-quality defects"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json",
+        "sha256": "b3fbf1d76b1f82af8ed81178739ead3e74dbfe274b9b1e6ca8b5a628607a9407"
+      },
+      "standards": [
+        "format/profile-selected codec and container standards",
+        "BWF/WAVE or professional preservation profiles where required"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-decoder-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "audio object contract is valid under audio-flac-contract-v1",
+          "required": true
+        },
+        "decoderMatrix": {
+          "claim": "reference FLAC decoder and independent FFmpeg decoder produce exactly identical canonical s16le PCM bytes",
+          "parameters": {
+            "minimumIndependentDecoders": 2
+          },
+          "required": true
+        },
+        "independentTechnicalView": {
+          "claim": "FFprobe independently identifies native FLAC and agrees on sample rate, channels, bit depth and sample count",
+          "required": true
+        },
+        "metadataBlockPolicy": {
+          "claim": "all FLAC metadata block types are within the bounded R1 allow-list",
+          "required": true
+        },
+        "pcmIdentity": {
+          "claim": "STREAMINFO MD5 matches canonical decoded PCM MD5 and any contract expectedPcmSha256 matches decoded PCM SHA-256",
+          "required": true
+        },
+        "referenceIntegrity": {
+          "claim": "reference FLAC implementation decodes/tests the complete stream without error",
+          "required": true
+        },
+        "streamInfo": {
+          "claim": "native STREAMINFO technical facts and decoded-audio MD5 satisfy the object contract and R1 profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_audio.py",
+        "sha256": "af079006ef4aca3c7c1ecbd469f69f89d8c9b0ef0a78e13f6dbf13cd54c4a377"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/dataset/dataset-parquet-flat-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "readerMatrix"
+        ],
+        "proofKeys": [
+          "corruptParquet",
+          "duplicatePrimaryKey",
+          "focusedTests",
+          "independentReaders",
+          "liveSmokeArtifactSha256",
+          "liveSmokeCanonicalRowsSha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeRuntimeJobId",
+          "nonFiniteFloat",
+          "nullablePrimaryKeyContract",
+          "validFlatPrimitiveParquet",
+          "validParquetWrongContractNullability"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/dataset-parquet-flat-local-r1.json",
+          "sha256": "fededb2eeefca9f8709eb05b96bac8dbf33eb695af6816541e223d96e4d25a77"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "bounded flat primitive tabular Parquet profile",
+        "family": "dataset",
+        "format": {
+          "mediaType": "application/vnd.apache.parquet",
+          "name": "Apache Parquet"
+        },
+        "purposes": [
+          "interchange",
+          "analysis"
+        ],
+        "representation": "columnar"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "independent-reader-matrix",
+          "readerMatrix"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "keyIntegrity",
+          "parquetSchema",
+          "readerMatrix",
+          "rowBounds"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "dataset-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/dataset-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json",
+          "sha256": "55d3247b777cba0d367691992f09586b0001eee45389dc30f70597f7f5f6cc93"
+        }
+      },
+      "profileId": "dataset-parquet-flat-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "truth or provenance of field values",
+          "statistical quality, representativeness or absence of bias",
+          "domain semantic correctness",
+          "unit/ontology correctness not encoded by the concrete contract",
+          "schema evolution compatibility",
+          "nested Parquet semantics",
+          "encryption policy",
+          "warehouse/catalog transaction semantics",
+          "database constraints beyond the declared Artifact dataset contract"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json",
+        "sha256": "0a8560cefb02476b2f27b88ae6048fc65e74c4bb40d4c27e1e6011281f194fef"
+      },
+      "standards": [
+        "RFC 8259 JSON",
+        "text/csv family",
+        "Apache Parquet specification",
+        "Apache Arrow specification",
+        "HDF5/netCDF domain standards where applicable"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-reader-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "dataset contract is valid under the shadow dataset-contract-v1 JSON Schema",
+          "required": true
+        },
+        "keyIntegrity": {
+          "claim": "declared primary-key columns exist, are non-null and unique",
+          "required": true
+        },
+        "parquetSchema": {
+          "claim": "native Parquet physical/logical/repetition schema agrees with the concrete dataset contract",
+          "required": true
+        },
+        "readerMatrix": {
+          "claim": "independent mature readers agree on row count, schema-relevant facts and canonical logical rows",
+          "parameters": {
+            "minimumIndependentReaders": 2
+          },
+          "required": true
+        },
+        "rowBounds": {
+          "claim": "row count satisfies any contract minimum/maximum bounds",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_dataset.py",
+        "sha256": "815772088be21f7ba11870d3d75e24d34543dcea28014684ba9ad7d9ef19ca20"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/design-3d/design-3d-glb-static-mesh-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator"
+        ],
+        "proofKeys": [
+          "accessorDeclaredBoundsMismatch",
+          "corruptGlbHeader",
+          "extraNode",
+          "focusedTests",
+          "liveSmokeArtifactSha256",
+          "liveSmokeAssimpEvidenceSha256",
+          "liveSmokeBlenderStdoutSha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeKhronosEvidenceSha256",
+          "liveSmokeRuntimeJobId",
+          "materialAdded",
+          "validStaticTriangleGlb",
+          "wrongBoundsContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/design-3d-glb-static-mesh-local-r1.json",
+          "sha256": "bd55ee05a6caa79e26a81127af2cf2e85402cf33c600327c417248ef7ea53595"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded static mesh profile",
+        "family": "design-3d",
+        "format": {
+          "mediaType": "model/gltf-binary",
+          "name": "GLB 2.0"
+        },
+        "purposes": [
+          "interchange",
+          "preview"
+        ],
+        "representation": "scene-mesh"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Khronos glTF standard-validator",
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator"
+        ],
+        "requiredEvidence": [
+          "assimpScene",
+          "blenderImport",
+          "boundedProfileFacts",
+          "contractSchema",
+          "khronosConformance"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "design-3d-glb-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/design-3d-glb-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/design-3d-glb-contract-v1.schema.json",
+          "sha256": "9785851d8980722f2d0c98f751efbbde50d80e013c921e5490f795bff6d5434e"
+        }
+      },
+      "profileId": "design-3d-glb-static-mesh-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "visual or artistic quality",
+          "PBR material correctness",
+          "texture/color-management semantics",
+          "animation, skinning or morph-target behavior",
+          "CAD/BIM/manufacturing semantics",
+          "metric unit intent beyond glTF's standardized coordinate conventions",
+          "cross-renderer pixel equivalence",
+          "consumer-specific transformed coordinates as original glTF geometry"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-3d-glb-static-mesh-r1-v2.json",
+        "sha256": "f9dfe8b3e43b4b54007f5a2da40002a7b73f9e7968be723061f5c6076a167fb9"
+      },
+      "standards": [
+        "ISO/IEC 12113:2022 Khronos glTF 2.0",
+        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "standard-validator",
+          "name": "Khronos glTF standard-validator",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "assimpScene": {
+          "claim": "Assimp independently imports the scene and agrees on node/mesh/vertex/triangle topology and source-coordinate bounds",
+          "required": true
+        },
+        "blenderImport": {
+          "claim": "Blender independently imports the GLB into one mesh object with expected topology; Blender coordinate conversion is treated as consumer behavior",
+          "required": true
+        },
+        "boundedProfileFacts": {
+          "claim": "validator/profile facts show static untextured unskinned unanimated mesh content inside the bounded R1",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "Design-3D object contract is valid under design-3d-glb-contract-v1",
+          "required": true
+        },
+        "khronosConformance": {
+          "claim": "Khronos glTF Validator accepts the exact GLB with zero errors and zero warnings",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_design3d.py",
+        "sha256": "83c8d00a670ea05f1e2afbcc0192738ce8812f63a37abd8a9155a30a2c757f13"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/text-document/document-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "text-document",
+        "format": {
+          "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "name": "docx"
+        },
+        "purposes": [
+          "editable-microsoft-word"
+        ],
+        "representation": "office-package"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Microsoft Word Desktop"
+        ],
+        "requiredEvidence": [
+          "accessibility",
+          "companionPdf",
+          "deliveryReadback",
+          "dependency",
+          "profileSchema",
+          "releaseProvenance",
+          "semantic",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "document-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+        "sha256": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40"
+      },
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 OOXML",
+        "ISO/IEC 26300 ODF",
+        "W3C EPUB 3.3"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Microsoft Word Desktop",
+          "platform": "Windows",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "accessibility": {
+          "claim": "accessibility evidence satisfies the profile",
+          "required": true
+        },
+        "companionPdf": {
+          "claim": "required companion PDF exists and is accepted",
+          "required": true
+        },
+        "conformance": {
+          "claim": "selected external conformance profile is satisfied",
+          "required": false
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "dependency": {
+          "claim": "declared build/render dependencies are satisfied",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "releaseProvenance": {
+          "claim": "release provenance evidence is present and accepted",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/geospatial/geospatial-geopackage-point-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "geospatialInterpretation",
+          "ogcConformance",
+          "sqliteContainer"
+        ],
+        "proofKeys": [
+          "duplicateLogicalPrimaryKey",
+          "focusedTests",
+          "gdalFullConformanceEvidenceSha256",
+          "liveSmokeArtifactSha256",
+          "liveSmokeAttributeDigest",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeRuntimeJobId",
+          "sqliteIntegrityWithWrongApplicationId",
+          "undeclaredPrimaryKeyField",
+          "validGeoPackagePointContract",
+          "validGeoPackageWrongCrsContract",
+          "validGeoPackageWrongGeometryContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/geospatial-geopackage-point-local-r1.json",
+          "sha256": "25e1c9987262f46ec34dd5d1893addead3328332b9a18008f1325b5700fb3a75"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "OGC GeoPackage 1.4.0 bounded single 2D Point feature-layer profile",
+        "family": "geospatial",
+        "format": {
+          "mediaType": "application/geopackage+sqlite3",
+          "name": "OGC GeoPackage"
+        },
+        "purposes": [
+          "interchange",
+          "analysis"
+        ],
+        "representation": "geospatial-database"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "OGC GeoPackage standard-validator",
+          "geospatialInterpretation",
+          "ogcConformance",
+          "sqliteContainer"
+        ],
+        "requiredEvidence": [
+          "attributeCrossView",
+          "contractSchema",
+          "geospatialInterpretation",
+          "keyIntegrity",
+          "nativeMetadata",
+          "ogcConformance",
+          "sqliteContainer"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "geospatial-vector-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/geospatial-vector-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/geospatial-vector-contract-v1.schema.json",
+          "sha256": "451653bd19216fefc96d719578febe9e960c088255f1afb00e183a40e031b0ca"
+        }
+      },
+      "profileId": "geospatial-geopackage-point-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "geodetic positional accuracy of coordinates",
+          "factual truth of feature attributes or locations",
+          "fitness of the selected CRS for a particular analysis",
+          "topological validity for geometry families not admitted by this Point-only profile",
+          "cartographic styling or rendering quality",
+          "tile/raster GeoPackage semantics",
+          "application-defined GeoPackage extensions beyond what the OGC/GDAL validator accepts",
+          "spatial analysis correctness or scientific interpretation"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/geospatial-geopackage-point-r1-v2.json",
+        "sha256": "296d80c933cff400fa3f2316cda40f77d0f7b0be814c37443f65f28976643528"
+      },
+      "standards": [
+        "OGC GeoPackage 1.4",
+        "GeoTIFF",
+        "GeoJSON RFC 7946",
+        "OGC APIs where delivery profile requires them"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "standard-validator",
+          "name": "OGC GeoPackage standard-validator",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "attributeCrossView": {
+          "claim": "raw SQLite attribute rows and OGR/GeoJSON properties agree after primary-key canonicalization",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "geospatial object contract is valid under geospatial-vector-contract-v1",
+          "required": true
+        },
+        "geospatialInterpretation": {
+          "claim": "OGR interprets the same layer, geometry type, CRS, feature count and fields required by the object contract",
+          "required": true
+        },
+        "keyIntegrity": {
+          "claim": "declared logical primary-key attributes are present, non-null in observed features and unique",
+          "required": true
+        },
+        "nativeMetadata": {
+          "claim": "gpkg_contents, gpkg_geometry_columns, gpkg_spatial_ref_sys and native table schema agree with the object contract",
+          "required": true
+        },
+        "ogcConformance": {
+          "claim": "a mature GeoPackage standard validator accepts the exact artifact under full checks",
+          "required": true
+        },
+        "sqliteContainer": {
+          "claim": "SQLite integrity, GeoPackage application_id and user_version match the selected GeoPackage 1.4 profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_geospatial.py",
+        "sha256": "73f88be4bedcdb7a7e103df5eb7d9d1d543e3d14049ac7782a4706d9ecf10575"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/message/message-internet-text-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "nodeParser",
+          "pythonParser"
+        ],
+        "proofKeys": [
+          "changedBody",
+          "duplicateMessageId",
+          "focusedTests",
+          "htmlMessage",
+          "lfOnlyMessage",
+          "liveSmokeArtifactSha256",
+          "liveSmokeBodySha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeRuntimeJobId",
+          "liveSmokeVerificationEvidenceSha256",
+          "multipartMessage",
+          "validInternetMessage",
+          "wrongSubjectContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/message-internet-text-local-r1.json",
+          "sha256": "8657abe8b8ac8e17e9bf997341d6fdd32ea517718cee3846d979d8894d633460"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "RFC 5322 + RFC 2045/2046 bounded UTF-8 single-part text message",
+        "family": "message",
+        "format": {
+          "mediaType": "message/rfc822",
+          "name": "RFC 5322 Internet Message + MIME text/plain"
+        },
+        "purposes": [
+          "interchange",
+          "preservation"
+        ],
+        "representation": "internet-message"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "independent-parser-matrix",
+          "nodeParser",
+          "pythonParser"
+        ],
+        "requiredEvidence": [
+          "bodyIdentity",
+          "contractSchema",
+          "nodeParser",
+          "pythonParser",
+          "rawSyntaxPolicy"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "message-internet-text-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/message-internet-text-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/message-internet-text-contract-v1.schema.json",
+          "sha256": "98b13b9f260e61f7a6264da1e2e41b67a1456b081f3e55fa8b2a5b7fc5328a48"
+        }
+      },
+      "profileId": "message-internet-text-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "SMTP transport/delivery success",
+          "sender identity authentication",
+          "DKIM, SPF, DMARC or ARC validity",
+          "mailbox-container semantics such as mbox/PST/MSG",
+          "multipart/attachment correctness",
+          "HTML rendering safety or fidelity",
+          "semantic truth of message content",
+          "spam/malware classification"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/message-internet-text-r1-v2.json",
+        "sha256": "fb89af3563edf7b870de9053fca473299c7b3e659e11688f2b4a879444af3f7f"
+      },
+      "standards": [
+        "RFC 5322 Internet Message Format",
+        "MIME RFC 2045-2049 family"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-parser-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "bodyIdentity": {
+          "claim": "both parsers decode exactly the expected UTF-8 text body SHA-256",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "message object contract validates",
+          "required": true
+        },
+        "nodeParser": {
+          "claim": "mailparser independently exposes matching header/address/body facts",
+          "required": true
+        },
+        "pythonParser": {
+          "claim": "Python email parser reports no defects and exposes bounded MIME/message facts",
+          "required": true
+        },
+        "rawSyntaxPolicy": {
+          "claim": "raw message uses bounded RFC line/header structure with required singleton headers",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_message.py",
+        "sha256": "55c10ea2d3a17e34d3e87df9c73ea69b21b48decc9e771276c9f42387da60ebc"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/moving-image/moving-image-matroska-ffv1-v3-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "implementationChecker",
+          "technicalAndDecode"
+        ],
+        "proofKeys": [
+          "corruptFfv1Packet",
+          "extraAudioTrack",
+          "ffv1Version1",
+          "focusedTests",
+          "liveSmokeArtifactSha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeFfprobeEvidenceSha256",
+          "liveSmokeMatroskaImplementationEvidenceSha256",
+          "liveSmokeMediaInfoEvidenceSha256",
+          "liveSmokeRawVideoSha256",
+          "liveSmokeRuntimeJobId",
+          "nonR1PixelFormatContract",
+          "validMatroskaFfv1Contract",
+          "wrongDimensionContract",
+          "wrongExpectedRawVideoDigest"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json",
+          "sha256": "c4e4630fc6979d53e351106c6dcec4fea0a525670d84e17a84dfa8b030b151b8"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "RFC 9559 Matroska v4 + RFC 9043 stable FFV1 version 3 bounded video-only profile",
+        "family": "moving-image",
+        "format": {
+          "mediaType": "video/matroska",
+          "name": "Matroska"
+        },
+        "purposes": [
+          "preservation",
+          "interchange"
+        ],
+        "representation": "audiovisual-container"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "MediaConch implementation standard-validator",
+          "implementationChecker",
+          "technicalAndDecode"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "decodedVideoIdentity",
+          "ffprobeTechnical",
+          "ffv1Implementation",
+          "matroskaImplementation",
+          "mediaInfoTechnical",
+          "streamTopology"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "moving-image-ffv1-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/moving-image-ffv1-contract-v1.schema.json",
+          "sha256": "d2280229c8f057bfeaaa309b6d4afac9cf05fb078550b107b6447ddf57111b1e"
+        }
+      },
+      "profileId": "moving-image-matroska-ffv1-v3-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "full FFV1 conformance solely from a zero-failure MediaConch report when its clean-file FFV1 checker executes zero tests",
+          "visual or artistic correctness of the frame content",
+          "colorimetric accuracy beyond the bounded pixel/chroma fields checked by R1",
+          "audio, subtitle, attachment or chapter semantics",
+          "subjective playback quality across arbitrary players",
+          "preservation-policy compliance beyond this bounded Matroska/FFV1 profile",
+          "bit-exact reproducibility of Matroska container bytes across muxing runs"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/moving-image-matroska-ffv1-v3-r1-v2.json",
+        "sha256": "db3bd84caddf05f4d21f9050cd597d1f1c6e4e2a914251572aae9905fdc68061"
+      },
+      "standards": [
+        "SMPTE ST 2067 IMF for professional master workflows",
+        "profile-selected container/codec standards"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "standard-validator",
+          "name": "MediaConch implementation standard-validator",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "moving-image object contract is valid under moving-image-ffv1-contract-v1",
+          "required": true
+        },
+        "decodedVideoIdentity": {
+          "claim": "FFmpeg decodes the exact artifact to the canonical rawvideo representation with contract-derived byte count and optional SHA-256 identity",
+          "required": true
+        },
+        "ffprobeTechnical": {
+          "claim": "FFprobe independently identifies one FFV1 video stream and agrees on dimensions, frame rate, frame count, pixel format, bit depth and progressive scan",
+          "required": true
+        },
+        "ffv1Implementation": {
+          "claim": "MediaConch reports no FFV1 implementation failures/warnings; absence of positive FFV1 tests is explicitly not interpreted as full codec conformance",
+          "required": true
+        },
+        "matroskaImplementation": {
+          "claim": "MediaConch executes Matroska/EBML implementation checks and reports zero failures/warnings on the exact artifact",
+          "required": true
+        },
+        "mediaInfoTechnical": {
+          "claim": "MediaInfo identifies Matroska v4, stable FFV1 v3 micro-version >=4, and technical video facts matching the object contract",
+          "required": true
+        },
+        "streamTopology": {
+          "claim": "artifact contains exactly one video stream and no audio/subtitle streams in bounded R1",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_moving_image.py",
+        "sha256": "f14df80c96412884f0cf380c011e6eb9b4481b5bbb4320473229e0c32b33e995"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/fixed-document/pdf-accessible-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "conformanceProfile": "PDF/UA-2",
+        "family": "fixed-document",
+        "format": {
+          "mediaType": "application/pdf",
+          "name": "pdf-ua-2"
+        },
+        "purposes": [
+          "accessible-portable-document",
+          "accessibility"
+        ],
+        "representation": "fixed-layout"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Adobe Acrobat Pro"
+        ],
+        "requiredEvidence": [
+          "accessibility",
+          "conformance",
+          "deliveryReadback",
+          "profileSchema",
+          "releaseProvenance",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "pdf-accessible-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
+        "sha256": "1363cc727010594b59b234c12d5d6d75a5259b75ab4cff463031e9c1ce4dd328"
+      },
+      "standards": [
+        "ISO 32000-2 PDF 2.0",
+        "ISO 19005-4 PDF/A-4",
+        "ISO 14289-2:2024 PDF/UA-2"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Adobe Acrobat Pro",
+          "platform": "Windows/macOS",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "accessibility": {
+          "claim": "accessibility evidence satisfies the profile",
+          "required": true
+        },
+        "conformance": {
+          "claim": "selected external conformance profile is satisfied",
+          "required": true
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "releaseProvenance": {
+          "claim": "release provenance evidence is present and accepted",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/fixed-document/pdf-fixed-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "fixed-document",
+        "format": {
+          "mediaType": "application/pdf",
+          "name": "pdf"
+        },
+        "purposes": [
+          "portable-fixed-view"
+        ],
+        "representation": "fixed-layout"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Adobe Acrobat Pro"
+        ],
+        "requiredEvidence": [
+          "deliveryReadback",
+          "profileSchema",
+          "releaseProvenance",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "pdf-fixed-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
+        "sha256": "9f95922b31407836e0cec8b466bdd4e0ae01e69846cc74127ee29bd0da5fdb83"
+      },
+      "standards": [
+        "ISO 32000-2 PDF 2.0",
+        "ISO 19005-4 PDF/A-4",
+        "ISO 14289-2:2024 PDF/UA-2"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Adobe Acrobat Pro",
+          "platform": "Windows/macOS",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "accessibility": {
+          "claim": "accessibility evidence satisfies the profile",
+          "required": false
+        },
+        "conformance": {
+          "claim": "selected external conformance profile is satisfied",
+          "required": false
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "releaseProvenance": {
+          "claim": "release provenance evidence is present and accepted",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/presentation/pdu-sdu-presentation-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "presentation",
+        "format": {
+          "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "name": "pptx"
+        },
+        "purposes": [
+          "editable-windows-powerpoint"
+        ],
+        "representation": "office-package"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Microsoft PowerPoint Desktop",
+          "PowerPoint Web"
+        ],
+        "requiredEvidence": [
+          "companionPdf",
+          "deliveryReadback",
+          "dependency",
+          "profileSchema",
+          "semantic",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "pdu-sdu-presentation-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+        "sha256": "c2bc333b7ee7a058fdb6d2a313507491e0228f466d11ed5c9edeafcd90625046"
+      },
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 PresentationML and OPC"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Microsoft PowerPoint Desktop",
+          "platform": "Windows",
+          "required": true
+        },
+        {
+          "authorityClass": "native-consumer",
+          "name": "PowerPoint Web",
+          "platform": "Web",
+          "required": false
+        }
+      ],
+      "validationMapping": {
+        "companionPdf": {
+          "claim": "required companion PDF exists and is accepted",
+          "required": true
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "dependency": {
+          "claim": "declared build/render dependencies are satisfied",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/presentation/presentation-local-development-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "presentation",
+        "format": {
+          "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "name": "pptx"
+        },
+        "purposes": [
+          "editable-windows-powerpoint"
+        ],
+        "representation": "office-package"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Microsoft PowerPoint Desktop"
+        ],
+        "requiredEvidence": [
+          "profileSchema",
+          "semantic",
+          "structural"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "presentation-local-development-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/presentation-local-development-r1-v2.json",
+        "sha256": "ccac5dd0428ebd72d61d76740173fc896cd74f5d6d8359af99ccb07f128cde66"
+      },
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 PresentationML and OPC"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Microsoft PowerPoint Desktop",
+          "platform": "Windows",
+          "required": false
+        }
+      ],
+      "validationMapping": {
+        "companionPdf": {
+          "claim": "required companion PDF exists and is accepted",
+          "required": false
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": false
+        },
+        "dependency": {
+          "claim": "declared build/render dependencies are satisfied",
+          "required": false
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": false
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": false
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/presentation/presentation-ultrawide-34x10-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "presentation",
+        "format": {
+          "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "name": "pptx"
+        },
+        "purposes": [
+          "editable-windows-powerpoint"
+        ],
+        "representation": "office-package"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Microsoft PowerPoint Desktop",
+          "PowerPoint Web"
+        ],
+        "requiredEvidence": [
+          "companionPdf",
+          "deliveryReadback",
+          "dependency",
+          "profileSchema",
+          "semantic",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "presentation-ultrawide-34x10-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/presentation-ultrawide-34x10-r1-v2.json",
+        "sha256": "c2f3171b1a1a722103d30fbca35e155e1741e421e2646193f4643a4c9607b179"
+      },
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 PresentationML and OPC"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Microsoft PowerPoint Desktop",
+          "platform": "Windows",
+          "required": true
+        },
+        {
+          "authorityClass": "native-consumer",
+          "name": "PowerPoint Web",
+          "platform": "Web",
+          "required": false
+        }
+      ],
+      "validationMapping": {
+        "companionPdf": {
+          "claim": "required companion PDF exists and is accepted",
+          "required": true
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "dependency": {
+          "claim": "declared build/render dependencies are satisfied",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/software-release/software-release-oci-image-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "ociTransport",
+          "runtimeReadback",
+          "sbom",
+          "security",
+          "smokeBuilderEvidence"
+        ],
+        "proofKeys": [
+          "focusedTests",
+          "hostGo1265NegativeControl",
+          "liveSmokeConfigDigest",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokeLayerDigest",
+          "liveSmokeManifestDigest",
+          "liveSmokeRootfsAppSha256",
+          "liveSmokeRuntimeJobId",
+          "liveSmokeSbomSha256",
+          "liveSmokeSecretCount",
+          "liveSmokeSecretReportSha256",
+          "liveSmokeVulnerabilityCount",
+          "liveSmokeVulnerabilityReportSha256",
+          "nonLinuxContract",
+          "patchedBuilderDoubleRun",
+          "runtimeOutputMismatch",
+          "syntheticSecretReportPolicy",
+          "tamperedLayer",
+          "validOciRelease",
+          "wrongEntrypointContract",
+          "wrongManifestContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json",
+          "sha256": "d627bb7f168a0978915d63a0aa99a9ab1fbcced917c7c5814f5af15036dc9c13"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "OCI Image Format 1.1 bounded single-platform Linux/amd64 image profile",
+        "family": "software-release",
+        "format": {
+          "mediaType": "application/vnd.oci.image.manifest.v1+json",
+          "name": "OCI Image Layout"
+        },
+        "purposes": [
+          "release",
+          "deployment"
+        ],
+        "representation": "container-image"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "OCI independent-toolchain matrix",
+          "ociTransport",
+          "runtimeReadback",
+          "sbom",
+          "security",
+          "smokeBuilderEvidence"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "ociIdentity",
+          "platformConfig",
+          "rootfsReadback",
+          "runtimeReadback",
+          "sbom",
+          "secretScan",
+          "vulnerabilityScan"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "software-release-oci-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/software-release-oci-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/software-release-oci-contract-v1.schema.json",
+          "sha256": "59c41b38be83f41e3238f3243ce20ed2f6ea6b25a16805a27d1c39067493712d"
+        }
+      },
+      "profileId": "software-release-oci-image-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "that Artifact E2E built the software; build authorship remains Engineer-side",
+          "that SPDX 2.3 is ISO/IEC 5962:2021; that ISO standard corresponds to SPDX 2.2.1",
+          "absence of vulnerabilities outside the exact frozen Trivy DB snapshot",
+          "absence of runtime vulnerabilities not detectable from static rootfs/package evidence",
+          "production deployment safety, scalability or service reliability",
+          "signature/provenance trust beyond the separate common SLSA/in-toto/Sigstore release envelope",
+          "multi-platform image-index semantics",
+          "registry authorization, replication or retention policy"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/software-release-oci-image-r1-v2.json",
+        "sha256": "5f50452f38609e1c29c59607b5fdacd4c1dbccf85f7f574c8ae8aab834f4325f"
+      },
+      "standards": [
+        "OCI Image/Distribution 1.1",
+        "SLSA 1.2",
+        "in-toto",
+        "Sigstore",
+        "SPDX 2.3 / SPDX 3.0 as selected (ISO/IEC 5962:2021 corresponds to SPDX 2.2.1)",
+        "CycloneDX where selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "OCI independent-toolchain matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "software-release object contract is valid under software-release-oci-contract-v1",
+          "required": true
+        },
+        "ociIdentity": {
+          "claim": "OCI layout/index/manifest/config/layer descriptors are internally digest/size consistent and manifest identity matches the contract",
+          "required": true
+        },
+        "platformConfig": {
+          "claim": "OCI config platform, entrypoint and working directory match the object contract",
+          "required": true
+        },
+        "rootfsReadback": {
+          "claim": "final OCI layout can be imported independently and exported rootfs files match contract digests",
+          "required": true
+        },
+        "runtimeReadback": {
+          "claim": "final OCI-layout read-back image executes with network disabled and exact contract exit/stdout/stderr behavior",
+          "required": true
+        },
+        "sbom": {
+          "claim": "Syft emits SPDX 2.3 JSON whose CONTAINER root is bound to the exact final manifest digest and required packages are present",
+          "required": true
+        },
+        "secretScan": {
+          "claim": "Trivy secret scan over final rootfs remains within contract count",
+          "required": true
+        },
+        "vulnerabilityScan": {
+          "claim": "Trivy offline vulnerability scan over final rootfs uses the exact frozen DB snapshot and remains within contract count",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_software_release.py",
+        "sha256": "3e10b500be79c56c17c59105da46eded349fa38d148925a95346d24b563e0e8d"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/spreadsheet/spreadsheet-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "spreadsheet",
+        "format": {
+          "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "name": "xlsx"
+        },
+        "purposes": [
+          "editable-microsoft-excel"
+        ],
+        "representation": "office-package"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Microsoft Excel Desktop"
+        ],
+        "requiredEvidence": [
+          "accessibility",
+          "deliveryReadback",
+          "dependency",
+          "profileSchema",
+          "releaseProvenance",
+          "semantic",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "spreadsheet-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/spreadsheet-r1-v2.json",
+        "sha256": "6636a2a855b35497a83bb4ecba9af02e03568f0bb8e7eeb4783e7094822c01ef"
+      },
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 SpreadsheetML and OPC",
+        "ISO/IEC 26300 ODF"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Microsoft Excel Desktop",
+          "platform": "Windows",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "accessibility": {
+          "claim": "accessibility evidence satisfies the profile",
+          "required": true
+        },
+        "conformance": {
+          "claim": "selected external conformance profile is satisfied",
+          "required": false
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "dependency": {
+          "claim": "declared build/render dependencies are satisfied",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "releaseProvenance": {
+          "claim": "release provenance evidence is present and accepted",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/still-image/still-image-png-srgb-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "datastreamValidity",
+          "decoderMatrix",
+          "metadataObservation"
+        ],
+        "proofKeys": [
+          "corruptPng",
+          "independentDecodedSamples",
+          "validPngMissingSrgbProfileFact",
+          "validStaticSrgbPng"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
+          "sha256": "738098ee19c812452295c47aad03db57ee61e2ac7b7db11484506247539c5d38"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "W3C PNG Third Edition bounded static-sRGB datastream profile",
+        "family": "still-image",
+        "format": {
+          "mediaType": "image/png",
+          "name": "PNG"
+        },
+        "purposes": [
+          "display",
+          "exchange"
+        ],
+        "representation": "raster"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "datastreamValidity",
+          "decoderMatrix",
+          "independent-decoder-matrix",
+          "metadataObservation"
+        ],
+        "requiredEvidence": [
+          "datastreamValidity",
+          "decoderMatrix",
+          "metadataObservation",
+          "profileFacts"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "still-image-png-srgb-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "visual or aesthetic quality",
+          "semantic/content correctness",
+          "human accessibility or suitability of alt text",
+          "print-production color accuracy",
+          "HDR or wide-gamut conformance",
+          "APNG animation behavior",
+          "encoder/decoder/editor implementation conformance beyond the observed datastream/tool checks",
+          "metadata truth or rights/legal validity"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+        "sha256": "833743589a6665127deb4c26fdf66c394eace9d5ca94db8638b3c9e7a6dac067"
+      },
+      "standards": [
+        "W3C PNG Third Edition",
+        "W3C SVG 2",
+        "ISO/IEC JPEG-family standards",
+        "TIFF family where profile-selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-decoder-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "datastreamValidity": {
+          "claim": "PNG datastream validity under a Third-Edition-aware external checker",
+          "required": true
+        },
+        "decoderMatrix": {
+          "claim": "independent mature decoders agree on normalized decoded sample bytes",
+          "parameters": {
+            "acceptance": "exact decoded sample-byte equality",
+            "minimumIndependentDecoders": 2,
+            "normalization": "8-bit sRGB RGBA samples"
+          },
+          "required": true
+        },
+        "metadataObservation": {
+          "claim": "extract embedded technical/descriptive/rights metadata without asserting its truth",
+          "parameters": {
+            "policy": "no descriptive-field requirement in this generic display/exchange profile"
+          },
+          "required": true
+        },
+        "profileFacts": {
+          "claim": "static 8-bit RGB/RGBA, explicit sRGB chunk, no APNG/iCCP/cICP profile expansion",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_still_image.py",
+        "sha256": "936718da6ee64f7166b89a7f825e548ff02ad35d12626d88fdf07f1ba0d3a473"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/web-archive/web-archive-warc-response-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "jsWarc",
+          "pythonWarc"
+        ],
+        "proofKeys": [
+          "corruptPayload",
+          "extraRecord",
+          "focusedTests",
+          "liveSmokeArtifactSha256",
+          "liveSmokeContractCanonicalDigest",
+          "liveSmokePayloadSha256",
+          "liveSmokeRuntimeJobId",
+          "liveSmokeVerificationEvidenceSha256",
+          "validWarc11Response",
+          "warc10",
+          "wrongPayloadDigestContract",
+          "wrongTargetContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/web-archive-warc-response-local-r1.json",
+          "sha256": "96d4034f3c6c974a9c17101fcfe7a796c47660499b4eb44eefa9f0423917be9c"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "ISO 28500:2017 bounded single HTTP response capture",
+        "family": "web-archive",
+        "format": {
+          "mediaType": "application/warc",
+          "name": "WARC/1.1"
+        },
+        "purposes": [
+          "preservation",
+          "evidence"
+        ],
+        "representation": "capture-container"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "independent-parser-matrix",
+          "jsWarc",
+          "pythonWarc"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "jsRecordView",
+          "payloadIdentity",
+          "pythonRecordView",
+          "warcIntegrity"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "web-archive-warc-response-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/web-archive-warc-response-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/web-archive-warc-response-contract-v1.schema.json",
+          "sha256": "d45d798347d01d3e7f82ff0d4fe8f63e92bd65022eb05db7dc1a7bcf649c58a1"
+        }
+      },
+      "profileId": "web-archive-warc-response-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "complete website capture",
+          "browser-executed DOM state",
+          "JavaScript/network dependency completeness",
+          "replay fidelity",
+          "robots/policy/legal compliance",
+          "semantic truth of captured content",
+          "WACZ packaging or CDX index correctness"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/web-archive-warc-response-r1-v2.json",
+        "sha256": "f214642543d8d18b7f8e65fade6ff0a9d31a294fb92e747dcd59aaee026c98f7"
+      },
+      "standards": [
+        "ISO 28500 WARC",
+        "WACZ ecosystem where profile-selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-parser-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "web-archive object contract validates",
+          "required": true
+        },
+        "jsRecordView": {
+          "claim": "warcio.js independently exposes the same response facts and payload bytes",
+          "required": true
+        },
+        "payloadIdentity": {
+          "claim": "both parser views produce the exact contract payload SHA-256",
+          "required": true
+        },
+        "pythonRecordView": {
+          "claim": "warcio Python parser exposes exactly one WARC/1.1 response matching capture facts",
+          "required": true
+        },
+        "warcIntegrity": {
+          "claim": "warcio digest checker accepts the exact WARC",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_web_archive.py",
+        "sha256": "6b50a834a2847f205bba506725219b5f5491a068759fe0df299eb70307e00901"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/web/web-r1",
+      "capabilityBinding": null,
+      "classification": {
+        "family": "web",
+        "format": {
+          "mediaType": "text/html",
+          "name": "html"
+        },
+        "purposes": [
+          "standards-based-web-delivery"
+        ],
+        "representation": "html-css-js-runtime"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Chromium",
+          "Firefox",
+          "WebKit"
+        ],
+        "requiredEvidence": [
+          "accessibility",
+          "conformance",
+          "deliveryReadback",
+          "profileSchema",
+          "releaseProvenance",
+          "semantic",
+          "structural",
+          "target",
+          "visual"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "web-r1",
+      "resultBoundary": {
+        "nonClaims": []
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
+        "sha256": "f6540f64651b11925416067463c986e744349fc375aaebef3ac9b57b082ea5ed"
+      },
+      "standards": [
+        "WHATWG HTML Living Standard",
+        "W3C CSS snapshots/modules",
+        "WCAG 2.2"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Chromium",
+          "platform": "Linux/Windows/macOS",
+          "required": true
+        },
+        {
+          "authorityClass": "native-consumer",
+          "name": "Firefox",
+          "platform": "cross-platform",
+          "required": true
+        },
+        {
+          "authorityClass": "native-consumer",
+          "name": "WebKit",
+          "platform": "cross-platform",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "accessibility": {
+          "claim": "accessibility evidence satisfies the profile",
+          "required": true
+        },
+        "conformance": {
+          "claim": "selected external conformance profile is satisfied",
+          "required": true
+        },
+        "deliveryReadback": {
+          "claim": "delivered bytes are read back and identity-checked",
+          "required": true
+        },
+        "profileSchema": {
+          "claim": "profile schema validation",
+          "required": true
+        },
+        "releaseProvenance": {
+          "claim": "release provenance evidence is present and accepted",
+          "required": true
+        },
+        "semantic": {
+          "claim": "profile-specific semantic checks",
+          "required": true
+        },
+        "structural": {
+          "claim": "artifact structural validity",
+          "required": true
+        },
+        "target": {
+          "claim": "required target authority acceptance",
+          "required": true
+        },
+        "visual": {
+          "claim": "visual evidence satisfies the profile",
+          "required": true
+        }
+      },
+      "validatorImplementation": null
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceReferences": {
+    "profileV2MappingManifest": {
+      "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
+      "sha256": "f052dfcf623e78e59b9cd38f194316ec298b8043e52490812f7aa96b33ec1919"
+    },
+    "taxonomy": {
+      "path": "artifact-delivery/taxonomy-v1.json",
+      "sha256": "d82361f26639ec7738846d67a722c06d925d6521a3997352a6f169f2bcbac92f"
+    }
+  },
+  "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
+}

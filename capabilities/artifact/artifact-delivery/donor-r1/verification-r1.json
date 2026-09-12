@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-k2a-donor-verification",
+  "id": "artifact-k2a-donor-r1-verification-r1",
+  "standing": "PASS",
+  "baseRevision": "72f41bb46e1e787920643bd26d9db191053eb919",
+  "donorManifestSha256": "84e7bfa7eb425c08777de50cae089aa76e55c9f3c9d8550f1f18ffb1ccc7a6a8",
+  "runtimeJobId": "job-01a09650-9ebc-7b13-80ae-3da2b4d82792",
+  "operationDigest": "sha256:cd76e9f05cb5af72cdc13e5af7dea3e2ff96d7b892b825c0dd0ed683e971b97d",
+  "focusedDonorTests": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "fullRegression": {
+    "total": 233,
+    "passed": 231,
+    "skipped": 2,
+    "failed": 0
+  },
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, non-promotion of execution wiring, and no regression in the current Artifact test matrix. It does not establish that Artifact schemas are universal Ordivon Core contracts."
+}
