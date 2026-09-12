@@ -93,7 +93,7 @@ The following old capabilities have not yet been replaced by a complete provider
 - specialized malware/memory-forensics experiments if retained as research artifacts;
 - any old consumer whose exact contract has not yet been replayed against v2.
 
-`libguestfs` remains unavailable because the current Arch package database/mirror set attempted to resolve QEMU `11.1.1-1` packages no longer served by the configured mirrors; the failed transaction committed no upgrade and installed QEMU remained `11.0.3-1`. This package/mirror skew must be repaired safely before retrying offline-image displacement.
+The original Arch `libguestfs` path remains rejected: the package database/mirror set attempted to resolve QEMU `11.1.1-1` packages no longer served by the configured mirrors, and the failed transaction correctly committed no partial upgrade. A safer external path now exists in the locked Nix 26.05 package set (`libguestfs 1.56.2`, `guestfs-tools 1.52.3`). Two real Nix materialization attempts (first broad, then `libguestfs`-only) exhausted bounded 420-second and 300-second execution windows while still fetching the large closure; neither produced a valid `guestfish` store path, so appliance/offline-readback acceptance has not run. Current standing is therefore `PROVIDER_SELECTED / NIX_MATERIALIZATION_LATENCY_BLOCKED`, not an Arch-package compatibility failure and not a successful libguestfs admission.
 
 ## Next deletion gate
 
