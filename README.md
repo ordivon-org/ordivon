@@ -89,3 +89,6 @@ See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/
 ## R7 Artifact release-standing handoff
 
 Artifact-backed distribution intents now bind Artifact SHA-256, `releaseReady`, `trustStanding`, and source lineage into occurrence identity. Effectful publication is rejected with `artifact_release_not_ready` unless `releaseReady=true`; release readiness never replaces exact user EffectAuthority. The real post-retirement Artifact development package was evaluated through this gate with `externalEffectPerformed=false`. See `docs/R7-ARTIFACT-HANDOFF.md`.
+## R8 durable integration port
+
+Distribution durable orchestration now has a thin Temporal Activity boundary over the CloudEvents/AsyncAPI integration contract. The integration endpoint is environment-provided, so Distribution does not embed the current n8n workflow ID or webhook URL. Production-green Temporal acceptance completed both the real unreleased-Artifact blocked path and a read-only GitHub provider readback path; both returned `externalEffectPerformed=false`. Nexus is intentionally not used because the integration edge is not a Temporal application. See `docs/R8-DURABLE-INTEGRATION-PORT.md`.

@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 bash scripts/test-structure.sh
 uv run python scripts/test-admission.py
 uv run python scripts/test-artifact-handoff.py
+uv run python scripts/test-temporal-integration-boundary.py
 uv run python scripts/test-approval-request.py
 uv run python scripts/test-effect-authority-producer.py
 bash scripts/test-effect-authority-entrypoint.sh

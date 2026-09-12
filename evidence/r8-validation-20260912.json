@@ -1,0 +1,36 @@
+{
+  "blocked": {
+    "eventId": "distribution-r8-blocked-8311559d2ca64159a88b11409e7eb2f0",
+    "externalEffectPerformed": false,
+    "providerCalled": false,
+    "type": "io.ordivon.integration.distribution.blocked.v1",
+    "workflowId": "distribution-integration-smoke-3edf12de179b4651a204154d1931d594"
+  },
+  "date": "2026-09-12",
+  "files": {
+    "docs/R8-DURABLE-INTEGRATION-PORT.md": "sha256:4b12469849c79b64ca2651f966bb5a9f8c52513303af089a696d92b7ddd26640",
+    "scripts/temporal_integration_dispatch_smoke.py": "sha256:25350b58669589b3dba67ed33b38147037835d6f0c0ddc1e8a1bd81a83133a8c",
+    "scripts/test-temporal-integration-boundary.py": "sha256:a7232bf9052c39cfb4f7f0eb4e7456a5a6ffd1133f9fe6f3af9b7318b233bdc6"
+  },
+  "githubWritePerformed": false,
+  "integrationContract": "CloudEvents/AsyncAPI; implementation endpoint injected by environment",
+  "kind": "distribution-v2-r8-validation",
+  "n8nEmbeddedInDistributionSource": false,
+  "nexusUsed": false,
+  "productionTemporalAddress": "127.0.0.1:17233",
+  "readback": {
+    "eventId": "distribution-r8-readback-611a86c0a94a4493bfba8977f41eb4ff",
+    "externalEffectPerformed": false,
+    "externalMethod": "GET",
+    "observedIssueNumber": 72,
+    "providerCalled": true,
+    "type": "io.ordivon.integration.distribution.readback.v1",
+    "workflowId": "distribution-integration-smoke-5b9602fd780b4199a1422f78265629a3"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS",
+  "temporalVisibility": [
+    "distribution-integration-smoke-3edf12de179b4651a204154d1931d594|status=2|task_queue=distribution-integration-smoke-3edf12de179b",
+    "distribution-integration-smoke-5b9602fd780b4199a1422f78265629a3|status=2|task_queue=distribution-integration-smoke-5b9602fd780b"
+  ]
+}
