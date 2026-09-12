@@ -178,9 +178,9 @@
       "representations": ["capture-container", "capture-bundle"],
       "standards": ["ISO 28500 WARC", "WACZ ecosystem where profile-selected"],
       "exampleFormats": ["warc", "warc.gz", "wacz"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "SPECIALIST_TOOLS_MISSING"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["web-archive-warc-response-r1"],
+      "localToolStanding": "WARCIO_PYTHON_AND_JS_INDEPENDENT_PARSER_MATRIX_PROVEN"
     },
     {
       "id": "message",

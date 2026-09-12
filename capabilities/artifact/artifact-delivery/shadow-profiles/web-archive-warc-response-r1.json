@@ -1,0 +1,50 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "web-archive-warc-response-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "web-archive",
+    "representation": "capture-container",
+    "format": "WARC/1.1",
+    "mediaType": "application/warc",
+    "conformanceProfile": "ISO 28500:2017 bounded single HTTP response capture",
+    "targetAuthority": "independent-parser-matrix",
+    "purpose": ["preservation", "evidence"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "web-archive-warc-response-contract-v1",
+    "schemaReference": "shadow-contracts/web-archive-warc-response-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "standard": "ISO 28500:2017 WARC",
+    "warcVersion": "WARC/1.1",
+    "recordCount": 1,
+    "recordType": "response",
+    "httpVersion": "HTTP/1.1",
+    "requiredDigests": ["WARC-Payload-Digest", "WARC-Block-Digest"],
+    "externalResources": false,
+    "revisitRecords": false,
+    "requestRecords": false,
+    "metadataRecords": false,
+    "warcinfoRecords": false,
+    "compressedContainer": false
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "web-archive object contract validates"},
+    "warcIntegrity": {"required": true, "claim": "warcio digest checker accepts the exact WARC"},
+    "pythonRecordView": {"required": true, "claim": "warcio Python parser exposes exactly one WARC/1.1 response matching capture facts"},
+    "jsRecordView": {"required": true, "claim": "warcio.js independently exposes the same response facts and payload bytes"},
+    "payloadIdentity": {"required": true, "claim": "both parser views produce the exact contract payload SHA-256"}
+  },
+  "nonClaims": [
+    "complete website capture",
+    "browser-executed DOM state",
+    "JavaScript/network dependency completeness",
+    "replay fidelity",
+    "robots/policy/legal compliance",
+    "semantic truth of captured content",
+    "WACZ packaging or CDX index correctness"
+  ]
+}
