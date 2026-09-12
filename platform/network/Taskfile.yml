@@ -293,6 +293,24 @@ tasks:
       - task: smoke:recovery-live
       - task: verify:live
 
+  smoke:protocol-divergence:
+    desc: Prove HTTP/1.1 and HTTP/2 parity, UDP/TCP DNS parity, stable egress identity, and repeated long-flow success
+    cmds:
+      - ./tests/protocol-divergence-smoke.sh
+
+  lab:tun-quic:
+    desc: Prove TCP and UDP/QUIC through a sing-box TUN confined to an isolated Linux network namespace
+    cmds:
+      - ./tests/tun-quic-smoke.sh
+
+  test:r11:
+    desc: "Harden generic Network v2 protocol coverage without changing the live host routing model"
+    cmds:
+      - task: verify:live
+      - task: smoke:protocol-divergence
+      - task: lab:tun-quic
+      - task: verify:live
+
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service
