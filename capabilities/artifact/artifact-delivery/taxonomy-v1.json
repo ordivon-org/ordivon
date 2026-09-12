@@ -108,9 +108,9 @@
       "representations": ["raster", "vector"],
       "standards": ["W3C PNG Third Edition", "W3C SVG 2", "ISO/IEC JPEG-family standards", "TIFF family where profile-selected"],
       "exampleFormats": ["png", "jpeg", "tiff", "avif", "svg"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "STRONG_MECHANICAL_TOOLS_PRESENT"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["still-image-png-srgb-r1"],
+      "localToolStanding": "PNG_VALIDITY_METADATA_AND_TWO_DECODER_MATRIX_PROVEN"
     },
     {
       "id": "audio",

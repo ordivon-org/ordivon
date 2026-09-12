@@ -46,7 +46,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `presentation` | PresentationML/OOXML | three PPTX profiles | strong + external PowerPoint target |
 | `spreadsheet` | SpreadsheetML/OOXML, ODF | `spreadsheet-r1` | strong/partial |
 | `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | none | `jq`, DuckDB present |
-| `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | none | ImageMagick, libvips, librsvg present |
+| `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | shadow `still-image-png-srgb-r1` | pngcheck + ExifTool + ImageMagick/libvips matrix live-proven |
 | `audio` | profile-selected codecs/containers; BWF/WAVE where required | none | FFmpeg/ffprobe present; specialist conformance missing |
 | `moving-image` | profile-selected codecs/containers; SMPTE IMF for master workflows | none | FFmpeg/ffprobe present; MediaConch absent |
 | `web` | HTML Living Standard, CSS, WCAG 2.2 | `web-r1` | strong; WebKit remains supported-runner bounded |
@@ -111,6 +111,8 @@ The production profile library currently covers **5 of the 14 operational famili
 - presentation;
 - spreadsheet;
 - web.
+
+A first non-production shadow profile now also proves the **still-image** family (`still-image-png-srgb-r1`) without extending the legacy `artifactClass` enum. This leaves the production count at five while adding one shadow-proven family.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 

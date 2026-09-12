@@ -1,0 +1,47 @@
+{
+  "bindingVersion": 1,
+  "id": "still-image-png-srgb-local-r1",
+  "profileId": "still-image-png-srgb-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "datastreamValidity": {
+      "tool": "pngcheck",
+      "version": "4.0.1",
+      "path": "/opt/ordivon/external/pngcheck/4.0.1/bin/pngcheck",
+      "binarySha256": "ba5deaa1b3a737223b5994ff71a05e54a74bc5e545bb08e1e4fd3d0e954fe520",
+      "sourceCommit": "861c978c3b1bac93659202fd25b9b76bc852eee1",
+      "boundary": "validity/conformance-oriented PNG datastream evidence; not general encoder/decoder/editor implementation certification"
+    },
+    "metadataObservation": {
+      "tool": "ExifTool",
+      "version": "13.55",
+      "path": "/opt/ordivon/external/exiftool/13.55-1/exiftool",
+      "wrapperSha256": "4adf4f756837cb3fe2dd1d74f0d6969bfa9565d42ea7d9a8e30845e5aed2c404",
+      "package": "perl-image-exiftool 13.55-1",
+      "packageSha256": "11f2f296cdcd8c17879b478201e3e9722a8cc63dfe2bb22df86b728009ecfb6f",
+      "packageSignatureVerification": "PASS"
+    },
+    "decoderMatrix": [
+      {
+        "tool": "ImageMagick",
+        "version": "7.1.2-29",
+        "path": "/usr/bin/magick",
+        "binarySha256": "82585ae3cf15a96baf2e06d745378ca8b15e69409f029c80617ea2bfbc560719"
+      },
+      {
+        "tool": "libvips",
+        "version": "8.18.6",
+        "path": "/usr/bin/vips",
+        "binarySha256": "fd32d29eef0d8b1e79d64e6e2d8cbe738090d0729a1ce501278022b1ee943913",
+        "headerTool": "/usr/bin/vipsheader",
+        "headerToolSha256": "bfa9d872e1c5a3956b26d0b2532758bf7778e0dc13babe2b0a56d816f5ef2c75"
+      }
+    ]
+  },
+  "proof": {
+    "validStaticSrgbPng": "PASS",
+    "validPngMissingSrgbProfileFact": "FAIL_AS_PROFILE_EXPECTED",
+    "corruptPng": "FAIL_CLOSED",
+    "independentDecodedSamples": "EXACT_MATCH_ON_SMOKE_AND_UNIT_FIXTURES"
+  }
+}
