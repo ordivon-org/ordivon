@@ -61,6 +61,7 @@ The following mature packages were installed from the configured Arch repositori
 
 - systemd system/user manager file-descriptor policy: Ansible-owned file desired state;
 - coredump suppression policy: Ansible-owned file desired state;
+- `systemd-homed.service` and `systemd-homed-activate.service`: Ansible-owned disabled + stopped lifecycle on this node;
 - `/etc/wsl.conf`: Ansible `ini_file`, owned keys only;
 - Windows `.wslconfig`: Ansible `ini_file`, owned keys only; the separately present custom `kernel=` entry is deliberately preserved;
 - WSL shutdown/restart is not part of routine convergence and must be admitted separately when activation is required.
