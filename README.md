@@ -14,7 +14,7 @@ External tools own scanning, package discovery, vulnerability data, and policy e
 
 Current implemented provider set: Gitleaks, Semgrep, OSV-Scanner, Trivy, Syft, OPA/Rego.
 
-The selected lifecycle expansion is recorded in [`docs/TECHNOLOGY-SELECTION-R2.md`](docs/TECHNOLOGY-SELECTION-R2.md). P0 additions are OWASP Threat Dragon, OpenSSF Scorecard, OWASP ZAP Automation Framework, ClusterFuzzLite, and SLSA v1.2 Build Provenance. Falco is the selected P1 runtime-detection provider; Tetragon is conditional for consumers that actually require kernel-inline enforcement. Selection does not imply installation or production admission.
+The selected lifecycle expansion is recorded in [`docs/TECHNOLOGY-SELECTION-R2.md`](docs/TECHNOLOGY-SELECTION-R2.md). P0 additions are OWASP Threat Model Library TM-BOM with Threat Dragon as editor/viewer, OpenSSF Scorecard, OWASP ZAP Automation Framework, ClusterFuzzLite, and SLSA v1.2 Build Provenance. Falco is the selected P1 runtime-detection provider; Tetragon is conditional for consumers that actually require kernel-inline enforcement. Selection does not imply installation or production admission.
 
 ## Artifact contract
 

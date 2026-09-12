@@ -46,7 +46,7 @@ This file records the baseline only. It does not claim NIST, OSPS, SLSA, or othe
 
 The R2 technology selection extends the original verification-focused baseline without replacing its provider-native evidence rules. The selected external references/providers are:
 
-- OWASP Threat Modeling guidance and OWASP Threat Dragon for design-time threat models;
+- OWASP Threat Model Library TM-BOM-oriented JSON schema for the canonical design-time model, with OWASP Threat Dragon as a replaceable editor/viewer;
 - MITRE CAPEC and CWE as referenced attack/weakness vocabularies rather than copied taxonomies;
 - OpenSSF Scorecard for repository security-posture evidence;
 - OWASP ZAP Automation Framework for authorized DAST/API testing;
