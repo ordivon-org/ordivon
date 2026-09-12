@@ -1,6 +1,6 @@
 # Classification
 
-Before creating a repository, module, schema or E2E, classify the thing being discussed.
+Before creating a repository, module, schema or E2E, classify the thing being discussed for the current problem boundary. Classification is contextual, not permanent: the same thing can play a different role when the Entity of Interest changes.
 
 ## Allowed top-level kinds
 

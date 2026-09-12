@@ -47,4 +47,4 @@ ordivon-next/
 
 Historical Ordivon repositories are read-only inputs to migration analysis. Nothing is migrated merely because it existed before. A historical concept is retained only when it maps cleanly to the new model and still solves a real problem not already owned by a mature external capability.
 
-The common core is adopted from mature, externally validated disciplines and standards rather than invented from Ordivon experiments. Domain slices such as Game, Research and Software/Engineering validate integration, tailoring and usability; they do not define whether the underlying mature disciplines are valid.
+The common core is capability-neutral. Mature disciplines, domains, standards, tools and execution systems are activated as a task-local working set and may change without changing Ordivon itself. There is no prescribed domain sequence or upgrade path.

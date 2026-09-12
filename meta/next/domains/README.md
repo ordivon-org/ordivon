@@ -15,4 +15,4 @@ A domain profile should progressively describe:
 - V&V and acceptance mappings;
 - domain-specific information items.
 
-The first domain implementation slice is `game`. Research and Software/Engineering are not waiting to be conceptually invented: their mature external bodies of knowledge and life-cycle practices are adopted directly when integrated. Domain slices exist to tailor and exercise the common environment against real work.
+Domain profiles are activated according to real demand. `game`, `research`, `software` or any future domain is a catalog/profile entry, not a mandatory stage in Ordivon evolution. Mature external bodies of knowledge and life-cycle practices are adopted when that domain is active.
