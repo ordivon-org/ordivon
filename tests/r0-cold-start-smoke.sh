@@ -3,6 +3,11 @@ set -euo pipefail
 TARGET=network-v2-r0.target
 UNITS=(network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service)
 
+recover_r0(){
+  systemctl start "$TARGET" >/dev/null 2>&1 || true
+}
+trap recover_r0 EXIT
+
 control_plane_guard(){
   for u in ordivon-runtime.service ordivon-cloudflare-production-a.service ordivon-cloudflare-production-b.service ordivon-cloudflare-canary.service ordivon-cloudflare-direct-route.service; do
     test "$(systemctl is-active "$u")" = active
@@ -17,6 +22,17 @@ control_plane_guard(){
 wait_active(){
   local u=$1
   for _ in $(seq 1 80); do systemctl is-active --quiet "$u" && return 0; sleep 0.25; done
+  systemctl status "$u" --no-pager >&2 || true
+  return 1
+}
+
+wait_inactive(){
+  local u=$1 state
+  for _ in $(seq 1 80); do
+    state=$(systemctl is-active "$u" 2>/dev/null || true)
+    [ "$state" != active ] && [ "$state" != activating ] && [ "$state" != deactivating ] && return 0
+    sleep 0.25
+  done
   systemctl status "$u" --no-pager >&2 || true
   return 1
 }
@@ -40,8 +56,8 @@ control_plane_guard
 runtime_pid_before=$(systemctl show -p MainPID --value ordivon-runtime.service)
 
 systemctl stop "$TARGET"
-test "$(systemctl is-active "$TARGET" 2>/dev/null || true)" != active
-for u in "${UNITS[@]}"; do test "$(systemctl is-active "$u" 2>/dev/null || true)" != active; done
+wait_inactive "$TARGET"
+for u in "${UNITS[@]}"; do wait_inactive "$u"; done
 control_plane_guard
 
 systemctl start "$TARGET"
@@ -59,6 +75,7 @@ rm -f /tmp/network-v2-r0-cold-1m.bin
 control_plane_guard
 test "$(systemctl show -p MainPID --value ordivon-runtime.service)" = "$runtime_pid_before"
 
+trap - EXIT
 echo "cold_start_longflow $meta"
 echo r0-target-stop=PASS
 echo control-plane-independent-while-r0-stopped=PASS
