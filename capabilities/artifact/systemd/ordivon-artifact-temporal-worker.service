@@ -1,0 +1,31 @@
+[Unit]
+Description=Temporal worker for Ordivon Artifact Build and Delivery E2E
+Requires=temporal.service
+After=temporal.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/workstation-lab
+ExecStart=/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python /root/workstation-lab/scripts/temporal_artifact_delivery_worker.py --address 127.0.0.1:17233 --namespace default --task-queue ordivon-artifact-delivery --state-root /root/.local/state/ordivon-workstation/artifact-delivery-temporal --artifact-python /root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-delivery-temporal
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=false
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-runtime-input-set",
+  "inputSetId": "pdu-sdu-34x10-parent-pptx-r2",
+  "runtimeAuthority": "artifact-golden-r1",
+  "authorityRootOperatorOwned": true,
+  "bindings": [
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/PDU_SDU_34x10_8页演示稿.pptx",
+      "expectedDigest": "sha256:b50ab3025c4b285c728d029416492b4c7a03de1fc9e0bfe3f05293bfaf5f468c",
+      "presentationRelativePath": "source/PDU_SDU_34x10_8页演示稿.pptx"
+    }
+  ],
+  "admission": "workspace.execBound",
+  "memberProjectionManifest": "pdu-sdu-34x10-opc-member-projection-r2.json",
+  "standing": "PARENT_PACKAGE_BINDING_FROZEN_NOT_YET_MATERIALIZED",
+  "nonClaims": [
+    "no member bytes projected yet",
+    "no visual parity claim",
+    "no business-content validation claim",
+    "no final hybrid build claim"
+  ],
+  "notes": "R2 narrows external transport to one exact parent PPTX/OPC package. Eight raster parts are projected only after Runtime binds and re-verifies the parent package; Artifact then verifies exact member names, sizes and SHA-256 values before hybrid composition."
+}

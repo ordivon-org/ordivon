@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-openxml-external-evidence-corpus",
+  "corpusId": "artifact.openxml.external-evidence.r1",
+  "methodId": "artifact.openxml.conformance.v1",
+  "observedAt": "2026-09-10",
+  "externalSources": [
+    {
+      "sourceId": "openxml-sdk-release-3.5.1",
+      "kind": "upstream-signed-release",
+      "url": "https://github.com/dotnet/Open-XML-SDK/releases/tag/v3.5.1",
+      "release": "3.5.1",
+      "released": "2026-03-18",
+      "commitShort": "3139fdf",
+      "use": "implementation-currentness-only"
+    },
+    {
+      "sourceId": "openxml-sdk-mc-validation-test",
+      "kind": "upstream-test-source",
+      "url": "https://github.com/dotnet/Open-XML-SDK/blob/main/test/DocumentFormat.OpenXml.Tests/ofapiTest/McValidationTest.cs",
+      "observedAssertion": "missing AlternateContent Choice Requires yields MC_MissedRequiresAttribute",
+      "use": "external-rule-regression-anchor"
+    },
+    {
+      "sourceId": "openxml-sdk-issue-2128",
+      "kind": "upstream-current-bug-report",
+      "url": "https://github.com/dotnet/Open-XML-SDK/issues/2128",
+      "opened": "2026-08-01",
+      "reportedPackageVersion": "3.5.1",
+      "observedAssertion": "CT_Filters filter* then dateGroupItem* is valid per ECMA-376 but 3.5.1 rejects the mixed case",
+      "use": "known-oracle-limitation-anchor"
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "EXT-CTRL-DOCX-GOOD",
+      "sourceId": "openxml-sdk-release-3.5.1",
+      "fixture": "docx-good",
+      "fixtureSha256": "2a691b149e1cd4b48e6e19d060a1614b93e947e1951ad4656af28c54f996b01a",
+      "expectedStatus": "PASS",
+      "expectedErrorIds": [],
+      "evidenceDisposition": "POSITIVE_CONTROL"
+    },
+    {
+      "caseId": "EXT-MC-MISSING-REQUIRES",
+      "sourceId": "openxml-sdk-mc-validation-test",
+      "fixture": "docx-mc-missing-requires",
+      "fixtureSha256": "f7ef27ea51e36f50a2a2e68a9efc48343ad1cb4267b24f738e611004be680a87",
+      "expectedStatus": "FAIL",
+      "expectedErrorIds": [
+        "MC_MissedRequiresAttribute"
+      ],
+      "evidenceDisposition": "UPSTREAM_RULE_BEHAVIOR_REPRODUCED"
+    },
+    {
+      "caseId": "EXT-2128-FILTER-ONLY",
+      "sourceId": "openxml-sdk-issue-2128",
+      "fixture": "xlsx-filter-only",
+      "fixtureSha256": "c016aaf97408df42609a94d23c7381e41cd96f5c244c90c699784329e59585e0",
+      "expectedStatus": "PASS",
+      "expectedErrorIds": [],
+      "evidenceDisposition": "ISSUE_DISCRIMINATOR_CONTROL"
+    },
+    {
+      "caseId": "EXT-2128-DATE-ONLY",
+      "sourceId": "openxml-sdk-issue-2128",
+      "fixture": "xlsx-date-only",
+      "fixtureSha256": "80ce644cfbb491cfe709e4a83f18db7d2d2f8fe6be6bf5f5277318fdd113018e",
+      "expectedStatus": "PASS",
+      "expectedErrorIds": [],
+      "evidenceDisposition": "ISSUE_DISCRIMINATOR_CONTROL"
+    },
+    {
+      "caseId": "EXT-2128-FILTER-THEN-DATE",
+      "sourceId": "openxml-sdk-issue-2128",
+      "fixture": "xlsx-filter-date",
+      "fixtureSha256": "63292b04f5c15531e22c3400660a6a0390516569ab82d57cb33a1122a416dbed",
+      "expectedStatus": "FAIL",
+      "expectedErrorIds": [
+        "Sch_UnexpectedElementContentExpectingComplex"
+      ],
+      "evidenceDisposition": "KNOWN_UPSTREAM_FALSE_POSITIVE_REPRODUCED",
+      "resultAuthority": "LIMITATION_ONLY_DO_NOT_INFER_DOCUMENT_INVALIDITY"
+    },
+    {
+      "caseId": "EXT-2128-DATE-THEN-FILTER",
+      "sourceId": "openxml-sdk-issue-2128",
+      "fixture": "xlsx-date-filter",
+      "fixtureSha256": "4a2468d2db34dc239440142480d7107497373d52a0162f0e1c5421007c2d1c15",
+      "expectedStatus": "FAIL",
+      "expectedErrorIds": [
+        "Sch_UnexpectedElementContentExpectingComplex"
+      ],
+      "evidenceDisposition": "KNOWN_INVALID_SEQUENCE_REJECTED"
+    }
+  ],
+  "graduationPolicy": {
+    "requiredAggregateStanding": "PASS_BOUNDED_EXTERNAL_EVIDENCE",
+    "ivvStanding": "NOT_CLAIMED",
+    "promotionScope": "artifact.openxml.conformance.v1 only",
+    "forbiddenInference": [
+      "validator FAIL is always proof of ISO/IEC 29500 invalidity",
+      "validator PASS implies Office rendering/behavior",
+      "external-source reproduction constitutes independent verification and validation"
+    ],
+    "expectedCorpusResultDigest": "sha256:3a0b9739903e4279e25528f3c5a52a4a7d0708ae2803436ffec57b684298b778"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-golden-acceptance",
+  "id": "pdu-sdu-34x10-golden-r2-fa48aa4a",
+  "acceptedOn": "2026-09-11",
+  "standing": "ACCEPTED_IN_PROFILE",
+  "profile": {
+    "id": "presentation-ultrawide-34x10-r1",
+    "sha256": "56cf5879e52984fb398242416bb46f1670e9aecd7e5d88e18677b4263126eea9"
+  },
+  "sourceAuthority": {
+    "authority": "artifact-golden-r1",
+    "relativeObject": "pdu-sdu/34x10/PDU_SDU_34x10_8页演示稿.pptx",
+    "sha256": "b50ab3025c4b285c728d029416492b4c7a03de1fc9e0bfe3f05293bfaf5f468c",
+    "sizeBytes": 2791610,
+    "admission": "workspace.execBound"
+  },
+  "sourceCurrentness": {
+    "buildSourceRevision": "cdc0087b208a6009717383f7b58747f2f310895b",
+    "canonicalMainObservedAtAcceptance": "a4512e08137bf95738b17efb4b9b69a72df32e1d",
+    "buildRevisionIsAncestorOfObservedMain": true,
+    "presentationCriticalOverlap": [],
+    "standing": "CURRENT_FOR_ACCEPTED_TUPLE"
+  },
+  "acceptedTuple": {
+    "primary": {
+      "format": "pptx",
+      "sha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+      "sizeBytes": 2745582,
+      "slideCount": 8,
+      "aspectRatio": "34:10"
+    },
+    "companion": {
+      "format": "pdf",
+      "sha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+      "sizeBytes": 1149721
+    }
+  },
+  "structuralEvidence": {
+    "status": "PASS",
+    "openXmlValidator": {
+      "implementation": "DocumentFormat.OpenXml",
+      "packageVersion": "3.5.1",
+      "api": "OpenXmlValidator",
+      "validationErrorCount": 0
+    },
+    "evidenceSha256": "edab86242cded837679a987cf8374393c436c45431898f93b7372b033e543e5e"
+  },
+  "targetEvidence": {
+    "status": "PASS",
+    "renderer": "Microsoft PowerPoint Desktop",
+    "version": "16.0",
+    "executableSha256": "90fa931172c507b763ba92a82b19d5bc70816e008c5bb87577e1838e8a92e9f9",
+    "sourceDigestStableAcrossRender": true,
+    "evidenceSha256": "bebeaf8e11aac03a2fa16797cefe3c2e270cbe858bd94e7c3debcb6c7805bff3",
+    "renderSizePx": {
+      "width": 3400,
+      "height": 1000
+    },
+    "renderPngSha256": [
+      "a286b451a66f5089ebba076ffa9e69ed5912588f96f0831cd0ceb3e14afc76e1",
+      "1dfc2ca4c334c0734c83d97b52bac607492f87ac40dc9eaf7f889cffc2016355",
+      "8af788dbeabb63adf2f031222bee690773b810ab8e5ea2261e8b35938ea901e6",
+      "bb7d4b9f24321eb7d26e85726dadd40adfc174881b56455ba946b8b88bc9b3d8",
+      "e7c626009f71027ed2763b550adef4a2a3dd30a55b9cb03e863ac38cf86eee31",
+      "253d393fb4d30f3bcf50c9cfc721f2a2ecc6361f5de7cb8f79e860f73571363a",
+      "49958f5e9817669d67ed3c265acc239a631f28ca522a830293959dceecd60b9d",
+      "ba29902e8d5f334dc24c0e7ced8058e4cc87d84ef23da0329473774c542d5366"
+    ]
+  },
+  "visualEvidence": {
+    "status": "PASS",
+    "blockingDefects": [],
+    "evidenceSha256": "76bc1d7c23de6cfb319d4ef3de47bb2c55623a305bfb65d471866519627a509a",
+    "contactSheetSha256": "f4bf09194bdb7fb7e56f5bc87855f910864af766fa448068a3bffb5bbdf57813",
+    "maxMeanAbsChannelDiff255": 2.175923845409292,
+    "maxRmsChannelDiff255": 4.731309788609054
+  },
+  "deliveryEvidence": {
+    "windows-workstation": {
+      "status": "PASS",
+      "directory": "C:\\Users\\Public\\Documents\\Ordivon Artifact E2E\\Golden R2 fa48aa4a",
+      "primaryEvidenceSha256": "4dcc2b797db889042cc7882f825fc6b15b2b8f4b49852a1091b351a978ad48a3",
+      "companionEvidenceSha256": "1cf32508365df2b295dda2c9051f2d60a31c97aeb2bd527859227dd15f02075f",
+      "primaryReadbackSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+      "companionReadbackSha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe"
+    },
+    "google-drive": {
+      "status": "PASS",
+      "folderPath": "/Google Drive/Ordivon Artifact E2E/Golden R2 Accepted fa48aa4a",
+      "folderId": "external-gdrive:folder:1ipEuU0bN1G0ciynUIL2aVQAbcMuTHhWw",
+      "primaryFileId": "external-gdrive:file:1AZ9qdZpix0yxGioi17dTFiMq4USdoFoY",
+      "companionFileId": "external-gdrive:file:1t2c4akOyk1YGlVv6ZcpAgMG1h44AwuVr",
+      "primaryEvidenceSha256": "3b17018191fa41e7db236e8d5a45075abb7e22d2c4cced269ac9fb45596cfccb",
+      "companionEvidenceSha256": "652e70edcd59c4fd867e9cad62730c1c7720c4379577a6e09971ec6e9f1d7cd6",
+      "primaryReadbackSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+      "companionReadbackSha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+      "readbackAdapter": "ChatGPT Files Google Drive connector"
+    }
+  },
+  "finalGate": {
+    "status": "PASS",
+    "requiredGateFailures": [],
+    "evidenceSha256": "c3e9666b287f7dc29d1eb6371f1aaa088c0eb56b9708e3d29658f9ca29feeecd"
+  },
+  "nonClaims": [
+    "BUSINESS_CONTENT_CORRECTNESS_NOT_ESTABLISHED",
+    "ACCESSIBILITY_AND_HUMAN_USABILITY_NOT_ACCEPTED",
+    "CROSS_WORKSPACE_BYTE_DETERMINISM_NOT_PROVEN",
+    "FORMAL_THIRD_PARTY_INDEPENDENT_IVV_NOT_CLAIMED",
+    "POWERPOINT_WEB_OPTIONAL_TARGET_NOT_REQUIRED",
+    "BROWSERLESS_MOUNTED_DRIVE_SEARCH_CONVERGENCE_NOT_REQUIRED"
+  ],
+  "openFaults": [
+    {
+      "class": "CROSS_WORKSPACE_BUILD_BYTE_VARIATION",
+      "standing": "OPEN_SEPARATE_FROM_ACCEPTED_EXACT_TUPLE",
+      "reason": "An earlier isolated build of the same migration lineage produced a different PPTX digest. All accepted downstream evidence binds only the exact fa48aa4a candidate; no deterministic-build claim is made until this variation is separately reproduced and classified."
+    }
+  ],
+  "boundary": "ACCEPTED_IN_PROFILE means the exact fa48aa4a PPTX plus bea385bf PDF satisfied every required gate of presentation-ultrawide-34x10-r1, including PowerPoint target, visual review, Windows read-back and Google Drive read-back. It does not promote business truth, accessibility/usability, cross-workspace byte determinism, or formal third-party IV&V."
+}

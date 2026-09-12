@@ -1,0 +1,26 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "document-r1",
+  "artifactClass": "document",
+  "authorityMode": "generated-managed",
+  "locale": "en-US",
+  "primaryOutput": {"format": "docx", "purpose": "editable-microsoft-word", "required": true, "editable": true},
+  "companions": [{"format": "pdf", "purpose": "portable-fixed-view", "required": true, "editable": false}],
+  "targetRenderer": {"name": "Microsoft Word Desktop", "platform": "Windows", "required": true},
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "dependency": true,
+    "semantic": true,
+    "visual": true,
+    "target": true,
+    "accessibility": true,
+    "conformance": false,
+    "companionPdf": true,
+    "deliveryReadback": true,
+    "releaseProvenance": true
+  },
+  "deliveryTargets": ["google-drive", "windows-workstation"],
+  "notes": "Generated-managed DOCX production profile. Word Desktop is the primary target; Pandoc/Open XML evidence cannot substitute for target acceptance."
+}

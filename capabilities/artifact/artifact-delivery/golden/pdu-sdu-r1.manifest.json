@@ -1,0 +1,124 @@
+{
+  "manifestVersion": 2,
+  "profileId": "pdu-sdu-presentation-r1",
+  "capturedOn": "2026-09-09",
+  "originalFixtures": [
+    {
+      "name": "PDU_SDU_解释版_8页.pptx",
+      "sizeBytes": 388492,
+      "sha256": "4534bce68f184b6f841b8f07b82312b3137344775145e015019bb299c198f329",
+      "slideCount": 8,
+      "mediaPartCount": 81,
+      "placeholderHits": [],
+      "opcRelationshipFailures": 0,
+      "renderExplicitTypefaces": ["Aptos", "Arial", "Microsoft YaHei"],
+      "standing": "FROZEN_REGRESSION_INPUT"
+    },
+    {
+      "name": "PDU_SDU_论证版_8页.pptx",
+      "sizeBytes": 352700,
+      "sha256": "1b407368a7ceb008a44ac002a2b8c2fdf29e829a432c193b434719986597dcfa",
+      "slideCount": 8,
+      "mediaPartCount": 61,
+      "placeholderHits": [],
+      "opcRelationshipFailures": 0,
+      "renderExplicitTypefaces": ["Aptos", "Arial", "Microsoft YaHei"],
+      "standing": "FROZEN_REGRESSION_INPUT"
+    }
+  ],
+  "targetEnvironmentObservation": {
+    "windowsFonts": {
+      "Microsoft YaHei": {
+        "status": "PRESENT",
+        "files": ["msyh.ttc", "msyhbd.ttc", "msyhl.ttc"]
+      },
+      "Arial": {
+        "status": "PRESENT",
+        "files": ["arial.ttf", "arialbd.ttf", "ariali.ttf", "arialbi.ttf"]
+      },
+      "Aptos": {
+        "status": "NOT_FOUND",
+        "searchedRoots": [
+          "C:/Windows/Fonts",
+          "C:/Program Files/Microsoft Office",
+          "%LOCALAPPDATA%/Microsoft/Windows/Fonts"
+        ]
+      }
+    }
+  },
+  "regression": {
+    "class": "unsatisfied-render-font-dependency",
+    "standing": "ORIGINALS_FAIL_G2_REPAIRED_CANDIDATES_EXIST",
+    "reason": "Both original Golden PPTX files have render-relevant Aptos references across slide/layout/master parts. Arial and Microsoft YaHei are approved and present on the target; Aptos is neither approved by the R1 profile nor present in the checked target font roots. Structural success cannot override this dependency failure.",
+    "forbiddenRepair": "silent font fallback"
+  },
+  "repairedCandidates": [
+    {
+      "name": "PDU_SDU_解释版_8页_fontfixed_r1.pptx",
+      "sourceSha256": "4534bce68f184b6f841b8f07b82312b3137344775145e015019bb299c198f329",
+      "sha256": "fdd1aca9c4cef977a2c1f447987f5ab66ee1c9bab6f13c056ccc8f4a784e8bf1",
+      "sizeBytes": 388602,
+      "slideCount": 8,
+      "slideSizeEmu": {"cx": 12192000, "cy": 6858000},
+      "aspectRatio": "16:9",
+      "renderExplicitTypefaces": ["Arial", "Microsoft YaHei"],
+      "aptosRenderReferenceCount": 0,
+      "fontBindingReplacements": 33,
+      "driveFileId": "external-gdrive:file:1X-cHFpJ_vE5V4PnAVoUDwiBtRnO4EU7q",
+      "driveReadbackSha256": "fdd1aca9c4cef977a2c1f447987f5ab66ee1c9bab6f13c056ccc8f4a784e8bf1",
+      "driveReadbackExact": true,
+      "secondaryRendererConfidence": "PASS_WITH_EXPECTED_TEXT_GLYPH_DIFFS",
+      "primaryPowerPointTarget": "NOT_RUN",
+      "standing": "SOURCE_REPAIR_AND_DRIVE_READBACK_PASS_TARGET_NOT_RUN"
+    },
+    {
+      "name": "PDU_SDU_论证版_8页_fontfixed_r1.pptx",
+      "sourceSha256": "1b407368a7ceb008a44ac002a2b8c2fdf29e829a432c193b434719986597dcfa",
+      "sha256": "c66b873650657131144ab373dc3ac13f7740ec16a3889aee7cceec905d2fa98c",
+      "sizeBytes": 352790,
+      "slideCount": 8,
+      "slideSizeEmu": {"cx": 12192000, "cy": 6858000},
+      "aspectRatio": "16:9",
+      "renderExplicitTypefaces": ["Arial", "Microsoft YaHei"],
+      "aptosRenderReferenceCount": 0,
+      "fontBindingReplacements": 27,
+      "driveFileId": "external-gdrive:file:1SJKq8x9UGTdevA0fkgHM_NdRZZQ09PeT",
+      "driveReadbackSha256": "c66b873650657131144ab373dc3ac13f7740ec16a3889aee7cceec905d2fa98c",
+      "driveReadbackExact": true,
+      "secondaryRendererConfidence": "PASS_NO_MEANINGFUL_LAYOUT_DIFF",
+      "primaryPowerPointTarget": "NOT_RUN",
+      "standing": "SOURCE_REPAIR_AND_DRIVE_READBACK_PASS_TARGET_NOT_RUN"
+    }
+  ],
+  "repairEvidence": {
+    "repairReceiptSha256": "36d6a48d9dd5a55e99bd49d053969dbb8e1be06a98ca82ef7469658d6260b708",
+    "repairReceiptDriveFileId": "external-gdrive:file:1dIu5JMgF9v7y-3WfrsrdbTAhhdgTvrvc",
+    "secondaryEvidenceSha256": "bbca6f81927eadddada97e0b7d482febbb2143630efa07cf144d4f3d0aaeac75",
+    "secondaryEvidenceDriveFileId": "external-gdrive:file:10gAAC-TPJ4B9f44UOWLBW40KREJ1Kz5A",
+    "secondaryRenderer": "LibreOffice 25.2.3.2",
+    "truthBoundary": "Source repair and secondary-renderer confidence only; neither evidence object establishes Microsoft PowerPoint target acceptance."
+  },
+  "smokeSubstrateStanding": {
+    "profileId": "presentation-r1-windows-smoke",
+    "status": "PASS",
+    "fullGateEvidenceSha256": "9659e0849d86b90deeb837c3d5f8b822323cb72dda3a01ee2ac09ad553f8487f",
+    "powerPointVersion": "16.0",
+    "powerPointExecutableSha256": "90fa931172c507b763ba92a82b19d5bc70816e008c5bb87577e1838e8a92e9f9",
+    "pptxSha256": "7cb01e91a8273f6673bfcb791b85b8746dcb42d6065cc15fcb41a99697148968",
+    "pdfSha256": "770f573025f561cb94852c7b7d6cc2684bd3ce78b9a2d3ae0dfe3fb00863b6a6",
+    "pngSha256": "b716ff15bb388be443cb5a6c821a3428c5c7b9b896d337e1351fb3b254c36eec",
+    "deliveryTargetsProven": ["windows-workstation"],
+    "boundary": "This proves the R1 Windows target/delivery substrate on a one-slide smoke fixture, not PDU/SDU Golden graduation and not Google Drive delivery for the smoke artifact."
+  },
+  "currentBlocker": {
+    "class": "EXACT_SOURCE_TRANSPORT_TO_TARGET_WORKSTATION",
+    "facts": [
+      "Microsoft PowerPoint target execution itself is proven working on the smoke fixture.",
+      "The repaired Golden candidates are durable in Google Drive and read back byte-identically through the API-backed Library surface.",
+      "The workstation currently has no configured Runtime immutable input authority, no configured rclone Drive remote, and no Google Drive Desktop mount.",
+      "Ambient, native-a, native-b, and Windows-native direct HTTPS access to Google Drive currently time out."
+    ],
+    "requiredResolution": "Make the exact repaired candidate bytes available through an existing mature input/API transport, then bind the frozen SHA-256 before PowerPoint target execution. Do not create an Artifact-specific transport protocol."
+  },
+  "boundary": "Original artifacts remain frozen regression inputs. Repaired candidates resolve the observed font dependency and have exact Drive read-back plus secondary-render confidence, but R1 PDU/SDU remains NOT PASS until those exact repaired bytes pass Microsoft PowerPoint target render, visual QA, companion PDF, Google Drive read-back, and Windows read-back."
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-opc-member-projection",
+  "projectionId": "pdu-sdu-34x10-parent-pptx-visual-parts-r2",
+  "parentPackage": {
+    "format": "pptx",
+    "sha256": "sha256:b50ab3025c4b285c728d029416492b4c7a03de1fc9e0bfe3f05293bfaf5f468c",
+    "expectedSizeBytes": 2791610
+  },
+  "members": [
+    {
+      "part": "ppt/media/image-1-1.jpeg",
+      "sha256": "sha256:97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998",
+      "expectedSizeBytes": 325158,
+      "outputRelativePath": "slide-01.jpeg"
+    },
+    {
+      "part": "ppt/media/image-2-1.jpeg",
+      "sha256": "sha256:fc9e38e60aa35f36050cef2d0493d716ebc20977b13a126bdd1560dc6643b168",
+      "expectedSizeBytes": 348056,
+      "outputRelativePath": "slide-02.jpeg"
+    },
+    {
+      "part": "ppt/media/image-3-1.jpeg",
+      "sha256": "sha256:bd511f6736bf5c8eee439c412e4e32fc7f0ca57953da6baee4a9e716c86cdec9",
+      "expectedSizeBytes": 346502,
+      "outputRelativePath": "slide-03.jpeg"
+    },
+    {
+      "part": "ppt/media/image-4-1.jpeg",
+      "sha256": "sha256:116de845c183109a27c68fb2ada0c5f1038ea55ea5b4f682bf37dee3017fc875",
+      "expectedSizeBytes": 347807,
+      "outputRelativePath": "slide-04.jpeg"
+    },
+    {
+      "part": "ppt/media/image-5-1.jpeg",
+      "sha256": "sha256:23c7b1a818feb6a8e7de9f009f57542acffea306e22fd7a83eb6c10063340d65",
+      "expectedSizeBytes": 348821,
+      "outputRelativePath": "slide-05.jpeg"
+    },
+    {
+      "part": "ppt/media/image-6-1.jpeg",
+      "sha256": "sha256:2eb714c894a4115fcd3e55a0729d28ddd93e3e92ec2621c0274a0b6131bbfeb5",
+      "expectedSizeBytes": 316885,
+      "outputRelativePath": "slide-06.jpeg"
+    },
+    {
+      "part": "ppt/media/image-7-1.jpeg",
+      "sha256": "sha256:67287373393b0fb170b0d0f3957661115a01a4e9cd43655c65d344729708379a",
+      "expectedSizeBytes": 343411,
+      "outputRelativePath": "slide-07.jpeg"
+    },
+    {
+      "part": "ppt/media/image-8-1.jpeg",
+      "sha256": "sha256:f1727f930369788b5c6a314c4fe2d3baf9f4c27e2eb361ae8ef2ff2964ef1628",
+      "expectedSizeBytes": 332596,
+      "outputRelativePath": "slide-08.jpeg"
+    }
+  ],
+  "nonClaims": [
+    "no provider/source identity beyond exact parent package bytes",
+    "no visual parity claim",
+    "no accessibility claim",
+    "no business-content validation claim"
+  ]
+}

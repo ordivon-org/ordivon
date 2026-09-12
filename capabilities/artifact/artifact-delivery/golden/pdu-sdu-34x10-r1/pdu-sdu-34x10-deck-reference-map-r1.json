@@ -1,0 +1,105 @@
+{
+  "$schema": "../../presentation-source-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "presentation-source",
+  "presentationId": "presentation:pdu-sdu-34x10-deck-reference-map-r1",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "sourceMode": "reference-map",
+  "locale": "zh-CN",
+  "aspectRatio": "34:10",
+  "slideSizeInches": {
+    "width": 34.0,
+    "height": 10.0
+  },
+  "slides": [
+    {
+      "id": "slide-01",
+      "title": "面向敏捷交付的研发组织变革——液态组织下 PDU / SDU 职责与举措",
+      "purpose": "cover",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "75B93BA3-2B4A-429F-8F60-2EB9ACA0DFBD.jpeg",
+        "sha256": "97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998",
+        "slideIndex": 1
+      }
+    },
+    {
+      "id": "slide-02",
+      "title": "智能电动时代 重塑汽车研发",
+      "purpose": "context",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "3CAB0165-E4A0-4CA3-A90A-A8ED22EB98FF.jpeg",
+        "sha256": "fc9e38e60aa35f36050cef2d0493d716ebc20977b13a126bdd1560dc6643b168",
+        "slideIndex": 2
+      }
+    },
+    {
+      "id": "slide-03",
+      "title": "当前挑战：SDU 液态组织面临三重压力",
+      "purpose": "problem",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "9CA06CD9-F2B2-4858-9676-E3A2A65D6D43.jpeg",
+        "sha256": "bd511f6736bf5c8eee439c412e4e32fc7f0ca57953da6baee4a9e716c86cdec9",
+        "slideIndex": 3
+      }
+    },
+    {
+      "id": "slide-04",
+      "title": "外部对标：领先车企的共同方向",
+      "purpose": "benchmark-summary",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "57CA759F-6097-487F-9721-3335DAC203AD.jpeg",
+        "sha256": "116de845c183109a27c68fb2ada0c5f1038ea55ea5b4f682bf37dee3017fc875",
+        "slideIndex": 4
+      }
+    },
+    {
+      "id": "slide-05",
+      "title": "核心模式：液态组织 + PDU / SDU 双单元设计",
+      "purpose": "operating-model",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "69665C62-EDC5-4980-9D9E-6CDD6C4FA961.jpeg",
+        "sha256": "23c7b1a818feb6a8e7de9f009f57542acffea306e22fd7a83eb6c10063340d65",
+        "slideIndex": 5
+      }
+    },
+    {
+      "id": "slide-06",
+      "title": "SDU：围绕品牌与项目，对交付结果负责",
+      "purpose": "sdu-role",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "A9F3D7A3-5822-43DD-AD78-23B42442F208.jpeg",
+        "sha256": "2eb714c894a4115fcd3e55a0729d28ddd93e3e92ec2621c0274a0b6131bbfeb5",
+        "slideIndex": 6
+      }
+    },
+    {
+      "id": "slide-07",
+      "title": "PDU：围绕技术与平台，对长期能力负责",
+      "purpose": "pdu-role",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "FD8C94FD-D641-4D75-941D-5D2032A6D8C9.jpeg",
+        "sha256": "67287373393b0fb170b0d0f3957661115a01a4e9cd43655c65d344729708379a",
+        "slideIndex": 7
+      }
+    },
+    {
+      "id": "slide-08",
+      "title": "实施路径：推动组织变革落地见效",
+      "purpose": "roadmap",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "9CB4A934-3A61-4934-B1FB-6823437638D1.jpeg",
+        "sha256": "f1727f930369788b5c6a314c4fe2d3baf9f4c27e2eb361ae8ef2ff2964ef1628",
+        "slideIndex": 8
+      }
+    }
+  ],
+  "notes": "Deck-wide migration reference map for the approved eight visual slides. This freezes source identity only; native build remains intentionally unavailable until exact raster bytes are materialized through a mature input authority."
+}

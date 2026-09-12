@@ -1,0 +1,22 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "pdf-fixed-r1",
+  "artifactClass": "fixed-view",
+  "authorityMode": "generated-managed",
+  "locale": "en-US",
+  "primaryOutput": {"format": "pdf", "purpose": "portable-fixed-view", "required": true, "editable": false},
+  "targetRenderer": {"name": "Adobe Acrobat Pro", "platform": "Windows/macOS", "required": true},
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "visual": true,
+    "target": true,
+    "accessibility": false,
+    "conformance": false,
+    "deliveryReadback": true,
+    "releaseProvenance": true
+  },
+  "deliveryTargets": ["google-drive", "windows-workstation"],
+  "notes": "Ordinary fixed-view PDF profile. qpdf structure PASS does not imply PDF/A or PDF/UA conformance."
+}

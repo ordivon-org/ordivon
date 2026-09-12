@@ -1,0 +1,23 @@
+{
+  "$schema": "../request-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-request",
+  "requestId": "artifact-request:web-smoke-r1",
+  "profile": {
+    "id": "web-r1",
+    "path": "web-r1.json",
+    "sha256": "a31a76e6ddba10f194dc816bad8d01a24462da6b4f2ea228d5fe51fe25e18883"
+  },
+  "source": {
+    "kind": "html-source",
+    "path": "web-smoke-source-r1.html",
+    "sha256": "9fcb20d6ab25d5b9650a5bb7ca76d8029509b535095f25feaa69c3680a22e9c9"
+  },
+  "materials": [],
+  "outputDirectory": "../../.cache/artifact-delivery-verification/web/build",
+  "builder": {
+    "id": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+    "buildType": "https://ordivon.local/build-types/artifact-delivery/html-source-v1"
+  },
+  "notes": "Local web build/verification smoke only; no deployed-origin release claim."
+}

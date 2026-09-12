@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-migration-evidence",
+  "subject": "PDU/SDU 34:10 8-slide visual deck",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "sourceDimensionsPx": {
+    "width": 1536,
+    "height": 452
+  },
+  "observedAspectRatio": 3.398230088495575,
+  "targetAspectRatio": "34:10",
+  "slides": [
+    {
+      "slideIndex": 1,
+      "id": "slide-01",
+      "visualAuthority": {
+        "artifactName": "75B93BA3-2B4A-429F-8F60-2EB9ACA0DFBD.jpeg",
+        "sha256": "97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998"
+      },
+      "approvedSemanticExtraction": {
+        "title": "面向敏捷交付的研发组织变革",
+        "subtitle": "——液态组织下 PDU / SDU 职责与举措",
+        "supportingLine": "应对全球汽车电动化浪潮，打造高效、敏捷、创新的研发组织",
+        "keywords": [
+          "创新",
+          "协同",
+          "效率",
+          "价值"
+        ],
+        "footer": "汽车研发中心 | 2026年9月",
+        "pageNumber": "01"
+      }
+    },
+    {
+      "slideIndex": 2,
+      "id": "slide-02",
+      "visualAuthority": {
+        "artifactName": "3CAB0165-E4A0-4CA3-A90A-A8ED22EB98FF.jpeg",
+        "sha256": "fc9e38e60aa35f36050cef2d0493d716ebc20977b13a126bdd1560dc6643b168"
+      },
+      "approvedSemanticExtraction": {
+        "title": "智能电动时代 重塑汽车研发",
+        "supportingLine": "竞争焦点正从“造出一辆车”转向“持续快速迭代一套产品体系”",
+        "keywords": [
+          "电动化",
+          "智能化",
+          "软件定义",
+          "全球竞争"
+        ],
+        "drivers": [
+          "BEV浪潮",
+          "软件定义汽车",
+          "AI与数据驱动",
+          "开发周期压缩",
+          "全球竞争加剧"
+        ],
+        "comparison": [
+          "≈24个月 新一代EV玩家 概念到上市",
+          "40–50+个月 传统汽车开发周期"
+        ],
+        "pageNumber": "02"
+      }
+    },
+    {
+      "slideIndex": 3,
+      "id": "slide-03",
+      "visualAuthority": {
+        "artifactName": "9CA06CD9-F2B2-4858-9676-E3A2A65D6D43.jpeg",
+        "sha256": "bd511f6736bf5c8eee439c412e4e32fc7f0ca57953da6baee4a9e716c86cdec9"
+      },
+      "approvedSemanticExtraction": {
+        "title": "当前挑战：SDU 液态组织面临三重压力",
+        "supportingLine": "现有组织能力已难以完全支撑新的业务复杂度",
+        "pressures": [
+          "资源压力：项目多 × 人少",
+          "能力压力：能力不足 × 新技术不够 × 智能化弱",
+          "经营压力：BEV转向下迭代快 × 成本高"
+        ],
+        "conclusion": "任务复杂度增长快于组织能力增长",
+        "pageNumber": "03"
+      }
+    },
+    {
+      "slideIndex": 4,
+      "id": "slide-04",
+      "visualAuthority": {
+        "artifactName": "57CA759F-6097-487F-9721-3335DAC203AD.jpeg",
+        "sha256": "116de845c183109a27c68fb2ada0c5f1038ea55ea5b4f682bf37dee3017fc875"
+      },
+      "approvedSemanticExtraction": {
+        "title": "外部对标：领先车企的共同方向",
+        "supportingLine": "Tesla、BYD、Toyota 的实践表明：项目速度必须建立在平台能力之上",
+        "examples": [
+          "Tesla：高度集成",
+          "BYD：平台 + 模块集成",
+          "Toyota：平台 + 共用 + 稳定体系"
+        ],
+        "commonDirections": [
+          "平台化",
+          "模块化",
+          "快速迭代",
+          "跨域协同",
+          "长期能力沉淀"
+        ],
+        "conclusion": "形式不同，共同规律相同：项目速度必须建立在平台能力之上",
+        "pageNumber": "04"
+      }
+    },
+    {
+      "slideIndex": 5,
+      "id": "slide-05",
+      "visualAuthority": {
+        "artifactName": "69665C62-EDC5-4980-9D9E-6CDD6C4FA961.jpeg",
+        "sha256": "23c7b1a818feb6a8e7de9f009f57542acffea306e22fd7a83eb6c10063340d65"
+      },
+      "approvedSemanticExtraction": {
+        "title": "核心模式：液态组织 + PDU / SDU 双单元设计",
+        "supportingLine": "打通交付结果与长期能力，构建更灵活高效的研发组织",
+        "sdu": "SDU：交付结果负责",
+        "pdu": "PDU：能力资产负责",
+        "center": "液态组织：协同共进 / 快速闭环",
+        "top": "市场 / 品牌 / 项目需求",
+        "bottom": "平台 / 模块 / 技术 / 标准",
+        "conclusion": "SDU 把能力变成结果，PDU 把项目经验变成能力",
+        "pageNumber": "05"
+      }
+    },
+    {
+      "slideIndex": 6,
+      "id": "slide-06",
+      "visualAuthority": {
+        "artifactName": "A9F3D7A3-5822-43DD-AD78-23B42442F208.jpeg",
+        "sha256": "2eb714c894a4115fcd3e55a0729d28ddd93e3e92ec2621c0274a0b6131bbfeb5"
+      },
+      "approvedSemanticExtraction": {
+        "title": "SDU：围绕品牌与项目，对交付结果负责",
+        "supportingLine": "以市场与项目为牵引，强化端到端交付责任，提升组织响应速度",
+        "responsibilities": [
+          "需求定义",
+          "项目统筹",
+          "跨域协同",
+          "交付结果"
+        ],
+        "chiefEngineerUpgrade": [
+          "管理统筹",
+          "横向协同",
+          "快速反应",
+          "精益精细"
+        ],
+        "center": "打造全面型、综合攻坚型 SDU 总师",
+        "conclusion": "让 SDU 更快识别需求、更强组织资源、更稳实现交付",
+        "pageNumber": "06"
+      }
+    },
+    {
+      "slideIndex": 7,
+      "id": "slide-07",
+      "visualAuthority": {
+        "artifactName": "FD8C94FD-D641-4D75-941D-5D2032A6D8C9.jpeg",
+        "sha256": "67287373393b0fb170b0d0f3957661115a01a4e9cd43655c65d344729708379a"
+      },
+      "approvedSemanticExtraction": {
+        "title": "PDU：围绕技术与平台，对长期能力负责",
+        "supportingLine": "聚焦平台、模块、技术和标准，沉淀可复用能力，支撑多产品快速开发",
+        "outcomes": [
+          "更强的平台能力",
+          "更快的开发效率",
+          "更高的复用价值"
+        ],
+        "technologyThree": [
+          "平台化",
+          "模块化",
+          "通用化"
+        ],
+        "operatingSupports": [
+          "流程标准化",
+          "平台一体化",
+          "信息可视化"
+        ],
+        "conclusion": "PDU 让能力沉淀为资产，持续支撑业务增长",
+        "pageNumber": "07"
+      }
+    },
+    {
+      "slideIndex": 8,
+      "id": "slide-08",
+      "visualAuthority": {
+        "artifactName": "9CB4A934-3A61-4934-B1FB-6823437638D1.jpeg",
+        "sha256": "f1727f930369788b5c6a314c4fe2d3baf9f4c27e2eb361ae8ef2ff2964ef1628"
+      },
+      "approvedSemanticExtraction": {
+        "title": "实施路径：推动组织变革落地见效",
+        "supportingLine": "以职责清晰、机制协同、平台沉淀和能力升级为抓手，分阶段推进",
+        "phases": [
+          "0–3个月：职责与边界",
+          "3–6个月：试点运行",
+          "6–12个月：平台与机制固化",
+          "12个月+：持续迭代"
+        ],
+        "outcomes": [
+          "交付更敏捷",
+          "技术更可复用",
+          "成本结构更优",
+          "组织能力持续积累"
+        ],
+        "conclusion": "以 PDU / SDU 双轮驱动，支撑智能电动时代长期竞争",
+        "pageNumber": "08"
+      }
+    }
+  ],
+  "currentNativeMigration": {
+    "deckSemanticOverlay": "pdu-sdu-34x10-deck-semantic-overlay-r1.json",
+    "deckSemanticOverlaySha256": "5ed264937da812c2fe67f4a13566d4bdc4dbac3c700a6dbdcbed4bff9f6f8743",
+    "slideCount": 8,
+    "nativeTextElementCount": 111,
+    "drawingMlAlphaZeroCount": 111,
+    "overlayOnlySmokePptxSha256": "287b5b2c54fa941cbab123bde8b4c77e50ea85bc8bfb42fd8ab33d4f2f2a3e70",
+    "openXmlValidation": "PASS",
+    "standing": "DECK_SEMANTIC_OVERLAY_NATIVE_BUILD_PASS_FINAL_HYBRID_NOT_RUN",
+    "coverageBoundary": "Major approved deck wording is carried. The overlay is not asserted to be an exhaustive transcription of every small visual label; unresolved exact wording remains omitted rather than guessed."
+  },
+  "migrationStanding": "DECK_REFERENCE_MAP_AND_NATIVE_SEMANTIC_OVERLAY_READY_FINAL_HYBRID_BLOCKED_ON_EXACT_RASTER_TRANSPORT",
+  "boundary": "Artifact E2E freezes visual/source identity and carries approved wording only. It does not validate or alter business/organizational claims. Exact raster materialization, final hybrid composition, visual parity, accessibility and Microsoft PowerPoint target acceptance remain independent later gates."
+}

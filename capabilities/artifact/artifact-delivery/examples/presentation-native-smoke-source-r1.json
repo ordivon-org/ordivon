@@ -1,0 +1,72 @@
+{
+  "$schema": "../presentation-source-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "presentation-source",
+  "presentationId": "presentation:native-smoke-r1",
+  "profileId": "pdu-sdu-presentation-r1",
+  "sourceMode": "native-composition",
+  "locale": "zh-CN",
+  "aspectRatio": "16:9",
+  "slideSizeInches": {"width": 13.333333, "height": 7.5},
+  "slides": [
+    {
+      "id": "slide-01",
+      "title": "Artifact Build & Delivery E2E",
+      "purpose": "cover",
+      "layoutId": "blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "Artifact Build & Delivery E2E",
+          "box": {"x": 0.8, "y": 1.0, "w": 11.7, "h": 1.0},
+          "fontFamily": "Arial",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "111111",
+          "align": "left"
+        },
+        {
+          "kind": "text",
+          "id": "subtitle",
+          "text": "Presentation source → native OOXML → independent verification",
+          "box": {"x": 0.8, "y": 2.2, "w": 11.7, "h": 0.6},
+          "fontFamily": "Arial",
+          "fontSizePt": 16,
+          "colorHex": "444444",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "slide-02",
+      "title": "边界",
+      "purpose": "content",
+      "layoutId": "blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "边界",
+          "box": {"x": 0.8, "y": 0.7, "w": 3.0, "h": 0.7},
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "111111",
+          "align": "left"
+        },
+        {
+          "kind": "text",
+          "id": "body",
+          "text": "共享交付合同不等于跨格式统一文档模型。PPTX、DOCX、XLSX、PDF 与 Web 保留各自格式语义。",
+          "box": {"x": 0.8, "y": 1.8, "w": 11.4, "h": 1.4},
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 18,
+          "colorHex": "222222",
+          "align": "left"
+        }
+      ]
+    }
+  ],
+  "notes": "Deterministic semantic/build-path smoke only; not a PDU/SDU Golden candidate and not a customer deliverable."
+}

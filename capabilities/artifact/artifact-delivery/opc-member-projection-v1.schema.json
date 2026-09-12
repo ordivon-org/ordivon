@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/artifact-delivery/opc-member-projection-v1.schema.json",
+  "title": "Artifact Delivery OPC Member Projection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "projectionId", "parentPackage", "members", "nonClaims"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "artifact-delivery-opc-member-projection"},
+    "projectionId": {"type": "string", "minLength": 1},
+    "parentPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "sha256", "expectedSizeBytes"],
+      "properties": {
+        "format": {"enum": ["pptx", "docx", "xlsx", "opc"]},
+        "sha256": {"type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$"},
+        "expectedSizeBytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["part", "sha256", "expectedSizeBytes", "outputRelativePath"],
+        "properties": {
+          "part": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$"},
+          "expectedSizeBytes": {"type": "integer", "minimum": 1},
+          "outputRelativePath": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "nonClaims": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

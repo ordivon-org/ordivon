@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-runtime-input-set",
+  "inputSetId": "pdu-sdu-34x10-visual-authority-r1",
+  "runtimeAuthority": "artifact-golden-r1",
+  "authorityRootOperatorOwned": true,
+  "bindings": [
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-01.jpeg",
+      "expectedDigest": "sha256:97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998",
+      "presentationRelativePath": "visual/slide-01.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-02.jpeg",
+      "expectedDigest": "sha256:fc9e38e60aa35f36050cef2d0493d716ebc20977b13a126bdd1560dc6643b168",
+      "presentationRelativePath": "visual/slide-02.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-03.jpeg",
+      "expectedDigest": "sha256:bd511f6736bf5c8eee439c412e4e32fc7f0ca57953da6baee4a9e716c86cdec9",
+      "presentationRelativePath": "visual/slide-03.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-04.jpeg",
+      "expectedDigest": "sha256:116de845c183109a27c68fb2ada0c5f1038ea55ea5b4f682bf37dee3017fc875",
+      "presentationRelativePath": "visual/slide-04.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-05.jpeg",
+      "expectedDigest": "sha256:23c7b1a818feb6a8e7de9f009f57542acffea306e22fd7a83eb6c10063340d65",
+      "presentationRelativePath": "visual/slide-05.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-06.jpeg",
+      "expectedDigest": "sha256:2eb714c894a4115fcd3e55a0729d28ddd93e3e92ec2621c0274a0b6131bbfeb5",
+      "presentationRelativePath": "visual/slide-06.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-07.jpeg",
+      "expectedDigest": "sha256:67287373393b0fb170b0d0f3957661115a01a4e9cd43655c65d344729708379a",
+      "presentationRelativePath": "visual/slide-07.jpeg"
+    },
+    {
+      "authority": "artifact-golden-r1",
+      "relativeObject": "pdu-sdu/34x10/slide-08.jpeg",
+      "expectedDigest": "sha256:f1727f930369788b5c6a314c4fe2d3baf9f4c27e2eb361ae8ef2ff2964ef1628",
+      "presentationRelativePath": "visual/slide-08.jpeg"
+    }
+  ],
+  "admission": "workspace.execBound",
+  "standing": "AUTHORITY_CONFIGURED_OBJECTS_NOT_YET_MATERIALIZED",
+  "nonClaims": [
+    "no visual parity claim",
+    "no business-content validation claim",
+    "no final hybrid build claim"
+  ],
+  "notes": "Operator/runtime handoff contract only. The caller never supplies host source paths; Runtime resolves the named authority, verifies exact bytes on new admission, freezes the effective input set, and presents it read-only under ORDIVON_INPUT_ROOT. The current authority itself is configured and execBound smoke-tested; the eight committed JPEG objects remain absent from that authority."
+}

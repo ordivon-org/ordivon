@@ -1,0 +1,23 @@
+{
+  "$schema": "../request-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-request",
+  "requestId": "artifact-request:presentation-native-smoke-r1",
+  "profile": {
+    "id": "pdu-sdu-presentation-r1",
+    "path": "pdu-sdu-presentation-r1.json",
+    "sha256": "a47be4b7d6098f76c32c2bbf587df9c4b172ffbe68a5144e0bb9bb318b0c8332"
+  },
+  "source": {
+    "kind": "presentation-source-v1",
+    "path": "presentation-native-smoke-source-r1.json",
+    "sha256": "11622f07b1d7f7cb84b8052235ea6eb339557fdab5400dcbfb1b3bb79dcd2bf6"
+  },
+  "materials": [],
+  "outputDirectory": "../../.cache/artifact-delivery-orchestration/request-smoke-r1",
+  "builder": {
+    "id": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
+    "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1"
+  },
+  "notes": "Derived-plan and native-source integration smoke only; not a customer release."
+}

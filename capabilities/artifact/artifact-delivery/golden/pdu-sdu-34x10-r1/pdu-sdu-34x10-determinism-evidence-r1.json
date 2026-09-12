@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-determinism-evidence",
+  "id": "pdu-sdu-34x10-generated-pptx-zip-time-r1",
+  "capturedOn": "2026-09-11",
+  "faultClass": "CROSS_WORKSPACE_BUILD_BYTE_VARIATION",
+  "standing": "FIXED_FOR_GENERATED_NON_ZIP64_PPTX",
+  "acceptedTuple": {
+    "unchanged": true,
+    "pptxSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+    "boundary": "The existing Golden R2 acceptance remains bound to fa48aa4a. This evidence validates a deterministic successor builder; it does not retroactively rename or replace the accepted artifact."
+  },
+  "preRepairReproduction": {
+    "sourceRevision": "e8e8c20bbcdf404a548024415d1090694375d384",
+    "workspaceA": "ws-artifact-determinism-a-e8e8c20-20260911",
+    "workspaceB": "ws-artifact-determinism-b-e8e8c20-20260911",
+    "jobA": "job-01a08e37-dce4-70b3-ba48-35e031b53cd3",
+    "jobB": "job-01a08e38-1ede-7d70-9618-bb91533a1bfb",
+    "wholeSha256A": "776364d7cf82dcbe13b69f113d85c4a66c2158bc4d9e66069cec7d55f5584504",
+    "wholeSha256B": "da7a54168cc0266f7ecd48ce80571767e9289e65e603d655063a798fbb484ea0",
+    "sizeBytesA": 2745582,
+    "sizeBytesB": 2745582,
+    "memberCount": 60,
+    "allMemberContentEqual": true,
+    "forensicJob": "job-01a08e39-19fa-7a01-9bd4-d6292b54737c",
+    "allCompressedPayloadEqual": true,
+    "nonTimeMetadataDifferenceCount": 0,
+    "timestampDifferenceCount": 60,
+    "rootCause": "python-pptx/zipfile wall-clock DOS timestamps in ZIP local and central directory headers changed the whole-file digest while every OOXML member and compressed payload byte remained identical."
+  },
+  "repair": {
+    "sourceCandidate": "ae26e46d96672edb332fd1202ec2e3233af2d4e1",
+    "integrationCandidate": "7dea4150744c79fec6155756e1b9f5d4985e87b0",
+    "method": "in-place-local-and-central-dos-timestamp-normalization",
+    "canonicalDateTime": [1980, 1, 1, 0, 0, 0],
+    "recompressionPerformed": false,
+    "memberPayloadBytesChanged": false,
+    "zip64Supported": false,
+    "targetedRegression": {
+      "jobId": "job-01a08e49-5387-78f2-9098-6080d8f0965c",
+      "testsPassed": 4,
+      "testsFailed": 0
+    },
+    "fullArtifactRegression": {
+      "jobId": "job-01a08e49-9ea7-7300-b69a-fc4423d7a8cc",
+      "testsPassed": 127,
+      "testsFailed": 0,
+      "testsSkipped": 8
+    }
+  },
+  "postRepairCrossWorkspaceReplay": {
+    "sourceRevision": "ae26e46d96672edb332fd1202ec2e3233af2d4e1",
+    "workspaceA": "ws-artifact-deterministic-zip-a-ae26e46-20260911",
+    "workspaceB": "ws-artifact-deterministic-zip-b-ae26e46-20260911",
+    "jobA": "job-01a08e4b-92ea-7e40-979b-ef9451bd9e36",
+    "jobB": "job-01a08e4b-e47f-7c02-b8d6-bd3ce3c032cb",
+    "deliberateWallClockSeparationSeconds": 4,
+    "wholeSha256A": "4021405d0391e6f5602c378c3b5aef6e5770db23f2304cfb9a598eb16164ed41",
+    "wholeSha256B": "4021405d0391e6f5602c378c3b5aef6e5770db23f2304cfb9a598eb16164ed41",
+    "wholeFileByteIdentical": true,
+    "sizeBytes": 2745582,
+    "memberCount": 60,
+    "observedTimestampSet": [[1980, 1, 1, 0, 0, 0]]
+  },
+  "independentDestroyer": {
+    "workspace": "ws-artifact-deterministic-zip-destroyer-ae26e46-20260911",
+    "rawVsNormalizedJob": "job-01a08e4d-07fb-7e81-90fc-1bf715c88012",
+    "rawSha256": "11262287babf7e66c1575dff8868fafaa91862417ac357353b54961f65fc6781",
+    "normalizedSha256": "4021405d0391e6f5602c378c3b5aef6e5770db23f2304cfb9a598eb16164ed41",
+    "allMemberContentEqual": true,
+    "allCompressedPayloadEqual": true,
+    "nonTimeMetadataDifferenceCount": 0,
+    "openXmlValidation": {
+      "jobId": "job-01a08e4d-54b7-72d0-997e-6a61b4ec457c",
+      "validator": "DocumentFormat.OpenXml 3.5.1 OpenXmlValidator",
+      "status": "PASS",
+      "validationErrorCount": 0
+    },
+    "powerPointTargetProbe": {
+      "jobId": "job-01a08e4e-78a1-7742-8300-7547886a5973",
+      "renderer": "Microsoft PowerPoint Desktop 16.0",
+      "status": "PASS",
+      "inputDigestStable": true,
+      "slideCount": 8,
+      "pngCount": 8,
+      "allEightPngDigestsMatchAcceptedFa48Tuple": true
+    }
+  },
+  "nonClaims": [
+    "THE_EXISTING_FA48_ACCEPTED_PPTX_IS_NOT_REDEFINED_AS_4021405D",
+    "PDF_EXPORT_BYTE_DETERMINISM_IS_NOT_ESTABLISHED",
+    "ZIP64_NORMALIZATION_IS_NOT_SUPPORTED_BY_THIS_REPAIR",
+    "CROSS_TOOLCHAIN_OR_CROSS_PYTHON_PPTX_VERSION_DETERMINISM_IS_NOT_ESTABLISHED",
+    "BUSINESS_CONTENT_ACCESSIBILITY_AND_HUMAN_USABILITY_ARE_OUTSIDE_THIS_FAULT_CLOSURE"
+  ],
+  "boundary": "The reproduced defect was ZIP container timestamp nondeterminism, not OOXML semantic or render nondeterminism. The successor builder is byte-deterministic across the two independent workspaces tested under one frozen source/toolchain/input identity and preserves exact compressed payload bytes. Broader cross-version/toolchain and ZIP64 determinism remain unclaimed."
+}
