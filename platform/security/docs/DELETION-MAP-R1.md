@@ -2,7 +2,7 @@
 
 Date: 2026-09-12
 
-This map records what the first two old->v2 differentials have actually shown. It is not permission to delete the old repository wholesale.
+This map records what the first three old->v2 differentials have actually shown. It is not permission to delete the old repository wholesale.
 
 ## Proven non-migration decisions
 
@@ -33,25 +33,38 @@ The proven residual semantics are now represented by:
 
 The differential proved complete admission-record equivalence for six cases and replay equivalence against old revision `5e3142b92fc5aed3259295b63c0300f01b45e04a`.
 
-Therefore the following are **not prerequisites** for preserving admission semantics in v2:
+Therefore Range backend creation/destruction, checkpoint lifecycle, Range event mechanics, VM lifecycle, Windows fabric mechanics, and effect execution implementation are not prerequisites for preserving admission semantics in v2.
 
-- Range backend creation/destruction;
-- checkpoint lifecycle;
-- Range event log mechanics;
-- QEMU/KVM lifecycle;
-- Windows fabric mechanics;
-- effect execution implementation.
+### Execution -> observation -> verified consequence
+
+Do not migrate the old Range event system or AF3 backend merely to preserve the distinction between admission, execution, observation, and verified consequence.
+
+The proven residual semantics are now represented by `policies/consequence_verification.rego`, derived from currently supplied evidence rather than a new persistent Ordivon workflow engine.
+
+The differential proved:
+
+- admission alone is `ADMITTED_NOT_EXECUTED`;
+- a valid execution receipt alone is `EXECUTED_UNVERIFIED`;
+- the executor cannot self-promote its receipt to world truth;
+- a non-authoritative sensor observation does not verify consequence;
+- request-binding or state-digest mismatch fails closed;
+- only a later `world-truth` observation with the same post-write state digest produces `VERIFIED_CONSEQUENCE`;
+- rejected admission cannot advance to consequence.
+
+The final verified-consequence payload exactly matched the old AF3 world-truth observation payload.
+
+Therefore AF3, `RangeSession.poll_backend()`, and the old Range event log are not prerequisites for preserving this consequence-verification semantic in v2.
 
 ## Still unresolved / not deletion-authorized
 
-The following old capabilities have not yet been replaced by a v2 differential and must not be deleted solely on the basis of R1/R2:
+The following old capabilities have not yet been replaced by a v2 differential and must not be deleted solely on the basis of R1-R3:
 
-- execution-to-observation-to-verified-consequence binding;
-- world-truth versus sensor/claim epistemic separation where a real consumer still requires it;
+- how physical execution providers expose exact immutable receipts and independent readback evidence in production;
+- world-truth versus sensor/claim epistemic separation for consumers more complex than the closed AF3 consequence path;
 - physical/recovery semantics that remain after mature VM/tool delegation;
 - specialized malware/memory-forensics experiments if retained as research artifacts;
 - any old consumer whose exact contract has not yet been replayed against v2.
 
 ## Next deletion gate
 
-The next high-value differential should target `admitted != executed != observed != verified consequence`. If that residual can be represented as standard execution/evidence receipts plus a thin Ordivon binding, the large Range execution/event apparatus can be split further into external mechanics versus small semantic state transitions.
+The next high-value gate is provider displacement: determine whether mature VM/image owners such as libvirt, QEMU tooling, Packer, and related native provider mechanisms can own physical lifecycle while Security v2 retains only authority and evidence bindings. No old QEMU/KVM scaffold should migrate until this gate proves a residual requirement.
