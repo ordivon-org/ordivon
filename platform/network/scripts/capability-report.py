@@ -11,17 +11,27 @@ def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 def source_fingerprint() -> str:
+    """Fingerprint tracked behavior inputs using Git mode plus current tracked bytes.
+
+    Git mode is the source semantic (100644/100755), not the filesystem mode chosen by
+    a worktree creator or umask. Current bytes are read from the worktree so tracked
+    dirty content still invalidates evidence. Untracked/generated files are excluded.
+    """
     h = hashlib.sha256()
-    paths = []
-    for item in SOURCE_ROOTS:
-        p = ROOT / item
-        if p.is_file():
-            paths.append(p)
-        elif p.is_dir():
-            paths.extend(x for x in p.rglob("*") if x.is_file())
-    for p in sorted(paths, key=lambda x: x.relative_to(ROOT).as_posix()):
-        rel = p.relative_to(ROOT).as_posix()
-        mode = oct(p.stat().st_mode & 0o777)
+    raw = subprocess.check_output(
+        ["git", "-C", str(ROOT), "ls-files", "-z", "--", *SOURCE_ROOTS]
+    )
+    rels = [x.decode() for x in raw.split(b"\0") if x]
+    for rel in sorted(rels):
+        p = ROOT / rel
+        if not p.is_file():
+            raise RuntimeError(f"tracked source input missing or not a regular file: {rel}")
+        stage = subprocess.check_output(
+            ["git", "-C", str(ROOT), "ls-files", "-s", "--", rel], text=True
+        ).strip()
+        if not stage:
+            raise RuntimeError(f"tracked source input missing from index: {rel}")
+        mode = stage.split()[0]
         digest = sha256_bytes(p.read_bytes())
         h.update(f"{rel}\0{mode}\0{digest}\n".encode())
     return "sha256:" + h.hexdigest()
