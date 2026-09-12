@@ -31,7 +31,7 @@
     {
       "capability": "durable_workflow",
       "owner": "temporal",
-      "status": "production_green_postgresql_workflow_restore_verified_not_cutover"
+      "status": "production_green_postgresql_new_admissions_cutover_blue_history_draining"
     },
     {
       "capability": "durable_service_contract",
@@ -66,7 +66,7 @@
     {
       "capability": "metrics",
       "owner": "prometheus",
-      "status": "active_shared_slice"
+      "status": "active_native_otlp_http_verified"
     },
     {
       "capability": "host_metrics",
@@ -81,12 +81,12 @@
     {
       "capability": "telemetry_protocol",
       "owner": "opentelemetry",
-      "status": "selected_cutover_pending"
+      "status": "otlp_http_grpc_logs_metrics_verified_traces_deferred"
     },
     {
       "capability": "log_pipeline",
       "owner": "journald_vector_loki",
-      "status": "active_shared_slice"
+      "status": "active_buffer_recovery_zero_drop_verified"
     },
     {
       "capability": "visualization",
@@ -151,6 +151,7 @@
     "backstage",
     "mimir",
     "thanos",
+    "tempo",
     "chaos_mesh",
     "falco",
     "goalert"

@@ -66,6 +66,28 @@
         mode: "0640"
       notify: Restart Vector
 
+    - name: Ensure Vector systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/vector.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install resilient Vector startup policy
+      ansible.builtin.copy:
+        src: ../observability/vector-systemd.conf
+        dest: /etc/systemd/system/vector.service.d/operations-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart Vector
+
+    - name: Converge Vector unit definition before lifecycle checks
+      ansible.builtin.meta: flush_handlers
+
     - name: Clear any prior Vector start-limit state
       ansible.builtin.command: systemctl reset-failed vector.service
       changed_when: false

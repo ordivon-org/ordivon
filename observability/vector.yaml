@@ -7,6 +7,20 @@ sources:
     since_now: true
     batch_size: 32
 
+  otel:
+    type: opentelemetry
+    grpc:
+      address: 127.0.0.1:4317
+    http:
+      address: 127.0.0.1:4318
+    # Logs stay Vector-native for Loki. Metrics preserve their OTLP envelope so
+    # Prometheus can perform the standards-aware translation at its native OTLP
+    # receiver instead of relying on ad-hoc label rewriting in Vector.
+    use_otlp_decoding:
+      logs: false
+      metrics: true
+      traces: false
+
 sinks:
   loki:
     type: loki
@@ -23,3 +37,40 @@ sinks:
       type: disk
       max_size: 268435488
       when_full: block
+
+  otel_logs_loki:
+    type: loki
+    inputs: [otel.logs]
+    endpoint: http://127.0.0.1:3100
+    labels:
+      ordivon_owner: operations-v2
+      source: otlp
+    encoding:
+      codec: json
+    healthcheck:
+      enabled: true
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block
+
+  otel_metrics_prometheus_otlp:
+    type: opentelemetry
+    inputs: [otel.metrics]
+    protocol:
+      type: http
+      uri: http://127.0.0.1:29091/api/v1/otlp/v1/metrics
+      method: post
+      encoding:
+        codec: otlp
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block
+
+  # Deliberately consume but do not claim trace persistence. This prevents an
+  # unhandled-output false green while keeping trace storage deferred until a
+  # real owner/use-case justifies Tempo or another trace backend.
+  otel_traces_deferred:
+    type: blackhole
+    inputs: [otel.traces]
