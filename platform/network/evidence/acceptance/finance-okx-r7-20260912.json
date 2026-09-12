@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "round": "R7",
+  "date": "2026-09-12",
+  "scope": "persistent non-production finance-okx shadow topology",
+  "standing": "PASSED_NO_PRODUCTION_CUTOVER",
+  "shadow": {
+    "consumerListener": "127.0.0.1:19283",
+    "apiListener": "127.0.0.1:19289",
+    "systemdTarget": "network-v2-finance-okx-shadow.target",
+    "active": true,
+    "enabledAtBoot": false,
+    "providerA": {
+      "namespace": "nv2-finance-a",
+      "endpoint": "61.97.243.107",
+      "wireguardInterface": "nv2r6a"
+    },
+    "providerB": {
+      "namespace": "nv2-finance-b",
+      "endpoint": "151.240.88.133",
+      "wireguardInterface": "nv2r6b"
+    }
+  },
+  "composition": {
+    "lifecycle": "systemd",
+    "namespacePlacement": "systemd NetworkNamespacePath + Linux netns/veth",
+    "wireguard": "wg-quick + pinned official wireguard-go",
+    "providerCarrier": "sing-box",
+    "healthSelection": "sing-box urltest",
+    "consumerPolicy": "sing-box exact openapi.okx.com:443 destination rule",
+    "customPersistentController": false,
+    "runtimeExternalFetchRequired": false
+  },
+  "canonicalAcceptance": {
+    "entryPoint": "task test:r7",
+    "jobId": "job-01a09501-d92a-73e1-b920-07a4d6fa29d5",
+    "operationDigest": "sha256:5a359f5ecb134dcccfd19c45e008981b518f777d9349fca4c725cb14af4a4f7f",
+    "stdoutArtifactId": "attempt-01a09501-d92a-73e1-b920-07ba12ab28ba.stdout",
+    "stdoutSha256": "7f02b42f8bdee6ca79515dd7a75151d8873573adb33ac9fa6eede76d25c25117",
+    "terminalEvidenceSha256": "85858e0179525f78092e619d7837c0c2f2cbd8963e676832bd96132cea800d68",
+    "checks": {
+      "localR6InputVerification": true,
+      "systemdMaterialization": true,
+      "functionalReadiness": true,
+      "legacyBeforeHealthy": true,
+      "shadowInitialHealthy": true,
+      "nonOkxRejected": true,
+      "providerBDownProviderASurvives": true,
+      "providerBRecovery": true,
+      "providerADownProviderBSurvives": true,
+      "bothProvidersDownFailClosed": true,
+      "providerARecoveryFromAllDown": true,
+      "providerBFinalRecovery": true,
+      "rootShadowRestartRecovery": true,
+      "legacyAndControlPlaneNonInterference": true
+    },
+    "bothProvidersDownCurlRc": 35,
+    "blockedNonOkxCurlRc": 35
+  },
+  "falsification": {
+    "systemdActiveIsFunctionalReadiness": false,
+    "finding": "an immediate listener gate raced Type=simple activation; final acceptance waits for real OKX application success and sing-box API readiness instead of using a fixed sleep"
+  },
+  "postState": {
+    "jobId": "job-01a09503-6ee4-71e0-a0ba-6ca402932e9e",
+    "operationDigest": "sha256:38662d70b36c37164f541536e53328f9de9436fee2e99ab84c1fafab0d3c2abb",
+    "stdoutSha256": "6adfacf1be63ae8151e5697ccb2a2e2910d42afc9d62e8da8416a18c00128aed",
+    "installedBytesMatchSource": true,
+    "providerEnvMode": "0600",
+    "providerEnvContainsSecretMaterial": false,
+    "cloudflareHa": {
+      "productionA": 4,
+      "productionB": 4,
+      "canary": 4
+    },
+    "legacyFinanceListeners": [19083, 19084, 19085],
+    "runtimeListener": "127.0.0.1:8897"
+  },
+  "authorization": {
+    "productionConsumerCutover": false,
+    "enableShadowAtBoot": false,
+    "legacyRetirement": false,
+    "cloudflareControlPlaneMigration": false
+  }
+}

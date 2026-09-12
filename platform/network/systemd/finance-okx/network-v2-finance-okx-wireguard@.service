@@ -1,0 +1,21 @@
+[Unit]
+Description=Network v2 finance-okx WireGuard provider %i
+Requires=network-v2-finance-okx-netns@%i.service
+After=network-v2-finance-okx-netns@%i.service
+BindsTo=network-v2-finance-okx-netns@%i.service
+PartOf=network-v2-finance-okx-shadow.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/network-v2/finance-okx/provider-%i.env
+Environment=WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go
+NetworkNamespacePath=/run/netns/nv2-finance-%i
+ExecStartPre=/usr/bin/ip route replace ${ENDPOINT}/32 via ${HOST_IP} dev ${NS_IF}
+ExecStart=/usr/bin/wg-quick up ${PROFILE}
+ExecStartPost=/usr/bin/ip route replace default dev ${WG_IF}
+ExecStop=-/usr/bin/wg-quick down ${PROFILE}
+ExecStopPost=-/usr/bin/ip route del ${ENDPOINT}/32
+
+[Install]
+WantedBy=multi-user.target
