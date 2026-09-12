@@ -1,7 +1,7 @@
 # Falco runtime-detection acceptance R1
 
 Date: 2026-09-12
-Standing: `ENGINE_START_VERIFIED / EVENT_DELIVERY_BLOCKED_IN_CURRENT_RUNTIME_NAMESPACE`.
+Standing: `ENGINE_START_VERIFIED / EVENT_DELIVERY_BLOCKED_ON_CURRENT_WSL2_HOST`.
 
 ## Provider identity
 
@@ -30,9 +30,10 @@ Three progressively broader event-delivery checks were attempted:
 
 1. OCI Falco with a custom marker-process rule;
 2. OCI Falco with the standard sensitive-file behavior (`cat /etc/shadow`);
-3. the official host tarball binary, directly invoked from the Runtime Job, with a custom rule matching **any `execve`** event.
+3. the official host tarball binary, directly invoked from the Runtime Job, with a custom rule matching **any `execve`** event;
+4. a transient **PID-1 systemd service** created with `systemd-run`, using the same official host binary and broad `evt.type=execve` rule, followed by explicit `/bin/echo`, `/usr/bin/id`, and `/usr/bin/date` executions.
 
-All three reached modern-eBPF engine startup but produced no matching runtime event. The broad final rule generated no output even after multiple explicit process executions.
+All four reached modern-eBPF engine startup but produced no matching runtime event. The broad final rule generated no output even after multiple explicit process executions.
 
 Falco also reported:
 
@@ -42,14 +43,14 @@ The OCI attempt additionally showed missing WSL tracepoints for several optional
 
 ## Interpretation
 
-R1 does **not** prove that Falco is incompatible with WSL2. It proves that a Falco process launched through the current Ordivon Runtime execution context cannot yet demonstrate host syscall event delivery. The Runtime execution context is not an acceptable substitute for a true host-level Falco deployment when validating kernel-wide observation.
+R1 still does **not** prove that Falco is generically incompatible with WSL2, but the additional PID-1 systemd falsifier eliminates the earlier hypothesis that the failure was only caused by the Runtime Job cgroup/process scope. On the current WSL2 host substrate, Falco `0.44.1` can initialize modern eBPF but cannot yet demonstrate syscall event delivery.
 
 Therefore:
 
 - Falco remains the selected P1 runtime-detection provider;
 - Falco is **not** admitted as current Security runtime evidence on this host;
 - Security must not fall back to Tetragon merely to make the checkbox green;
-- the next acceptance belongs at the Operations/host-service boundary, where Falco can run in the real host PID/kernel observation context;
-- after Operations materialization, Security should rerun one bounded event-delivery smoke and bind the resulting native Falco event by digest/currentness.
+- no persistent Falco package/service should be materialized on this node until the host/kernel event-delivery blocker changes;
+- a future acceptance should start from a kernel/tracepoint compatibility change or a standard Linux host, not from another wrapper/service rewrite.
 
 No persistent Falco service or package was installed during R1. All acceptance artifacts were temporary.
