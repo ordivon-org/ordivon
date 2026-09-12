@@ -29,6 +29,12 @@ for candidate in $(ip netns list | awk '{print $1}'); do
     "ip -4 -o addr show scope global | awk -v d='$dev' '\$2!=d {split(\$4,a,\"/\"); print a[1]; exit}'" \
     2>/dev/null || true)
   [ -n "$side_ip" ] || continue
+  root_route=$(ip -4 route get "$side_ip" 2>/dev/null | head -n 1 || true)
+  [ -n "$root_route" ] || continue
+  printf '%s\n' "$root_route" | grep -q ' dev ' || continue
+  if printf '%s\n' "$root_route" | grep -q ' via '; then
+    continue
+  fi
   namespace=$candidate
   default_dev=$dev
   ingress_ip=$side_ip
@@ -74,11 +80,27 @@ for _ in $(seq 1 50); do
 done
 ip netns exec "$namespace" ss -ltn | grep -q ":$PORT "
 
-direct_ip=$(curl -fsS --connect-timeout 5 --max-time 12 https://api.ipify.org)
-provider_ip=$(curl -fsS --proxy "http://$ingress_ip:$PORT" --connect-timeout 5 --max-time 15 https://api.ipify.org)
+direct_ip=''
+provider_ip=''
+probe_url=''
+for candidate_url in \
+  https://ifconfig.me/ip \
+  https://api.ipify.org \
+  https://icanhazip.com \
+  https://checkip.amazonaws.com; do
+  direct=$(curl -4 -fsS --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
+  provider=$(curl -4 -fsS --proxy "http://$ingress_ip:$PORT" --connect-timeout 3 --max-time 8 "$candidate_url" 2>/dev/null | tr -d '[:space:]' || true)
+  if [ -n "$direct" ] && [ -n "$provider" ] && [ "$direct" != "$provider" ]; then
+    direct_ip=$direct
+    provider_ip=$provider
+    probe_url=$candidate_url
+    break
+  fi
+done
+
+[ -n "$probe_url" ] || { echo 'no bounded public identity probe proved distinct direct/provider egress' >&2; exit 3; }
 curl -fsS --proxy "http://$ingress_ip:$PORT" --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
 
-[ "$direct_ip" != "$provider_ip" ]
-printf 'namespace=%s\ndefault_dev=%s\ndirect_egress=%s\nprovider_egress=%s\n' \
-  "$namespace" "$default_dev" "$direct_ip" "$provider_ip"
+printf 'namespace=%s\ndefault_dev=%s\nprobe_url=%s\ndirect_egress=%s\nprovider_egress=%s\n' \
+  "$namespace" "$default_dev" "$probe_url" "$direct_ip" "$provider_ip"
 echo provider-singbox-carrier-smoke=PASS
