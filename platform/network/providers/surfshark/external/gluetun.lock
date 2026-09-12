@@ -1,0 +1,7 @@
+repository=https://github.com/qdm12/gluetun.git
+tag=v3.41.3
+revision=3d1e20c5551e9cae1f9d938dc7b7214a6987f27e
+created=2026-07-30T11:49:18Z
+sha256=a63b76eb1df9557711d86ff348d65441069e6ff1ee0a2ec1fb657384ea90fcfc
+install=/usr/local/libexec/network-v2/gluetun
+minratio=0.5
