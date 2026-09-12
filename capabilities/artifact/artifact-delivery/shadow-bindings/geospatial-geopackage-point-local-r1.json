@@ -1,0 +1,46 @@
+{
+  "bindingVersion": 1,
+  "id": "geospatial-geopackage-point-local-r1",
+  "profileId": "geospatial-geopackage-point-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "ogcConformance": {
+      "tool": "GDAL GeoPackage validator",
+      "version": "3.13.3",
+      "path": "/opt/ordivon/external/python-gdal/3.13.3-2/gdal",
+      "pythonGdalPackageSha256": "105612c33b5b135b0033e700998a5ccd4eff0caedd2fa558f015fdf52855d956",
+      "hostGdalBinarySha256": "7f798db2edb837fa6949db241683599e99a21b4373048d7027011cc629648de3",
+      "packageSignatureVerification": "PASS"
+    },
+    "sqliteContainer": {
+      "tool": "SQLite",
+      "version": "3.53.4",
+      "path": "/opt/ordivon/external/sqlite/3.53.4-1/sqlite3",
+      "binarySha256": "c1aab8828de807216a1fc64573e9e418560e9c817ad8d4501dc3d669c088d122",
+      "packageSha256": "910e7e59acc3a51c7e3468bb45c7ca20d5e987eaf2c26e4e8ad9f0624bef76d2",
+      "packageSignatureVerification": "PASS"
+    },
+    "geospatialInterpretation": {
+      "tool": "GDAL/OGR",
+      "version": "3.13.3",
+      "ogrinfoPath": "/usr/bin/ogrinfo",
+      "ogrinfoSha256": "f376debe65fe830502301c70b02334a20017950b6b8a177a4c7eff73e9152b81",
+      "ogr2ogrPath": "/usr/bin/ogr2ogr",
+      "ogr2ogrSha256": "10d36aa7467fcca776f51dd8960e36bf25bb7ae156c46ee7eb1a895d44c16e3c"
+    }
+  },
+  "proof": {
+    "focusedTests": "6 PASS / 0 FAIL",
+    "validGeoPackagePointContract": "PASS",
+    "sqliteIntegrityWithWrongApplicationId": "SQLITE_OK_BUT_OGC_FAIL_CLOSED",
+    "validGeoPackageWrongCrsContract": "FAIL_AS_CONTRACT_EXPECTED",
+    "validGeoPackageWrongGeometryContract": "FAIL_BEFORE_EVIDENCE_PROMOTION",
+    "duplicateLogicalPrimaryKey": "FAIL_CLOSED_AFTER_OGC_CONFORMANCE_PASS",
+    "undeclaredPrimaryKeyField": "FAIL_BEFORE_EVIDENCE_PROMOTION",
+    "liveSmokeRuntimeJobId": "job-01a095bb-bf2d-7ea2-8a47-44c78be86d80",
+    "liveSmokeArtifactSha256": "d8328abbdce0a15072f4cdb11e23005ce4e17911182f6e04d214308ebc4d2ddb",
+    "liveSmokeContractCanonicalDigest": "9b46080d68508d56def6f1ea526e3cbedc161616eed0fdf4f343a1c743a64e65",
+    "liveSmokeAttributeDigest": "7f5552d3eeef5f19a7ad7b7b2a7e23ee6a15cf811b3847eaff2b7b8a992ccdca",
+    "gdalFullConformanceEvidenceSha256": "f9c432acde7c2829ce40cc03890b9ee1ab6b11dcf950e2699c0248965e2a49d3"
+  }
+}

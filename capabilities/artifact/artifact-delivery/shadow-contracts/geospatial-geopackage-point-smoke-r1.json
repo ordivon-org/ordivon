@@ -1,0 +1,23 @@
+{
+  "contractVersion": 1,
+  "id": "geospatial-geopackage-point-smoke-r1",
+  "profileId": "geospatial-geopackage-point-r1",
+  "layer": {
+    "name": "places",
+    "fidColumn": "fid",
+    "geometry": {
+      "column": "geom",
+      "type": "POINT",
+      "nullable": true,
+      "srs": {"authority": "EPSG", "code": 4326}
+    },
+    "fields": [
+      {"name": "code", "type": "integer", "nullable": true},
+      {"name": "name", "type": "string", "nullable": true},
+      {"name": "score", "type": "real", "nullable": true}
+    ],
+    "minimumFeatures": 1
+  },
+  "primaryKey": ["code"],
+  "notes": "Smoke contract for a single GeoPackage 1.4 2D Point feature layer in EPSG:4326."
+}

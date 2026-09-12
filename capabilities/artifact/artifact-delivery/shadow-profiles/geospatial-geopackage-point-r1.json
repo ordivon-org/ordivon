@@ -1,0 +1,73 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "geospatial-geopackage-point-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "geospatial",
+    "representation": "geospatial-database",
+    "format": "OGC GeoPackage",
+    "mediaType": "application/geopackage+sqlite3",
+    "conformanceProfile": "OGC GeoPackage 1.4.0 bounded single 2D Point feature-layer profile",
+    "targetAuthority": "OGC GeoPackage standard-validator",
+    "purpose": ["interchange", "analysis"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "geospatial-vector-contract-v1",
+    "schemaReference": "shadow-contracts/geospatial-vector-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "standard": "OGC GeoPackage Encoding Standard 1.4.0 (12-128r19)",
+    "sqliteFormat": 3,
+    "applicationIdDecimal": 1196444487,
+    "applicationIdText": "GPKG",
+    "userVersion": 10400,
+    "singleFeatureLayer": true,
+    "geometryDimension": "2D",
+    "geometryType": "POINT",
+    "tiles": false,
+    "attributesOnlyTables": false,
+    "geometryValidity": "Point geometries are intrinsically simple/valid for this bounded R1; polygon/line validity becomes a separate profile requirement when those types are admitted"
+  },
+  "requiredEvidence": {
+    "contractSchema": {
+      "required": true,
+      "claim": "geospatial object contract is valid under geospatial-vector-contract-v1"
+    },
+    "sqliteContainer": {
+      "required": true,
+      "claim": "SQLite integrity, GeoPackage application_id and user_version match the selected GeoPackage 1.4 profile"
+    },
+    "ogcConformance": {
+      "required": true,
+      "claim": "a mature GeoPackage standard validator accepts the exact artifact under full checks"
+    },
+    "nativeMetadata": {
+      "required": true,
+      "claim": "gpkg_contents, gpkg_geometry_columns, gpkg_spatial_ref_sys and native table schema agree with the object contract"
+    },
+    "geospatialInterpretation": {
+      "required": true,
+      "claim": "OGR interprets the same layer, geometry type, CRS, feature count and fields required by the object contract"
+    },
+    "attributeCrossView": {
+      "required": true,
+      "claim": "raw SQLite attribute rows and OGR/GeoJSON properties agree after primary-key canonicalization"
+    },
+    "keyIntegrity": {
+      "required": true,
+      "claim": "declared logical primary-key attributes are present, non-null in observed features and unique"
+    }
+  },
+  "nonClaims": [
+    "geodetic positional accuracy of coordinates",
+    "factual truth of feature attributes or locations",
+    "fitness of the selected CRS for a particular analysis",
+    "topological validity for geometry families not admitted by this Point-only profile",
+    "cartographic styling or rendering quality",
+    "tile/raster GeoPackage semantics",
+    "application-defined GeoPackage extensions beyond what the OGC/GDAL validator accepts",
+    "spatial analysis correctness or scientific interpretation"
+  ]
+}

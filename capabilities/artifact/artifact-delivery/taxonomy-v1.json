@@ -148,9 +148,9 @@
       "representations": ["geospatial-database", "vector-features", "georeferenced-raster", "tiles"],
       "standards": ["OGC GeoPackage 1.4", "GeoTIFF", "GeoJSON RFC 7946", "OGC APIs where delivery profile requires them"],
       "exampleFormats": ["gpkg", "geotiff", "geojson", "shapefile", "kml", "gml"],
-      "currentCoverage": "NO_PROFILE",
-      "currentProfiles": [],
-      "localToolStanding": "GDAL_3_13_3_PRESENT"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": ["geospatial-geopackage-point-r1"],
+      "localToolStanding": "OGC_GPKG_VALIDATOR_SQLITE_CONTAINER_AND_OGR_CONTRACT_PROVEN"
     },
     {
       "id": "design-3d",
