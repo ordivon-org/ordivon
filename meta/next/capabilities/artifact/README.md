@@ -16,3 +16,8 @@ Load only the capability families needed by the task:
 - distribution handoff when an external effect is required.
 
 The active set may differ completely between PPTX, PDF/UA, PNG, GeoPackage, glTF, OCI software release or WARC tasks.
+
+
+## Agent-facing entry point
+
+Procedural discovery now uses the Agent Skills open format at `.agents/skills/artifact-work/`. This file is descriptive only; do not build a second Artifact skill registry here.
