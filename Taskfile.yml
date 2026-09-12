@@ -6,6 +6,7 @@ tasks:
       - sing-box check -c config/sing-box/direct.json
       - sing-box check -c config/provider-carrier.json
       - sing-box check -c config/finance-okx-singbox.json
+      - sing-box check -c config/finance-okx-shadow.json
       - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
       - promtool check config config/prometheus/prometheus.yml
 
@@ -163,12 +164,107 @@ tasks:
     cmds:
       - ./tests/provider-dual-failclosed-smoke.sh
 
+  verify:r6-local-inputs:
+    desc: Verify the already-graduated local R6 provider inputs without re-fetching external sources
+    deps: [validate]
+    cmds:
+      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
+      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+      - |
+        set -eu
+        manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
+        test -f "$manifest"
+        test "$(awk 'NF{c++}END{print c+0}' "$manifest")" -eq 6
+        tab=$(printf '\t')
+        while IFS="$tab" read -r node endpoint iface profile digest; do
+          test -n "$node"; test -n "$endpoint"; test -n "$iface"; test -f "$profile"
+          case "$(stat -c %a "$profile")" in 600|400) ;; *) exit 21;; esac
+          test "sha256:$(sha256sum "$profile" | awk '{print $1}')" = "$digest"
+          WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$profile" >/dev/null
+          test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$profile")" = "$endpoint:51820"
+          test "$(yq -p=ini -o=json -r '.Interface.Table' "$profile")" = off
+          test "$(yq -p=ini -o=json -r '.Interface.MTU' "$profile")" = 1280
+          test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
+        done <"$manifest"
+
+  materialize:finance-okx-shadow:
+    desc: Build the non-production systemd shadow topology from the admitted R6 provider inputs without enabling it at boot
+    cmds:
+      - systemctl stop network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
+      - task: verify:r6-local-inputs
+      - install -d -m 0755 /etc/network-v2/finance-okx
+      - install -m 0644 config/provider-carrier.json /etc/network-v2/finance-okx/provider-carrier.json
+      - install -m 0644 config/finance-okx-shadow.json /etc/network-v2/finance-okx/shadow.json
+      - |
+        set -eu
+        manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
+        a_ep=$(awk -F '\t' '$1=="kr-seo"{print $2; exit}' "$manifest")
+        a_profile=$(awk -F '\t' '$1=="kr-seo"{print $4; exit}' "$manifest")
+        b_ep=$(awk -F '\t' '$1=="th-bkk"{print $2; exit}' "$manifest")
+        b_profile=$(awk -F '\t' '$1=="th-bkk"{print $4; exit}' "$manifest")
+        test -n "$a_ep"; test -f "$a_profile"
+        test -n "$b_ep"; test -f "$b_profile"
+        test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$a_profile")" = "$a_ep:51820"
+        test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$b_profile")" = "$b_ep:51820"
+        a_tmp=$(mktemp)
+        b_tmp=$(mktemp)
+        trap 'rm -f "$a_tmp" "$b_tmp"' EXIT
+        printf '%s\n' \
+          'HOST_IF=nv2fha' \
+          'NS_IF=nv2fna' \
+          'HOST_ADDR=10.252.244.1/30' \
+          'NS_ADDR=10.252.244.2/30' \
+          'HOST_IP=10.252.244.1' \
+          "ENDPOINT=$a_ep" \
+          "PROFILE=$a_profile" \
+          'WG_IF=nv2r6a' >"$a_tmp"
+        printf '%s\n' \
+          'HOST_IF=nv2fhb' \
+          'NS_IF=nv2fnb' \
+          'HOST_ADDR=10.252.245.1/30' \
+          'NS_ADDR=10.252.245.2/30' \
+          'HOST_IP=10.252.245.1' \
+          "ENDPOINT=$b_ep" \
+          "PROFILE=$b_profile" \
+          'WG_IF=nv2r6b' >"$b_tmp"
+        install -m 0600 "$a_tmp" /etc/network-v2/finance-okx/provider-a.env
+        install -m 0600 "$b_tmp" /etc/network-v2/finance-okx/provider-b.env
+      - for: { var: FINANCE_OKX_SYSTEMD_UNITS }
+        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - /usr/bin/systemd-analyze verify systemd/finance-okx/network-v2-finance-okx-netns@.service systemd/finance-okx/network-v2-finance-okx-wireguard@.service systemd/finance-okx/network-v2-finance-okx-carrier@.service systemd/finance-okx/network-v2-finance-okx-shadow.service systemd/finance-okx/network-v2-finance-okx-shadow.target
+      - systemctl daemon-reload
+      - systemctl disable network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
+
+  start:finance-okx-shadow:
+    desc: Materialize, start, and destructively verify the isolated finance-okx shadow without changing production consumer authority
+    cmds:
+      - task: materialize:finance-okx-shadow
+      - systemctl start network-v2-finance-okx-shadow.target
+      - task: verify:finance-okx-shadow
+
+  verify:finance-okx-shadow:
+    desc: Verify persistent shadow service, two-provider failure/recovery, destination fencing, and control-plane/legacy non-interference
+    cmds:
+      - ./tests/finance-okx-shadow-smoke.sh
+
+  stop:finance-okx-shadow:
+    desc: Stop only the Network v2 finance-okx shadow topology
+    cmds:
+      - systemctl stop network-v2-finance-okx-shadow.target
+
+  test:r7:
+    desc: Build and verify the persistent non-production finance-okx shadow topology
+    cmds:
+      - task: start:finance-okx-shadow
+
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
 
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service
+  FINANCE_OKX_SYSTEMD_UNITS:
+    sh: printf '%s ' systemd/finance-okx/*
   WIREGUARD_GO_REPO:
     sh: awk -F= '$1=="repository"{print $2}' external/wireguard-go.lock
   WIREGUARD_GO_REVISION:

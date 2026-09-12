@@ -1,0 +1,25 @@
+[Unit]
+Description=Network v2 finance-okx provider namespace %i
+After=network-online.target
+Wants=network-online.target
+PartOf=network-v2-finance-okx-shadow.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/network-v2/finance-okx/provider-%i.env
+ExecStartPre=-/usr/bin/ip netns del nv2-finance-%i
+ExecStartPre=-/usr/bin/ip link del ${HOST_IF}
+ExecStart=/usr/bin/ip netns add nv2-finance-%i
+ExecStart=/usr/bin/ip link add ${HOST_IF} type veth peer name ${NS_IF}
+ExecStart=/usr/bin/ip link set ${NS_IF} netns nv2-finance-%i
+ExecStart=/usr/bin/ip addr add ${HOST_ADDR} dev ${HOST_IF}
+ExecStart=/usr/bin/ip link set ${HOST_IF} up
+ExecStart=/usr/bin/ip -n nv2-finance-%i addr add ${NS_ADDR} dev ${NS_IF}
+ExecStart=/usr/bin/ip -n nv2-finance-%i link set lo up
+ExecStart=/usr/bin/ip -n nv2-finance-%i link set ${NS_IF} up
+ExecStop=-/usr/bin/ip netns del nv2-finance-%i
+ExecStopPost=-/usr/bin/ip link del ${HOST_IF}
+
+[Install]
+WantedBy=multi-user.target
