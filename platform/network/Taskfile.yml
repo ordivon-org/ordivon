@@ -311,6 +311,24 @@ tasks:
       - task: lab:tun-quic
       - task: verify:live
 
+  smoke:family-fallback:
+    desc: Prove bidirectional address-family fallback under deterministic local single-family failure
+    cmds:
+      - ./tests/family-fallback-smoke.sh
+
+  smoke:dns-resilience:
+    desc: Prove partial-upstream survival, all-upstream fail-closed semantics, cache expiry, and recovery without dnsproxy restart
+    cmds:
+      - ./tests/dns-resilience-smoke.sh
+
+  test:r12:
+    desc: "Harden generic Network v2 resilience without changing live R0 configuration"
+    cmds:
+      - task: verify:live
+      - task: smoke:family-fallback
+      - task: smoke:dns-resilience
+      - task: verify:live
+
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service
