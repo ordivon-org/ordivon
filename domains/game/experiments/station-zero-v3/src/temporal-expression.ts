@@ -1,4 +1,4 @@
-import { sha256 } from "../digest.ts";
+import { sha256 } from "../../../src/digest.ts";
 import { STATION_ZERO_V3_OBJECTIVES } from "./content.ts";
 import { stationZeroV3ExpressionAssets, type StationZeroV3SpriteFrame } from "./expression-assets.ts";
 import type { StationZeroFact, StationZeroV3WorldState } from "./model.ts";

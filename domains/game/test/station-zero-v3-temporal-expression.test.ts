@@ -8,7 +8,7 @@ import {
   StationZeroV3PlayService,
   StationZeroV3Store,
   type StationZeroFact,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 test("Aseprite metadata binds exact idle/move/impact sprite frames", () => {
   const assets = stationZeroV3ExpressionAssets();

@@ -43,7 +43,7 @@ interface AsepriteSheetJson {
   };
 }
 
-const SOURCE_URL = new URL("../../assets/station-zero-v3/rescue-expression.json", import.meta.url);
+const SOURCE_URL = new URL("../assets/rescue-expression.json", import.meta.url);
 
 function positiveInteger(value: number, label: string): number {
   if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${label} must be a positive integer`);

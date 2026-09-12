@@ -80,7 +80,7 @@ required layer:   L2 expression / document shell
 forbidden descent: server routing / API / World / Agent core
 ```
 
-Smallest treatment: `web-v3/index.html` explicitly declares an empty data favicon.
+Smallest treatment: `experiments/station-zero-v3/web/index.html` explicitly declares an empty data favicon.
 
 Exact re-probe: complete 20-Turn `pnpm e2e:v3` passed with `browserErrors: []`.
 

@@ -6,7 +6,7 @@ import {
   StationZeroV3PlayService,
   StationZeroV3Store,
   createStationZeroV3Genesis,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 const valueDoc = readFileSync(new URL("../docs/STATION_ZERO_V3_PRODUCT_VALUE.md", import.meta.url), "utf8");
 const productDoc = readFileSync(new URL("../docs/STATION_ZERO_V3_PRODUCT.md", import.meta.url), "utf8");
@@ -16,8 +16,8 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
-const app = readFileSync(new URL("../web-v3/app.js", import.meta.url), "utf8");
-const render = readFileSync(new URL("../web-v3/render.js", import.meta.url), "utf8");
+const app = readFileSync(new URL("../experiments/station-zero-v3/web/app.js", import.meta.url), "utf8");
+const render = readFileSync(new URL("../experiments/station-zero-v3/web/render.js", import.meta.url), "utf8");
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 test("G4 Product Value authority records comparative design evidence and empirical subtraction", () => {

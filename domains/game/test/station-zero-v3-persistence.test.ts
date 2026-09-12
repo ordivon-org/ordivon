@@ -13,7 +13,7 @@ import {
   type StationZeroFactionTurnPlan,
   type StationZeroV3PlanningHead,
   type StationZeroV3StorageFaultPoint,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 const actorByFaction: Record<StationZeroFactionId, string> = {
   rescue: "engineer-imani",

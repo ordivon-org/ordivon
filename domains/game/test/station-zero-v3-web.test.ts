@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zero-v3/index.ts";
+import { StationZeroV3PlayService, StationZeroV3Store } from "../experiments/station-zero-v3/src/index.ts";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderStationZeroV3App } from "../web-v3/render.js";
+import { renderStationZeroV3App } from "../experiments/station-zero-v3/web/render.js";
 
 test("v3 landing uses player-facing operation language while retaining Game-owned turn truth", () => {
   const store = new StationZeroV3Store(":memory:");

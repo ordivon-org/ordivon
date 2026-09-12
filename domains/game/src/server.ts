@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compareRuns, ComparisonError } from "../products/station-zero-v2/src/comparison/compare.ts";
-import { CasefileService, CasefileStore, CasefileStoreError } from "./casefile/index.ts";
+import { CasefileService, CasefileStore, CasefileStoreError } from "../experiments/casefile/src/index.ts";
 import type { DeploymentProviderOptions } from "../products/station-zero-v2/src/deployment/model.ts";
 import { DeploymentError, DeploymentStore } from "../products/station-zero-v2/src/deployment/store.ts";
 import {
@@ -35,13 +35,13 @@ import {
   StationZeroV3Store,
   type StationZeroV3AgentProviderFactory,
   type StationZeroV3CommanderOrderPatch,
-} from "./station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 const defaultWebRoot = fileURLToPath(new URL("../products/station-zero-v2/web", import.meta.url));
-const defaultV3WebRoot = fileURLToPath(new URL("../web-v3", import.meta.url));
-const defaultLabWebRoot = fileURLToPath(new URL("../web-lab", import.meta.url));
-const defaultPreG0WebRoot = fileURLToPath(new URL("../web-pre-g0", import.meta.url));
-const defaultCasefileWebRoot = fileURLToPath(new URL("../web-casefile", import.meta.url));
+const defaultV3WebRoot = fileURLToPath(new URL("../experiments/station-zero-v3/web", import.meta.url));
+const defaultLabWebRoot = fileURLToPath(new URL("../experiments/concept-lab/web", import.meta.url));
+const defaultPreG0WebRoot = fileURLToPath(new URL("../experiments/pre-g0/web", import.meta.url));
+const defaultCasefileWebRoot = fileURLToPath(new URL("../experiments/casefile/web", import.meta.url));
 const defaultDbPath = resolve(process.cwd(), "data/station-zero.sqlite3");
 const defaultV3DbPath = resolve(process.cwd(), "data/station-zero-v3.sqlite3");
 const defaultCasefileDbPath = resolve(process.cwd(), "data/casefile.sqlite3");

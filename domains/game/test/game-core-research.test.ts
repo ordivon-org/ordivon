@@ -11,7 +11,7 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
 const agents = readFileSync(new URL("../AGENTS.md", import.meta.url), "utf8");
 const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
-const lab = readFileSync(new URL("../web-lab/app.js", import.meta.url), "utf8");
+const lab = readFileSync(new URL("../experiments/concept-lab/web/app.js", import.meta.url), "utf8");
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 test("Game Core research preserves canonical G0-G8 meanings instead of inventing research stages", () => {
@@ -58,5 +58,5 @@ test("Concept Lab remains disposable research scaffolding isolated from Station 
   assert.match(lab, /Echo Hunt/);
   assert.match(lab, /location\.href='\/v3'/);
   assert.equal(packageJson.scripts["e2e:lab"], "node scripts/e2e-game-core-concept-lab.ts");
-  assert.match(packageJson.scripts.webcheck, /web-lab\/\*\.js/);
+  assert.match(packageJson.scripts.webcheck, /experiments\/concept-lab\/web\/\*\.js/);
 });

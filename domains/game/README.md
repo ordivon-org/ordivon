@@ -152,7 +152,7 @@ Only this Scenario and Ruleset are registered as the current product. Older exec
 
 ## Station Zero v3 preview
 
-The next Station Zero form is retained under `src/station-zero-v3/`. Its stable product definition is [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md); exact implementation contracts remain:
+The next Station Zero form is retained under `experiments/station-zero-v3/src/`. Its stable product definition is [`docs/STATION_ZERO_V3_PRODUCT.md`](docs/STATION_ZERO_V3_PRODUCT.md); exact implementation contracts remain:
 
 - [`docs/STATION_ZERO_V3_P0.md`](docs/STATION_ZERO_V3_P0.md): frozen encounter and content contract;
 - [`docs/STATION_ZERO_V3_P1.md`](docs/STATION_ZERO_V3_P1.md): deterministic Turn reducer and pure replay contract;
@@ -285,14 +285,14 @@ src/digest.ts, src/build.ts
 src/server.ts
     temporary local multi-surface carrier pending Phase 5 demolition; not Big Game infrastructure
 
-src/station-zero-v3/, web-v3/
+experiments/station-zero-v3/{src,web,assets}/
     retained Station Zero v3 research/regression apparatus pending Phase 4 enclosure
 
-src/casefile/, web-casefile/
+experiments/casefile/{src,web}/
     retained Casefile research apparatus pending Phase 4 enclosure
 
-web-lab/, web-pre-g0/, experiments/, research/
-    Game research/evidence apparatus and historical experiments
+experiments/concept-lab/web/, experiments/pre-g0/web/, experiments/veilwild-r1/, research/
+    Game research/evidence apparatus and historical experiments; see experiments/README.md
 
 docs/
     Game-domain development, research, evaluation, product, and authority records

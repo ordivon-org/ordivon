@@ -60,7 +60,7 @@ The root product still executes only `station-zero@2 / station-zero-core@3`. P1 
 
 ## Responsibility
 
-`src/station-zero-v3/reducer.ts` owns one responsibility:
+`experiments/station-zero-v3/src/reducer.ts` owns one responsibility:
 
 > Given one admitted World head and one complete three-faction Turn Batch, produce exactly one deterministic next World state, one Resolution for every committed Intent, faction-local observations, and one content-addressed Turn Record.
 

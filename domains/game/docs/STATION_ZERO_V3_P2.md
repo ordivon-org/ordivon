@@ -384,11 +384,11 @@ It does not expose:
 ## P2 implementation
 
 ```text
-src/station-zero-v3/p2-model.ts
-src/station-zero-v3/persistence.ts
-src/station-zero-v3/executor.ts
-src/station-zero-v3/turn-service.ts
-src/station-zero-v3/mission-control.ts
+experiments/station-zero-v3/src/p2-model.ts
+experiments/station-zero-v3/src/persistence.ts
+experiments/station-zero-v3/src/executor.ts
+experiments/station-zero-v3/src/turn-service.ts
+experiments/station-zero-v3/src/mission-control.ts
 ```
 
 `StationZeroV3TurnService` now coordinates only Game-owned prepared-Batch delivery and retained receipt observation; it does not create a second Host transcript for v3.

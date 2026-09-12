@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
-const index = readFileSync(new URL("../src/station-zero-v3/index.ts", import.meta.url), "utf8");
-const model = readFileSync(new URL("../src/station-zero-v3/model.ts", import.meta.url), "utf8");
-const content = readFileSync(new URL("../src/station-zero-v3/content.ts", import.meta.url), "utf8");
+const index = readFileSync(new URL("../experiments/station-zero-v3/src/index.ts", import.meta.url), "utf8");
+const model = readFileSync(new URL("../experiments/station-zero-v3/src/model.ts", import.meta.url), "utf8");
+const content = readFileSync(new URL("../experiments/station-zero-v3/src/content.ts", import.meta.url), "utf8");
 
 const removedModules = [
   "resource-egress",
@@ -15,7 +15,7 @@ const removedModules = [
 
 test("rejected v3 research surfaces cannot silently return to the current public module graph", () => {
   for (const moduleName of removedModules) {
-    assert.equal(existsSync(new URL(`../src/station-zero-v3/${moduleName}.ts`, import.meta.url)), false, moduleName);
+    assert.equal(existsSync(new URL(`../experiments/station-zero-v3/src/${moduleName}.ts`, import.meta.url)), false, moduleName);
     assert.doesNotMatch(index, new RegExp(moduleName));
   }
 });

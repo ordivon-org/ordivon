@@ -8,7 +8,7 @@ import {
   FixtureStationZeroV3AgentProvider,
   StationZeroV3PlayService,
   StationZeroV3Store,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 async function fixtureChoice(
   state: ReturnType<StationZeroV3Store["loadState"]>,

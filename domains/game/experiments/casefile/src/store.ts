@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { canonicalJson, sha256 } from "../digest.ts";
+import { canonicalJson, sha256 } from "../../../src/digest.ts";
 import { CASEFILE_PERSON_IDS, type CasefileRunState } from "./model.ts";
 import { casefileScenario } from "./content.ts";
 

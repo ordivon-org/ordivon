@@ -9,9 +9,9 @@ import {
   StationZeroV3PlayService,
   StationZeroV3Store,
   createStationZeroV3Genesis,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 // @ts-expect-error Browser module intentionally has no Node declaration.
-import { renderStationZeroV3App } from "../web-v3/render.js";
+import { renderStationZeroV3App } from "../experiments/station-zero-v3/web/render.js";
 
 test("v3 second slice is one exact content delta rather than a generic mutation system", () => {
   assert.deepEqual(

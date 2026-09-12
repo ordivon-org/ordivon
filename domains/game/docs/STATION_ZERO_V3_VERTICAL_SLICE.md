@@ -310,7 +310,7 @@ Requirements:
 - identity must survive grayscale/shape differences rather than hue alone;
 - no text baked into the pixel asset;
 - export exact runtime PNG + JSON frame metadata;
-- keep editable `.aseprite` source in `assets/station-zero-v3/`;
+- keep editable `.aseprite` source in `experiments/station-zero-v3/assets/`;
 - map token and specialist card may consume the same source.
 
 ## Acceptance

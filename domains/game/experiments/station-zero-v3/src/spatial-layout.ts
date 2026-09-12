@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { sha256 } from "../digest.ts";
+import { sha256 } from "../../../src/digest.ts";
 import type { StationZeroV3WorldState } from "./model.ts";
 
 export interface StationZeroV3SpatialPoint {
@@ -73,7 +73,7 @@ interface TiledMap {
   properties?: TiledProperty[];
 }
 
-const LAYOUT_URL = new URL("../../assets/station-zero-v3/station-zero-layout.tmj", import.meta.url);
+const LAYOUT_URL = new URL("../assets/station-zero-layout.tmj", import.meta.url);
 const MAP_PROPERTY_NAMES = new Set(["authority", "scenarioId", "scenarioVersion"]);
 const ZONE_PROPERTY_NAMES = new Set(["zoneId"]);
 const PASSAGE_PROPERTY_NAMES = new Set(["passageId", "zoneAId", "zoneBId"]);

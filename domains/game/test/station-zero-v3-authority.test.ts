@@ -11,7 +11,7 @@ import {
   type StationZeroFactionTurnPlan,
   type StationZeroTurnBatch,
   type StationZeroV3WorldState,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 function plan(
   state: StationZeroV3WorldState,

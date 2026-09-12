@@ -3,10 +3,10 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import test from "node:test";
 
 const brief = readFileSync(new URL("../docs/STATION_ZERO_V3_VERTICAL_SLICE.md", import.meta.url), "utf8");
-const render = readFileSync(new URL("../web-v3/render.js", import.meta.url), "utf8");
-const app = readFileSync(new URL("../web-v3/app.js", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../web-v3/styles.css", import.meta.url), "utf8");
-const atlas = JSON.parse(readFileSync(new URL("../assets/station-zero-v3/rescue-specialists.json", import.meta.url), "utf8"));
+const render = readFileSync(new URL("../experiments/station-zero-v3/web/render.js", import.meta.url), "utf8");
+const app = readFileSync(new URL("../experiments/station-zero-v3/web/app.js", import.meta.url), "utf8");
+const styles = readFileSync(new URL("../experiments/station-zero-v3/web/styles.css", import.meta.url), "utf8");
+const atlas = JSON.parse(readFileSync(new URL("../experiments/station-zero-v3/assets/rescue-specialists.json", import.meta.url), "utf8"));
 
 test("G4 brief keeps the slice on measured production claims rather than expanding product scope", () => {
   assert.match(brief, /Production Claim A — Mobile command proximity/);
@@ -18,9 +18,9 @@ test("G4 brief keeps the slice on measured production claims rather than expandi
 });
 
 test("specialist Studio source and runtime derivative retain exact three-Actor mapping", () => {
-  const source = new URL("../assets/station-zero-v3/rescue-specialists.aseprite", import.meta.url);
-  const recipe = new URL("../assets/station-zero-v3/generate-rescue-specialists.lua", import.meta.url);
-  const runtime = new URL("../web-v3/assets/rescue-specialists.png", import.meta.url);
+  const source = new URL("../experiments/station-zero-v3/assets/rescue-specialists.aseprite", import.meta.url);
+  const recipe = new URL("../experiments/station-zero-v3/assets/generate-rescue-specialists.lua", import.meta.url);
+  const runtime = new URL("../experiments/station-zero-v3/web/assets/rescue-specialists.png", import.meta.url);
   assert.ok(existsSync(source));
   assert.ok(existsSync(recipe));
   assert.ok(existsSync(runtime));
@@ -35,10 +35,10 @@ test("specialist Studio source and runtime derivative retain exact three-Actor m
 });
 
 test("G4 audio keeps deterministic local source, mute state, and post-boundary cues", () => {
-  const recipe = new URL("../assets/station-zero-v3/generate-g4-audio.sh", import.meta.url);
+  const recipe = new URL("../experiments/station-zero-v3/assets/generate-g4-audio.sh", import.meta.url);
   assert.ok(existsSync(recipe));
   for (const cue of ["plan-ready", "commit", "aftermath"]) {
-    const path = new URL(`../web-v3/assets/audio/${cue}.ogg`, import.meta.url);
+    const path = new URL(`../experiments/station-zero-v3/web/assets/audio/${cue}.ogg`, import.meta.url);
     assert.ok(existsSync(path));
     assert.ok(statSync(path).size > 1000);
     assert.match(app, new RegExp(`${cue}\\.ogg`));
@@ -68,7 +68,7 @@ test("deliberation is a truthful presentation state and mobile CSS routes Comman
 
 
 test("G4 calibration owns focused lifecycle announcements and responsive reading order", () => {
-  const index = readFileSync(new URL("../web-v3/index.html", import.meta.url), "utf8");
+  const index = readFileSync(new URL("../experiments/station-zero-v3/web/index.html", import.meta.url), "utf8");
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.doesNotMatch(index, /id="app" aria-live/);
   assert.match(index, /id="status-announcer"[^>]*role="status"[^>]*aria-live="polite"/);

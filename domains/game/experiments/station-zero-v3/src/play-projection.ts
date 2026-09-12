@@ -1,4 +1,4 @@
-import { sha256 } from "../digest.ts";
+import { sha256 } from "../../../src/digest.ts";
 import { STATION_ZERO_V3_COMMANDER_ABILITIES } from "./content.ts";
 import { createStationZeroV3MissionControlView, stationZeroV3PlayerObjectiveViews } from "./mission-control.ts";
 import type { StationZeroFactionId, StationZeroV3WorldState } from "./model.ts";

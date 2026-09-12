@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { CASEFILE_SCENARIOS, CasefileService, CasefileStore, casefileLegalActions } from "../src/casefile/index.ts";
+import { CASEFILE_SCENARIOS, CasefileService, CasefileStore, casefileLegalActions } from "../experiments/casefile/src/index.ts";
 
 function fixture() {
   const store = new CasefileStore(":memory:");

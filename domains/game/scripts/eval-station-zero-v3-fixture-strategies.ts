@@ -7,7 +7,7 @@ import {
   type StationZeroV3CommanderOrder,
   type StationZeroV3CommanderOrderPatch,
   type StationZeroV3PlayView,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 const OBJECTIVES: StationZeroV3CommanderOrder["primaryObjectiveId"][] = [
   "rescue-two-civilians",

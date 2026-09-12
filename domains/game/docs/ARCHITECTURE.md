@@ -107,7 +107,7 @@ Historical `host_*` table or event names may remain only as retained-schema comp
 
 ## HTTP carrier
 
-The current local HTTP carrier exists to serve Station Zero and retained research apparatus. It is not a Big Game server framework. Research surfaces are opt-in and will be physically separated from the current product carrier during the enclosure migration.
+Station Zero v2 product code is enclosed under `products/station-zero-v2/`; retained research apparatus is enclosed under `experiments/`. The remaining `src/server.ts` still multiplexes those independently owned surfaces only as temporary local transport debt. It is not a Big Game server framework and is removed in the next carrier-separation step.
 
 ## Verification
 

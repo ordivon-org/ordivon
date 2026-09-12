@@ -26,7 +26,7 @@ async function startRun(page: Page, base: string, runId: string): Promise<void> 
 function silhouetteMetrics(): { opaque: Record<string, number>; pairwiseDifference: Record<string, number>; minimumDifference: number } {
   const temp = mkdtempSync(join(tmpdir(), "station-zero-g4-silhouette-"));
   try {
-    const atlas = resolve("web-v3/assets/rescue-specialists.png");
+    const atlas = resolve("experiments/station-zero-v3/web/assets/rescue-specialists.png");
     const frames = { engineer: 0, medic: 24, security: 48 } as const;
     const opaque: Record<string, number> = {};
     for (const [name, x] of Object.entries(frames)) {

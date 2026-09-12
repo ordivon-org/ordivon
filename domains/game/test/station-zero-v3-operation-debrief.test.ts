@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zero-v3/index.ts";
+import { StationZeroV3PlayService, StationZeroV3Store } from "../experiments/station-zero-v3/src/index.ts";
 
 const recoverOrder = {
   primaryObjectiveId: "recover-research-core" as const,

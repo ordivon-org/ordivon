@@ -8,7 +8,7 @@ import {
   initialStationZeroV3CommanderOrder,
   StationZeroV3PlayService,
   StationZeroV3Store,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 const standingPatch = {
   primaryObjectiveId: "recover-research-core" as const,

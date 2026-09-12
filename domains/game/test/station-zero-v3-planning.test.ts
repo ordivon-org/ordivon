@@ -22,7 +22,7 @@ import {
   type StationZeroV3ResponsibilityFeedback,
   type StationZeroV3PlanningHead,
   type StationZeroV3WorldState,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 function fixture(name: string): {
   directory: string;

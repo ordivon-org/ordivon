@@ -11,7 +11,7 @@
   "sourceFences": [
     {
       "path": "scripts/eval-station-zero-v3-product-value.ts",
-      "digest": "sha256:c4ad7b4c6477cc9abcf8ae44090b721d26c8a443957519949d523e3c19e0a7c1",
+      "digest": "sha256:a8c1aaffa35365651fe8549920570ac11196e15f045514b13a17ae655c7b5ee7",
       "role": "canonical-evaluator"
     },
     {
@@ -25,13 +25,13 @@
       "role": "product-value-standing"
     },
     {
-      "path": "src/station-zero-v3/agent-planning.ts",
-      "digest": "sha256:8bbce8d5d9a1813cf98f33730c9fcfef1b1f3fce2caef617d7a71e6ae83707bf",
+      "path": "experiments/station-zero-v3/src/agent-planning.ts",
+      "digest": "sha256:f5c3bdef5c0882551330f5b7c93c17474e4ff6561bdaf46a6c4dce35c6c6b9de",
       "role": "fixture-agent-control-semantics"
     },
     {
       "path": "test/station-zero-v3-order-comprehension.test.ts",
-      "digest": "sha256:6a51fbe1ba46631d91245ed2747db5da466dd91a6588eca7e479395b90c14fd9",
+      "digest": "sha256:fa32c53d12e7073fa39aff2143cc1a4f34955e2dd0192cf5dd892f9d4bad8770",
       "role": "focused-control-semantics-test"
     },
     {

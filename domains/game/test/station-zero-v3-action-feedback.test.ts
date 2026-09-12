@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FixtureStationZeroV3AgentProvider, StationZeroV3PlayService, StationZeroV3Store } from "../src/station-zero-v3/index.ts";
+import { FixtureStationZeroV3AgentProvider, StationZeroV3PlayService, StationZeroV3Store } from "../experiments/station-zero-v3/src/index.ts";
 
 const recoverOrder = {
   primaryObjectiveId: "recover-research-core" as const,

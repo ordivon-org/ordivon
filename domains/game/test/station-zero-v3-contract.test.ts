@@ -22,7 +22,7 @@ import {
   type StationZeroFactionTurnPlan,
   type StationZeroStandingOrder,
   type StationZeroTurnBatch,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 function waitPlan(factionId: "rescue" | "pirate" | "swarm", actorId: string): StationZeroFactionTurnPlan {
   return {

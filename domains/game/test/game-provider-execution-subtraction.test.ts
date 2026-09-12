@@ -35,10 +35,10 @@ test("Game keeps Provider decision schema and admission while execution remains 
 });
 
 test("Station Zero v3 no longer owns model HTTP transport or credential pools", () => {
-  assert.equal(existsSync("src/station-zero-v3/deepseek-provider.ts"), false);
-  assert.equal(existsSync("src/station-zero-v3/deepseek-credentials.ts"), false);
+  assert.equal(existsSync("experiments/station-zero-v3/src/deepseek-provider.ts"), false);
+  assert.equal(existsSync("experiments/station-zero-v3/src/deepseek-credentials.ts"), false);
   const server = readFileSync("src/server.ts", "utf8");
-  const providerModule = readFileSync("src/station-zero-v3/provider-module.ts", "utf8");
+  const providerModule = readFileSync("experiments/station-zero-v3/src/provider-module.ts", "utf8");
   assert.match(server, /ORDIVON_GAME_V3_PROVIDER_MODULE/);
   assert.doesNotMatch(server, /chat\/completions|apiKey|credentialPool/);
   assert.doesNotMatch(providerModule, /fetch\(|apiKey|credential|retry|cooldown|chat\/completions/i);

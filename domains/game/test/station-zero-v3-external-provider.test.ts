@@ -11,13 +11,13 @@ import {
   loadStationZeroV3ExternalProviderModule,
   type StationZeroV3AgentDecision,
   type StationZeroV3AgentProvider,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 test("external v3 Provider module loads an injected Provider factory without model transport in Game", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ordivon-v3-provider-module-"));
   try {
     const modulePath = join(directory, "provider.ts");
-    const fixtureUrl = new URL("../src/station-zero-v3/agent-planning.ts", import.meta.url).href;
+    const fixtureUrl = new URL("../experiments/station-zero-v3/src/agent-planning.ts", import.meta.url).href;
     writeFileSync(modulePath, `
       import { FixtureStationZeroV3AgentProvider } from ${JSON.stringify(fixtureUrl)};
       export const providerModule = {

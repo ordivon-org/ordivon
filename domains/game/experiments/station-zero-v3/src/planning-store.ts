@@ -1,4 +1,4 @@
-import { canonicalJson, sha256 } from "../digest.ts";
+import { canonicalJson, sha256 } from "../../../src/digest.ts";
 import { assertStationZeroFactionTurnPlan } from "./contracts.ts";
 import { prepareStationZeroV3Commitment } from "./reducer.ts";
 import {

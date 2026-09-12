@@ -2,8 +2,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { CURRENT_BUILD } from "../build.ts";
-import { canonicalJson, sha256 } from "../digest.ts";
+import { CURRENT_BUILD } from "../../../src/build.ts";
+import { canonicalJson, sha256 } from "../../../src/digest.ts";
 import { assertStationZeroTurnBatch, assertStationZeroFactionTurnPlan } from "./contracts.ts";
 import { STATION_ZERO_V3_SCENARIO_CASES } from "./content.ts";
 import { createStationZeroV3Genesis, assertStationZeroV3World } from "./genesis.ts";

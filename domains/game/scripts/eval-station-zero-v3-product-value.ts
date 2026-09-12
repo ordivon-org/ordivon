@@ -11,7 +11,7 @@ import {
   type StationZeroV3CommanderOrderPatch,
   type StationZeroV3PlanPreview,
   type StationZeroV3WorldState,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 type PrimaryObjective = StationZeroV3CommanderOrder["primaryObjectiveId"];
 

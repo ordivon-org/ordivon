@@ -40,8 +40,16 @@ test("Big Game does not own Station Zero v2 runtime implementation", () => {
   }
 });
 
-test("research apparatus does not depend on Station Zero v2 product implementation", () => {
-  const offenders = ["src/station-zero-v3", "src/casefile"]
+test("research apparatus is enclosed under experiments and does not depend on Station Zero v2 product implementation", () => {
+  assert.equal(existsSync("src/station-zero-v3"), false);
+  assert.equal(existsSync("src/casefile"), false);
+  assert.equal(existsSync("web-v3"), false);
+  assert.equal(existsSync("web-casefile"), false);
+  assert.equal(existsSync("web-lab"), false);
+  assert.equal(existsSync("web-pre-g0"), false);
+  assert.equal(existsSync("experiments/station-zero-v3/src/index.ts"), true);
+  assert.equal(existsSync("experiments/casefile/src/index.ts"), true);
+  const offenders = ["experiments/station-zero-v3/src", "experiments/casefile/src"]
     .flatMap(files)
     .filter((path) => /\.(?:ts|js)$/.test(path))
     .filter((path) => readFileSync(path, "utf8").includes("products/station-zero-v2"));

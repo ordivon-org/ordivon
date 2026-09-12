@@ -7,7 +7,7 @@ import {
   stationZeroV3SpatialLayout,
   StationZeroV3PlayService,
   StationZeroV3Store,
-} from "../src/station-zero-v3/index.ts";
+} from "../experiments/station-zero-v3/src/index.ts";
 
 test("Tiled spatial layout is a complete non-authoritative geometry projection of Genesis topology", () => {
   const state = createStationZeroV3Genesis();
