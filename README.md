@@ -92,3 +92,6 @@ Artifact-backed distribution intents now bind Artifact SHA-256, `releaseReady`, 
 ## R8 durable integration port
 
 Distribution durable orchestration now has a thin Temporal Activity boundary over the CloudEvents/AsyncAPI integration contract. The integration endpoint is environment-provided, so Distribution does not embed the current n8n workflow ID or webhook URL. Production-green Temporal acceptance completed both the real unreleased-Artifact blocked path and a read-only GitHub provider readback path; both returned `externalEffectPerformed=false`. Nexus is intentionally not used because the integration edge is not a Temporal application. See `docs/R8-DURABLE-INTEGRATION-PORT.md`.
+## R9 provider-write admission standing
+
+Provider connectivity and durable integration are operational, but provider write remains `BLOCKED_AUTHORITY_NOT_CONNECTIVITY`: current Artifact packages are development-only (`releaseReady=false`) and the exact effect-approval ingress is empty. No write adapter is activated and no GitHub write was performed. See `docs/R9-PROVIDER-WRITE-ADMISSION.md`.
