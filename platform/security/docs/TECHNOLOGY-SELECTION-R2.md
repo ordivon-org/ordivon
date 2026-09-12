@@ -25,7 +25,7 @@ A provider is admitted only when it closes a distinct lifecycle gap. Duplicate s
 | SAST | Semgrep | implemented | Provider-native evidence only |
 | Dependency vulnerability | OSV-Scanner | implemented | Provider-native evidence only |
 | Broad vulnerability/config/secret scan | Trivy | implemented | Existing coverage is preferred over adding duplicate IaC/container scanners |
-| SBOM | Syft -> CycloneDX | implemented | Exact subject/evidence binding only |
+| SBOM / vulnerability disposition | Syft -> CycloneDX 1.7 SBOM + detached CycloneDX VEX | R1 exact-component VEX binding proven | Exact subject/evidence/applicability binding only; no proprietary disposition schema |
 | DAST / web / API security testing | OWASP ZAP Automation Framework | P0 selected | Active scans require an exact authorized target and bounded test environment |
 | Continuous fuzzing | ClusterFuzzLite | P0 selected | Consume crash testcase, stacktrace, corpus/coverage evidence; fuzz engine remains external |
 | Public OSS continuous fuzzing | OSS-Fuzz | conditional | Use only for eligible public OSS; not a universal local dependency |
