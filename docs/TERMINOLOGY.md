@@ -42,4 +42,8 @@ An observation or artifact supporting or refuting a claim about execution, confo
 
 ## Common Core
 
-The broadly applicable problem-solving foundations Ordivon adopts from mature human disciplines and standards. Examples include KM, DSS/OR, Systems Engineering, BPM/workflow, V&V, research/scientific methods, software/system engineering practices, and shared representation/interface standards. Ordivon does not need to rediscover these through its own domains; domain work tests integration, tailoring and applicability.
+The minimal, capability-neutral semantics and rules required to discover, contextualize, compose, invoke and verify mature external capabilities. The current catalog of disciplines and tools is not itself the Core.
+
+## Active Working Set
+
+The bounded set of knowledge, methods, standards, algorithms, tools, agents and execution services activated for the current problem. It is analogous to working memory: contextual, replaceable and releasable. It carries no architectural permanence.

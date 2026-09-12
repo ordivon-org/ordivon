@@ -12,3 +12,6 @@
 10. **Migration by value, not ancestry** — historical Ordivon concepts receive no preservation privilege.
 11. **Profiles, not duplicated platforms** — domains tailor shared mature methods instead of cloning infrastructure.
 12. **Learn compositions** — successful problem -> method -> capability -> workflow -> validation relationships are primary long-lived assets.
+
+13. **No fixed capability stack** — named disciplines, domains, standards and tools are loaded on demand as a working set, not encoded as a permanent Ordivon topology.
+14. **No prescribed evolution path** — roadmap order follows real problem demand and evidence, not an architectural sequence.

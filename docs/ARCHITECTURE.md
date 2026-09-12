@@ -58,55 +58,36 @@ The repository must remain thinner than the external systems it composes.
               +-------> Knowledge+
 ```
 
-## 3. Four architectural layers
+## 3. Persistent model vs active working set
 
-### A. Human Knowledge
+Ordivon must not freeze the current list of disciplines, domains, standards, tools or infrastructure into a permanent architecture. Separate durable rules from the task-local working set.
 
-Externally owned mature bodies of knowledge:
+### Persistent rules
 
-- Knowledge Management;
-- Decision Support / Operations Research;
-- Systems Engineering;
-- BPM/workflow methods;
-- Verification & Validation;
-- domain sciences;
-- standards;
-- algorithms;
-- tools and services.
+Only a small set of invariants should be durable:
 
-Ordivon references and maps these. It does not redefine them by default.
+- start from a real problem/outcome;
+- prefer mature external knowledge and capabilities over reinvention;
+- make responsibility/authority explicit where actions have consequences;
+- compose capabilities according to the current problem and constraints;
+- verify outcomes with applicable evidence;
+- retain reusable evidence-backed knowledge while keeping providers replaceable.
 
-### B. Knowledge-to-Action layer
+### Active working set
 
-The primary Ordivon-owned layer:
+For a particular task Ordivon loads whatever is useful at that moment, for example:
 
-- Problem/ProblemClass mapping;
-- Knowledge registry metadata;
-- Capability registry;
-- decision mappings;
-- composition recipes;
-- validator/acceptance mappings;
-- provenance/evidence links;
-- migration/disposition records.
+- KM, DSS/OR, Systems Engineering, BPM or V&V methods;
+- research, software engineering, game or other domain knowledge;
+- applicable standards and algorithms;
+- currently available tools, agents and services;
+- Temporal, n8n, Snakemake, CI, Runtime, databases, observability or other execution facilities.
 
-### C. Execution environment
+This set is analogous to working memory/cache: task-scoped, replaceable and discardable. Its current contents do not define Ordivon and do not imply a required dependency graph or upgrade path.
 
-Replaceable mature infrastructure, currently including where appropriate:
+### Reality
 
-- Temporal for durable long-running workflows;
-- n8n for integration-edge automation;
-- Snakemake/CI/domain-native workflows where they fit better;
-- Ordivon Runtime only for exact local physical execution while it remains useful;
-- PostgreSQL/object storage/Git for durable state and artifacts;
-- OpenTelemetry for telemetry;
-- MCP/native APIs/CLI/browser interfaces for tool access;
-- container/OS/network facilities supplied by mature external systems.
-
-No execution technology is part of Ordivon's ontology.
-
-### D. Reality
-
-The actual system, service, study, game, artifact, environment or other entity being changed. Reality is the ultimate verification boundary.
+The actual system, service, study, game, artifact, environment or other entity being changed remains the ultimate verification boundary.
 
 ## 4. Common flow
 
@@ -120,30 +101,11 @@ The common flow is intentionally small:
 6. VERIFY — evaluate against explicit acceptance criteria using domain-appropriate validators.
 7. LEARN — record reusable composition/evidence relationships; update knowledge mappings, not private theory unless a real gap is proven.
 
-## 5. System/Domain classification
+## 5. Classification is a view, not a topology
 
-Top-level Ordivon organization is not a flat list of E2Es.
+Terms such as Domain Life-Cycle Profile, Cross-Cutting Discipline and Enabling Capability are classification aids. They help explain the role of something in a particular context; they are not permanent branches of an Ordivon object tree.
 
-```text
-Ordivon
-├── Domain Life-Cycle Profiles
-│   ├── Game
-│   ├── Research
-│   ├── Software / Engineering
-│   └── future domains
-├── Cross-Cutting Disciplines
-│   ├── Security
-│   ├── Quality
-│   ├── Safety
-│   └── Accessibility
-├── Enabling Capabilities
-│   ├── Compute
-│   ├── Network
-│   ├── Artifact processing
-│   ├── Distribution
-│   └── Agent execution
-└── Shared Knowledge / Decision / Verification mappings
-```
+For example, Network may be an enabling capability in one task and the Entity of Interest in another. Security may be a cross-cutting concern in one task and a security service life cycle in another. Classification is contextual and may change with the problem boundary.
 
 See `docs/CLASSIFICATION.md`.
 
@@ -161,13 +123,13 @@ An E2E profile is not a software subsystem. It is a domain-tailored composition 
 - enabling systems/capabilities;
 - verification and validation.
 
-## 7. Common core: adopt before inventing
+## 7. Common core is capability-neutral
 
-The Common Core is not discovered by Ordivon through repeated domain experiments. Its starting point is the set of mature, broadly validated disciplines and standards that already structure real problem solving, including Knowledge Management, Decision Support / Operations Research, Systems Engineering, BPM/workflow, Verification & Validation, scientific/research methods, software/system engineering practices, and applicable representation/interface standards.
+The Common Core does not permanently contain KM, DSS/OR, Systems Engineering, Research, Engineering, BPM, V&V, a particular standard, or a particular tool. Those are mature capability families that may be activated when useful.
 
-Ordivon should therefore import or profile mature external concepts before defining private equivalents. Local schemas exist only where a machine-actionable bridge is actually needed and no suitable external representation is available. Candidate bridge objects may include Problem, Requirement, Constraint, KnowledgeSource, Standard, Method, Capability, Decision, Workflow, Validator, Evidence and Result, but these are integration records rather than claims of a new universal ontology.
+The durable core only needs enough semantics to acquire, contextualize, compose, invoke and verify external capabilities without making their current identities permanent. Mature external concepts and representations should be reused directly whenever possible; local bridge schemas exist only where machine-actionable interoperability requires them.
 
-Domain work validates the *integration and tailoring* of this common core. It does not re-prove the underlying disciplines.
+Therefore `Research`, `Engineer`, `Game`, `Temporal`, `n8n`, `MCP`, a specific standard, and similar names belong to catalogs, profiles, adapters or active working sets—not to a fixed progression encoded in Core.
 
 ## 8. Ownership rule
 
@@ -193,12 +155,19 @@ real-world outcome validated
 
 Agent statements are observations, not final authority. Verification should prefer independent domain validators, tests, benchmarks, formal checks or observable external state.
 
-## 10. Initial vertical-slice strategy
+## 10. No fixed evolution path
 
-1. Establish the externally grounded Common Core from mature disciplines and standards.
-2. Game — first real vertical slice to validate domain tailoring and end-to-end integration.
-3. Research — adopt mature research/scientific practice and validate the same integration fabric.
-4. Software/Engineering — adopt mature systems/software engineering practice and validate the same integration fabric.
-5. Refine only Ordivon-specific adapters/mappings where real integration gaps remain.
+Architecture does not prescribe `Game -> Research -> Software`, `KM -> DSS -> BPM`, or any other mandatory upgrade sequence. Current projects are merely the workloads and capabilities available at hand.
 
-No universal platform is built merely to rediscover knowledge that mature disciplines already provide.
+Work selection is demand-driven:
+
+```text
+current real problem
+        -> discover relevant mature capabilities
+        -> load a bounded working set
+        -> compose/execute/verify
+        -> retain useful evidence and mappings
+        -> release the working set
+```
+
+A future task may start in Research, Engineering, Game, Finance, Security, Media or an unforeseen domain. Ordivon should be able to change that active set without an architectural migration.
