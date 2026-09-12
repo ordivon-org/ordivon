@@ -94,6 +94,15 @@ tasks:
     cmds:
       - ./tests/live-recovery-smoke.sh
 
+  smoke:priority-failover:
+    desc: Prove HAProxy TCP primary/backup failover across mature sing-box provider/direct carriers without mutating the provider tunnel
+    cmds:
+      - ./tests/priority-failover-smoke.sh
+
+  test:r4:
+    desc: Prove the external-provider carrier and deterministic mature primary/backup failover/failback mechanism
+    deps: [validate, smoke:provider-external, smoke:priority-failover]
+
   test:r0:
     deps: [validate, smoke:direct, smoke:observe, smoke:toxiproxy, lab:netns]
 

@@ -3,6 +3,7 @@
 | Layer | Component | Current disposition |
 |---|---|---|
 | Data plane | sing-box | 1.14.0 distro package; R0 live |
+| Priority failover | HAProxy | 3.4.4 distro package; R4 primary/backup acceptance passed |
 | WireGuard lifecycle | wg-quick + official wireguard-go | userspace fallback admitted for current WSL; source pinned in `external/wireguard-go.lock` |
 | Commercial VPN | Gluetun | reference standard-Linux runner; not yet admitted locally |
 | OpenVPN | OpenVPN upstream client | binary available locally; real provider authority not yet admitted |
@@ -21,4 +22,4 @@ The current WSL kernel cannot create an in-kernel WireGuard device with `ip link
 
 Docker/containerlab are not locally admitted because the current WSL2 kernel cannot satisfy Docker bridge/NAT requirements. No compatibility workaround is part of Network v2.
 
-Gatus, Grafana, CoreDNS, Envoy, HAProxy, Pumba, Cilium, FRR, NetBox, Batfish and Kubernetes remain intentionally absent from the current local stack.
+Gatus, Grafana, CoreDNS, Envoy, Pumba, Cilium, FRR, NetBox, Batfish and Kubernetes remain intentionally absent from the current local stack. HAProxy entered the local candidate only at R4 after canonicalization falsified sing-box URLTest as a deterministic primary/backup authority; it is not used by the R0 direct path.
