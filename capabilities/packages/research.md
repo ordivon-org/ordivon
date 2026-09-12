@@ -2,6 +2,7 @@
 
 Last census: 2026-09-13
 Standing: **READY_FOR_REAL_WORK**
+Current workload acceptance: **ACCEPTED_FOR_CURRENT_WORKLOAD**
 
 ## Outcome scope
 
@@ -25,33 +26,51 @@ Use the applicable subset, not all at once:
 
 ## Mature implementation choices
 
-Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Zotero for reference authority, Docling/GROBID for document intake/enrichment, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
+Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Zotero when human reference-library management is useful, Docling/GROBID for document intake/enrichment, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
 
 These are replaceable external capabilities, not Research-owned components.
 
-## Observed local capability
+## Observed local capability and real evidence
 
 Global/agent layer:
 
 - Skills: `literature-review`, `experimental-design`, `statistical-analysis`, `scientific-visualization`, `scientific-writing`, `peer-review`;
 - Python + uv/uvx, Git/GitHub, DuckDB, PostgreSQL client, Typst;
-- Quarto 1.10.18 is activated at `/root/tools/bin/quarto` with bundled Pandoc 3.10; a BibTeX/CSL citation-render smoke test passed on 2026-09-13;
-- Runtime execution and Artifact capability are available as external enabling surfaces.
+- Runtime execution and Artifact capability as external enabling surfaces.
 
-Existing Research project environment additionally contains an executable Snakemake/DVC/Pandera/MLflow/Optuna/Jupyter/RO-Crate-oriented stack and one real first-paper workflow. This project is evidence/capability supply, not the future top-level Research owner.
+Research-v2 provides an executable project-local Snakemake/DVC/Pandera/MLflow/Optuna/Jupyter/RO-Crate-oriented stack and a real first-paper workflow. It is a capability/evidence source, not a future top-level Research owner.
+
+The current-workload acceptance used real paper material rather than a toy citation demo:
+
+- Crossref resolved all **12** DOI-bearing manuscript references;
+- DOI content negotiation produced structured BibTeX and Research-v2 materialized `references.bib` plus `REFERENCES_RECEIPT.json`;
+- the receipt records **12/12** DOI-set agreement;
+- pinned official Quarto `1.11.1` / Pandoc consumed the bibliography with network disabled;
+- the acceptance HTML contained real-reference sentinels;
+- Research-v2 verification reached **44 passing tests**;
+- a frozen publication-path replay produced identical rendered HTML SHA-256 values (`d4397b2a8c12ae521515c29934df79ffc38210d47a80fcaf004a891958a30845`).
+
+Detailed dated evidence is in `docs/RESEARCH_CAPABILITY_PACKAGE_R1.md` and `docs/CAPABILITY_PACKAGES_R1_ACCEPTANCE_20260913.md`.
 
 ## Concrete current gaps
 
-Only gaps exposed by the active paper/research workload count:
+The generic Research package does not have a demonstrated construction gap.
 
-- the generic Quarto/Pandoc/CSL authoring path is now activated; the remaining real work is to bind the active paper to that path and its venue-native output requirements;
-- bibliography/reference authority still needs Zotero or an exact exported BibTeX/CSL projection with DOI metadata verification when relevant;
-- literature discovery, document ingestion, systematic-review screening, preregistration/deposition and domain statistics remain **on demand**, not installation debt.
+Remaining work belongs to the actual paper/submission boundary:
 
-## Acceptance workload
+- normalize final citation fields/years according to the selected venue and authoritative bibliographic policy;
+- bind the scientifically selected **current manuscript** to structured citations and venue-native output requirements;
+- add ORCID/CRediT/ROR or other publication metadata when the submission boundary requires it;
+- publish/deposit the exact replication package and obtain a persistent DOI only when the release artifact is ready and the external effect is intentionally authorized.
 
-Use the currently active paper as the first package acceptance task. Research is accepted when an exact research revision can produce its required research evidence and target manuscript/reviewer artifacts with traceable sources, applicable scientific checks, and no invented local research framework.
+Literature ingestion, systematic-review screening, preregistration, domain-specific statistics, specialist scientific software, HPC and similar capabilities remain **on demand**, not installation debt.
 
-Future task-specific gaps follow:
+Zotero is not a base dependency: use it when a live human-managed/collaborative library is valuable. The proven publication path already accepts an exact DOI-verified BibTeX/CSL projection.
 
-`real research task -> applicable scientific standard -> mature method/tool -> execute -> scientific/target validation`
+## Operating rule
+
+Stop generic Research construction. Continue real research:
+
+`real research problem -> applicable scientific standard/method -> task-local mature tools/Skills -> execute -> verify scientific/target evidence -> publish/deposit when ready`
+
+Reopen the package census only when a real research task exposes a capability that the current working set cannot adequately provide.
