@@ -79,3 +79,11 @@ R11 hardens the graduated generic platform against protocol-specific false green
 UDP/QUIC is expressed with a mature sing-box TUN inbound confined to a temporary Linux network namespace rather than a host-wide TUN. Canonical `task test:r11` proved HTTP/3 over that isolated TUN plus ordinary TCP through the same path, then verified that the transient namespace/TUN was removed, host default routes were unchanged, live R0 remained green, and Runtime/Cloudflare remained independent.
 
 The default platform policy therefore stays conservative: loopback mixed proxy for normal live TCP workloads; isolated netns TUN on demand for UDP/QUIC/full-IP workloads. Host-wide default-route takeover is not part of Network v2. See `docs/PROTOCOL_R11.md` and `evidence/acceptance/network-r11-20260912.json`.
+
+## R12 local resilience and WSL reboot recovery
+
+R12 closes the remaining local resilience false-green classes without changing live R0. Deterministic local tests prove bidirectional address-family fallback (`prefer_ipv6` to IPv4 and `prefer_ipv4` to IPv6), DNS parallel-upstream survival when one peer is dead, fail-closed `SERVFAIL` behavior for uncached/expired names when all upstreams are unavailable, and recovery when an upstream returns without restarting dnsproxy.
+
+During this work a real WSL boot boundary occurred independently. The previous R0 target stopped cleanly, and on the next WSL boot `network-v2-r0.target` plus dnsproxy, sing-box, blackbox_exporter and Prometheus automatically returned under the target-owned lifecycle. A full `task verify:live` passed after boot. This upgrades the lifecycle standing from cold-start simulation to **real WSL instance reboot recovery**. It does not claim Windows physical-host reboot plus WSL auto-launch, which is a Workstation/bootstrap concern.
+
+Standing after R12: **generic Network v2 on the current WSL platform is locally graduated for data plane, dual stack, DNS, observability, protocol divergence, UDP/QUIC isolation, failure/recovery, and WSL reboot recovery**. Remaining Network fidelity gates require a standard Linux environment: `tc/netem`, containerlab, and kernel-WireGuard differential. See `docs/RESILIENCE_R12.md` and `evidence/acceptance/network-r12-20260912.json`.

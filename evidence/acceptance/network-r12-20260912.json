@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "round": "R12",
+  "date": "2026-09-12",
+  "scope": "generic Network v2 local resilience",
+  "standing": "PASSED_LOCAL_WSL_RESILIENCE",
+  "consumerMigrationInScope": false,
+  "liveConfigurationChanged": false,
+  "familyFallback": {
+    "preferIpv6FallsBackToIpv4": true,
+    "preferIpv4FallsBackToIpv6": true,
+    "deterministicLocalOrigins": true
+  },
+  "dnsResilience": {
+    "parallelPartialFailureUdp": true,
+    "parallelPartialFailureTcp": true,
+    "cachedAnswerAllowedUntilTtlExpiry": true,
+    "allUpstreamsDownUncachedServfail": true,
+    "cacheExpiryFailsClosed": true,
+    "recoveryWithoutDnsproxyRestart": true,
+    "listenerOnlyHealthRejected": true
+  },
+  "canonicalAcceptance": {
+    "entryPoint": "task test:r12",
+    "jobId": "job-01a09569-2e1c-7be3-af6e-e074a77f386f",
+    "operationDigest": "sha256:d0e8f4b97e58bebf649b241861e17b3b3871d4f6a4c94aabb0db03011e106cf0",
+    "stdoutSha256": "706efd7d7a2ee5d9bff4c35d02358d4cb2b5d667f5810aa50fbedf72bd565ebb",
+    "terminalEvidenceSha256": "15f4201888c6ab09f47f8b81fe09d35c199b3bac82836954f6ff090d6047f6c4"
+  },
+  "postState": {
+    "jobId": "job-01a09569-92dd-77b2-835a-45fdcab8b0b6",
+    "operationDigest": "sha256:202ec0bbb2f28296b52af5f8f16b27d1df5b91b97a4930138d443851505d63bf",
+    "stdoutSha256": "9118fa41ee8e352c9ba07afa4e9ffb43cd827b169381f9bac072f99faed2abc8",
+    "terminalEvidenceSha256": "ab47b0e67602c00217abd2e1b203736b709d52ec87eba73182bb9ec80c883f75",
+    "transientFaultUnitsCleaned": true,
+    "liveR0Verified": true,
+    "defaultRoutesUntouched": true,
+    "cloudflareHa": {"productionA":4,"productionB":4,"canary":4}
+  },
+  "wslRebootRecovery": {
+    "proven": true,
+    "previousBootId": "f360a63d11cb4f5cba7c8ba607167fd9",
+    "currentBootId": "1b265c879b954182909a8f311cae369d",
+    "r0TargetAutoStarted": true,
+    "dnsproxyAutoStarted": true,
+    "singboxAutoStarted": true,
+    "blackboxAutoStarted": true,
+    "prometheusAutoStarted": true,
+    "functionalVerifyAfterBoot": true,
+    "jobId": "job-01a0956a-2da1-72d2-8916-4b55df4797d8",
+    "operationDigest": "sha256:4700a353d0e65ce27f3176114e93d0f4e4a4f00aceb5c481dd73d8b9760b0ceb",
+    "stdoutSha256": "02199c3d2984844fd2cc5e4d51dba95189af390fda9a4f67949b96e15ca9fd18",
+    "terminalEvidenceSha256": "27bd24fc2f546e979efbed364ea67d44bdffd85b0bf4b31603b02b63f7ff5936"
+  },
+  "notClaimed": {
+    "windowsPhysicalHostRebootAndWslAutolaunch": true,
+    "standardLinuxNetem": true,
+    "standardLinuxContainerlab": true,
+    "kernelWireguardDifferential": true
+  }
+}
