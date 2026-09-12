@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.r6-validation",
+  "observedOn": "2026-09-12",
+  "standing": "R6_EXACT_APPROVAL_INGRESS_READY_WRITE_NOT_ADMITTED",
+  "writeStanding": "NOT_ADMITTED",
+  "runtimeRollout": {
+    "installJobId": "job-01a09313-59e6-71c2-91b3-53979d66ed20",
+    "installResult": "PROCESS_EXIT_ZERO",
+    "postRestartVerificationJobId": "job-01a09314-2ef0-7981-870f-35e7cd8127b9",
+    "runtimeAuthorityPresent": true,
+    "runtimeIngressPresent": true,
+    "artifactGoldenStillPresent": true,
+    "workstationAuthorityPresent": true,
+    "authorityRoot": "/var/lib/ordivon/distribution-effect-approvals",
+    "authorityRootMode": "0750",
+    "authorityRootEntriesAtVerification": 0
+  },
+  "authorityTranslator": {
+    "schema": "contracts/effect-approval.schema.json",
+    "implementation": "scripts/produce_effect_authority.py",
+    "requiresRuntimeInputRoot": true,
+    "exactOccurrenceRequired": true,
+    "validityWindowRequired": true
+  },
+  "tests": {
+    "fullSuiteJobId": "job-01a09315-57a5-7ea1-87ff-eaba508e3753",
+    "stdoutDigest": "sha256:35fb69ff0b97b7582a7a1f650bb315220837237f507f40a29990b5305a1477a5",
+    "syntheticExactApproval": "PASS",
+    "payloadSwapRejected": "PASS",
+    "wrongOccurrenceRejected": "PASS",
+    "expiredApprovalRejected": "PASS",
+    "ambientApprovalPathRejected": "PASS"
+  },
+  "nonClaims": [
+    "no real exact approval was ingested",
+    "no EffectAuthority was minted from user approval",
+    "no GitHub issue or other provider object was created",
+    "the user's generic instruction to continue was not interpreted as approval of the current create_issue payload",
+    "rclone remote, Postiz authenticated integration, and YouTube OAuth are still absent"
+  ],
+  "nextGate": "ingest one real exact approval artifact for a bounded carrier effect, freeze it through workspace.execBound, derive EffectAuthority, re-run admission, then execute one bounded provider write followed by independent provider-native readback"
+}

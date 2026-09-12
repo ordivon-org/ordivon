@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/effect-approval.schema.json",
+  "title": "Distribution v2 Explicit Exact Effect Approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "approvalId", "principalRef", "occurrenceRef", "decision", "issuedAt", "validUntil", "sourceKind", "sourceRef"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "approvalId": {"type": "string", "minLength": 1},
+    "principalRef": {"type": "string", "minLength": 1},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "decision": {"enum": ["grant", "deny"]},
+    "issuedAt": {"type": "string", "format": "date-time"},
+    "validUntil": {"type": "string", "format": "date-time"},
+    "sourceKind": {"const": "explicit_user_effect_approval"},
+    "sourceRef": {"type": "string", "minLength": 1}
+  }
+}

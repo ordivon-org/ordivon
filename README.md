@@ -2,7 +2,7 @@
 
 Greenfield, external-first Distribution control plane. This repository intentionally does **not** copy provider capability catalogs, OAuth scope matrices, schedulers, file-transfer engines, package registries, rollout controllers, or attestation formats into Ordivon.
 
-## R5 architecture
+## R6 architecture
 
 ```text
 prepared artifact / payload
@@ -11,7 +11,13 @@ exact intent + payload digest
         ↓
 provider capability observation
         ↓
-exact effect authority
+EffectApprovalRequest (non-authoritative)
+        ↓
+Runtime input.ingest -> distribution-effect-approvals
+        ↓
+workspace.execBound immutable approval bytes
+        ↓
+narrow EffectAuthority translator
         ↓
 OPA admission
         ↓
@@ -51,25 +57,24 @@ R4 added the canonical digest of `effect.payload` to occurrence identity and sep
 
 ## R5 real carrier coverage
 
-R5 changes the success criterion: an external project's feature matrix is not counted as Ordivon-local carrier coverage. A lane is covered only when the current environment can traverse identity/configuration, admission, provider execution or observation, provider object identity, and provider-native readback.
+R5 changed the success criterion: an external project's feature matrix is not counted as Ordivon-local carrier coverage. GitHub provider-native read/readback is real; rclone remote, Postiz social, and YouTube upload remain blocked on actual identities/configuration.
 
-### GitHub provider-native
+## R6 exact approval ingress is live
 
-GitHub is the first real carrier lane with provider-native read/readback proof. The environment has authenticated repository capability and can independently read a real GitHub issue by provider object number. The live readback test verifies stable `id`, `node_id`, and `number`, which is the acceptance pattern for a future bounded write. The proposed `create_issue` effect remains blocked by the exact-effect authority gate; no GitHub write has been performed.
+Production Runtime and Workstation now contain a dedicated operator-owned `distribution-effect-approvals` InputAuthority. Runtime ingress is explicitly enabled for that authority in addition to the pre-existing artifact ingress. The authority root is `/var/lib/ordivon/distribution-effect-approvals`, mode `0750`, and was empty immediately after rollout.
 
-### rclone file/object/cloud
+The repository now contains a narrow `produce_effect_authority.py` translator. It accepts approval bytes only through Runtime `ORDIVON_INPUT_ROOT`, validates the explicit approval schema, requires the exact current occurrence, enforces approval validity windows, and emits an EffectAuthority bound to provider/account/effect/occurrence. Ambient approval paths are rejected. Synthetic tests prove that payload mutation, wrong occurrence, and expired approval all fail closed.
 
-`rclone` is installed and local copy/check is proven, but the current configuration exposes zero remotes. A Cloudflare account API-token file exists, but no rclone-compatible R2/S3 access-key/secret configuration was observed. Therefore real remote object transfer is not yet covered.
+This rollout prepares the authority path; it does **not** create an approval. The current `create_issue` candidate therefore remains `NOT_ADMITTED`, and no GitHub write has been performed.
 
-### Postiz social
+### Current carrier standing
 
-The Postiz public API surface is reachable and correctly requires authorization. No local Postiz API credential, connected integration, or local Postiz service was observed. Postiz upstream platform breadth is substrate capability only and does not count as local Distribution coverage until an authenticated integration and bounded publish/readback episode succeed.
+- GitHub: authenticated read/provider observation/readback proven; actual write still requires a real ingested exact approval.
+- rclone: local transfer/check proven; no configured remote or compatible R2/S3 credential observed.
+- Postiz: public API surface reachable; no authenticated integration observed.
+- YouTube: no OAuth upload identity observed.
 
-### YouTube native
-
-No YouTube OAuth upload identity was observed. Existing `google*.json` files are generic provider/model API-key configurations rather than installed/web OAuth credentials suitable for YouTube upload. Real video upload/readback is therefore not yet covered.
-
-See `docs/R5-CARRIER-COVERAGE.md` and `evidence/r5-carrier-coverage-20260912.json`.
+See `docs/R6-APPROVAL-INGRESS.md` and `evidence/r6-validation-20260912.json`.
 
 ## Activated external substrate
 
@@ -78,6 +83,6 @@ See `docs/R5-CARRIER-COVERAGE.md` and `evidence/r5-carrier-coverage-20260912.jso
 - Postiz: social/content dispatch aggregator; not counted as local coverage until authenticated integrations exist.
 - OpenAPI Generator: generated clients for provider-native APIs where a useful OpenAPI document exists.
 - rclone: file/object/cloud transfer substrate; local mechanics proven, remote coverage pending real configuration.
-- Existing Ordivon Temporal/Runtime: durable orchestration, immutable-input authority, and optional external-file ingress remain one owner.
+- Existing Ordivon Temporal/Runtime + Workstation ingress: durable orchestration, immutable-input authority, and exact external-file ingress remain shared infrastructure owners.
 
 See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/`, and `scripts/test-all.sh`.
