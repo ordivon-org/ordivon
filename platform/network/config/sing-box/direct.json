@@ -5,7 +5,7 @@
       {"type": "udp", "tag": "local-dnsproxy", "server": "127.0.0.1", "server_port": 25353}
     ],
     "final": "local-dnsproxy",
-    "strategy": "ipv4_only"
+    "strategy": "prefer_ipv6"
   },
   "inbounds": [
     {"type": "mixed", "tag": "local-mixed", "listen": "127.0.0.1", "listen_port": 28080}
@@ -15,8 +15,7 @@
   ],
   "route": {
     "rules": [
-      {"ip_is_private": true, "action": "reject"},
-      {"ip_version": 6, "action": "reject"}
+      {"ip_is_private": true, "action": "reject"}
     ],
     "final": "direct"
   }

@@ -2,6 +2,7 @@
 Description=Network v2 sing-box direct data plane
 After=network-v2-dnsproxy.service
 Requires=network-v2-dnsproxy.service
+PartOf=network-v2-r0.target
 
 [Service]
 Type=simple

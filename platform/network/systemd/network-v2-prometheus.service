@@ -2,6 +2,7 @@
 Description=Network v2 Prometheus evidence store
 After=network-v2-blackbox.service
 Requires=network-v2-blackbox.service
+PartOf=network-v2-r0.target
 
 [Service]
 Type=simple

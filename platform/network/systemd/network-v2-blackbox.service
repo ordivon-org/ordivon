@@ -1,6 +1,7 @@
 [Unit]
 Description=Network v2 blackbox exporter
 After=network-online.target
+PartOf=network-v2-r0.target
 
 [Service]
 Type=simple

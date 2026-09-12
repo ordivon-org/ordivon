@@ -2,10 +2,11 @@
 Description=Network v2 DNS carrier
 After=network-online.target
 Wants=network-online.target
+PartOf=network-v2-r0.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/dnsproxy -l 127.0.0.1 -p 25353 -u 1.1.1.1:53 -u 8.8.8.8:53 --upstream-mode parallel --cache --ipv6-disabled --refuse-any --pending-requests-enabled --timeout 5s
+ExecStart=/usr/bin/dnsproxy -l 127.0.0.1 -p 25353 -u 1.1.1.1:53 -u 8.8.8.8:53 --upstream-mode parallel --cache --refuse-any --pending-requests-enabled --timeout 5s
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=true
