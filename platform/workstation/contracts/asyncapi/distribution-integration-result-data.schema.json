@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/integration/distribution-integration-result-data.schema.json",
+  "title": "Distribution integration result data",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["admissionAction", "provider", "providerCalled", "externalEffectPerformed"],
+  "properties": {
+    "admissionAction": {"type": "string", "minLength": 1},
+    "provider": {"type": ["string", "null"]},
+    "providerCalled": {"type": "boolean"},
+    "externalEffectPerformed": {"const": false},
+    "externalMethod": {"type": "string"},
+    "reason": {"type": ["string", "null"]},
+    "observedObject": {"type": "object"}
+  }
+}
