@@ -223,7 +223,20 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
         }
         self.assertTrue(required_invalidating <= set(invalidating), invalidating)
-        self.assertTrue(all(path.startswith("src/") for path in invalidating), invalidating)
+        self.assertIn("pyproject.toml", invalidating)
+        self.assertIn("uv.lock", invalidating)
+        self.assertTrue(
+            all(
+                path.startswith("src/")
+                or path in {
+                    "pyproject.toml",
+                    "uv.lock",
+                    "scripts/harness_p0_scale_acceptance.py",
+                }
+                for path in invalidating
+            ),
+            invalidating,
+        )
 
     def test_index_creation_lineage_binding_accepts_exact_and_rejects_nonancestor(self) -> None:
         validator = check_evidence._validate_index_creation_lineage_binding
