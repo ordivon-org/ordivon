@@ -15,6 +15,7 @@ Engineering is a capability range, not a mandatory waterfall.
 - ISO/IEC/IEEE 15288:2023 provides the more general system life-cycle process framework and explicitly permits iterative, concurrent and recursive application rather than prescribing one lifecycle model or methodology.
 - Domain/framework-specific engineering standards are selected when the entity of interest requires them.
 - GitHub Spec Kit is used selectively as a source of proven agentic engineering practices; Ordivon does **not** depend on, fork, or reproduce its full CLI, workflow engine, templates, presets, extensions, bundles, integrations, feature numbering, task ledger, or artifact lifecycle.
+- Superpowers is used selectively as a source of behavior-tested coding-agent disciplines such as fresh verification evidence, systematic root-cause debugging, context-isolated review/delegation and Skill behavior evaluation. Its mandatory brainstorming/TDD/task-review workflow is not adopted as a universal Ordivon lifecycle.
 
 Ordivon does not publish a competing engineering lifecycle specification.
 
@@ -33,7 +34,7 @@ The sequence is risk-adaptive, not mandatory. Small low-risk work may use `FRAME
 
 Testing is conditional; **verification is mandatory**.
 
-Detailed rules and provenance are recorded in `knowledge/lessons/spec-kit-engineering-kernel.md`.
+Detailed rules and provenance are recorded in `knowledge/lessons/spec-kit-engineering-kernel.md`; complementary coding-agent discipline lessons are recorded in `knowledge/lessons/superpowers-engineering-discipline-kernel.md`.
 
 ## Observed local capability
 
