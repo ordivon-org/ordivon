@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.market-data-admission",
+  "provider": "Nasdaq",
+  "providerRole": "Nasdaq-operated public historical-data service",
+  "endpointTemplate": "https://api.nasdaq.com/api/quote/{symbol}/historical",
+  "assetClass": "stocks",
+  "symbols": ["AAPL", "MSFT", "NVDA"],
+  "benchmark": {"symbol": "SPY", "assetClass": "etf"},
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-11",
+  "causalStanding": "NON_CAUSAL_EXECUTION_VALIDATION_ONLY",
+  "reason": "Wave A target was produced after this interval; these bars validate authoritative-data plumbing and execution mechanics, not strategy performance",
+  "externalFinancialWritesAllowed": false
+}

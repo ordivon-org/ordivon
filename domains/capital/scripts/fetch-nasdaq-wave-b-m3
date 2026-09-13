@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import hashlib, json, os, re, shutil, ssl, sys, urllib.parse, urllib.request, zipfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+repo = Path(__file__).resolve().parents[1]
+cfg = json.loads((repo / "config/market_data_admission.json").read_text())
+root = repo / ".artifacts/wave-b-m3"
+raw = root / "raw"
+data = root / "data"
+for p in (raw, data):
+    if p.exists(): shutil.rmtree(p)
+    p.mkdir(parents=True, exist_ok=True)
+
+ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"
+headers = {"User-Agent": ua, "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9"}
+
+specs = [(s, cfg["assetClass"]) for s in cfg["symbols"]] + [(cfg["benchmark"]["symbol"], cfg["benchmark"]["assetClass"])]
+manifest = {
+    "schemaVersion": 1,
+    "provider": cfg["provider"],
+    "endpointTemplate": cfg["endpointTemplate"],
+    "retrievedAt": datetime.now(timezone.utc).isoformat(),
+    "startDate": cfg["startDate"],
+    "endDate": cfg["endDate"],
+    "causalStanding": cfg["causalStanding"],
+    "series": []
+}
+
+def num(x: str) -> float:
+    return float(str(x).replace("$", "").replace(",", "").strip())
+
+for symbol, assetclass in specs:
+    query = urllib.parse.urlencode({
+        "assetclass": assetclass,
+        "fromdate": cfg["startDate"],
+        "todate": cfg["endDate"],
+        "limit": 100
+    })
+    url = cfg["endpointTemplate"].format(symbol=symbol) + "?" + query
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=30, context=ssl.create_default_context()) as resp:
+        payload = resp.read()
+        status = resp.status
+    if status != 200: raise SystemExit(f"{symbol}: HTTP {status}")
+    raw_path = raw / f"{symbol.lower()}.json"
+    raw_path.write_bytes(payload)
+    doc = json.loads(payload)
+    if ((doc.get("status") or {}).get("rCode")) != 200: raise SystemExit(f"{symbol}: provider status {doc.get('status')}")
+    rows = ((((doc.get("data") or {}).get("tradesTable")) or {}).get("rows")) or []
+    if len(rows) < 2: raise SystemExit(f"{symbol}: insufficient rows: {len(rows)}")
+    normalized = []
+    for row in rows:
+        dt = datetime.strptime(row["date"], "%m/%d/%Y").date()
+        o,h,l,c = map(num, (row["open"], row["high"], row["low"], row["close"]))
+        v = int(num(row["volume"]))
+        if not (l <= o <= h and l <= c <= h and v > 0): raise SystemExit(f"{symbol}: invalid OHLCV row {row}")
+        normalized.append((dt,o,h,l,c,v))
+    normalized.sort(key=lambda x: x[0])
+    if normalized[0][0].isoformat() < cfg["startDate"] or normalized[-1][0].isoformat() > cfg["endDate"]:
+        raise SystemExit(f"{symbol}: date boundary mismatch")
+
+    ticker = symbol.lower()
+    daily_dir = data / "equity/usa/daily"; daily_dir.mkdir(parents=True, exist_ok=True)
+    csv_rows=[]
+    for dt,o,h,l,c,v in normalized:
+        vals=[int(round(x*10000)) for x in (o,h,l,c)]
+        csv_rows.append(f"{dt.strftime('%Y%m%d')} 00:00,{vals[0]},{vals[1]},{vals[2]},{vals[3]},{v}")
+    csv_bytes=("\n".join(csv_rows)+"\n").encode()
+    with zipfile.ZipFile(daily_dir / f"{ticker}.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        info=zipfile.ZipInfo(f"{ticker}.csv", date_time=(2026,9,13,0,0,0)); info.compress_type=zipfile.ZIP_DEFLATED
+        z.writestr(info,csv_bytes)
+    map_dir=data/"equity/usa/map_files"; map_dir.mkdir(parents=True, exist_ok=True)
+    factor_dir=data/"equity/usa/factor_files"; factor_dir.mkdir(parents=True, exist_ok=True)
+    (map_dir/f"{ticker}.csv").write_text(f"{normalized[0][0].strftime('%Y%m%d')},{ticker},Q\n20501231,{ticker},Q\n")
+    (factor_dir/f"{ticker}.csv").write_text(f"{normalized[0][0].strftime('%Y%m%d')},1,1,{normalized[0][4]}\n20501231,1,1,0\n")
+    manifest["series"].append({
+        "symbol": symbol,
+        "assetClass": assetclass,
+        "requestUrl": url,
+        "rawSha256": hashlib.sha256(payload).hexdigest(),
+        "normalizedCsvSha256": hashlib.sha256(csv_bytes).hexdigest(),
+        "rowCount": len(normalized),
+        "firstDate": normalized[0][0].isoformat(),
+        "lastDate": normalized[-1][0].isoformat()
+    })
+
+lean = Path(os.environ.get("MARKET_CAPITAL_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
+for name in ("market-hours", "symbol-properties", "alternative"):
+    os.symlink(lean/"Data"/name, data/name, target_is_directory=True)
+(root/"manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True)+"\n")
+print(json.dumps(manifest, sort_keys=True))
