@@ -1,14 +1,14 @@
 {
-  "baseRevision": "292d915621f4f39b2683830ed853b8b59f285473",
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Aseprite Design/2D evidence retains exact managed-exporter and derivative identity while caller-owned frame/tag/actor semantics remain outside Artifact authority.",
+  "baseRevision": "e38fa2b3ccf9200406595bdc744267c8faf3895c",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Design/3D rich GLB evidence remains split between bounded material-scene and skinned-animation profiles; Game/artistic semantics and generic 3D authority are not promoted.",
   "coverage": {
-    "isolatedValidatorImplementations": 14,
-    "liveProvenShadowBindings": 14,
-    "normalizedProfiles": 22,
+    "isolatedValidatorImplementations": 16,
+    "liveProvenShadowBindings": 16,
+    "normalizedProfiles": 24,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
-  "donorManifestSha256": "baf11ac5c5925097dc47904939eeb229decfdd191fb8c7420d5da5d2cb3d8798",
+  "donorManifestSha256": "ce8358cb2b0d8a814451d3de8250d37ae3ff4f22d35a46f17fc66dee22d5a478",
   "focusedDonorTests": {
     "failed": 0,
     "passed": 10,
@@ -16,14 +16,14 @@
   },
   "fullRegression": {
     "failed": 0,
-    "passed": 271,
+    "passed": 273,
     "skipped": 2,
-    "total": 273
+    "total": 275
   },
   "id": "artifact-k2a-donor-r1-verification-r1",
   "kind": "artifact-k2a-donor-verification",
-  "operationDigest": "sha256:5fcf7ad47cc43c68bf12cc121983eb8f3d7513366211a1abd92212621724f2e6",
-  "runtimeJobId": "job-01a09a8c-79ae-7380-91ed-c6019db40be2",
+  "operationDigest": "sha256:a98363af482093fb9a31fce18c3888bed2d37f2d7a929e7fca5a8d6d78cfd1a1",
+  "runtimeJobId": "job-01a09ab6-8a63-7823-a825-7bcd0c344321",
   "schemaVersion": 1,
   "standing": "PASS"
 }

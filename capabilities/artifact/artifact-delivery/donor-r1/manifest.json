@@ -1,9 +1,9 @@
 {
-  "baseRevision": "292d915621f4f39b2683830ed853b8b59f285473",
+  "baseRevision": "e38fa2b3ccf9200406595bdc744267c8faf3895c",
   "coverage": {
-    "isolatedValidatorImplementations": 14,
-    "liveProvenShadowBindings": 14,
-    "normalizedProfiles": 22,
+    "isolatedValidatorImplementations": 16,
+    "liveProvenShadowBindings": 16,
+    "normalizedProfiles": 24,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 12,
+        "profilesWithExplicitObjectContract": 14,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 14,
+        "profilesWithExplicitNonClaims": 16,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 22
+        "profilesWithoutEncodedSequence": 24
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -927,6 +927,291 @@
       }
     },
     {
+      "candidateProblemKey": "artifact/design-3d/design-3d-glb-material-scene-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator",
+          "targetConsumer"
+        ],
+        "proofKeys": [
+          "assimpEvidenceSha256",
+          "assimpImport",
+          "blenderImport",
+          "blenderStdoutSha256",
+          "directLiveProof",
+          "godotImport",
+          "godotStdoutSha256",
+          "khronosEvidenceSha256",
+          "khronosZeroErrorsWarnings",
+          "operationDigest",
+          "runtimeJobId",
+          "subjectSha256"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/design-3d-glb-material-scene-local-r1.json",
+          "sha256": "1692381138b1ab8494c45ca82bbce6e39dcdf0db14acbe7c2c756e2dce8bcb57"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded material scene profile",
+        "family": "design-3d",
+        "format": {
+          "mediaType": "model/gltf-binary",
+          "name": "GLB 2.0"
+        },
+        "purposes": [
+          "interchange",
+          "game-runtime-source",
+          "preview"
+        ],
+        "representation": "material-scene"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Khronos glTF standard-validator",
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator",
+          "targetConsumer"
+        ],
+        "requiredEvidence": [
+          "assimpScene",
+          "blenderImport",
+          "boundedProfileFacts",
+          "contractSchema",
+          "godotImport",
+          "khronosConformance"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "design-3d-glb-material-scene-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/design-3d-glb-material-scene-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/design-3d-glb-material-scene-contract-v1.schema.json",
+          "sha256": "aecec1c9b6df13f75ff5677ffd79e64278f67c9b7e3d989b628a61610cfa7ab6"
+        }
+      },
+      "profileId": "design-3d-glb-material-scene-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "artistic or visual quality",
+          "material slot semantic meaning or Game meaning",
+          "PBR parameter artistic correctness",
+          "texture/color-management semantics",
+          "animation, skinning or morph-target behavior",
+          "cross-renderer pixel equivalence",
+          "rights or licensing validity"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-3d-glb-material-scene-r1-v2.json",
+        "sha256": "d665df89577fb2b97766e884340501bddf421e48d0ad50249acecd0186fb934d"
+      },
+      "standards": [
+        "ISO/IEC 12113:2022 Khronos glTF 2.0",
+        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "standard-validator",
+          "name": "Khronos glTF standard-validator",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "assimpScene": {
+          "claim": "Assimp independently imports exact topology/counts/source-coordinate bounds",
+          "required": true
+        },
+        "blenderImport": {
+          "claim": "Blender independently imports exact bounded scene/material facts",
+          "required": true
+        },
+        "boundedProfileFacts": {
+          "claim": "Validator facts remain inside the untextured, unanimated, unskinned material-scene subset",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "Material-scene object contract validates under the dedicated schema",
+          "required": true
+        },
+        "godotImport": {
+          "claim": "Godot GLTFDocument independently imports the exact bounded scene structure",
+          "required": true
+        },
+        "khronosConformance": {
+          "claim": "Khronos glTF Validator accepts exact GLB with zero errors and zero warnings",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_design3d.py",
+        "sha256": "91473aa713b864904a9d321bfc943a860715a9dedeefecfdd15c9c702687c88f"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/design-3d/design-3d-glb-skinned-animation-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator",
+          "targetConsumer"
+        ],
+        "proofKeys": [
+          "assimpEvidenceSha256",
+          "assimpImport",
+          "blenderImport",
+          "blenderStdoutSha256",
+          "directLiveProof",
+          "godotImport",
+          "godotStdoutSha256",
+          "khronosEvidenceSha256",
+          "khronosZeroErrorsWarnings",
+          "operationDigest",
+          "runtimeJobId",
+          "subjectSha256"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/design-3d-glb-skinned-animation-local-r1.json",
+          "sha256": "9c34b81a82ef71b36380a0dae6029b1d03e5661d6a348830c1a4d589eeecbe88"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded skinned animation profile",
+        "family": "design-3d",
+        "format": {
+          "mediaType": "model/gltf-binary",
+          "name": "GLB 2.0"
+        },
+        "purposes": [
+          "interchange",
+          "game-runtime-source",
+          "preview"
+        ],
+        "representation": "skinned-animation-scene"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Khronos glTF standard-validator",
+          "independentConsumerA",
+          "independentConsumerB",
+          "standardValidator",
+          "targetConsumer"
+        ],
+        "requiredEvidence": [
+          "assimpScene",
+          "blenderImport",
+          "boundedProfileFacts",
+          "contractSchema",
+          "godotImport",
+          "khronosConformance"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "design-3d-glb-skinned-animation-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/design-3d-glb-skinned-animation-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/design-3d-glb-skinned-animation-contract-v1.schema.json",
+          "sha256": "7621e0cad095a07b13975c95949fe1ae34b76bd21d12f79931b565d7403398fe"
+        }
+      },
+      "profileId": "design-3d-glb-skinned-animation-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "animation clip semantic meaning or gameplay meaning",
+          "deformation artistic correctness",
+          "motion quality or retargeting correctness",
+          "material slot semantic meaning",
+          "texture/color-management semantics",
+          "Game behavior or suitability",
+          "cross-renderer visual equivalence",
+          "rights or licensing validity"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-3d-glb-skinned-animation-r1-v2.json",
+        "sha256": "b8b76f2cb8ab7fcc9e48fe6173d6f7e046a9124251add5cf33639f0fd26e32fa"
+      },
+      "standards": [
+        "ISO/IEC 12113:2022 Khronos glTF 2.0",
+        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "standard-validator",
+          "name": "Khronos glTF standard-validator",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "assimpScene": {
+          "claim": "Assimp independently imports exact topology/animation/bone facts and source-coordinate bounds",
+          "required": true
+        },
+        "blenderImport": {
+          "claim": "Blender independently imports exact scene/material/action/armature facts",
+          "required": true
+        },
+        "boundedProfileFacts": {
+          "claim": "Validator facts remain inside the untextured skinned-animation subset",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "Skinned-animation object contract validates under the dedicated schema",
+          "required": true
+        },
+        "godotImport": {
+          "claim": "Godot GLTFDocument independently imports exact scene classes, animation identities and skeleton size",
+          "required": true
+        },
+        "khronosConformance": {
+          "claim": "Khronos glTF Validator accepts exact GLB with zero errors and zero warnings",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_design3d.py",
+        "sha256": "91473aa713b864904a9d321bfc943a860715a9dedeefecfdd15c9c702687c88f"
+      }
+    },
+    {
       "candidateProblemKey": "artifact/design-3d/design-3d-glb-static-mesh-r1",
       "capabilityBinding": {
         "bindingKeys": [
@@ -1059,7 +1344,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_design3d.py",
-        "sha256": "83c8d00a670ea05f1e2afbcc0192738ce8812f63a37abd8a9155a30a2c757f13"
+        "sha256": "91473aa713b864904a9d321bfc943a860715a9dedeefecfdd15c9c702687c88f"
       }
     },
     {
@@ -2880,11 +3165,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "f505cfd219dd51bd708de9a5d91de90c71007a01e7a32665c4f76b85e54deeb9"
+      "sha256": "c48731eaab1360ffe77dd4bb2b410293ccfc9fe9cc0d86107a84fa5ccdd94cba"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "64884e27716fc1b0b1fcdff9882262ecb01de87fe8f467a738779faa8e005aa8"
+      "sha256": "155f20a9d694e42a2082aed1e165d9bd12343fa0cdcb09265db9ff9e5c0dcd9e"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
