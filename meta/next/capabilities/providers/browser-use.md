@@ -1,7 +1,17 @@
 # Provider: Browser Use
 
-Status: **PROTOTYPE-READY / USE WHEN AGENTIC BROWSER CONTROL IS REQUIRED**  
+Status: **AVAILABLE / PROTOTYPE-READY / USE WHEN AGENTIC BROWSER CONTROL IS REQUIRED**
 Role: agent-facing browser interaction provider built on browser/CDP primitives.
+
+## Observed local installation — 2026-09-14
+
+- Browser Use installed as an isolated `uv tool`, upgraded to `browser-use 0.13.10`;
+- Browser Use Skill installed for Codex at `~/.codex/skills/browser-use/SKILL.md`;
+- the same Skill is also available through the generic Agent Skills location `~/.agents/skills/browser-use/SKILL.md`;
+- local `PATH` already resolves `browser-use` from `~/.local/bin`;
+- Browser Use Python API was verified by launching an existing Playwright Chromium, creating a real browser page, and reading back the expected title/URL without an LLM or external website;
+- default Browser Use extension download was disabled for this smoke test because current network access stalled the optional uBlock Lite fetch; this does not block core BrowserSession/CDP operation;
+- the upstream `browser-use install` helper currently falls back to Ubuntu `apt-get` dependency installation on this Arch WSL host, so Ordivon should reuse existing Chromium/Playwright or another native browser instead of treating that helper as authoritative for this machine.
 
 ## One-sentence understanding
 
