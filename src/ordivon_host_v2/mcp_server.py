@@ -262,4 +262,26 @@ def build_server(dsn: str | None = None) -> MCPServer:
 
 
 def main() -> None:
-    build_server().run()
+    transport = os.environ.get("ORDIVON_HOST_V2_TRANSPORT", "stdio")
+    server = build_server()
+    if transport == "stdio":
+        server.run()
+        return
+    if transport != "streamable-http":
+        raise RuntimeError("ORDIVON_HOST_V2_TRANSPORT must be stdio or streamable-http")
+    host = os.environ.get("ORDIVON_HOST_V2_HOST", "127.0.0.1")
+    if host not in {"127.0.0.1", "::1", "localhost"}:
+        raise RuntimeError("Host v2 HTTP transport must remain loopback-bound")
+    port = int(os.environ.get("ORDIVON_HOST_V2_PORT", "8895"))
+    path = os.environ.get("ORDIVON_HOST_V2_PATH", "/mcp")
+    if not path.startswith("/"):
+        raise RuntimeError("ORDIVON_HOST_V2_PATH must start with /")
+    server.run(
+        transport="streamable-http",
+        host=host,
+        port=port,
+        streamable_http_path=path,
+        stateless_http=True,
+        json_response=True,
+        max_sessions=256,
+    )

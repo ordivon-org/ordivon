@@ -8,6 +8,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
+from .attention import build_attention_delta
 from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
@@ -59,7 +60,9 @@ class HostV2:
             tasks_by_state = {row["state"]: int(row["value"]) for row in state_rows}
             task_count = sum(tasks_by_state.values())
             terminal_count = tasks_by_state.get("completed", 0) + tasks_by_state.get("abandoned", 0)
-            event_count = int(conn.execute("SELECT count(*) AS value FROM task_events").fetchone()["value"])
+            event_count = int(
+                conn.execute("SELECT count(*) AS value FROM task_events").fetchone()["value"]
+            )
             board_row = conn.execute(
                 "SELECT count(*) AS messages,COALESCE(max(sequence),0) AS high FROM board_messages"
             ).fetchone()
@@ -108,13 +111,17 @@ class HostV2:
                         "OR e.checkpoint_digest<>t.current_checkpoint_digest"
                     ).fetchone()["value"]
                 )
-                add_check("task.current_event", current_event_bad == 0, f"invalid={current_event_bad}")
+                add_check(
+                    "task.current_event", current_event_bad == 0, f"invalid={current_event_bad}"
+                )
                 receipt_bad = int(
                     conn.execute(
                         "SELECT count(*) AS value FROM command_receipts WHERE response IS NULL"
                     ).fetchone()["value"]
                 )
-                add_check("command_receipts.complete", receipt_bad == 0, f"incomplete={receipt_bad}")
+                add_check(
+                    "command_receipts.complete", receipt_bad == 0, f"incomplete={receipt_bad}"
+                )
                 reply_bad = int(
                     conn.execute(
                         "SELECT count(*) AS value FROM board_messages c LEFT JOIN board_messages p "
@@ -510,7 +517,9 @@ class HostV2:
             task_id = position.get("taskId")
             if not isinstance(created_at, str) or not isinstance(task_id, str):
                 raise ValueError("task.list cursor position is invalid")
-            clauses.append("(t.created_at < %s::timestamptz OR (t.created_at = %s::timestamptz AND t.task_id < %s))")
+            clauses.append(
+                "(t.created_at < %s::timestamptz OR (t.created_at = %s::timestamptz AND t.task_id < %s))"
+            )
             params.extend([created_at, created_at, task_id])
         where = "WHERE " + " AND ".join(clauses) if clauses else ""
         params.append(limit + 1)
@@ -537,40 +546,7 @@ class HostV2:
             return tasks, has_more, next_cursor
 
     def attention_delta(self, *, after_sequence: int, limit: int = 100) -> dict[str, Any]:
-        if after_sequence < 0 or not 1 <= limit <= 500:
-            raise ValueError("invalid attention delta bounds")
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
-            rows = conn.execute(
-                "SELECT sequence,activity_kind,subject_id,task_revision,payload,created_at FROM activity_log "
-                "WHERE sequence>%s ORDER BY sequence ASC LIMIT %s",
-                (after_sequence, limit),
-            ).fetchall()
-            high_row = conn.execute(
-                "SELECT COALESCE(max(sequence),0) AS value FROM activity_log"
-            ).fetchone()
-            assert high_row is not None
-            high = int(high_row["value"])
-            next_after = int(rows[-1]["sequence"]) if rows else after_sequence
-            return {
-                "schemaVersion": 3,
-                "kind": "ordivon.host-attention-delta",
-                "requestedAfterSequence": after_sequence,
-                "events": [
-                    {
-                        "sequence": int(row["sequence"]),
-                        "activityKind": row["activity_kind"],
-                        "subjectId": row["subject_id"],
-                        "taskRevision": row["task_revision"],
-                        "payload": dict(row["payload"]),
-                        "createdAt": row["created_at"].isoformat(),
-                    }
-                    for row in rows
-                ],
-                "lastSequence": high,
-                "nextAfterSequence": next_after,
-                "hasMore": next_after < high,
-                "truthBoundary": "change navigation only; not priority, assignment, ownership, or domain truth",
-            }
+        return build_attention_delta(self.dsn, after_sequence=after_sequence, limit=limit)
 
     def _resume_in_tx(
         self, conn: psycopg.Connection[dict[str, Any]], task_id: str, revision: int | None

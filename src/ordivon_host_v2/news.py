@@ -18,6 +18,10 @@ def _now_ms() -> int:
     return time.time_ns() // 1_000_000
 
 
+def news_edition_digest(edition: dict[str, Any]) -> str:
+    return canonical_digest({"schemaVersion": 1, "kind": "host-news-edition", "payload": edition})
+
+
 class NewsStore:
     def __init__(self, dsn: str) -> None:
         self.dsn = dsn
@@ -41,7 +45,7 @@ class NewsStore:
         edition_date = edition.get("editionDate")
         if not isinstance(edition_date, str) or _DATE_RE.fullmatch(edition_date) is None:
             raise ValueError("editionDate must use YYYY-MM-DD")
-        digest = canonical_digest(edition)
+        digest = news_edition_digest(edition)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             existing = conn.execute(
                 "SELECT * FROM news_publications WHERE client_publish_id=%s FOR UPDATE",
@@ -149,8 +153,15 @@ class NewsStore:
         from_date: str | None = None,
         to_date: str | None = None,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 100:
+        if type(limit) is not int or not 1 <= limit <= 100:
             raise ValueError("limit must be in [1,100]")
+        for label, value in (("fromDate", from_date), ("toDate", to_date)):
+            if value is not None and (
+                not isinstance(value, str) or _DATE_RE.fullmatch(value) is None
+            ):
+                raise ValueError(f"{label} must use YYYY-MM-DD")
+        if from_date is not None and to_date is not None and from_date > to_date:
+            raise ValueError("fromDate must be <= toDate")
         scope = {"fromDate": from_date, "toDate": to_date}
         clauses, params = [], []
         if from_date is not None:
@@ -165,7 +176,12 @@ class NewsStore:
             edition_id = position.get("editionId")
             revision = position.get("revision")
             sequence = position.get("sequence")
-            if not isinstance(edition_date, str) or not isinstance(edition_id, str) or not isinstance(revision, int) or not isinstance(sequence, int):
+            if (
+                not isinstance(edition_date, str)
+                or not isinstance(edition_id, str)
+                or not isinstance(revision, int)
+                or not isinstance(sequence, int)
+            ):
                 raise ValueError("news.list cursor position is invalid")
             clauses.append("(edition_date,edition_id,revision,sequence) < (%s,%s,%s,%s)")
             params.extend([edition_date, edition_id, revision, sequence])

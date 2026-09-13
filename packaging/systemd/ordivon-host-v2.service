@@ -1,0 +1,38 @@
+[Unit]
+Description=Ordivon Host v2 semantic continuity MCP
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/ordivon/host-v2/current
+EnvironmentFile=/etc/ordivon/host-v2.env
+ExecStartPre=/opt/ordivon/host-v2/venv/bin/python -c 'from ordivon_host_v2 import HostV2; import os; HostV2(os.environ["ORDIVON_HOST_V2_DSN"]).initialize()'
+ExecStart=/opt/ordivon/host-v2/venv/bin/ordivon-host-v2-mcp
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

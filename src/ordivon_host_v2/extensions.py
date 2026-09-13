@@ -29,17 +29,27 @@ class ExtensionStore:
                 raise TaskNotFound(task_id)
             if int(task["revision"]) != expected_task_revision:
                 raise ConflictError("extension task revision is stale")
-            conn.execute(
-                "INSERT INTO extension_history(task_id,namespace,task_revision,payload_digest,payload) VALUES (%s,%s,%s,%s,%s::jsonb) "
-                "ON CONFLICT (task_id,namespace,task_revision) DO UPDATE SET payload_digest=EXCLUDED.payload_digest,payload=EXCLUDED.payload",
-                (
-                    task_id,
-                    namespace,
-                    expected_task_revision,
-                    digest,
-                    psycopg.types.json.Jsonb(payload),
-                ),
-            )
+            existing = conn.execute(
+                "SELECT payload_digest FROM extension_history "
+                "WHERE task_id=%s AND namespace=%s AND task_revision=%s",
+                (task_id, namespace, expected_task_revision),
+            ).fetchone()
+            if existing is not None and existing["payload_digest"] != digest:
+                raise ConflictError(
+                    "extension history at this task revision is already bound to different content"
+                )
+            if existing is None:
+                conn.execute(
+                    "INSERT INTO extension_history(task_id,namespace,task_revision,payload_digest,payload) "
+                    "VALUES (%s,%s,%s,%s,%s::jsonb)",
+                    (
+                        task_id,
+                        namespace,
+                        expected_task_revision,
+                        digest,
+                        psycopg.types.json.Jsonb(payload),
+                    ),
+                )
             conn.execute(
                 "INSERT INTO extension_states(task_id,namespace,task_revision,payload_digest,payload) VALUES (%s,%s,%s,%s,%s::jsonb) "
                 "ON CONFLICT (task_id,namespace) DO UPDATE SET task_revision=EXCLUDED.task_revision,payload_digest=EXCLUDED.payload_digest,payload=EXCLUDED.payload,updated_at=clock_timestamp()",

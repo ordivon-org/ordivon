@@ -11,16 +11,26 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
+def _database_url() -> str:
+    explicit = os.environ.get("ORDIVON_HOST_V2_SQLALCHEMY_URL")
+    if explicit:
+        return explicit
+    dsn = os.environ.get("ORDIVON_HOST_V2_DSN")
+    if not dsn:
+        raise RuntimeError("set ORDIVON_HOST_V2_DSN (or ORDIVON_HOST_V2_SQLALCHEMY_URL)")
+    if dsn.startswith("postgresql://"):
+        return "postgresql+psycopg://" + dsn.removeprefix("postgresql://")
+    return dsn
+
+
 def run_migrations_offline() -> None:
-    context.configure(url=os.environ["ORDIVON_HOST_V2_SQLALCHEMY_URL"], literal_binds=True)
+    context.configure(url=_database_url(), literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(
-        os.environ["ORDIVON_HOST_V2_SQLALCHEMY_URL"], poolclass=pool.NullPool
-    )
+    engine = create_engine(_database_url(), poolclass=pool.NullPool)
     with engine.connect() as connection:
         context.configure(connection=connection)
         with context.begin_transaction():
