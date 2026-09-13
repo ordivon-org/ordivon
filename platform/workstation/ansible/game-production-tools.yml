@@ -1,0 +1,20 @@
+---
+- name: Game production tooling substrate
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    game_production_packages:
+      - tiled
+      - renderdoc
+  tasks:
+    - name: Install mature packaged Game production tools
+      community.general.pacman:
+        name: "{{ game_production_packages }}"
+        state: present
+
+# Operations owns only node-local package realization.
+# Game owns domain selection, semantics and acceptance; the compatibility
+# equipment-binding contract projects exact executable identity to consumers.
+# No service lifecycle, editor configuration, project generation or release
+# semantics are owned by this playbook.
