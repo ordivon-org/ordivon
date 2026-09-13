@@ -96,7 +96,6 @@
     jobs = 4
     idiomatic_version_file_enable_tools = ["node", "pnpm"]
     trusted_config_paths = [
-      "/root/projects/ordivon-computing",
       "/root/projects/ordivon-game",
       "/root/projects/ordivon-media",
       "/root/projects/ordivon-web",
