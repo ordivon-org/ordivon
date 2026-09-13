@@ -315,7 +315,7 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 ## Project family
 
 - [Public project directory](https://ordivon.com/projects) — current product, v3 preview status, project role, and next steps.
-- [Cross-project map](https://github.com/zycxfyh/ordivon-computing/blob/main/projects/README.md) — stable roles, repository links, and authority entry points for the current project family.
+- Current project-family migration/classification is maintained in Ordivon Next; use the public project directory above and owner-native repositories for current authority.
 - Related owners: concrete games own their product semantics; Runtime owns generic Agent execution, Temporal owns durable workflow execution, mature engines/platforms own engine mechanics, Operations owns observability, Artifact/Engineering own build/provenance mechanics, and Distribution owns release/distribution mechanics. Big Game does not duplicate those owners.
 
 ## License
