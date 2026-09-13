@@ -1,0 +1,5433 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-design-space.r1",
+  "observedDate": "2026-09-14",
+  "standing": "WORKING_EXTERNAL_CROSSWALK_NOT_UNIVERSAL_ONTOLOGY",
+  "principles": [
+    "Keep market genre/category separate from mechanics, rules, goals, dynamics and player-value lenses.",
+    "Prefer external vocabularies and preserve source authority; Ordivon Next owns only the crosswalk and local evidence links.",
+    "A game may legitimately carry multiple genre/feature/activity labels even when a market-analysis taxonomy chooses one primary category.",
+    "Design search operates on mechanism graphs and couplings, not on selecting a genre first.",
+    "Mechanism composition predicts dynamics; Human play/evidence decides whether the intended experience actually occurs.",
+    "Do not treat this catalog as exhaustive. New externally grounded mechanisms extend it without forcing a global reclassification.",
+    "A normalized design element may belong to multiple mechanism families; family membership is faceted, not exclusive."
+  ],
+  "sources": [
+    {
+      "id": "steam-tags",
+      "name": "Valve Steam Tags / Tag Wizard",
+      "kind": "platform-market-taxonomy",
+      "url": "https://partner.steamgames.com/doc/store/tags",
+      "use": "genre/subgenre, features, mechanics, player activities, player count, presentation crosswalk"
+    },
+    {
+      "id": "apple-categories",
+      "name": "Apple App Store Categories",
+      "kind": "platform-market-taxonomy",
+      "url": "https://developer.apple.com/app-store/categories/",
+      "use": "consumer-facing game categories"
+    },
+    {
+      "id": "google-play-categories",
+      "name": "Google Play game categories",
+      "kind": "platform-market-taxonomy",
+      "url": "https://support.google.com/googleplay/android-developer/answer/9859673",
+      "use": "consumer-facing mobile game categories"
+    },
+    {
+      "id": "microsoft-store-genres",
+      "name": "Microsoft Store game genres",
+      "kind": "platform-market-taxonomy",
+      "url": "https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/categories-and-subcategories",
+      "use": "consumer-facing game genres"
+    },
+    {
+      "id": "game-ontology-project",
+      "name": "Game Ontology Project",
+      "kind": "research-ontology",
+      "url": "https://gameontology.com/",
+      "use": "structural elements and relationships; Interface / Rules / Entity Manipulation / Goals"
+    },
+    {
+      "id": "sicart-mechanics",
+      "name": "Miguel Sicart — Defining Game Mechanics",
+      "kind": "peer-reviewed-game-studies",
+      "url": "https://gamestudies.org/0802/articles/sicart",
+      "use": "mechanics as agent-invoked methods for interaction with game state; mechanics vs rules"
+    },
+    {
+      "id": "mda",
+      "name": "Hunicke, LeBlanc, Zubek — MDA",
+      "kind": "research-design-framework",
+      "url": "https://www.cs.northwestern.edu/~hunicke/MDA.pdf",
+      "use": "Mechanics -> Dynamics -> Aesthetics and iterative design"
+    },
+    {
+      "id": "bjork-patterns",
+      "name": "Björk / Lundgren / Holopainen — Game Design Patterns",
+      "kind": "research-pattern-language",
+      "url": "https://dl.digra.org/index.php/dl/article/view/60",
+      "use": "recurrent gameplay interaction patterns and pattern relations"
+    },
+    {
+      "id": "gameplay-patterns",
+      "name": "Gameplay Design Patterns collection",
+      "kind": "research-pattern-catalog",
+      "url": "https://virt10.itu.chalmers.se/index.php/Main_Page",
+      "use": "extensible pattern vocabulary and relations"
+    },
+    {
+      "id": "machinations",
+      "name": "Machinations Framework",
+      "kind": "systems-modeling-framework",
+      "url": "https://machinations.io/docs/framework-basics",
+      "use": "resource economy primitives: Source, Pool, Drain, Converter, Trader, Gate; resource/state connections"
+    },
+    {
+      "id": "dormans-machinations",
+      "name": "Dormans — Simulating Mechanics to Study Emergence in Games",
+      "kind": "peer-reviewed-game-ai-design",
+      "url": "https://ojs.aaai.org/index.php/AIIDE/article/view/12477",
+      "use": "resource-flow mechanics and emergent gameplay modeling"
+    },
+    {
+      "id": "bgg-mechanics",
+      "name": "BoardGameGeek Mechanics",
+      "kind": "industry-community-taxonomy",
+      "url": "https://boardgamegeek.com/browse/boardgamemechanic",
+      "use": "broad mature mechanism vocabulary, especially action selection/social/economy/turn structures"
+    },
+    {
+      "id": "gamerefinery",
+      "name": "GameRefinery genre / feature taxonomy",
+      "kind": "industry-market-taxonomy",
+      "url": "https://docs.gamerefinery.com/en/articles/2278730-what-are-categories-genres-and-subgenres",
+      "use": "category -> genre -> subgenre plus core/meta/defining-mechanics distinction for market research"
+    },
+    {
+      "id": "quantic-foundry",
+      "name": "Quantic Foundry Gamer Motivation Model",
+      "kind": "empirical-player-motivation-model",
+      "url": "https://quanticfoundry.com/2015/07/20/how-we-developed-the-gamer-motivation-profile-v2/",
+      "use": "player motivation lens; not a mechanism taxonomy"
+    },
+    {
+      "id": "xag",
+      "name": "Xbox Accessibility Guidelines",
+      "kind": "industry-accessibility-guidance",
+      "url": "https://learn.microsoft.com/en-us/xbox/accessibility/guidelines",
+      "use": "cross-cutting accessibility and per-mechanic difficulty/input tuning"
+    }
+  ],
+  "marketCategoryFamilies": [
+    {
+      "id": "action",
+      "label": "Action",
+      "examples": [
+        "action-adventure",
+        "character-action",
+        "beat-em-up",
+        "hack-and-slash"
+      ]
+    },
+    {
+      "id": "adventure",
+      "label": "Adventure",
+      "examples": [
+        "exploration",
+        "point-and-click",
+        "walking-sim",
+        "action-adventure"
+      ]
+    },
+    {
+      "id": "arcade",
+      "label": "Arcade",
+      "examples": [
+        "score-attack",
+        "reflex",
+        "classic-arcade"
+      ]
+    },
+    {
+      "id": "platformer",
+      "label": "Platformer",
+      "examples": [
+        "2d-platformer",
+        "3d-platformer",
+        "precision-platformer",
+        "metroidvania"
+      ]
+    },
+    {
+      "id": "shooter",
+      "label": "Shooter",
+      "examples": [
+        "fps",
+        "tps",
+        "arena-shooter",
+        "hero-shooter",
+        "twin-stick",
+        "bullet-hell"
+      ]
+    },
+    {
+      "id": "fighting",
+      "label": "Fighting / Brawler",
+      "examples": [
+        "2d-fighter",
+        "3d-fighter",
+        "platform-fighter",
+        "beat-em-up"
+      ]
+    },
+    {
+      "id": "rpg",
+      "label": "Role-Playing",
+      "examples": [
+        "crpg",
+        "jrpg",
+        "action-rpg",
+        "party-rpg",
+        "tactical-rpg",
+        "mmorpg"
+      ]
+    },
+    {
+      "id": "strategy",
+      "label": "Strategy",
+      "examples": [
+        "rts",
+        "turn-based-strategy",
+        "4x",
+        "grand-strategy",
+        "auto-battler"
+      ]
+    },
+    {
+      "id": "tactics",
+      "label": "Tactics",
+      "examples": [
+        "turn-based-tactics",
+        "real-time-tactics",
+        "tactical-rpg"
+      ]
+    },
+    {
+      "id": "simulation",
+      "label": "Simulation",
+      "examples": [
+        "life-sim",
+        "vehicle-sim",
+        "space-sim",
+        "god-game",
+        "political-sim"
+      ]
+    },
+    {
+      "id": "management",
+      "label": "Management / Builder",
+      "examples": [
+        "city-builder",
+        "colony-sim",
+        "base-building",
+        "farm-sim",
+        "tycoon"
+      ]
+    },
+    {
+      "id": "automation",
+      "label": "Automation / Factory",
+      "examples": [
+        "factory-automation",
+        "programming",
+        "logistics"
+      ]
+    },
+    {
+      "id": "survival",
+      "label": "Survival",
+      "examples": [
+        "survival-crafting",
+        "survival-horror",
+        "open-world-survival-craft"
+      ]
+    },
+    {
+      "id": "sandbox",
+      "label": "Sandbox / Creative",
+      "examples": [
+        "construction-sandbox",
+        "ugc",
+        "god-game",
+        "open-world-sandbox"
+      ]
+    },
+    {
+      "id": "roguelike",
+      "label": "Roguelike / Run-Based",
+      "examples": [
+        "traditional-roguelike",
+        "roguelite",
+        "action-roguelike",
+        "roguevania"
+      ]
+    },
+    {
+      "id": "card-deck",
+      "label": "Card / Deck",
+      "examples": [
+        "card-battler",
+        "deckbuilder",
+        "tcg",
+        "solitaire"
+      ]
+    },
+    {
+      "id": "board-tabletop",
+      "label": "Board / Tabletop",
+      "examples": [
+        "board-game",
+        "chess",
+        "tabletop-simulation"
+      ]
+    },
+    {
+      "id": "puzzle",
+      "label": "Puzzle",
+      "examples": [
+        "logic",
+        "sokoban",
+        "match-3",
+        "hidden-object",
+        "puzzle-adventure"
+      ]
+    },
+    {
+      "id": "narrative",
+      "label": "Narrative / Interactive Fiction",
+      "examples": [
+        "visual-novel",
+        "interactive-fiction",
+        "choose-your-own-adventure",
+        "narrative-adventure"
+      ]
+    },
+    {
+      "id": "investigation",
+      "label": "Investigation / Mystery",
+      "examples": [
+        "deduction",
+        "detective",
+        "causal-reconstruction"
+      ]
+    },
+    {
+      "id": "stealth-immersive",
+      "label": "Stealth / Immersive Sim",
+      "examples": [
+        "stealth",
+        "immersive-sim",
+        "infiltration"
+      ]
+    },
+    {
+      "id": "racing",
+      "label": "Racing / Driving",
+      "examples": [
+        "arcade-racing",
+        "sim-racing",
+        "combat-racing"
+      ]
+    },
+    {
+      "id": "sports",
+      "label": "Sports",
+      "examples": [
+        "football",
+        "basketball",
+        "golf",
+        "tennis",
+        "extreme-sports"
+      ]
+    },
+    {
+      "id": "rhythm-music",
+      "label": "Rhythm / Music",
+      "examples": [
+        "rhythm",
+        "music-performance"
+      ]
+    },
+    {
+      "id": "social-party",
+      "label": "Social / Party",
+      "examples": [
+        "social-deduction",
+        "party-game",
+        "co-op-coordination"
+      ]
+    },
+    {
+      "id": "idle-incremental",
+      "label": "Idle / Incremental",
+      "examples": [
+        "idler",
+        "clicker",
+        "incremental-optimizer"
+      ]
+    },
+    {
+      "id": "educational-word-trivia",
+      "label": "Educational / Word / Trivia",
+      "examples": [
+        "educational",
+        "word",
+        "typing",
+        "trivia"
+      ]
+    },
+    {
+      "id": "casino",
+      "label": "Casino",
+      "examples": [
+        "slots",
+        "poker-like",
+        "casino-simulation"
+      ],
+      "note": "market category only; not a design recommendation"
+    },
+    {
+      "id": "experimental",
+      "label": "Experimental",
+      "examples": [
+        "unusual-interface",
+        "novel-rule-form",
+        "experience"
+      ]
+    }
+  ],
+  "structuralAxes": {
+    "time_model": [
+      "real-time",
+      "turn-based",
+      "simultaneous-turn",
+      "real-time-with-pause",
+      "tick-based",
+      "asynchronous"
+    ],
+    "session_model": [
+      "micro-session",
+      "round/match",
+      "run",
+      "scenario/mission",
+      "campaign",
+      "persistent-world",
+      "endless"
+    ],
+    "social_model": [
+      "solo",
+      "local-multiplayer",
+      "online-multiplayer",
+      "co-op",
+      "competitive",
+      "team-v-team",
+      "asymmetric",
+      "massively-multiplayer",
+      "social-observation"
+    ],
+    "world_topology": [
+      "linear",
+      "branching",
+      "hub",
+      "level-based",
+      "grid",
+      "node-graph",
+      "open-world",
+      "sandbox",
+      "procedural-space",
+      "persistent-world"
+    ],
+    "information_model": [
+      "perfect-information",
+      "hidden-information",
+      "partial-observation",
+      "asymmetric-information",
+      "fog-of-war",
+      "uncertain/probabilistic",
+      "deceptive/social-information"
+    ],
+    "control_model": [
+      "direct-avatar",
+      "direct-units",
+      "cursor/system-control",
+      "command/delegation",
+      "programmed-actions",
+      "dialogue/language",
+      "construction/editor",
+      "indirect-influence"
+    ],
+    "progression_horizon": [
+      "none",
+      "within-session",
+      "run-based",
+      "campaign",
+      "account/meta",
+      "persistent-world"
+    ],
+    "content_source": [
+      "authored",
+      "systemic",
+      "procedural",
+      "player-generated",
+      "community-generated",
+      "mixed"
+    ],
+    "failure_model": [
+      "instant-retry",
+      "checkpoint",
+      "lives",
+      "run-reset",
+      "persistent-loss",
+      "permadeath",
+      "soft-failure/recovery"
+    ],
+    "presentation_input": [
+      "2d",
+      "2.5d",
+      "3d",
+      "text",
+      "first-person",
+      "third-person",
+      "top-down",
+      "isometric",
+      "side-view",
+      "controller",
+      "keyboard-mouse",
+      "touch",
+      "voice",
+      "motion/vr"
+    ]
+  },
+  "mechanismFamilies": [
+    {
+      "id": "agency_verbs",
+      "label": "Player/agent actions",
+      "basis": "Sicart; Steam feature/activity tags; GOP entity manipulation",
+      "members": [
+        {
+          "id": "move",
+          "label": "move"
+        },
+        {
+          "id": "jump",
+          "label": "jump"
+        },
+        {
+          "id": "dash",
+          "label": "dash"
+        },
+        {
+          "id": "climb",
+          "label": "climb"
+        },
+        {
+          "id": "swim",
+          "label": "swim"
+        },
+        {
+          "id": "fly",
+          "label": "fly"
+        },
+        {
+          "id": "drive",
+          "label": "drive"
+        },
+        {
+          "id": "steer",
+          "label": "steer"
+        },
+        {
+          "id": "aim",
+          "label": "aim"
+        },
+        {
+          "id": "shoot",
+          "label": "shoot"
+        },
+        {
+          "id": "strike",
+          "label": "strike"
+        },
+        {
+          "id": "block",
+          "label": "block"
+        },
+        {
+          "id": "parry",
+          "label": "parry"
+        },
+        {
+          "id": "dodge",
+          "label": "dodge"
+        },
+        {
+          "id": "grab",
+          "label": "grab"
+        },
+        {
+          "id": "throw",
+          "label": "throw"
+        },
+        {
+          "id": "push-pull",
+          "label": "push/pull"
+        },
+        {
+          "id": "interact-use",
+          "label": "interact/use"
+        },
+        {
+          "id": "collect",
+          "label": "collect"
+        },
+        {
+          "id": "place",
+          "label": "place"
+        },
+        {
+          "id": "build",
+          "label": "build"
+        },
+        {
+          "id": "destroy",
+          "label": "destroy"
+        },
+        {
+          "id": "craft",
+          "label": "craft"
+        },
+        {
+          "id": "equip",
+          "label": "equip"
+        },
+        {
+          "id": "switch",
+          "label": "switch"
+        },
+        {
+          "id": "inspect",
+          "label": "inspect"
+        },
+        {
+          "id": "scan",
+          "label": "scan"
+        },
+        {
+          "id": "hide",
+          "label": "hide"
+        },
+        {
+          "id": "sneak",
+          "label": "sneak"
+        },
+        {
+          "id": "hack-program",
+          "label": "hack/program"
+        },
+        {
+          "id": "command",
+          "label": "command"
+        },
+        {
+          "id": "delegate",
+          "label": "delegate"
+        },
+        {
+          "id": "select-choose",
+          "label": "select/choose"
+        },
+        {
+          "id": "dialogue",
+          "label": "dialogue"
+        },
+        {
+          "id": "trade",
+          "label": "trade"
+        },
+        {
+          "id": "negotiate",
+          "label": "negotiate"
+        },
+        {
+          "id": "vote",
+          "label": "vote"
+        },
+        {
+          "id": "signal-communicate",
+          "label": "signal/communicate"
+        },
+        {
+          "id": "draw-play-card",
+          "label": "draw/play-card"
+        },
+        {
+          "id": "draft",
+          "label": "draft"
+        },
+        {
+          "id": "bid",
+          "label": "bid"
+        },
+        {
+          "id": "bet-wager",
+          "label": "bet/wager"
+        },
+        {
+          "id": "create-edit",
+          "label": "create/edit"
+        },
+        {
+          "id": "save-share",
+          "label": "save/share"
+        }
+      ]
+    },
+    {
+      "id": "space_topology_position",
+      "label": "Space, topology and position",
+      "basis": "Game Ontology Project; BGG mechanisms; gameplay design patterns",
+      "members": [
+        {
+          "id": "grid-movement",
+          "label": "grid-movement"
+        },
+        {
+          "id": "hex-movement",
+          "label": "hex-movement"
+        },
+        {
+          "id": "point-to-point-movement",
+          "label": "point-to-point-movement"
+        },
+        {
+          "id": "area-movement",
+          "label": "area-movement"
+        },
+        {
+          "id": "free-continuous-movement",
+          "label": "free-continuous-movement"
+        },
+        {
+          "id": "relative-movement",
+          "label": "relative-movement"
+        },
+        {
+          "id": "zone-of-control",
+          "label": "zone-of-control"
+        },
+        {
+          "id": "line-of-sight",
+          "label": "line-of-sight"
+        },
+        {
+          "id": "cover",
+          "label": "cover"
+        },
+        {
+          "id": "facing",
+          "label": "facing"
+        },
+        {
+          "id": "range",
+          "label": "range"
+        },
+        {
+          "id": "adjacency",
+          "label": "adjacency"
+        },
+        {
+          "id": "pathfinding",
+          "label": "pathfinding"
+        },
+        {
+          "id": "route-network-building",
+          "label": "route/network-building"
+        },
+        {
+          "id": "territory-control",
+          "label": "territory-control"
+        },
+        {
+          "id": "area-majority-influence",
+          "label": "area-majority/influence"
+        },
+        {
+          "id": "enclosure",
+          "label": "enclosure"
+        },
+        {
+          "id": "spatial-blocking",
+          "label": "spatial-blocking"
+        },
+        {
+          "id": "teleport-portal",
+          "label": "teleport/portal"
+        },
+        {
+          "id": "verticality",
+          "label": "verticality"
+        },
+        {
+          "id": "landmarks",
+          "label": "landmarks"
+        },
+        {
+          "id": "hidden-movement",
+          "label": "hidden-movement"
+        },
+        {
+          "id": "secret-deployment",
+          "label": "secret-deployment"
+        },
+        {
+          "id": "environmental-destruction",
+          "label": "environmental-destruction"
+        },
+        {
+          "id": "physics-spatial-manipulation",
+          "label": "physics-spatial-manipulation"
+        }
+      ]
+    },
+    {
+      "id": "time_turn_scheduling",
+      "label": "Time, turn and action scheduling",
+      "basis": "BGG mechanisms; Steam real-time/turn-based tags; gameplay design patterns",
+      "members": [
+        {
+          "id": "turn-taking",
+          "label": "turn-taking"
+        },
+        {
+          "id": "initiative",
+          "label": "initiative"
+        },
+        {
+          "id": "simultaneous-action-selection",
+          "label": "simultaneous-action-selection"
+        },
+        {
+          "id": "simultaneous-resolution",
+          "label": "simultaneous-resolution"
+        },
+        {
+          "id": "real-time",
+          "label": "real-time"
+        },
+        {
+          "id": "real-time-with-pause",
+          "label": "real-time-with-pause"
+        },
+        {
+          "id": "action-points",
+          "label": "action-points"
+        },
+        {
+          "id": "action-queue",
+          "label": "action-queue"
+        },
+        {
+          "id": "programmed-movement",
+          "label": "programmed-movement"
+        },
+        {
+          "id": "command-queue",
+          "label": "command-queue"
+        },
+        {
+          "id": "cooldowns",
+          "label": "cooldowns"
+        },
+        {
+          "id": "wind-up-startup",
+          "label": "wind-up/startup"
+        },
+        {
+          "id": "recovery-window",
+          "label": "recovery-window"
+        },
+        {
+          "id": "timing-window",
+          "label": "timing-window"
+        },
+        {
+          "id": "reaction-interrupt",
+          "label": "reaction/interrupt"
+        },
+        {
+          "id": "deadline-time-limit",
+          "label": "deadline/time-limit"
+        },
+        {
+          "id": "delays-queues",
+          "label": "delays/queues"
+        },
+        {
+          "id": "tick-step",
+          "label": "tick/step"
+        },
+        {
+          "id": "speed-tempo",
+          "label": "speed/tempo"
+        },
+        {
+          "id": "bullet-time-slow-time",
+          "label": "bullet-time/slow-time"
+        },
+        {
+          "id": "time-rewind",
+          "label": "time-rewind"
+        },
+        {
+          "id": "time-loop",
+          "label": "time-loop"
+        },
+        {
+          "id": "phase-order",
+          "label": "phase-order"
+        },
+        {
+          "id": "variable-turn-order",
+          "label": "variable-turn-order"
+        }
+      ]
+    },
+    {
+      "id": "information_uncertainty",
+      "label": "Information, uncertainty and knowledge",
+      "basis": "Game Ontology Project; Björk patterns; BGG mechanisms",
+      "members": [
+        {
+          "id": "perfect-information",
+          "label": "perfect-information"
+        },
+        {
+          "id": "hidden-information",
+          "label": "hidden-information"
+        },
+        {
+          "id": "partial-observation",
+          "label": "partial-observation"
+        },
+        {
+          "id": "asymmetric-information",
+          "label": "asymmetric-information"
+        },
+        {
+          "id": "fog-of-war",
+          "label": "fog-of-war"
+        },
+        {
+          "id": "clues-evidence",
+          "label": "clues/evidence"
+        },
+        {
+          "id": "deduction",
+          "label": "deduction"
+        },
+        {
+          "id": "pattern-recognition",
+          "label": "pattern-recognition"
+        },
+        {
+          "id": "telegraphing",
+          "label": "telegraphing"
+        },
+        {
+          "id": "prediction-preview",
+          "label": "prediction/preview"
+        },
+        {
+          "id": "last-known-state",
+          "label": "last-known-state"
+        },
+        {
+          "id": "information-age-staleness",
+          "label": "information-age/staleness"
+        },
+        {
+          "id": "provenance-source",
+          "label": "provenance/source"
+        },
+        {
+          "id": "inspection-cost",
+          "label": "inspection-cost"
+        },
+        {
+          "id": "information-scarcity",
+          "label": "information-scarcity"
+        },
+        {
+          "id": "reveal",
+          "label": "reveal"
+        },
+        {
+          "id": "secret-role",
+          "label": "secret-role"
+        },
+        {
+          "id": "secret-objective",
+          "label": "secret-objective"
+        },
+        {
+          "id": "bluffing",
+          "label": "bluffing"
+        },
+        {
+          "id": "deception",
+          "label": "deception"
+        },
+        {
+          "id": "targeted-clues",
+          "label": "targeted-clues"
+        },
+        {
+          "id": "communication-limits",
+          "label": "communication-limits"
+        },
+        {
+          "id": "memory-knowledge-persistence",
+          "label": "memory/knowledge-persistence"
+        },
+        {
+          "id": "random-unknown-outcome",
+          "label": "random-unknown-outcome"
+        },
+        {
+          "id": "unknown-rule-discovery",
+          "label": "unknown-rule/discovery"
+        }
+      ]
+    },
+    {
+      "id": "goals_challenges",
+      "label": "Goals and challenge structures",
+      "basis": "Game Ontology Project Goals; Björk goal patterns; BGG",
+      "members": [
+        {
+          "id": "required-goal",
+          "label": "required-goal"
+        },
+        {
+          "id": "optional-goal",
+          "label": "optional-goal"
+        },
+        {
+          "id": "self-authored-goal",
+          "label": "self-authored-goal"
+        },
+        {
+          "id": "score-high-score",
+          "label": "score/high-score"
+        },
+        {
+          "id": "race",
+          "label": "race"
+        },
+        {
+          "id": "survive",
+          "label": "survive"
+        },
+        {
+          "id": "eliminate",
+          "label": "eliminate"
+        },
+        {
+          "id": "capture-control",
+          "label": "capture/control"
+        },
+        {
+          "id": "defend",
+          "label": "defend"
+        },
+        {
+          "id": "escort-protect",
+          "label": "escort/protect"
+        },
+        {
+          "id": "deliver-pick-up-and-deliver",
+          "label": "deliver/pick-up-and-deliver"
+        },
+        {
+          "id": "collect-set-collection",
+          "label": "collect/set-collection"
+        },
+        {
+          "id": "construct",
+          "label": "construct"
+        },
+        {
+          "id": "optimize",
+          "label": "optimize"
+        },
+        {
+          "id": "solve-puzzle",
+          "label": "solve-puzzle"
+        },
+        {
+          "id": "discover",
+          "label": "discover"
+        },
+        {
+          "id": "escape",
+          "label": "escape"
+        },
+        {
+          "id": "infiltrate",
+          "label": "infiltrate"
+        },
+        {
+          "id": "boss-challenge",
+          "label": "boss-challenge"
+        },
+        {
+          "id": "mission-scenario",
+          "label": "mission/scenario"
+        },
+        {
+          "id": "contract-task",
+          "label": "contract/task"
+        },
+        {
+          "id": "multi-objective-tradeoff",
+          "label": "multi-objective-tradeoff"
+        },
+        {
+          "id": "end-condition",
+          "label": "end-condition"
+        },
+        {
+          "id": "sudden-death",
+          "label": "sudden-death"
+        },
+        {
+          "id": "completion-collectionism",
+          "label": "completion/collectionism"
+        }
+      ]
+    },
+    {
+      "id": "resources_economy",
+      "label": "Resources and economy",
+      "basis": "Machinations; Dormans; Björk resource-management patterns; BGG",
+      "members": [
+        {
+          "id": "resource-source",
+          "label": "resource-source"
+        },
+        {
+          "id": "resource-pool-storage",
+          "label": "resource-pool/storage"
+        },
+        {
+          "id": "resource-drain-sink",
+          "label": "resource-drain/sink"
+        },
+        {
+          "id": "resource-converter",
+          "label": "resource-converter"
+        },
+        {
+          "id": "resource-trader-exchange",
+          "label": "resource-trader/exchange"
+        },
+        {
+          "id": "resource-gate-distribution",
+          "label": "resource-gate/distribution"
+        },
+        {
+          "id": "resource-flow",
+          "label": "resource-flow"
+        },
+        {
+          "id": "state-modifier",
+          "label": "state-modifier"
+        },
+        {
+          "id": "capacity-limit",
+          "label": "capacity-limit"
+        },
+        {
+          "id": "inventory",
+          "label": "inventory"
+        },
+        {
+          "id": "queue-backlog",
+          "label": "queue/backlog"
+        },
+        {
+          "id": "scarcity",
+          "label": "scarcity"
+        },
+        {
+          "id": "upkeep-maintenance",
+          "label": "upkeep/maintenance"
+        },
+        {
+          "id": "production-rate",
+          "label": "production-rate"
+        },
+        {
+          "id": "consumption-rate",
+          "label": "consumption-rate"
+        },
+        {
+          "id": "currency",
+          "label": "currency"
+        },
+        {
+          "id": "health-stamina",
+          "label": "health/stamina"
+        },
+        {
+          "id": "ammo",
+          "label": "ammo"
+        },
+        {
+          "id": "energy-mana",
+          "label": "energy/mana"
+        },
+        {
+          "id": "time-as-resource",
+          "label": "time-as-resource"
+        },
+        {
+          "id": "workers-actions-as-resource",
+          "label": "workers/actions-as-resource"
+        },
+        {
+          "id": "market-price",
+          "label": "market/price"
+        },
+        {
+          "id": "trading",
+          "label": "trading"
+        },
+        {
+          "id": "auction-bidding",
+          "label": "auction/bidding"
+        },
+        {
+          "id": "commodity-speculation",
+          "label": "commodity-speculation"
+        },
+        {
+          "id": "closed-economy",
+          "label": "closed-economy"
+        },
+        {
+          "id": "automatic-resource-growth",
+          "label": "automatic-resource-growth"
+        },
+        {
+          "id": "interest-compounding",
+          "label": "interest/compounding"
+        }
+      ]
+    },
+    {
+      "id": "production_transformation_logistics",
+      "label": "Production, transformation and logistics",
+      "basis": "Machinations; Steam automation/resource-management features; systems-design synthesis",
+      "members": [
+        {
+          "id": "crafting-recipe",
+          "label": "crafting-recipe"
+        },
+        {
+          "id": "processing-chain",
+          "label": "processing-chain"
+        },
+        {
+          "id": "transport",
+          "label": "transport"
+        },
+        {
+          "id": "routing",
+          "label": "routing"
+        },
+        {
+          "id": "network-flow",
+          "label": "network-flow"
+        },
+        {
+          "id": "bottleneck",
+          "label": "bottleneck"
+        },
+        {
+          "id": "buffering",
+          "label": "buffering"
+        },
+        {
+          "id": "throughput",
+          "label": "throughput"
+        },
+        {
+          "id": "batching",
+          "label": "batching"
+        },
+        {
+          "id": "machine-allocation",
+          "label": "machine-allocation"
+        },
+        {
+          "id": "worker-allocation",
+          "label": "worker-allocation"
+        },
+        {
+          "id": "supply-demand",
+          "label": "supply-demand"
+        },
+        {
+          "id": "conversion-yield",
+          "label": "conversion-yield"
+        },
+        {
+          "id": "waste-byproduct",
+          "label": "waste/byproduct"
+        },
+        {
+          "id": "maintenance-breakdown",
+          "label": "maintenance/breakdown"
+        },
+        {
+          "id": "automation",
+          "label": "automation"
+        },
+        {
+          "id": "programmable-automation",
+          "label": "programmable-automation"
+        },
+        {
+          "id": "scaling-economies-of-scale",
+          "label": "scaling/economies-of-scale"
+        },
+        {
+          "id": "placement-efficiency",
+          "label": "placement-efficiency"
+        },
+        {
+          "id": "dependency-chain",
+          "label": "dependency-chain"
+        },
+        {
+          "id": "feedback-control",
+          "label": "feedback-control"
+        }
+      ]
+    },
+    {
+      "id": "risk_randomness_resolution",
+      "label": "Risk, randomness and outcome resolution",
+      "basis": "Game Ontology Project rules; BGG; gameplay patterns",
+      "members": [
+        {
+          "id": "deterministic-resolution",
+          "label": "deterministic-resolution"
+        },
+        {
+          "id": "dice-random-resolution",
+          "label": "dice/random-resolution"
+        },
+        {
+          "id": "card-draw-randomness",
+          "label": "card/draw-randomness"
+        },
+        {
+          "id": "random-production",
+          "label": "random-production"
+        },
+        {
+          "id": "critical-success-failure",
+          "label": "critical-success/failure"
+        },
+        {
+          "id": "reroll-locking",
+          "label": "reroll/locking"
+        },
+        {
+          "id": "push-your-luck",
+          "label": "push-your-luck"
+        },
+        {
+          "id": "risk-reward",
+          "label": "risk-reward"
+        },
+        {
+          "id": "hidden-roll",
+          "label": "hidden-roll"
+        },
+        {
+          "id": "probability-modification",
+          "label": "probability-modification"
+        },
+        {
+          "id": "advantage-disadvantage",
+          "label": "advantage/disadvantage"
+        },
+        {
+          "id": "random-events",
+          "label": "random-events"
+        },
+        {
+          "id": "procedural-variance",
+          "label": "procedural-variance"
+        },
+        {
+          "id": "permadeath",
+          "label": "permadeath"
+        },
+        {
+          "id": "lives",
+          "label": "lives"
+        },
+        {
+          "id": "checkpoint",
+          "label": "checkpoint"
+        },
+        {
+          "id": "save-load",
+          "label": "save/load"
+        },
+        {
+          "id": "resource-loss-on-failure",
+          "label": "resource-loss-on-failure"
+        },
+        {
+          "id": "insurance-safety-net",
+          "label": "insurance/safety-net"
+        },
+        {
+          "id": "catch-up-rubber-banding",
+          "label": "catch-up/rubber-banding"
+        }
+      ]
+    },
+    {
+      "id": "conflict_combat",
+      "label": "Conflict and combat",
+      "basis": "Steam genre/feature vocabulary; BGG; pattern synthesis",
+      "members": [
+        {
+          "id": "hitpoints-damage",
+          "label": "hitpoints/damage"
+        },
+        {
+          "id": "armor-mitigation",
+          "label": "armor/mitigation"
+        },
+        {
+          "id": "range-position-combat",
+          "label": "range/position-combat"
+        },
+        {
+          "id": "melee-combat",
+          "label": "melee-combat"
+        },
+        {
+          "id": "projectile-combat",
+          "label": "projectile-combat"
+        },
+        {
+          "id": "area-of-effect",
+          "label": "area-of-effect"
+        },
+        {
+          "id": "status-effects",
+          "label": "status-effects"
+        },
+        {
+          "id": "combo-chaining",
+          "label": "combo/chaining"
+        },
+        {
+          "id": "rock-paper-scissors-counterplay",
+          "label": "rock-paper-scissors-counterplay"
+        },
+        {
+          "id": "target-priority",
+          "label": "target-priority"
+        },
+        {
+          "id": "threat-aggro",
+          "label": "threat/aggro"
+        },
+        {
+          "id": "initiative",
+          "label": "initiative"
+        },
+        {
+          "id": "cover-combat",
+          "label": "cover-combat"
+        },
+        {
+          "id": "stealth-detection",
+          "label": "stealth-detection"
+        },
+        {
+          "id": "morale",
+          "label": "morale"
+        },
+        {
+          "id": "suppression",
+          "label": "suppression"
+        },
+        {
+          "id": "knockback-force",
+          "label": "knockback/force"
+        },
+        {
+          "id": "friendly-fire",
+          "label": "friendly-fire"
+        },
+        {
+          "id": "resource-costed-attacks",
+          "label": "resource-costed-attacks"
+        },
+        {
+          "id": "capture-disable",
+          "label": "capture/disable"
+        },
+        {
+          "id": "duel",
+          "label": "duel"
+        },
+        {
+          "id": "team-combat",
+          "label": "team-combat"
+        },
+        {
+          "id": "boss-patterns",
+          "label": "boss-patterns"
+        }
+      ]
+    },
+    {
+      "id": "composition_buildcraft",
+      "label": "Composition, drafting and buildcraft",
+      "basis": "BGG; Steam deckbuilding/crafting; pattern synthesis",
+      "members": [
+        {
+          "id": "drafting",
+          "label": "drafting"
+        },
+        {
+          "id": "deck-building",
+          "label": "deck-building"
+        },
+        {
+          "id": "bag-pool-building",
+          "label": "bag/pool-building"
+        },
+        {
+          "id": "hand-management",
+          "label": "hand-management"
+        },
+        {
+          "id": "loadout-building",
+          "label": "loadout-building"
+        },
+        {
+          "id": "equipment-slots",
+          "label": "equipment-slots"
+        },
+        {
+          "id": "skill-build",
+          "label": "skill-build"
+        },
+        {
+          "id": "tech-tree",
+          "label": "tech-tree"
+        },
+        {
+          "id": "synergy-combos",
+          "label": "synergy/combos"
+        },
+        {
+          "id": "set-bonus",
+          "label": "set-bonus"
+        },
+        {
+          "id": "recipe-composition",
+          "label": "recipe-composition"
+        },
+        {
+          "id": "modular-construction",
+          "label": "modular-construction"
+        },
+        {
+          "id": "tile-placement",
+          "label": "tile-placement"
+        },
+        {
+          "id": "worker-placement",
+          "label": "worker-placement"
+        },
+        {
+          "id": "variable-player-powers",
+          "label": "variable-player-powers"
+        },
+        {
+          "id": "asymmetric-roles",
+          "label": "asymmetric-roles"
+        },
+        {
+          "id": "once-per-game-ability",
+          "label": "once-per-game-ability"
+        },
+        {
+          "id": "gating-unlocking",
+          "label": "gating/unlocking"
+        },
+        {
+          "id": "upgrade-choice",
+          "label": "upgrade-choice"
+        },
+        {
+          "id": "mutually-exclusive-upgrades",
+          "label": "mutually-exclusive-upgrades"
+        },
+        {
+          "id": "build-path-dependency",
+          "label": "build-path-dependency"
+        },
+        {
+          "id": "respec-reconfiguration",
+          "label": "respec/reconfiguration"
+        }
+      ]
+    },
+    {
+      "id": "progression_persistence",
+      "label": "Progression and persistence",
+      "basis": "Steam features; GameRefinery meta-game lens; gameplay patterns",
+      "members": [
+        {
+          "id": "experience-points",
+          "label": "experience-points"
+        },
+        {
+          "id": "levels",
+          "label": "levels"
+        },
+        {
+          "id": "stats-growth",
+          "label": "stats-growth"
+        },
+        {
+          "id": "skill-tree",
+          "label": "skill-tree"
+        },
+        {
+          "id": "equipment-progression",
+          "label": "equipment-progression"
+        },
+        {
+          "id": "unlock",
+          "label": "unlock"
+        },
+        {
+          "id": "collection",
+          "label": "collection"
+        },
+        {
+          "id": "quest-campaign-progression",
+          "label": "quest/campaign-progression"
+        },
+        {
+          "id": "reputation",
+          "label": "reputation"
+        },
+        {
+          "id": "faction-standing",
+          "label": "faction-standing"
+        },
+        {
+          "id": "relationship-state",
+          "label": "relationship-state"
+        },
+        {
+          "id": "base-home-persistence",
+          "label": "base/home-persistence"
+        },
+        {
+          "id": "world-state-persistence",
+          "label": "world-state-persistence"
+        },
+        {
+          "id": "character-permadeath",
+          "label": "character-permadeath"
+        },
+        {
+          "id": "inheritance-legacy",
+          "label": "inheritance/legacy"
+        },
+        {
+          "id": "run-meta-progression",
+          "label": "run-meta-progression"
+        },
+        {
+          "id": "new-game-plus",
+          "label": "new-game-plus"
+        },
+        {
+          "id": "prestige-reset",
+          "label": "prestige/reset"
+        },
+        {
+          "id": "achievements",
+          "label": "achievements"
+        },
+        {
+          "id": "leaderboards-rank",
+          "label": "leaderboards/rank"
+        },
+        {
+          "id": "season-battle-pass-like-progression",
+          "label": "season/battle-pass-like-progression"
+        }
+      ]
+    },
+    {
+      "id": "social_interaction",
+      "label": "Social interaction and strategic interdependence",
+      "basis": "BGG; Björk social-interaction patterns; Steam player-count/features",
+      "members": [
+        {
+          "id": "cooperation",
+          "label": "cooperation"
+        },
+        {
+          "id": "competition",
+          "label": "competition"
+        },
+        {
+          "id": "team-based-play",
+          "label": "team-based-play"
+        },
+        {
+          "id": "alliances",
+          "label": "alliances"
+        },
+        {
+          "id": "negotiation",
+          "label": "negotiation"
+        },
+        {
+          "id": "trading",
+          "label": "trading"
+        },
+        {
+          "id": "gifting",
+          "label": "gifting"
+        },
+        {
+          "id": "voting",
+          "label": "voting"
+        },
+        {
+          "id": "bargaining",
+          "label": "bargaining"
+        },
+        {
+          "id": "contracts-promises",
+          "label": "contracts/promises"
+        },
+        {
+          "id": "betrayal-traitor",
+          "label": "betrayal/traitor"
+        },
+        {
+          "id": "hidden-roles",
+          "label": "hidden-roles"
+        },
+        {
+          "id": "social-deduction",
+          "label": "social-deduction"
+        },
+        {
+          "id": "communication-limits",
+          "label": "communication-limits"
+        },
+        {
+          "id": "shared-resource",
+          "label": "shared-resource"
+        },
+        {
+          "id": "public-good",
+          "label": "public-good"
+        },
+        {
+          "id": "prisoners-dilemma",
+          "label": "prisoners-dilemma"
+        },
+        {
+          "id": "kingmaking-catch-leader",
+          "label": "kingmaking/catch-leader"
+        },
+        {
+          "id": "role-asymmetry",
+          "label": "role-asymmetry"
+        },
+        {
+          "id": "shared-control",
+          "label": "shared-control"
+        },
+        {
+          "id": "coordination-timing",
+          "label": "coordination-timing"
+        },
+        {
+          "id": "player-judge",
+          "label": "player-judge"
+        },
+        {
+          "id": "storytelling-to-others",
+          "label": "storytelling-to-others"
+        },
+        {
+          "id": "spectating",
+          "label": "spectating"
+        },
+        {
+          "id": "reputation-among-players",
+          "label": "reputation-among-players"
+        }
+      ]
+    },
+    {
+      "id": "role_narrative_relationship",
+      "label": "Role, narrative and relationships",
+      "basis": "Steam choices/dialogue/narrative features; gameplay patterns",
+      "members": [
+        {
+          "id": "role-assumption",
+          "label": "role-assumption"
+        },
+        {
+          "id": "character-customization",
+          "label": "character-customization"
+        },
+        {
+          "id": "dialogue-choice",
+          "label": "dialogue-choice"
+        },
+        {
+          "id": "branching-choice",
+          "label": "branching-choice"
+        },
+        {
+          "id": "choices-matter",
+          "label": "choices-matter"
+        },
+        {
+          "id": "quest",
+          "label": "quest"
+        },
+        {
+          "id": "relationship-state",
+          "label": "relationship-state"
+        },
+        {
+          "id": "trust-affinity",
+          "label": "trust/affinity"
+        },
+        {
+          "id": "companion",
+          "label": "companion"
+        },
+        {
+          "id": "faction",
+          "label": "faction"
+        },
+        {
+          "id": "reputation",
+          "label": "reputation"
+        },
+        {
+          "id": "moral-value-choice",
+          "label": "moral/value-choice"
+        },
+        {
+          "id": "persistent-consequence",
+          "label": "persistent-consequence"
+        },
+        {
+          "id": "multiple-endings",
+          "label": "multiple-endings"
+        },
+        {
+          "id": "dynamic-narration",
+          "label": "dynamic-narration"
+        },
+        {
+          "id": "authored-narrative",
+          "label": "authored-narrative"
+        },
+        {
+          "id": "emergent-story",
+          "label": "emergent-story"
+        },
+        {
+          "id": "storylet-event-system",
+          "label": "storylet/event-system"
+        },
+        {
+          "id": "identity-role-change",
+          "label": "identity/role-change"
+        },
+        {
+          "id": "memory-of-actions",
+          "label": "memory-of-actions"
+        },
+        {
+          "id": "legacy-history",
+          "label": "legacy/history"
+        },
+        {
+          "id": "perspective-shift",
+          "label": "perspective-shift"
+        }
+      ]
+    },
+    {
+      "id": "exploration_discovery",
+      "label": "Exploration and discovery",
+      "basis": "Steam activities/subgenres; MDA discovery lens; gameplay patterns",
+      "members": [
+        {
+          "id": "map-reveal",
+          "label": "map-reveal"
+        },
+        {
+          "id": "fog-clearing",
+          "label": "fog-clearing"
+        },
+        {
+          "id": "landmark-navigation",
+          "label": "landmark-navigation"
+        },
+        {
+          "id": "shortcut-discovery",
+          "label": "shortcut-discovery"
+        },
+        {
+          "id": "secret-area",
+          "label": "secret-area"
+        },
+        {
+          "id": "hidden-object",
+          "label": "hidden-object"
+        },
+        {
+          "id": "rule-discovery",
+          "label": "rule-discovery"
+        },
+        {
+          "id": "environmental-clue",
+          "label": "environmental-clue"
+        },
+        {
+          "id": "backtracking-with-new-capability",
+          "label": "backtracking-with-new-capability"
+        },
+        {
+          "id": "gating-by-knowledge",
+          "label": "gating-by-knowledge"
+        },
+        {
+          "id": "gating-by-tool",
+          "label": "gating-by-tool"
+        },
+        {
+          "id": "world-transformation-opens-route",
+          "label": "world-transformation-opens-route"
+        },
+        {
+          "id": "procedural-exploration",
+          "label": "procedural-exploration"
+        },
+        {
+          "id": "scouting",
+          "label": "scouting"
+        },
+        {
+          "id": "surveying-scanning",
+          "label": "surveying/scanning"
+        },
+        {
+          "id": "collection-as-discovery",
+          "label": "collection-as-discovery"
+        },
+        {
+          "id": "spatial-memory",
+          "label": "spatial-memory"
+        },
+        {
+          "id": "route-hypothesis",
+          "label": "route-hypothesis"
+        },
+        {
+          "id": "risked-exploration",
+          "label": "risked-exploration"
+        }
+      ]
+    },
+    {
+      "id": "creation_sandbox_ugc",
+      "label": "Creation, sandbox and UGC",
+      "basis": "Steam building/modding/level-editor features; gameplay patterns",
+      "members": [
+        {
+          "id": "freeform-building",
+          "label": "freeform-building"
+        },
+        {
+          "id": "constrained-building",
+          "label": "constrained-building"
+        },
+        {
+          "id": "level-editor",
+          "label": "level-editor"
+        },
+        {
+          "id": "character-design",
+          "label": "character-design"
+        },
+        {
+          "id": "decoration-customization",
+          "label": "decoration/customization"
+        },
+        {
+          "id": "terraforming",
+          "label": "terraforming"
+        },
+        {
+          "id": "drawing-painting",
+          "label": "drawing/painting"
+        },
+        {
+          "id": "music-composition",
+          "label": "music/composition"
+        },
+        {
+          "id": "storytelling-authorship",
+          "label": "storytelling/authorship"
+        },
+        {
+          "id": "programmable-entities",
+          "label": "programmable-entities"
+        },
+        {
+          "id": "logic-circuit-building",
+          "label": "logic/circuit-building"
+        },
+        {
+          "id": "vehicle-machine-construction",
+          "label": "vehicle/machine-construction"
+        },
+        {
+          "id": "save-revision",
+          "label": "save-revision"
+        },
+        {
+          "id": "share-publish",
+          "label": "share/publish"
+        },
+        {
+          "id": "modding",
+          "label": "modding"
+        },
+        {
+          "id": "ugc",
+          "label": "ugc"
+        },
+        {
+          "id": "remix",
+          "label": "remix"
+        },
+        {
+          "id": "blueprints-templates",
+          "label": "blueprints/templates"
+        },
+        {
+          "id": "constraint-budget",
+          "label": "constraint-budget"
+        },
+        {
+          "id": "responsive-critique-audience",
+          "label": "responsive-critique/audience"
+        }
+      ]
+    },
+    {
+      "id": "feedback_learning_mastery",
+      "label": "Feedback, learning and mastery",
+      "basis": "skill-atom / MDA / accessibility and difficulty guidance synthesis",
+      "members": [
+        {
+          "id": "immediate-action-feedback",
+          "label": "immediate-action-feedback"
+        },
+        {
+          "id": "hit-confirm",
+          "label": "hit-confirm"
+        },
+        {
+          "id": "telegraph",
+          "label": "telegraph"
+        },
+        {
+          "id": "preview",
+          "label": "preview"
+        },
+        {
+          "id": "score",
+          "label": "score"
+        },
+        {
+          "id": "combo-meter",
+          "label": "combo-meter"
+        },
+        {
+          "id": "accuracy-timing-grade",
+          "label": "accuracy/timing-grade"
+        },
+        {
+          "id": "progress-meter",
+          "label": "progress-meter"
+        },
+        {
+          "id": "cause-effect-log",
+          "label": "cause-effect-log"
+        },
+        {
+          "id": "replay",
+          "label": "replay"
+        },
+        {
+          "id": "ghost",
+          "label": "ghost"
+        },
+        {
+          "id": "death-recap",
+          "label": "death-recap"
+        },
+        {
+          "id": "prediction-vs-outcome",
+          "label": "prediction-vs-outcome"
+        },
+        {
+          "id": "tutorial-onboarding",
+          "label": "tutorial/onboarding"
+        },
+        {
+          "id": "practice-training",
+          "label": "practice/training"
+        },
+        {
+          "id": "difficulty-scaling",
+          "label": "difficulty-scaling"
+        },
+        {
+          "id": "dynamic-difficulty",
+          "label": "dynamic-difficulty"
+        },
+        {
+          "id": "assist-options",
+          "label": "assist-options"
+        },
+        {
+          "id": "hint-system",
+          "label": "hint-system"
+        },
+        {
+          "id": "error-recovery",
+          "label": "error-recovery"
+        },
+        {
+          "id": "fast-retry",
+          "label": "fast-retry"
+        },
+        {
+          "id": "safe-vs-risky-route",
+          "label": "safe-vs-risky-route"
+        },
+        {
+          "id": "rank-grade",
+          "label": "rank/grade"
+        },
+        {
+          "id": "mastery-challenge",
+          "label": "mastery-challenge"
+        }
+      ]
+    },
+    {
+      "id": "session_meta_replay",
+      "label": "Session, replay and meta structures",
+      "basis": "Björk session/meta/replay patterns; Steam tags",
+      "members": [
+        {
+          "id": "round-match",
+          "label": "round/match"
+        },
+        {
+          "id": "run",
+          "label": "run"
+        },
+        {
+          "id": "mission-scenario",
+          "label": "mission/scenario"
+        },
+        {
+          "id": "campaign",
+          "label": "campaign"
+        },
+        {
+          "id": "persistent-session",
+          "label": "persistent-session"
+        },
+        {
+          "id": "score-and-reset",
+          "label": "score-and-reset"
+        },
+        {
+          "id": "daily-weekly-challenge",
+          "label": "daily/weekly-challenge"
+        },
+        {
+          "id": "events",
+          "label": "events"
+        },
+        {
+          "id": "variable-setup",
+          "label": "variable-setup"
+        },
+        {
+          "id": "procedural-seed",
+          "label": "procedural-seed"
+        },
+        {
+          "id": "randomized-encounters",
+          "label": "randomized-encounters"
+        },
+        {
+          "id": "branching-campaign",
+          "label": "branching-campaign"
+        },
+        {
+          "id": "meta-progression",
+          "label": "meta-progression"
+        },
+        {
+          "id": "leaderboards",
+          "label": "leaderboards"
+        },
+        {
+          "id": "time-trial",
+          "label": "time-trial"
+        },
+        {
+          "id": "speedrun-support",
+          "label": "speedrun-support"
+        },
+        {
+          "id": "challenge-modifiers",
+          "label": "challenge-modifiers"
+        },
+        {
+          "id": "difficulty-modes",
+          "label": "difficulty-modes"
+        },
+        {
+          "id": "mutators",
+          "label": "mutators"
+        },
+        {
+          "id": "new-game-plus",
+          "label": "new-game-plus"
+        },
+        {
+          "id": "seasonal-structure",
+          "label": "seasonal-structure"
+        },
+        {
+          "id": "community-workshop-mods",
+          "label": "community-workshop/mods"
+        }
+      ]
+    },
+    {
+      "id": "system_generation_adaptation",
+      "label": "System generation and adaptation",
+      "basis": "Steam procedural-generation/AI/physics features; Game Ontology rules; systems-design synthesis",
+      "members": [
+        {
+          "id": "procedural-generation",
+          "label": "procedural-generation"
+        },
+        {
+          "id": "random-generation",
+          "label": "random-generation"
+        },
+        {
+          "id": "simulation-emergence",
+          "label": "simulation/emergence"
+        },
+        {
+          "id": "agent-policy",
+          "label": "agent-policy"
+        },
+        {
+          "id": "adaptive-opponent",
+          "label": "adaptive-opponent"
+        },
+        {
+          "id": "director-event-manager",
+          "label": "director/event-manager"
+        },
+        {
+          "id": "dynamic-difficulty-adjustment",
+          "label": "dynamic-difficulty-adjustment"
+        },
+        {
+          "id": "economy-simulation",
+          "label": "economy-simulation"
+        },
+        {
+          "id": "ecosystem-simulation",
+          "label": "ecosystem-simulation"
+        },
+        {
+          "id": "relationship-simulation",
+          "label": "relationship-simulation"
+        },
+        {
+          "id": "physics-simulation",
+          "label": "physics-simulation"
+        },
+        {
+          "id": "rule-changing",
+          "label": "rule-changing"
+        },
+        {
+          "id": "player-manipulable-rules",
+          "label": "player-manipulable-rules"
+        },
+        {
+          "id": "generated-missions",
+          "label": "generated-missions"
+        },
+        {
+          "id": "generated-maps",
+          "label": "generated-maps"
+        },
+        {
+          "id": "generated-loot",
+          "label": "generated-loot"
+        },
+        {
+          "id": "spawn-system",
+          "label": "spawn-system"
+        },
+        {
+          "id": "population-simulation",
+          "label": "population-simulation"
+        },
+        {
+          "id": "weather-time-cycle",
+          "label": "weather/time-cycle"
+        },
+        {
+          "id": "world-state-machine",
+          "label": "world-state-machine"
+        },
+        {
+          "id": "responsive-audience-opponent",
+          "label": "responsive-audience/opponent"
+        }
+      ]
+    }
+  ],
+  "experienceLenses": {
+    "mda_aesthetic_lenses": [
+      "sensation",
+      "fantasy",
+      "narrative",
+      "challenge",
+      "fellowship",
+      "discovery",
+      "expression",
+      "submission"
+    ],
+    "quantic_foundry_motivation_lenses": [
+      "destruction",
+      "excitement",
+      "competition",
+      "community",
+      "challenge",
+      "strategy",
+      "completion",
+      "power",
+      "fantasy",
+      "story",
+      "design",
+      "discovery"
+    ],
+    "law": "Experience/motivation lenses are outcome hypotheses, not mechanics and not scalar product scores."
+  },
+  "compositionModel": {
+    "design_object": "mechanism_graph",
+    "nodeKinds": [
+      "mechanic/action",
+      "rule/constraint",
+      "resource/state",
+      "goal",
+      "information-pattern",
+      "social-pattern",
+      "progression-pattern",
+      "session-pattern",
+      "generator/adaptation",
+      "feedback/presentation"
+    ],
+    "edgeKinds": [
+      "enables",
+      "requires",
+      "gates",
+      "constrains",
+      "consumes",
+      "produces",
+      "transforms",
+      "reveals",
+      "hides",
+      "modulates",
+      "amplifies",
+      "dampens",
+      "rewards",
+      "penalizes",
+      "synchronizes",
+      "competes-with",
+      "cooperates-with",
+      "persists-into",
+      "resets",
+      "conflicts-with"
+    ],
+    "requiredCompositionRecord": [
+      "player/context",
+      "anchor mechanics",
+      "support mechanics",
+      "coupling edges",
+      "time model",
+      "information model",
+      "goal structure",
+      "feedback/learning loop",
+      "target dynamics",
+      "target experience/motivation",
+      "known conflicts",
+      "reference specimens",
+      "evidence standing",
+      "cheapest falsifier",
+      "kill conditions"
+    ],
+    "law": "Genre is an output/market label over a composition; it is not the design primitive. Composition quality is empirical because dynamics can emerge unpredictably from coupled mechanics."
+  },
+  "catalogMetrics": {
+    "sourceCount": 15,
+    "marketCategoryFamilyCount": 29,
+    "structuralAxisCount": 10,
+    "mechanismFamilyCount": 18,
+    "familyMembershipCount": 431,
+    "uniqueDesignElementCount": 424,
+    "crossFamilyElementCount": 7,
+    "compositionEdgeKindCount": 20
+  },
+  "normalizedDesignElementIndex": [
+    {
+      "id": "move",
+      "label": "move",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "jump",
+      "label": "jump",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "dash",
+      "label": "dash",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "climb",
+      "label": "climb",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "swim",
+      "label": "swim",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "fly",
+      "label": "fly",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "drive",
+      "label": "drive",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "steer",
+      "label": "steer",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "aim",
+      "label": "aim",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "shoot",
+      "label": "shoot",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "strike",
+      "label": "strike",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "block",
+      "label": "block",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "parry",
+      "label": "parry",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "dodge",
+      "label": "dodge",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "grab",
+      "label": "grab",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "throw",
+      "label": "throw",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "push-pull",
+      "label": "push/pull",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "interact-use",
+      "label": "interact/use",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "collect",
+      "label": "collect",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "place",
+      "label": "place",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "build",
+      "label": "build",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "destroy",
+      "label": "destroy",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "craft",
+      "label": "craft",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "equip",
+      "label": "equip",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "switch",
+      "label": "switch",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "inspect",
+      "label": "inspect",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "scan",
+      "label": "scan",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "hide",
+      "label": "hide",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "sneak",
+      "label": "sneak",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "hack-program",
+      "label": "hack/program",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "command",
+      "label": "command",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "delegate",
+      "label": "delegate",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "select-choose",
+      "label": "select/choose",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "dialogue",
+      "label": "dialogue",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "trade",
+      "label": "trade",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "negotiate",
+      "label": "negotiate",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "vote",
+      "label": "vote",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "signal-communicate",
+      "label": "signal/communicate",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "draw-play-card",
+      "label": "draw/play-card",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "draft",
+      "label": "draft",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "bid",
+      "label": "bid",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "bet-wager",
+      "label": "bet/wager",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "create-edit",
+      "label": "create/edit",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "save-share",
+      "label": "save/share",
+      "families": [
+        "agency_verbs"
+      ]
+    },
+    {
+      "id": "grid-movement",
+      "label": "grid-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "hex-movement",
+      "label": "hex-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "point-to-point-movement",
+      "label": "point-to-point-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "area-movement",
+      "label": "area-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "free-continuous-movement",
+      "label": "free-continuous-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "relative-movement",
+      "label": "relative-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "zone-of-control",
+      "label": "zone-of-control",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "line-of-sight",
+      "label": "line-of-sight",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "cover",
+      "label": "cover",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "facing",
+      "label": "facing",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "range",
+      "label": "range",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "adjacency",
+      "label": "adjacency",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "pathfinding",
+      "label": "pathfinding",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "route-network-building",
+      "label": "route/network-building",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "territory-control",
+      "label": "territory-control",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "area-majority-influence",
+      "label": "area-majority/influence",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "enclosure",
+      "label": "enclosure",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "spatial-blocking",
+      "label": "spatial-blocking",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "teleport-portal",
+      "label": "teleport/portal",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "verticality",
+      "label": "verticality",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "landmarks",
+      "label": "landmarks",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "hidden-movement",
+      "label": "hidden-movement",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "secret-deployment",
+      "label": "secret-deployment",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "environmental-destruction",
+      "label": "environmental-destruction",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "physics-spatial-manipulation",
+      "label": "physics-spatial-manipulation",
+      "families": [
+        "space_topology_position"
+      ]
+    },
+    {
+      "id": "turn-taking",
+      "label": "turn-taking",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "initiative",
+      "label": "initiative",
+      "families": [
+        "time_turn_scheduling",
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "simultaneous-action-selection",
+      "label": "simultaneous-action-selection",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "simultaneous-resolution",
+      "label": "simultaneous-resolution",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "real-time",
+      "label": "real-time",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "real-time-with-pause",
+      "label": "real-time-with-pause",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "action-points",
+      "label": "action-points",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "action-queue",
+      "label": "action-queue",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "programmed-movement",
+      "label": "programmed-movement",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "command-queue",
+      "label": "command-queue",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "cooldowns",
+      "label": "cooldowns",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "wind-up-startup",
+      "label": "wind-up/startup",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "recovery-window",
+      "label": "recovery-window",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "timing-window",
+      "label": "timing-window",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "reaction-interrupt",
+      "label": "reaction/interrupt",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "deadline-time-limit",
+      "label": "deadline/time-limit",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "delays-queues",
+      "label": "delays/queues",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "tick-step",
+      "label": "tick/step",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "speed-tempo",
+      "label": "speed/tempo",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "bullet-time-slow-time",
+      "label": "bullet-time/slow-time",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "time-rewind",
+      "label": "time-rewind",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "time-loop",
+      "label": "time-loop",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "phase-order",
+      "label": "phase-order",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "variable-turn-order",
+      "label": "variable-turn-order",
+      "families": [
+        "time_turn_scheduling"
+      ]
+    },
+    {
+      "id": "perfect-information",
+      "label": "perfect-information",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "hidden-information",
+      "label": "hidden-information",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "partial-observation",
+      "label": "partial-observation",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "asymmetric-information",
+      "label": "asymmetric-information",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "fog-of-war",
+      "label": "fog-of-war",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "clues-evidence",
+      "label": "clues/evidence",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "deduction",
+      "label": "deduction",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "pattern-recognition",
+      "label": "pattern-recognition",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "telegraphing",
+      "label": "telegraphing",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "prediction-preview",
+      "label": "prediction/preview",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "last-known-state",
+      "label": "last-known-state",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "information-age-staleness",
+      "label": "information-age/staleness",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "provenance-source",
+      "label": "provenance/source",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "inspection-cost",
+      "label": "inspection-cost",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "information-scarcity",
+      "label": "information-scarcity",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "reveal",
+      "label": "reveal",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "secret-role",
+      "label": "secret-role",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "secret-objective",
+      "label": "secret-objective",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "bluffing",
+      "label": "bluffing",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "deception",
+      "label": "deception",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "targeted-clues",
+      "label": "targeted-clues",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "communication-limits",
+      "label": "communication-limits",
+      "families": [
+        "information_uncertainty",
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "memory-knowledge-persistence",
+      "label": "memory/knowledge-persistence",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "random-unknown-outcome",
+      "label": "random-unknown-outcome",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "unknown-rule-discovery",
+      "label": "unknown-rule/discovery",
+      "families": [
+        "information_uncertainty"
+      ]
+    },
+    {
+      "id": "required-goal",
+      "label": "required-goal",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "optional-goal",
+      "label": "optional-goal",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "self-authored-goal",
+      "label": "self-authored-goal",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "score-high-score",
+      "label": "score/high-score",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "race",
+      "label": "race",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "survive",
+      "label": "survive",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "eliminate",
+      "label": "eliminate",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "capture-control",
+      "label": "capture/control",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "defend",
+      "label": "defend",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "escort-protect",
+      "label": "escort/protect",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "deliver-pick-up-and-deliver",
+      "label": "deliver/pick-up-and-deliver",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "collect-set-collection",
+      "label": "collect/set-collection",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "construct",
+      "label": "construct",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "optimize",
+      "label": "optimize",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "solve-puzzle",
+      "label": "solve-puzzle",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "discover",
+      "label": "discover",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "escape",
+      "label": "escape",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "infiltrate",
+      "label": "infiltrate",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "boss-challenge",
+      "label": "boss-challenge",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "mission-scenario",
+      "label": "mission/scenario",
+      "families": [
+        "goals_challenges",
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "contract-task",
+      "label": "contract/task",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "multi-objective-tradeoff",
+      "label": "multi-objective-tradeoff",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "end-condition",
+      "label": "end-condition",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "sudden-death",
+      "label": "sudden-death",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "completion-collectionism",
+      "label": "completion/collectionism",
+      "families": [
+        "goals_challenges"
+      ]
+    },
+    {
+      "id": "resource-source",
+      "label": "resource-source",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-pool-storage",
+      "label": "resource-pool/storage",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-drain-sink",
+      "label": "resource-drain/sink",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-converter",
+      "label": "resource-converter",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-trader-exchange",
+      "label": "resource-trader/exchange",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-gate-distribution",
+      "label": "resource-gate/distribution",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "resource-flow",
+      "label": "resource-flow",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "state-modifier",
+      "label": "state-modifier",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "capacity-limit",
+      "label": "capacity-limit",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "inventory",
+      "label": "inventory",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "queue-backlog",
+      "label": "queue/backlog",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "scarcity",
+      "label": "scarcity",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "upkeep-maintenance",
+      "label": "upkeep/maintenance",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "production-rate",
+      "label": "production-rate",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "consumption-rate",
+      "label": "consumption-rate",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "currency",
+      "label": "currency",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "health-stamina",
+      "label": "health/stamina",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "ammo",
+      "label": "ammo",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "energy-mana",
+      "label": "energy/mana",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "time-as-resource",
+      "label": "time-as-resource",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "workers-actions-as-resource",
+      "label": "workers/actions-as-resource",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "market-price",
+      "label": "market/price",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "trading",
+      "label": "trading",
+      "families": [
+        "resources_economy",
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "auction-bidding",
+      "label": "auction/bidding",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "commodity-speculation",
+      "label": "commodity-speculation",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "closed-economy",
+      "label": "closed-economy",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "automatic-resource-growth",
+      "label": "automatic-resource-growth",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "interest-compounding",
+      "label": "interest/compounding",
+      "families": [
+        "resources_economy"
+      ]
+    },
+    {
+      "id": "crafting-recipe",
+      "label": "crafting-recipe",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "processing-chain",
+      "label": "processing-chain",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "transport",
+      "label": "transport",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "routing",
+      "label": "routing",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "network-flow",
+      "label": "network-flow",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "bottleneck",
+      "label": "bottleneck",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "buffering",
+      "label": "buffering",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "throughput",
+      "label": "throughput",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "batching",
+      "label": "batching",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "machine-allocation",
+      "label": "machine-allocation",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "worker-allocation",
+      "label": "worker-allocation",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "supply-demand",
+      "label": "supply-demand",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "conversion-yield",
+      "label": "conversion-yield",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "waste-byproduct",
+      "label": "waste/byproduct",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "maintenance-breakdown",
+      "label": "maintenance/breakdown",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "automation",
+      "label": "automation",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "programmable-automation",
+      "label": "programmable-automation",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "scaling-economies-of-scale",
+      "label": "scaling/economies-of-scale",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "placement-efficiency",
+      "label": "placement-efficiency",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "dependency-chain",
+      "label": "dependency-chain",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "feedback-control",
+      "label": "feedback-control",
+      "families": [
+        "production_transformation_logistics"
+      ]
+    },
+    {
+      "id": "deterministic-resolution",
+      "label": "deterministic-resolution",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "dice-random-resolution",
+      "label": "dice/random-resolution",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "card-draw-randomness",
+      "label": "card/draw-randomness",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "random-production",
+      "label": "random-production",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "critical-success-failure",
+      "label": "critical-success/failure",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "reroll-locking",
+      "label": "reroll/locking",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "push-your-luck",
+      "label": "push-your-luck",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "risk-reward",
+      "label": "risk-reward",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "hidden-roll",
+      "label": "hidden-roll",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "probability-modification",
+      "label": "probability-modification",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "advantage-disadvantage",
+      "label": "advantage/disadvantage",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "random-events",
+      "label": "random-events",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "procedural-variance",
+      "label": "procedural-variance",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "permadeath",
+      "label": "permadeath",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "lives",
+      "label": "lives",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "checkpoint",
+      "label": "checkpoint",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "save-load",
+      "label": "save/load",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "resource-loss-on-failure",
+      "label": "resource-loss-on-failure",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "insurance-safety-net",
+      "label": "insurance/safety-net",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "catch-up-rubber-banding",
+      "label": "catch-up/rubber-banding",
+      "families": [
+        "risk_randomness_resolution"
+      ]
+    },
+    {
+      "id": "hitpoints-damage",
+      "label": "hitpoints/damage",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "armor-mitigation",
+      "label": "armor/mitigation",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "range-position-combat",
+      "label": "range/position-combat",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "melee-combat",
+      "label": "melee-combat",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "projectile-combat",
+      "label": "projectile-combat",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "area-of-effect",
+      "label": "area-of-effect",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "status-effects",
+      "label": "status-effects",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "combo-chaining",
+      "label": "combo/chaining",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "rock-paper-scissors-counterplay",
+      "label": "rock-paper-scissors-counterplay",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "target-priority",
+      "label": "target-priority",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "threat-aggro",
+      "label": "threat/aggro",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "cover-combat",
+      "label": "cover-combat",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "stealth-detection",
+      "label": "stealth-detection",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "morale",
+      "label": "morale",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "suppression",
+      "label": "suppression",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "knockback-force",
+      "label": "knockback/force",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "friendly-fire",
+      "label": "friendly-fire",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "resource-costed-attacks",
+      "label": "resource-costed-attacks",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "capture-disable",
+      "label": "capture/disable",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "duel",
+      "label": "duel",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "team-combat",
+      "label": "team-combat",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "boss-patterns",
+      "label": "boss-patterns",
+      "families": [
+        "conflict_combat"
+      ]
+    },
+    {
+      "id": "drafting",
+      "label": "drafting",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "deck-building",
+      "label": "deck-building",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "bag-pool-building",
+      "label": "bag/pool-building",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "hand-management",
+      "label": "hand-management",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "loadout-building",
+      "label": "loadout-building",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "equipment-slots",
+      "label": "equipment-slots",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "skill-build",
+      "label": "skill-build",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "tech-tree",
+      "label": "tech-tree",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "synergy-combos",
+      "label": "synergy/combos",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "set-bonus",
+      "label": "set-bonus",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "recipe-composition",
+      "label": "recipe-composition",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "modular-construction",
+      "label": "modular-construction",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "tile-placement",
+      "label": "tile-placement",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "worker-placement",
+      "label": "worker-placement",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "variable-player-powers",
+      "label": "variable-player-powers",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "asymmetric-roles",
+      "label": "asymmetric-roles",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "once-per-game-ability",
+      "label": "once-per-game-ability",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "gating-unlocking",
+      "label": "gating/unlocking",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "upgrade-choice",
+      "label": "upgrade-choice",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "mutually-exclusive-upgrades",
+      "label": "mutually-exclusive-upgrades",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "build-path-dependency",
+      "label": "build-path-dependency",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "respec-reconfiguration",
+      "label": "respec/reconfiguration",
+      "families": [
+        "composition_buildcraft"
+      ]
+    },
+    {
+      "id": "experience-points",
+      "label": "experience-points",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "levels",
+      "label": "levels",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "stats-growth",
+      "label": "stats-growth",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "skill-tree",
+      "label": "skill-tree",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "equipment-progression",
+      "label": "equipment-progression",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "unlock",
+      "label": "unlock",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "collection",
+      "label": "collection",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "quest-campaign-progression",
+      "label": "quest/campaign-progression",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "reputation",
+      "label": "reputation",
+      "families": [
+        "progression_persistence",
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "faction-standing",
+      "label": "faction-standing",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "relationship-state",
+      "label": "relationship-state",
+      "families": [
+        "progression_persistence",
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "base-home-persistence",
+      "label": "base/home-persistence",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "world-state-persistence",
+      "label": "world-state-persistence",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "character-permadeath",
+      "label": "character-permadeath",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "inheritance-legacy",
+      "label": "inheritance/legacy",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "run-meta-progression",
+      "label": "run-meta-progression",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "new-game-plus",
+      "label": "new-game-plus",
+      "families": [
+        "progression_persistence",
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "prestige-reset",
+      "label": "prestige/reset",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "achievements",
+      "label": "achievements",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "leaderboards-rank",
+      "label": "leaderboards/rank",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "season-battle-pass-like-progression",
+      "label": "season/battle-pass-like-progression",
+      "families": [
+        "progression_persistence"
+      ]
+    },
+    {
+      "id": "cooperation",
+      "label": "cooperation",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "competition",
+      "label": "competition",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "team-based-play",
+      "label": "team-based-play",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "alliances",
+      "label": "alliances",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "negotiation",
+      "label": "negotiation",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "gifting",
+      "label": "gifting",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "voting",
+      "label": "voting",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "bargaining",
+      "label": "bargaining",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "contracts-promises",
+      "label": "contracts/promises",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "betrayal-traitor",
+      "label": "betrayal/traitor",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "hidden-roles",
+      "label": "hidden-roles",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "social-deduction",
+      "label": "social-deduction",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "shared-resource",
+      "label": "shared-resource",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "public-good",
+      "label": "public-good",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "prisoners-dilemma",
+      "label": "prisoners-dilemma",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "kingmaking-catch-leader",
+      "label": "kingmaking/catch-leader",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "role-asymmetry",
+      "label": "role-asymmetry",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "shared-control",
+      "label": "shared-control",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "coordination-timing",
+      "label": "coordination-timing",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "player-judge",
+      "label": "player-judge",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "storytelling-to-others",
+      "label": "storytelling-to-others",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "spectating",
+      "label": "spectating",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "reputation-among-players",
+      "label": "reputation-among-players",
+      "families": [
+        "social_interaction"
+      ]
+    },
+    {
+      "id": "role-assumption",
+      "label": "role-assumption",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "character-customization",
+      "label": "character-customization",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "dialogue-choice",
+      "label": "dialogue-choice",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "branching-choice",
+      "label": "branching-choice",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "choices-matter",
+      "label": "choices-matter",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "quest",
+      "label": "quest",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "trust-affinity",
+      "label": "trust/affinity",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "companion",
+      "label": "companion",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "faction",
+      "label": "faction",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "moral-value-choice",
+      "label": "moral/value-choice",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "persistent-consequence",
+      "label": "persistent-consequence",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "multiple-endings",
+      "label": "multiple-endings",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "dynamic-narration",
+      "label": "dynamic-narration",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "authored-narrative",
+      "label": "authored-narrative",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "emergent-story",
+      "label": "emergent-story",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "storylet-event-system",
+      "label": "storylet/event-system",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "identity-role-change",
+      "label": "identity/role-change",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "memory-of-actions",
+      "label": "memory-of-actions",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "legacy-history",
+      "label": "legacy/history",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "perspective-shift",
+      "label": "perspective-shift",
+      "families": [
+        "role_narrative_relationship"
+      ]
+    },
+    {
+      "id": "map-reveal",
+      "label": "map-reveal",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "fog-clearing",
+      "label": "fog-clearing",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "landmark-navigation",
+      "label": "landmark-navigation",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "shortcut-discovery",
+      "label": "shortcut-discovery",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "secret-area",
+      "label": "secret-area",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "hidden-object",
+      "label": "hidden-object",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "rule-discovery",
+      "label": "rule-discovery",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "environmental-clue",
+      "label": "environmental-clue",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "backtracking-with-new-capability",
+      "label": "backtracking-with-new-capability",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "gating-by-knowledge",
+      "label": "gating-by-knowledge",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "gating-by-tool",
+      "label": "gating-by-tool",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "world-transformation-opens-route",
+      "label": "world-transformation-opens-route",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "procedural-exploration",
+      "label": "procedural-exploration",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "scouting",
+      "label": "scouting",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "surveying-scanning",
+      "label": "surveying/scanning",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "collection-as-discovery",
+      "label": "collection-as-discovery",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "spatial-memory",
+      "label": "spatial-memory",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "route-hypothesis",
+      "label": "route-hypothesis",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "risked-exploration",
+      "label": "risked-exploration",
+      "families": [
+        "exploration_discovery"
+      ]
+    },
+    {
+      "id": "freeform-building",
+      "label": "freeform-building",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "constrained-building",
+      "label": "constrained-building",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "level-editor",
+      "label": "level-editor",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "character-design",
+      "label": "character-design",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "decoration-customization",
+      "label": "decoration/customization",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "terraforming",
+      "label": "terraforming",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "drawing-painting",
+      "label": "drawing/painting",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "music-composition",
+      "label": "music/composition",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "storytelling-authorship",
+      "label": "storytelling/authorship",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "programmable-entities",
+      "label": "programmable-entities",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "logic-circuit-building",
+      "label": "logic/circuit-building",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "vehicle-machine-construction",
+      "label": "vehicle/machine-construction",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "save-revision",
+      "label": "save-revision",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "share-publish",
+      "label": "share/publish",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "modding",
+      "label": "modding",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "ugc",
+      "label": "ugc",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "remix",
+      "label": "remix",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "blueprints-templates",
+      "label": "blueprints/templates",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "constraint-budget",
+      "label": "constraint-budget",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "responsive-critique-audience",
+      "label": "responsive-critique/audience",
+      "families": [
+        "creation_sandbox_ugc"
+      ]
+    },
+    {
+      "id": "immediate-action-feedback",
+      "label": "immediate-action-feedback",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "hit-confirm",
+      "label": "hit-confirm",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "telegraph",
+      "label": "telegraph",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "preview",
+      "label": "preview",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "score",
+      "label": "score",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "combo-meter",
+      "label": "combo-meter",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "accuracy-timing-grade",
+      "label": "accuracy/timing-grade",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "progress-meter",
+      "label": "progress-meter",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "cause-effect-log",
+      "label": "cause-effect-log",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "replay",
+      "label": "replay",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "ghost",
+      "label": "ghost",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "death-recap",
+      "label": "death-recap",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "prediction-vs-outcome",
+      "label": "prediction-vs-outcome",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "tutorial-onboarding",
+      "label": "tutorial/onboarding",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "practice-training",
+      "label": "practice/training",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "difficulty-scaling",
+      "label": "difficulty-scaling",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "dynamic-difficulty",
+      "label": "dynamic-difficulty",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "assist-options",
+      "label": "assist-options",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "hint-system",
+      "label": "hint-system",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "error-recovery",
+      "label": "error-recovery",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "fast-retry",
+      "label": "fast-retry",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "safe-vs-risky-route",
+      "label": "safe-vs-risky-route",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "rank-grade",
+      "label": "rank/grade",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "mastery-challenge",
+      "label": "mastery-challenge",
+      "families": [
+        "feedback_learning_mastery"
+      ]
+    },
+    {
+      "id": "round-match",
+      "label": "round/match",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "run",
+      "label": "run",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "campaign",
+      "label": "campaign",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "persistent-session",
+      "label": "persistent-session",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "score-and-reset",
+      "label": "score-and-reset",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "daily-weekly-challenge",
+      "label": "daily/weekly-challenge",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "events",
+      "label": "events",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "variable-setup",
+      "label": "variable-setup",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "procedural-seed",
+      "label": "procedural-seed",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "randomized-encounters",
+      "label": "randomized-encounters",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "branching-campaign",
+      "label": "branching-campaign",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "meta-progression",
+      "label": "meta-progression",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "leaderboards",
+      "label": "leaderboards",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "time-trial",
+      "label": "time-trial",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "speedrun-support",
+      "label": "speedrun-support",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "challenge-modifiers",
+      "label": "challenge-modifiers",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "difficulty-modes",
+      "label": "difficulty-modes",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "mutators",
+      "label": "mutators",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "seasonal-structure",
+      "label": "seasonal-structure",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "community-workshop-mods",
+      "label": "community-workshop/mods",
+      "families": [
+        "session_meta_replay"
+      ]
+    },
+    {
+      "id": "procedural-generation",
+      "label": "procedural-generation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "random-generation",
+      "label": "random-generation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "simulation-emergence",
+      "label": "simulation/emergence",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "agent-policy",
+      "label": "agent-policy",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "adaptive-opponent",
+      "label": "adaptive-opponent",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "director-event-manager",
+      "label": "director/event-manager",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "dynamic-difficulty-adjustment",
+      "label": "dynamic-difficulty-adjustment",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "economy-simulation",
+      "label": "economy-simulation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "ecosystem-simulation",
+      "label": "ecosystem-simulation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "relationship-simulation",
+      "label": "relationship-simulation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "physics-simulation",
+      "label": "physics-simulation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "rule-changing",
+      "label": "rule-changing",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "player-manipulable-rules",
+      "label": "player-manipulable-rules",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "generated-missions",
+      "label": "generated-missions",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "generated-maps",
+      "label": "generated-maps",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "generated-loot",
+      "label": "generated-loot",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "spawn-system",
+      "label": "spawn-system",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "population-simulation",
+      "label": "population-simulation",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "weather-time-cycle",
+      "label": "weather/time-cycle",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "world-state-machine",
+      "label": "world-state-machine",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    },
+    {
+      "id": "responsive-audience-opponent",
+      "label": "responsive-audience/opponent",
+      "families": [
+        "system_generation_adaptation"
+      ]
+    }
+  ]
+}

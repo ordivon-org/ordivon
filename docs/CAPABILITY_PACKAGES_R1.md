@@ -278,7 +278,7 @@ The existing Game repository contains substantial historical architecture and ev
 
 ### First acceptance workload
 
-The active first-formal-product work is pre-commitment. Stop broad R0 expansion at the current bounded saturation point and run three coupled lanes: mature-reference learning, 3–5 competing product theses, and 1–3 throwaway micro-prototypes against the highest-risk claims. Human evidence drives kill/revise/continue. Only a surviving thesis earns durable pre-production/production work. Historical Veilwild/Station Zero playables remain evidence/apparatus, not automatic product candidates.
+The active first-formal-product work is pre-commitment. Broad R0 genre/reference expansion is saturated for the current decision. Forward search operates on mechanism graphs: decompose mature references and historical prototypes into mechanics/rules/goals/couplings, compose candidate graphs, then build the cheapest playable needed to test uncertain interactions. Human evidence updates node/edge/composition standing. Genre is a downstream market label, not the design primitive. Historical Veilwild/Station Zero playables remain evidence/apparatus, not automatic product candidates.
 
 ---
 
@@ -517,7 +517,7 @@ Use this order only as a **near-term workload queue**, not an architecture order
 
 1. Research — current paper is already active and provides the strongest immediate acceptance workload.
 2. Engineering — use the next real software change, not a synthetic demo.
-3. Game — use the next Veilwild playable candidate.
+3. Game — decompose references/historical playables into mechanism evidence and test the next high-information mechanism composition.
 4. Artifact — continue real presentation/document/media work as it arrives.
 5. Security — attach to real Engineering/Game/Research release surfaces rather than run disconnected audits.
 6. Media — re-profile through the first actual media production request.

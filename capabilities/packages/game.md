@@ -5,7 +5,7 @@ Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
 
-Discover, falsify, intentionally select, build and evolve a game/product direction into a playable, testable and distributable interactive experience, with enough evidence to judge whether the intended player experience and product behavior actually exist.
+Compose, falsify, intentionally select, build and evolve mechanism graphs into playable, testable and distributable game products, with enough evidence to judge whether the intended dynamics, player experience and product behavior actually exist.
 
 Game composes Engineering, Artifact, Media, Security, Network, Distribution and Operations when needed; it does not re-own them.
 
@@ -46,15 +46,19 @@ The most important unresolved evidence class is often human play: automated exec
 
 ## Acceptance workload
 
-The active first-formal-product workload is **not yet a selected product**. Run one non-linear exploration cycle:
+The active first-formal-product workload is **not yet a selected product**. Search at the mechanism-composition level:
 
 ```text
-bounded reference learning
-+ competing product theses
-+ throwaway micro-prototypes
-+ Human play evidence
-→ kill / revise / continue
+external mechanism/pattern knowledge
++ reference specimen decomposition
++ historical local mechanism evidence
+→ candidate mechanism graphs
+→ cheapest playable falsifiers
+→ Human evidence
+→ update node/edge/composition evidence
 ```
+
+Genre/category is a market projection over the resulting composition, not the primary design primitive.
 
 Once a thesis earns intentional product commitment, use the durable realization path:
 
@@ -71,4 +75,4 @@ Do not create a synthetic Game-framework demo solely to make this package look c
 
 ## Current process correction — 2026-09-14
 
-The broad external success/reference orientation in active Game work has reached a sufficient bounded saturation point for the current decision. Forward work should not expand R0 merely for completeness. Reference learning, product-thesis generation and cheap throwaway prototypes may now proceed in parallel, with Human evidence feeding kill/revise/continue decisions before formal product commitment.
+The broad external success/reference orientation has reached sufficient bounded saturation. The later Product Thesis Sprint is retained only as sample composition evidence. Forward design search now operates on **mechanism graphs and coupling evidence**: decompose references and historical prototypes, compose mechanisms deliberately, prototype the cheapest uncertain interactions, and feed Human evidence back into node/edge/composition standing. Do not restart genre-first concept contests.
