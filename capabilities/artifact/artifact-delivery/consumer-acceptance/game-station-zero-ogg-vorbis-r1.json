@@ -22,16 +22,25 @@
     "repository": "/root/projects/ordivon-artifact-v2"
   },
   "consumer": {
-    "purpose": "Station Zero v3 browser audio cues",
+    "purpose": "Station Zero v3 browser one-shot audio cues with Game-owned functional acceptance of preserved target boundary divergence",
     "repository": "/root/projects/ordivon-game",
-    "revision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5"
+    "revision": "216fcf5bcf48852f9463677df6221ef4fc387b36"
+  },
+  "gameAcceptance": {
+    "authorityBoundary": "Game accepts only its current one-shot fail-soft non-timeline-authoritative cue role; Artifact continues to preserve decoder/browser boundary divergence and does not claim perceptual equivalence.",
+    "consumerRevision": "216fcf5bcf48852f9463677df6221ef4fc387b36",
+    "decision": "ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION",
+    "relativePath": "experiments/station-zero-v3/evidence/G4_OGG_CONSUMER_ACCEPTANCE_R1.json",
+    "sha256": "2f41857d87a4d7bf1a3e5342c6c4ee5979c6f5cc62131046dff5eb8d123e62f7",
+    "standing": "GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED"
   },
   "id": "game-station-zero-ogg-vorbis-r1",
   "kind": "artifact-consumer-acceptance-evidence",
   "nonClaims": [
     "This does not graduate Profile v2 from shadow to production.",
-    "This does not claim cross-browser sample-exact playback-length equivalence.",
-    "This does not decide whether the observed 128-sample Chromium/Firefox boundary difference is acceptable to Game semantics or player experience.",
+    "This does not claim cross-browser sample-exact playback-length or HTMLAudioElement duration equivalence.",
+    "This does not claim perceptual or artistic equivalence between Chromium and Firefox playback.",
+    "Game acceptance is bounded to current one-shot fail-soft presentation cues and is not reusable for loops, rhythm mechanics, lip sync, beat synchronization, sample-accurate sequencing, or timeline-authoritative audio.",
     "This does not make Artifact authoritative for Game audio design, rights, or artistic quality."
   ],
   "observedAt": "2026-09-13",
@@ -41,11 +50,13 @@
     "xiphReferenceAndFirefox": "CONTRACT_BOUNDARY"
   },
   "runtimeEvidence": {
+    "gameAcceptanceCommitJobId": "job-01a09ae3-180b-7560-acf6-6b0b4e1f47ac",
+    "gameAcceptanceCommitOperationDigest": "sha256:c5210960bd54c2b269911f2e948dd13a61d9d4e323646acd93e911aa1b836f44",
     "jobId": "job-01a09a45-3fcc-7783-b6e7-92758a810119",
     "operationDigest": "sha256:0d65d4d40e216fce02092975836a2d5995fcaa422d4555d3ce4df698f6930cb4"
   },
   "schemaVersion": 1,
-  "standing": "STANDARD_PASS_TARGET_DIVERGENCE_REQUIRES_GAME_DECISION",
+  "standing": "STANDARD_PASS_TARGET_DIVERGENCE_GAME_FUNCTIONALLY_ACCEPTED",
   "subjects": [
     {
       "artifactSha256": "d6a313a4e424eeb391d07e3e52e241d20cb626c11b9bd5c4305e62efa39e8271",

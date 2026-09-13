@@ -127,7 +127,11 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
 
     def test_frozen_ogg_game_evidence_preserves_target_divergence_instead_of_claiming_acceptance(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-ogg-vorbis-r1.json').read_text())
-        self.assertEqual(receipt['standing'],'STANDARD_PASS_TARGET_DIVERGENCE_REQUIRES_GAME_DECISION')
+        self.assertEqual(receipt['standing'],'STANDARD_PASS_TARGET_DIVERGENCE_GAME_FUNCTIONALLY_ACCEPTED')
+        self.assertEqual(receipt['gameAcceptance']['standing'],'GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED')
+        self.assertEqual(receipt['gameAcceptance']['decision'],'ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION')
+        game=Path('/root/projects/ordivon-game')/receipt['gameAcceptance']['relativePath']
+        self.assertEqual(hashlib.sha256(game.read_bytes()).hexdigest(),receipt['gameAcceptance']['sha256'])
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
         self.assertTrue(all(x['browserStanding']=='TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED' for x in receipt['subjects']))
