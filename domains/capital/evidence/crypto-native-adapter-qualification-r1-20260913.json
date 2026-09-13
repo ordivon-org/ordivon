@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.crypto-native-adapter-qualification",
+  "standing": "PASS_OKX_NATIVE_BINANCE_OFFICIAL_BOUNDARY",
+  "candidate": {
+    "name": "NautilusTrader",
+    "version": "2.0.0rc4",
+    "python": "3.12.13"
+  },
+  "okx": {
+    "nativeDataClientStanding": "PASS_NATIVE_OKX_PUBLIC_QUOTES",
+    "transportObservationDigest": "sha256:d7a2fc9b431e900ca3a61e053dd0be41f87058a2ccc3d901f4150c7e54237d31",
+    "transportPathDigest": "sha256:f25b67ec139d9780b2baa9035788514826b091c1ca2e6345cd5e0d3d1bad394f",
+    "transport": "Surfshark OpenVPN-UDP via scoped surfpath",
+    "quotes": {
+      "BTC-USDT.OKX": {
+        "bid": "77120.7",
+        "ask": "77120.8",
+        "tsEvent": 1789315075206000000,
+        "tsInit": 1789315077924937337
+      },
+      "ETH-USDT.OKX": {
+        "bid": "2490.62",
+        "ask": "2490.63",
+        "tsEvent": 1789315075206000000,
+        "tsInit": 1789315077925073285
+      }
+    },
+    "credentialsUsed": false,
+    "executionClientConfigured": false
+  },
+  "binance": {
+    "nativeDataClientStanding": "BLOCKED_DATA_CLIENT_STARTUP",
+    "nativeObserved": {
+      "jsonMode": true,
+      "sockudo": "DATA_CONNECT_TIMEOUT",
+      "tungstenite": "DATA_CONNECT_TIMEOUT",
+      "publicOnlyHttpOverride": "https://data-api.binance.vision",
+      "publicOnlyWsOverride": "wss://data-stream.binance.vision:443/ws",
+      "quoteTicksEmitted": 0
+    },
+    "officialBoundaryStanding": "PASS_PUBLIC_REST_AND_WSS",
+    "officialBoundary": {
+      "http": "https://data-api.binance.vision",
+      "websocket": "wss://data-stream.binance.vision:443/ws",
+      "httpPing": "HTTP_200",
+      "httpTime": "HTTP_200",
+      "httpExchangeInfo": "HTTP_200",
+      "websocketHandshake": "HTTP_101_SWITCHING_PROTOCOLS",
+      "websocketFrame": {
+        "symbol": "BTCUSDT",
+        "bid": "77180.00000000",
+        "ask": "77180.01000000"
+      }
+    },
+    "credentialWorkaroundRejected": true,
+    "credentialsUsed": false,
+    "executionClientConfigured": false
+  },
+  "architectureDecision": {
+    "okxPublicData": "NAUTILUS_NATIVE",
+    "binancePublicData": "OFFICIAL_PUBLIC_REST_WS_THIN_BOUNDARY",
+    "commonNormalization": "MARKET_CAPITAL_PUBLIC_OBSERVATION_SCHEMA",
+    "omsRisk": "NAUTILUS_LOCAL_QUALIFIED",
+    "nativeBinanceUpgradeCondition": "requalify on a later Nautilus stable/release candidate only if credential-free JSON startup succeeds"
+  },
+  "privateAccountDataUsed": false,
+  "demoExecutionAttempted": false,
+  "liveExecutionAttempted": false,
+  "externalFinancialWritesAttempted": false
+}
