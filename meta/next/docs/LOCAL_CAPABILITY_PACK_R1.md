@@ -52,6 +52,7 @@ This is an auditable local environment snapshot, not a Registry, ontology, subsy
 Observed locally and therefore not reinstalled for this pack:
 
 - automation/integration: n8n;
+- business operations: ERPNext `16.34.2` through the rootless `ordivon-erpnext` Podman/Quadlet service;
 - containers: Docker, Podman;
 - infrastructure/configuration: OpenTofu, Ansible;
 - languages/tooling: Python, Node/npm/pnpm, uv/uvx, Git, ripgrep, jq, yq;

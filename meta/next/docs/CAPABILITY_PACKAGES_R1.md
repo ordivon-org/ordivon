@@ -31,6 +31,7 @@ For every package:
 | Distribution | provider APIs/standards + Distribution v2 | mature read/control boundary; writes remain authority-gated | prove one exact publish/read-back path when explicit effect authority exists |
 | Operations | mature ops stack + Operations v2 + Runtime | mature composition; minor local workspace residue only | durable execute -> observe -> failure/recovery proof on one real workflow |
 | Network | IETF/native networking + Network v2 | mature local WSL/network package | solve one real reachability/throughput/path problem with falsification evidence |
+| Business Operations | ERPNext + native business/accounting semantics | accepted local mature owner for current workload | use the first real company/customer/accounting event without inventing an Ordivon business schema |
 
 ---
 
@@ -431,6 +432,51 @@ The next real package/download/repository/network failure becomes the acceptance
 
 ---
 
+## 11. Business Operations
+
+### Problem coverage
+
+- company/master data;
+- customer and CRM records;
+- opportunity and sales pipeline;
+- sales/invoice lifecycle;
+- accounting documents and general-ledger effects;
+- business projects;
+- quality records;
+- inventory/procurement/payments/tax/payroll only when a real company workload actually requires them;
+- API/integration edges to other mature business providers.
+
+### Mature anchors
+
+Use mature ERP/provider-native business semantics instead of creating an Ordivon business ontology. The current local owner is ERPNext/Frappe. Keep statutory, tax, banking, payment, payroll and jurisdiction-specific behavior in the applicable mature provider/regulatory system rather than pretending one local schema already covers them.
+
+### Current local working set
+
+- ERPNext `16.34.2` / Frappe as business semantic owner;
+- MariaDB `11.8` and Redis `8.6` as ERPNext-owned storage/runtime dependencies;
+- rootless Podman/Quadlet + user systemd as service-lifecycle owner;
+- Frappe native document/API lifecycle for business records;
+- n8n as a bounded integration edge;
+- Runtime only for mechanical execution/evidence when operating the local service.
+
+Detailed acceptance evidence is in `migrations/records/business-operations-erpnext-r1.md`.
+
+### Authority boundary
+
+Do not use ERPNext as the universal work/task database. Plane remains the selected work-management owner when activated; Temporal/MAF/Runtime/domain owners retain their own process/orchestration/execution/semantic truth. Likewise, Market Capital remains a separate read-only market/capital domain rather than being collapsed into ERP accounting.
+
+### Current standing
+
+The current local acceptance workload passed a native chain from Customer/Opportunity/Project/Quality through a submitted CNY 100 Sales Invoice and balanced General Ledger entries, then survived complete Pod stop/start and the later manual-Pod -> Quadlet ownership cutover. A published n8n workflow also reached ERPNext through the existing loopback gateway path and received `pong` from the live Frappe endpoint.
+
+This is acceptance of the local mature owner composition, not evidence that real tax, bank, payment, payroll, inventory or statutory invoicing workflows have already been configured.
+
+### First real business workload
+
+Use the first genuine company/customer/accounting event. Configure only the minimum ERPNext-native module/fields needed, use a dedicated least-privilege integration identity for authenticated automation, and verify the resulting ERP-native state/effect. Do not add custom Ordivon business semantics unless repeated mature-provider substitution failure is measured.
+
+---
+
 # Shared mature disciplines
 
 These are **not mandatory layers** and are not owned by any package. Load them when the current problem needs them:
@@ -479,5 +525,6 @@ Use this order only as a **near-term workload queue**, not an architecture order
 8. Distribution — graduate only when a real publish effect is authorized.
 9. Operations — validate through workflows created by the above work.
 10. Network — activate on demand when a real path/reachability/throughput issue occurs.
+11. Business Operations — ERPNext is accepted locally; use it on the first real company/customer/accounting event and configure only the required native module surface.
 
 The package map is successful if Ordivon-owned implementation stays small while real output throughput and verified outcomes increase.
