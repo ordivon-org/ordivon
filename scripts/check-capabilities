@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+research_python="${MARKET_CAPITAL_RESEARCH_PYTHON:-/root/projects/ordivon-research-v2/.venv/bin/python}"
+arelle="${MARKET_CAPITAL_ARELLE:-/root/.local/bin/arelleCmdLine}"
+if [[ ! -x "$research_python" ]]; then
+  echo "research capability unavailable: $research_python" >&2
+  exit 2
+fi
+"$research_python" - <<'PY'
+import importlib.util, json
+mods = ["jsonschema", "mlflow", "pandas", "pandera", "pyarrow"]
+missing = [m for m in mods if importlib.util.find_spec(m) is None]
+print(json.dumps({"researchPythonModules": {m: m not in missing for m in mods}}, sort_keys=True))
+if missing:
+    raise SystemExit("missing research modules: " + ", ".join(missing))
+PY
+if [[ ! -x "$arelle" ]]; then
+  echo "Arelle core unavailable: $arelle" >&2
+  exit 3
+fi
+"$arelle" --version
