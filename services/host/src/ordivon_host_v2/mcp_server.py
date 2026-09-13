@@ -4,6 +4,7 @@ import os
 from typing import Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .board import BoardStore
 from .canonical import canonical_digest
@@ -272,10 +273,34 @@ def main() -> None:
     host = os.environ.get("ORDIVON_HOST_V2_HOST", "127.0.0.1")
     if host not in {"127.0.0.1", "::1", "localhost"}:
         raise RuntimeError("Host v2 HTTP transport must remain loopback-bound")
-    port = int(os.environ.get("ORDIVON_HOST_V2_PORT", "8895"))
+    port = int(os.environ.get("ORDIVON_HOST_V2_PORT", "8898"))
     path = os.environ.get("ORDIVON_HOST_V2_PATH", "/mcp")
     if not path.startswith("/"):
         raise RuntimeError("ORDIVON_HOST_V2_PATH must start with /")
+
+    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+    public_origin = os.environ.get("ORDIVON_HOST_V2_PUBLIC_ORIGIN")
+    if public_origin:
+        from urllib.parse import urlsplit
+
+        parsed = urlsplit(public_origin)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in ("", "/")
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError(
+                "ORDIVON_HOST_V2_PUBLIC_ORIGIN must be one canonical HTTPS origin without path/query/fragment"
+            )
+        canonical_public_origin = f"https://{parsed.netloc}"
+        allowed_hosts.append(parsed.netloc)
+        allowed_origins.append(canonical_public_origin)
+
     server.run(
         transport="streamable-http",
         host=host,
@@ -284,4 +309,9 @@ def main() -> None:
         stateless_http=True,
         json_response=True,
         max_sessions=256,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=allowed_hosts,
+            allowed_origins=allowed_origins,
+        ),
     )
