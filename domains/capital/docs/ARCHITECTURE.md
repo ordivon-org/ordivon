@@ -72,5 +72,6 @@ PFMI and ISO 20022 remain reference semantics for external post-trade infrastruc
 - Wave B M5: causal post-decision gate implemented.
 - Wave B M6: pre-decision shadow order precommit frozen.
 - Wave B M6.1: semantic/authority core migrated directly into the canonical repository; temporary cross-repo architecture removed.
-- Next: M7 must execute the exact M6 frozen quantities against the first admitted post-decision session without future-price rescaling.
+- Wave B M6.2: NautilusTrader `2.0.0rc4` admitted only as a non-live candidate; OMS/Risk controls passed, but simulated `AT_THE_OPEN` execution is blocked as unsupported.
+- Next: M7 remains on the already admitted LEAN path and must execute the exact M6 frozen quantities against the first admitted post-decision session without future-price rescaling; candidate engines may not weaken `AT_THE_OPEN` semantics.
 - Paper brokerage, real account reality, reconciliation and live authorization remain future admissions.

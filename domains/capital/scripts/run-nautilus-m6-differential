@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
+"$repo/scripts/check-nautilus-candidate" >/dev/null
+candidate=/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python
+precommit="$repo/.artifacts/wave-b-m6/results/precommit.json"
+if [ ! -f "$precommit" ]; then
+  "$repo/scripts/run-shadow-precommit-wave-b-m6" >/dev/null
+fi
+out="$repo/.artifacts/wave-b-m6-2-nautilus"
+mkdir -p "$out"
+PYTHONPATH="$repo/src" "$candidate" -m market_capital.nautilus_qualification \
+  --precommit "$precommit" \
+  --output "$out/qualification.json"
