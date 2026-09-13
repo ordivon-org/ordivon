@@ -14,8 +14,9 @@ const REACQUISITION_ID := "F14.REACQUISITION_OPPORTUNITY_WORLD_ROUTE_R4A"
 const F13_EVADE_STARTED_ID := "F13.EVADE_STARTED"
 const FINAL_A08_GLB_SHA256 := "bc460bb8c48f8296d25a3f2e23323845e851b5669335ac6fb5a9126d3519c4d8"
 const FINAL_A08_ENVELOPE_SHA256 := "fe0fdf2dd88b7f7df9e6c0aa8bf558559635062b640e69a509f7303d2c701896"
-const FINAL_SELECTED_CREATURE_GLB_SHA256 := "73b36673858464190acfddc32030544ec66efc29f0f0a78d04e331a06b13345e"
-const FINAL_SELECTED_CREATURE_PRODUCER_REVISION := "3f9f443256212e3286c4bf90c84fd1d5c224b1fc"
+const FINAL_SELECTED_CREATURE_GLB_SHA256 := "9a50900f2a7fcb17af6be1be8b7788fbc743fd7a8e1bd075515a62cf6fd24daa"
+const FINAL_SELECTED_CREATURE_BASE_MATERIAL_PRODUCER_REVISION := "3f9f443256212e3286c4bf90c84fd1d5c224b1fc"
+const FINAL_SELECTED_CREATURE_PORTABILITY_REPAIR_ID := "veilwild-f10-gltf-skin-root-portability-repair-r1"
 const FINAL_CREATURE_BONE_COUNT := 23
 const FINAL_CREATURE_ROOT_BONE := "VW_ROOT"
 const REQUIRED_RUNTIME_CLIPS := [
@@ -92,7 +93,8 @@ func runtime_health() -> Dictionary:
         "animationEnvelopeSourceGlbSha256": FINAL_A08_GLB_SHA256,
         "finalCreatureEnvelopeSha256": FINAL_A08_ENVELOPE_SHA256,
         "expectedSelectedFinalCreatureGlbSha256": FINAL_SELECTED_CREATURE_GLB_SHA256,
-        "expectedSelectedFinalCreatureProducerRevision": FINAL_SELECTED_CREATURE_PRODUCER_REVISION,
+        "selectedFinalCreatureBaseMaterialProducerRevision": FINAL_SELECTED_CREATURE_BASE_MATERIAL_PRODUCER_REVISION,
+        "selectedFinalCreaturePortabilityRepairId": FINAL_SELECTED_CREATURE_PORTABILITY_REPAIR_ID,
         "observationTunables": {
             "maxCloseDistanceM": MAX_CLOSE_DISTANCE_M,
             "minForwardDot": MIN_FORWARD_DOT,
@@ -269,7 +271,8 @@ func _creature_identity_witness() -> Dictionary:
         "animationEnvelopeSourceA08GlbSha256": FINAL_A08_GLB_SHA256,
         "sourceEnvelopeSha256": FINAL_A08_ENVELOPE_SHA256,
         "expectedSelectedFinalCreatureGlbSha256": FINAL_SELECTED_CREATURE_GLB_SHA256,
-        "expectedSelectedFinalCreatureProducerRevision": FINAL_SELECTED_CREATURE_PRODUCER_REVISION,
+        "selectedFinalCreatureBaseMaterialProducerRevision": FINAL_SELECTED_CREATURE_BASE_MATERIAL_PRODUCER_REVISION,
+        "selectedFinalCreaturePortabilityRepairId": FINAL_SELECTED_CREATURE_PORTABILITY_REPAIR_ID,
         "boneCount": bone_count,
         "rootBonePresent": root_present,
         "requiredClipCount": REQUIRED_RUNTIME_CLIPS.size(),

@@ -7,6 +7,7 @@ import test from "node:test";
 const ROOT = "experiments/veilwild-r1";
 const INVENTORY_PATH = `${ROOT}/round4/A17/A17_R4A_SELECTED_RUNTIME_INVENTORY.json`;
 const GODOT_ROOT = `${ROOT}/godot`;
+const F10_REPAIR_PATH = `${ROOT}/evidence/F10_GLTF_SKIN_ROOT_PORTABILITY_REPAIR_R1.json`;
 
 function sha256(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -26,8 +27,9 @@ function filesBelow(root: string, suffix: string): string[] {
   return result.sort();
 }
 
-test("R5 preserves exact Veilwild R4 selected-runtime byte identity", () => {
+test("R5 preserves historical R4 byte identity and the explicit F10 portability successor", () => {
   const inventory = json(INVENTORY_PATH);
+  const repair = json(F10_REPAIR_PATH);
   assert.equal(
     sha256(`${GODOT_ROOT}/project.godot`),
     inventory.sourceIdentity.projectGodotSha256,
@@ -42,12 +44,25 @@ test("R5 preserves exact Veilwild R4 selected-runtime byte identity", () => {
   );
 
   for (const artifact of inventory.selectedArtifacts) {
+    assert.equal(artifact.byteIdentity, "EXACT", artifact.artifactId);
+    if (artifact.artifactId === "F10_FINAL_CREATURE_GLB") {
+      assert.equal(artifact.runtimeArtifactSha256, repair.subject.oldSha256);
+      assert.equal(sha256(artifact.candidateRepoPath), repair.subject.newSha256);
+      assert.notEqual(repair.subject.oldSha256, repair.subject.newSha256);
+      assert.equal(repair.historicalBoundary.round4SelectedRuntimeInventory, "UNCHANGED_FROZEN_HISTORICAL_EVIDENCE");
+      continue;
+    }
+    if (artifact.artifactId === "F14_WORLD_QUALIFICATION_RUNTIME_GD") {
+      assert.equal(artifact.runtimeArtifactSha256, repair.runtimeConsumerUpdate.historicalR4Sha256);
+      assert.equal(sha256(artifact.candidateRepoPath), repair.runtimeConsumerUpdate.currentSha256);
+      assert.equal(repair.runtimeConsumerUpdate.gameplayLogicChanged, false);
+      continue;
+    }
     assert.equal(
       sha256(artifact.candidateRepoPath),
       artifact.runtimeArtifactSha256,
       `${artifact.artifactId} selected-runtime bytes drifted`,
     );
-    assert.equal(artifact.byteIdentity, "EXACT", artifact.artifactId);
   }
   for (const companion of inventory.sourceFixedCompanions ?? []) {
     assert.equal(
@@ -59,6 +74,22 @@ test("R5 preserves exact Veilwild R4 selected-runtime byte identity", () => {
   for (const glue of inventory.a17IntegrationGlue) {
     assert.equal(sha256(glue.path), glue.sha256, `${glue.path} integration glue drifted`);
   }
+});
+
+test("R5 current F10 runtime binds the zero-warning successor without rewriting R4 history", () => {
+  const inventory = json(INVENTORY_PATH);
+  const repair = json(F10_REPAIR_PATH);
+  const f10 = inventory.selectedArtifacts.find((item: any) => item.artifactId === "F10_FINAL_CREATURE_GLB");
+  assert.ok(f10);
+  assert.equal(f10.runtimeArtifactSha256, repair.subject.oldSha256);
+  assert.equal(sha256(f10.candidateRepoPath), repair.subject.newSha256);
+  assert.deepEqual(repair.repair.oldValidator, { errors: 0, warningCode: "NODE_SKINNED_MESH_NON_ROOT", warningCount: 9, warnings: 9 });
+  assert.equal(repair.repair.newValidator.errors, 0);
+  assert.equal(repair.repair.newValidator.warnings, 0);
+  const runtime = readFileSync(`${GODOT_ROOT}/modules/f14/world_qualification_runtime.gd`, "utf8");
+  assert.match(runtime, new RegExp(repair.subject.newSha256));
+  assert.match(runtime, /veilwild-f10-gltf-skin-root-portability-repair-r1/);
+  assert.match(runtime, /selectedFinalCreatureBaseMaterialProducerRevision/);
 });
 
 test("R5 preserves the R4 Godot scene identity falsifier", () => {
