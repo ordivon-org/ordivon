@@ -128,7 +128,9 @@ Observed:
 - the existing n8n pasta gateway path reached ERPNext without widening either service beyond loopback;
 - n8n's supported `publish:workflow` command published `ordivon-erpnext-transport-smoke-v1`, and the live webhook executed through the running n8n main instance to ERPNext with HTTP `200` and `{"message":"pong"}`.
 
-The `E2E-*` records are acceptance data, not real external transactions. Real tax, banking, payment, payroll, inventory, statutory invoicing and jurisdiction-specific configuration remain future business-event-specific work rather than a reason to construct another generic business framework.
+The `E2E-*` records are acceptance data, not real external transactions. After acceptance, the Sales Invoice was cancelled through ERPNext's native lifecycle, its Customer and Item were disabled, and the unsubmitted Opportunity/Project/Quality fixtures were removed where normal Frappe referential rules allowed it. ERPNext correctly blocked permanent invoice deletion because a Payment Ledger Entry still referenced the cancelled accounting document; that audit constraint was preserved rather than bypassed. The n8n smoke workflow was then unpublished through n8n's supported CLI, n8n was restarted, and the former webhook returned `404` while the inactive draft remained available for explicit future re-testing.
+
+Real tax, banking, payment, payroll, inventory, statutory invoicing and jurisdiction-specific configuration remain future business-event-specific work rather than a reason to construct another generic business framework.
 
 Standing: `ACCEPTED_FOR_CURRENT_WORKLOAD`.
 

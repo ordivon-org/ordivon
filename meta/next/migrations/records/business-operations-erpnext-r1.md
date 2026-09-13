@@ -148,6 +148,28 @@ host loopback webhook
 
 This is transport/integration evidence only. n8n does not become business truth.
 
+## Post-acceptance fixture retirement
+
+The synthetic acceptance state was retired after evidence capture rather than left as apparently live business activity.
+
+ERPNext-native cleanup respected accounting audit constraints:
+
+- `ACC-SINV-2026-00001` was cancelled through the standard document lifecycle;
+- cancellation produced the expected reversing accounting effect, and all four original/reversal GL rows are marked `is_cancelled=1`;
+- permanent deletion of the cancelled invoice was attempted through the standard Frappe delete path and correctly rejected because a generated Payment Ledger Entry still links to the accounting document;
+- that protection was retained rather than bypassed with direct SQL or forced deletion;
+- `E2E Customer 20260913` and `E2E-SVC-20260913` were disabled to prevent reuse while their cancelled accounting history remains referenced;
+- the unsubmitted Opportunity, Project and Quality Procedure fixtures were deleted through normal Frappe document deletion after the Project was first moved to `Cancelled`.
+
+The n8n transport smoke was also retired after proof:
+
+- `unpublish:workflow --id=ordivon-erpnext-transport-smoke-v1` succeeded;
+- n8n was restarted as instructed by its CLI;
+- the production webhook then returned HTTP `404` with no active version;
+- the workflow draft remains inactive for future explicit re-testing instead of exposing a permanent smoke endpoint.
+
+This leaves only the minimum ERP audit residue required by owner-native referential integrity.
+
 ## Authentication boundary
 
 Administrator is enabled as a Frappe System User and server-side Frappe APIs successfully created/submitted the acceptance documents. Automated REST session login using the Administrator credential was not promoted as an integration mechanism.
