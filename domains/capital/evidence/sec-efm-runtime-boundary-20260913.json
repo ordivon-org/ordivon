@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "standing": "PENDING_FULL_VALIDATION_RUNTIME_CLOSURE",
+  "globalArelleVersion": "2.44.7",
+  "isolatedEnvironment": "/root/external/arelle-sec-edgar/26.1.3",
+  "isolatedArelleVersion": "2.39.8",
+  "secEdgarTag": "26.1.3",
+  "secEdgarCommit": "72033f579e89ab47e882437b5d4ceed9c7656ed5",
+  "xuleVersion": "30052",
+  "xuleCommit": "40f774ced269ee6637a96d51db244efd6337e689",
+  "efmOptionRecognized": true,
+  "secFilingNetworkReachable": true,
+  "validationTarget": "Apple 2025 10-K",
+  "runtimeJobId": "job-01a098ec-b261-7063-99b6-54bbf8e2dec5",
+  "runtimeOutcome": "DEADLINE_EXCEEDED",
+  "runtimeElapsedMs": 300430,
+  "completeValidationLogProduced": false
+}
