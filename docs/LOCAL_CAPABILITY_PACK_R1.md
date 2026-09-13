@@ -53,6 +53,8 @@ Observed locally and therefore not reinstalled for this pack:
 
 - automation/integration: n8n;
 - business operations: ERPNext `16.34.2` through the rootless `ordivon-erpnext` Podman/Quadlet service;
+- requirements/traceability workbench: StrictDoc `0.29.0`, with local HTML/JSON/ReqIF smoke acceptance;
+- business process/case/decision candidate: Flowable `8.0.0` image materialized and BPMN/CMMN/DMN engines boot-smoked; keep non-resident until a real workload justifies activation;
 - containers: Docker, Podman;
 - infrastructure/configuration: OpenTofu, Ansible;
 - languages/tooling: Python, Node/npm/pnpm, uv/uvx, Git, ripgrep, jq, yq;
