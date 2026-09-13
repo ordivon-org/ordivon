@@ -17,7 +17,7 @@ Select by problem:
 - Ansible for host/configuration automation where appropriate;
 - OpenTofu for declarative external/cloud infrastructure state;
 - Temporal for durable workflows that must survive failures and resume;
-- n8n for API/app integration automation and human-facing workflow edges;
+- n8n for API/app integration automation and human-facing workflow edges; use `capabilities/providers/n8n.md` for the provider boundary and `knowledge/lessons/n8n-integration-kernel.md` for the extracted method kernel;
 - OpenTelemetry for vendor-neutral traces, metrics and logs instrumentation/collection;
 - mature metrics/log/backup/storage systems as required by the target service.
 
