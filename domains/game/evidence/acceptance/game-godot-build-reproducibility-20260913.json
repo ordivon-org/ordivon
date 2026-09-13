@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.godot-build-reproducibility-boundary",
+  "acceptedAtDate": "2026-09-13",
+  "verdict": "PASS_WITH_DECLARED_BOUNDARY",
+  "standing": "BIT_REPRODUCIBLE_FOR_CURRENT_MINIMAL_LINUX_ACCEPTANCE_SLICE",
+  "investigation": {
+    "initialSourceSceneDigest": "sha256:63c3c414d7a8e1371831efaf99ab785da4be8baff7c569492ff7e8365fdb7cca",
+    "initialSceneHadPersistedNodeUniqueId": false,
+    "controlledColdExport": {
+      "policy": "same source path, same source bytes, same installed Godot, fixed LC_ALL=C and TZ=UTC, delete .godot before each export",
+      "build1Sha256": "sha256:39b64d7a6fc8009e9c48507c8e1a9fd48941cda42ba157ae64aef1d565083f55",
+      "build2Sha256": "sha256:245ea0e1ec1f11ca1b89755b1eaca93d840e7e41e43a823f11f95215f110fe3f",
+      "byteLengthEach": 73473208,
+      "result": "NON_IDENTICAL"
+    },
+    "packIsolation": {
+      "pck1Sha256": "sha256:a56c500dbc315e70cba46fe7f49c2de718e125c6355f2e842d0b4efedbea3c58",
+      "pck2Sha256": "sha256:6b92030f99e887e1331163fddb711374e2508162c24ca9cb62b4b596906a2fd2",
+      "generatedScene1Sha256": "sha256:de972e595dd67bc29b3d21b0a923c87a107b2611784a2cf0cfd1cb7cefe6628e",
+      "generatedScene2Sha256": "sha256:482495b9c8b8d369d669f15c45748fa9cd75cfe97401a6c148965b68cf7b1995",
+      "interpretation": "engine template prefix remained stable; nondeterminism was isolated to exported project data"
+    },
+    "rootCauseProbe": {
+      "change": "persist one documented Godot 4.6+ node unique_id in main.tscn",
+      "pck1Sha256": "sha256:f51f11731fd758de186d2c4fd585b8665c9d13d80ea20bf80fd2745fae639420",
+      "pck2Sha256": "sha256:f51f11731fd758de186d2c4fd585b8665c9d13d80ea20bf80fd2745fae639420",
+      "generatedScene1Sha256": "sha256:656e04c3d8a23170141e956369f95e0cd6a2067d5f6f743506d8335824c78593",
+      "generatedScene2Sha256": "sha256:656e04c3d8a23170141e956369f95e0cd6a2067d5f6f743506d8335824c78593",
+      "result": "IDENTICAL"
+    }
+  },
+  "acceptedInputs": {
+    "godotVersion": "4.7.1.stable.arch_linux.a13da4feb",
+    "godotExecutable": "/usr/bin/godot",
+    "godotExecutableSha256": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+    "linuxReleaseTemplate": "/root/.local/share/godot/export_templates/4.7.1.stable/linux_release.x86_64",
+    "linuxReleaseTemplateSha256": "sha256:2cb27aee3f7fdf763d0ae16972f6975606959a071f4cd33f6ef1429eb8385049",
+    "fixedEnvironment": {
+      "LC_ALL": "C",
+      "TZ": "UTC"
+    },
+    "sourceSceneDigestAfterFix": "sha256:e33427a56d88299e30090f6be25c584458ffb70db007ac8639bcb5b874be88c6"
+  },
+  "acceptance": {
+    "runtimeJobId": "job-01a09a26-b690-79d3-9b8d-024214d559e1",
+    "firstBuildDigest": "sha256:ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "secondBuildDigest": "sha256:ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "byteLength": 73473208,
+    "sourceExecutionMarker": "ORDIVON_GAME_COLD_START_OK",
+    "exportedExecutionMarker": "ORDIVON_GAME_COLD_START_OK"
+  },
+  "boundary": {
+    "established": [
+      "current minimal four-source-file Godot project",
+      "same Godot editor bytes",
+      "same Linux x86_64 release-template bytes",
+      "same Linux/x86_64 host-target class",
+      "clean .godot before every export",
+      "LC_ALL=C and TZ=UTC",
+      "unsigned embedded-PCK release executable"
+    ],
+    "notEstablished": [
+      "arbitrary Godot projects, resource importers, plugins or GDExtensions",
+      "cross-Godot-version reproducibility",
+      "cross-export-template reproducibility",
+      "cross-OS or cross-architecture reproducibility",
+      "signed or notarized final artifact byte identity",
+      "store-generated package byte identity"
+    ],
+    "releaseRule": "When exact historical bytes matter, retain immutable shipped PCK/build artifacts and their digests; do not regenerate an old delta-patch base and assume identity."
+  },
+  "externalAlignment": {
+    "godotIssue": "godotengine/godot#115971",
+    "godotDocs": [
+      "engine_details/file_formats/tscn: Godot 4.6+ node unique_id",
+      "tutorials/export/exporting_pcks: re-exported previous versions may differ because of export nondeterminism and delta patch bases must be exact"
+    ]
+  }
+}
