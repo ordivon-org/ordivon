@@ -1,0 +1,22 @@
+[Unit]
+Description=Network v2 Browserless production network namespace
+After=network-online.target
+Wants=network-online.target
+PartOf=network-v2-browserless.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/network-v2/browserless/provider.env
+ExecStartPre=-/usr/bin/ip netns del nv2-browserless-prod
+ExecStartPre=-/usr/bin/ip link del ${HOST_IF}
+ExecStart=/usr/bin/ip netns add nv2-browserless-prod
+ExecStart=/usr/bin/ip link add ${HOST_IF} type veth peer name ${NS_IF}
+ExecStart=/usr/bin/ip link set ${NS_IF} netns nv2-browserless-prod
+ExecStart=/usr/bin/ip addr add ${HOST_ADDR} dev ${HOST_IF}
+ExecStart=/usr/bin/ip link set ${HOST_IF} up
+ExecStart=/usr/bin/ip -n nv2-browserless-prod addr add ${NS_ADDR} dev ${NS_IF}
+ExecStart=/usr/bin/ip -n nv2-browserless-prod link set lo up
+ExecStart=/usr/bin/ip -n nv2-browserless-prod link set ${NS_IF} up
+ExecStop=-/usr/bin/ip netns del nv2-browserless-prod
+ExecStopPost=-/usr/bin/ip link del ${HOST_IF}
