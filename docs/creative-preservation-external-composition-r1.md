@@ -170,3 +170,13 @@ The heterogeneous 12-work / 86-file pilot has now mechanically validated several
 This is enough evidence to freeze growth of custom Ordivon software-ID, transfer-package, AIP and preservation-event machinery. It is **not** enough to migrate all 302 works or promote a3m to production preservation authority. The production comparison remains Enduro + Archivematica 1.18 versus RODA Community, using the exact same frozen pilot corpus and acceptance conditions.
 
 Machine-readable verdict: `artifacts/creative-preservation/pilot-r1/acceptance-r1.json`.
+
+## Forward ingest R4 — accepted bounded path (2026-09-13)
+
+The historical Creative archive is now explicitly recovery/comparison-only for forward operation. A new bounded forward handoff consumes exact owner-approved outputs at exact owner revisions and emits SWHID identity plus a BagIt 1.0 transfer/fixity package. A DuckDB/Parquet catalog is rebuilt from handoff receipts and is disposable.
+
+Four Media Git-owned approved outputs passed the path. Exact replay is idempotent; deleting and rebuilding the catalog reproduced identical logical, Parquet and DuckDB bytes. The historical `creative_archive` counts and source-fenced browser-perception occurrence remained unchanged.
+
+An RFC 8493 audit caught that `bagit-python 1.9.0` still emits a 0.97 declaration. The final adapter upgrades only that declaration to 1.0, delegates tag-manifest regeneration and validation back to `bagit-python`, and fails closed on payload paths requiring unresolved percent-encoding behavior.
+
+This does **not** promote a3m to production authority or establish an AIP/repository. Current PRONOM identification, CAS-owned output resolution, Game release emission and the Enduro+Archivematica versus RODA production comparison remain separate next steps. See `docs/creative-forward-ingest-r4.md`.

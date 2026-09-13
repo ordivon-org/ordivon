@@ -1,0 +1,260 @@
+{
+  "authorityModel": {
+    "acceptanceAuthority": "owner-native exact production/output record",
+    "byteAuthorityForGraduatedPath": "exact Git revision and unique blobDigest resolution inside declared Production subtree",
+    "catalog": "disposable DuckDB/Parquet projection rebuilt from handoff receipts",
+    "contentIdentity": "SWHID via swh.model",
+    "historicalCreativeArchive": "frozen recovery/comparison read model",
+    "normalForwardDiscovery": "explicit owner handoff; Git delta census is recovery-only",
+    "transferPackage": "BagIt 1.0 / RFC 8493 compatibility-bounded handoff"
+  },
+  "browserPerceptionOccurrenceAdvance": {
+    "forward": {
+      "gitBlobObjectId": "e2d8e168bc91356efda2745d9114ae85f1f53ff0",
+      "outputSha256": "sha256:f6ef709cd0b93a548005b46a2d66af65ceff225f658f11fe91228044753d0ab5",
+      "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1",
+      "swhid": "swh:1:cnt:e2d8e168bc91356efda2745d9114ae85f1f53ff0"
+    },
+    "historical": {
+      "gitBlobObjectId": "fa1788c74f2971d412226d759ce78d915813f0cd",
+      "outputSha256": "sha256:db9a75f2dda7eef6d761e1379af299807352cbcba0a669d27897045290db6084",
+      "sourceRevision": "c58898562d09d07ea867d3249c9b55353805df13"
+    },
+    "historicalRowOverwritten": false,
+    "workId": "media:browser-perception-note"
+  },
+  "catalogRebuildProof": {
+    "catalogDeletedBeforeRebuild": true,
+    "duckdbByteEquivalent": true,
+    "idempotentReplay": true,
+    "logicalEquivalent": true,
+    "manifest": {
+      "boundary": "Catalog is rebuilt from handoff receipts and is not work, acceptance, or preservation authority.",
+      "duckdb": {
+        "bytes": 798720,
+        "path": "/var/lib/ordivon/creative-preservation/forward-r1/catalog/creative-forward.duckdb",
+        "sha256": "sha256:c8edb41b908cc99c0b79db4af795f8709c01caa60e38dccadcec6f63b0374208"
+      },
+      "kind": "ordivon.creative-forward-catalog-projection",
+      "parquet": {
+        "bytes": 7177,
+        "path": "/var/lib/ordivon/creative-preservation/forward-r1/catalog/creative-forward.parquet",
+        "sha256": "sha256:436420b798dc4d2f065e4804d35c54d485ef4ce0ff3acfe6e5d34064a1661ffd"
+      },
+      "receiptCount": 4,
+      "schemaVersion": 1,
+      "truthRole": "disposable-forward-read-model"
+    },
+    "manifestSha256": "sha256:ec778530fb19106cc86fed5ed66dba1f5a3b9be1a959ee700549ac6e1a229499",
+    "parquetByteEquivalent": true,
+    "post": {
+      "duckdbSha256": "sha256:c8edb41b908cc99c0b79db4af795f8709c01caa60e38dccadcec6f63b0374208",
+      "logicalSha256": "sha256:9740a97edb882231a40ef4a3e7a8d8f99e72d3946dd7148f52e9bc04a6df01d5",
+      "parquetSha256": "sha256:436420b798dc4d2f065e4804d35c54d485ef4ce0ff3acfe6e5d34064a1661ffd",
+      "rows": 4
+    },
+    "pre": {
+      "duckdbSha256": "sha256:c8edb41b908cc99c0b79db4af795f8709c01caa60e38dccadcec6f63b0374208",
+      "logicalSha256": "sha256:9740a97edb882231a40ef4a3e7a8d8f99e72d3946dd7148f52e9bc04a6df01d5",
+      "parquetSha256": "sha256:436420b798dc4d2f065e4804d35c54d485ef4ce0ff3acfe6e5d34064a1661ffd",
+      "rows": 4
+    }
+  },
+  "claims": {
+    "aipEstablished": false,
+    "bagitRfc8493HandoffEstablished": true,
+    "catalogIsDisposable": true,
+    "gitOwnedOwnerApprovedForwardHandoffGraduated": true,
+    "historicalCreativeArchiveRemainsFrozen": true,
+    "longTermPreservationEstablished": false,
+    "normalForwardRegistrationRequiresGitCensus": false,
+    "swhidContentIdentityEstablished": true
+  },
+  "date": "2026-09-13",
+  "deferred": {
+    "currentPronomFormatIdentification": "NOT_GRADUATED",
+    "gameReleaseEmitter": "NOT_ADMITTED_NO_EQUIVALENT_CURRENT_OWNER_RELEASE_EVENT_SELECTED",
+    "ownerCasResolver": "NOT_IMPLEMENTED",
+    "preservationRepositoryDeposit": "NOT_GRADUATED",
+    "productionAipPremisMets": "NOT_GRADUATED",
+    "productionEngineComparison": "Enduro + Archivematica versus RODA remains pending"
+  },
+  "dogfood": {
+    "handoffCount": 4,
+    "handoffs": [
+      {
+        "adapter": {
+          "repository": "/root/workstation-lab",
+          "repositoryRevision": "19819cd7a6248276ba11c308e25ec1dc52ab1275",
+          "scriptBytesMatchRevision": true,
+          "scriptPath": "scripts/creative_forward_ingest.py",
+          "scriptSha256": "sha256:5bcffeadf8fb23d11eb154dccff91063ea4248bc49fae212a5a1acdff2b1c51c",
+          "scriptTrackedAtRevision": true
+        },
+        "bagItVersion": "1.0",
+        "bagPath": "/var/lib/ordivon/creative-preservation/forward-r1/bags/035d57ffeeb41779fd487023ea6125f06c04e97b8d10dea5680a252d6327d8ca",
+        "bagTreeFingerprint": "sha256:4b7f1204d658322ae5419cf7f2adbd60ea703aa5cba35b75e5025abbdfe043e8",
+        "ingestId": "035d57ffeeb41779fd487023ea6125f06c04e97b8d10dea5680a252d6327d8ca",
+        "observedAt": "2026-09-13T21:58:37+08:00",
+        "outputId": "mhs-hardware-boundary-article-en",
+        "outputSha256": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d",
+        "outputSwhid": "swh:1:cnt:6a28062512010cc7711f653ca71b9cd581c0a157",
+        "payloadBytes": 31815,
+        "payloadFiles": 9,
+        "productionId": "mhs-hardware-boundary",
+        "receiptPath": "/var/lib/ordivon/creative-preservation/forward-r1/receipts/035d57ffeeb41779fd487023ea6125f06c04e97b8d10dea5680a252d6327d8ca.json",
+        "receiptSha256": "sha256:1d1b84621af5e9e0542fed641001e21c0ac769852f171a08cb6d599c6cf4bc52",
+        "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1",
+        "sourceTreeGitObjectId": "e8bfab60935c061902b112af9e9d5b0267a74723",
+        "standing": "BAGIT_HANDOFF_ACCEPTED_AIP_NOT_ESTABLISHED",
+        "workId": "media:mhs-hardware-boundary"
+      },
+      {
+        "adapter": {
+          "repository": "/root/workstation-lab",
+          "repositoryRevision": "19819cd7a6248276ba11c308e25ec1dc52ab1275",
+          "scriptBytesMatchRevision": true,
+          "scriptPath": "scripts/creative_forward_ingest.py",
+          "scriptSha256": "sha256:5bcffeadf8fb23d11eb154dccff91063ea4248bc49fae212a5a1acdff2b1c51c",
+          "scriptTrackedAtRevision": true
+        },
+        "bagItVersion": "1.0",
+        "bagPath": "/var/lib/ordivon/creative-preservation/forward-r1/bags/4904798398bc2e084f2d92527afd45ba58c58baa433a8d83406e13d656e67d83",
+        "bagTreeFingerprint": "sha256:2ecbfb06ffae926c1b4e40854ed2d9153d470938ff4b28f22d2103029773a346",
+        "ingestId": "4904798398bc2e084f2d92527afd45ba58c58baa433a8d83406e13d656e67d83",
+        "observedAt": "2026-09-13T21:58:37+08:00",
+        "outputId": "site-root-social-card",
+        "outputSha256": "sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807",
+        "outputSwhid": "swh:1:cnt:d31f3df39c16b06ef6c60f0ba026357e2ec2eae3",
+        "payloadBytes": 123867,
+        "payloadFiles": 7,
+        "productionId": "site-social-card",
+        "receiptPath": "/var/lib/ordivon/creative-preservation/forward-r1/receipts/4904798398bc2e084f2d92527afd45ba58c58baa433a8d83406e13d656e67d83.json",
+        "receiptSha256": "sha256:31e9d63165b88d0ff6b81077fbcff4573fab17c8d160c958227b583dfc23ff2f",
+        "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1",
+        "sourceTreeGitObjectId": "af462bb4b6cbc0160b60b9d7f469860c9c551dea",
+        "standing": "BAGIT_HANDOFF_ACCEPTED_AIP_NOT_ESTABLISHED",
+        "workId": "media:site-social-card"
+      },
+      {
+        "adapter": {
+          "repository": "/root/workstation-lab",
+          "repositoryRevision": "19819cd7a6248276ba11c308e25ec1dc52ab1275",
+          "scriptBytesMatchRevision": true,
+          "scriptPath": "scripts/creative_forward_ingest.py",
+          "scriptSha256": "sha256:5bcffeadf8fb23d11eb154dccff91063ea4248bc49fae212a5a1acdff2b1c51c",
+          "scriptTrackedAtRevision": true
+        },
+        "bagItVersion": "1.0",
+        "bagPath": "/var/lib/ordivon/creative-preservation/forward-r1/bags/6adf2f9729abd50ecc49538d84ac0acf353043d1b6f262ea76adf469668da313",
+        "bagTreeFingerprint": "sha256:57e13d61c49db5ac1249d614896e9c6893e5de28b44763d8dc8ab0d7a9b22e13",
+        "ingestId": "6adf2f9729abd50ecc49538d84ac0acf353043d1b6f262ea76adf469668da313",
+        "observedAt": "2026-09-13T21:58:37+08:00",
+        "outputId": "studio-expression-card-publishable",
+        "outputSha256": "sha256:fc19d4cf27982fd177c9411245fb994a970551e105866348ee03e9deed6bcce4",
+        "outputSwhid": "swh:1:cnt:9aff8badc6408c533a93b28d31a654f54176ba29",
+        "payloadBytes": 128943,
+        "payloadFiles": 7,
+        "productionId": "studio-expression-card",
+        "receiptPath": "/var/lib/ordivon/creative-preservation/forward-r1/receipts/6adf2f9729abd50ecc49538d84ac0acf353043d1b6f262ea76adf469668da313.json",
+        "receiptSha256": "sha256:b74bfc8dad6a572457fac8c564b86c70ec243d84ebb45bbd3212e7a08b1861d3",
+        "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1",
+        "sourceTreeGitObjectId": "dcee7718e463646605e3f9b69f4a4e0af5c0e1ca",
+        "standing": "BAGIT_HANDOFF_ACCEPTED_AIP_NOT_ESTABLISHED",
+        "workId": "media:studio-expression-card"
+      },
+      {
+        "adapter": {
+          "repository": "/root/workstation-lab",
+          "repositoryRevision": "19819cd7a6248276ba11c308e25ec1dc52ab1275",
+          "scriptBytesMatchRevision": true,
+          "scriptPath": "scripts/creative_forward_ingest.py",
+          "scriptSha256": "sha256:5bcffeadf8fb23d11eb154dccff91063ea4248bc49fae212a5a1acdff2b1c51c",
+          "scriptTrackedAtRevision": true
+        },
+        "bagItVersion": "1.0",
+        "bagPath": "/var/lib/ordivon/creative-preservation/forward-r1/bags/6b92618e3f838bd4a47755071c340a054bb2a51cd63ae59f0d3b1d127e1771ff",
+        "bagTreeFingerprint": "sha256:00a77f183b3d199ef8960cc26ba1dcfd3144cae998c85cef93fb1a09ae00b799",
+        "ingestId": "6b92618e3f838bd4a47755071c340a054bb2a51cd63ae59f0d3b1d127e1771ff",
+        "observedAt": "2026-09-13T21:58:37+08:00",
+        "outputId": "browser-perception-article-en",
+        "outputSha256": "sha256:f6ef709cd0b93a548005b46a2d66af65ceff225f658f11fe91228044753d0ab5",
+        "outputSwhid": "swh:1:cnt:e2d8e168bc91356efda2745d9114ae85f1f53ff0",
+        "payloadBytes": 16298,
+        "payloadFiles": 5,
+        "productionId": "browser-perception-note",
+        "receiptPath": "/var/lib/ordivon/creative-preservation/forward-r1/receipts/6b92618e3f838bd4a47755071c340a054bb2a51cd63ae59f0d3b1d127e1771ff.json",
+        "receiptSha256": "sha256:4d0f6697b1e6562fb66cad8fa50a2a7134f0b5e0203ea50ea6baa1df58a44300",
+        "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1",
+        "sourceTreeGitObjectId": "5c45b0ad711d2ac01ec084ddf7c795c1171a654e",
+        "standing": "BAGIT_HANDOFF_ACCEPTED_AIP_NOT_ESTABLISHED",
+        "workId": "media:browser-perception-note"
+      }
+    ],
+    "owner": "Media",
+    "sourceRepository": "/root/projects/ordivon-media",
+    "sourceRevision": "920b52ac0de059338ceac8596c15466e4cd80da1"
+  },
+  "historicalArchivePostCheck": {
+    "artifactObjects": 3166,
+    "mutatedByR4": false,
+    "sourceSnapshots": 9,
+    "workArtifactOccurrences": 3288,
+    "workArtifactRoles": 3622,
+    "works": 302
+  },
+  "implementation": {
+    "bagitPython": "1.9.0",
+    "duckdb": "1.5.5",
+    "lockPath": "requirements/creative-preservation-forward-r1.lock.txt",
+    "lockSha256": "sha256:e85a056df6aa92e510864a59835ee48ea7f0ce1ed2cccd530ab4e66900ac5b29",
+    "python": "3.12.13",
+    "repository": "/root/workstation-lab",
+    "requirementsPath": "requirements/creative-preservation-forward-r1.txt",
+    "requirementsSha256": "sha256:cc8b924967759eb839b6252c0c0eb41632e3f7d86c7d5dab12891d82890f543c",
+    "revision": "19819cd7a6248276ba11c308e25ec1dc52ab1275",
+    "scriptPath": "scripts/creative_forward_ingest.py",
+    "scriptSha256": "sha256:5bcffeadf8fb23d11eb154dccff91063ea4248bc49fae212a5a1acdff2b1c51c",
+    "swhModel": "8.4.1",
+    "toolEnvironment": "/root/.local/share/ordivon-workstation/creative-preservation-tools-r1"
+  },
+  "kind": "ordivon.creative-forward-ingest-r4",
+  "negativeBoundary": {
+    "declaredByteAuthority": "Media local CAS according to portable PDF receipt",
+    "disposition": "A future CAS resolver must use the owner-declared CAS object key; filesystem-wide digest search is prohibited.",
+    "gitResolverMatches": 0,
+    "outputId": "ordivon-book-v0-portable-pdf-zh",
+    "ownerApprovedSha256": "sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7",
+    "productionId": "ordivon-book-v0",
+    "receiptCountAfter": 4,
+    "receiptCountBefore": 4,
+    "result": "FAIL_CLOSED"
+  },
+  "nonClaims": [
+    "R4 does not create Media approval; it consumes exact owner approval already present in the owner source.",
+    "BagIt transfer handoff is not an OAIS AIP and does not establish PREMIS/METS repository preservation.",
+    "No current PRONOM format identity is claimed.",
+    "No Game release acceptance is invented.",
+    "No public publication, audience response, rights expansion, or long-term preservation guarantee is claimed."
+  ],
+  "rfc8493": {
+    "allFreshValidated": true,
+    "bagItVersion": "1.0",
+    "compatibilityReason": "LibraryOfCongress/bagit-python 1.9.0 creates 0.97 declarations; adapter upgrades only bagit.txt to 1.0, delegates tagmanifest regeneration and validation back to bagit-python.",
+    "pathPolicy": "conservative ASCII RFC 8493 subset; paths requiring percent encoding fail closed",
+    "retainedBagCount": 4
+  },
+  "schemaVersion": 1,
+  "standing": "ACCEPTED_BOUNDED",
+  "verification": {
+    "catalogRebuildJobId": "job-01a09b10-4a05-7b10-945c-1d480124da00",
+    "finalBoundaryJobId": "job-01a09b10-8b67-71a1-8d84-37f2cd3f3f66",
+    "finalHandoffsJobId": "job-01a09b10-1163-7411-b086-5fe01279054f",
+    "targetedUnitAndCreativeLibraryTests": {
+      "failed": 0,
+      "jobId": "job-01a09b0f-6a78-7f01-aeb2-70a9d7c75eec",
+      "passed": 18,
+      "run": 18
+    }
+  }
+}
