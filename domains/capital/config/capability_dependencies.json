@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.capability-dependencies",
+  "principle": "reuse mature capability environments through explicit contracts; do not duplicate their dependency stacks",
+  "capabilities": {
+    "research": {
+      "provider": "Ordivon Research Capability",
+      "providerRepo": "/root/projects/ordivon-research-v2",
+      "interpreterEnv": "MARKET_CAPITAL_RESEARCH_PYTHON",
+      "defaultInterpreter": "/root/projects/ordivon-research-v2/.venv/bin/python",
+      "requiredPythonModules": ["jsonschema", "mlflow", "pandas", "pandera", "pyarrow"],
+      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts"
+    },
+    "xbrlValidation": {
+      "provider": "Arelle + SEC EDGAR plugins",
+      "commandEnv": "MARKET_CAPITAL_ARELLE",
+      "defaultCommand": "/root/.local/bin/arelleCmdLine",
+      "requiredFor": "raw SEC filing EFM validation",
+      "currentBoundary": "Arelle core is installed; SEC EDGAR/EFM plugin bundle must be admitted separately"
+    }
+  }
+}
