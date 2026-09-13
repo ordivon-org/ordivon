@@ -21,5 +21,12 @@ class WaveBContractTests(unittest.TestCase):
         self.assertFalse(doc["externalFinancialWritesAllowed"])
         self.assertEqual(doc["productionStanding"], "NOT_ADMITTED")
 
+    def test_execution_feasibility_is_non_live_and_has_buffer(self):
+        doc = json.loads((ROOT / "config/execution_feasibility.json").read_text())
+        self.assertEqual(doc["orderSizingOwner"], "QuantConnect LEAN CalculateOrderQuantity / buying-power model")
+        self.assertGreater(doc["executionCashBufferWeight"], 0)
+        self.assertLess(doc["executionCashBufferWeight"], 1)
+        self.assertFalse(doc["externalFinancialWritesAllowed"])
+
 if __name__ == "__main__":
     unittest.main()
