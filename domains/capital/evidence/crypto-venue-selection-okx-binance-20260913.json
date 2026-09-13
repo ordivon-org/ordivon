@@ -1,0 +1,44 @@
+{
+  "binance": {
+    "executionQualificationEnvironments": [
+      "DEMO",
+      "TESTNET"
+    ],
+    "nativeAdapterPresent": true,
+    "publicDataConfigConstructedWithoutCredentials": true
+  },
+  "brokerCredentialsUsed": false,
+  "candidate": "NautilusTrader 2.0.0rc4",
+  "commonUniverse": [
+    "BTC-USDT",
+    "ETH-USDT"
+  ],
+  "configSha256": "01b83adcdea34b9d7feae6dc5e137de14bd5057be4681db437a1ddca06b66a04",
+  "demoExecutionAllowed": false,
+  "directTransport": {
+    "binance": "TIMEOUT",
+    "okx": "TIMEOUT"
+  },
+  "externalFinancialWritesAttempted": false,
+  "historicalEquityM6M7Rewritten": false,
+  "kind": "ordivon.market-capital.crypto-venue-selection-evidence",
+  "liveExecutionAllowed": false,
+  "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",
+  "okx": {
+    "executionQualificationEnvironment": "DEMO",
+    "nativeAdapterPresent": true,
+    "publicDataConfigConstructedWithoutCredentials": true
+  },
+  "privateAccountDataAllowed": false,
+  "schemaVersion": 1,
+  "scopedVpnTransport": {
+    "jpTokWireguardDiscovery": "TIMED_OUT_120S",
+    "qualifiedPath": false,
+    "surfpath": "AVAILABLE"
+  },
+  "standing": "PASS_ADAPTER_SELECTION_TRANSPORT_PENDING",
+  "venues": [
+    "OKX",
+    "BINANCE"
+  ]
+}
