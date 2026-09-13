@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.station-zero-v3-ogg-consumer-acceptance",
+  "id": "station-zero-v3-g4-ogg-consumer-acceptance-r1",
+  "standing": "GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED",
+  "observedAt": "2026-09-13",
+  "gameSource": {
+    "repository": "/root/projects/ordivon-game",
+    "baseRevision": "d0f8f17b43b33a995eafd71efeed4800c9a2ce81"
+  },
+  "artifactTechnicalEvidence": {
+    "repository": "/root/projects/ordivon-artifact-v2",
+    "relativePath": "artifact-delivery/consumer-acceptance/game-station-zero-ogg-vorbis-r1.json",
+    "sha256": "928bb195427ab430e946efdf7c308e8ce5f99ef4aa79455f145952266d29fb26",
+    "standing": "STANDARD_PASS_TARGET_DIVERGENCE_REQUIRES_GAME_DECISION",
+    "observedPattern": {
+      "xiphReferenceAndFirefox": "CONTRACT_BOUNDARY",
+      "ffmpegAndChromium": "REFERENCE_MINUS_128_SAMPLES_PER_CHANNEL",
+      "sampleBoundaryDeltaAt48000HzMs": 2.6666666666666665
+    }
+  },
+  "consumerContract": {
+    "implementation": {
+      "relativePath": "experiments/station-zero-v3/web/app.js",
+      "sha256": "3ff40c0bf2493c3e42c07d30438068e4a4f86acc510cff374f8307427b7aa8c1",
+      "playbackConstruction": "new Audio(src) -> volume=0.34 -> play()"
+    },
+    "role": "non-authoritative one-shot presentation cue",
+    "cues": [
+      "plan-ready",
+      "commit",
+      "aftermath"
+    ],
+    "loopAuthority": "HTMLAudioElement default false; Game does not set loop",
+    "timingAuthority": "Game does not read duration/currentTime/ended/timeupdate/playbackRate and does not use audio to gate or synchronize simulation/UI state",
+    "failurePolicy": "play rejection and construction errors are swallowed; audio is presentation-only and gameplay continues",
+    "acceptanceMeaning": "Successful target load/play/end plus unchanged gameplay semantics is sufficient even when decoder/container duration boundaries differ. Cross-target sample or audible equivalence is not required."
+  },
+  "subjects": [
+    {
+      "cue": "plan-ready",
+      "relativePath": "experiments/station-zero-v3/web/assets/audio/plan-ready.ogg",
+      "sha256": "622713bc61331f8d509f456dc464bac3b965f2e84dae0371ca3493de94dff668",
+      "referenceDurationMs": 220,
+      "observedChromiumHtmlAudioDurationMs": 222.667,
+      "observedFirefoxHtmlAudioDurationMs": 220,
+      "trimmedTailSamples": 128,
+      "trimmedTailMs": 2.6666666666666665,
+      "tailPeakRatio": 0.025844101709045435,
+      "tailRmsRatio": 0.025436575405721654
+    },
+    {
+      "cue": "commit",
+      "relativePath": "experiments/station-zero-v3/web/assets/audio/commit.ogg",
+      "sha256": "4dd7e06083056e63a82b54bd6f3e67410f193f72d3c006db8c6efe4410a57647",
+      "referenceDurationMs": 200,
+      "observedChromiumHtmlAudioDurationMs": 202.667,
+      "observedFirefoxHtmlAudioDurationMs": 200,
+      "trimmedTailSamples": 128,
+      "trimmedTailMs": 2.6666666666666665,
+      "tailPeakRatio": 0.014411247803163444,
+      "tailRmsRatio": 0.01993798108909998
+    },
+    {
+      "cue": "aftermath",
+      "relativePath": "experiments/station-zero-v3/web/assets/audio/aftermath.ogg",
+      "sha256": "d6a313a4e424eeb391d07e3e52e241d20cb626c11b9bd5c4305e62efa39e8271",
+      "referenceDurationMs": 300,
+      "observedChromiumHtmlAudioDurationMs": 302.667,
+      "observedFirefoxHtmlAudioDurationMs": 300,
+      "trimmedTailSamples": 128,
+      "trimmedTailMs": 2.6666666666666665,
+      "tailPeakRatio": 0.004500818330605565,
+      "tailRmsRatio": 0.00801009701729646
+    }
+  ],
+  "runtimeEvidence": {
+    "browserAndTailProbe": {
+      "jobId": "job-01a09ade-a3d2-7b61-a13d-af4f89f4f671",
+      "operationDigest": "sha256:dd061bb3527c0671c6dd84f0c8c7b310e4c1e939e98840ca04af5b19fa050709",
+      "chromium": {
+        "allLoaded": true,
+        "allEnded": true,
+        "allLoopFalse": true
+      },
+      "firefox": {
+        "allLoaded": true,
+        "allEnded": true,
+        "allLoopFalse": true
+      }
+    },
+    "g4FailSoftCalibration": {
+      "jobId": "job-01a09adf-63c8-7041-8c78-f7742d47099b",
+      "operationDigest": "sha256:2bd85fec500cf264c54c7be91f563a5878508b82d676927597efdc88fe5eef6b",
+      "summary": {
+        "total": 25,
+        "passed": 25,
+        "failed": 0,
+        "criticalFailed": 0,
+        "majorFailed": 0
+      },
+      "relevantFinding": {
+        "id": "media-failure-keeps-specialist-identity",
+        "severity": "critical",
+        "passed": true,
+        "condition": "all /v3/assets/audio/** requests aborted together with representative sprite media"
+      }
+    },
+    "fullRegressionAndE2E": {
+      "jobId": "job-01a09ae1-b026-7080-a6df-33ecfab9a47b",
+      "operationDigest": "sha256:37e05d1f5d328d9f5c0dd0c68eebf2a5a0be075517f8577cb7f1967ecd2414b4",
+      "check": {
+        "typecheck": "PASS",
+        "webcheck": "PASS",
+        "tests": {
+          "total": 434,
+          "passed": 434,
+          "failed": 0
+        }
+      },
+      "stationZeroV3E2E": {
+        "status": "PASS",
+        "committedTurns": 20,
+        "worldRevision": 20,
+        "browserErrors": 0,
+        "oggAssetsHttp200": 3
+      }
+    }
+  },
+  "decision": {
+    "status": "ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION",
+    "rationale": [
+      "Both pinned browser engines load, play, and reach ended for all three exact Ogg bytes without looping.",
+      "The Game uses the cues only as one-shot presentation feedback and never treats decoded sample count or media duration as simulation, navigation, commit, resolution, or UI timing authority.",
+      "The existing G4 calibration remains fully green when all audio requests are aborted, so a bounded decoder-specific end-boundary difference cannot corrupt authoritative Game state or specialist identity.",
+      "The observed 128-sample difference is preserved as evidence rather than normalized away; the omitted reference tail is already inside the authored fade-out and has low amplitude relative to each full cue."
+    ]
+  },
+  "nonClaims": [
+    "This does not claim cross-browser sample-exact decode or duration equivalence.",
+    "This does not claim perceptual or artistic equivalence between Chromium and Firefox playback.",
+    "This does not make Game authoritative for Ogg/Vorbis standard semantics; those remain Artifact/Xiph/Khronos-adjacent technical concerns.",
+    "This acceptance is specific to the current Station Zero one-shot fail-soft cue role and must not be reused for music loops, rhythm mechanics, lip sync, beat synchronization, sample-accurate sequencing, or timeline-authoritative audio.",
+    "This does not establish rights or licensing validity."
+  ]
+}

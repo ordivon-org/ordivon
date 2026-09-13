@@ -50,6 +50,22 @@ test("G4 audio keeps deterministic local source, mute state, and post-boundary c
   assert.match(app, /playCue\("aftermath"\)/);
 });
 
+test("G4 Ogg target-boundary divergence is explicitly accepted only for fail-soft one-shot cues", () => {
+  const evidence = JSON.parse(readFileSync(new URL("../evidence/G4_OGG_CONSUMER_ACCEPTANCE_R1.json", import.meta.url), "utf8"));
+  assert.equal(evidence.standing, "GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED");
+  assert.equal(evidence.decision.status, "ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION");
+  assert.equal(evidence.runtimeEvidence.browserAndTailProbe.chromium.allEnded, true);
+  assert.equal(evidence.runtimeEvidence.browserAndTailProbe.firefox.allEnded, true);
+  assert.equal(evidence.runtimeEvidence.g4FailSoftCalibration.summary.failed, 0);
+  assert.equal(evidence.runtimeEvidence.g4FailSoftCalibration.relevantFinding.passed, true);
+  assert.equal(evidence.subjects.length, 3);
+  assert.ok(evidence.subjects.every((subject: any) => subject.trimmedTailSamples === 128));
+  assert.ok(evidence.subjects.every((subject: any) => subject.trimmedTailMs < 3));
+  assert.match(evidence.consumerContract.role, /one-shot/);
+  assert.match(evidence.consumerContract.timingAuthority, /does not read duration\/currentTime\/ended/);
+  assert.ok(evidence.nonClaims.some((claim: string) => claim.includes("music loops")));
+});
+
 test("busy presentation freezes the stale Mission surface for keyboard and assistive semantics", () => {
   assert.match(render, /inert aria-busy="true"/);
   assert.match(render, /renderMission\(view, catalog, expressionTurnSequence, audioMuted, busy\)/);
