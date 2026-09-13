@@ -1,14 +1,14 @@
 {
-  "baseRevision": "cc88221d682af05ee0d327c278773be33dd707bf",
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Tiled Design/2D native canonicality is retained as artifact evidence while Game topology semantics remain caller-owned.",
+  "baseRevision": "292d915621f4f39b2683830ed853b8b59f285473",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Aseprite Design/2D evidence retains exact managed-exporter and derivative identity while caller-owned frame/tag/actor semantics remain outside Artifact authority.",
   "coverage": {
-    "isolatedValidatorImplementations": 13,
-    "liveProvenShadowBindings": 13,
-    "normalizedProfiles": 21,
+    "isolatedValidatorImplementations": 14,
+    "liveProvenShadowBindings": 14,
+    "normalizedProfiles": 22,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
-  "donorManifestSha256": "ce0905dd782a18fcbc7fea62a388158a6ada197e644738e5ecab2bbd3fdbb67c",
+  "donorManifestSha256": "baf11ac5c5925097dc47904939eeb229decfdd191fb8c7420d5da5d2cb3d8798",
   "focusedDonorTests": {
     "failed": 0,
     "passed": 10,
@@ -16,14 +16,14 @@
   },
   "fullRegression": {
     "failed": 0,
-    "passed": 264,
+    "passed": 271,
     "skipped": 2,
-    "total": 266
+    "total": 273
   },
   "id": "artifact-k2a-donor-r1-verification-r1",
   "kind": "artifact-k2a-donor-verification",
-  "operationDigest": "sha256:4652a6e69afaf6324bd6e6472216eff08894d273e7555a0099a9e73144b87105",
-  "runtimeJobId": "job-01a09a6c-b3af-79e2-8d2e-fa3626708928",
+  "operationDigest": "sha256:5fcf7ad47cc43c68bf12cc121983eb8f3d7513366211a1abd92212621724f2e6",
+  "runtimeJobId": "job-01a09a8c-79ae-7380-91ed-c6019db40be2",
   "schemaVersion": 1,
   "standing": "PASS"
 }

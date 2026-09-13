@@ -1,9 +1,9 @@
 {
-  "baseRevision": "cc88221d682af05ee0d327c278773be33dd707bf",
+  "baseRevision": "292d915621f4f39b2683830ed853b8b59f285473",
   "coverage": {
-    "isolatedValidatorImplementations": 13,
-    "liveProvenShadowBindings": 13,
-    "normalizedProfiles": 21,
+    "isolatedValidatorImplementations": 14,
+    "liveProvenShadowBindings": 14,
+    "normalizedProfiles": 22,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 11,
+        "profilesWithExplicitObjectContract": 12,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 13,
+        "profilesWithExplicitNonClaims": 14,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 21
+        "profilesWithoutEncodedSequence": 22
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -658,6 +658,135 @@
       "validatorImplementation": {
         "path": "scripts/artifact_dataset.py",
         "sha256": "815772088be21f7ba11870d3d75e24d34543dcea28014684ba9ad7d9ef19ca20"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/design-2d/design-2d-aseprite-horizontal-sheet-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "derivedPngVerifier",
+          "managedNativeExporter"
+        ],
+        "proofKeys": [
+          "currentGameRevision",
+          "currentGameSources",
+          "focusedTests",
+          "gameDirectSmokeOperationDigest",
+          "gameDirectSmokeRuntimeJobId",
+          "invalidSource",
+          "wrongFrameCount",
+          "wrongNativeMetadataDigest",
+          "wrongPngDigest"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/design-2d-aseprite-local-r1.json",
+          "sha256": "828a47f6cd9512621420d16c87c41ea63044382f8f0f27fa4d2201afb2f50113"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "Aseprite native deterministic horizontal sprite-sheet export",
+        "family": "design-2d",
+        "format": {
+          "mediaType": "application/octet-stream",
+          "name": "Aseprite (.ase/.aseprite)"
+        },
+        "purposes": [
+          "editable-authoring",
+          "derived-raster-production",
+          "game-runtime-source"
+        ],
+        "representation": "layered-raster-authoring-source"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Aseprite-native-exporter",
+          "derivedPngVerifier",
+          "managedNativeExporter"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "derivativeIdentity",
+          "derivedStillImageProfile",
+          "nativeDeterministicExport",
+          "nativeMetadataFacts"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "design-2d-aseprite-sheet-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/design-2d-aseprite-sheet-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/design-2d-aseprite-sheet-contract-v1.schema.json",
+          "sha256": "304f81f676e7f83c1784f658b2e99999da29e21abc549bc869cebf5abd2b1375"
+        }
+      },
+      "profileId": "design-2d-aseprite-horizontal-sheet-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "Game meaning of frame tags, actor identities, roles or animation states",
+          "caller-owned JSON metadata that is not emitted by Aseprite itself",
+          "artistic quality or gameplay suitability of the sprite",
+          "all Aseprite export modes, packed sheets, split layers, slices, tilemaps or palette conversions",
+          "cross-version reproducibility outside the exact managed Aseprite capability binding",
+          "rights or licensing validity of source or derivative content"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-2d-aseprite-horizontal-sheet-r1-v2.json",
+        "sha256": "284f7333b13901ed8f6ffaecb9f0e043cae2b7cdacd01f4461582030d7eb9cdd"
+      },
+      "standards": [
+        "Tiled JSON Map Format / TMX Map Format semantics",
+        "format-specific native authoring contracts"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Aseprite-native-exporter",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "Aseprite export contract validates under design-2d-aseprite-sheet-contract-v1",
+          "required": true
+        },
+        "derivativeIdentity": {
+          "claim": "generated PNG and native metadata exact SHA-256 values equal the object contract",
+          "required": true
+        },
+        "derivedStillImageProfile": {
+          "claim": "the generated PNG independently passes still-image-png-srgb-r1",
+          "required": true
+        },
+        "nativeDeterministicExport": {
+          "claim": "two clean Aseprite batch exports produce byte-identical horizontal-sheet PNG and native JSON metadata",
+          "required": true
+        },
+        "nativeMetadataFacts": {
+          "claim": "Aseprite native metadata exposes the contracted sheet dimensions and frame count",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_aseprite.py",
+        "sha256": "97327dd1b2f6f26f97d80becd65d97ac10dd289900aeff3fc359599db73cc7ff"
       }
     },
     {
@@ -2751,11 +2880,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "4794a75c051428386e2af80bb78fe52a30902de21b3f874e1e6b7d0f195e6b80"
+      "sha256": "f505cfd219dd51bd708de9a5d91de90c71007a01e7a32665c4f76b85e54deeb9"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "1da5b7b3f839f744da75ffc7e5bc273f6ed6d0ac80b386a2c53a2e7df0efd02a"
+      "sha256": "64884e27716fc1b0b1fcdff9882262ecb01de87fe8f467a738779faa8e005aa8"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
