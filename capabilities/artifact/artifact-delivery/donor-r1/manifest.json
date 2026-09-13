@@ -1,9 +1,9 @@
 {
-  "baseRevision": "72f41bb46e1e787920643bd26d9db191053eb919",
+  "baseRevision": "c79751e7ab47536514ac8ba34cff361ed083ab46",
   "coverage": {
-    "isolatedValidatorImplementations": 9,
-    "liveProvenShadowBindings": 9,
-    "normalizedProfiles": 17,
+    "isolatedValidatorImplementations": 10,
+    "liveProvenShadowBindings": 10,
+    "normalizedProfiles": 18,
     "representedFamilies": 14,
     "taxonomyFamilies": 14
   },
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 8,
+        "profilesWithExplicitObjectContract": 9,
         "profilesWithoutExplicitObjectContract": 9
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 9,
+        "profilesWithExplicitNonClaims": 10,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 17
+        "profilesWithoutEncodedSequence": 18
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -239,6 +239,147 @@
       "validatorImplementation": {
         "path": "scripts/artifact_audio.py",
         "sha256": "af079006ef4aca3c7c1ecbd469f69f89d8c9b0ef0a78e13f6dbf13cd54c4a377"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/audio/audio-wave-pcm16-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "ffmpeg",
+          "ffprobe",
+          "sndfileInfo",
+          "sox"
+        ],
+        "proofKeys": [
+          "decoderMatrix",
+          "focusedTests",
+          "gameConsumerArtifactSha256",
+          "gameConsumerContractCanonicalDigest",
+          "gameConsumerPcmSha256",
+          "gameConsumerRelativePath",
+          "gameConsumerRevision",
+          "gameConsumerSmokeRuntimeJobId",
+          "independentTechnicalView",
+          "invalidWave",
+          "referenceContainerView",
+          "validWavePcm16Contract",
+          "wrongExpectedPcmDigest",
+          "wrongSampleRateContract"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
+          "sha256": "4ea543345258f3c4c75385ae99edad52be2b0416345a3ad81b3e4ee518ffa621"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "RIFF/WAVE WAVE_FORMAT_PCM bounded 16-bit mono/stereo profile",
+        "family": "audio",
+        "format": {
+          "mediaType": "audio/vnd.wave",
+          "name": "RIFF/WAVE PCM"
+        },
+        "purposes": [
+          "game-runtime",
+          "interchange"
+        ],
+        "representation": "uncompressed-audio-container"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "ffmpeg",
+          "ffprobe",
+          "independent-decoder-matrix",
+          "sndfileInfo",
+          "sox"
+        ],
+        "requiredEvidence": [
+          "contractSchema",
+          "decoderMatrix",
+          "independentTechnicalView",
+          "pcmIdentity",
+          "referenceContainerView"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "audio-wave-pcm16-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/audio-wave-pcm16-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/audio-wave-pcm16-contract-v1.schema.json",
+          "sha256": "2e42b34523b0c523261996436c0309dc1f3a9c88bca3268affc0b0dcaca211eb"
+        }
+      },
+      "profileId": "audio-wave-pcm16-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "factual or artistic correctness of the audio content",
+          "subjective sound quality, loudness or mastering quality",
+          "truth or completeness of LIST/INFO or other ancillary metadata",
+          "Broadcast Wave Format metadata conformance or EBU R 128 compliance",
+          "RF64/WAVE64 or compressed WAVE codec support",
+          "absence of clipping, silence, phase issues or other signal-quality defects"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json",
+        "sha256": "36cad5be83d2658b5c9869c687d62b05e70d5b9df8fcac0a03084db740a9149b"
+      },
+      "standards": [
+        "format/profile-selected codec and container standards",
+        "BWF/WAVE or professional preservation profiles where required"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "independent-decoder-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "contractSchema": {
+          "claim": "WAVE PCM object contract is valid under audio-wave-pcm16-contract-v1",
+          "required": true
+        },
+        "decoderMatrix": {
+          "claim": "FFmpeg and SoX decode to exactly identical canonical s16le PCM bytes",
+          "parameters": {
+            "minimumIndependentDecoders": 2
+          },
+          "required": true
+        },
+        "independentTechnicalView": {
+          "claim": "FFprobe independently identifies WAVE PCM s16le codec tag 0x0001 and agrees on sample rate, channels, bit depth and frame count",
+          "required": true
+        },
+        "pcmIdentity": {
+          "claim": "canonical decoded PCM byte count matches the contract and any expectedPcmSha256 matches decoded PCM SHA-256",
+          "required": true
+        },
+        "referenceContainerView": {
+          "claim": "libsndfile identifies RIFF/WAVE WAVE_FORMAT_PCM and agrees with the object contract",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_wave.py",
+        "sha256": "9e8356ac6bf9ef55b44ce1f9c21bf84520f9d74681ef247751d283ec81ee62a5"
       }
     },
     {
@@ -2207,11 +2348,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "f052dfcf623e78e59b9cd38f194316ec298b8043e52490812f7aa96b33ec1919"
+      "sha256": "3826eb56b0e1f8a5efc60e3b1c055e921d86424d745157d61d73f4526c36e8e6"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "d82361f26639ec7738846d67a722c06d925d6521a3997352a6f169f2bcbac92f"
+      "sha256": "7030b16f150ea31f287688adc728111d66e955376124e99e18e1706eb3b05125"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"

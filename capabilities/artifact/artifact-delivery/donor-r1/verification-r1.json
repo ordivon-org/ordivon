@@ -1,22 +1,29 @@
 {
-  "schemaVersion": 1,
-  "kind": "artifact-k2a-donor-verification",
-  "id": "artifact-k2a-donor-r1-verification-r1",
-  "standing": "PASS",
-  "baseRevision": "72f41bb46e1e787920643bd26d9db191053eb919",
-  "donorManifestSha256": "84e7bfa7eb425c08777de50cae089aa76e55c9f3c9d8550f1f18ffb1ccc7a6a8",
-  "runtimeJobId": "job-01a09650-9ebc-7b13-80ae-3da2b4d82792",
-  "operationDigest": "sha256:cd76e9f05cb5af72cdc13e5af7dea3e2ff96d7b892b825c0dd0ed683e971b97d",
+  "baseRevision": "c79751e7ab47536514ac8ba34cff361ed083ab46",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. It does not establish that Artifact schemas are universal Ordivon Core contracts.",
+  "coverage": {
+    "isolatedValidatorImplementations": 10,
+    "liveProvenShadowBindings": 10,
+    "normalizedProfiles": 18,
+    "representedFamilies": 14,
+    "taxonomyFamilies": 14
+  },
+  "donorManifestSha256": "7500949d9f292df42da8bbc7f0787d565d227e4cf0129d4c9e0991e3b2e9b622",
   "focusedDonorTests": {
-    "total": 10,
+    "failed": 0,
     "passed": 10,
-    "failed": 0
+    "total": 10
   },
   "fullRegression": {
-    "total": 233,
-    "passed": 231,
+    "failed": 0,
+    "passed": 245,
     "skipped": 2,
-    "failed": 0
+    "total": 247
   },
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, non-promotion of execution wiring, and no regression in the current Artifact test matrix. It does not establish that Artifact schemas are universal Ordivon Core contracts."
+  "id": "artifact-k2a-donor-r1-verification-r1",
+  "kind": "artifact-k2a-donor-verification",
+  "operationDigest": "sha256:bb0b15d56def37244cdb42bdcca94a4c985d4711930b86035ceb84aec3c8836a",
+  "runtimeJobId": "job-01a09a25-e18c-7bb0-b0ea-ad6df813caaa",
+  "schemaVersion": 1,
+  "standing": "PASS"
 }
