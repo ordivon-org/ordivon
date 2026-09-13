@@ -1,16 +1,16 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.clock-quality-gate",
-  "standing": "BLOCK_PRIVATE_EXECUTION",
-  "privateExecutionMaxAbsOffsetMs": 1000,
-  "publicShadowUsesMonotonicIntervals": true,
-  "systemClockAuthority": "WINDOWS_HOST_VIA_WSL_VIRTUAL_CLOCK",
-  "wslIndependentNtpDaemonAllowed": false,
   "applicationClockForgeryAllowed": false,
-  "latestEvidence": "evidence/clock-quality-audit-20260913.json",
   "graduation": [
-    "Windows time authority must be readable and healthy through a supported host path.",
+    "Windows time authority must be healthy and synchronized through a supported host path.",
     "A fresh multi-source measurement must show absolute host offset <= 1000 ms.",
     "The offset gate must pass again immediately before any future private/demo execution session."
-  ]
+  ],
+  "kind": "ordivon.market-capital.clock-quality-gate",
+  "latestEvidence": "evidence/clock-quality-audit-20260914.json",
+  "privateExecutionMaxAbsOffsetMs": 1000,
+  "publicShadowUsesMonotonicIntervals": true,
+  "schemaVersion": 1,
+  "standing": "BLOCK_PRIVATE_EXECUTION",
+  "systemClockAuthority": "WINDOWS_HOST_VIA_WSL_VIRTUAL_CLOCK",
+  "wslIndependentNtpDaemonAllowed": false
 }

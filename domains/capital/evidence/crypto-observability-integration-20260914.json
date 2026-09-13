@@ -1,4 +1,12 @@
 {
+  "clockQuality": {
+    "adminRemediationRequired": true,
+    "direction": "LOCAL_CLOCK_BEHIND",
+    "directionStableAcrossAudits": false,
+    "latestEvidence": "evidence/clock-quality-audit-20260914.json",
+    "observedAbsOffsetMsMax": 2916.301965713501,
+    "privateGatePassed": false
+  },
   "grafana": {
     "defaultDatasourceUid": "operations-prometheus",
     "existingContainer": "ordivon-grafana",
@@ -6,7 +14,7 @@
     "prometheusUrl": "http://127.0.0.1:29091"
   },
   "kind": "ordivon.market-capital.crypto-observability-integration",
-  "note": "R3 real injected disconnect/reconnect qualification now passes for OKX and Binance. The clock alert remains expected while the independent host clock gate is above 1000 ms; private execution remains blocked by both authority and clock state.",
+  "note": "R3 public reconnect qualification passes. Clock quality remains the hard private-execution blocker: fresh multi-source evidence shows about 2.9 s absolute error with direction reversal across audits, and Windows Time remediation requires an administrator-authorized path.",
   "projection": {
     "directory": "/var/lib/node_exporter/textfile_collector",
     "file": "market-capital-crypto.prom",
