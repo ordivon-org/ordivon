@@ -54,6 +54,7 @@ Therefore future census work must classify *provider scope* before proposing an 
 | Distribution | `READY_SCOPED` + `AUTHORITY_GATED` | Distribution v2, Runtime evidence paths, n8n, OCI/Skopeo-class providers | real provider writes correctly remain gated by exact effect authority | wait for an explicitly authorized publish effect; prove provider read-back |
 | Operations | `READY_SCOPED` | Temporal under `/opt`, n8n, Ansible, `/usr/bin/tofu`, Prometheus/node-exporter, osquery, OPA; Vector/Grafana/Loki are installed but some are intentionally inactive | no missing general operations framework demonstrated | validate through a useful real long-running workflow; do not activate dormant components merely for coverage |
 | Network | `READY_LOCAL` | Network v2 plus tcpdump, mtr, dig/nslookup, iperf3, tracepath, ss, nft, WireGuard and OpenVPN | no current unresolved path problem after classifying the Trivy cold-update stall as provider acquisition/network rather than Security analysis | activate when a real reachability/throughput/path failure appears |
+| Business Operations | `READY_SCOPED` + `ACCEPTED_FOR_CURRENT_WORKLOAD` | ERPNext `16.34.2`, MariaDB `11.8`, Redis `8.6`, rootless Podman/Quadlet, Frappe native document lifecycle, n8n transport smoke | real tax/bank/payment/provider integrations remain future business-event-specific work; no generic ERP gap demonstrated | use ERPNext as the business-system owner; do not build an Ordivon-native CRM/accounting/project schema |
 
 ## No-install decisions from R1
 
@@ -110,6 +111,26 @@ The Trivy finding was independently inspected. The key is inside a Rust `#[cfg(t
 The first online Trivy attempt stalled while update connections remained `SYN-SENT`; that execution was cancelled and strict offline flags were used. This is retained as a Network/provider-freshness dependency, not misclassified as a Security analysis failure.
 
 Standing: `ACCEPTED_FOR_CURRENT_SOFTWARE_SLICE`; current vulnerability freshness is bounded by the available offline data.
+
+### Business Operations — accepted for the current local workload
+
+ERPNext `16.34.2` is now the accepted mature local owner for the current business-operations slice. Detailed evidence and authority boundaries are recorded in `migrations/records/business-operations-erpnext-r1.md`.
+
+Observed:
+
+- rootless ERPNext was migrated from manual Pod realization to Podman Quadlet/user-systemd ownership without deleting named volumes or secrets;
+- the live service remained loopback-only on `127.0.0.1:18080`;
+- native Frappe document APIs created Customer `E2E Customer 20260913`, Opportunity `CRM-OPP-2026-00001`, Project `PROJ-0001`, a Quality Procedure and non-stock service Item `E2E-SVC-20260913`;
+- Sales Invoice `ACC-SINV-2026-00001` was submitted through the standard document lifecycle at CNY 100;
+- ERPNext emitted two GL entries: debit CNY 100 to `1310 - Debtors - ORD` and credit CNY 100 to `4110 - Sales - ORD`;
+- complete Pod stop/start preserved the Company, Customer, Project, submitted invoice and balanced GL state;
+- Frappe `backup --with-files` completed before the ownership cutover;
+- the existing n8n pasta gateway path reached ERPNext without widening either service beyond loopback;
+- n8n's supported `publish:workflow` command published `ordivon-erpnext-transport-smoke-v1`, and the live webhook executed through the running n8n main instance to ERPNext with HTTP `200` and `{"message":"pong"}`.
+
+The `E2E-*` records are acceptance data, not real external transactions. Real tax, banking, payment, payroll, inventory, statutory invoicing and jurisdiction-specific configuration remain future business-event-specific work rather than a reason to construct another generic business framework.
+
+Standing: `ACCEPTED_FOR_CURRENT_WORKLOAD`.
 
 ### Engineering / Artifact / Game / Media / Data / Distribution / Operations / Network
 
