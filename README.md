@@ -24,3 +24,5 @@ The active future venue qualification path is now **OKX + Binance Spot** through
 Crypto Public Shadow R1 now passes dual-venue bounded public observation through fresh scoped VPN discovery, while a ~2.2 s host/exchange clock offset blocks private/demo/live execution qualification.
 
 Crypto Shadow Mechanics R1 also passes local multi-currency Spot OMS mechanics for OKX/Binance using venue-owned tick/step precision; it remains explicitly non-economic and non-live.
+
+Crypto data transport is now venue-specific: OKX uses the qualified Nautilus native public client, while Binance uses its official credential-free REST/WebSocket boundary because Nautilus 2.0.0rc4 still times out during native data-client startup.
