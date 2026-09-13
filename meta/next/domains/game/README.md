@@ -25,31 +25,34 @@ The profile is deliberately **non-linear before product commitment**.
 
 ```text
 BOUNDED EXTERNAL ORIENTATION
-  success surfaces / references / audience / opportunity
-  stop when additional search has low decision value
+  market categories + reference specimens + mature pattern/mechanism sources
+  stop broad census when additional search has low decision value
 
           ↓
 
-ITERATIVE EXPLORATION LOOP
+MECHANISM-COMPOSITION LOOP
 
-  Reference learning  ↔  Product theses  ↔  Throwaway prototypes
-          ↑                    ↓                    │
-          └──────────── Human play / evidence ─────┘
+  Reference decomposition → mechanism/rule/goal nodes + coupling evidence
+                               ↓
+                       candidate mechanism graph
+                               ↓
+                   predicted dynamics / player value
+                               ↓
+                       cheapest playable falsifier
+                               ↓
+                          Human evidence
+                               ↓
+               update node / edge / composition standing
+                               ↺
 
-          ↓ kill / revise / continue
+          ↓ sufficient surviving composition
 
 PRODUCT COMMITMENT GATE
   "Should we build this game?"
 
           ↓ yes
 
-PRE-PRODUCTION
-  "How should we build it?"
-  requirements / architecture / pipeline / representative proof
-
-          ↓
-
-PRODUCTION → QA / PLAYER TEST → PACKAGE / RELEASE → OPERATE / LEARN
+PRE-PRODUCTION → PRODUCTION → QA / PLAYER TEST → RELEASE → LEARN
 ```
 
 ### Bounded external orientation
@@ -66,15 +69,15 @@ A later thesis exposes an uncovered reference class or contradictory evidence
 → reopen only that bounded question.
 ```
 
-### Iterative exploration
+### Mechanism-composition exploration
 
-Three lanes may run in parallel:
+Three activities may run in parallel:
 
-1. **Reference learning** — direct play, teardown and bounded reproduction of mature patterns when they answer a real question.
-2. **Product thesis formation** — state audience/context, player promise, retained mature patterns, deliberate differences and major unknowns.
-3. **Throwaway micro-prototypes** — the cheapest playable implementation that can falsify one important claim. Prototype code is disposable unless later evidence earns promotion.
+1. **Reference decomposition** — direct play/teardown extracts mechanics, rules, goals, coupling relations and observed dynamics from mature specimens.
+2. **Composition search** — combine externally grounded design elements into explicit mechanism graphs under player/context constraints; genre is not selected first.
+3. **Throwaway falsifiers** — build the cheapest playable implementation that can test one uncertain node, edge or composition-level dynamic.
 
-Human play/evaluation feeds all three lanes. A reference-learning session is not a prerequisite for every prototype, and a prototype is allowed during discovery when its purpose is explicit.
+Human play/evaluation feeds the graph evidence. A reference session is not a prerequisite for every prototype, and historical prototypes may be reused only for the mechanism/coupling claims they actually evidence.
 
 ## Commitment boundary
 
@@ -85,10 +88,11 @@ Before product commitment, the controlling question is:
 Commit only when the evidence is sufficient to state, at minimum:
 
 - intended player/context;
-- player promise / core experience thesis;
-- core interaction or loop;
+- player promise / target experience;
+- anchor mechanics and coupling graph;
+- resulting core loop/dynamics;
 - mature patterns intentionally retained;
-- deliberate differences worth testing/keeping;
+- deliberate coupling differences worth testing/keeping;
 - strongest surviving evidence;
 - major unresolved risks and transfer limits.
 
@@ -108,22 +112,32 @@ Do not:
 - polish prototype code/art before its claim survives;
 - allow existing infrastructure or historical prototypes to create product momentum;
 - continue taxonomy/reference expansion after it stops changing decisions;
+- choose a genre first and then retrofit mechanics merely to match the label;
+- treat a feature list as a mechanism graph without causal coupling edges;
 - confuse automated mechanical PASS with player value.
 
-## Current first-formal-product standing
+## Current design-search standing
 
-The active Game work has already completed a bounded external success/reference census and desk teardown sufficient to stop broad R0 expansion. The next learning period should therefore use the **iterative exploration loop**, not another generic Game-framework build and not another broad census.
-
-Current intended work:
+The broad external success/reference census is saturated for the current decision. Product Thesis Sprint artifacts are retained as sample compositions, not as five competing product destinies. Forward exploration is now **mechanism-composition search**.
 
 ```text
-reference canary/direct-play evidence
-+ 3–5 competing product theses
-+ 1–3 cheap throwaway prototypes against the highest-risk claims
-→ compare evidence
-→ kill / revise / continue
-→ earn product commitment only if justified
+Category/genre crosswalk        READY_R1
+Mechanism catalog               READY_R1_WORKING_EXTENSIBLE
+Structural design axes          READY_R1
+Composition graph vocabulary    READY_R1
+Historical mechanism evidence   MIGRATION_PENDING
+Pair/set compatibility evidence INITIAL / SPARSE
+Product selected                false
 ```
+
+Canonical local crosswalks:
+
+- [`GAME_CATEGORY_CROSSWALK_R1.md`](GAME_CATEGORY_CROSSWALK_R1.md) — external market/category vocabulary;
+- [`GAME_MECHANISM_CATALOG_R1.md`](GAME_MECHANISM_CATALOG_R1.md) — normalized mechanism/pattern families;
+- [`GAME_MECHANISM_COMPOSITION_PROFILE_R1.md`](GAME_MECHANISM_COMPOSITION_PROFILE_R1.md) — graph-based design-search method;
+- [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable crosswalk.
+
+Next high-value work is **not another broad taxonomy search**. It is to decompose mature reference games and historical Ordivon experiments into mechanism graphs, then accumulate evidence about pair/set compatibility and emergent dynamics.
 
 ## External references
 
@@ -136,3 +150,8 @@ reference canary/direct-play evidence
 - Riot prototype/playtest practice: https://www.riotgames.com/en/r-and-d-office/prototype-building-a-games-substance
 - Nintendo developer interview, Echoes of Wisdom: https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-13-the-legend-of-zelda-echoes-of-wisdom-part-1/
 - Supercell new-game / killed-game practice: https://supercell.com/en/new-games/
+- Game Ontology Project: https://gameontology.com/
+- Sicart, Defining Game Mechanics: https://gamestudies.org/0802/articles/sicart
+- Björk/Lundgren/Holopainen, Game Design Patterns: https://dl.digra.org/index.php/dl/article/view/60
+- Machinations framework: https://machinations.io/docs/framework-basics
+- Valve Steam Tags / Tag Wizard: https://partner.steamgames.com/doc/store/tags
