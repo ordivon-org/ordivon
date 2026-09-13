@@ -29,7 +29,7 @@ ERPNext owns business facts that belong naturally to the ERP domain, including a
 
 ERPNext does **not** become a replacement global Ordivon Host or Task database.
 
-- Plane remains the selected future work-management authority when resource activation is justified.
+- Plane remains an optional future heavyweight work-management provider when measured workload complexity justifies its resource/operational cost; Host v2 remains the current minimal work/continuity utility.
 - Temporal owns durable macro-process state when needed.
 - Microsoft Agent Framework owns agent-team orchestration state.
 - Runtime owns mechanical execution evidence, not ERP semantic truth.

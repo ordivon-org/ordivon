@@ -463,7 +463,7 @@ Detailed acceptance evidence is in `migrations/records/business-operations-erpne
 
 ### Authority boundary
 
-Do not use ERPNext as the universal work/task database. Plane remains the selected work-management owner when activated; Temporal/MAF/Runtime/domain owners retain their own process/orchestration/execution/semantic truth. Likewise, Market Capital remains a separate read-only market/capital domain rather than being collapsed into ERP accounting.
+Do not use ERPNext as the universal work/task database. Host v2 remains the current minimal work/continuity utility; Plane is an optional heavier work-management provider only if a real workload justifies activation. Temporal/MAF/Runtime/domain owners retain their own process/orchestration/execution/semantic truth. Likewise, Market Capital remains a separate read-only market/capital domain rather than being collapsed into ERP accounting.
 
 ### Current standing
 

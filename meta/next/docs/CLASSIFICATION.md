@@ -51,5 +51,5 @@ These are migration hypotheses, not final dispositions:
 - Runtime -> Execution Enabling Capability.
 - Agent Birth -> Agent provisioning/orchestration Enabling Capability.
 - Workstation -> Enabling System / operating substrate.
-- Host -> historical mixed-responsibility implementation remains retired, but responsibility migration is still in progress. Work management, durable process, agent orchestration, integration, execution and observability are transferred to specialized mature owners rather than deleted.
-- Board -> historical custom Board implementation remains retired. Its real work-management/collaboration responsibility is targeted to Plane; operational dashboards remain projection-only and domain truth remains outside Plane.
+- Host -> Host v1 and the broad mixed-responsibility architecture are retired. Host v2 is retained as a narrow continuity/work-state utility; workflow, agent orchestration, integration, execution, observability and domain semantics remain with their specialized owners and are not migration debt of Host v2.
+- Board -> the broad historical custom Board architecture remains retired. Host v2 may retain only the small durable collaboration/work-continuity surface actually used locally. Plane is an optional future work-management provider if measured workload complexity justifies its resource cost; operational dashboards remain projection-only and domain truth remains outside either surface.
