@@ -1,0 +1,47 @@
+{
+  "brokerConnected": false,
+  "brokerCredentialsUsed": false,
+  "candidate": {
+    "name": "NautilusTrader",
+    "version": "2.0.0rc4"
+  },
+  "candidateLockSha256": "510deee37be50b34095c2766ff0705a77d9987dd63196ca28ccd57b4d99cac7e",
+  "dayLifecycleControlStanding": "PASS_INITIALIZED_SUBMITTED_ACCEPTED_FILLED",
+  "externalFinancialWritesAttempted": false,
+  "frozenClientOrderIds": {
+    "AAPL": "mc_2f8f15cfd2293c0a1fa3cf89",
+    "MSFT": "mc_b8bdf89297d764975836e800",
+    "NVDA": "mc_c41ff3a48f45d60d1d1fe9d5"
+  },
+  "frozenFixDigests": {
+    "AAPL": "7d988cf2cf1c3d95b0e8e3e3ed9e7e1d01900c77b8f0c193745c34d8d5b41c75",
+    "MSFT": "7a2675636a6a9be56f933c007ad173bfa8d7389ae3f3c743373caa2546ace235",
+    "NVDA": "bea92834633dba827d444f7ab0e1ce7ddd5e32daa66c02f3354b2100673b3c4a"
+  },
+  "frozenIdentityPreserved": true,
+  "frozenQuantities": {
+    "AAPL": "99",
+    "MSFT": "66",
+    "NVDA": "151"
+  },
+  "kind": "ordivon.market-capital.nautilus-candidate-evidence",
+  "m7CausalAcceptanceClaimed": false,
+  "orderModelRepresentsAtTheOpen": true,
+  "qualificationRunSha256": "9ec6ada0680cb8887539dc9ca9956880dc2a6a4a3ca699d920a797f5aa7b18a1",
+  "riskNegativeControl": {
+    "clientOrderId": "NEGATIVE-CASH-LIMIT",
+    "quantity": "1000000",
+    "reason": "NOTIONAL_EXCEEDS_FREE_BALANCE: free=100000.00 USD, notional=332270000.00 USD",
+    "standing": "PASS_DENIED_EXCESS_NOTIONAL",
+    "status": "DENIED"
+  },
+  "schemaVersion": 1,
+  "simulatedVenueAtTheOpenRejections": {
+    "mc_2f8f15cfd2293c0a1fa3cf89": "time in force AT_THE_OPEN is not currently supported",
+    "mc_b8bdf89297d764975836e800": "time in force AT_THE_OPEN is not currently supported",
+    "mc_c41ff3a48f45d60d1d1fe9d5": "time in force AT_THE_OPEN is not currently supported"
+  },
+  "simulatedVenueAtTheOpenStanding": "BLOCKED_UNSUPPORTED_TIF",
+  "sourceM6PrecommitSha256": "fa7d0155a43fd0697bb37f3dc7cfd62398c6ece64fa8f64caca42e7f0ff090cb",
+  "standing": "PARTIAL_PASS_OMS_RISK_BLOCKED_AT_OPEN_SIMULATION"
+}
