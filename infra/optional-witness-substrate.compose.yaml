@@ -1,0 +1,29 @@
+services:
+  redpanda:
+    image: redpandadata/redpanda:v26.1.15
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp=1
+      - --memory=512M
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=0.0.0.0:9092
+      - --advertise-kafka-addr=redpanda:9092
+    ports:
+      - "19092:9092"
+
+  questdb:
+    image: questdb/questdb:10.0.1
+    ports:
+      - "19000:9000"
+      - "19009:9009"
+      - "18812:8812"
+    environment:
+      QDB_TELEMETRY_ENABLED: "false"
+
+# These services are commodity substrate only. Their ACKs/offsets/storage success
+# never imply same-cut ordering, Scientific/Economic/Capital Truth, settlement,
+# EffectAuthority, or ProductionAuthorization.

@@ -4,7 +4,7 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 lean="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m4/results"
 "$repo/scripts/check-lean-runtime"
-"$repo/scripts/check-authority-waist" --mode non-live >/dev/null
+"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
 mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
