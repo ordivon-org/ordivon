@@ -45,5 +45,14 @@ class WaveBContractTests(unittest.TestCase):
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
+    def test_m5_causal_shadow_gate_is_fail_closed_and_non_live(self):
+        doc = json.loads((ROOT / "config/causal_shadow.json").read_text())
+        self.assertEqual(doc["dailyBarCausalityRule"], "session_date_strictly_after_decision_date_in_session_timezone")
+        self.assertEqual(doc["commonCutRule"], "all_required_series_must_contain_the_same_post_decision_session_date")
+        self.assertTrue(doc["fix44Required"])
+        self.assertTrue(doc["executionFeasibilityRequired"])
+        self.assertFalse(doc["brokerCredentialsAllowed"])
+        self.assertFalse(doc["externalFinancialWritesAllowed"])
+
 if __name__ == "__main__":
     unittest.main()
