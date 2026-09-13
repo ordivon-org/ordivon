@@ -20,3 +20,5 @@ Wave B / M1 admits bounded historical execution through pinned QuantConnect LEAN
 This repository does not import legacy Ordivon finance/Market Capital code or schemas.
 
 The active future venue qualification path is now **OKX + Binance Spot** through NautilusTrader native adapters. It is currently public-data-only and credential-free; crypto uses a separate continuous-market lane rather than rewriting the historical equity M6/M7 experiment.
+
+Crypto Public Shadow R1 now passes dual-venue bounded public observation through fresh scoped VPN discovery, while a ~2.2 s host/exchange clock offset blocks private/demo/live execution qualification.

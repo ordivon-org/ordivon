@@ -1,0 +1,98 @@
+{
+  "artifactDigests": {
+    "discoverySha256": "d4d82e40252f1cb27647eb76cc7cbe53c436d68b70fd4a31eb352ca3953abcfb",
+    "observationSha256": "7d606546af79e107fdcd767693019ed3c4cf1271ab97dd139453532e144a4dea",
+    "rawCaptureSha256": "41cb5043b3e6ae0b407a3957e072f7d4db5d3d773358a5b956a743e6d2e4ab38"
+  },
+  "conclusion": {
+    "boundedContemporaneousComparisonQualified": true,
+    "dualVenuePublicObservationQualified": true,
+    "nextAllowed": "continue public-data/shadow qualification and local OMS/Risk only",
+    "nextBlocked": "private account data, demo/testnet execution, live execution",
+    "privateExecutionClockGateQualified": false
+  },
+  "kind": "ordivon.market-capital.crypto-public-shadow-r1-evidence",
+  "observation": {
+    "brokerCredentialsUsed": false,
+    "capture": {
+      "boundedContemporaneousComparisonAllowed": true,
+      "maxPriceRequestRttMs": 824.338177,
+      "priceRequestIntersectionMs": 684.110362,
+      "priceRequestUnionMs": 824.338177,
+      "rawSha256": "41cb5043b3e6ae0b407a3957e072f7d4db5d3d773358a5b956a743e6d2e4ab38"
+    },
+    "clockQuality": {
+      "binanceServerMinusLocalMidpointMs": -2202.0551795,
+      "hostClockOffsetAbsMaxMs": 2202.0551795,
+      "hostClockWithinPrivateExecutionGate1000Ms": false,
+      "okxServerMinusLocalMidpointMs": -2190.5553465,
+      "privateExecutionConsequence": "BLOCK until host clock is within gate; public shadow uses monotonic capture intervals",
+      "venueClockAgreementMs": 11.499833
+    },
+    "comparisons": {
+      "BTC": {
+        "binanceAsk": "77162.01000000",
+        "binanceBid": "77162.00000000",
+        "claimBoundary": "observation only; not an arbitrage, fill, fee, latency, transfer, or execution claim",
+        "crossBuyBinanceSellOkxGrossBps": "0.309738",
+        "crossBuyOkxSellBinanceGrossBps": "-0.323983",
+        "midDifferenceBpsOkxMinusBinance": "0.316866",
+        "okxAsk": "77164.5",
+        "okxBid": "77164.4"
+      },
+      "ETH": {
+        "binanceAsk": "2490.32000000",
+        "binanceBid": "2490.31000000",
+        "claimBoundary": "observation only; not an arbitrage, fill, fee, latency, transfer, or execution claim",
+        "crossBuyBinanceSellOkxGrossBps": "0.120466",
+        "crossBuyOkxSellBinanceGrossBps": "-0.200774",
+        "midDifferenceBpsOkxMinusBinance": "0.160622",
+        "okxAsk": "2490.36",
+        "okxBid": "2490.35"
+      }
+    },
+    "demoExecutionAttempted": false,
+    "externalFinancialWritesAttempted": false,
+    "kind": "ordivon.market-capital.crypto-public-shadow-observation",
+    "liveExecutionAttempted": false,
+    "privateAccountDataUsed": false,
+    "quotes": {
+      "BINANCE": {
+        "BTCUSDT": {
+          "ask": "77162.01000000",
+          "bid": "77162.00000000"
+        },
+        "ETHUSDT": {
+          "ask": "2490.32000000",
+          "bid": "2490.31000000"
+        }
+      },
+      "OKX": {
+        "BTC-USDT": {
+          "ask": "77164.5",
+          "bid": "77164.4",
+          "sourceTimeMs": "1789310465762"
+        },
+        "ETH-USDT": {
+          "ask": "2490.36",
+          "bid": "2490.35",
+          "sourceTimeMs": "1789310465243"
+        }
+      }
+    },
+    "sameCutScope": "claim-scoped: only bounded contemporaneous best-bid/ask observation; not universal same-cut",
+    "schemaVersion": 1,
+    "standing": "PASS_BOUNDED_DUAL_VENUE_PUBLIC_SHADOW_HOST_CLOCK_WARN",
+    "transport": {
+      "observationDigest": "sha256:0104c4fcd3f6ef9fdbe32935bbc6be70dd11cce64964e84f223277da23b16cfc",
+      "pathDigest": "sha256:d85affb37aecd863c0baa9ab890b00a7fe569aa83c105bbcc984d837f45a0646",
+      "pointInTimeOnly": true,
+      "requiredTargets": [
+        "binance",
+        "okx"
+      ]
+    }
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_BOUNDED_DUAL_VENUE_PUBLIC_SHADOW_HOST_CLOCK_WARN"
+}
