@@ -1,15 +1,15 @@
 [Unit]
-Description=Network v2 finance-okx shadow proxy
+Description=Network v2 finance-okx production egress proxy
 Wants=network-v2-finance-okx-carrier@a.service network-v2-finance-okx-carrier@b.service
 After=network-v2-finance-okx-carrier@a.service network-v2-finance-okx-carrier@b.service
-PartOf=network-v2-finance-okx-shadow.target
+PartOf=network-v2-finance-okx.target
 
 [Service]
 Type=simple
 User=sing-box
 Group=sing-box
-ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/finance-okx/shadow.json
-ExecStart=/usr/bin/sing-box run -c /etc/network-v2/finance-okx/shadow.json
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/finance-okx/egress.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/finance-okx/egress.json
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=true
