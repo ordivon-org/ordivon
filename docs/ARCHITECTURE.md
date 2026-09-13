@@ -70,7 +70,7 @@ PFMI and ISO 20022 remain reference semantics for external post-trade infrastruc
 
 The active future venue qualification path is OKX + Binance Spot through the native NautilusTrader adapters. The lane is continuous 24/7 crypto and does not inherit the historical U.S.-equity opening-auction assumptions. Public market data is admitted without credentials; private account data, demo execution and live execution remain blocked until separately graduated.
 
-Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testnet are the first future execution environments. Direct local exchange HTTP currently requires the workstation scoped VPN transport.
+Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testnet are the first future execution environments. Direct local exchange HTTP requires workstation scoped VPN transport. Singapore OpenVPN-TCP has passed point-in-time public-data qualification for both OKX and Binance; future sessions must rediscover/revalidate a fresh path.
 
 ## Current progression
 

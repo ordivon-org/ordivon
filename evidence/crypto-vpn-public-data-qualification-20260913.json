@@ -1,0 +1,51 @@
+{
+  "binance": {
+    "btcUsdt": {
+      "lotMinQty": "0.00001000",
+      "lotStepSize": "0.00001000",
+      "minNotional": "5.00000000",
+      "status": "TRADING",
+      "tickSize": "0.01000000"
+    },
+    "ethUsdt": {
+      "lotMinQty": "0.00010000",
+      "lotStepSize": "0.00010000",
+      "minNotional": "5.00000000",
+      "status": "TRADING",
+      "tickSize": "0.01000000"
+    },
+    "observationDigest": "sha256:d493b0b1ea6a88cfa61501adfbc75e8e673f6502e9302e272dba4ca3de1ed332",
+    "pathDigest": "sha256:a59ddb942867b154dd54434c0c35ee6a54ba3b1e45e8c9406cee72099777a575"
+  },
+  "brokerCredentialsUsed": false,
+  "configSha256": "fe17b2a6eb855d012db1ef7fb1e88d2d4ca706a9181da6cc67e915b3a5637125",
+  "externalFinancialWritesAttempted": false,
+  "kind": "ordivon.market-capital.crypto-vpn-public-data-qualification",
+  "okx": {
+    "btcUsdt": {
+      "lotSize": "0.00000001",
+      "minSize": "0.00001",
+      "state": "live",
+      "tickSize": "0.1"
+    },
+    "ethUsdt": {
+      "lotSize": "0.000001",
+      "minSize": "0.0001",
+      "state": "live",
+      "tickSize": "0.01"
+    },
+    "observationDigest": "sha256:9a6ca991ce5212467912e3d2a90dda015b2735140632e702134a956edd34c303",
+    "pathDigest": "sha256:8200324a47f5deff67ba7b05d04dba1051418f4505fa948edfff8e0610c83720"
+  },
+  "privateAccountDataUsed": false,
+  "schemaVersion": 1,
+  "standing": "PASS_DUAL_VENUE_PUBLIC_DATA_VIA_SCOPED_VPN",
+  "transport": {
+    "egressLocation": "SG",
+    "freshDiscoveryRequiredForFutureSessions": true,
+    "node": "sg-sng",
+    "pointInTimeOnly": true,
+    "protocol": "openvpn-tcp",
+    "provider": "Surfshark via workstation surfpath"
+  }
+}
