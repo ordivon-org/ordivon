@@ -1,0 +1,20 @@
+from pathlib import Path
+import unittest
+ROOT=Path(__file__).resolve().parents[1]
+class ResilienceRunnerTests(unittest.TestCase):
+    def test_both_venues_are_fault_injected_in_one_vpn_session(self):
+        s=(ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text()
+        self.assertIn('--target-venue OKX',s)
+        self.assertIn('--target-venue BINANCE',s)
+        self.assertIn('PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT',s)
+    def test_candidate_is_public_only_and_concrete_path(self):
+        s=(ROOT/'scripts/run-crypto-stream-resilience-r3-candidate').read_text()
+        self.assertIn('--ingresses "$ingress"',s)
+        self.assertIn('https://data-api.binance.vision',s)
+        self.assertIn('https://www.okx.com',s)
+    def test_master_keeps_authority_and_clock_gates(self):
+        s=(ROOT/'scripts/run-crypto-stream-resilience-r3').read_text()
+        self.assertIn('check-capital-authority',s)
+        self.assertIn('check-clock-quality-gate',s)
+        self.assertIn('PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_FAILOVER',s)
+if __name__=='__main__': unittest.main()

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.crypto-stream-resilience-r3-evidence",
+  "standing": "BLOCKED_SURFPATH_CONTROL_PLANE_CONTENTION",
+  "localFaultModelQualified": true,
+  "localFaultModel": {
+    "missingStreamFailsClosed": true,
+    "staleStreamFailsClosed": true,
+    "timeDivergenceFailsClosed": true,
+    "bothVenueReconnectHarnessImplemented": true
+  },
+  "liveReconnectQualified": false,
+  "liveReconnectAttempt": {
+    "workloadStarted": false,
+    "reason": "fresh Surfpath discovery attempts were serialized behind an existing global mutation owner and timed out before a VPN path was admitted",
+    "ownTimedOutOrphanUnitCleaned": true,
+    "unrelatedActiveSurfpathWorkInterrupted": false
+  },
+  "controlPlaneObservation": {
+    "surfpathMutationSerialized": true,
+    "globalOwnerPreserved": true,
+    "otherProjectWaiterPreserved": true
+  },
+  "brokerCredentialsUsed": false,
+  "privateAccountDataUsed": false,
+  "externalFinancialWritesAttempted": false,
+  "demoExecutionAttempted": false,
+  "liveExecutionAttempted": false
+}
