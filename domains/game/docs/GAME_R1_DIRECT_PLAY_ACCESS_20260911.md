@@ -1,7 +1,7 @@
 ---
 schema_version: 1
 id: game.r1.direct-play-access.20260911
-title: Ordivon Game — R1 Direct-Play Access and Human Gate
+title: Ordivon Game — R1 Direct-Play Access and Human Learning Lane
 profile: product-discovery
 type: research-decision
 lifecycle: active
@@ -10,14 +10,14 @@ visibility: public
 owners:
   - ordivon-game
 updated: 2026-09-14
-summary: Read-only access census, compact canonical-learning portfolio selection, and Human direct-play gate. Four materially different mature learning games are selected without turning access convenience into product authority; no Human experience claim exists yet.
+summary: Read-only access census and compact Human reference-learning portfolio. Direct play is one active pre-G0 learning lane, not a global gate that blocks competing product theses or independent throwaway prototypes; no Human experience claim exists yet.
 evidence_status: local-read-only-census-plus-official-access-sources
 readiness: PORTFOLIO_SELECTED_PILOT_READY_HUMAN_PLAY_NOT_STARTED
 ---
-# R1 Direct-Play Access and Human Gate
+# R1 Direct-Play Access and Human Learning Lane
 
 ## 0. Boundary
-Wave-1 desk teardown is complete, but first-person experience remains unobserved.
+Wave-1 desk teardown is complete, but first-person experience remains unobserved. This document governs the **reference direct-play lane only**; it does not freeze the rest of pre-G0 exploration.
 
 ```text
 Public documentation/video observation
@@ -109,7 +109,7 @@ Select only **3–5 canonical learning games** for the first Human portfolio. Ea
 No download/install request should be made until this compact learning portfolio is selected.
 
 ## 3. Frozen observation sheet
-Every direct-play session uses the same top-level structure before R2 can be considered:
+Every direct-play session uses the same top-level structure before a **reference-specific R2 causal reproduction claim** can be considered:
 
 ```text
 Reference title / exact edition
@@ -212,10 +212,13 @@ OneHumanCanary
 != PopulationClaim
 
 DirectPlaySurvival
-!= R2Admission
+!= ReferenceR2Admission
+
+ReferenceR2NotAdmitted
+!= ProductPrototypeForbidden
 ```
 
-After one owner canary, R1 may revise the causal hypothesis and observation protocol. R2 remains closed until the specific mechanism to reproduce is stable enough that implementation would answer a real causal question rather than imitate a famous game's surface.
+After one owner canary, R1 may revise the causal hypothesis and observation protocol. Reference-specific R2 remains closed until the mechanism to reproduce is stable enough that implementation would answer a real causal question rather than imitate a famous game's surface. Independent product-thesis prototypes may proceed in parallel when they test their own explicit hypotheses and make no unsupported reference-transfer claim.
 
 ## 6. Current standing
 
@@ -224,10 +227,12 @@ R1 Desk Teardown           COMPLETE
 R1 Access Census           COMPLETE
 R1 Learning Portfolio      SELECTED_4
 R1 Observation Template    READY
-R1 Human Direct Play       NOT_STARTED
-R2 Baseline Reproduction   NOT_ADMITTED
-ProductSelected            false
-G0Entered                  false
+R1 Human Direct Play             NOT_STARTED
+Reference R2 Baseline             NOT_ADMITTED_FOR_SELECTED_CLAIMS
+Competing Product Theses          MAY_PROCEED_IN_PARALLEL
+Throwaway Product Prototypes      MAY_PROCEED_IN_PARALLEL
+ProductSelected                    false
+G0Entered                          false
 ```
 
-The next transition is a **real owner canary session**, using the frozen observation sheet. Default first session is the official Factorio Demo because it is already a canonical learning reference and exposes its target automation grammar through a bounded public demo. Download/install still requires explicit user authority. No R2 implementation is admitted before Human evidence.
+The next action **inside this lane** is a real owner canary session using the frozen observation sheet; Factorio Demo remains the default first reference canary and download/install still requires explicit user authority. At the same time, the overall front half may generate competing product theses and bounded throwaway prototypes. The Factorio session is therefore useful evidence, not a global prerequisite for touching Godot.

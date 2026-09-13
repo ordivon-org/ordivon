@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.game.r1-direct-play-portfolio-selection",
   "observedDate": "2026-09-14",
-  "status": "PORTFOLIO_SELECTED_HUMAN_PLAY_NOT_STARTED",
+  "status": "PORTFOLIO_SELECTED_HUMAN_PLAY_NOT_STARTED_PARALLEL_EXPLORATION_ADMITTED",
   "productSelected": false,
   "g0Entered": false,
   "r2Admitted": false,
@@ -110,6 +110,18 @@
       "role": "official iOS carrier"
     }
   ],
-  "next": "EXPLICIT_DOWNLOAD_AUTHORITY_THEN_REAL_OWNER_CANARY_FACTORIO_DEMO_USING_FROZEN_OBSERVATION_SHEET",
-  "correction": "Steam app manifests were initially mistaken for installed products; byte-level reconciliation found D:/SteamLibrary/steamapps/common empty. Access standing corrected before commit."
+  "next": "REFERENCE_LANE_FACTORIO_CANARY_REQUIRES_EXPLICIT_DOWNLOAD_AUTHORITY; IN_PARALLEL_GENERATE_COMPETING_PRODUCT_THESES_AND_THROWAWAY_PROTOTYPES",
+  "correction": "Steam app manifests were initially mistaken for installed products; byte-level reconciliation found D:/SteamLibrary/steamapps/common empty. Access standing corrected before commit.",
+  "processCorrection": {
+    "date": "2026-09-14",
+    "directPlayIsGlobalGate": false,
+    "referenceR2IsGlobalPrototypeGate": false,
+    "parallelLanes": [
+      "reference_learning",
+      "product_thesis_generation",
+      "throwaway_product_prototypes",
+      "human_evidence"
+    ],
+    "broadR0Standing": "SATURATED_FOR_CURRENT_DECISION"
+  }
 }

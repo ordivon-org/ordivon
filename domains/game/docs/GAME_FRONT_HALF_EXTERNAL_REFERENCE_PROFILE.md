@@ -15,8 +15,8 @@ audience:
   - builder
   - producer
   - agent
-updated: 2026-09-11
-summary: External-first product-discovery profile before canonical G0: observe the broad external success universe before feasibility filtering, map mature archetypes and representative references, then deconstruct/reproduce bounded baselines, validate with human playtesting, and use controlled variation to earn differentiation and a Game Definition.
+updated: 2026-09-14
+summary: External-first but non-waterfall product-discovery profile before canonical G0: use a bounded external orientation to prevent local capability bias, then iterate reference learning, competing product theses, throwaway playable prototypes and Human evidence until a specific game earns commitment.
 evidence_status: externally-grounded
 readiness: CURRENT
 applies_to:
@@ -34,24 +34,34 @@ related:
 This document owns the **Game-specific product-discovery profile before canonical G0**. It does not create a second software lifecycle, a universal game-design theory, a market-success formula, or a replacement for mature external practice.
 
 ```text
-External success surfaces / platform evidence / player practice
-    -> success-universe census (no feasibility filter)
-    -> archetype coverage map
-    -> flagship / canonical / cheap reference stack
-    -> learning-order selection
-    -> teardown / play / deconstruction
-    -> bounded baseline reproduction
-    -> human playtest against the reference claim
-    -> controlled subtraction / variation / recombination
-    -> differentiated product thesis
-    -> canonical G0 Game Definition
+BOUNDED EXTERNAL ORIENTATION
+  success surfaces / player practice / audience / opportunity
+  -> success-universe census without feasibility filtering
+  -> archetype/reference coverage sufficient for the current decision
+  -> STOP broad expansion when marginal decision value is low
+
+                 ↓
+
+ITERATIVE EXPLORATION
+
+  Reference learning  <->  Product theses  <->  Throwaway prototypes
+          ^                    |                      |
+          +------------ Human play / evidence -------+
+
+                 ↓ kill / revise / continue
+
+PRODUCT COMMITMENT
+  -> canonical G0 Game Definition only when a specific game is justified
 ```
 
-Strong rule:
+Strong rules:
 
 ```text
 Innovation is not the required input.
-A justified differentiation is an output of learning from proven baselines.
+A justified differentiation is an output of learning from mature patterns and evidence.
+
+External orientation prevents blindness; it is not permission for endless research.
+Prototype early when a playable artifact is the cheapest way to answer a real question.
 ```
 
 The previous broad Pre-G0 GameForm search, D-series hypotheses, A/D/I playables and C0/C1/C2 packets remain useful **coverage, apparatus and falsifier assets only**. They do not select a product, rank genres, or create momentum merely because they already exist.
@@ -100,13 +110,15 @@ Source: https://partner.steamgames.com/doc/store/tags
 
 ### 1.2 Divergence and convergence
 
-The Design Council Double Diamond remains a useful external process skeleton for divergent/convergent work. In Game's front half it is **subordinate to external reference evidence**: Discover includes finding and playing mature comparable products, not only generating internal concepts.
+The Design Council Double Diamond remains a useful external process skeleton for divergent/convergent work. In Game's front half it is **subordinate to external reference and player evidence**, and it must not be misread as a waterfall. Discover may include early making/testing; evidence may send work backward, sideways, or terminate it.
 
 ```text
-Discover: external reference classes + audience/context + unresolved opportunity
-Define: bounded baseline and learning question
-Develop: reproduce + vary competing treatments
-Deliver: evidence sufficient to enter G0, not a shipped product
+Discover: external reference classes + audience/context + unresolved opportunity + early probes
+Define: current thesis / learning question / decision to inform
+Develop: competing prototypes / reference reproduction / variation
+Deliver: enough evidence for the current decision, not necessarily a shipped product
+
+Any step may reopen another when evidence changes the problem.
 ```
 
 Source: https://www.designcouncil.org.uk/our-resources/the-double-diamond/
@@ -133,9 +145,40 @@ Sources:
 - https://gamesuserresearch.com/choose-the-right-playtest-method/
 - https://schedule.gdconf.com/session/playtesting-process-for-ultra-small-teams/913818
 
-## 2. Front-half sequence
+### 1.6 Mature studio operating precedents — precedent, not authority
 
-These are **profile steps**, not additional G-stages. Canonical product-stage semantics still begin at G0.
+Public studio practice supports the same empirical loop without becoming a universal standard:
+
+- Riot R&D separates opportunity/thesis/audience work from prototype and later pre-production; prototype engineering emphasizes iteration and disposable code, while playtests can materially redirect or kill a direction.
+- Nintendo's published Echoes of Wisdom development history shows multiple prototypes, direct play, and major redirection after the team discovered what was actually fun in the implemented interaction.
+- Supercell publicly documents a culture of killing playable projects rather than allowing sunk effort to force production.
+
+These are **operating precedents**, not compliance authorities. They support the process law that pre-commitment code exists to learn, and that evidence may kill or pivot a direction.
+
+Sources:
+- https://www.riotgames.com/en/news/r-d-foundations-opportunity-thesis-and-audience
+- https://www.riotgames.com/en/r-and-d-office/engineering-in-riot-r-d
+- https://www.riotgames.com/en/r-and-d-office/prototype-building-a-games-substance
+- https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-13-the-legend-of-zelda-echoes-of-wisdom-part-1/
+- https://supercell.com/en/new-games/
+
+## 2. Front-half operating profile — not a waterfall
+
+R0-R4 are **profile activities/lenses**, not mandatory sequential gates and not additional G-stages. Canonical product-stage semantics still begin at G0.
+
+The default operating model is:
+
+```text
+R0 bounded external orientation
+        ↓
+R1 reference learning ───────────────┐
+R2 reference causal reproduction ───┤
+Product-thesis formation ────────────┼─> Human evidence -> kill / revise / continue
+Throwaway product prototypes ────────┤
+R4 controlled comparison/variation ─┘
+```
+
+A product-thesis throwaway prototype is **not** R2 merely because it contains code. R2 specifically means reproducing a bounded mature reference mechanism as an experimental control. Product-thesis prototypes may begin earlier when they are the cheapest way to falsify an independent product claim.
 
 ### R0 — Success universe → archetype map → reference stacks
 
@@ -167,12 +210,14 @@ Do:
 - record why each reference is relevant and which product burdens must not be inherited;
 - include negative/nearby references when they distinguish the target mechanism.
 
-Exit:
+Exit / saturation condition:
 - the current bounded success universe and source limitations are explicit;
 - materially different archetypes are represented rather than prefiltered by Ordivon capability;
 - representative stacks distinguish flagship/canonical references from cheap baselines;
-- R1 learning order can be chosen without pretending that order ranks product value;
-- evidence of popularity is not being used as design authority by itself.
+- the next decision can be informed without material blind spots from broad reference classes;
+- additional broad census work has low expected decision value.
+
+After saturation, **stop expanding R0**. Reopen only a bounded reference question when a live thesis exposes a missing class, contradiction or transfer risk.
 
 ### R1 — Teardown
 
@@ -206,9 +251,11 @@ Exit:
 - causal hypotheses and uncertainty are explicit;
 - the smallest valid reproduction is known.
 
-### R2 — Baseline reproduction / clone-to-learn
+### R2 — Reference causal baseline reproduction / clone-to-learn
 
-Question: **Can we reproduce the relevant mature interaction well enough to learn from it?**
+Question: **Can we reproduce one relevant mature reference interaction well enough to test a transfer claim?**
+
+R2 is reference-learning infrastructure, not a global permission gate for all playable experimentation. A separate throwaway product prototype may run before R2 if it tests a different thesis and does not claim that a mature reference effect was reproduced.
 
 Reproduce only the bounded mechanism needed for comparison. Use original placeholder assets, names, narrative, audio and expression unless licensed material is intentionally consumed.
 
@@ -230,9 +277,11 @@ Exit:
 - rights/provenance boundaries are clean;
 - no product momentum is inherited merely because code exists.
 
-### R3 — Human baseline validation
+### R3 — Human evidence / baseline validation
 
-Question: **Did we reproduce the player-relevant effect we claim to be studying?**
+Question: **Did the player-relevant effect we claim actually occur under the tested condition?**
+
+Human evidence may evaluate a reference, a reproduced causal baseline, a product-thesis prototype or a controlled variation. The method follows the claim; R3 is not postponed until all R2 work is complete.
 
 Use mature playtest practice selected from the claim. For a feel, comprehension or meaning claim, synthetic Agents and browser completion are controls only.
 
@@ -249,9 +298,11 @@ Exit:
 - either the baseline claim survives at the observed scope, or the reproduction/causal hypothesis is revised;
 - no differentiation claim is admitted against an unverified baseline.
 
-### R4 — Controlled differentiation
+### R4 — Controlled differentiation / comparative learning
 
-Question: **What should we change, and does that change create a better or meaningfully different game for the intended player?**
+Question: **What should we retain or change, and does that change create a better or meaningfully different game for the intended player?**
+
+A product thesis may be stated before a perfect reference baseline exists. However, any *comparative causal claim* against a mature pattern must wait until the compared baseline is sufficiently verified to make the comparison interpretable.
 
 Prefer the smallest informative intervention:
 
@@ -276,19 +327,25 @@ Exit toward G0:
 - the candidate can state what mature pattern it retains, what it changes, and why;
 - major unknowns are explicit rather than hidden by prototype polish.
 
-## 3. G0 admission boundary
+## 3. G0 product-commitment boundary
 
-G0 does not ask whether Ordivon has invented something unprecedented. It asks whether the accumulated external-reference and player evidence justifies defining a specific game.
+G0 does not ask whether Ordivon has invented something unprecedented. It asks whether the accumulated opportunity, reference, prototype and player evidence justifies intentionally committing to a specific game.
+
+Before G0 the controlling question is **Should we build this game?** After G0/pre-production the question becomes **How should we build this game well?** Durable architecture, production pipelines and content scale should follow that commitment rather than manufacture it.
 
 The G0 packet should therefore add to the existing Game Definition:
 
 ```text
+Audience / Context
+PlayerPromise / ProductThesis
+CoreInteraction / Loop
 ReferenceClass
 RetainedMaturePatterns
 DeliberateDifferences
-BaselineEvidence
-DifferentiationEvidence
-KnownTransferLimits
+PrototypeEvidence
+HumanEvidence
+BaselineEvidence where comparative claims rely on it
+KnownRisks / KnownTransferLimits
 ```
 
 Then the existing `DEVELOPMENT_MODEL.md` G0-G8 projection takes over.
@@ -341,7 +398,20 @@ US Copyright Office background on games and copyright: https://www.copyright.gov
 
 ## 7. Stop and reopen rules
 
-Stop front-half method expansion when R0-R4 can route a real product into G0. Do not add another local discovery framework merely because one exists externally.
+Stop broad external orientation when it is sufficient for the current decision; stop front-half **method expansion** when the existing loop can route real evidence toward kill/revise/continue/G0. Do not add another local discovery framework merely because one exists externally.
+
+Current standing on 2026-09-14:
+
+```text
+Broad R0 expansion               SATURATED_FOR_CURRENT_DECISION
+Reference learning               ACTIVE
+Competing product theses         ADMITTED_IN_PARALLEL
+Throwaway product prototypes     ADMITTED_IN_PARALLEL
+Human direct-play evidence       PENDING_REAL_SESSION
+Reference R2 baseline            CLAIM_SPECIFIC / NOT_GLOBAL_GATE
+Product selected                 false
+G0 entered                       false
+```
 
 Reopen this profile when:
 - a real product cannot be learned from or compared through reference/reproduction/playtest/variation;

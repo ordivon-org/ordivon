@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.front-half-iterative-process-correction",
+  "date": "2026-09-14",
+  "standing": "ACTIVE",
+  "broadR0": "SATURATED_FOR_CURRENT_DECISION",
+  "productSelected": false,
+  "g0Entered": false,
+  "laws": [
+    "pre-G0 is iterative, not a waterfall",
+    "reference learning, product theses, throwaway prototypes and Human evidence may overlap",
+    "R2 names reference causal reproduction, not all prototype code",
+    "direct-play evidence is claim-specific and not a global permission gate",
+    "durable pre-production follows intentional product commitment"
+  ],
+  "currentParallelLanes": {
+    "referenceLearning": "ACTIVE_FACTORIO_CANARY_PENDING_AUTHORITY",
+    "productTheses": "ADMITTED",
+    "throwawayProductPrototypes": "ADMITTED",
+    "humanEvidence": "PENDING_REAL_SESSION"
+  },
+  "externalGrounding": [
+    "Design Council Double Diamond",
+    "ISO 9241-210 / 9241-11",
+    "Games User Research practice",
+    "Riot R&D public practice",
+    "Nintendo Echoes of Wisdom developer interview",
+    "Supercell killed-game practice"
+  ]
+}
