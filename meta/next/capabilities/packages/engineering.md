@@ -39,6 +39,7 @@ Detailed rules and provenance are recorded in `knowledge/lessons/spec-kit-engine
 ## Observed local capability
 
 - Codex and repository-scale codebase acquisition/review Skills;
+- Graphify is available as an on-demand candidate for large-repository multi-hop structural context; it is not installed or required by default, and grep/LSP/search remain preferable for simpler questions;
 - Git + GitHub CLI;
 - Python/uv, Node/npm/pnpm, Java and common build tools including Make/CMake/Ninja;
 - Docker and Podman;
