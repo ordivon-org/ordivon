@@ -35,5 +35,15 @@ class WaveBContractTests(unittest.TestCase):
         self.assertEqual(doc["symbols"], ["AAPL", "MSFT", "NVDA"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
+    def test_fix44_order_semantics_are_standard_and_non_live(self):
+        doc = json.loads((ROOT / "config/fix_order_semantics.json").read_text())
+        self.assertEqual(doc["protocol"], "FIX.4.4")
+        self.assertEqual(doc["messageType"], "D")
+        self.assertEqual(doc["messageName"], "NewOrderSingle")
+        self.assertEqual(doc["packages"]["QuickFIXn.FIX44"], "1.14.1")
+        self.assertFalse(doc["sessionNetworkEnabled"])
+        self.assertFalse(doc["brokerCredentialsAllowed"])
+        self.assertFalse(doc["externalFinancialWritesAllowed"])
+
 if __name__ == "__main__":
     unittest.main()

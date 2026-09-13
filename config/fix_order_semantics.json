@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.fix-order-semantics",
+  "protocol": "FIX.4.4",
+  "messageType": "D",
+  "messageName": "NewOrderSingle",
+  "library": "QuickFIX/n",
+  "packages": {
+    "QuickFIXn.Core": "1.14.1",
+    "QuickFIXn.FIX44": "1.14.1"
+  },
+  "senderCompId": "ORDIVON_SHADOW",
+  "targetCompId": "LEAN_VALIDATION",
+  "orderType": "MARKET",
+  "timeInForce": "DAY",
+  "sessionNetworkEnabled": false,
+  "brokerCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "role": "standard order-intent semantics between LEAN sizing and bounded LEAN execution"
+}
