@@ -1,11 +1,11 @@
 # Package: Game
 
-Last census: 2026-09-13
+Last census: 2026-09-14
 Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
 
-Turn an intentionally selected game/product direction into a playable, testable and distributable interactive experience, with enough evidence to judge whether the intended player experience and product behavior actually exist.
+Discover, falsify, intentionally select, build and evolve a game/product direction into a playable, testable and distributable interactive experience, with enough evidence to judge whether the intended player experience and product behavior actually exist.
 
 Game composes Engineering, Artifact, Media, Security, Network, Distribution and Operations when needed; it does not re-own them.
 
@@ -13,14 +13,17 @@ Game composes Engineering, Artifact, Media, Security, Network, Distribution and 
 
 There is no single universal game-development lifecycle owner. Select mature sources by task:
 
+- Design Council Double Diamond as a non-linear divergence/convergence skeleton, not a waterfall gate;
+- ISO 9241-210 / ISO 9241-11 and Games User Research practice for Human/player evidence where applicable;
 - game design, systems/mechanics, level/world, narrative, UX, economy, playtesting and production disciplines;
+- ISO/IEC/IEEE 12207, ISO/IEC/IEEE 29148 and ISO/IEC 25010-family software/product quality practice after product commitment where applicable;
 - engine-native documentation and platform SDK/certification requirements;
 - platform/store rules for build, packaging and release;
 - Xbox Accessibility Guidelines and current game-accessibility community guidance where applicable;
 - IGDA Game Accessibility SIG / Game Accessibility Guidelines as practical accessibility references;
 - graphics/audio/network/physics/AI disciplines and their native standards/tools as needed.
 
-Do not turn one studio method or historical Ordivon Game model into a universal game ontology.
+Riot, Nintendo, Supercell and other mature studios are useful operating precedents for prototype/playtest/kill-or-pivot practice, but they are not universal standards. Do not turn one studio method or historical Ordivon Game model into a universal game ontology.
 
 ## Observed local capability
 
@@ -43,11 +46,21 @@ The most important unresolved evidence class is often human play: automated exec
 
 ## Acceptance workload
 
-Use the next intentionally selected real playable candidate from the active Game work:
+The active first-formal-product workload is **not yet a selected product**. Run one non-linear exploration cycle:
 
-`product/player intent -> smallest playable realization -> build/run -> mechanical QA -> scoped accessibility/performance checks -> human play evidence where the claim requires it -> exact accepted build/package`
+```text
+bounded reference learning
++ competing product theses
++ throwaway micro-prototypes
++ Human play evidence
+→ kill / revise / continue
+```
 
-Do not create a synthetic Game-framework demo solely to make this package look complete.
+Once a thesis earns intentional product commitment, use the durable realization path:
+
+`product/player intent -> representative playable realization -> build/run -> mechanical QA -> scoped accessibility/performance checks -> human play evidence where the claim requires it -> exact accepted build/package`
+
+Do not create a synthetic Game-framework demo solely to make this package look complete, and do not require all reference research to finish before hypothesis-driven playable experiments begin.
 
 ## External references
 
@@ -55,3 +68,7 @@ Do not create a synthetic Game-framework demo solely to make this package look c
 - Xbox Accessibility Guidelines: https://learn.microsoft.com/en-us/xbox/accessibility/guidelines
 - IGDA Game Accessibility SIG developer resources: https://igda-gasig.org/get-involved/sig-initiatives/resources-for-game-developers/
 - Game Accessibility Guidelines: https://gameaccessibilityguidelines.com/
+
+## Current process correction — 2026-09-14
+
+The broad external success/reference orientation in active Game work has reached a sufficient bounded saturation point for the current decision. Forward work should not expand R0 merely for completeness. Reference learning, product-thesis generation and cheap throwaway prototypes may now proceed in parallel, with Human evidence feeding kill/revise/continue decisions before formal product commitment.

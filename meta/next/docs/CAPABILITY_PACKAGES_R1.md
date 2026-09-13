@@ -261,7 +261,7 @@ Produce one real public-facing media object with source grounding, rights/asset 
 
 ### Mature anchors
 
-No single universal game-development standard is treated as the owner. Use mature game-development disciplines plus engine/platform requirements and domain-native tools. Reuse Engineering, Security, Artifact, Media, Network and Distribution rather than recreating them inside Game.
+No single universal game-development standard is treated as the owner. Before product commitment, use a non-linear discovery/prototype/playtest loop: Design Council Double Diamond is a useful divergence/convergence skeleton; ISO 9241-210/11 and Games User Research practice ground applicable Human/player evidence; mature studio R&D practices are precedents rather than standards. After product commitment, use mature requirements/lifecycle/quality disciplines plus engine/platform requirements and domain-native tools. Reuse Engineering, Security, Artifact, Media, Network and Distribution rather than recreating them inside Game.
 
 ### Current local working set
 
@@ -278,7 +278,7 @@ The existing Game repository contains substantial historical architecture and ev
 
 ### First acceptance workload
 
-Use the next Veilwild playable candidate: build, run, playtest/falsify the required gameplay condition, validate accessibility/performance as scoped, and package the exact accepted candidate.
+The active first-formal-product work is pre-commitment. Stop broad R0 expansion at the current bounded saturation point and run three coupled lanes: mature-reference learning, 3–5 competing product theses, and 1–3 throwaway micro-prototypes against the highest-risk claims. Human evidence drives kill/revise/continue. Only a surviving thesis earns durable pre-production/production work. Historical Veilwild/Station Zero playables remain evidence/apparatus, not automatic product candidates.
 
 ---
 

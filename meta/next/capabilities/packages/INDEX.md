@@ -11,7 +11,7 @@ This is a working inventory, not an architecture.
 | Security | bounded cybersecurity risk with verification evidence | READY_FOR_REAL_WORK | activate controls/tools from actual threat/risk context |
 | Artifact | correct consumable digital artifact | READY_FOR_REAL_WORK | use native-family validators on real artifact tasks |
 | Media | audience-facing communicated content | READY_FOR_REAL_WORK | validate on next real media production; specialist equipment remains on-demand |
-| Game | playable game/product | READY_FOR_REAL_WORK | use next intentionally selected playable candidate; human play evidence when claims require it |
+| Game | playable game/product | READY_FOR_REAL_WORK | run reference-learning + product-thesis + throwaway-prototype loop; commit a product only on evidence |
 | Data & Analytics | trustworthy data transformation/analysis result | READY_FOR_REAL_WORK | validate on next real dataset; no generic data platform build |
 | Distribution | verified delivery to target platform/audience | READY_FOR_REAL_WORK | use provider-native path; consequential writes remain authority-gated |
 | Operations | continuously operating service/system | READY_FOR_REAL_WORK | validate durable execution/recovery on useful real workflows/services |
