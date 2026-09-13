@@ -1,12 +1,26 @@
 # Mature Work / Workflow / Agent Composition R1 — 2026-09-13
 
+> **SUPERSEDED AS A MANDATORY HOST CUTOVER — 2026-09-14.** The provider analysis below remains useful, but Plane/MAF activation is no longer a prerequisite for retiring Host v1 or for considering Ordivon's work-continuity architecture acceptable. Host v1 is archived. `ordivon-host-v2` is retained as a deliberately small active continuity/work-state utility. Temporal, n8n, Runtime, MAF and Plane remain independent mature capabilities to activate only when a real workload needs their distinct responsibility.
+
+## Current standing after supersession
+
+- **Host v2:** `RETAIN_MINIMAL_ACTIVE`; active/enabled locally, clean source, local pytest green on 2026-09-14.
+- **Plane:** optional/dormant candidate; staged installer is not an architectural debt and does not need activation merely to replace Host.
+- **MAF:** optional agent-orchestration capability; use when a real multi-agent stage benefits from it, not as a Host replacement requirement.
+- **Temporal:** durable long-running workflow substrate when such workflow semantics are actually needed.
+- **n8n:** integration edge, not work-state authority.
+- **Runtime:** physical execution truth.
+- **Domain owners:** semantic acceptance.
+
+The controlling rule is substitution economics: mature external capability is preferred when it solves a real responsibility better, but a larger external platform is not automatically preferable to a small, bounded, already-working local component.
+
 ## Purpose
 
 This decision reopens the premature Host/Board responsibility closure and replaces it with an evidence-driven migration to mature external owners. Candidate project selection is restricted to GitHub projects with at least 10k stars at selection time; star count is a screening threshold, not sufficient evidence by itself.
 
 The historical Host/Board implementation is not restored. Its useful responsibilities are transferred to specialized mature systems and only then may old ownership be considered fully retired.
 
-## Selected composition
+## Previously selected candidate composition (reference, not mandatory cutover)
 
 | Responsibility | Selected owner | Local standing | Authority boundary |
 | --- | --- | --- | --- |
@@ -177,7 +191,7 @@ Agent/MAF
 
 Do not create a single `ordivon-host-mcp` that re-exports and re-owns every capability.
 
-## Cutover gates
+## Historical cutover gates — superseded as Host-v2 retirement prerequisites
 
 Final Host/Board responsibility closure requires a real workload proving:
 
@@ -191,8 +205,14 @@ Final Host/Board responsibility closure requires a real workload proving:
 8. operational failure/attention is visible through existing observation/integration systems;
 9. at least one historical Host/Board-backed workload is migrated and independently verified.
 
-Until then:
+These gates remain useful if Ordivon later chooses to activate the full Plane + Temporal + MAF work-management composition, but they no longer gate Host v2 retention or Host v1 retirement.
 
-`HOST_BOARD_IMPLEMENTATION_RETIREMENT = RETAINED`
+Current standing:
 
-`HOST_BOARD_RESPONSIBILITY_MIGRATION = IN_PROGRESS`
+`HOST_V1_RETIREMENT = COMPLETE`
+
+`HOST_V2 = RETAIN_MINIMAL_ACTIVE`
+
+`PLANE_ACTIVATION = OPTIONAL / DEMAND_GATED`
+
+`MAF_ACTIVATION = OPTIONAL / WORKLOAD_GATED`

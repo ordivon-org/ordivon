@@ -1,25 +1,28 @@
-# Host / Board implementation retirement and responsibility migration
+# Host / Board contraction and Host v2 minimal retention
 
 - Source: `/root/projects/ordivon-host-v2`
-- Observed revision: `35b9defb1d2e`
+- Historical migration revision: `35b9defb1d2e`
+- Retention validation revision: `756a38412a19`
 - Reopened: 2026-09-13
-- New-model disposition: historical implementation retired; responsibility migration remains open until mature external-owner cutover is proven
+- Superseded/settled: 2026-09-14
+- New-model disposition: Host v1 and broad universal Host/Board ownership retired; Host v2 retained as a narrow active continuity/work-state utility; larger mature providers are demand-gated rather than mandatory cutover targets
 
-## Corrected decision
+## Current decision
 
-The historical Host and custom Board implementations do not survive as Ordivon architectural entities. However, their responsibilities are not considered migrated merely because old code is retired.
+The broad historical Host/Board architecture and Host v1 do not survive as universal Ordivon architectural owners. That does **not** require deleting every small Host capability. `ordivon-host-v2` has proven useful as a bounded local durability surface and is retained.
 
-Current target owners are:
+Current responsibility split is:
 
-- work management/collaboration: Plane;
-- durable process: Temporal;
-- multi-agent orchestration: Microsoft Agent Framework;
+- small durable work/continuity state actually used by Ordivon: **Host v2**;
+- durable macro-process when required: Temporal;
+- multi-agent orchestration when required: Microsoft Agent Framework or another proven agent framework;
+- heavyweight project/work management when workload scale justifies it: Plane or another mature work-management provider;
 - integration edges: n8n;
 - physical execution: Runtime;
 - operational observation: Prometheus/Grafana/OTel-oriented stack;
 - semantic acceptance: domain-native V&V.
 
-See `docs/MATURE_WORK_COORDINATION_COMPOSITION_R1.md` for the selection and competition analysis.
+The decisive rule is not “custom must disappear.” It is “do not retain custom responsibility that a mature component demonstrably replaces at lower total complexity.” Plane currently fails that economic test for this workstation's small work-state need because it is materially heavier than the retained Host v2 utility. `docs/MATURE_WORK_COORDINATION_COMPOSITION_R1.md` is therefore retained as provider/candidate analysis, not as a mandatory Host-v2 cutover plan.
 
 ## Disposition classes
 
@@ -89,13 +92,19 @@ Do not bulk-import the Host database blindly. Classify each historical record:
 - Temporal/n8n/Prometheus already active through the current Operations substrate;
 - Grafana is active as the current containerized view;
 - MAF 1.18.0 is installed and deterministic concurrent fan-out/fan-in mechanics passed locally;
-- Plane Community v1.4.2 official installer is staged but activation is `HOLD_RESOURCE` because the current 7.8 GiB workstation is already carrying the existing stack;
+- Plane Community v1.4.2 official installer is staged but activation is optional/demand-gated; current workload does not justify paying its resource/operational cost merely to replace Host v2;
 - ChatGPT Agent Automation still lacks accepted assistant-output retrieval, so real MAF -> ChatGPT participant integration is not yet closed.
 
 ## Current result
 
-`HOST_BOARD_IMPLEMENTATION_RETIREMENT = RETAINED`
+`HOST_V1_RETIREMENT = COMPLETE`
 
-`HOST_BOARD_RESPONSIBILITY_MIGRATION = IN_PROGRESS`
+`BROAD_HOST_BOARD_ARCHITECTURE = RETIRED`
 
-The prior `HOST_BOARD_RESPONSIBILITY_CLOSURE = PASS` was premature and is superseded by this record. Final closure requires a real workload to pass the Plane + Temporal + MAF + Runtime/domain cutover gates defined in `docs/MATURE_WORK_COORDINATION_COMPOSITION_R1.md`.
+`HOST_V2 = RETAIN_MINIMAL_ACTIVE`
+
+`PLANE_MIGRATION_REQUIREMENT = CANCELLED`
+
+`MAF_AS_HOST_REPLACEMENT_REQUIREMENT = CANCELLED`
+
+A future workload may independently justify Plane, MAF, Temporal or another provider. Such adoption is a new capability decision, not unfinished Host-v2 retirement debt.
