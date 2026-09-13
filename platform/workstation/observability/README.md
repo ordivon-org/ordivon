@@ -16,6 +16,7 @@ Current live shared slices:
 
 - metrics: node_exporter `127.0.0.1:29100` -> Prometheus `127.0.0.1:29091`;
 - logs: journald -> Vector -> Loki HTTP `127.0.0.1:3100` / gRPC `127.0.0.1:9096`.
+- black-box SLO: Gatus `127.0.0.1:8080`, with desired state now owned under `observability/gatus/`; direct A/B endpoint probes bind the existing loopback CONNECT carriers without becoming Network or domain truth.
 
 Rules:
 
