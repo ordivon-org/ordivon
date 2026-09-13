@@ -60,10 +60,9 @@ Serde defaults that express ordinary optional API fields are not classified as l
 
 | Contract | Current consumer | Protected failure | Deletion trigger |
 | --- | --- | --- | --- |
-| Legacy `INVALID_REQUEST` fallback for a missing `workspaceId` | `ordivon-host` Workspace ensure/close compatibility path | Host mistakes a precise `WORKSPACE_NOT_FOUND` response for an unrecoverable Runtime failure during staged rollout | Runtime with precise Workspace errors is deployed and one complete compatibility observation window shows no supported Runtime returning the legacy missing-Workspace form |
 | Coarse Job `status` (`queued`, `working`, terminal resolution) | Existing callers that display or log the historical summary | A minor Runtime release breaks callers that do not yet consume explicit execution semantics | Named live callers consume `attemptState`, `executionDisposition`, `deliveryDisposition`, and recovery fields for control decisions; the coarse field may then be reviewed separately rather than removed automatically |
 
-The precise Workspace error migration is intentionally two-sided: Host accepts both the old `INVALID_REQUEST` form and `WORKSPACE_NOT_FOUND` before Runtime emits the precise code in production. The compatibility branch exists to order the rollout safely; it does not make the old classification semantically canonical.
+Host v1 is retired and Host v2 does not consume Runtime Workspace ensure/close compatibility. The old Host-specific Workspace error rollout is therefore no longer a current Runtime compatibility obligation.
 
 ## Deletion rule
 

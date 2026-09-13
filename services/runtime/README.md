@@ -149,7 +149,7 @@ After response loss, reuse the exact `clientRequestId` or reconnect through `wor
 | Concern | Canonical owner | Not owned here |
 | --- | --- | --- |
 | Workspace, Job, Attempt, process tree, Artifact, physical cancellation, execution recovery | `ordivon-runtime` | Task meaning or domain completion |
-| durable Task continuity, Journal/CAS, commitment admission, verification records, Task outcomes | `ordivon-host` | physical process truth |
+| durable Task/work continuity and current Host state | `ordivon-host-v2` | physical process truth |
 | Assignment, Agent Run, Provider adapter, model–Tool loop, Tool-step checkpoint, Run recovery | `ordivon-harness` | another Task database or Runtime supervisor |
 
 The exact architecture and truth owners are defined in [`docs/runtime.md`](docs/runtime.md). The effect-commit contract is [`docs/effect-kernel.md`](docs/effect-kernel.md).
@@ -185,7 +185,7 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md). A change must identify an observed fa
 
 - [Public project directory](https://ordivon.com/projects) — reader-facing role, maturity, and next steps.
 - Current project-family migration/classification is maintained in Ordivon Next; until that repository has a public source URL, use the public project directory above plus owner-native repositories as authority.
-- Related owners: [Ordivon Host](https://github.com/zycxfyh/ordivon-host) preserves durable Task continuity; [Ordivon Harness](https://github.com/zycxfyh/ordivon-harness) owns Assignment-scoped Agent Runs.
+- Related owners: `ordivon-host-v2` preserves current work-management state locally; [Ordivon Harness](https://github.com/ordivon-org/ordivon-harness) owns bounded Agent Runs. Host v1 is archived historical source, not a Runtime dependency.
 
 ## License
 

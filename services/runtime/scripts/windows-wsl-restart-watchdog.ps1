@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Root,
 
-    [string[]]$StartUnits = @('ordivon-runtime.service', 'ordivon-host-mcp.service'),
+    [string[]]$StartUnits = @('ordivon-runtime.service', 'ordivon-host-v2.service'),
 
     [int]$PreTerminateDelaySeconds = 2,
 
