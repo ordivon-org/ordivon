@@ -4,6 +4,14 @@
     "BTC-USDT",
     "ETH-USDT"
   ],
+  "clockQuality": {
+    "exchangeServerTimeCalibrationRequired": true,
+    "priceRequestMaxRttMsForCrossVenueComparison": 1500,
+    "privateExecutionHostClockMaxAbsOffsetMs": 1000,
+    "privateExecutionRule": "blocked until a fresh measurement passes the host-clock gate",
+    "publicShadowTimingClock": "monotonic",
+    "venueClockAgreementMaxMsForCrossVenueComparison": 250
+  },
   "demoExecutionAllowed": false,
   "externalFinancialWritesAllowed": false,
   "kind": "ordivon.market-capital.crypto-execution-lane",

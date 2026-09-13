@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+from __future__ import annotations
+
+import concurrent.futures
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+if len(sys.argv) != 2:
+    raise SystemExit("usage: capture-crypto-public-rest OUTPUT_JSON")
+
+output = Path(sys.argv[1])
+output.parent.mkdir(parents=True, exist_ok=True)
+
+REQUESTS = {
+    "okx_btc": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
+    "okx_eth": "https://www.okx.com/api/v5/market/ticker?instId=ETH-USDT",
+    "okx_time": "https://www.okx.com/api/v5/public/time",
+    "binance_books": "https://api.binance.com/api/v3/ticker/bookTicker?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D",
+    "binance_time": "https://api.binance.com/api/v3/time",
+}
+
+
+def capture(name: str, url: str) -> tuple[str, dict]:
+    wall_start = time.time_ns()
+    mono_start = time.monotonic_ns()
+    proc = subprocess.run(
+        ["/usr/bin/curl", "-fsS", "--max-time", "15", url],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    mono_end = time.monotonic_ns()
+    wall_end = time.time_ns()
+    if proc.returncode != 0:
+        raise RuntimeError(f"{name} curl failed rc={proc.returncode}: {proc.stderr.strip()}")
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{name} returned invalid JSON") from exc
+    return name, {
+        "url": url,
+        "wallStartNs": wall_start,
+        "wallEndNs": wall_end,
+        "monotonicStartNs": mono_start,
+        "monotonicEndNs": mono_end,
+        "durationMs": (mono_end - mono_start) / 1_000_000,
+        "payload": payload,
+    }
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=len(REQUESTS)) as pool:
+    futures = [pool.submit(capture, name, url) for name, url in REQUESTS.items()]
+    captured = dict(f.result() for f in concurrent.futures.as_completed(futures))
+
+result = {
+    "schemaVersion": 1,
+    "kind": "ordivon.market-capital.crypto-public-rest-capture",
+    "captureWallTimeNs": time.time_ns(),
+    "requests": {name: captured[name] for name in sorted(captured)},
+    "credentialsUsed": False,
+    "privateAccountDataUsed": False,
+    "externalFinancialWritesAttempted": False,
+}
+output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+print(json.dumps({
+    "standing": "RAW_CRYPTO_PUBLIC_CAPTURE_COMPLETE",
+    "output": str(output),
+    "requestCount": len(captured),
+}, sort_keys=True))
