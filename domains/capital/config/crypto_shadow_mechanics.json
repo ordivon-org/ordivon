@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.crypto-shadow-mechanics",
+  "standing": "LOCAL_SIMULATION_ONLY",
+  "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
+  "syntheticNotionalUsdtPerInstrument": "10",
+  "startingCashUsdtPerVenue": "100",
+  "timeInForce": "IOC",
+  "brokerConnectivityAllowed": false,
+  "brokerCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "economicDecisionClaimed": false,
+  "alphaClaimed": false
+}

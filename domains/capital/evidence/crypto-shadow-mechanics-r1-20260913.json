@@ -1,0 +1,101 @@
+{
+  "conclusion": {
+    "cryptoSpotPrecisionAndLotRulesQualified": true,
+    "demoOrLiveQualified": false,
+    "economicDecisionQualified": false,
+    "localOmsLifecycleQualified": true,
+    "multiCurrencyCashModelQualified": true
+  },
+  "kind": "ordivon.market-capital.crypto-shadow-mechanics-r1-evidence",
+  "result": {
+    "alphaClaimed": false,
+    "brokerConnected": false,
+    "brokerCredentialsUsed": false,
+    "demoExecutionAttempted": false,
+    "economicDecisionClaimed": false,
+    "externalFinancialWritesAttempted": false,
+    "fills": {
+      "MECH-BINANCE-BTC": {
+        "lastPx": "77162.01",
+        "lastQty": "0.00012"
+      },
+      "MECH-BINANCE-ETH": {
+        "lastPx": "2490.32",
+        "lastQty": "0.0040"
+      },
+      "MECH-OKX-BTC": {
+        "lastPx": "77164.5",
+        "lastQty": "0.00012959"
+      },
+      "MECH-OKX-ETH": {
+        "lastPx": "2490.36",
+        "lastQty": "0.004015"
+      }
+    },
+    "instrumentRulesApplied": true,
+    "kind": "ordivon.market-capital.crypto-shadow-mechanics-result",
+    "liveExecutionAttempted": false,
+    "multiCurrencyCashAccountUsed": true,
+    "normalizedQuotes": {
+      "BINANCE:BTC": {
+        "ask": "77162.01",
+        "bid": "77162.00"
+      },
+      "BINANCE:ETH": {
+        "ask": "2490.32",
+        "bid": "2490.31"
+      },
+      "OKX:BTC": {
+        "ask": "77164.5",
+        "bid": "77164.4"
+      },
+      "OKX:ETH": {
+        "ask": "2490.36",
+        "bid": "2490.35"
+      }
+    },
+    "orders": [
+      {
+        "clientOrderId": "MECH-OKX-BTC",
+        "filledQty": "0.00012959",
+        "instrumentId": "BTC-USDT.OKX",
+        "quantity": "0.00012959",
+        "status": "FILLED",
+        "timeInForce": "IOC"
+      },
+      {
+        "clientOrderId": "MECH-BINANCE-BTC",
+        "filledQty": "0.00012",
+        "instrumentId": "BTCUSDT.BINANCE",
+        "quantity": "0.00012",
+        "status": "FILLED",
+        "timeInForce": "IOC"
+      },
+      {
+        "clientOrderId": "MECH-OKX-ETH",
+        "filledQty": "0.004015",
+        "instrumentId": "ETH-USDT.OKX",
+        "quantity": "0.004015",
+        "status": "FILLED",
+        "timeInForce": "IOC"
+      },
+      {
+        "clientOrderId": "MECH-BINANCE-ETH",
+        "filledQty": "0.0040",
+        "instrumentId": "ETHUSDT.BINANCE",
+        "quantity": "0.0040",
+        "status": "FILLED",
+        "timeInForce": "IOC"
+      }
+    ],
+    "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
+    "schemaVersion": 1,
+    "sourceMetadataSha256": "6ebcdfbc94377118e67ad320a5d5b7c905cbf05bc980122cf4aad4566b520f11",
+    "sourceObservationSha256": "028b3f82ed90bb6c8af3f499d7c5d4c27309d4dcae3c9749bc791d5090c9874e",
+    "standing": "PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS",
+    "syntheticNotionalUsdtPerInstrument": "10"
+  },
+  "resultSha256": "7daf7e633be9906a4f9225a3e3d703489d80920dbeb0c6bc0cb0112c66198306",
+  "schemaVersion": 1,
+  "standing": "PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS"
+}

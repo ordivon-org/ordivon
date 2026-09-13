@@ -82,4 +82,5 @@ Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testne
 - Wave B M6.2: NautilusTrader `2.0.0rc4` admitted only as a non-live candidate; OMS/Risk controls passed, but simulated `AT_THE_OPEN` execution is blocked as unsupported.
 - Historical equity M7 remains a valid independent validation experiment, but the active future venue qualification path is now the separate OKX + Binance continuous crypto lane. The frozen equity experiment is not rewritten into crypto semantics.
 - Crypto Public Shadow R1: fresh dual-target Surfshark discovery + one scoped VPN session + concurrent OKX/Binance public capture is admitted for bounded contemporaneous observation; private/demo/live execution remains blocked until host clock offset is <= 1000 ms on a fresh measurement.
+- Crypto Shadow Mechanics R1: accepted public quote/metadata evidence now drives a local Nautilus multi-currency Spot simulation; four mechanics-only IOC intents pass venue precision/lot rules and OMS fill lifecycle with no broker connection.
 - Paper brokerage, real account reality, reconciliation and live authorization remain future admissions.
