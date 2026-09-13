@@ -15,20 +15,20 @@ class ArtifactDonorExportTests(unittest.TestCase):
 
     def test_all_taxonomy_families_and_profiles_are_represented(self):
         c = self.donor["coverage"]
-        self.assertEqual(c["taxonomyFamilies"], 14)
-        self.assertEqual(c["representedFamilies"], 14)
-        self.assertEqual(c["normalizedProfiles"], 20)
+        self.assertEqual(c["taxonomyFamilies"], 15)
+        self.assertEqual(c["representedFamilies"], 15)
+        self.assertEqual(c["normalizedProfiles"], 21)
 
     def test_all_shadow_bindings_remain_live_proven(self):
-        self.assertEqual(self.donor["coverage"]["liveProvenShadowBindings"], 12)
+        self.assertEqual(self.donor["coverage"]["liveProvenShadowBindings"], 13)
         bound = [p for p in self.donor["profiles"] if p["capabilityBinding"] is not None]
-        self.assertEqual(len(bound), 12)
+        self.assertEqual(len(bound), 13)
         self.assertTrue(all(p["capabilityBinding"]["standing"] == "LOCAL_LIVE_PROVEN" for p in bound))
 
     def test_all_isolated_shadow_validators_are_preserved_without_legacy_orchestrator(self):
-        self.assertEqual(self.donor["coverage"]["isolatedValidatorImplementations"], 12)
+        self.assertEqual(self.donor["coverage"]["isolatedValidatorImplementations"], 13)
         refs = [p["validatorImplementation"]["path"] for p in self.donor["profiles"] if p["validatorImplementation"]]
-        self.assertEqual(len(refs), 12)
+        self.assertEqual(len(refs), 13)
         self.assertNotIn("scripts/artifact_delivery.py", refs)
         self.assertTrue(all("temporal" not in x.lower() and "runtime" not in x.lower() for x in refs))
 
@@ -55,13 +55,13 @@ class ArtifactDonorExportTests(unittest.TestCase):
 
     def test_candidate_problem_keys_are_explicitly_non_core(self):
         self.assertIn("not a universal Core ontology commitment", self.donor["principles"][-2])
-        self.assertEqual(len({p["candidateProblemKey"] for p in self.donor["profiles"]}), 20)
+        self.assertEqual(len({p["candidateProblemKey"] for p in self.donor["profiles"]}), 21)
 
     def test_observed_migration_gaps_are_preserved_not_invented_away(self):
         gaps={x["id"]:x for x in self.donor["knownGaps"]}
-        self.assertEqual(gaps["object-contract-coverage"]["observation"], {"profilesWithExplicitObjectContract":10,"profilesWithoutExplicitObjectContract":10})
-        self.assertEqual(gaps["result-boundary-coverage"]["observation"], {"profilesWithExplicitNonClaims":12,"profilesWithoutExplicitNonClaims":8})
-        self.assertEqual(gaps["composition-sequencing"]["observation"], {"profilesWithEncodedSequence":0,"profilesWithoutEncodedSequence":20})
+        self.assertEqual(gaps["object-contract-coverage"]["observation"], {"profilesWithExplicitObjectContract":11,"profilesWithoutExplicitObjectContract":10})
+        self.assertEqual(gaps["result-boundary-coverage"]["observation"], {"profilesWithExplicitNonClaims":13,"profilesWithoutExplicitNonClaims":8})
+        self.assertEqual(gaps["composition-sequencing"]["observation"], {"profilesWithEncodedSequence":0,"profilesWithoutEncodedSequence":21})
         self.assertTrue(all(x["standing"]=="PRESERVE_GAP_DO_NOT_INVENT" for x in gaps.values()))
 
     def test_execution_wiring_is_never_promoted(self):

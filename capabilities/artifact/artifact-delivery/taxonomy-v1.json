@@ -335,6 +335,31 @@
       "localToolStanding": "OGC_GPKG_VALIDATOR_SQLITE_CONTAINER_AND_OGR_CONTRACT_PROVEN"
     },
     {
+      "id": "design-2d",
+      "externalAlignment": [
+        "Tiled native map authoring formats",
+        "IANA application/json for TMJ serialization"
+      ],
+      "representations": [
+        "structured-map-authoring-source",
+        "layered-raster-authoring-source"
+      ],
+      "standards": [
+        "Tiled JSON Map Format / TMX Map Format semantics",
+        "format-specific native authoring contracts"
+      ],
+      "exampleFormats": [
+        "tmj",
+        "tmx",
+        "aseprite"
+      ],
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "design-2d-tiled-tmj-object-map-r1"
+      ],
+      "localToolStanding": "TILED_NATIVE_ROUNDTRIP_CROSS_FORMAT_AND_RASTER_READBACK_PROVEN"
+    },
+    {
       "id": "design-3d",
       "externalAlignment": [
         "IANA model/*",

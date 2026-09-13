@@ -1,7 +1,7 @@
 {
-  "fullRegression": "259 tests / 257 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "266 tests / 264 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 20,
+  "mappingCount": 21,
   "mappings": [
     {
       "family": "text-document",
@@ -124,6 +124,16 @@
       "validation": "PASS"
     },
     {
+      "family": "design-2d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-2d-tiled-tmj-object-map-r1-v2.json",
+      "mappedDigest": "9852ae811fc691dc1159cb084aebcd9bdb359cb15780e4a71852f9e60d86b772",
+      "profileId": "design-2d-tiled-tmj-object-map-r1",
+      "source": "artifact-delivery/shadow-profiles/design-2d-tiled-tmj-object-map-r1.json",
+      "sourceDigest": "12c00ace498337cb5e3ebe210a43b65c148d1598fe698d963adf009597d9e2ca",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
       "family": "design-3d",
       "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-static-mesh-r1-v2.json",
       "mappedDigest": "f9dfe8b3e43b4b54007f5a2da40002a7b73f9e7968be723061f5c6076a167fb9",
@@ -210,6 +220,7 @@
     "geospatial",
     "audio",
     "moving-image",
+    "design-2d",
     "software-release",
     "design-3d",
     "web-archive",

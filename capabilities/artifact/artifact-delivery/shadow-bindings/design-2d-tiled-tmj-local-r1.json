@@ -1,0 +1,46 @@
+{
+  "bindingVersion": 1,
+  "bindings": {
+    "nativeEditorExporter": {
+      "binarySha256": "91b94175ff20b73636fbf6650a4d1c43f7507bcdb9ac306ec28750f9135bd063",
+      "headlessEnvironment": {
+        "QT_QPA_PLATFORM": "offscreen"
+      },
+      "package": "tiled 1.12.2-1",
+      "path": "/usr/bin/tiled",
+      "tool": "Tiled",
+      "version": "1.12.2"
+    },
+    "nativeRasterizer": {
+      "binarySha256": "e798b3129925d5970598924864769ec1b4ff9eb6241f07c1d3df91ef483e2896",
+      "headlessEnvironment": {
+        "QT_QPA_PLATFORM": "offscreen"
+      },
+      "package": "tiled 1.12.2-1",
+      "path": "/usr/bin/tmxrasterizer",
+      "tool": "tmxrasterizer"
+    }
+  },
+  "id": "design-2d-tiled-tmj-local-r1",
+  "profileId": "design-2d-tiled-tmj-object-map-r1",
+  "proof": {
+    "currentGameArtifactSha256": "5f4e572b8ad0de05c1532bab37f115281c18c37b6f79077ba2d90c54b9f0a2f7",
+    "currentGameCanonicalJsonSha256": "d696373f58d2b1df95e49c3a35b5efd7c4508eef1d77d6edceeafc6aa04ba2bc",
+    "currentGameRevision": "14dfc8cf479468025ba786f5451df36ce91bfd58",
+    "externalTilesetReference": "FAIL_CLOSED",
+    "focusedTests": "5 PASS / 0 FAIL",
+    "gameDirectSmokeOperationDigest": "sha256:7ae599a7b60dbdbb06c7565887ee3fa293ff56b62295a68af31b5d04f5110b8d",
+    "gameDirectSmokeRuntimeJobId": "job-01a09a68-8747-7a93-bbcc-506fa5cdc689",
+    "legacyClassField": "FAIL_CLOSED",
+    "nativeCrossFormatRoundTrip": "PASS",
+    "nativeTmjRoundTrip": "PASS",
+    "rasterReadback": {
+      "height": 768,
+      "nonEmptyAlpha": true,
+      "pngSha256": "d63a67b3b2b672439d28e31b4eb22454c451121ed5c13eba77ecc466f00b9624",
+      "width": 1216
+    },
+    "wrongCanonicalDigest": "FAIL_BEFORE_NATIVE_ROUNDTRIP"
+  },
+  "status": "LOCAL_LIVE_PROVEN"
+}

@@ -1,0 +1,50 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "design-2d-tiled-tmj-object-map-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "design-2d",
+    "representation": "structured-map-authoring-source",
+    "format": "Tiled JSON Map (TMJ)",
+    "mediaType": "application/json",
+    "conformanceProfile": "Tiled finite orthogonal object-layer-only map subset",
+    "targetAuthority": "Tiled-native-editor-exporter",
+    "purpose": ["editable-authoring", "game-runtime-source", "exchange"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "design-2d-tiled-tmj-contract-v1",
+    "schemaReference": "shadow-contracts/design-2d-tiled-tmj-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "formatAuthority": "Tiled JSON Map Format / TMX Map Format semantics",
+    "referenceImplementation": "Tiled 1.12.2",
+    "mapType": "map",
+    "orientation": "orthogonal",
+    "infinite": false,
+    "layerSubset": ["objectgroup"],
+    "objectShapes": ["rectangle", "polyline"],
+    "tilesets": "forbidden in R1",
+    "externalTemplates": "forbidden in R1",
+    "externalFileProperties": "forbidden in R1",
+    "canonicality": "source JSON semantics must equal a native Tiled TMJ export and a TMJ-to-TMX-to-TMJ cross-format round-trip",
+    "renderReadback": "tmxrasterizer must produce a non-empty RGBA PNG at map width*tilewidth by height*tileheight"
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "TMJ object-map contract validates under design-2d-tiled-tmj-contract-v1"},
+    "boundedObjectMap": {"required": true, "claim": "JSON structure stays inside the finite orthogonal object-layer-only R1 subset without external resources"},
+    "nativeTmjRoundTrip": {"required": true, "claim": "Tiled 1.12.2 loads the source and exports semantically identical TMJ JSON"},
+    "nativeCrossFormatRoundTrip": {"required": true, "claim": "Tiled TMJ→TMX→TMJ preserves the exact canonical JSON semantics"},
+    "nativeRasterReadback": {"required": true, "claim": "tmxrasterizer renders a non-empty RGBA image at the contract-derived map pixel dimensions"},
+    "canonicalSemanticIdentity": {"required": true, "claim": "canonical sorted JSON SHA-256 equals the object contract expectation"}
+  },
+  "nonClaims": [
+    "Game meaning of layer names, object type strings, custom properties or topology",
+    "tile-layer, tileset, image-layer, group-layer, world-file or infinite-map support",
+    "external templates, external tilesets or file-valued property resolution",
+    "visual or artistic correctness of the map",
+    "runtime navigation, collision, pathfinding or gameplay correctness",
+    "full Tiled format support outside the bounded R1 subset"
+  ]
+}

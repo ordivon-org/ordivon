@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Tiled TMJ Object Map Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "map"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "design-2d-tiled-tmj-object-map-r1"},
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formatVersion", "tiledVersion", "orientation", "width", "height", "tileWidth", "tileHeight", "layerCount", "objectCount", "expectedCanonicalJsonSha256"],
+      "properties": {
+        "formatVersion": {"type": "string", "minLength": 1},
+        "tiledVersion": {"type": "string", "minLength": 1},
+        "orientation": {"const": "orthogonal"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "tileWidth": {"type": "integer", "minimum": 1},
+        "tileHeight": {"type": "integer", "minimum": 1},
+        "layerCount": {"type": "integer", "minimum": 1},
+        "objectCount": {"type": "integer", "minimum": 1},
+        "expectedCanonicalJsonSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

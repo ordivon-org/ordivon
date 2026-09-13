@@ -1,0 +1,18 @@
+{
+  "contractVersion": 1,
+  "id": "game-station-zero-tiled-tmj-r1",
+  "map": {
+    "expectedCanonicalJsonSha256": "d696373f58d2b1df95e49c3a35b5efd7c4508eef1d77d6edceeafc6aa04ba2bc",
+    "formatVersion": "1.10",
+    "height": 24,
+    "layerCount": 2,
+    "objectCount": 40,
+    "orientation": "orthogonal",
+    "tileHeight": 32,
+    "tileWidth": 32,
+    "tiledVersion": "1.12.2",
+    "width": 38
+  },
+  "notes": "Exact current Station Zero v3 Tiled object-map technical contract; Game retains semantic authority for zones/passages/topology.",
+  "profileId": "design-2d-tiled-tmj-object-map-r1"
+}

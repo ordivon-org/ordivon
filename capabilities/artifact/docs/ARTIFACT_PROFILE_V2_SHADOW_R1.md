@@ -4,7 +4,7 @@
 
 `SHADOW_SCHEMA_PROVEN`
 
-Full Artifact regression after Message pressure testing: **259 tests, 257 PASS, 2 existing conditional skips, 0 failures**.
+Full Artifact regression after Tiled Design/2D pressure testing: **266 tests, 264 PASS, 2 existing conditional skips, 0 failures**.
 
 Profile v2 is a shadow compatibility model. It does **not** replace `profile-v1.schema.json`, change Temporal routing, alter existing release gates, or authorize a production cutover.
 
@@ -114,7 +114,7 @@ and are digest-bound in:
 
 `artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json`.
 
-R1 currently maps **20 profiles**: eight production v1 profiles plus twelve standards-first shadow profiles (Still Image, Dataset, Geospatial, FLAC Audio, WAVE PCM Audio, Ogg Vorbis Audio, Moving Image, Software Release, Design/3D, Web Archive and Message).
+R1 currently maps **21 profiles**: eight production v1 profiles plus thirteen standards-first shadow profiles (Still Image, Dataset, Geospatial, FLAC Audio, WAVE PCM Audio, Ogg Vorbis Audio, Moving Image, Software Release, Design/2D, Design/3D, Web Archive and Message).
 
 For every production v1 profile, differential tests verify preservation of:
 
@@ -167,7 +167,7 @@ Profile v2 R1 does not:
 - replace the Artifact request contract;
 - move delivery effects into the profile;
 - cut production over from v1;
-- claim all 14 families are proven.
+- claim all 15 families are proven.
 
 ## Current migration rule
 

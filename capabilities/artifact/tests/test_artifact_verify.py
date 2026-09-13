@@ -147,6 +147,19 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         for value in receipt['artifactOwnedAuthorities'].values():
             path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
 
+    def test_frozen_tiled_game_consumer_smoke_keeps_native_authority_and_game_semantics_separate(self):
+        receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-tiled-tmj-r1.json').read_text())
+        self.assertEqual(receipt['standing'],'CONSUMER_SMOKE_PASS_NATIVE_CANONICAL_ROUNDTRIP')
+        self.assertEqual(receipt['technicalFacts']['layerCount'],2)
+        self.assertEqual(receipt['technicalFacts']['objectCount'],40)
+        self.assertEqual(receipt['technicalFacts']['objectShapeCounts'],{'polyline':20,'rectangle':20,'unsupported':0})
+        self.assertEqual(receipt['nativeTmjRoundTrip']['status'],'PASS')
+        self.assertEqual(receipt['nativeCrossFormatRoundTrip']['status'],'PASS')
+        self.assertEqual(receipt['nativeRasterReadback']['status'],'PASS')
+        self.assertEqual(receipt['gameMigrationEvidence']['layoutDigest'],'21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527')
+        for value in receipt['artifactOwnedAuthorities'].values():
+            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.bin"; subject.write_bytes(b"x")

@@ -34,6 +34,7 @@ ROUTES: dict[str, tuple[str, str, bool]] = {
     "audio-ogg-vorbis-r1": ("scripts/artifact_ogg_vorbis.py", "verify_ogg_vorbis", True),
     "geospatial-geopackage-point-r1": ("scripts/artifact_geospatial.py", "verify_geopackage", True),
     "moving-image-matroska-ffv1-v3-r1": ("scripts/artifact_moving_image.py", "verify_moving_image", True),
+    "design-2d-tiled-tmj-object-map-r1": ("scripts/artifact_tiled.py", "verify_tiled_tmj", True),
     "design-3d-glb-static-mesh-r1": ("scripts/artifact_design3d.py", "verify_glb", True),
     "web-archive-warc-response-r1": ("scripts/artifact_web_archive.py", "verify_warc", True),
     "message-internet-text-r1": ("scripts/artifact_message.py", "verify_message", True),
