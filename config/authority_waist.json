@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.authority-waist-binding",
+  "role": "bind Market Capital execution paths to the external semantic authority provider without copying its semantics",
+  "provider": {
+    "name": "Ordivon Market Capital v2 semantic waist",
+    "repo": "/root/projects/ordivon-market-capital-v2",
+    "revision": "fd0a15db0152a1c35b4820b72e047df9db7a9e63",
+    "implementation": {
+      "path": "src/ordivon_market_capital_v2/semantic.py",
+      "sha256": "0c50f9b397cdbde89f1770221eac76c50f94b85f2a4f012855baaf2f6423b4e6"
+    },
+    "contracts": {
+      "semanticFreeze": {
+        "path": "contracts/semantic-freeze-v0.json",
+        "sha256": "d74d9796c63c811bf2cd7f7bcefb4dd7d2ad95ee4d387f5bbc727109b3775032"
+      },
+      "productionAuthorization": {
+        "path": "contracts/production-authorization.json",
+        "sha256": "715a04de50ea6dd369375b84dff8f2cb2ba77f48ec1c3b8d447ef49d8c017c67"
+      },
+      "externalBoundary": {
+        "path": "contracts/external-boundary-v0.json",
+        "sha256": "fa4cf810edc7a3a1554b2ff94a2e90acafd150e8386beda1558206a80404d89e"
+      }
+    }
+  },
+  "requiredOwnedSemantics": [
+    "observation_same_cut",
+    "proof_binding_currentness",
+    "scientific_truth_not_economic_truth_not_capital_truth",
+    "reservation_not_grant",
+    "effect_authority_retain_release_consume",
+    "production_authorization_boundary"
+  ],
+  "currentLane": "NON_LIVE",
+  "externalFinancialWriteAdmission": "NOT_ADMITTED",
+  "liveGrantMechanism": "NOT_IMPLEMENTED",
+  "rule": "all Market Capital execution runners must pass the authority-waist preflight; non-live lanes require BLOCK_NOT_GRANTED and live-capable lanes fail closed until an independently admitted grant mechanism exists"
+}
