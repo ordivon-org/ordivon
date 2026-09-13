@@ -384,7 +384,8 @@
     {
       "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
       "currentProfiles": [
-        "software-release-oci-image-r1"
+        "software-release-oci-image-r1",
+        "software-release-linux-elf-executable-r1"
       ],
       "exampleFormats": [
         "oci-artifact",
@@ -401,7 +402,7 @@
         "software supply-chain standards"
       ],
       "id": "software-release",
-      "localToolStanding": "OCI_SYFT_FROZEN_TRIVY_RUNTIME_READBACK_PROVEN",
+      "localToolStanding": "OCI_AND_LINUX_ELF_RELEASE_READBACK_PROVEN",
       "representations": [
         "binary",
         "package",

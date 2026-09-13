@@ -1,7 +1,7 @@
 {
-  "fullRegression": "275 tests / 273 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "284 tests / 282 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 24,
+  "mappingCount": 25,
   "mappings": [
     {
       "family": "audio",
@@ -171,6 +171,16 @@
       "source": "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
       "sourceDigest": "56cf5879e52984fb398242416bb46f1670e9aecd7e5d88e18677b4263126eea9",
       "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "software-release",
+      "mapped": "artifact-delivery/shadow-v2/examples/software-release-linux-elf-executable-r1-v2.json",
+      "mappedDigest": "a32d2dbc49aff90bdb2f014853c0baf7c94f5dd9b7f423fd87d21a9f06dd7dfc",
+      "profileId": "software-release-linux-elf-executable-r1",
+      "source": "artifact-delivery/shadow-profiles/software-release-linux-elf-executable-r1.json",
+      "sourceDigest": "ba58c827f6362a6fa9d05cce5c9fe93d7876b0b203a90641c9f5c49cb92f1fb9",
+      "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
     {

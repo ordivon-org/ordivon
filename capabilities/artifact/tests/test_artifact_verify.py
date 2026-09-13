@@ -198,6 +198,21 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
                 path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
             self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
 
+    def test_frozen_game_godot_linux_elf_release_preserves_producer_and_artifact_authorities(self):
+        receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-godot-production-smoke-linux-elf-r1.json').read_text())
+        self.assertEqual(receipt['standing'],'CONSUMER_RELEASE_READBACK_PASS_PRODUCER_BOUNDARY_PRESERVED')
+        self.assertEqual(receipt['artifactVerification']['serviceStatus'],'PASS')
+        self.assertEqual(receipt['artifactVerification']['runtimeReadback'],'PASS')
+        self.assertEqual(receipt['artifactVerification']['networkNamespace'],'UNSHARED')
+        for value in receipt['artifactOwnedAuthorities'].values():
+            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        game=Path('/root/projects/ordivon-game')
+        for key in ('harness','acceptedReproducibilityBoundary'):
+            value=receipt['producerEvidence'][key];self.assertEqual(sha(game/value['relativePath']),value['sha256'],value['relativePath'])
+        self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
+        self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['secondBuildSha256'],receipt['externalSubject']['sha256'])
+        self.assertIn('Steam or other store upload/release',receipt['boundary']['notEstablished'])
+
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.bin"; subject.write_bytes(b"x")

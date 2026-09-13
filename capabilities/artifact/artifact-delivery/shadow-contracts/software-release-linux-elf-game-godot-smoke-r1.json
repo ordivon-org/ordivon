@@ -1,0 +1,29 @@
+{
+  "contractVersion": 1,
+  "id": "software-release-linux-elf-game-godot-smoke-r1",
+  "profileId": "software-release-linux-elf-executable-r1",
+  "artifact": {
+    "sha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "byteLength": 73473208,
+    "executable": true
+  },
+  "fileInspection": {
+    "requiredSubstrings": ["ELF 64-bit LSB executable", "x86-64", "GNU/Linux", "stripped"]
+  },
+  "elf": {
+    "class": "ELF64",
+    "data": "2's complement, little endian",
+    "osAbi": "UNIX - System V",
+    "type": "EXEC (Executable file)",
+    "machine": "Advanced Micro Devices X86-64",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2"
+  },
+  "runtime": {
+    "args": ["--headless"],
+    "exitCode": 0,
+    "stdoutContains": ["Godot Engine v4.7.1.stable.official.a13da4feb", "ORDIVON_GAME_COLD_START_BOOT", "ORDIVON_GAME_COLD_START_OK"],
+    "stderrExact": "",
+    "timeoutSeconds": 30
+  },
+  "notes": "Exact final-byte contract for the current Game-owned Godot production cold-start Linux export. Producer/build/reproducibility authority remains Game-owned."
+}

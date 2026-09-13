@@ -55,3 +55,7 @@ Cross-owner immutable transport should continue to use Runtime input authorities
 ### Design/3D rich GLB routes
 
 The explicit R1 service surface now also routes `design-3d-glb-material-scene-r1` and `design-3d-glb-skinned-animation-r1` to the shared profile-driven `artifact_design3d.py` verifier. Both require exact object contracts and exactly one `LOCAL_LIVE_PROVEN` profile binding; their presence does not make arbitrary GLB files callable under a generic rich-3D profile.
+
+### Linux native executable release route
+
+`software-release-linux-elf-executable-r1` is an explicit file-subject route to `artifact_software_release_elf.py`. It requires an exact object contract and one `LOCAL_LIVE_PROVEN` binding. Producer/build evidence is intentionally not inferred by the service; consumer evidence may separately bind an Engineering/Game producer receipt to the final verified bytes.

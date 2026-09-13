@@ -1,0 +1,105 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/software-release-linux-elf-executable-local-r1.json",
+      "sha256": "995b4ce1b411dd770682408ab26f88185556a7c03027c2ddf1d723702453983c",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "objectContract": {
+      "relativePath": "artifact-delivery/shadow-contracts/software-release-linux-elf-game-godot-smoke-r1.json",
+      "sha256": "0d4ec42c2e9a239969dd738176f8b1caa83dedb0e45ebb9b9b3de9d1d34bcc84"
+    },
+    "profile": {
+      "id": "software-release-linux-elf-executable-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/software-release-linux-elf-executable-r1-v2.json",
+      "sha256": "40ad66d62e5e4afd237972b2c37b2400087241a50978a1d3038546f80968dc43",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_linux_elf",
+      "relativePath": "scripts/artifact_software_release_elf.py",
+      "sha256": "0b90f95f172666fef076af12ed9e7442b18ff53912042a494c93f83f46e57af6"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "ec1603a21103f9adc6eb08533e3eff189301cafe",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "artifactVerification": {
+    "byteIdentity": "PASS",
+    "elfStructure": "PASS",
+    "fileInspection": "PASS",
+    "networkNamespace": "UNSHARED",
+    "releaseMount": "READ_ONLY",
+    "runtimeReadback": "PASS",
+    "runtimeStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtimeStdoutSha256": "7e96c634a7dfd91a0add47182eafcfd5f5b17933f2a10a64e6bc025cbdf178a6",
+    "serviceJobId": "job-01a09aea-dfe8-7523-ba26-ebb211e8860c",
+    "serviceOperationDigest": "sha256:4c6bc789d1fea489087c4ae7b340ba7ab539c3178e66720f82bf9aa70601aef6",
+    "serviceResultSha256": "2cc18d9fe3e4aaf9607c73916c9ca2abef19087ab284b6b4feb815351dd19b0d",
+    "serviceStatus": "PASS",
+    "userState": "EPHEMERAL_TMPFS"
+  },
+  "boundary": {
+    "established": [
+      "Game producer evidence binds exact source/engine/template inputs and two byte-identical cold exports",
+      "Artifact independently binds exact final executable bytes and bounded ELF facts",
+      "Artifact executes those exact bytes with no host network, read-only release/runtime substrate and ephemeral user state"
+    ],
+    "notEstablished": [
+      "Artifact build authorship or generic Godot build reproducibility",
+      "complete hostile-code sandbox/security isolation",
+      "SBOM/vulnerability/signature/provenance unless separately composed",
+      "code signing/notarization",
+      "Steam or other store upload/release",
+      "cross-platform release identity",
+      "Player Value, Human evidence, rights or commercial readiness"
+    ]
+  },
+  "consumer": {
+    "purpose": "Game-owned Godot Linux production cold-start export final-byte release verification",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "216fcf5bcf48852f9463677df6221ef4fc387b36"
+  },
+  "externalSubject": {
+    "consumerRelativePath": "experiments/production-smoke-r1/build/ordivon-game-cold-start-r1.x86_64",
+    "identityStanding": "EXACT_BYTES_OBSERVED_FROM_CURRENT_PRODUCER_RUN_NOT_ARTIFACT_OWNED",
+    "sha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "size": 73473208
+  },
+  "id": "game-godot-production-smoke-linux-elf-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "observedAt": "2026-09-13",
+  "producerEvidence": {
+    "acceptedReproducibilityBoundary": {
+      "relativePath": "evidence/acceptance/game-godot-build-reproducibility-20260913.json",
+      "sha256": "3c8e42e16cc26d3726cbe8b313f62cb9cb9c0651c313568c166e41370b7443cc",
+      "standing": "BIT_REPRODUCIBLE_FOR_CURRENT_MINIMAL_LINUX_ACCEPTANCE_SLICE"
+    },
+    "authority": "Game/Engineering",
+    "currentRuntimeProof": {
+      "firstBuildSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+      "jobId": "job-01a09ae4-cf78-7c40-befa-5e854111250d",
+      "operationDigest": "sha256:56f7330b137d17d46beaa8f5a0c0cb48afa732757ed2054c6bdd5279b98dd627",
+      "secondBuildSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+      "standing": "MECHANICAL_PRODUCTION_SLICE_AND_BOUNDED_BIT_REPRODUCIBILITY_PASS"
+    },
+    "engine": {
+      "sha256": "a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+      "version": "4.7.1.stable.arch_linux.a13da4feb"
+    },
+    "harness": {
+      "relativePath": "experiments/production-smoke-r1/run.ts",
+      "sha256": "5072a8054bababdb069507172e295abd8393994c0084501ecbcf55182514a9cc"
+    },
+    "releaseTemplateSha256": "2cb27aee3f7fdf763d0ae16972f6975606959a071f4cd33f6ef1429eb8385049",
+    "sourceDigests": {
+      "export_presets.cfg": "258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05",
+      "main.gd": "69dadca13cf402310441b543a1cf2712b606a61157337ea9472ffc3aa3e2dbde",
+      "main.tscn": "e33427a56d88299e30090f6be25c584458ffb70db007ac8639bcb5b874be88c6",
+      "project.godot": "cf7c819c1c0978089d73747e1f27b1e4dd70ee209bfd75501c9daa8e5a71cf88"
+    }
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_RELEASE_READBACK_PASS_PRODUCER_BOUNDARY_PRESERVED"
+}

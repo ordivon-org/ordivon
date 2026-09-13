@@ -1,0 +1,63 @@
+{
+  "classification": {
+    "conformanceProfile": "System V ELF / AMD64 bounded dynamically-linked executable release profile",
+    "family": "software-release",
+    "format": "ELF64 Linux x86-64 executable",
+    "mediaType": "application/vnd.elf",
+    "purpose": [
+      "release",
+      "runtime-readback"
+    ],
+    "representation": "native-executable",
+    "targetAuthority": "ELF inspection plus sandbox runtime tool matrix"
+  },
+  "formatPolicy": {
+    "artifactIdentity": "exact SHA-256 and byte length of the final executable bytes",
+    "elfType": "ET_EXEC or PIE ET_DYN executable; exact object contract selects the expected type",
+    "formatAuthority": "ELF64/System V/AMD64 technical structure as exposed by mature libmagic and GNU binutils readelf",
+    "platform": "linux/x86_64",
+    "producerBoundary": "Artifact verifies final bytes only; source-to-binary build/export/reproducibility remains producer/Engineering authority",
+    "runtimeReadback": "Bubblewrap network namespace; exact release mounted read-only; /usr,/bin,/lib*,/etc read-only; ephemeral HOME/XDG state",
+    "securityBoundary": "runtime readback is not a claim of complete sandboxing or security isolation"
+  },
+  "id": "software-release-linux-elf-executable-r1",
+  "nonClaims": [
+    "that Artifact built the executable or owns source-to-binary reproducibility",
+    "complete filesystem, syscall or hostile-code sandbox isolation",
+    "SBOM, vulnerability absence, signature, provenance or attestation unless separately composed",
+    "code signing, notarization or platform-store package identity",
+    "cross-OS, cross-architecture or cross-runtime-substrate behavior",
+    "caller-domain functional, artistic, player-value or commercial suitability",
+    "rights or licensing validity"
+  ],
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "software-release-linux-elf-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/software-release-linux-elf-contract-v1.schema.json"
+  },
+  "requiredEvidence": {
+    "byteIdentity": {
+      "claim": "final executable SHA-256, byte length and executable mode match the exact object contract",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "Linux ELF release object contract validates under software-release-linux-elf-contract-v1",
+      "required": true
+    },
+    "elfStructure": {
+      "claim": "GNU readelf independently reports the contracted ELF class/data/OSABI/type/machine/interpreter facts",
+      "required": true
+    },
+    "fileInspection": {
+      "claim": "libmagic/file independently recognizes the contracted ELF/Linux/x86-64 release class",
+      "required": true
+    },
+    "runtimeReadback": {
+      "claim": "the exact final bytes execute under network-isolated Bubblewrap readback with read-only release/runtime substrate and ephemeral user state",
+      "required": true
+    }
+  },
+  "shadowProfileVersion": 1,
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE"
+}

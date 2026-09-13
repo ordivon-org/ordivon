@@ -26,6 +26,7 @@ VALIDATOR_BY_PROFILE = {
     "design-3d-glb-material-scene-r1": "scripts/artifact_design3d.py",
     "design-3d-glb-skinned-animation-r1": "scripts/artifact_design3d.py",
     "software-release-oci-image-r1": "scripts/artifact_software_release.py",
+    "software-release-linux-elf-executable-r1": "scripts/artifact_software_release_elf.py",
     "web-archive-warc-response-r1": "scripts/artifact_web_archive.py",
     "message-internet-text-r1": "scripts/artifact_message.py",
 }
