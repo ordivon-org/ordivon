@@ -8,6 +8,7 @@ Requires=postgresql.service
 Type=simple
 User=ordivon-host-v2
 Group=ordivon-host-v2
+DynamicUser=true
 WorkingDirectory=/opt/ordivon/host-v2/current
 EnvironmentFile=/etc/ordivon/host-v2.env
 ExecStartPre=/opt/ordivon/host-v2/venv/bin/python -c 'from ordivon_host_v2 import HostV2; import os; HostV2(os.environ["ORDIVON_HOST_V2_DSN"]).initialize()'
