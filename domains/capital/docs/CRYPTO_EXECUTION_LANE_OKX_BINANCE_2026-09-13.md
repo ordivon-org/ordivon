@@ -38,7 +38,7 @@ Not admitted:
 
 ## Network finding
 
-Direct WSL HTTP probes to both OKX and Binance timed out. Workstation has scoped Surfshark `surfpath` transport authority, but the first Japan/WireGuard discovery attempt timed out after 120 seconds. Exchange public-data connectivity therefore remains a transport qualification problem rather than an adapter failure; no working VPN path is claimed yet.
+Direct WSL HTTP probes to both OKX and Binance timed out. Scoped Surfshark transport is now point-in-time qualified using Singapore `sg-sng` over OpenVPN-TCP. Both OKX and Binance public REST endpoints were reached successfully without credentials and BTC/ETH Spot instrument metadata was retrieved. The discovered path digests are evidence, not permanent configuration: every future live public-data session must perform fresh `surfpath` discovery/revalidation before use.
 
 ## Next graduation sequence
 

@@ -12,8 +12,23 @@
   "networkTransport": {
     "directObserved": "TIMEOUT_OKX_AND_BINANCE",
     "preferred": "SURFSHARK_SCOPED_EGRESS",
-    "scopedVpnObserved": "JP_TOK_WIREGUARD_DISCOVERY_TIMED_OUT_120S",
-    "standing": "SCOPED_VPN_PATH_NOT_YET_QUALIFIED"
+    "qualification": {
+      "binance": {
+        "observationDigest": "sha256:d493b0b1ea6a88cfa61501adfbc75e8e673f6502e9302e272dba4ca3de1ed332",
+        "pathDigest": "sha256:a59ddb942867b154dd54434c0c35ee6a54ba3b1e45e8c9406cee72099777a575",
+        "publicApi": "PASS"
+      },
+      "egressLocation": "SG",
+      "node": "sg-sng",
+      "okx": {
+        "observationDigest": "sha256:9a6ca991ce5212467912e3d2a90dda015b2735140632e702134a956edd34c303",
+        "pathDigest": "sha256:8200324a47f5deff67ba7b05d04dba1051418f4505fa948edfff8e0610c83720",
+        "publicApi": "PASS"
+      },
+      "protocol": "openvpn-tcp",
+      "reuseRule": "point-in-time proof only; perform fresh surfpath discovery before each new live public-data session"
+    },
+    "standing": "PASS_POINT_IN_TIME_PUBLIC_DATA_VIA_OPENVPN_TCP"
   },
   "privateAccountDataAllowed": false,
   "productionAuthorizationRequired": true,
