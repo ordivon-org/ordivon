@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+install -m 0755 scripts/ordivon_edge_client.py /usr/local/bin/ordivon-edge
+printf '%s\n' 'installed /usr/local/bin/ordivon-edge'

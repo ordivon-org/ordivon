@@ -1,0 +1,32 @@
+{
+  "name": "@ordivon/cloudflare-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=26",
+    "pnpm": ">=10 <11"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/contracts.test.ts test/transactions.test.ts test/worker.test.ts",
+    "check:python": "python3 -m py_compile scripts/ordivon_edge_client.py scripts/ordivon_edge_release.py scripts/ordivon_edge_gc.py scripts/check-policy-config.py scripts/configure_r2_lifecycle.py && python3 -m unittest discover -s test -p 'client_test.py' && python3 -m unittest discover -s test -p 'release_controller_test.py' && python3 -m unittest discover -s test -p 'gc_test.py' && python3 -m unittest discover -s test -p 'lifecycle_test.py'",
+    "check:operations": "scripts/check-operations",
+    "check:policy": "python3 scripts/check-policy-config.py",
+    "build": "node scripts/wrangler-dry-run.mjs",
+    "ci": "pnpm typecheck && pnpm test && pnpm check:python && pnpm check:policy && pnpm check:operations && pnpm build"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260727.1",
+    "@types/node": "26.1.1",
+    "tsx": "4.23.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.114.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": "7.29.0"
+    }
+  }
+}

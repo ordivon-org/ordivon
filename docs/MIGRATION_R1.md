@@ -20,7 +20,7 @@ Adopted in R1 from Arch repositories: Ansible, OpenTofu, node_exporter, Vector, 
 | generic backup scheduling/check wrappers | systemd timers + restic + pgBackRest | REPLACE | owner restore acceptance assertions |
 | generic software/process census | osquery | REPLACE | owner-specific facts not represented generically |
 | Network continuity / Surfshark monitoring | Network E2E + its selected mature substrates | MOVE OUT | no Operations semantic ownership |
-| Cloudflare-specific production operations | consuming owner + OpenTofu/provider-native mechanisms | MOVE OUT / REPLACE | shared operations observes only declared SLOs |
+| Cloudflare provider implementation and local operational lifecycle | Operations maintenance + Cloudflare/provider-native remote authority + consuming-domain semantic authority | ABSORB MAINTENANCE; use OpenTofu for suitable declarative resources | Operations owns source/install/systemd/config/upgrade/rollback/SLO plumbing only; remote provider truth and consumer meaning stay outside Operations |
 | generic retry/timer workflow code | Temporal/systemd | DELETE | Runtime execution evidence remains separate |
 | generic policy `if/deny` gates | OPA where policy is declarative | REPLACE | owner supplies policy inputs and owns semantic meaning |
 | generic security scanning | Trivy | REPLACE | Security E2E owns interpretation/admission policy |
@@ -70,4 +70,4 @@ This is the first concrete replacement path for generic CPU/memory/filesystem/pr
 2. osquery for generic software/process/package inventory;
 3. classify Doctor checks into external fact vs owner semantic verifier, then delete the external-fact implementations after consumer proof;
 4. split `node_incident.py` generic incident mechanics from its retained evidence/causal-claim boundary;
-5. migrate Cloudflare declarative resources to OpenTofu only after import/plan proves no unintended change.
+5. maintain the extracted Cloudflare Edge provider under `providers/cloudflare/`; migrate suitable declarative Cloudflare resources to OpenTofu only after import/plan proves no unintended change, while keeping imperative request/reconciliation logic provider-native.

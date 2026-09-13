@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Ordivon Edge deferred Artifact garbage collection daily
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=24h
+RandomizedDelaySec=30min
+Persistent=true
+Unit=ordivon-edge-gc.service
+
+[Install]
+WantedBy=timers.target
