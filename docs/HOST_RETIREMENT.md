@@ -83,3 +83,26 @@ The following live-runtime material was then removed:
 Post-removal verification reports `LoadState=not-found` and no listener on `8898`. The historical `/var/lib/ordivon/host` tree and retirement archive remain intact.
 
 The Cloudflare DNS CNAME for `host-mcp.ordivon.com` was independently inventoried as a Host-specific record and deleted through the canonical Cloudflare account API-token authority. A post-delete authoritative DNS inventory returned an empty set. The old Cloudflare Access application remains as an inert provider-side policy object with no Host DNS entry; it is not considered a live Ordivon surface and should be removed separately when that provider mutation path is available.
+
+
+## Final PostgreSQL archive projection
+
+After Host v1 retirement, the exact independent retirement SQLite backup was projected into PostgreSQL for queryable historical access. This does not reactivate Host or make PostgreSQL a production Host authority.
+
+- source: `/var/lib/ordivon/retired/host-v1/host-v1-48104ae46bc92c66.sqlite3`
+- source backup SHA-256: `70cc55a34f6fdf97609f0593e13227740fb3e887052a629e3b7d8712a9f54e8b`
+- PostgreSQL: `ordivon_host_stage_r1.host_retired_final_20260912`
+- Tasks/streams: **2,025**
+- Board messages: **15,640**
+- Events: **14,417**
+- object refs: **44,414**
+- event object refs: **30,854**
+- News editions/publications: **14 / 14**
+- row/digest equivalence: **PASS**
+- dangling Board replies: **0**
+- event payload-edge violations: **0**
+- event/stream-head violations: **0**
+- news-head mismatches: **0**
+- task-projection/head violations: **0**
+
+Machine-readable receipt: `evidence/host-v1-final-pg-archive-20260913.json`. The schema truth role remains `migration-evidence-not-authority`; the retired Host tree and retirement receipt remain the historical authority boundary.
