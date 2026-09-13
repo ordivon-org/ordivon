@@ -160,6 +160,22 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         for value in receipt['artifactOwnedAuthorities'].values():
             path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
 
+    def test_frozen_aseprite_game_consumer_smoke_separates_native_and_game_owned_metadata(self):
+        receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-aseprite-horizontal-sheet-r1.json').read_text())
+        self.assertEqual(receipt['standing'],'CONSUMER_SOURCE_TO_RUNTIME_DERIVATIVE_PASS')
+        self.assertEqual(len(receipt['subjects']),2)
+        by={x['asset']:x for x in receipt['subjects']}
+        self.assertTrue(by['expression']['retainedNativeMetadata']['exactlyEqualsNativeExport'])
+        self.assertEqual(by['specialists']['callerOwnedMetadata']['authority'],'Game')
+        self.assertEqual(by['specialists']['callerOwnedMetadata']['artifactInterpretation'],'NOT_CLAIMED')
+        self.assertTrue(all(x['nativeDeterministicExport']=='PASS' for x in receipt['subjects']))
+        self.assertTrue(all(x['derivedPngProfileStatus']=='PASS' for x in receipt['subjects']))
+        self.assertTrue(all(x['runtimeDerivative']['sha256']==x['derivativeIdentity']['generatedPngSha256'] for x in receipt['subjects']))
+        for value in receipt['artifactOwnedAuthorities'].values():
+            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        for x in receipt['subjects']:
+            c=x['contract'];self.assertEqual(sha(ROOT/c['relativePath']),c['sha256'],c['relativePath'])
+
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.bin"; subject.write_bytes(b"x")

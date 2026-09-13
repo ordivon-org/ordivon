@@ -355,9 +355,10 @@
       ],
       "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
       "currentProfiles": [
-        "design-2d-tiled-tmj-object-map-r1"
+        "design-2d-tiled-tmj-object-map-r1",
+        "design-2d-aseprite-horizontal-sheet-r1"
       ],
-      "localToolStanding": "TILED_NATIVE_ROUNDTRIP_CROSS_FORMAT_AND_RASTER_READBACK_PROVEN"
+      "localToolStanding": "TILED_NATIVE_ROUNDTRIP_PLUS_ASEPRITE_MANAGED_DETERMINISTIC_EXPORT_PROVEN"
     },
     {
       "id": "design-3d",

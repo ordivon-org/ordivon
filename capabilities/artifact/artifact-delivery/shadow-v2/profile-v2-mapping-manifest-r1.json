@@ -1,7 +1,7 @@
 {
-  "fullRegression": "266 tests / 264 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "273 tests / 271 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 21,
+  "mappingCount": 22,
   "mappings": [
     {
       "family": "text-document",
@@ -120,6 +120,16 @@
       "profileId": "dataset-parquet-flat-r1",
       "source": "artifact-delivery/shadow-profiles/dataset-parquet-flat-r1.json",
       "sourceDigest": "447a7d273860cdd5149d938dfc483d9385d1921aadbd1a09f17d7ab22e42d40e",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-2d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-2d-aseprite-horizontal-sheet-r1-v2.json",
+      "mappedDigest": "284f7333b13901ed8f6ffaecb9f0e043cae2b7cdacd01f4461582030d7eb9cdd",
+      "profileId": "design-2d-aseprite-horizontal-sheet-r1",
+      "source": "artifact-delivery/shadow-profiles/design-2d-aseprite-horizontal-sheet-r1.json",
+      "sourceDigest": "46bd8616089362182b5f0b9ebdd23370fbe40e2ed881591327aed8d0a50f8744",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },

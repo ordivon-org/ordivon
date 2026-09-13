@@ -27,6 +27,7 @@ The adapter admits only an explicit R1 route whose profile has exactly one `LOCA
 - `geospatial-geopackage-point-r1`
 - `moving-image-matroska-ffv1-v3-r1`
 - `design-2d-tiled-tmj-object-map-r1`
+- `design-2d-aseprite-horizontal-sheet-r1`
 - `design-3d-glb-static-mesh-r1`
 - `web-archive-warc-response-r1`
 - `message-internet-text-r1`

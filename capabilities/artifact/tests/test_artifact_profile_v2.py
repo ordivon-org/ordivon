@@ -148,6 +148,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertEqual(mapped['objectContract'],source['objectContract'])
         self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
 
+    def test_design2d_aseprite_shadow_maps_native_exporter_and_object_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/design-2d-aseprite-horizontal-sheet-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'design-2d')
+        self.assertEqual(mapped['classification']['format']['name'],'Aseprite (.ase/.aseprite)')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'native-consumer')
+
     def test_design2d_tiled_shadow_maps_native_authority_and_object_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/design-2d-tiled-tmj-object-map-r1.json').read_text())
         mapped=MODULE.map_shadow(source)

@@ -21,6 +21,7 @@ VALIDATOR_BY_PROFILE = {
     "moving-image-matroska-ffv1-v3-r1": "scripts/artifact_moving_image.py",
     "geospatial-geopackage-point-r1": "scripts/artifact_geospatial.py",
     "design-2d-tiled-tmj-object-map-r1": "scripts/artifact_tiled.py",
+    "design-2d-aseprite-horizontal-sheet-r1": "scripts/artifact_aseprite.py",
     "design-3d-glb-static-mesh-r1": "scripts/artifact_design3d.py",
     "software-release-oci-image-r1": "scripts/artifact_software_release.py",
     "web-archive-warc-response-r1": "scripts/artifact_web_archive.py",

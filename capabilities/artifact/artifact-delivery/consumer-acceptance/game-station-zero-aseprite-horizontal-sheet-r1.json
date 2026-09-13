@@ -1,0 +1,133 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/design-2d-aseprite-local-r1.json",
+      "sha256": "828a47f6cd9512621420d16c87c41ea63044382f8f0f27fa4d2201afb2f50113",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "profile": {
+      "id": "design-2d-aseprite-horizontal-sheet-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/design-2d-aseprite-horizontal-sheet-r1-v2.json",
+      "sha256": "284f7333b13901ed8f6ffaecb9f0e043cae2b7cdacd01f4461582030d7eb9cdd",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_aseprite",
+      "relativePath": "scripts/artifact_aseprite.py",
+      "sha256": "97327dd1b2f6f26f97d80becd65d97ac10dd289900aeff3fc359599db73cc7ff"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "c25af2f4c39ffac4ac1ef86115319529f2357f65",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "purpose": "Station Zero v3 editable sprite sources and runtime PNG derivatives",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "14dfc8cf479468025ba786f5451df36ce91bfd58"
+  },
+  "id": "game-station-zero-aseprite-horizontal-sheet-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "Artifact does not interpret idle/move/impact as Game semantics; those tag meanings remain Game-owned.",
+    "Artifact does not interpret engineer/medic/security or actor identity in rescue-specialists.json; that file is caller-owned Game metadata.",
+    "This does not graduate Profile v2 from shadow to production.",
+    "This does not establish artistic quality, gameplay suitability, rights, or reproducibility under a different Aseprite binary."
+  ],
+  "observedAt": "2026-09-13",
+  "runtimeEvidence": {
+    "jobId": "job-01a09a74-9e5e-7403-b79c-040959595711",
+    "operationDigest": "sha256:95bdbd1a0210b6115b869bdc26696fd1a43c8cf8ebd4ed1b8cb6004b723a92b9"
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_SOURCE_TO_RUNTIME_DERIVATIVE_PASS",
+  "subjects": [
+    {
+      "asset": "expression",
+      "contract": {
+        "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-expression-aseprite-sheet-r1.json",
+        "sha256": "c71c060f368232a2637a0e3e028cb1dfd6a7dd5ed5292379a900ec0a60a48688"
+      },
+      "derivativeIdentity": {
+        "expectedNativeMetadataSha256": "0fdadf83d876b77e774e085dbd7a8ee50336a333e082f833360a8ca666f32189",
+        "expectedPngSha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5",
+        "failures": [],
+        "generatedNativeMetadataSha256": "0fdadf83d876b77e774e085dbd7a8ee50336a333e082f833360a8ca666f32189",
+        "generatedPngSha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5",
+        "status": "PASS"
+      },
+      "derivedPngProfileStatus": "PASS",
+      "nativeDeterministicExport": "PASS",
+      "nativeFacts": {
+        "format": "RGBA8888",
+        "frameCount": 3,
+        "height": 24,
+        "tagNames": [
+          "idle",
+          "move",
+          "impact"
+        ],
+        "width": 72
+      },
+      "retainedNativeMetadata": {
+        "exactlyEqualsNativeExport": true,
+        "relativePath": "experiments/station-zero-v3/assets/rescue-expression.json",
+        "sha256": "0fdadf83d876b77e774e085dbd7a8ee50336a333e082f833360a8ca666f32189"
+      },
+      "runtimeDerivative": {
+        "relativePath": "experiments/station-zero-v3/web/assets/rescue-expression.png",
+        "sha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5"
+      },
+      "serviceRequestDigest": "e211955b887928bf2f58bb174731020a2f86eaaf48df0b159e1ecf2bd908a1a8",
+      "source": {
+        "relativePath": "experiments/station-zero-v3/assets/rescue-expression.aseprite",
+        "sha256": "abb853bd3c04ddffb87b36e5d3d80e9557883c34a08a31c8b730617c5d2104e2"
+      }
+    },
+    {
+      "asset": "specialists",
+      "callerOwnedMetadata": {
+        "artifactInterpretation": "NOT_CLAIMED",
+        "authority": "Game",
+        "nativeMetadataSha256": "70a566907617626cd87f70b0cdbb7353173753cdd023ba580bcf743bd6841eaf",
+        "relativePath": "experiments/station-zero-v3/assets/rescue-specialists.json",
+        "sha256": "8fbd96d1eba4a02c0abc234c2e7c5aee81e9187c20a1736e834c0146cf0c9f17"
+      },
+      "contract": {
+        "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-specialists-aseprite-sheet-r1.json",
+        "sha256": "5177f83fadc69974824ecf514dd334225cc3bbc065c48df8abd374db23a0beac"
+      },
+      "derivativeIdentity": {
+        "expectedNativeMetadataSha256": "70a566907617626cd87f70b0cdbb7353173753cdd023ba580bcf743bd6841eaf",
+        "expectedPngSha256": "f7e2f2c6f41055e618cc1e572a060bee112a9a848fa50910121341f9682842d9",
+        "failures": [],
+        "generatedNativeMetadataSha256": "70a566907617626cd87f70b0cdbb7353173753cdd023ba580bcf743bd6841eaf",
+        "generatedPngSha256": "f7e2f2c6f41055e618cc1e572a060bee112a9a848fa50910121341f9682842d9",
+        "status": "PASS"
+      },
+      "derivedPngProfileStatus": "PASS",
+      "nativeDeterministicExport": "PASS",
+      "nativeFacts": {
+        "format": "RGBA8888",
+        "frameCount": 1,
+        "height": 24,
+        "tagNames": [],
+        "width": 72
+      },
+      "runtimeDerivative": {
+        "relativePath": "experiments/station-zero-v3/web/assets/rescue-specialists.png",
+        "sha256": "f7e2f2c6f41055e618cc1e572a060bee112a9a848fa50910121341f9682842d9"
+      },
+      "serviceRequestDigest": "0bd4d4b809d62d8249b9d880584d153a895741f7d5df043f730090e1b040120d",
+      "source": {
+        "relativePath": "experiments/station-zero-v3/assets/rescue-specialists.aseprite",
+        "sha256": "ca9962d66c64c0036bb615d89492cf5063da878d414daf32cff5c6b1615b473c"
+      }
+    }
+  ],
+  "workstationBinding": {
+    "bindingDigest": "sha256:46b347973d9eb5f4d89db82235262912c836dee56fb5ec1b78cc23f08b72e42b",
+    "equipmentId": "game-aseprite-e1",
+    "executableSha256": "f7a08c602b4d62616769e88b1896082ae50d8033ebcb75cca3fa7b284a57aac7"
+  }
+}
