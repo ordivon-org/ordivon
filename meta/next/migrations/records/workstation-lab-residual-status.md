@@ -1,7 +1,7 @@
 # Workstation lab residual status
 
 - Source: `/root/workstation-lab`
-- Current observed source revision after Agent Automation contraction: `7a376d1bbe0df3aadf193a3e2e1f4812f86175b2`
+- Current observed source revision after observability contraction: `614354078b770d4905059003103fb285ef1aad50`
 - Assessed: 2026-09-14
 - Disposition: **RETAIN_RESIDUAL_CONTAINER / CONTINUE_RESPONSIBILITY_EXTRACTION / DO_NOT_REACTIVATE_WORKSTATION_E2E**
 
@@ -24,6 +24,12 @@ After that activation the current Agent Automation MCP, Temporal worker, and Bro
 
 The separate self-built `codex-harness-mcp` / `codex-exec-server` systemd path was inactive, disabled and consumer-free. Its local units were removed; see `migrations/records/codex-harness-mcp-retirement.md`. Native Codex CLI remains independent. A Cloudflare hostname-specific remote exposure remains an explicit cleanup HOLD.
 
+## Observability residual — extracted
+
+Workstation no longer owns Gatus desired state and no longer runs a bespoke continuity observer. Operations v2 now owns the local Gatus deployment lifecycle/configuration while Gatus remains the upstream implementation. The direct A/B black-box target probes moved to Gatus; Cloudflare A/B connector metrics moved to Operations Prometheus; direct-route source convergence remains in the provider lifecycle.
+
+The Workstation source subtraction at `614354078b770d4905059003103fb285ef1aad50` removed 781 lines of current monitoring/deployment ownership while retaining historical Network continuity source/evidence for reopen purposes. A post-retirement Workstation convergence plan reported zero file drift, zero service-policy drift and zero network-realization drift and contained no retired continuity surface.
+
 ## What still prevents full workstation-lab archive
 
 The remaining repository includes at least:
@@ -31,7 +37,7 @@ The remaining repository includes at least:
 - current Agent Automation source/release authority;
 - Workstation recovery/backup retained as `RETAIN_MINIMAL_RECOVERY`: immutable generation execution plus Restic/semantic recovery; Operations owns only the generic scheduler substrate;
 - node/equipment/Windows substrate residuals whose current consumers must be proven before migration/deletion;
-- historical Network research/recovery tools that may now be superseded by Network v2 but require bounded consumer/service proof;
+- legacy Network wrappers remain a bounded migration HOLD only where real consumers remain: Network v2 is current authority; Finance still has real egress/exterior consumers; the bespoke `netcontinuity` observer is retired after Gatus/Prometheus substitution; Research has no standing source dependency and its one-off GROBID `surfpath` acquisition is provenance only;
 - historical creative/company/artifact material, much of which is provenance rather than runtime authority;
 - Finance-related residuals, explicitly out of scope for the current cleanup round.
 
