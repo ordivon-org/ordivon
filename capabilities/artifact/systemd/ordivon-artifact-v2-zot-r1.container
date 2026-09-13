@@ -1,0 +1,21 @@
+[Unit]
+Description=Local OCI 1.1 registry for Ordivon Artifact Build and Delivery
+After=local-fs.target
+
+[Container]
+ContainerName=ordivon-artifact-v2-zot-r1
+Image=ghcr.io/project-zot/zot-linux-amd64@sha256:95a837a0afacf5b7edc0c92493f04beee6891989b8d2fd50a00cf65a1e6d4fd5
+Pull=never
+Network=host
+ReadOnly=true
+Volume=/etc/ordivon/artifact-v2/zot/config.json:/etc/zot/config.json:ro
+Volume=/root/.local/share/ordivon-workstation/artifact-v2-zot-r1:/var/lib/zot:rw
+Exec=serve /etc/zot/config.json
+
+[Service]
+Restart=on-failure
+RestartSec=2s
+TimeoutStartSec=30s
+
+[Install]
+WantedBy=multi-user.target
