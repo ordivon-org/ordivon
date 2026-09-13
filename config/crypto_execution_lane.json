@@ -6,10 +6,12 @@
   ],
   "clockQuality": {
     "exchangeServerTimeCalibrationRequired": true,
+    "gateConfig": "config/clock_quality_gate.json",
     "priceRequestMaxRttMsForCrossVenueComparison": 1500,
     "privateExecutionHostClockMaxAbsOffsetMs": 1000,
     "privateExecutionRule": "blocked until a fresh measurement passes the host-clock gate",
     "publicShadowTimingClock": "monotonic",
+    "standing": "BLOCK_PRIVATE_EXECUTION",
     "venueClockAgreementMaxMsForCrossVenueComparison": 250
   },
   "demoExecutionAllowed": false,
