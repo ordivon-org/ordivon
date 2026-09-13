@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+import ssl
+import urllib.parse
+import urllib.request
+from datetime import date, datetime, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from market_capital.causal_shadow import evaluate_causal_shadow, decision_session_date
+
+repo = Path(__file__).resolve().parents[1]
+cfg = json.loads((repo / "config/causal_shadow.json").read_text())
+target = repo / "wave_b/fixtures/wave_a_target_portfolio.json"
+actual_target_digest = hashlib.sha256(target.read_bytes()).hexdigest()
+expected_target_digest = cfg["decisionArtifact"]["targetPortfolioSha256"]
+if actual_target_digest != expected_target_digest:
+    raise SystemExit(f"target portfolio digest mismatch: {actual_target_digest}")
+
+decision = datetime.fromisoformat(cfg["decisionArtifact"]["commitTimeUtc"].replace("Z", "+00:00"))
+session_tz = ZoneInfo(cfg["sessionTimezone"])
+boundary_date = decision_session_date(decision, cfg["sessionTimezone"])
+now = datetime.now(timezone.utc)
+current_session_date = now.astimezone(session_tz).date()
+
+root = repo / ".artifacts/wave-b-m5"
+raw_root = root / "raw"
+raw_root.mkdir(parents=True, exist_ok=True)
+ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"
+headers = {"User-Agent": ua, "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9"}
+
+series_dates: dict[str, set[date]] = {}
+series_evidence = []
+# Query from the decision session date. The causal evaluator independently rejects same-day bars.
+from_date = boundary_date.isoformat()
+to_date = current_session_date.isoformat()
+for item in cfg["requiredSeries"]:
+    symbol = item["symbol"]
+    params = urllib.parse.urlencode({
+        "assetclass": item["assetClass"],
+        "fromdate": from_date,
+        "todate": to_date,
+        "limit": 100,
+    })
+    url = cfg["endpointTemplate"].format(symbol=symbol) + "?" + params
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=30, context=ssl.create_default_context()) as response:
+        payload = response.read()
+        status = response.status
+    if status != 200:
+        raise SystemExit(f"{symbol}: HTTP {status}")
+    raw_path = raw_root / f"{symbol.lower()}.json"
+    raw_path.write_bytes(payload)
+    document = json.loads(payload)
+    if ((document.get("status") or {}).get("rCode")) != 200:
+        raise SystemExit(f"{symbol}: provider status {document.get('status')}")
+    rows = ((((document.get("data") or {}).get("tradesTable")) or {}).get("rows")) or []
+    dates: set[date] = set()
+    for row in rows:
+        d = datetime.strptime(row["date"], "%m/%d/%Y").date()
+        if d in dates:
+            raise SystemExit(f"{symbol}: duplicate daily row {d}")
+        dates.add(d)
+    series_dates[symbol] = dates
+    series_evidence.append({
+        "symbol": symbol,
+        "assetClass": item["assetClass"],
+        "requestUrl": url,
+        "httpStatus": status,
+        "rawSha256": hashlib.sha256(payload).hexdigest(),
+        "rowCount": len(rows),
+        "sessionDates": [d.isoformat() for d in sorted(dates)],
+    })
+
+result = evaluate_causal_shadow(
+    decision_boundary=decision,
+    session_timezone=cfg["sessionTimezone"],
+    series_dates=series_dates,
+)
+result.update({
+    "schemaVersion": 1,
+    "kind": "ordivon.market-capital.causal-shadow-status",
+    "observedAt": now.isoformat(),
+    "decisionBoundaryUtc": decision.isoformat(),
+    "decisionSessionDate": boundary_date.isoformat(),
+    "currentSessionDate": current_session_date.isoformat(),
+    "provider": cfg["provider"],
+    "targetPortfolioSha256": actual_target_digest,
+    "fix44Required": bool(cfg["fix44Required"]),
+    "executionFeasibilityRequired": bool(cfg["executionFeasibilityRequired"]),
+    "brokerCredentialsUsed": False,
+    "externalFinancialWritesAttempted": False,
+    "series": series_evidence,
+})
+(root / "status.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+print(json.dumps(result, sort_keys=True))
