@@ -1,11 +1,11 @@
 {
-  "baseRevision": "859f5ff18eef355179f74eafd62947596f4f0cf4",
+  "baseRevision": "cc88221d682af05ee0d327c278773be33dd707bf",
   "coverage": {
-    "isolatedValidatorImplementations": 12,
-    "liveProvenShadowBindings": 12,
-    "normalizedProfiles": 20,
-    "representedFamilies": 14,
-    "taxonomyFamilies": 14
+    "isolatedValidatorImplementations": 13,
+    "liveProvenShadowBindings": 13,
+    "normalizedProfiles": 21,
+    "representedFamilies": 15,
+    "taxonomyFamilies": 15
   },
   "excludedInfrastructure": [
     {
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 10,
+        "profilesWithExplicitObjectContract": 11,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 12,
+        "profilesWithExplicitNonClaims": 13,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 20
+        "profilesWithoutEncodedSequence": 21
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -658,6 +658,143 @@
       "validatorImplementation": {
         "path": "scripts/artifact_dataset.py",
         "sha256": "815772088be21f7ba11870d3d75e24d34543dcea28014684ba9ad7d9ef19ca20"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/design-2d/design-2d-tiled-tmj-object-map-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "nativeEditorExporter",
+          "nativeRasterizer"
+        ],
+        "proofKeys": [
+          "currentGameArtifactSha256",
+          "currentGameCanonicalJsonSha256",
+          "currentGameRevision",
+          "externalTilesetReference",
+          "focusedTests",
+          "gameDirectSmokeOperationDigest",
+          "gameDirectSmokeRuntimeJobId",
+          "legacyClassField",
+          "nativeCrossFormatRoundTrip",
+          "nativeTmjRoundTrip",
+          "rasterReadback",
+          "wrongCanonicalDigest"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/design-2d-tiled-tmj-local-r1.json",
+          "sha256": "e1a9132fb35aa272a6a4efa20d9f2cac04e64b425ec57b7a3f2e5b1f156552df"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "Tiled finite orthogonal object-layer-only map subset",
+        "family": "design-2d",
+        "format": {
+          "mediaType": "application/json",
+          "name": "Tiled JSON Map (TMJ)"
+        },
+        "purposes": [
+          "editable-authoring",
+          "game-runtime-source",
+          "exchange"
+        ],
+        "representation": "structured-map-authoring-source"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "Tiled-native-editor-exporter",
+          "nativeEditorExporter",
+          "nativeRasterizer"
+        ],
+        "requiredEvidence": [
+          "boundedObjectMap",
+          "canonicalSemanticIdentity",
+          "contractSchema",
+          "nativeCrossFormatRoundTrip",
+          "nativeRasterReadback",
+          "nativeTmjRoundTrip"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "design-2d-tiled-tmj-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/design-2d-tiled-tmj-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/design-2d-tiled-tmj-contract-v1.schema.json",
+          "sha256": "475eaa064a204d6eb3bc50b5361427959f47aa040bda78045ab27f742f63b58f"
+        }
+      },
+      "profileId": "design-2d-tiled-tmj-object-map-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "Game meaning of layer names, object type strings, custom properties or topology",
+          "tile-layer, tileset, image-layer, group-layer, world-file or infinite-map support",
+          "external templates, external tilesets or file-valued property resolution",
+          "visual or artistic correctness of the map",
+          "runtime navigation, collision, pathfinding or gameplay correctness",
+          "full Tiled format support outside the bounded R1 subset"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-2d-tiled-tmj-object-map-r1-v2.json",
+        "sha256": "9852ae811fc691dc1159cb084aebcd9bdb359cb15780e4a71852f9e60d86b772"
+      },
+      "standards": [
+        "Tiled JSON Map Format / TMX Map Format semantics",
+        "format-specific native authoring contracts"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "Tiled-native-editor-exporter",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "boundedObjectMap": {
+          "claim": "JSON structure stays inside the finite orthogonal object-layer-only R1 subset without external resources",
+          "required": true
+        },
+        "canonicalSemanticIdentity": {
+          "claim": "canonical sorted JSON SHA-256 equals the object contract expectation",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "TMJ object-map contract validates under design-2d-tiled-tmj-contract-v1",
+          "required": true
+        },
+        "nativeCrossFormatRoundTrip": {
+          "claim": "Tiled TMJ→TMX→TMJ preserves the exact canonical JSON semantics",
+          "required": true
+        },
+        "nativeRasterReadback": {
+          "claim": "tmxrasterizer renders a non-empty RGBA image at the contract-derived map pixel dimensions",
+          "required": true
+        },
+        "nativeTmjRoundTrip": {
+          "claim": "Tiled 1.12.2 loads the source and exports semantically identical TMJ JSON",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_tiled.py",
+        "sha256": "d0d1628c49c4653eb2752998462f98ed60ece07a4b3db341f56cf4e5085f954f"
       }
     },
     {
@@ -2614,11 +2751,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "89762e4a9432d2509f6370efe0548532fcc26bc54ef06ec468ddad992fc2008f"
+      "sha256": "4794a75c051428386e2af80bb78fe52a30902de21b3f874e1e6b7d0f195e6b80"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "fd70005e2872c1c27a232a1bb5ba7901989ae0188809e832ff29de376e09031e"
+      "sha256": "1da5b7b3f839f744da75ffc7e5bc273f6ed6d0ac80b386a2c53a2e7df0efd02a"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"

@@ -104,7 +104,7 @@ OCI/ORAS/OPA/Sigstore/in-toto already give Artifact a mature release envelope. A
 
 ## Coverage result
 
-The production profile library currently covers **5 of the 14 operational families**:
+The production profile library currently covers **5 of the 15 operational families**:
 
 - text document;
 - fixed document;

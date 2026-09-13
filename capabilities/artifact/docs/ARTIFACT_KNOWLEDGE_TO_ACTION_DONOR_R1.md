@@ -12,7 +12,7 @@ It is intentionally a **migration reference**, not a new universal ontology and 
 
 The donor is extracted from Artifact state at base revision:
 
-`859f5ff18eef355179f74eafd62947596f4f0cf4`
+`cc88221d682af05ee0d327c278773be33dd707bf`
 
 Its two primary semantic source authorities are digest-bound in the manifest:
 
@@ -25,11 +25,11 @@ Every referenced profile, object-contract schema, live capability binding, isola
 
 R1 proves extraction coverage for:
 
-- 14 taxonomy families;
-- 14 represented families;
-- 20 normalized profile-v2 entries;
-- 12 live-proven shadow capability bindings;
-- 12 isolated profile validator implementations across 9 standards-first families.
+- 15 taxonomy families;
+- 15 represented families;
+- 21 normalized profile-v2 entries;
+- 13 live-proven shadow capability bindings;
+- 13 isolated profile validator implementations across 10 standards-first families.
 
 The donor therefore covers all currently operational Artifact families without requiring a new Artifact-specific runtime or ontology.
 
@@ -110,15 +110,15 @@ The donor does not duplicate live proof data. Instead it retains exact reference
 
 The donor records current absences rather than fabricating replacements:
 
-- **10/20** profiles have an explicit object contract; **10/20** do not.
-- **12/20** profiles have explicit `nonClaims`; **8/20** do not.
-- **0/20** profiles encode a universal execution sequence; all 20 remain `NOT_ENCODED_DO_NOT_INFER`.
+- **11/21** profiles have an explicit object contract; **10/21** do not.
+- **13/21** profiles have explicit `nonClaims`; **8/21** do not.
+- **0/21** profiles encode a universal execution sequence; all 21 remain `NOT_ENCODED_DO_NOT_INFER`.
 
 These are migration observations, not defects automatically repaired by the donor. In particular, the older production-v1 lineage should not be retroactively assigned epistemic boundaries or object contracts that were never actually proven.
 
 ## Validator boundary
 
-Nine newer standards-first families now expose twelve isolated profile-validator implementations because Audio has independent FLAC, RIFF/WAVE PCM, and Ogg/Vorbis profiles while Still Image has separate PNG and static SVG profiles. These are preserved as candidate validator capabilities:
+Ten newer standards-first families now expose thirteen isolated profile-validator implementations: Audio has independent FLAC, RIFF/WAVE PCM, and Ogg/Vorbis profiles; Still Image has separate PNG and static SVG profiles; Design/2D adds a Tiled-native object-map validator. These are preserved as candidate validator capabilities:
 
 - Dataset;
 - Still Image;
@@ -136,12 +136,12 @@ The mixed legacy `scripts/artifact_delivery.py` is explicitly **not** promoted a
 
 Runtime regression job:
 
-`job-01a09a53-2287-70b2-97c1-40a919218804`
+`job-01a09a6c-b3af-79e2-8d2e-fa3626708928`
 
 Final matrix:
 
 - donor focused tests: **10/10 PASS**;
-- full Artifact tests: **259 total / 257 PASS / 2 existing conditional skips / 0 failures**.
+- full Artifact tests: **266 total / 264 PASS / 2 existing conditional skips / 0 failures**.
 
 The exact verification receipt is frozen in `artifact-delivery/donor-r1/verification-r1.json` and binds the donor manifest SHA-256 plus the Runtime operation digest.
 
