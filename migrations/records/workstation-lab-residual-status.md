@@ -29,7 +29,7 @@ The separate self-built `codex-harness-mcp` / `codex-exec-server` systemd path w
 The remaining repository includes at least:
 
 - current Agent Automation source/release authority;
-- Workstation recovery/backup semantics and immutable-generation tooling still requiring a separate owner/cutover analysis;
+- Workstation recovery/backup retained as `RETAIN_MINIMAL_RECOVERY`: immutable generation execution plus Restic/semantic recovery; Operations owns only the generic scheduler substrate;
 - node/equipment/Windows substrate residuals whose current consumers must be proven before migration/deletion;
 - historical Network research/recovery tools that may now be superseded by Network v2 but require bounded consumer/service proof;
 - historical creative/company/artifact material, much of which is provenance rather than runtime authority;
