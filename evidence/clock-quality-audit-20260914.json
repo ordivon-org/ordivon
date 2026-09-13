@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.clock-quality-audit",
+  "standing": "FAIL_PRIVATE_EXECUTION_CLOCK_GATE",
+  "measurementMethod": "one-shot NTP client queries using ephemeral UDP sockets plus read-only Windows Time service/task/event inspection",
+  "measurementBatches": [
+    {
+      "successfulSources": [
+        {"host":"time.cloudflare.com","rttMs":245.38326263427734,"serverMinusLocalMidpointMs":2912.853717803955},
+        {"host":"time.google.com","rttMs":321.5675354003906,"serverMinusLocalMidpointMs":2899.308919906616}
+      ],
+      "timeouts": ["pool.ntp.org"]
+    },
+    {
+      "successfulSources": [
+        {"host":"time.apple.com","rttMs":140.4860019683838,"serverMinusLocalMidpointMs":2906.2342643737793},
+        {"host":"time.aws.com","rttMs":303.0853271484375,"serverMinusLocalMidpointMs":2916.301965713501}
+      ],
+      "timeouts": ["time.cloudflare.com","time.google.com","time.windows.com"]
+    }
+  ],
+  "multiSourceAgreement": true,
+  "successfulSourceCount": 4,
+  "observedAbsOffsetMsMin": 2899.308919906616,
+  "observedAbsOffsetMsMax": 2916.301965713501,
+  "successfulSourceSpreadMs": 16.993045806884766,
+  "direction": "LOCAL_CLOCK_BEHIND",
+  "directionStableAcrossAudits": false,
+  "priorAudit": {
+    "path": "evidence/clock-quality-audit-20260913.json",
+    "direction": "LOCAL_CLOCK_AHEAD",
+    "observedAbsOffsetMsMax": 2676.945209503174
+  },
+  "rootCause": {
+    "windowsTimeService": {"status":"STOPPED","startType":"DEMAND_START"},
+    "configuredNtpServer": "time.windows.com,0x9",
+    "ntpClientEnabled": true,
+    "timeServiceEvent37": "NtpClient observed invalid time data from time.windows.com",
+    "operationalSourceObserved": "Local CMOS Clock",
+    "operationalLastSuccessfulSyncObserved": "1601-01-01T00:00:00Z",
+    "vmicTimeProvider": "not applicable in current non-Hyper-V host environment",
+    "runtimeElevatedWindowsAuthority": "UNAVAILABLE_FROM_CURRENT_PROVIDER_TOKEN",
+    "limitedStartService": "ACCESS_DENIED",
+    "limitedForceSynchronizeTask": "ACCESS_DENIED",
+    "adminRemediationRequired": true
+  },
+  "wsl": {
+    "networkingMode": "mirrored",
+    "independentNtpDaemonRunning": false,
+    "independentNtpDaemonAllowed": false
+  },
+  "consequence": {
+    "publicShadowAllowed": true,
+    "privateAccountDataAdmission": false,
+    "demoExecutionAdmission": false,
+    "liveExecutionAdmission": false,
+    "systemTimeMutationAttempted": false,
+    "applicationTimestampCompensationImplemented": false
+  },
+  "conclusion": "Clock error is not a stable application offset. Its sign reversed between adjacent audits while absolute error remained about 2.6-2.9 seconds. Private/demo/live timing remains fail-closed until Windows time authority is repaired through an administrator-authorized path and fresh multi-source measurements pass the 1000 ms gate."
+}
