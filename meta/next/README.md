@@ -2,6 +2,18 @@
 
 Ordivon Next is a greenfield rebuild focused on one outcome: turning mature human knowledge and existing capabilities into verified real-world results.
 
+## One-sentence definition
+
+**Ordivon turns real problems into verified outcomes by selecting and composing mature knowledge, methods, agents and tools instead of rebuilding them.**
+
+The problem Ordivon solves is not generic execution. It is the higher-level problem of deciding what knowledge and capabilities a real problem requires, composing the right providers, carrying the work through, and establishing with evidence that the intended real-world outcome was actually achieved.
+
+Its minimal problem-solving kernel is:
+
+`KNOW -> DECIDE -> ACT -> VERIFY -> LEARN`
+
+The fuller common loop below expands this kernel when problem definition and explicit planning are useful.
+
 ## Core loop
 
 `KNOW -> DEFINE -> DECIDE -> PLAN -> ACT -> VERIFY -> LEARN`
