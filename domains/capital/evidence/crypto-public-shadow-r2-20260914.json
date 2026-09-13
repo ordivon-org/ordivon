@@ -1,0 +1,404 @@
+{
+  "artifactDigests": {
+    "candidateAttemptsSha256": "61d162be8431e7123f784f3378ce1ba218df5051262e3ca3b0a1db0fc8e2ad9b",
+    "discoverySha256": "953142180bea6d112df311bc7793a8063cee3e247b97cb3e4d9dd5611b52da25",
+    "streamingSha256": "2a04fb4bccb38fdca5a477d3f23818c68db4899019c58e3f6c7b2859b376d03d"
+  },
+  "brokerCredentialsUsed": false,
+  "conclusion": {
+    "crossVenueObservationClaimScope": "bounded public BBO observation only",
+    "persistentDualVenuePublicStreamingQualified": true,
+    "privateExecutionQualified": false,
+    "reasonPrivateStillBlocked": "independent clock-quality gate remains failed",
+    "repeatabilityQualified": true
+  },
+  "demoExecutionAttempted": false,
+  "externalFinancialWritesAttempted": false,
+  "kind": "ordivon.market-capital.crypto-public-shadow-r2-evidence",
+  "liveExecutionAttempted": false,
+  "privateAccountDataUsed": false,
+  "schemaVersion": 1,
+  "selectedCandidate": "hk-hkg-openvpn-udp-native-a",
+  "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_WORKLOAD_FAILOVER",
+  "streaming": {
+    "acceptedSnapshotCount": 4,
+    "allMeasuredQualified": true,
+    "brokerCredentialsUsed": false,
+    "claimBoundary": "bounded public streaming quote observation only; no alpha, arbitrage, fill, fee, transfer, ownership, or execution claim",
+    "demoExecutionAttempted": false,
+    "endpoints": {
+      "binance": "wss://data-stream.binance.vision/stream?streams=btcusdt@ticker/ethusdt@ticker",
+      "okx": "wss://ws.okx.com:8443/ws/v5/public"
+    },
+    "externalFinancialWritesAttempted": false,
+    "hostWallClockUsedForAdmission": false,
+    "kind": "ordivon.market-capital.crypto-public-streaming-r2",
+    "liveExecutionAttempted": false,
+    "measured": [
+      {
+        "comparisons": {
+          "BTC": {
+            "binanceAsk": "77266.01000000",
+            "binanceBid": "77266.00000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "-0.001294",
+            "crossBuyOkxSellBinanceGrossBps": "-0.012942",
+            "midDifferenceBpsOkxMinusBinance": "0.005824",
+            "okxAsk": "77266.1",
+            "okxBid": "77266",
+            "receiveTimeDeltaMs": 781.63914,
+            "sourceTimeDeltaMs": 783
+          },
+          "ETH": {
+            "binanceAsk": "2504.00000000",
+            "binanceBid": "2503.99000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "0.998403",
+            "crossBuyOkxSellBinanceGrossBps": "-1.078163",
+            "midDifferenceBpsOkxMinusBinance": "1.038341",
+            "okxAsk": "2504.26",
+            "okxBid": "2504.25",
+            "receiveTimeDeltaMs": 730.137444,
+            "sourceTimeDeltaMs": 739
+          }
+        },
+        "qualified": true,
+        "quotes": {
+          "BINANCE:BTC": {
+            "ask": "77266.01000000",
+            "asset": "BTC",
+            "bid": "77266.00000000",
+            "recvMonoNs": 17190605539665,
+            "recvWallNs": 1789318144890981020,
+            "sourceTimeMs": 1789318142015,
+            "venue": "BINANCE"
+          },
+          "BINANCE:ETH": {
+            "ask": "2504.00000000",
+            "asset": "ETH",
+            "bid": "2503.99000000",
+            "recvMonoNs": 17190605563740,
+            "recvWallNs": 1789318144891005516,
+            "sourceTimeMs": 1789318142015,
+            "venue": "BINANCE"
+          },
+          "OKX:BTC": {
+            "ask": "77266.1",
+            "asset": "BTC",
+            "bid": "77266",
+            "recvMonoNs": 17189823900525,
+            "recvWallNs": 1789318144109341780,
+            "sourceTimeMs": 1789318141232,
+            "venue": "OKX"
+          },
+          "OKX:ETH": {
+            "ask": "2504.26",
+            "asset": "ETH",
+            "bid": "2504.25",
+            "recvMonoNs": 17189875426296,
+            "recvWallNs": 1789318144160868002,
+            "sourceTimeMs": 1789318141276,
+            "venue": "OKX"
+          }
+        },
+        "reason": "PASS",
+        "receiveTimeSpanLimitMs": 1200,
+        "receiveTimeSpanMs": 781.663215,
+        "role": "MEASURED",
+        "sequence": 2,
+        "sourceTimeSpanLimitMs": 1200,
+        "sourceTimeSpanMs": 783
+      },
+      {
+        "comparisons": {
+          "BTC": {
+            "binanceAsk": "77266.01000000",
+            "binanceBid": "77266.00000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "-0.001294",
+            "crossBuyOkxSellBinanceGrossBps": "-0.012942",
+            "midDifferenceBpsOkxMinusBinance": "0.005824",
+            "okxAsk": "77266.1",
+            "okxBid": "77266",
+            "receiveTimeDeltaMs": 505.85662,
+            "sourceTimeDeltaMs": 503
+          },
+          "ETH": {
+            "binanceAsk": "2504.00000000",
+            "binanceBid": "2503.99000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "0.998403",
+            "crossBuyOkxSellBinanceGrossBps": "-1.078163",
+            "midDifferenceBpsOkxMinusBinance": "1.038341",
+            "okxAsk": "2504.26",
+            "okxBid": "2504.25",
+            "receiveTimeDeltaMs": 270.643578,
+            "sourceTimeDeltaMs": 270
+          }
+        },
+        "qualified": true,
+        "quotes": {
+          "BINANCE:BTC": {
+            "ask": "77266.01000000",
+            "asset": "BTC",
+            "bid": "77266.00000000",
+            "recvMonoNs": 17191605659407,
+            "recvWallNs": 1789318145891100802,
+            "sourceTimeMs": 1789318143015,
+            "venue": "BINANCE"
+          },
+          "BINANCE:ETH": {
+            "ask": "2504.00000000",
+            "asset": "ETH",
+            "bid": "2503.99000000",
+            "recvMonoNs": 17191606019250,
+            "recvWallNs": 1789318145891460936,
+            "sourceTimeMs": 1789318143016,
+            "venue": "BINANCE"
+          },
+          "OKX:BTC": {
+            "ask": "77266.1",
+            "asset": "BTC",
+            "bid": "77266",
+            "recvMonoNs": 17191099802787,
+            "recvWallNs": 1789318145385244072,
+            "sourceTimeMs": 1789318142512,
+            "venue": "OKX"
+          },
+          "OKX:ETH": {
+            "ask": "2504.26",
+            "asset": "ETH",
+            "bid": "2504.25",
+            "recvMonoNs": 17191335375672,
+            "recvWallNs": 1789318145620816847,
+            "sourceTimeMs": 1789318142746,
+            "venue": "OKX"
+          }
+        },
+        "reason": "PASS",
+        "receiveTimeSpanLimitMs": 1200,
+        "receiveTimeSpanMs": 506.216463,
+        "role": "MEASURED",
+        "sequence": 3,
+        "sourceTimeSpanLimitMs": 1200,
+        "sourceTimeSpanMs": 504
+      },
+      {
+        "comparisons": {
+          "BTC": {
+            "binanceAsk": "77266.01000000",
+            "binanceBid": "77266.00000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "-0.001294",
+            "crossBuyOkxSellBinanceGrossBps": "-0.012942",
+            "midDifferenceBpsOkxMinusBinance": "0.005824",
+            "okxAsk": "77266.1",
+            "okxBid": "77266",
+            "receiveTimeDeltaMs": 195.588709,
+            "sourceTimeDeltaMs": 193
+          },
+          "ETH": {
+            "binanceAsk": "2504.00000000",
+            "binanceBid": "2503.99000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "0.998403",
+            "crossBuyOkxSellBinanceGrossBps": "-1.078163",
+            "midDifferenceBpsOkxMinusBinance": "1.038341",
+            "okxAsk": "2504.26",
+            "okxBid": "2504.25",
+            "receiveTimeDeltaMs": 610.132461,
+            "sourceTimeDeltaMs": 609
+          }
+        },
+        "qualified": true,
+        "quotes": {
+          "BINANCE:BTC": {
+            "ask": "77266.01000000",
+            "asset": "BTC",
+            "bid": "77266.00000000",
+            "recvMonoNs": 17192606099294,
+            "recvWallNs": 1789318146891540649,
+            "sourceTimeMs": 1789318144015,
+            "venue": "BINANCE"
+          },
+          "BINANCE:ETH": {
+            "ask": "2504.00000000",
+            "asset": "ETH",
+            "bid": "2503.99000000",
+            "recvMonoNs": 17192606124883,
+            "recvWallNs": 1789318146891566659,
+            "sourceTimeMs": 1789318144015,
+            "venue": "BINANCE"
+          },
+          "OKX:BTC": {
+            "ask": "77266.1",
+            "asset": "BTC",
+            "bid": "77266",
+            "recvMonoNs": 17192410510585,
+            "recvWallNs": 1789318146695951439,
+            "sourceTimeMs": 1789318143822,
+            "venue": "OKX"
+          },
+          "OKX:ETH": {
+            "ask": "2504.26",
+            "asset": "ETH",
+            "bid": "2504.25",
+            "recvMonoNs": 17191995992422,
+            "recvWallNs": 1789318146281433547,
+            "sourceTimeMs": 1789318143406,
+            "venue": "OKX"
+          }
+        },
+        "reason": "PASS",
+        "receiveTimeSpanLimitMs": 1200,
+        "receiveTimeSpanMs": 610.132461,
+        "role": "MEASURED",
+        "sequence": 4,
+        "sourceTimeSpanLimitMs": 1200,
+        "sourceTimeSpanMs": 609
+      }
+    ],
+    "privateAccountDataUsed": false,
+    "protocol": {
+      "allStreamsMustAdvanceBetweenAcceptedSnapshots": true,
+      "binanceStreams": [
+        "btcusdt@ticker",
+        "ethusdt@ticker"
+      ],
+      "measuredRoundCountRequired": 3,
+      "okxChannel": "bbo-tbt",
+      "receiveTimeSpanMaxMs": 1200,
+      "sourceTimeSpanMaxMs": 1200,
+      "warmupRoundCount": 1
+    },
+    "samePersistentConnections": true,
+    "schemaVersion": 1,
+    "sessionDurationMs": 4885.682797,
+    "sessionStartedWallNs": 1789318142007756789,
+    "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW",
+    "warmup": [
+      {
+        "comparisons": {
+          "BTC": {
+            "binanceAsk": "77266.01000000",
+            "binanceBid": "77266.00000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "-0.001294",
+            "crossBuyOkxSellBinanceGrossBps": "-0.012942",
+            "midDifferenceBpsOkxMinusBinance": "0.005824",
+            "okxAsk": "77266.1",
+            "okxBid": "77266",
+            "receiveTimeDeltaMs": 114.254846,
+            "sourceTimeDeltaMs": 112
+          },
+          "ETH": {
+            "binanceAsk": "2503.92000000",
+            "binanceBid": "2503.91000000",
+            "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
+            "crossBuyBinanceSellOkxGrossBps": "1.317933",
+            "crossBuyOkxSellBinanceGrossBps": "-1.397618",
+            "midDifferenceBpsOkxMinusBinance": "1.357874",
+            "okxAsk": "2504.26",
+            "okxBid": "2504.25",
+            "receiveTimeDeltaMs": 107.159268,
+            "sourceTimeDeltaMs": 109
+          }
+        },
+        "qualified": true,
+        "quotes": {
+          "BINANCE:BTC": {
+            "ask": "77266.01000000",
+            "asset": "BTC",
+            "bid": "77266.00000000",
+            "recvMonoNs": 17189604317074,
+            "recvWallNs": 1789318143889758068,
+            "sourceTimeMs": 1789318141014,
+            "venue": "BINANCE"
+          },
+          "BINANCE:ETH": {
+            "ask": "2503.92000000",
+            "asset": "ETH",
+            "bid": "2503.91000000",
+            "recvMonoNs": 17189604365125,
+            "recvWallNs": 1789318143889806700,
+            "sourceTimeMs": 1789318141015,
+            "venue": "BINANCE"
+          },
+          "OKX:BTC": {
+            "ask": "77266.1",
+            "asset": "BTC",
+            "bid": "77266",
+            "recvMonoNs": 17189490062228,
+            "recvWallNs": 1789318143775503533,
+            "sourceTimeMs": 1789318140902,
+            "venue": "OKX"
+          },
+          "OKX:ETH": {
+            "ask": "2504.26",
+            "asset": "ETH",
+            "bid": "2504.25",
+            "recvMonoNs": 17189497205857,
+            "recvWallNs": 1789318143782647342,
+            "sourceTimeMs": 1789318140906,
+            "venue": "OKX"
+          }
+        },
+        "reason": "PASS",
+        "receiveTimeSpanLimitMs": 1200,
+        "receiveTimeSpanMs": 114.302897,
+        "role": "WARMUP",
+        "sequence": 1,
+        "sourceTimeSpanLimitMs": 1200,
+        "sourceTimeSpanMs": 113
+      }
+    ]
+  },
+  "summary": {
+    "allMeasuredQualified": true,
+    "hostWallClockUsedForAdmission": false,
+    "maxMeasuredReceiveTimeSpanMs": 781.663215,
+    "maxMeasuredSourceTimeSpanMs": 783.0,
+    "measuredRoundCount": 3,
+    "receiveTimeSpanLimitMs": 1200,
+    "sessionDurationMs": 4885.682797,
+    "sourceTimeSpanLimitMs": 1200,
+    "warmupRoundCount": 1
+  },
+  "transport": {
+    "candidateAttempts": [
+      {
+        "elapsedMs": 30587.032756,
+        "ingress": "native-a",
+        "node": "hk-hkg",
+        "protocol": "openvpn-udp",
+        "returnCode": 0,
+        "standing": "PASS_WORKLOAD_QUALIFIED",
+        "streamingStanding": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW"
+      }
+    ],
+    "observationDigest": "sha256:d6723e434b989c7ccfe2c96ee094a059b5d1dc64fc6fc6e74119c180825f5ed1",
+    "pathDigest": "sha256:51f3d29e93186b2dcc039345a8f8203ce18fe434a6881c75a1d46f319486292d",
+    "requiredTargets": [
+      "binance",
+      "okx"
+    ],
+    "selectedPath": {
+      "configDigest": "sha256:b9f54bea730c71aa30f59926ae387c0721859bd798776bf5e82c23ab7e8176f4",
+      "endpointHost": "hk-hkg.prod.surfshark.com",
+      "endpointIp": "149.40.54.72",
+      "endpointPort": 1194,
+      "ingress": {
+        "name": "native-a",
+        "routePreference": 10201,
+        "routeProfile": "A",
+        "routeTable": 201,
+        "routeUser": "cloudflared-direct-a"
+      },
+      "node": "hk-hkg",
+      "pathDigest": "sha256:51f3d29e93186b2dcc039345a8f8203ce18fe434a6881c75a1d46f319486292d",
+      "protocol": "openvpn-udp",
+      "providerBinaryDigest": "sha256:bf5b950133ca13e04db74dba51dac66b6f546a9c1764d70d954592070a4a1688",
+      "providerDigest": "sha256:3cf5263c630168cbd1a67e68afa129df1f69feae82b3880b247d63e4edd2c694"
+    }
+  }
+}

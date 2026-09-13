@@ -18,8 +18,8 @@ REQUESTS = {
     "okx_btc": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
     "okx_eth": "https://www.okx.com/api/v5/market/ticker?instId=ETH-USDT",
     "okx_time": "https://www.okx.com/api/v5/public/time",
-    "binance_books": "https://api.binance.com/api/v3/ticker/bookTicker?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D",
-    "binance_time": "https://api.binance.com/api/v3/time",
+    "binance_books": "https://data-api.binance.vision/api/v3/ticker/bookTicker?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D",
+    "binance_time": "https://data-api.binance.vision/api/v3/time",
 }
 
 
