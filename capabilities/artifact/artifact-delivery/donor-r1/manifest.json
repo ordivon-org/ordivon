@@ -1,9 +1,9 @@
 {
-  "baseRevision": "c9b412048a0512031e3f3dc3d628f53e74bd70e6",
+  "baseRevision": "859f5ff18eef355179f74eafd62947596f4f0cf4",
   "coverage": {
-    "isolatedValidatorImplementations": 11,
-    "liveProvenShadowBindings": 11,
-    "normalizedProfiles": 19,
+    "isolatedValidatorImplementations": 12,
+    "liveProvenShadowBindings": 12,
+    "normalizedProfiles": 20,
     "representedFamilies": 14,
     "taxonomyFamilies": 14
   },
@@ -61,14 +61,14 @@
       "id": "object-contract-coverage",
       "observation": {
         "profilesWithExplicitObjectContract": 10,
-        "profilesWithoutExplicitObjectContract": 9
+        "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     },
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 11,
+        "profilesWithExplicitNonClaims": 12,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 19
+        "profilesWithoutEncodedSequence": 20
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -2232,6 +2232,133 @@
       }
     },
     {
+      "candidateProblemKey": "artifact/still-image/still-image-svg-static-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "browserMatrix",
+          "referenceRenderer",
+          "xmlParser"
+        ],
+        "proofKeys": [
+          "currentGameResults",
+          "currentGameRevision",
+          "doctype",
+          "externalImageReference",
+          "focusedTests",
+          "gameSmokeOperationDigest",
+          "gameSmokeRuntimeJobId",
+          "mismatchedViewBox",
+          "script"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/still-image-svg-static-local-r1.json",
+          "sha256": "b9212f4786c0c90b49896962969da916528d1ec0f00fdcae93f21defbdb64a8c"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "W3C SVG bounded static primitive display/exchange profile",
+        "family": "still-image",
+        "format": {
+          "mediaType": "image/svg+xml",
+          "name": "SVG"
+        },
+        "purposes": [
+          "display",
+          "game-runtime",
+          "exchange"
+        ],
+        "representation": "vector"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "browserMatrix",
+          "reference-plus-browser-renderer-matrix",
+          "referenceRenderer",
+          "xmlParser"
+        ],
+        "requiredEvidence": [
+          "boundedStaticProfile",
+          "browserTargetMatrix",
+          "referenceRender",
+          "rendererDivergenceObservation",
+          "xmlWellFormedness"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": null,
+      "profileId": "still-image-svg-static-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "complete SVG 1.1 or SVG 2 language conformance",
+          "cross-renderer pixel-exact raster equivalence",
+          "dynamic SVG, scripting, animation, CSS cascade or external-resource behavior",
+          "accessibility quality or text alternative suitability",
+          "semantic or artistic correctness of the image",
+          "print color fidelity or physical-size accuracy",
+          "rights or licensing validity"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/still-image-svg-static-r1-v2.json",
+        "sha256": "6626826a17441fc7e348d166ee7b73e6b13c66b75488a24d67e0cca737abe453"
+      },
+      "standards": [
+        "W3C PNG Third Edition",
+        "W3C SVG 2",
+        "ISO/IEC JPEG-family standards",
+        "TIFF family where profile-selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "reference-plus-browser-renderer-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "boundedStaticProfile": {
+          "claim": "the SVG namespace, root geometry, element set, attributes and references remain inside the bounded static-safe R1 subset",
+          "required": true
+        },
+        "browserTargetMatrix": {
+          "claim": "pinned Chromium and Firefox decode the exact SVG bytes as images with matching intrinsic dimensions and non-empty rasterized alpha",
+          "parameters": {
+            "minimumIndependentImplementations": 2
+          },
+          "required": true
+        },
+        "referenceRender": {
+          "claim": "librsvg renders the exact SVG bytes to a non-empty RGBA PNG at the observed intrinsic raster dimensions",
+          "required": true
+        },
+        "rendererDivergenceObservation": {
+          "claim": "browser raster checksums and non-transparent-pixel counts are recorded so implementation differences are visible rather than silently normalized",
+          "required": true
+        },
+        "xmlWellFormedness": {
+          "claim": "libxml2 xmllint parses the exact SVG bytes as well-formed XML with network access disabled",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_svg.py",
+        "sha256": "1d704dd89b91bc7344619eeb84edaee366c5aaf0c0bae906ebed7fb36d662bba"
+      }
+    },
+    {
       "candidateProblemKey": "artifact/web-archive/web-archive-warc-response-r1",
       "capabilityBinding": {
         "bindingKeys": [
@@ -2487,11 +2614,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "e409b37be8f40835b147fc25517f52dcbe68ea93eac847cfc6aed56243c9bb1e"
+      "sha256": "89762e4a9432d2509f6370efe0548532fcc26bc54ef06ec468ddad992fc2008f"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "fa4d0bba990157349b2f3cdf56b13443e8517fbabb5f818b7ca97abc7b39acf6"
+      "sha256": "fd70005e2872c1c27a232a1bb5ba7901989ae0188809e832ff29de376e09031e"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
