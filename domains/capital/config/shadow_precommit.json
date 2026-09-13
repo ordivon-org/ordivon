@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.shadow-order-precommit",
+  "precommitTimeUtc": "2026-09-13T09:39:11Z",
+  "decisionBoundaryUtc": "2026-09-12T14:59:29Z",
+  "targetPortfolioSha256": "137265667683455c302adff94466eaf38444ed7d51b5959c4ad065505792c14d",
+  "pricingProvider": "Nasdaq",
+  "pricingSessionDate": "2026-09-11",
+  "pricingField": "daily_close",
+  "pricingStanding": "PRE_DECISION_PROVIDER_ORIGIN_SNAPSHOT",
+  "sizingOwner": "QuantConnect LEAN CalculateOrderQuantity",
+  "executionCashBufferWeight": 0.01,
+  "fixProtocol": "FIX.4.4",
+  "fixMessageType": "D",
+  "fixOrdType": "MARKET",
+  "fixTimeInForce": "AT_THE_OPENING",
+  "executionTrigger": "first_eligible_post_decision_session_open",
+  "planOnly": true,
+  "brokerCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false
+}
