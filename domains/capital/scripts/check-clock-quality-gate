@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$repo/config/clock_quality_gate.json" "$repo/evidence/clock-quality-audit-20260913.json" <<'PY'
+import json,sys
+from pathlib import Path
+cfg=json.loads(Path(sys.argv[1]).read_text())
+ev=json.loads(Path(sys.argv[2]).read_text())
+assert cfg['standing']=='BLOCK_PRIVATE_EXECUTION'
+assert cfg['privateExecutionMaxAbsOffsetMs']==1000
+assert cfg['wslIndependentNtpDaemonAllowed'] is False
+assert cfg['applicationClockForgeryAllowed'] is False
+assert ev['standing']=='FAIL_PRIVATE_EXECUTION_CLOCK_GATE'
+assert ev['multiSourceAgreement'] is True
+assert ev['observedAbsOffsetMsMax'] > cfg['privateExecutionMaxAbsOffsetMs']
+assert ev['windowsNativeInspection']['standing']=='BLOCKED_VSOCK_RUNTIME_CONTEXT'
+print(json.dumps({
+  'standing':'CLOCK_GATE_BLOCKING_PRIVATE_EXECUTION',
+  'observedAbsOffsetMsMax':ev['observedAbsOffsetMsMax'],
+  'limitMs':cfg['privateExecutionMaxAbsOffsetMs'],
+  'publicShadowAllowed':True,
+  'privateExecutionAllowed':False,
+  'wslNtpDaemonAllowed':False
+},sort_keys=True))
+PY
