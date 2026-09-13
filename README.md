@@ -29,4 +29,4 @@ Crypto data transport is now venue-specific: OKX uses the qualified Nautilus nat
 
 Crypto Public Shadow R2 now passes repeated persistent public streaming: OKX `bbo-tbt` plus Binance market-data-only `@ticker` streams produced one warm-up and three measured coherent snapshots on a fresh HK/UDP path, with all measured source/receive spans below the frozen 1200 ms limits. This does not relax the failed private-execution clock gate.
 
-Crypto Stream Resilience R3 adds fail-closed missing/stale/time-divergence health semantics and a dual-venue reconnect harness. Live reconnect graduation is currently blocked before workload by Surfpath control-plane serialization; the state is exported into the existing Operations-v2 Prometheus/Grafana stack without enabling private/demo/live execution.
+Crypto Stream Resilience R3 adds fail-closed missing/stale/time-divergence health semantics and a dual-venue reconnect harness. Live reconnect qualification now passes for both OKX and Binance after fresh fault injection on the qualified HK/UDP/native-a path; the state is exported into the existing Operations-v2 Prometheus/Grafana stack without enabling private/demo/live execution.

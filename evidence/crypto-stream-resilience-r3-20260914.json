@@ -1,29 +1,161 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.crypto-stream-resilience-r3-evidence",
-  "standing": "BLOCKED_SURFPATH_CONTROL_PLANE_CONTENTION",
-  "localFaultModelQualified": true,
-  "localFaultModel": {
-    "missingStreamFailsClosed": true,
-    "staleStreamFailsClosed": true,
-    "timeDivergenceFailsClosed": true,
-    "bothVenueReconnectHarnessImplemented": true
+  "acceptance": {
+    "allMeasuredQualified": true,
+    "measuredRoundsRequiredPerVenue": 3,
+    "receiveTimeSpanMaxMs": 1200,
+    "sourceTimeSpanMaxMs": 1200
   },
-  "liveReconnectQualified": false,
-  "liveReconnectAttempt": {
-    "workloadStarted": false,
-    "reason": "fresh Surfpath discovery attempts were serialized behind an existing global mutation owner and timed out before a VPN path was admitted",
-    "ownTimedOutOrphanUnitCleaned": true,
-    "unrelatedActiveSurfpathWorkInterrupted": false
-  },
-  "controlPlaneObservation": {
-    "surfpathMutationSerialized": true,
-    "globalOwnerPreserved": true,
-    "otherProjectWaiterPreserved": true
+  "artifactDigests": {
+    "binanceSha256": "1a3c420dc8b07eda173f17cccc1dcffc8b3708f49b8ee4eb89436eba1468aeac",
+    "discoverySha256": "b91d9b1fe7c4eb04acbfe5f3060fd89b58e49a5743d7f314dd31ea6350dd0e7e",
+    "okxSha256": "d6f06d225297353af434165796ffd6ab9f5830fc31e3b83221c52040f0582600",
+    "sessionResultSha256": "5924595e2923a1a2ce341c94b956e25438ec6b2ae7493deb640c66daedf91ce8"
   },
   "brokerCredentialsUsed": false,
-  "privateAccountDataUsed": false,
-  "externalFinancialWritesAttempted": false,
+  "claimBoundary": "public market-data reconnect resilience only; does not qualify private account access, order execution, settlement, or financial writes",
   "demoExecutionAttempted": false,
-  "liveExecutionAttempted": false
+  "externalFinancialWritesAttempted": false,
+  "kind": "ordivon.market-capital.crypto-stream-resilience-r3-evidence",
+  "liveExecutionAttempted": false,
+  "liveReconnectQualified": true,
+  "localFaultModel": {
+    "bothVenueReconnectHarnessImplemented": true,
+    "missingStreamFailsClosed": true,
+    "staleStreamFailsClosed": true,
+    "timeDivergenceFailsClosed": true
+  },
+  "localFaultModelQualified": true,
+  "privateAccountDataUsed": false,
+  "schemaVersion": 1,
+  "selectedCandidate": "hk-hkg-openvpn-udp-native-a",
+  "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_FAILOVER",
+  "transport": {
+    "candidateAttempts": [
+      {
+        "elapsedMs": 44216.824023,
+        "ingress": "native-a",
+        "node": "hk-hkg",
+        "protocol": "openvpn-udp",
+        "returnCode": 0,
+        "sessionStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+        "standing": "PASS_WORKLOAD_QUALIFIED"
+      }
+    ],
+    "observationDigest": "sha256:3b1a3103336b80d7b7aa7c13433a39acbacec4407519807fe82dd46ff29c5a99",
+    "pathDigest": "sha256:51f3d29e93186b2dcc039345a8f8203ce18fe434a6881c75a1d46f319486292d",
+    "requiredTargets": [
+      "binance",
+      "okx"
+    ]
+  },
+  "venues": {
+    "binance": {
+      "controlEvents": [
+        {
+          "generation": 1,
+          "monoNs": 564531565137,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        },
+        {
+          "generation": 1,
+          "monoNs": 564867054137,
+          "type": "CONNECTED",
+          "venue": "BINANCE"
+        },
+        {
+          "generation": 1,
+          "monoNs": 566250820925,
+          "type": "INJECTED_DISCONNECT",
+          "venue": "BINANCE"
+        },
+        {
+          "generation": 2,
+          "monoNs": 567807348643,
+          "type": "CONNECTED",
+          "venue": "BINANCE"
+        }
+      ],
+      "measured": [
+        {
+          "receiveTimeSpanMs": 282.704094,
+          "sourceTimeSpanMs": 281
+        },
+        {
+          "receiveTimeSpanMs": 497.565109,
+          "sourceTimeSpanMs": 499
+        },
+        {
+          "receiveTimeSpanMs": 505.940386,
+          "sourceTimeSpanMs": 503
+        }
+      ],
+      "reconnectLatencyMs": 1556.527718,
+      "reconnectedGeneration": 2,
+      "recovery": {
+        "receiveTimeSpanMs": 322.723491,
+        "sourceTimeSpanMs": 322
+      },
+      "sessionDurationMs": 9860.421957,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+      "warmup": {
+        "receiveTimeSpanMs": 134.152967,
+        "sourceTimeSpanMs": 161
+      }
+    },
+    "okx": {
+      "controlEvents": [
+        {
+          "generation": 1,
+          "monoNs": 556904770715,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        },
+        {
+          "generation": 1,
+          "monoNs": 557188099997,
+          "type": "CONNECTED",
+          "venue": "BINANCE"
+        },
+        {
+          "generation": 1,
+          "monoNs": 558295608478,
+          "type": "INJECTED_DISCONNECT",
+          "venue": "OKX"
+        },
+        {
+          "generation": 2,
+          "monoNs": 559658115134,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        }
+      ],
+      "measured": [
+        {
+          "receiveTimeSpanMs": 130.503917,
+          "sourceTimeSpanMs": 158
+        },
+        {
+          "receiveTimeSpanMs": 189.198349,
+          "sourceTimeSpanMs": 212
+        },
+        {
+          "receiveTimeSpanMs": 31.420324,
+          "sourceTimeSpanMs": 23
+        }
+      ],
+      "reconnectLatencyMs": 1362.506656,
+      "reconnectedGeneration": 2,
+      "recovery": {
+        "receiveTimeSpanMs": 770.106178,
+        "sourceTimeSpanMs": 790
+      },
+      "sessionDurationMs": 7516.648571,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+      "warmup": {
+        "receiveTimeSpanMs": 143.812212,
+        "sourceTimeSpanMs": 162
+      }
+    }
+  }
 }
