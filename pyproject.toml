@@ -3,7 +3,9 @@ name = "ordivon-market-capital-cleanroom"
 version = "0.1.0"
 description = "Standards-first clean-room Market Capital composition"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aiohttp>=3.14.3,<4",
+]
 
 [tool.uv]
 package = false
