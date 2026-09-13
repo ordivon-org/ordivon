@@ -1,0 +1,21 @@
+[Unit]
+Description=Ordivon Edge deferred Artifact garbage collection
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/root/.config/ordivon/secrets/cloudflare.json
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/root/projects/ordivon-operations-v2/providers/cloudflare
+ExecStart=/usr/local/sbin/ordivon-edge-gc --limit 100
+TimeoutStartSec=15min
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

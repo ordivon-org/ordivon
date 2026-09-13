@@ -29,6 +29,7 @@ Use mature upstream systems for generic operations capability. Keep Ordivon code
 - dependency update automation: Renovate
 - load testing: k6 when admitted
 - deterministic network fault injection: Toxiproxy
+- maintained Cloudflare Edge provider: `providers/cloudflare/` (provider source/install/service realization only; remote Cloudflare state and consumer semantics remain externally owned)
 
 ## Non-goals
 
@@ -49,6 +50,12 @@ Only three classes of custom behavior are expected to survive migration:
 3. **Cross-E2E handoff contracts** — explicit transfer between desired state, physical realization, Runtime execution truth, and owner verdict.
 
 See `docs/ARCHITECTURE.md` and `docs/MIGRATION_R1.md`.
+
+## Maintained provider implementations
+
+Operations may physically maintain a concrete provider implementation when there is a real local operational lifecycle to own: source upgrades, installation, systemd realization, policy/config materialization, rollback tooling, and health/SLO plumbing. This does **not** transfer provider-native remote truth or consuming-domain semantics into Operations.
+
+The first retained provider is [`providers/cloudflare/`](providers/cloudflare/), absorbed on 2026-09-13 from the short-lived standalone `ordivon-cloudflare-provider` extraction. Cloudflare remains authoritative for Worker/R2/request/receipt state; callers remain authoritative for intent, authorization, and semantic verification.
 
 ## Shared PostgreSQL backup substrate
 
